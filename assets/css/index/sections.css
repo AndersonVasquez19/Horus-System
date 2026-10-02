@@ -1,0 +1,330 @@
+
+.estadisticas {
+    padding: 7rem 2.5rem;
+    background: linear-gradient(180deg, var(--gray-light) 0%, #FFFFFF 100%);
+    position: relative;
+}
+
+.estadisticas::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--accent-gold) 50%, transparent 100%);
+}
+
+.estadisticas-contenedor {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 2.5rem;
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.stat {
+    background: var(--white);
+    padding: 3.5rem 2.5rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--gray-medium);
+    box-shadow: 0 4px 20px rgba(10, 37, 64, 0.06);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent-gold) 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(201, 169, 97, 0.03) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.stat:hover::before {
+    transform: scaleX(1);
+}
+
+.stat:hover::after {
+    opacity: 1;
+}
+
+.stat:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 16px 48px rgba(10, 37, 64, 0.15);
+    border-color: var(--accent-gold);
+}
+
+.icono {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 2rem;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--accent-gold) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 25px rgba(10, 37, 64, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.stat:hover .icono {
+    transform: scale(1.1);
+    box-shadow: 0 12px 35px rgba(10, 37, 64, 0.3);
+}
+
+.icono i {
+    font-size: 2.5rem;
+    color: var(--white);
+}
+
+.stat h3 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 1.2rem;
+    letter-spacing: -1px;
+    position: relative;
+    z-index: 1;
+}
+
+.stat p {
+    font-size: 0.98rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    font-weight: 400;
+    position: relative;
+    z-index: 1;
+}
+
+.convenios {
+    padding: 7rem 2.5rem;
+    background: var(--white);
+    border-top: 1px solid var(--gray-medium);
+    position: relative;
+}
+
+.convenios::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--accent-gold) 50%, transparent 100%);
+}
+
+.convenios-contenedor {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.convenios-titulo {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 4.5rem;
+    letter-spacing: -1px;
+    position: relative;
+    padding-bottom: 1.8rem;
+}
+
+.convenios-titulo::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--accent-gold), #d4af37, var(--accent-gold), var(--primary-dark));
+    background-size: 200% auto;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(201, 169, 97, 0.5);
+    animation: lineShine 2.5s linear infinite;
+}
+
+@keyframes lineShine {
+    0% { background-position: 0% center; box-shadow: 0 0 8px rgba(201, 169, 97, 0.5); }
+    50% { background-position: 100% center; box-shadow: 0 0 18px rgba(201, 169, 97, 0.9), 0 0 30px rgba(201, 169, 97, 0.4); }
+    100% { background-position: 200% center; box-shadow: 0 0 8px rgba(201, 169, 97, 0.5); }
+}
+
+.convenios-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 3rem;
+}
+
+.convenio-item {
+    background: var(--gray-light);
+    padding: 3.5rem 2.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--gray-medium);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 220px;
+    position: relative;
+    overflow: hidden;
+}
+
+.convenio-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(10, 37, 64, 0.02) 0%, rgba(201, 169, 97, 0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.convenio-item:hover::before {
+    opacity: 1;
+}
+
+.convenio-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(10, 37, 64, 0.12);
+    border-color: var(--accent-gold);
+    background: var(--white);
+}
+
+.convenio-item img {
+    max-width: 100%;
+    max-height: 140px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: grayscale(100%) opacity(0.6);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
+}
+
+.convenio-item:hover img {
+    filter: grayscale(0%) opacity(1);
+    transform: scale(1.08);
+}
+
+@media (max-width: 968px) {
+    .estadisticas,
+    .convenios {
+        padding: 4rem 1.5rem;
+    }
+    
+    .estadisticas-contenedor {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 2rem;
+    }
+    
+    .stat {
+        padding: 2.5rem 1.8rem;
+    }
+    
+    .convenios-titulo {
+        font-size: 2.2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .stat h3 {
+        font-size: 2.3rem;
+    }
+    
+    .convenios-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 2rem;
+    }
+    
+    .convenio-item {
+        padding: 2.5rem 1.8rem;
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 640px) {
+    .estadisticas,
+    .convenios {
+        padding: 3rem 1rem;
+    }
+    
+    .estadisticas-contenedor {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .stat {
+        padding: 2rem 1.5rem;
+    }
+    
+    .icono {
+        width: 70px;
+        height: 70px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .icono i {
+        font-size: 2rem;
+    }
+    
+    .stat h3 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat p {
+        font-size: 0.9rem;
+    }
+    
+    .convenios-titulo {
+        font-size: 1.8rem;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.2rem;
+    }
+    
+    .convenios-titulo::after {
+        width: 80px;
+        height: 3px;
+    }
+    
+    .convenios-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .convenio-item {
+        padding: 2rem 1.5rem;
+        min-height: 150px;
+    }
+    
+    .convenio-item img {
+        max-height: 100px;
+    }
+}
+

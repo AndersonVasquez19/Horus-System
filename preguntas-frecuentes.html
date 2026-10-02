@@ -1,0 +1,289 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preguntas Frecuentes - Horus Group SRL</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/index/styles.css">
+    <link rel="stylesheet" href="assets/css/index/navigation.css">
+    <link rel="stylesheet" href="assets/css/index/footer.css">
+    <link rel="stylesheet" href="assets/css/preguntas-frecuentes/preguntas-frecuentes.css">
+</head>
+
+<body>
+
+    <header class="navegacion">
+        <div class="nav-overlay"></div>
+        <nav class="nav-pill">
+            <div class="nav-left">
+                <div class="logo">
+                    <img src="assets/images/tecnologias/logo-horus.png" alt="Logo Horus Digital">
+                    <span>Horus Group SRL</span>
+                </div>
+            </div>
+
+            <button class="menu-toggle" aria-label="Abrir menú">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <ul class="nav-menu">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="quienes-somos.html">Quiénes Somos</a></li>
+
+                <li class="menu-desplegable">
+                    <a href="#tecnologias">Tecnologías</a>
+                    <ul class="submenu">
+                        <li><a href="cableado-estructurado.html">Cableado Estructurado</a></li>
+                        <li><a href="camaras-seguridad.html">Cámaras de Seguridad</a></li>
+                        <li><a href="soporte-mantenimiento.html">Soporte y Mantenimiento</a></li>
+                    </ul>
+                </li>
+
+                <li class="menu-desplegable">
+                    <a href="#educacion">Educación</a>
+                    <ul class="submenu">
+                        <li><a href="asesoramiento.html">Asesoramiento</a></li>
+                        <li><a href="capacitaciones.html">Capacitaciones</a></li>
+                        <li><a href="cursos.html">Cursos</a></li>
+                    </ul>
+
+                </li>
+                <li><a href="market.html">Market</a></li>
+                <li><a href="galeria.html">Galería</a></li>
+                <li><a href="contactos.html">Contáctanos</a></li>
+            </ul>
+        </nav>
+    </header>
+
+
+    
+    <section class="faq-main">
+        <div class="faq-container">
+
+            <div class="no-results" id="noResults">
+                <i class="fas fa-search"></i>
+                No encontramos resultados para tu búsqueda.<br>
+                Prueba con otros términos o <a href="contactos.html" style="color: var(--accent-gold);">contáctanos
+                    directamente</a>.
+            </div>
+
+            <div class="faq-category-title fade-in" data-category="certificados">
+                <i><i class="fas fa-certificate" style="color:white;font-size:0.9rem"></i></i>
+                <h2>Certificados y Diplomas</h2>
+            </div>
+
+            <div class="faq-item fade-in" data-category="certificados"
+                data-question="qué pasa si perdí mi certificado y/o diploma y quiero solicitar uno nuevo">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">01</div>
+                    <div class="faq-question-text">¿Qué pasa si perdí mi certificado y/o diploma y quiero solicitar uno
+                        nuevo?</div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Puedes solicitar una reimpresión de tu certificado o diploma contactándonos directamente por
+                        <strong>correo electrónico</strong> o <strong>WhatsApp</strong>. Es posible que apliquen costos
+                        administrativos según el tipo de documento.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category-title fade-in" data-category="cursos">
+                <i><i class="fas fa-book-open" style="color:white;font-size:0.9rem"></i></i>
+                <h2>Cursos y Evaluaciones</h2>
+            </div>
+
+            <div class="faq-item fade-in" data-category="cursos"
+                data-question="cuáles son las fechas para rendir las evaluaciones de cursos asincrónicos">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">02</div>
+                    <div class="faq-question-text">¿Cuáles son las fechas para rendir las evaluaciones de cursos
+                        asincrónicos?</div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Las evaluaciones de cursos grabados se rinden en <strong>fechas fijas</strong> que comunicamos
+                        mensualmente por correo y redes sociales. Contáctanos para conocer el próximo calendario.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item fade-in" data-category="cursos"
+                data-question="si el curso es presencial o semipresencial y no fui a la parte práctica qué hago">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">03</div>
+                    <div class="faq-question-text">Si el curso es presencial o semipresencial y no fui a la parte
+                        práctica, ¿qué hago?</div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Debes comunicarte con nosotros <strong>antes de la siguiente sesión práctica</strong> para
+                        coordinar un proceso de recuperación o reprogramación, sujeto a disponibilidad.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category-title fade-in" data-category="compras">
+                <i><i class="fas fa-shopping-bag" style="color:white;font-size:0.9rem"></i></i>
+                <h2>Compras y Pagos</h2>
+            </div>
+
+            <div class="faq-item fade-in" data-category="compras"
+                data-question="compré un producto en la web y todavía no me llega qué debo hacer">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">04</div>
+                    <div class="faq-question-text">Compré un producto en la web y todavía no me llega, ¿qué debo hacer?
+                    </div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Escríbenos con tu <strong>número de pedido</strong> al correo o WhatsApp. Verificaremos el
+                        estado de tu envío y te daremos una solución en menos de <strong>24 horas hábiles</strong>.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item fade-in" data-category="compras"
+                data-question="emiten comprobantes de pago factura boleta">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">05</div>
+                    <div class="faq-question-text">¿Emiten comprobantes de pago?</div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Sí, emitimos <strong>boletas y facturas electrónicas</strong>. Al momento de tu compra puedes
+                        indicar si necesitas factura con los datos de tu empresa.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item fade-in" data-category="compras"
+                data-question="qué medios de pago aceptan yape plin tarjeta transferencia">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">06</div>
+                    <div class="faq-question-text">¿Qué medios de pago aceptan?</div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Aceptamos <strong>transferencias bancarias, Yape, Plin, tarjetas de crédito/débito</strong> y
+                        pago en efectivo en nuestra sede de Cajamarca.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category-title fade-in" data-category="atencion">
+                <i><i class="fas fa-headset" style="color:white;font-size:0.9rem"></i></i>
+                <h2>Atención Personalizada</h2>
+            </div>
+
+            <div class="faq-item fade-in" data-category="atencion"
+                data-question="deseas una atención más personalizada asesor reunión virtual">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <div class="faq-question-number">07</div>
+                    <div class="faq-question-text">¿Deseas una atención más personalizada?</div>
+                    <div class="faq-toggle-icon"><i class="fas fa-plus"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">
+                        Contáctanos directamente por <strong>WhatsApp</strong> o agenda una reunión virtual con uno de
+                        nuestros asesores. Estamos disponibles de <strong>lunes a viernes de 8am a 6pm</strong>.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="faq-cta">
+        <div class="faq-cta-content fade-in">
+            <h3>¿No encontraste lo que <span>buscabas?</span></h3>
+            <p>Nuestro equipo está disponible para resolver cualquier consulta de forma personalizada. No dudes en
+                contactarnos.</p>
+            <div class="faq-cta-buttons">
+                <a href="https://wa.me/51909999999" class="btn-gold" target="_blank">
+                    <i class="fab fa-whatsapp"></i>
+                    Escribir por WhatsApp
+                </a>
+                <a href="contactos.html" class="btn-outline">
+                    <i class="fas fa-envelope"></i>
+                    Enviar un mensaje
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contactos" class="footer">
+        <div class="footer-contenedor">
+            <div class="footer-grid">
+                <div class="footer-seccion">
+                    <div class="footer-logo">
+                        <img src="assets/images/index/logos/logo-horus.png" alt="Horus Group">
+                        <div class="footer-texto">
+                            <span>Horus Group SRL</span>
+                            <p class="ruc">RUC: 20611010977</p>
+                        </div>
+                    </div>
+                    <p>Comprometidos con la excelencia en la formación de los líderes del mañana.</p>
+                </div>
+                <div class="footer-seccion">
+                    <h4>TÉRMINOS Y CONDICIONES</h4>
+                    <ul>
+                        <li><a href="politicas-devolucion.html">POLÍTICAS DE DEVOLUCIÓN</a></li>
+                        <li><a href="politicas-privacidad.html">POLÍTICAS DE PRIVACIDAD</a></li>
+                        <li><a href="politicas-cookies.html">POLÍTICAS DE COOKIES</a></li>
+                        <li><a href="preguntas-frecuentes.html">PREGUNTAS FRECUENTES</a></li>
+                    </ul>
+                </div>
+                <div class="footer-seccion">
+                    <h4>Contactos</h4>
+                    <ul class="contacto-info">
+                        <li><i class="fas fa-phone"></i>+51 927 582 305</li>
+                        <li><i class="fas fa-envelope"></i>horusgroupcajamarca@gmail.com</li>
+                        <li><i class="fas fa-map-marker-alt"></i> Cajamarca - Peru</li>
+                    </ul>
+                </div>
+                <div class="footer-seccion">
+                    <h4>Síguenos</h4>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/share/174BEdCReB/" class="social-link facebook"><i
+                                class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.youtube.com/watch?v=mf2sVtzRAlI" class="social-link whatsapp"><i
+                                class="fab fa-whatsapp"></i></a>
+                        <a href="#" class="social-link youtube"><i class="fab fa-youtube"></i></a>
+                    </div>
+                    <a href="libro-reclamaciones.html" class="footer-libro-link">
+                        <div class="libro-link-icon"><i class="fas fa-book-open"></i></div>
+                        <div class="libro-link-texto">
+                            <strong>Libro de Reclamaciones</strong>
+                            <span>Ley N° 29571 – INDECOPI</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="footer-abajo">
+                <p>&copy; 2026 Horus Group. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+
+
+    <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="assets/js/navigation.js"></script>
+    <script src="assets/js/preguntas-frecuentes/preguntas-frecuentes.js"></script>
+</body>
+
+</html>

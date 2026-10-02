@@ -1,0 +1,490 @@
+
+.footer {
+    background: linear-gradient(135deg, #0A1929 0%, var(--primary-dark) 100%);
+    color: var(--white);
+    padding: 5rem 2rem 0;
+    border-top: 4px solid var(--accent-gold);
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-contenedor {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.2fr 1fr;
+    gap: 2.5rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.footer-seccion {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.footer-logo img {
+    height: 52px;
+    width: auto;
+    filter: brightness(1.15);
+    flex-shrink: 0;
+}
+
+.footer-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.footer-logo span {
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--white);
+    white-space: nowrap;
+}
+
+.footer-logo .ruc {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.footer-seccion p {
+    font-size: 0.96rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 400;
+}
+
+.footer-seccion h4 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.8rem;
+}
+
+.footer-seccion ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.footer-seccion ul li {
+    font-size: 0.94rem;
+}
+
+.footer-seccion ul li a {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+    position: relative;
+}
+
+.footer-seccion ul li a::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--accent-gold);
+    transition: width 0.3s ease;
+}
+
+.footer-seccion ul li a:hover {
+    color: var(--accent-gold);
+}
+
+.footer-seccion ul li a:hover::before {
+    width: 100%;
+}
+
+.contacto-info li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.contacto-info li i {
+    color: var(--accent-gold);
+    font-size: 1.05rem;
+    width: 22px;
+    flex-shrink: 0;
+}
+
+.social-links {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.social-link {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    text-decoration: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(201, 169, 97, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.social-link::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 100%;
+    height: 100%;
+    background: var(--accent-gold);
+    border-radius: 50%;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+.social-link:hover::before {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.social-link:hover {
+    border-color: var(--accent-gold);
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(201, 169, 97, 0.4);
+}
+
+.social-link i {
+    font-size: 1.1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.footer-abajo {
+    padding: 2.5rem 0;
+    text-align: center;
+}
+
+.footer-abajo p {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0;
+    font-weight: 400;
+}
+
+@media (max-width: 1100px) {
+    .footer {
+        padding: 4rem 1.5rem 0;
+    }
+
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2.5rem;
+        padding-bottom: 2.5rem;
+    }
+
+    .footer-logo span {
+        font-size: 1.1rem;
+        letter-spacing: 1.5px;
+    }
+
+    .footer-logo img {
+        height: 45px;
+    }
+}
+
+@media (max-width: 968px) {
+    .footer {
+        padding: 4rem 1.5rem 0;
+    }
+    
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2.5rem;
+        padding-bottom: 2.5rem;
+    }
+    
+    .footer-logo span {
+        font-size: 1.1rem;
+        letter-spacing: 1.5px;
+    }
+    
+    .footer-logo img {
+        height: 45px;
+    }
+}
+
+@media (max-width: 640px) {
+    .footer {
+        padding: 3rem 1rem 0;
+    }
+    
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        padding-bottom: 2rem;
+    }
+    
+    .footer-seccion {
+        text-align: center;
+        align-items: center;
+    }
+    
+    .footer-logo {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .footer-logo span {
+        font-size: 1rem;
+        letter-spacing: 1px;
+    }
+    
+    .footer-logo img {
+        height: 40px;
+    }
+    
+    .contacto-info li {
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+    
+    .social-link {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .footer-abajo {
+        padding: 2rem 0;
+    }
+    
+    .footer-abajo p {
+        font-size: 0.85rem;
+    }
+}
+
+
+.reclamaciones-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 1rem;
+}
+
+.btn-reclamaciones {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    text-decoration: none;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.05));
+    border: 1.5px solid rgba(212, 175, 55, 0.45);
+    border-radius: 12px;
+    padding: 0.85rem 1.2rem;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    width: fit-content;
+}
+
+.btn-reclamaciones::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.08));
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.btn-reclamaciones:hover::before {
+    opacity: 1;
+}
+
+.btn-reclamaciones:hover {
+    border-color: var(--accent-gold);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+}
+
+.reclamaciones-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent-gold), #b8960c);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
+.reclamaciones-icon i {
+    font-size: 1.1rem;
+    color: #0a121c;
+}
+
+.btn-reclamaciones span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.3;
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 640px) {
+    .btn-reclamaciones {
+        width: auto;
+    }
+    .reclamaciones-container {
+        align-items: center;
+    }
+}
+
+@keyframes footerShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+.footer-libro-link {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 1.4rem;
+    padding: 0.75rem 1rem 0.75rem 0.75rem;
+    background: linear-gradient(135deg, rgba(201,169,97,0.08) 0%, rgba(10,37,64,0.4) 100%);
+    border: 1px solid rgba(201,169,97,0.3);
+    border-radius: 14px;
+    text-decoration: none;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+    width: fit-content;
+}
+
+.footer-libro-link::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.footer-libro-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg,
+        transparent 40%,
+        rgba(201,169,97,0.12) 50%,
+        transparent 60%);
+    background-size: 200% auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.footer-libro-link:hover::after {
+    opacity: 1;
+    animation: footerShimmer 1.2s linear infinite;
+}
+
+.footer-libro-link:hover {
+    background: linear-gradient(135deg, rgba(201,169,97,0.15) 0%, rgba(10,37,64,0.5) 100%);
+    border-color: rgba(201,169,97,0.65);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(201,169,97,0.2);
+}
+
+.footer-libro-link:hover::before {
+    opacity: 1;
+}
+
+.footer-libro-link .libro-link-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(201,169,97,0.4);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.footer-libro-link:hover .libro-link-icon {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+.footer-libro-link .libro-link-icon i {
+    font-size: 1rem;
+    color: #0a1929;
+}
+
+.footer-libro-link .libro-link-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.footer-libro-link .libro-link-texto strong {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.4px;
+    line-height: 1.2;
+}
+
+.footer-libro-link .libro-link-texto span {
+    font-size: 0.68rem;
+    color: rgba(201,169,97,0.8);
+    letter-spacing: 0.3px;
+    font-weight: 500;
+}
+
+@media (max-width: 640px) {
+    .footer-libro-link {
+        max-width: 100%;
+    }
+}

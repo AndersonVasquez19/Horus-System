@@ -1,0 +1,393 @@
+
+.cartas-tecnologias {
+    background: var(--white);
+}
+
+.intro-cableado {
+    padding: 6rem 2.5rem;
+    padding-top: calc(6rem + 85px);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-medium) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.info-cableado {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.texto-intro h2 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 2rem;
+    letter-spacing: -1px;
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.texto-intro h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--accent-gold), #d4af37, var(--accent-gold), var(--primary-dark));
+    background-size: 200% auto;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(201, 169, 97, 0.6), 0 0 20px rgba(201, 169, 97, 0.3);
+    animation: lineShine 2.5s linear infinite;
+}
+
+@keyframes lineShine {
+    0% { background-position: 0% center; box-shadow: 0 0 8px rgba(201, 169, 97, 0.5); }
+    50% { background-position: 100% center; box-shadow: 0 0 18px rgba(201, 169, 97, 0.9), 0 0 30px rgba(201, 169, 97, 0.4); }
+    100% { background-position: 200% center; box-shadow: 0 0 8px rgba(201, 169, 97, 0.5); }
+}
+
+.texto-intro p {
+    font-size: 1.1rem;
+    line-height: 1.9;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1.5rem;
+}
+
+.imagen-intro {
+    position: relative;
+}
+
+.imagen-intro img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    border: 3px solid rgba(201, 169, 97, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.imagen-intro img:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    border-color: var(--accent-gold);
+}
+
+.titulo-categorias {
+    text-align: center;
+    padding: 5rem 2.5rem 3rem;
+    background: var(--white);
+}
+
+.titulo-categorias h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    letter-spacing: -1px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 1.5rem;
+}
+
+.titulo-categorias h1::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--accent-gold), #d4af37, var(--accent-gold), var(--primary-dark));
+    background-size: 200% auto;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(201, 169, 97, 0.5);
+    animation: lineShine 2.5s linear infinite;
+}
+
+.cartas-contenedor {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 3rem 2.5rem 7rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 2.5rem;
+    background: var(--white);
+}
+
+.seccion-categorias {
+    background: var(--white);
+    width: 100%;
+}
+
+.carta {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(10, 37, 64, 0.08);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    isolation: isolate;
+}
+
+.carta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(10, 37, 64, 0.15), rgba(201, 169, 97, 0.2));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+    z-index: 1;
+}
+
+.carta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(
+        135deg,
+        var(--primary-dark) 0%,
+        #1a4a7a 30%,
+        var(--accent-gold, #c9a961) 60%,
+        #e8c97a 80%,
+        var(--primary-dark) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 1;
+}
+
+.carta:hover::before {
+    opacity: 0;
+}
+
+.carta:hover::after {
+    opacity: 1;
+}
+
+.carta:hover {
+    transform: translateY(-8px);
+    box-shadow:
+        0 20px 50px rgba(10, 37, 64, 0.14),
+        0 0 0 0 transparent,
+        inset 0 0 0 0 transparent;
+}
+
+.carta-imagen {
+    position: relative;
+    overflow: hidden;
+    height: 220px;
+    flex-shrink: 0;
+}
+
+.carta-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: block;
+}
+
+.carta:hover .carta-imagen img {
+    transform: scale(1.07);
+}
+
+.carta-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, #1a3a5c 100%);
+    color: var(--accent-gold, #c9a961);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(201, 169, 97, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 2;
+}
+
+.carta-imagen::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(to top, rgba(10, 37, 64, 0.35), transparent);
+    pointer-events: none;
+}
+
+.carta-body {
+    padding: 1.6rem 1.8rem 1.8rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    position: relative;
+    z-index: 0;
+}
+
+.carta-body h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin: 0 0 0.6rem 0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.carta-divider {
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--accent-gold, #c9a961));
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    transition: width 0.3s ease;
+}
+
+.carta:hover .carta-divider {
+    width: 70px;
+}
+
+.carta-body p {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    color: #4a5568;
+    margin: 0 0 1.2rem 0;
+    flex: 1;
+}
+
+.carta-spec {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    background: rgba(10, 37, 64, 0.04);
+    border: 1px solid rgba(10, 37, 64, 0.08);
+    border-radius: 8px;
+    padding: 7px 12px;
+    margin-top: auto;
+}
+
+.carta-spec i {
+    color: var(--accent-gold, #c9a961);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 1024px) {
+    .info-cableado {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+    
+    .cartas-contenedor {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .cartas-tecnologias {
+        background: var(--white);
+    }
+    
+    .intro-cableado {
+        padding: 2.5rem 1.2rem;
+        padding-top: calc(2.5rem + 75px);
+    }
+    
+    .texto-intro h2 {
+        font-size: 1.6rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .texto-intro p {
+        font-size: 0.92rem;
+        line-height: 1.7;
+    }
+    
+    .titulo-categorias {
+        padding: 2.5rem 1.2rem 1.5rem;
+    }
+    
+    .titulo-categorias h1 {
+        font-size: 1.6rem;
+    }
+    
+    .cartas-contenedor {
+        grid-template-columns: 1fr;
+        padding: 2rem 1.5rem 4rem;
+        gap: 1.8rem;
+    }
+    
+    .carta-imagen {
+        height: 200px;
+    }
+}
+
+
+@media (max-width: 480px) {
+    .intro-cableado {
+        padding: 2rem 1rem;
+        padding-top: calc(2rem + 70px);
+    }
+
+    .texto-intro h2 {
+        font-size: 1.4rem;
+    }
+
+    .texto-intro p {
+        font-size: 0.88rem;
+    }
+
+    .titulo-categorias {
+        padding: 2rem 1rem 1.2rem;
+    }
+
+    .titulo-categorias h1 {
+        font-size: 1.4rem;
+    }
+
+    .cartas-contenedor {
+        padding: 1.5rem 1rem 3rem;
+        gap: 1.5rem;
+    }
+
+    .carta-imagen {
+        height: 180px;
+    }
+
+    .carta-body {
+        padding: 1.2rem 1.4rem 1.4rem;
+    }
+
+    .carta-body h3 {
+        font-size: 1rem;
+    }
+
+    .carta-body p {
+        font-size: 0.88rem;
+    }
+}

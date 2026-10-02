@@ -1,0 +1,642 @@
+
+:root {
+    --primary-blue: #1a2332;
+    --secondary-blue: #2c3e50;
+    --light-bg: #f8f9fa;
+    --text-dark: #2c3e50;
+    --text-light: #6c757d;
+    --border-color: #e0e0e0;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: var(--text-dark);
+    background-color: var(--light-bg);
+}
+
+
+.hero-politicas {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+    padding: 10rem 2rem 5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-politicas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="none"/><path d="M0 0L50 50L0 100" stroke="rgba(212,175,55,0.1)" stroke-width="2" fill="none"/></svg>');
+    opacity: 0.3;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.hero-content p {
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.politicas-main {
+    max-width: 1200px;
+    margin: -3rem auto 4rem;
+    padding: 0 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.politicas-container {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 3rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.politicas-intro {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    border-left: 4px solid var(--accent-gold);
+    margin-bottom: 3rem;
+}
+
+.politicas-intro p {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+}
+
+.politicas-intro strong {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.politicas-seccion {
+    margin-bottom: 4rem;
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    overflow: visible;
+    transition: var(--transition);
+}
+
+.politicas-seccion:hover {
+    border-color: var(--accent-gold);
+    box-shadow: var(--shadow-md);
+}
+
+.seccion-header {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+    padding: 2.5rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border-radius: 14px 14px 0 0;
+}
+
+.seccion-icon {
+    background: var(--accent-gold);
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
+}
+
+.seccion-icon i {
+    font-size: 2rem;
+    color: #ffffff;
+}
+
+.seccion-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+}
+
+.seccion-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
+}
+
+.seccion-content {
+    padding: 3rem;
+}
+
+.intro-text {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+    color: var(--text-dark);
+}
+
+.contact-info {
+    background: var(--light-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--accent-gold);
+}
+
+.contact-info a {
+    color: var(--accent-gold);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+.subseccion {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.subseccion:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.subseccion h3 {
+    font-size: 1.4rem;
+    color: var(--primary-blue);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.numero {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #f4d03f 100%);
+    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.subseccion p {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.lista-puntos {
+    list-style: none;
+    padding: 0;
+}
+
+.lista-puntos li {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+    position: relative;
+    line-height: 1.8;
+}
+
+.lista-puntos li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--accent-gold);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.lista-puntos strong {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.lista-puntos a {
+    color: var(--accent-gold);
+    text-decoration: none;
+}
+
+.lista-puntos a:hover {
+    text-decoration: underline;
+}
+
+.pasos-container {
+    display: grid;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.paso {
+    display: flex;
+    gap: 2rem;
+    background: var(--light-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    transition: var(--transition);
+}
+
+.paso:hover {
+    transform: translateX(10px);
+    box-shadow: var(--shadow-sm);
+}
+
+.paso-numero {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+    color: #ffffff;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(26, 35, 50, 0.3);
+}
+
+.paso-content h4 {
+    color: var(--primary-blue);
+    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+}
+
+.paso-content p {
+    margin-bottom: 1rem;
+}
+
+.paso-content ul {
+    list-style: none;
+    padding-left: 1rem;
+}
+
+.paso-content ul li {
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+}
+
+.paso-content a {
+    color: var(--accent-gold);
+    text-decoration: none;
+}
+
+.paso-content a:hover {
+    text-decoration: underline;
+}
+
+.pasos-compra {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.paso-compra {
+    background: var(--light-bg);
+    padding: 1.2rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+}
+
+.paso-compra:hover {
+    background: rgba(212, 175, 55, 0.1);
+    transform: translateY(-3px);
+}
+
+.paso-compra span {
+    background: var(--accent-gold);
+    color: #ffffff;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.metodos-pago {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.metodo {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+    color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.metodo:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.metodo i {
+    font-size: 2.5rem;
+    color: var(--accent-gold);
+    margin-bottom: 0.8rem;
+    display: block;
+}
+
+.alert-box {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+    border: 2px solid var(--accent-gold);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.alert-box i {
+    color: var(--accent-gold);
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.alert-box p {
+    margin: 0;
+    line-height: 1.8;
+}
+
+.modificaciones .seccion-header,
+.atencion .seccion-header {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #f4d03f 100%);
+}
+
+.modificaciones .seccion-icon,
+.atencion .seccion-icon {
+    background: var(--primary-blue);
+}
+
+.firma {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--accent-gold);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.firma-logo {
+    width: 80px;
+    height: auto;
+    filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.3));
+}
+
+.firma p {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.firma strong {
+    color: var(--accent-gold);
+}
+
+.politicas-cta {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+    padding: 5rem 2rem;
+    margin-top: 4rem;
+}
+
+.cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    color: #ffffff;
+}
+
+.cta-content h3 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.cta-content h3 span {
+    color: var(--accent-gold);
+}
+
+.cta-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2.5rem;
+    opacity: 0.9;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-gold,
+.btn-outline {
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.btn-gold {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #f4d03f 100%);
+    color: var(--primary-blue);
+    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
+}
+
+.btn-gold:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #ffffff;
+    border-color: #ffffff;
+}
+
+.btn-outline:hover {
+    background: #ffffff;
+    color: var(--primary-blue);
+    transform: translateY(-3px);
+}
+
+.back-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #f4d03f 100%);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    z-index: 999;
+    display: none;
+}
+
+.back-to-top:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+}
+
+.back-to-top.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 968px) {
+    .hero-politicas {
+        padding: 8rem 1.5rem 4rem;
+    }
+
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+
+    .hero-content p {
+        font-size: 1.1rem;
+    }
+
+    .politicas-main {
+        padding: 0 1rem;
+    }
+
+    .politicas-container {
+        padding: 2rem 1.5rem;
+    }
+
+    .seccion-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 2rem;
+    }
+
+    .seccion-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .seccion-content {
+        padding: 2rem 1.5rem;
+    }
+
+    .paso {
+        flex-direction: column;
+    }
+
+    .pasos-compra {
+        grid-template-columns: 1fr;
+    }
+
+    .metodos-pago {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cta-content h3 {
+        font-size: 1.8rem;
+    }
+
+    .cta-buttons {
+        flex-direction: column;
+    }
+
+    .btn-gold,
+    .btn-outline {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-content h1 {
+        font-size: 1.6rem;
+    }
+
+    .hero-politicas {
+        padding: 7rem 1rem 3rem;
+    }
+
+    .politicas-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .subseccion h3 {
+        flex-direction: column;
+        align-items: flex-start;
+        font-size: 1.2rem;
+    }
+
+    .metodos-pago {
+        grid-template-columns: 1fr;
+    }
+
+    .seccion-header {
+        padding: 1.5rem;
+    }
+
+    .seccion-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .seccion-content {
+        padding: 1.5rem 1rem;
+    }
+}
