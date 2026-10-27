@@ -1,8 +1,8 @@
-# L2.2-B1: procedimiento de aprovisionamiento PostgreSQL aislado (revisión 3)
+# L2.2-B1: procedimiento de aprovisionamiento PostgreSQL aislado (revisión 3, actualización D3)
 
 Estado: **preparado, no ejecutado ni autorizado**. Este documento no crea clústeres, servicios, cuentas, roles, bases ni ACL, y no autoriza migraciones ni pruebas contra PostgreSQL. Complementa [docs/postgresql-l2.2-a.md](postgresql-l2.2-a.md); donde ambos difieran en aprovisionamiento (HBA, cuenta de servicio, locale, SQL), **prevalece este documento**. El guard de L2.2-A no se modifica.
 
-Esta revisión cierra documentalmente los dos P1, el P2 de comprobaciones y el P3 de concurrencia de la auditoría final. No acredita ejecución real. D3 y la autorización A siguen pendientes; la autorización B para pruebas es posterior e independiente. La correspondencia está en el §14.
+Esta revisión cierra documentalmente los dos P1, el P2 de comprobaciones y el P3 de concurrencia de la auditoría final. D3 queda cerrada documentalmente con todas las mediciones comunicadas por el operador (§8.1). No acredita ejecución real del aprovisionamiento ni aceptación V16. Sigue pendiente la autorización A; la autorización B para pruebas es posterior e independiente. La correspondencia está en el §14.
 
 ## 1. Entorno comprobado (solo lectura, 27/10/2026)
 
@@ -192,7 +192,7 @@ Cada transición indicada abajo exige leer el registro, contrastar recursos y gu
 | --- | --- | --- |
 | D1 | Cuenta de servicio: cuenta virtual `NT SERVICE\postgresql-horus-l2-test`. **Sin alternativa automática.** | **Condicionada a la prueba real de S2 y S5.** La compatibilidad es documental (PostgreSQL entrega `-U` a `CreateService` y Windows admite cuentas virtuales sin contraseña) pero **no está demostrada en este equipo**. Si falla: parada, rollback y nueva evaluación (§4). Nunca `NetworkService` ni `LocalSystem`. |
 | D2 | Datos en `C:\pgdata\horus_l2_test`, fuera del repositorio y de OneDrive, con herencia NTFS cortada. | Definitiva |
-| D3 | Codificación, proveedor de locale, colación y ctype de la instancia de pruebas equivalentes a los de `horus_group`, medidos con el §8. Los checksums **no** necesitan coincidir. Hasta tener los resultados no se ejecuta `initdb`. | Pendiente del operador |
+| D3 | UTF8, libc, `Spanish_Spain.1252` para colación y ctype; locale, reglas ICU y versión registrados como NULL por el operador (§8.1). Los checksums **no** necesitan coincidir. | Cerrada documentalmente: A–E recibidas y revisadas; aceptación real V16 posterior |
 | D4 | Concurrencia con segunda `Connection` creada con `db.factory` protegida (§10). | `ConcurrentTestSession` implementada y probada con dobles; validación PostgreSQL real pendiente de autorización B |
 | D5 | Correcciones de la auditoría final en este documento. | Revisión 3; validación estática, sin aprovisionamiento |
 | D6 | La autorización de aprovisionamiento se concede por separado y por escrito, con el alcance del §13. Preparar este documento no la implica. | Pendiente |
@@ -340,7 +340,7 @@ Esperado: `SERVICE_START_NAME` y `StartName` iguales a `NT SERVICE\postgresql-ho
 
 ### S3: `initdb` y verificación de ACL (N)
 
-D3 debe estar resuelta con el §8. La variable `$LocaleArgs` la completa el operador con los valores medidos; mientras sea `$null` el bloque no ejecuta nada. No hay marcadores de sustitución dentro del comando.
+D3 está resuelta documentalmente con el §8. Los argumentos están definidos con los valores medidos. La confirmación complementaria acredita únicamente esa revisión: no sustituye la autorización A, aún pendiente, ni permite ejecutar ahora el bloque. No hay marcadores de sustitución dentro del comando.
 
 ```powershell
 $bin = 'C:\Program Files\PostgreSQL\18\bin'
@@ -350,9 +350,10 @@ if ($isElevated) { throw 'STOP: initdb se ejecuta sin elevar' }
 $id = Read-Identity; Assert-Resources $id
 if ($id.Stage -ne 'service-registered') { throw 'STOP: etapa incorrecta para S3' }
 
-# D3: el operador asigna aquí los argumentos de locale medidos, por ejemplo (según el §8):
-#   $LocaleArgs = @('--locale-provider=libc','--locale=<datcollate medido>')
-$LocaleArgs = $null
+# D3 principal: resultados comunicados por el operador desde pgAdmin 4.
+$LocaleArgs = @('--locale-provider=libc','--lc-collate=Spanish_Spain.1252','--lc-ctype=Spanish_Spain.1252')
+$D3ComplementariaRevisada = $true # cierre documental; autorización A independiente y pendiente
+if (-not $D3ComplementariaRevisada) { throw 'STOP: revisar consultas complementarias D3 antes de S3' }
 
 if ($null -eq $LocaleArgs -or @($LocaleArgs).Count -lt 2) { throw 'STOP: D3 sin resolver' }
 if (@($LocaleArgs)[0] -notmatch '^--locale-provider=(libc|icu|builtin)$') { throw 'STOP: el primer argumento debe fijar el proveedor' }
@@ -493,7 +494,7 @@ $id.Stage = 'started'; Save-Identity $id
 
 Solo con autorización A. Preparar **fuera del repositorio**, dentro de `$evidence`, los tres archivos siguientes, copiando exactamente sus bloques SQL. Heredan la ACL protegida de §2.1; verificarla antes de ejecutarlos. No contienen secretos. No usar sesión de pegado, entrada redirigida, `-1`/`--single-transaction`, `--echo-all` ni `--echo-queries`.
 
-**`00-cluster.sql`**: completar la línea de `dbloc` con los valores ya medidos y revisados de §8; mientras no exista, aborta. No hay transacción envolvente: `CREATE DATABASE` no la admite. `\password` solicita las contraseñas por terminal sin incluirlas en el archivo, historial ni argumentos. Ejecutar desde una consola interactiva propia sin transcripción ni captura de teclado; no automatizar respuestas. La contraseña administrativa también se solicita con `-W`; no se reutiliza la cotidiana. Un fallo o cancelación detiene la etapa.
+**`00-cluster.sql`**: `dbloc` ya contiene los valores principales medidos de §8.1; si cambian, detenerse y revisar los parámetros, sin sustituciones automáticas. No hay transacción envolvente: `CREATE DATABASE` no la admite. `\password` solicita las contraseñas por terminal sin incluirlas en el archivo, historial ni argumentos. Ejecutar desde una consola interactiva propia sin transcripción ni captura de teclado; no automatizar respuestas. La contraseña administrativa también se solicita con `-W`; no se reutiliza la cotidiana. Un fallo o cancelación detiene la etapa.
 
 ```sql
 -- 0. Destino y locale (aborta si algo no coincide)
@@ -508,8 +509,8 @@ SELECT current_setting('port') = '55432'
   SELECT 1/0; -- error deliberado: ON_ERROR_STOP hace salir con estado distinto de cero
 \endif
 
--- El operador define antes, con los valores del §8, por ejemplo:
---   \set dbloc 'LOCALE_PROVIDER libc LC_COLLATE ''<datcollate>'' LC_CTYPE ''<datctype>'''
+-- Valores medidos por el operador; solo se ejecuta tras S3 y con autorización A.
+\set dbloc 'LOCALE_PROVIDER libc LC_COLLATE ''Spanish_Spain.1252'' LC_CTYPE ''Spanish_Spain.1252'''
 \if :{?dbloc}
 \else
   \echo 'D3 sin resolver: defina dbloc con los valores del apartado 8'
@@ -618,8 +619,9 @@ foreach ($step in $steps) {
   $path = Join-Path $evidence $step.File
   Assert-EvidenceAcl $path
   if ((Get-FileHash -LiteralPath $path -Algorithm SHA256 -ErrorAction Stop).Hash -cne $hashes[$step.File]) { throw 'STOP: guion modificado' }
-  & "$bin\psql.exe" -X -W -h 127.0.0.1 -p 55432 -U horus_l2_provisioner -d $step.Database `
-    --set=ON_ERROR_STOP=on "--set=system_identifier=$($id.SystemIdentifier)" -f $path
+  $psqlArgs = @('-X','-W','-h','127.0.0.1','-p','55432','-U','horus_l2_provisioner',
+    '-d',$step.Database,'--set=ON_ERROR_STOP=on',"--set=system_identifier=$($id.SystemIdentifier)",'-f',$path)
+  & "$bin\psql.exe" @psqlArgs
   $sqlExit = $LASTEXITCODE
   if ($sqlExit -ne 0) { throw "STOP: S6 falló (código $sqlExit); no ejecutar S7 ni repetir el guion" }
 }
@@ -627,6 +629,8 @@ $id.Stage = 'sql-complete'; Save-Identity $id
 ```
 
 `psql -f` devuelve 3 ante error SQL con `ON_ERROR_STOP`, 1 ante fallo propio y 2 ante pérdida de conexión no interactiva: **cualquier valor distinto de 0 detiene el bloque**. Las conexiones separadas exigen contraseña administrativa por terminal. [PostgreSQL: psql](https://www.postgresql.org/docs/18/app-psql.html).
+
+Revisión sin ejecutar PostgreSQL: el array `$psqlArgs` mantiene cada opción y valor como argumento separado, incluida la ruta de `-f` con espacios; no usa `Invoke-Expression` ni una cadena de comando recompuesta. La subexpresión `$($id.SystemIdentifier)` produce el valor de evidencia como texto dentro de un solo argumento `--set=system_identifier=…`. En SQL, `:'system_identifier'` lo cita como literal. `\set dbloc` conserva las comillas SQL interiores mediante comillas simples duplicadas, según las reglas de metacomandos de psql; `:dbloc` inserta el fragmento revisado sin citarlo entero. No cambiarlo por `:'dbloc'`, que produciría un único literal, ni usar `':system_identifier'`, que no interpola. `-X` evita psqlrc y `-f` procesa SQL y metacomandos; no sustituirlo por `-c`. Son comprobaciones documentales y de argumentos en memoria, no una prueba del cliente nativo ni de SQL real.
 
 Un fallo deja `sql-starting`: los objetos confirmados de `00-cluster.sql` y los archivos anteriores pueden existir; no se asume atomicidad de S6 ni se reintenta. Detenerse y usar R0–R3 con la identidad ya registrada, o dejar los recursos para revisión manual si falla cualquier comprobación. Si el proceso termina después de confirmar SQL pero antes de guardar `sql-complete`, tampoco se pasa a S7. No se añaden `IF NOT EXISTS` para ocultar estados parciales.
 
@@ -801,9 +805,52 @@ if ($id.Stage -ne 'rolled-back') { throw 'STOP: reversión no completada' }
 
 ## 8. Consultas de solo lectura sobre `horus_group` (las ejecuta el operador)
 
-No se ejecutaron: no hay autorización para conectar a la base cotidiana y este flujo no extrae credenciales del entorno. El operador las ejecuta desde su propia consola, con contraseña manual y sesión de solo lectura. Nada toca `.env`, `.pgpass` ni el guard.
+El agente no ejecutó estas consultas ni abrió conexiones. El operador comunicó todos los resultados D3 de §8.1, obtenidos manualmente en pgAdmin 4, sin compartir contraseñas. Nada toca `.env`, `.pgpass` ni el guard.
 
-Revisión estática D3: `datlocprovider`, `datcollate`, `datctype`, `datlocale`, `daticurules` y `datcollversion` corresponden al catálogo de PostgreSQL 18; las consultas A–E conservan su alcance informativo. Esto no acredita resultados ni equivalencia de locales. **D3 permanece pendiente** hasta recibir las mediciones del operador, revisar extensiones/colaciones y completar los argumentos; no se usaron credenciales ni conexiones. [Catálogo PostgreSQL 18](https://www.postgresql.org/docs/18/catalog-pg-database.html), [soporte de locale](https://www.postgresql.org/docs/18/locale.html).
+Revisión estática D3: `datlocprovider`, `datcollate`, `datctype`, `datlocale`, `daticurules` y `datcollversion` corresponden al catálogo de PostgreSQL 18. **D3 está cerrada documentalmente**; la reproducción y comparación V16 quedan pendientes de B2 autorizado. [Catálogo PostgreSQL 18](https://www.postgresql.org/docs/18/catalog-pg-database.html), [soporte de locale](https://www.postgresql.org/docs/18/locale.html).
+
+### 8.1 Medición recibida y parámetros definitivos propuestos
+
+Fuente: resultados que el operador confirmó manualmente desde pgAdmin 4, comunicados el 27/10/2026; no son una medición del agente.
+
+| Campo | Valor comunicado |
+| --- | --- |
+| Versión / base | PostgreSQL 18.6 / `horus_group` |
+| Codificación / proveedor | `UTF8` / `c` (`libc`) |
+| `datcollate` / `datctype` | `Spanish_Spain.1252` / `Spanish_Spain.1252` |
+| `datlocale` / `daticurules` / `datcollversion` | `NULL` / `NULL` / `NULL` |
+| Identidad confirmada por el operador | `destino_correcto = true` (transcripción comunicada) |
+| `data_checksums` / `TimeZone` | `on` / `America/Bogota` |
+| `standard_conforming_strings` / `default_text_search_config` | `on` / `pg_catalog.spanish` |
+
+Verificación local sin conexión: `postgres.exe --version` devuelve 18.6 y los metadatos de archivo de `postgres.exe` e `initdb.exe` indican 18.6, en `C:\Program Files\PostgreSQL\18\bin`. No se ejecutó `initdb`, ni siquiera como prueba de locale.
+
+**Compatibilidad documental:** PostgreSQL 18 admite UTF8 con cualquier locale válido en Windows. `.1252` forma parte del nombre del locale Windows y **no cambia la codificación de la base a WIN1252**. Mantener el nombre exacto medido, sin convertirlo a `es_ES.UTF-8` ni cambiar de proveedor. La combinación es documentalmente compatible; la validez efectiva del nombre para estos binarios y esta cuenta solo se confirmará en S3 autorizado. No existe en `initdb` una opción documentada de validación de locale sin inicialización. [Codificaciones](https://www.postgresql.org/docs/18/multibyte.html), [initdb](https://www.postgresql.org/docs/18/app-initdb.html), [CREATE DATABASE](https://www.postgresql.org/docs/18/sql-createdatabase.html).
+
+S3 usa `$LocaleArgs = @('--locale-provider=libc','--lc-collate=Spanish_Spain.1252','--lc-ctype=Spanish_Spain.1252')`, junto con `-E UTF8` ya explícito. S6 define `dbloc` como `LOCALE_PROVIDER libc LC_COLLATE 'Spanish_Spain.1252' LC_CTYPE 'Spanish_Spain.1252'`, con `TEMPLATE template0 ENCODING 'UTF8'` en ambas bases. La forma exacta de `\set` está en S6. No usar opciones ICU/builtin, `ICU_RULES` ni `COLLATION_VERSION`; el NULL medido se conserva como evidencia, no como argumento para forzar una versión.
+
+**Colaciones recibidas (resultado completo):** una fila: esquema `pg_catalog`, colación `default`, tipo `predeterminada`, proveedor `d`, determinista `true`, 75 columnas; `collctype`, `colllocale`, `collcollate`, `collversion` y `collicurules`, todos NULL. Colaciones no predeterminadas: `[]`. El proveedor `d` de ese objeto remite al predeterminado libc de la base; no contradice `datlocprovider = c`. El inventario cubre columnas de tablas y particiones de `public`, según la consulta, no expresiones arbitrarias de índices o consultas.
+
+**Extensiones recibidas y necesidad del perfil:** `plpgsql 1.0` y `uuid-ossp 1.1`. Los archivos de control locales de EDB anuncian esas mismas versiones; eso no demuestra instalación en una base nueva. `plpgsql` se espera en las plantillas estándar y se comprobará en ambas bases durante fase P. No se encontraron llamadas `uuid_generate_*`, DDL de extensiones ni dependencia de `uuid-ossp` en `app/`, `database/` y `tests/PostgresIntegrity/` revisados; un UUID almacenado como cadena o generado por PHP no exige esta extensión. Se registra como instalación histórica, no como requisito demostrado. No se añade `CREATE EXTENSION` a S6 ni se concede CREATE sobre la base al runner. Si aparece una dependencia, detenerse y revisar explícitamente su instalación por el aprovisionador en cada base; no hacer que el runner la instale. [PostgreSQL: uuid-ossp](https://www.postgresql.org/docs/18/uuid-ossp.html).
+
+**Referencia sintética exacta de V16:**
+
+| Campo comunicado | Valor |
+| --- | --- |
+| `orden_hex` | `61,41,c3a1,62,42,6e,c3b1,5a` |
+| `like_coincide` | `false` |
+| `ilike_coincide` | `true` |
+| `lower_acentos_hex` | `c3a1c3a9c3b1` |
+| `ilike_ignora_acentos` | `false` |
+| `minuscula_antes_que_mayuscula` | `true` |
+
+La consulta E conservada abajo denomina `like_distingue_mayusculas` al resultado comunicado como `like_coincide` e `ilike_ignora_mayusculas` al comunicado como `ilike_coincide`: son las mismas expresiones, con valores `false` y `true`, respectivamente. Comparar expresiones/valores, no confundir el nombre de la columna con una afirmación booleana sobre sensibilidad.
+
+**Configuración histórica frente al runner:** `America/Bogota` pertenece a la sesión cotidiana medida. El perfil fijo del runner conserva `timezone = UTC`, `search_path = public`, charset UTF8 y READ COMMITTED, conforme a L2.2-A y `config/pgsql-testing-database.php`; no copiar la zona histórica ni modificar el guard. Los checksums serán `on` por S3, que en este caso coincide. `standard_conforming_strings = on` se comprobará en las sesiones nuevas. `pg_catalog.spanish` se registra como configuración de búsqueda de texto de la sesión consultada; no determina LIKE/ILIKE ni el locale de la base. No se halló uso de búsqueda de texto completo en el alcance revisado; no se cambia configuración global ni del runner para copiarlo. Un uso futuro requiere revisar esa dependencia.
+
+No quedan consultas D3 pendientes al operador. La aceptación de `initdb`, la identidad y locale efectivos de las dos bases nuevas, las extensiones esperadas, la cuenta virtual/ACL y V16 solo pueden acreditarse durante B2 autorizado. No se exige una prueba de creación previa para pedir autorización. El valor comunicado `destino_correcto = true` acredita la confirmación del operador; el script entregado originalmente devolvía `1` como resultado satisfactorio de esa expresión, sin que esa diferencia de representación cambie el locale registrado.
+
+### 8.2 Consultas preparadas (solo ejecución manual del operador)
 
 Antes de conectar, fijar UTF-8 en la consola (la salida de `María` o `ÁÉÑ` puede corromperse con otra página de códigos). Las consultas usan escapes Unicode para no depender de lo que se teclee:
 
@@ -828,15 +875,18 @@ SELECT d.datname, pg_encoding_to_char(d.encoding) AS encoding, d.datlocprovider,
        d.datcollate, d.datctype, d.datlocale, d.daticurules, d.datcollversion
 FROM pg_database d WHERE d.datname = current_database();
 
--- C. Colaciones que usan las columnas de la aplicación
-SELECT c.collname, c.collprovider, count(*) AS columnas
+-- C. Colaciones que usan las columnas de la aplicación (incluidas particiones)
+SELECT cn.nspname AS esquema_colacion, c.collname, c.collprovider,
+       c.collisdeterministic, c.collcollate, c.collctype, c.colllocale,
+       c.collicurules, c.collversion, count(*) AS columnas
 FROM pg_attribute a
 JOIN pg_class t ON t.oid = a.attrelid
 JOIN pg_namespace n ON n.oid = t.relnamespace
 JOIN pg_collation c ON c.oid = a.attcollation
-WHERE n.nspname = 'public' AND t.relkind = 'r' AND a.attnum > 0
+JOIN pg_namespace cn ON cn.oid = c.collnamespace
+WHERE n.nspname = 'public' AND t.relkind IN ('r','p') AND a.attnum > 0
   AND NOT a.attisdropped AND a.attcollation <> 0
-GROUP BY 1, 2 ORDER BY 1;
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9 ORDER BY 1, 2;
 
 -- D. Extensiones instaladas
 SELECT extname, extversion FROM pg_extension ORDER BY 1;
@@ -851,7 +901,7 @@ SELECT 'a' < 'B'                                              AS minuscula_antes
           FROM unnest(ARRAY['b','A',U&'\00E1','a','B','Z',U&'\00F1','n']) AS x) AS orden_hex;
 ```
 
-### Qué debe coincidir y qué no
+### 8.3 Qué debe coincidir y qué no
 
 Para que las pruebas de L2.2-B sean representativas, lo que determina el resultado de `ORDER BY`, `LIKE`, `lower/upper`, unicidad y comparaciones debe coincidir:
 
@@ -873,7 +923,7 @@ Para que las pruebas de L2.2-B sean representativas, lo que determina el resulta
 | `i` (ICU) | `--locale-provider=icu`, `--icu-locale=<datlocale>`, `--lc-collate=<datcollate>`, `--lc-ctype=<datctype>` | `LOCALE_PROVIDER icu ICU_LOCALE '<datlocale>' LC_COLLATE '<datcollate>' LC_CTYPE '<datctype>'` |
 | `b` (builtin) | `--locale-provider=builtin`, `--builtin-locale=<datlocale>`, `--lc-collate=<datcollate>`, `--lc-ctype=<datctype>` | `LOCALE_PROVIDER builtin BUILTIN_LOCALE '<datlocale>' LC_COLLATE '<datcollate>' LC_CTYPE '<datctype>'` |
 
-Los `<…>` de estas tablas son valores a **sustituir con lo medido**, nunca texto ejecutable: los bloques S3 y S6 abortan si no están definidos. Si `initdb` o `CREATE DATABASE` rechazan una combinación (por ejemplo, el builtin con ciertos valores de ctype), se **detiene** el proceso (§4, condición 9); no se prueban variantes. Si `daticurules` no es nulo, se detiene y se revisa por separado.
+Los `<…>` de estas tablas son una referencia general, nunca texto ejecutable: para la medición actual prevalecen los valores concretos de §8.1, S3 y S6. La evidencia complementaria ya está revisada; la autorización A sigue siendo obligatoria. Si `initdb` o `CREATE DATABASE` rechazan una combinación (por ejemplo, el builtin con ciertos valores de ctype), se **detiene** el proceso (§4, condición 9); no se prueban variantes. Si `daticurules` no es nulo, se detiene y se revisa por separado.
 
 Aceptación de D3 (fase P, solo lectura en la instancia nueva): ejecutar las consultas A (`server_encoding`, `lc_collate`, `lc_ctype`), B y E en `horus_l2_test` con el aprovisionador y comparar con las de `horus_group`. Los resultados B (proveedor, collate, ctype, locale, reglas) y E (booleanos y `orden_hex`) deben ser idénticos. Si `horus_group` usa una colación sensible a la plataforma, registrar la diferencia como limitación; no ajustar las pruebas para ocultarla.
 
@@ -989,10 +1039,12 @@ Además se comprueba que la ACL del directorio nuevo no incluye a `NetworkServic
 | # | Condición | Estado |
 | --- | --- | :---: |
 | A1 | Línea base de la cotidiana capturada (§5.1) y Preflight 1 correcto | Pendiente de ejecutar |
-| A2 | D3 resuelta: consultas del §8 ejecutadas por el operador y `$LocaleArgs`/`dbloc` definidos | Pendiente |
+| A2 | D3 resuelta: parámetros principales y complementos A/C/D/E revisados (§8.1) | Completa documentalmente; `$LocaleArgs`/`dbloc` definidos; V16 posterior |
 | A3 | Rollback R0–R3 con evidencia externa, estados parciales y contraste NTFS/clúster | Corregido documentalmente; ejecución pendiente |
 | A4 | Coincidencia con guard y separación A/B | Verificación estática; sin prueba PostgreSQL real |
 | A5 | Autorización escrita (D6) que enumera §6 y §7 y los destinos | Pendiente |
+
+Checklist definitivo para la solicitud A: adjuntar §8.1, ya completo, y confirmar los argumentos literales de S3/S6; capturar §5.1 y revalidar Preflight 1 inmediatamente antes de crear recursos, incluida la lectura NTFS desde N; enumerar todos los recursos y el rollback de §13 en la autorización escrita. No marcar A1 por una lectura histórica. Puede solicitarse A condicionada al preflight inmediato satisfactorio; no puede iniciarse S1 sin cumplir A1 y A5. La cuenta virtual y V16 son condiciones de aceptación durante la ejecución, no resultados ya obtenidos. La autorización A cubre infraestructura S1–S7 y R0–R3; no autoriza migraciones, seeders, limpiezas ni pruebas de L2.2-C, que requieren autorización B independiente.
 
 ### B. Para solicitar la autorización de las pruebas (G/N)
 
@@ -1067,9 +1119,9 @@ Correspondencia histórica de la revisión 2 (no son hallazgos nuevos):
 
 - La cuenta virtual con `pg_ctl register` **no se ha probado** en este equipo; D1 queda condicionada hasta S2 y S5.
 - La propagación de ACL, el aislamiento NTFS efectivo (V12) y la desactivación del aprovisionador no se han ejecutado.
-- No se conoce el locale de `horus_group` hasta que el operador ejecute el §8; la combinación de flags de `initdb` para ICU o builtin no se ha probado.
-- No se ha ejecutado ninguna consulta ni comando PostgreSQL. Las pruebas de L2.2-A son SQLite y dobles, y no acreditan PostgreSQL real.
+- Todos los resultados D3 de `horus_group` fueron comunicados por el operador (§8.1); D3 está cerrada documentalmente y V16 sigue pendiente. No se ha probado `initdb` con estos argumentos.
+- El agente no ha abierto conexiones ni ejecutado SQL PostgreSQL; solo comprobaciones de versión/ayuda sin conexión. Las pruebas de L2.2-A son SQLite y dobles, y no acreditan PostgreSQL real.
 - `ConcurrentTestSession` está implementada y probada con dobles. Siguen pendientes el paralelismo real entre procesos y la supervivencia del marcador ante `migrate:fresh`, `db:wipe` y `DatabaseTruncation`, con autorización B independiente.
 - La instancia cotidiana escucha en todas las interfaces (`0.0.0.0` y `::`). No se modifica aquí; conviene revisarlo aparte.
-- El buscador usa `LIKE`: Laravel lo traduce a `LIKE` sensible a mayúsculas en PostgreSQL, mientras SQLite lo trata como insensible para ASCII. Los resultados de búsqueda pueden diferir entre ambos motores.
+- Los buscadores actuales usan `whereLike` sin sensibilidad a mayúsculas explícita: Laravel lo compila a `ILIKE` en PostgreSQL, de acuerdo con L2.2-C. Eso no garantiza equivalencia completa con SQLite para acentos y orden; se conserva la medición E y V16.
 - Este documento no es evidencia de que el procedimiento funcione; solo describe lo que debe revisarse y ejecutarse con autorización.
