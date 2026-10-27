@@ -27,7 +27,7 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 | `app/Models/`, `app/Services/`, `app/Support/` | Modelos, lógica de JWT/chat y conocimiento local del asistente. |
 | `resources/views/`, `resources/js/app.js`, `resources/css/app.css` | Vistas Blade, comportamiento del navegador y estilos. |
 | `database/migrations/`, `database/seeders/` | Esquema y datos iniciales. |
-| `tests/Feature/`, `tests/Unit/`, `tests/browser/` | Pruebas PHP y comprobación de chat en Edge. |
+| `tests/Feature/`, `tests/Unit/`, `tests/frontend/`, `tests/browser/` | Pruebas PHP, frontend y comprobación de chat en Edge. |
 | `public/` | Raíz pública del servidor web; Vite escribe en `public/build/`. |
 | `legacy-html-node/` | Sitio HTML y API Node/MySQL históricos, con su propio `package.json` y `.env`. |
 
@@ -147,8 +147,11 @@ La clave OpenAI se lee en el servidor desde `config/services.php`. No la envíes
 
 ```powershell
 php artisan test --compact
+npm test
 npm run build
 ```
+
+`npm test` ejecuta las pruebas unitarias del frontend con el runner nativo de Node. Los tests y smokes JavaScript dentro de `tests/frontend/` y `tests/browser/` deben usar siempre `.mjs`; el comando falla si encuentra allí `.js`, `.cjs`, TypeScript u otra extensión. Nombra las pruebas unitarias `*.test.mjs` o `*.spec.mjs`. Los smokes de navegador que requieren un servidor se ejecutan por separado.
 
 Para un cambio acotado de PHP, puedes ejecutar `php artisan test --filter=AsistenteVirtualTest` u otra clase pertinente. `phpunit.xml` configura SQLite en memoria, sesión y caché aisladas, cola síncrona y correo simulado. Las pruebas PHP no demuestran PostgreSQL ni servicios externos reales. Si cambias el chat del navegador, comprueba también la interfaz, CSRF y las respuestas visibles.
 

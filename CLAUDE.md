@@ -27,6 +27,7 @@ Estas instrucciones ayudan a cualquier asistente de código a modificar **esta c
 
 - Mantén los cambios focalizados y acordes con las convenciones del archivo. Para fallos reproducibles, añade una prueba de regresión útil cuando sea práctico.
 - PHP: ejecuta la prueba pertinente (`php artisan test --filter=NombreTest`). Para cambios transversales o antes de afirmar estabilidad general, ejecuta `php artisan test --compact`.
+- Pruebas y smokes JavaScript del frontend en `tests/frontend/` y `tests/browser/` usan siempre `.mjs`. Las pruebas unitarias se llaman `*.test.mjs` o `*.spec.mjs` y se ejecutan con `npm test`; el script rechaza otros formatos JavaScript en esas carpetas.
 - Recursos Blade, JS o CSS: ejecuta `npm run build`. Si cambia la experiencia del chat, comprueba el flujo en navegador; `tests/browser/chat-smoke.mjs` exige Edge, servidor Laravel en el puerto 8765 y **base desechable migrada** con OpenAI desactivado.
 - Las pruebas PHP usan SQLite en memoria y simulan servicios externos. Distingue siempre esa evidencia de PostgreSQL, OpenAI, correo real o un despliegue. No aumentes tiempos de espera ni debilites controles solo para ocultar un fallo.
 - No incorpores `vendor/`, `node_modules/`, `public/build/`, cachés, logs, perfiles de navegador, bases temporales o secretos. Revisa los archivos generados y el estado Git al cerrar.
