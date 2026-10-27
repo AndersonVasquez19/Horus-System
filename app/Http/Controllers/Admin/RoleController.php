@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Services\AdminProtection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -16,6 +17,8 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller implements HasMiddleware
 {
+    public function __construct(private readonly AdminProtection $adminProtection) {}
+
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
@@ -66,36 +69,51 @@ class RoleController extends Controller implements HasMiddleware
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $before = [
-            'name' => $role->name,
-            'permissions' => $role->permissions->pluck('name')->all(),
-        ];
+        /** @var list<string> $permissions */
+        $permissions = array_values(array_unique($data['permissions'] ?? []));
 
-        $role->update(['name' => $data['name']]);
-        $role->syncPermissions($data['permissions'] ?? []);
+        $this->adminProtection->runExclusively(function () use ($role, $data, $permissions): void {
+            // Se relee el rol bajo el bloqueo para decidir con datos vigentes.
+            $role = Role::query()->whereKey($role->getKey())->firstOrFail();
 
-        AuditLog::record('role_updated', Role::class, $role->id, [
-            'before' => $before,
-            'after' => [
+            $this->adminProtection->assertRoleCanBeRenamed($role, $data['name']);
+            $this->adminProtection->assertRolePermissionsKeepAdministration($role, $permissions);
+
+            $before = [
                 'name' => $role->name,
                 'permissions' => $role->permissions->pluck('name')->all(),
-            ],
-        ]);
+            ];
+
+            $role->update(['name' => $data['name']]);
+            $role->syncPermissions($permissions);
+            $this->adminProtection->forgetPermissionCacheAfterCommit();
+
+            AuditLog::record('role_updated', Role::class, $role->id, [
+                'before' => $before,
+                'after' => [
+                    'name' => $role->name,
+                    'permissions' => $role->permissions->pluck('name')->all(),
+                ],
+            ]);
+        });
 
         return redirect()->route('admin.roles.index')->with('success', 'El rol se actualizó correctamente.');
     }
 
     public function destroy(Role $role): RedirectResponse
     {
-        if ($role->name === 'admin') {
-            return back()->withErrors(['rol' => 'No se puede eliminar el rol principal de administración.']);
-        }
+        $this->adminProtection->runExclusively(function () use ($role): void {
+            $role = Role::query()->whereKey($role->getKey())->firstOrFail();
 
-        $role->delete();
+            $this->adminProtection->assertRoleCanBeDeleted($role);
 
-        AuditLog::record('role_deleted', Role::class, $role->id, [
-            'name' => $role->name,
-        ]);
+            $role->delete();
+            $this->adminProtection->forgetPermissionCacheAfterCommit();
+
+            AuditLog::record('role_deleted', Role::class, $role->id, [
+                'name' => $role->name,
+            ]);
+        });
 
         return redirect()->route('admin.roles.index')->with('success', 'El rol se eliminó correctamente.');
     }
