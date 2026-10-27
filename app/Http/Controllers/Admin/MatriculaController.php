@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -11,6 +13,8 @@ use App\Models\Matricula;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,8 +22,24 @@ use Illuminate\View\View;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class MatriculaController extends Controller
+class MatriculaController extends Controller implements HasMiddleware
 {
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:matriculas.ver', only: ['index', 'show', 'exportarCsv']),
+            new Middleware('permission:matriculas.crear', only: ['create', 'store']),
+            new Middleware('permission:matriculas.editar', only: ['edit', 'update']),
+            new Middleware('permission:matriculas.anular', only: ['anular', 'destroy']),
+            new Middleware('permission:matriculas.restaurar', only: ['restaurar']),
+        ];
+    }
+
     public function index(Request $request): View
     {
         $matriculas = $this->filteredQuery($request)

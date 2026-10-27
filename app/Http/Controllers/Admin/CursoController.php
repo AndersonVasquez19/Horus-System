@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -9,12 +11,30 @@ use App\Models\Curso;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-class CursoController extends Controller
+class CursoController extends Controller implements HasMiddleware
 {
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:cursos.ver', only: ['index', 'show']),
+            new Middleware('permission:cursos.crear', only: ['create', 'store']),
+            new Middleware('permission:cursos.editar', only: ['edit', 'update']),
+            new Middleware('permission:cursos.eliminar', only: ['destroy']),
+            new Middleware('permission:cursos.restaurar', only: ['restaurar']),
+        ];
+    }
+
     public function index(Request $request): View
     {
         $query = Curso::query();

@@ -18,8 +18,9 @@ class SystemSettingsSeeder extends Seeder
             'api_resend' => ['value' => 'No configurada', 'description' => 'Clave API de Resend'],
         ];
 
+        // firstOrCreate: repetir el seeder no sobrescribe valores editados desde el panel.
         foreach ($settings as $key => $data) {
-            SystemSetting::updateOrCreate(
+            SystemSetting::firstOrCreate(
                 ['key' => $key],
                 [
                     'value' => $data['value'],

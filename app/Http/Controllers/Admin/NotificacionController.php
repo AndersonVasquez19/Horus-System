@@ -1,18 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\NotificacionInterna;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\View\View;
 
-class NotificacionController extends Controller
+class NotificacionController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * El grupo /admin ya exige sesión y rol administrativo; se conserva el requisito de sesión del controlador.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware('auth');
+        return [
+            new Middleware('auth'),
+        ];
     }
 
     public function index(): View

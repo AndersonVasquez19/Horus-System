@@ -49,6 +49,7 @@
                     <input id="password_confirmation" name="password_confirmation" type="password" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
                 </div>
 
+                @can('usuarios.asignar-roles')
                 <div class="md:col-span-2">
                     <p class="mb-2 text-sm font-medium text-stone-700">Roles</p>
                     <div class="grid gap-3 md:grid-cols-2">
@@ -60,6 +61,7 @@
                         @endforeach
                     </div>
                 </div>
+                @endcan
             </div>
 
             <div class="mt-6 flex justify-end">

@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AprobacionController;
 use App\Http\Controllers\Admin\AsistenteController;
 use App\Http\Controllers\Admin\AuditoriaController;
+use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\CursoController;
@@ -76,10 +76,13 @@ Route::prefix('admin')
         Route::patch('matriculas/{matricula}/restaurar', [MatriculaController::class, 'restaurar'])
             ->name('matriculas.restaurar');
 
-        Route::resource('usuarios', UserController::class);
+        // El nombre del parámetro debe coincidir con el argumento del controlador para que el binding resuelva el registro.
+        Route::resource('usuarios', UserController::class)->parameters(['usuarios' => 'user']);
         Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::resource('procesos', ProcesoController::class);
-        Route::resource('aprobaciones', AprobacionController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('aprobaciones', AprobacionController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->parameters(['aprobaciones' => 'aprobacion']);
         Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
         Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
         Route::get('reportes', [ReportController::class, 'index'])->name('reportes.index');

@@ -82,11 +82,14 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $auditoriasRecientes = AuditLog::query()
-            ->with('user')
-            ->latest('created_at')
-            ->limit(5)
-            ->get();
+        // La actividad de auditoría solo se muestra a quien tiene permiso para consultarla.
+        $auditoriasRecientes = auth()->user()->can('auditoria.ver')
+            ? AuditLog::query()
+                ->with('user')
+                ->latest('created_at')
+                ->limit(5)
+                ->get()
+            : collect();
 
         $procesosPendientes = ProcesoInterno::query()->where('estado', 'pendiente')->count();
         $aprobacionesPendientes = AprobacionInterna::query()->where('estado', 'pendiente')->count();

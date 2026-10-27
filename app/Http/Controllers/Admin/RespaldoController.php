@@ -1,20 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use ZipArchive;
 
-class RespaldoController extends Controller
+class RespaldoController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:respaldo.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:respaldo.exportar'])->only(['exportar']);
+        return [
+            new Middleware('permission:respaldo.ver', only: ['index']),
+            new Middleware('permission:respaldo.exportar', only: ['exportar']),
+        ];
     }
 
     public function index(): View
@@ -37,7 +47,7 @@ class RespaldoController extends Controller
 
     public function exportar()
     {
-        if (! class_exists(\ZipArchive::class)) {
+        if (! class_exists(ZipArchive::class)) {
             return back()->with('error', 'La extensión ZIP no está disponible en este servidor.');
         }
 
@@ -59,7 +69,7 @@ class RespaldoController extends Controller
             mkdir($dir, 0777, true);
         }
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $opened = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         if ($opened !== true) {
