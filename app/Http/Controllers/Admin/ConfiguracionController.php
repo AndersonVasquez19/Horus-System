@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -7,14 +9,23 @@ use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\View\View;
 
-class ConfiguracionController extends Controller
+class ConfiguracionController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:configuracion.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:configuracion.editar'])->only(['update']);
+        return [
+            new Middleware('permission:configuracion.ver', only: ['index']),
+            new Middleware('permission:configuracion.editar', only: ['update']),
+        ];
     }
 
     public function index(): View

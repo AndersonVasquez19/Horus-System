@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -7,18 +9,27 @@ use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
-class UserController extends Controller
+class UserController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:usuarios.ver'])->only(['index', 'show']);
-        $this->middleware(['auth', 'permission:usuarios.crear'])->only(['create', 'store']);
-        $this->middleware(['auth', 'permission:usuarios.editar'])->only(['edit', 'update']);
-        $this->middleware(['auth', 'permission:usuarios.eliminar'])->only(['destroy']);
+        return [
+            new Middleware('permission:usuarios.ver', only: ['index', 'show']),
+            new Middleware('permission:usuarios.crear', only: ['create', 'store']),
+            new Middleware('permission:usuarios.editar', only: ['edit', 'update']),
+            new Middleware('permission:usuarios.eliminar', only: ['destroy']),
+        ];
     }
 
     public function index(Request $request): View
@@ -76,6 +87,9 @@ class UserController extends Controller
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
         ]);
 
+        // Asignar roles concede permisos: exige su propio permiso además de usuarios.crear.
+        abort_if(! empty($data['roles']) && ! $request->user()->can('usuarios.asignar-roles'), 403);
+
         $usuario = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -109,7 +123,7 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['string', 'exists:roles,name'],
@@ -120,6 +134,10 @@ class UserController extends Controller
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
         ]);
+
+        // Asignar roles concede permisos: exige su propio permiso además de usuarios.editar.
+        $canAssignRoles = $request->user()->can('usuarios.asignar-roles');
+        abort_if($request->has('roles') && ! $canAssignRoles, 403);
 
         $previous = $user->only(['name', 'email', 'roles']);
         $user->fill([
@@ -133,8 +151,9 @@ class UserController extends Controller
 
         $user->save();
 
-        $roles = $data['roles'] ?? [];
-        $user->syncRoles($roles);
+        if ($canAssignRoles) {
+            $user->syncRoles($data['roles'] ?? []);
+        }
 
         AuditLog::record('user_updated', User::class, $user->id, [
             'before' => $previous,

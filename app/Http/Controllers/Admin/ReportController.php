@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -8,20 +10,28 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class ReportController extends Controller
+class ReportController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:reportes.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:reportes.exportar.excel'])->only(['exportarExcel']);
-        $this->middleware(['auth', 'permission:reportes.exportar.pdf'])->only(['exportarPdf']);
+        return [
+            new Middleware('permission:reportes.ver', only: ['index']),
+            new Middleware('permission:reportes.exportar.excel', only: ['exportarExcel']),
+            new Middleware('permission:reportes.exportar.pdf', only: ['exportarPdf']),
+        ];
     }
 
     public function index(): View
@@ -36,11 +46,11 @@ class ReportController extends Controller
         ]);
     }
 
-    public function exportarExcel(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function exportarExcel(): BinaryFileResponse
     {
         $matriculas = Matricula::query()->with(['estudiante', 'curso'])->orderByDesc('fecha_matricula')->get();
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Matrículas');
         $sheet->fromArray([
@@ -52,20 +62,20 @@ class ReportController extends Controller
             $sheet->fromArray([
                 [
                     $matricula->id,
-                    $matricula->estudiante?->nombres . ' ' . $matricula->estudiante?->apellidos,
+                    $matricula->estudiante?->nombres.' '.$matricula->estudiante?->apellidos,
                     $matricula->curso?->nombre,
                     $matricula->fecha_matricula?->format('d/m/Y'),
                     $matricula->estado,
                     (float) $matricula->monto_pagado,
                 ],
-            ], null, 'A' . $fila);
+            ], null, 'A'.$fila);
 
             $fila++;
         }
 
         $writer = new Xlsx($spreadsheet);
-        $filename = 'reporte-matriculas-' . now()->format('Ymd-His') . '.xlsx';
-        $path = 'exports/' . $filename;
+        $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.xlsx';
+        $path = 'exports/'.$filename;
         Storage::disk('local')->makeDirectory('exports');
         $file = Storage::disk('local')->path($path);
         $writer->save($file);
@@ -75,7 +85,7 @@ class ReportController extends Controller
         return response()->download($file, $filename)->deleteFileAfterSend(true);
     }
 
-    public function exportarPdf(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function exportarPdf(): BinaryFileResponse
     {
         $matriculas = Matricula::query()->with(['estudiante', 'curso'])->orderByDesc('fecha_matricula')->limit(50)->get();
 
@@ -83,12 +93,12 @@ class ReportController extends Controller
             'matriculas' => $matriculas,
             'fecha' => now()->format('d/m/Y'),
         ]);
-        $filename = 'reporte-matriculas-' . now()->format('Ymd-His') . '.pdf';
+        $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.pdf';
         $dir = storage_path('app/exports');
         if (! is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
-        $file = $dir . DIRECTORY_SEPARATOR . $filename;
+        $file = $dir.DIRECTORY_SEPARATOR.$filename;
         $pdf->save($file);
 
         AuditLog::record('report_pdf_exported', Matricula::class, null, ['filename' => $filename]);
