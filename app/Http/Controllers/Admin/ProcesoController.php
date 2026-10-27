@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ProcesoInterno;
 use App\Models\User;
+use App\Support\ListFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -32,16 +33,17 @@ class ProcesoController extends Controller implements HasMiddleware
     {
         $query = ProcesoInterno::query()->with(['responsable', 'creador']);
 
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->input('estado'));
+        $estado = ListFilter::text($request, 'estado');
+        if ($estado !== '') {
+            $query->where('estado', $estado);
         }
 
-        if ($request->filled('busqueda')) {
-            $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
+        if ($busqueda !== '') {
             $query->where(function ($q) use ($busqueda): void {
-                $q->where('titulo', 'like', "%{$busqueda}%")
-                    ->orWhere('descripcion', 'like', "%{$busqueda}%")
-                    ->orWhere('observaciones', 'like', "%{$busqueda}%");
+                $q->whereLike('titulo', "%{$busqueda}%")
+                    ->orWhereLike('descripcion', "%{$busqueda}%")
+                    ->orWhereLike('observaciones', "%{$busqueda}%");
             });
         }
 
@@ -53,8 +55,8 @@ class ProcesoController extends Controller implements HasMiddleware
 
         return view('admin.procesos.index', [
             'procesos' => $procesos,
-            'estado' => $request->input('estado'),
-            'busqueda' => $request->input('busqueda'),
+            'estado' => $estado,
+            'busqueda' => $busqueda,
             'responsables' => User::orderBy('name')->get(),
         ]);
     }

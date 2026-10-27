@@ -17,7 +17,7 @@
     <div class="flex items-center gap-3 sm:gap-5">
         <form action="{{ route('admin.busqueda.index') }}" method="GET" class="hidden items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-2 lg:flex">
             <i class="fa-solid fa-magnifying-glass text-xs text-stone-500" aria-hidden="true"></i>
-            <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar en el sistema" class="w-56 border-0 bg-transparent text-sm text-ink placeholder:text-stone-400 focus:outline-none" />
+            <input type="search" name="q" value="{{ is_string(request('q')) ? request('q') : '' }}" placeholder="Buscar en el sistema" class="w-56 border-0 bg-transparent text-sm text-ink placeholder:text-stone-400 focus:outline-none" />
         </form>
         <span class="hidden rounded-full bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold-dark sm:inline-flex">Horus Group SRL</span>
         <div class="flex items-center gap-2.5">

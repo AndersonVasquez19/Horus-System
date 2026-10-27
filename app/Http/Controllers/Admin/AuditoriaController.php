@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\ListFilter;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -31,19 +32,21 @@ class AuditoriaController extends Controller implements HasMiddleware
     {
         $query = AuditLog::query()->with('user');
 
-        if ($request->filled('accion')) {
-            $query->where('action', 'like', '%'.$request->input('accion').'%');
+        $accion = ListFilter::text($request, 'accion');
+        if ($accion !== '') {
+            $query->whereLike('action', '%'.$accion.'%');
         }
 
-        if ($request->filled('modelo')) {
-            $query->where('model_type', 'like', '%'.$request->input('modelo').'%');
+        $modelo = ListFilter::text($request, 'modelo');
+        if ($modelo !== '') {
+            $query->whereLike('model_type', '%'.$modelo.'%');
         }
 
-        if ($request->filled('usuario')) {
-            $usuario = trim((string) $request->input('usuario'));
+        $usuario = ListFilter::text($request, 'usuario');
+        if ($usuario !== '') {
             $query->whereHas('user', function ($q) use ($usuario): void {
-                $q->where('name', 'like', "%{$usuario}%")
-                    ->orWhere('email', 'like', "%{$usuario}%");
+                $q->whereLike('name', "%{$usuario}%")
+                    ->orWhereLike('email', "%{$usuario}%");
             });
         }
 
@@ -54,9 +57,9 @@ class AuditoriaController extends Controller implements HasMiddleware
 
         return view('admin.auditoria.index', [
             'registros' => $registros,
-            'accion' => $request->input('accion'),
-            'modelo' => $request->input('modelo'),
-            'usuario' => $request->input('usuario'),
+            'accion' => $accion,
+            'modelo' => $modelo,
+            'usuario' => $usuario,
         ]);
     }
 
