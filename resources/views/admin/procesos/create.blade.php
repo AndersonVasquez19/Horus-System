@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 @extends('admin.layouts.app')
 
 @section('title', 'Nuevo proceso')
@@ -21,7 +22,7 @@
             <div class="grid gap-5 md:grid-cols-2">
                 <div class="md:col-span-2">
                     <label for="titulo" class="mb-1.5 block text-sm font-medium text-stone-700">Título</label>
-                    <input id="titulo" name="titulo" type="text" value="{{ old('titulo') }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
+                    <input id="titulo" name="titulo" type="text" value="{{ OldInput::value('titulo') }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
                     @error('titulo')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -29,7 +30,7 @@
 
                 <div class="md:col-span-2">
                     <label for="descripcion" class="mb-1.5 block text-sm font-medium text-stone-700">Descripción</label>
-                    <textarea id="descripcion" name="descripcion" rows="4" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">{{ old('descripcion') }}</textarea>
+                    <textarea id="descripcion" name="descripcion" rows="4" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">{{ OldInput::value('descripcion') }}</textarea>
                 </div>
 
                 <div>
@@ -64,12 +65,12 @@
 
                 <div>
                     <label for="fecha_vencimiento" class="mb-1.5 block text-sm font-medium text-stone-700">Fecha de vencimiento</label>
-                    <input id="fecha_vencimiento" name="fecha_vencimiento" type="date" value="{{ old('fecha_vencimiento') }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" />
+                    <input id="fecha_vencimiento" name="fecha_vencimiento" type="date" value="{{ OldInput::value('fecha_vencimiento') }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" />
                 </div>
 
                 <div class="md:col-span-2">
                     <label for="observaciones" class="mb-1.5 block text-sm font-medium text-stone-700">Observaciones</label>
-                    <textarea id="observaciones" name="observaciones" rows="3" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">{{ old('observaciones') }}</textarea>
+                    <textarea id="observaciones" name="observaciones" rows="3" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">{{ OldInput::value('observaciones') }}</textarea>
                 </div>
             </div>
 
