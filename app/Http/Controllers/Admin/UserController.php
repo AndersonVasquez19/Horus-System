@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AdminProtection;
+use App\Support\ListFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -39,14 +40,12 @@ class UserController extends Controller implements HasMiddleware
     {
         $query = User::query()->with('roles');
 
-        if ($request->filled('busqueda')) {
-            $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
+        if ($busqueda !== '') {
             $query->where(function ($query) use ($busqueda): void {
-                $query->where('name', 'like', "%{$busqueda}%")
-                    ->orWhere('email', 'like', "%{$busqueda}%");
+                $query->whereLike('name', "%{$busqueda}%")
+                    ->orWhereLike('email', "%{$busqueda}%");
             });
-        } else {
-            $busqueda = '';
         }
 
         $usuarios = $query

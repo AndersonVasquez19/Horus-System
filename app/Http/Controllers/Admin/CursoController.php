@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCursoRequest;
 use App\Http\Requests\UpdateCursoRequest;
 use App\Models\Curso;
+use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class CursoController extends Controller implements HasMiddleware
             $query->onlyTrashed();
         }
 
-        $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
                 $query->whereLike('codigo', "%{$busqueda}%")
