@@ -1,20 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class AuditoriaController extends Controller
+class AuditoriaController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:auditoria.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:auditoria.exportar'])->only(['exportar']);
+        return [
+            new Middleware('permission:auditoria.ver', only: ['index']),
+            new Middleware('permission:auditoria.exportar', only: ['exportar']),
+        ];
     }
 
     public function index(Request $request): View

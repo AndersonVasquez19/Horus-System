@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -7,14 +9,23 @@ use App\Models\AprobacionInterna;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\View\View;
 
-class AprobacionController extends Controller
+class AprobacionController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:aprobaciones.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:aprobaciones.gestionar'])->only(['store', 'update', 'destroy']);
+        return [
+            new Middleware('permission:aprobaciones.ver', only: ['index']),
+            new Middleware('permission:aprobaciones.gestionar', only: ['store', 'update', 'destroy']),
+        ];
     }
 
     public function index(Request $request): View

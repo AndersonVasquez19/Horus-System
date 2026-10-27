@@ -1,23 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-class RoleController extends Controller
+class RoleController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:roles.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:roles.crear'])->only(['store']);
-        $this->middleware(['auth', 'permission:roles.editar'])->only(['update']);
-        $this->middleware(['auth', 'permission:roles.eliminar'])->only(['destroy']);
+        return [
+            new Middleware('permission:roles.ver', only: ['index']),
+            new Middleware('permission:roles.crear', only: ['store']),
+            new Middleware('permission:roles.editar', only: ['update']),
+            new Middleware('permission:roles.eliminar', only: ['destroy']),
+        ];
     }
 
     public function index(): View
@@ -50,7 +61,7 @@ class RoleController extends Controller
     public function update(Request $request, Role $role): RedirectResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name,' . $role->id],
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name,'.$role->id],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);

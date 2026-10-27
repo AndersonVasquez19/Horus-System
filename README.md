@@ -102,18 +102,32 @@ No publiques `.env` ni pegues secretos en incidencias, registros o documentació
 
 Las migraciones incluyen usuarios, sesiones, caché y trabajos, estudiantes, cursos, matrículas, permisos, ajustes, procesos, auditoría e intenciones/registros del chat. La aplicación puede mostrar páginas públicas sin sembrar datos, pero el chat consulta `chat_intents` y escribe en `chat_logs`: **necesita una base migrada y disponible**.
 
-`php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`. Este crea cuentas administrativas con contraseñas conocidas y datos de ejemplo (además de roles, permisos, configuraciones e intenciones). Úsalo **solo en una base local desechable**:
+`php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`: roles, permisos, configuración inicial e intenciones del chat. **No crea usuarios ni contraseñas** y puede repetirse: no modifica cuentas existentes ni sobrescribe la configuración editada desde el panel. Sí sincroniza los permisos de los roles base (`admin`, `coordinador`, `secretaria`) con la matriz de `RolesAndPermissionsSeeder`.
 
 ```powershell
 php artisan db:seed
 ```
+
+Las cuentas del panel se crean con un comando que pide la contraseña de forma oculta (mínimo 12 caracteres con mayúsculas, minúsculas, números y símbolos), no la imprime y se niega a modificar un correo ya registrado:
+
+```powershell
+php artisan horus:crear-usuario --email=correo@ejemplo.com --name="Nombre" --rol=admin
+```
+
+`--rol` acepta `admin`, `coordinador` o `secretaria`. Los datos de ejemplo (cursos, estudiantes, matrículas, procesos y aprobaciones) están separados en `DemoDataSeeder`, no crean usuarios y se niegan a ejecutarse con `APP_ENV=production`. Úsalos **solo en una base local desechable**:
+
+```powershell
+php artisan db:seed --class=DemoDataSeeder
+```
+
+Las versiones anteriores sembraban cuentas `admin@`, `coordinador@` y `secretaria@horusgroup.com` con una contraseña publicada en el repositorio. Si tu base se sembró así, cambia esas contraseñas o elimina esas cuentas.
 
 Para tareas parciales, inspecciona el seeder correspondiente antes de ejecutarlo. En particular, `ChatIntentSeeder` usa `updateOrCreate` y puede reemplazar campos de intenciones existentes; no es un mecanismo inocuo para actualizar producción. `migrate:fresh` y `db:wipe` eliminan datos y no forman parte del arranque normal.
 
 ## Acceso y funciones
 
 - **Público:** `/`, páginas de tecnologías, educación, mercado, galería, contacto y textos legales definidos en `routes/web.php`; `/register`, `/login` y recuperación de contraseña.
-- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Varios controladores aplican permisos específicos de Spatie; comprueba cada acción en su ruta y controlador. La inscripción pública no concede rol administrativo.
+- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo.
 - **Gestión:** estudiantes, cursos y matrículas; usuarios/roles; procesos y aprobaciones; notificaciones; configuración; auditoría; reportes CSV, Excel y PDF. Consulta las rutas y permisos reales antes de cambiar una operación.
 - **Respaldo:** existe una exportación ZIP de tablas seleccionadas bajo `admin/respaldo`; requiere extensión ZIP y permiso. No equivale a una copia completa de PostgreSQL ni cubre automáticamente todos los archivos y tablas.
 - **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login web usa sesión y CSRF.

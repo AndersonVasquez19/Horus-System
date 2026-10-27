@@ -3,14 +3,17 @@
 namespace Tests;
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Spatie\Permission\Models\Role;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Usuario con el rol admin y la matriz de permisos real del seeder.
+     */
     protected function adminUser(): User
     {
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $this->seed(RolesAndPermissionsSeeder::class);
         $user = User::factory()->create();
         $user->assignRole('admin');
 
