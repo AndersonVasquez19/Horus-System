@@ -5,7 +5,7 @@ Estas instrucciones ayudan a cualquier asistente de código a modificar **esta c
 ## 1. Identifica el sistema y el alcance
 
 - **Laravel**: `artisan`, `bootstrap/`, `app/`, `routes/`, `resources/`, `database/`, `public/` y `tests/`. Usa PostgreSQL por defecto según `.env.example`; `package.json` y Vite compilan sus recursos.
-- **HTML/Node**: `*.html`, `server.js`, `src/` y `assets/` de la raíz. Es un recorrido separado con MySQL/Sequelize. `server.js` ejecuta `sequelize.sync({ alter: true })` al iniciar; inspecciona su destino antes de cualquier ejecución. `package.json` actual no declara las dependencias de ese servidor.
+- **HTML/Node histórico**: está completo en `legacy-html-node/` (`*.html`, `server.js`, `src/`, `assets/`, `package.json` y `.env.example`). Usa MySQL/Sequelize y sus dependencias se instalan dentro de esa carpeta. `server.js` ejecuta `sequelize.sync({ alter: true })` al iniciar; inspecciona su destino antes de cualquier ejecución.
 - Ubica la ruta o pantalla que pide el usuario antes de cambiar archivos. No dupliques una corrección entre ambos recorridos por suposición.
 
 ## 2. Antes de cambiar algo
@@ -13,7 +13,7 @@ Estas instrucciones ayudan a cualquier asistente de código a modificar **esta c
 - Inspecciona `git status --short` y los archivos relacionados. Conserva cambios, archivos sin seguimiento y trabajo de otras personas. Limita la edición a la tarea; no hagas commits, pushes ni despliegues salvo instrucción explícita.
 - Para una afirmación funcional, busca el contrato en `routes/web.php` o `routes/api.php`, el controlador, la validación, el servicio/modelo y la prueba pertinente. Si la documentación discrepa del código, verifica el comportamiento y actualiza la documentación como parte del cambio autorizado.
 - No reveles valores de `.env`, tokens, contraseñas, datos de usuarios ni registros del chat. Usa `.env.example` para nombres de variables y ejemplos sin secretos.
-- Antes de cualquier comando que escriba en una base, confirma `DB_CONNECTION`, host, puerto y nombre de base **sin imprimir credenciales**. `migrate`, `db:seed`, `composer setup`, `migrate:fresh`, `db:wipe` y el arranque de `server.js` pueden modificar datos. Utiliza una base desechable para pruebas que escriben.
+- Antes de cualquier comando que escriba en una base, confirma `DB_CONNECTION`, host, puerto y nombre de base **sin imprimir credenciales**. `migrate`, `db:seed`, `composer setup`, `migrate:fresh`, `db:wipe` y el arranque de `legacy-html-node/server.js` pueden modificar datos. Utiliza una base desechable para pruebas que escriben.
 
 ## 3. Contratos que debes preservar
 

@@ -1,4 +1,5 @@
-require('dotenv').config();
+process.chdir(__dirname);
+require('./src/config/env');
 const app = require('./src/app');
 // IMPORTANTE: Esta línea debe estar aquí para que sequelize esté definido
 const sequelize = require('./src/config/database'); 
