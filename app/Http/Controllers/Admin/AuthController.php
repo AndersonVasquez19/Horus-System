@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\ListFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,7 @@ class AuthController extends Controller
 
     public function register(Request $request): RedirectResponse
     {
-        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        $request->merge(['email' => mb_strtolower(ListFilter::text($request, 'email'))]);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -55,7 +56,7 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        $request->merge(['email' => mb_strtolower(ListFilter::text($request, 'email'))]);
         $credentials = $request->validate(
             [
                 'email' => ['required', 'email'],
