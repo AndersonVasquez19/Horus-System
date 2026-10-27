@@ -16,7 +16,7 @@ Esta fase prepara código y pruebas simuladas. No crea bases, no se conecta a Po
 | Caché / sesiones / cola / correo | array / array / sync / array |
 | HTTP Laravel | Solicitudes externas sin fake rechazadas |
 
-El puerto 55432 es una elección nueva: se propone una **instancia PostgreSQL nativa exclusiva**, usando binarios locales compatibles con Laragon, sin Docker. No reutilizar el servicio cotidiano de 5432 ni modificarlo. Ampliar esta política requiere revisar código y pruebas; una variable no puede ampliar la lista de destinos.
+El puerto 55432 es una elección nueva: se propone una **instancia PostgreSQL nativa exclusiva**, sin Docker. Laragon no incluye PostgreSQL: los binarios (`initdb`, `pg_ctl`, `psql`, `pg_dump`, `pg_restore`) proceden de la instalación EDB 18.x del sistema, con directorio de datos, servicio y cuenta de Windows propios. No reutilizar el servicio cotidiano de 5432 ni modificarlo. Ampliar esta política requiere revisar código y pruebas; una variable no puede ampliar la lista de destinos.
 
 ## Rutas protegidas
 
@@ -46,10 +46,12 @@ Cambiar una variable no crea el marcador ni concede privilegios. Una base inexis
 
 ## Aprovisionamiento futuro: NO ejecutado
 
+El procedimiento operativo definitivo (cuenta de servicio, ACL, `initdb`, HBA con entrada del aprovisionador, locale, clasificación de verificaciones y checklist) está en [postgresql-l2.2-b-provisioning.md](postgresql-l2.2-b-provisioning.md) y prevalece sobre los pasos siguientes. Estos cuatro pasos quedan como referencia del diseño y **no deben ejecutarse literalmente**: el orden (servicio antes de `initdb`), el SQL con locale, el HBA con aprovisionador, la desactivación posterior del aprovisionador y el rollback están en los §6 y §7 de ese documento.
+
 Revisión independiente y autorización necesarias antes de realizar estos pasos. Usar una instancia nueva/exclusiva en 127.0.0.1:55432. **No aplicar estas revocaciones PUBLIC en un clúster compartido**: afectarían a sus usuarios.
 
 1. Preparar directorio de datos y servicio nativo separado: `listen_addresses='127.0.0.1'`, puerto 55432 y autenticación SCRAM. Confirmar versión, directorio y proceso; no reutilizar datos cotidianos ni iniciar servicios automáticamente desde las pruebas.
-2. Conectar como aprovisionador con host/puerto explícitos, base `postgres` y contraseña interactiva. CREATE DATABASE debe ejecutarse fuera de una transacción envolvente:
+2. Conectar como aprovisionador (superusuario de la instancia **nueva**) con host/puerto explícitos, base `postgres` de esa instancia y contraseña interactiva. Las revocaciones de CONNECT a PUBLIC afectan a los runners, no al aprovisionador. El SQL de `CREATE DATABASE` debe fijar además el locale medido en `horus_group` (ver el documento B1). CREATE DATABASE debe ejecutarse fuera de una transacción envolvente:
 
 ```sql
 CREATE ROLE horus_l2_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
@@ -67,7 +69,7 @@ ALTER ROLE horus_l2_restore_test_runner SET default_transaction_isolation = 'rea
 
 Asignar contraseñas distintas mediante `\password horus_l2_test_runner` y `\password horus_l2_restore_test_runner` en psql; no incluirlas en SQL, argumentos ni historial. No conceder membresía en `horus_l2_owner`.
 
-3. Antes de reglas generales de `pg_hba.conf`, permitir cada pareja y rechazar el resto:
+3. Antes de reglas generales de `pg_hba.conf`, permitir cada pareja y rechazar el resto (el documento B1 añade la entrada del aprovisionador, necesaria para ejecutar SQL conectado a cada base):
 
 ```text
 host horus_l2_test         horus_l2_test_runner         127.0.0.1/32 scram-sha-256
