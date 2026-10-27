@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 @extends('admin.layouts.app')
 
 @section('title', 'Roles')
@@ -18,7 +19,7 @@
                 @csrf
                 <div>
                     <label for="name" class="mb-1.5 block text-sm font-medium text-stone-700">Nombre del rol</label>
-                    <input id="name" name="name" type="text" value="{{ old('name') }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
+                    <input id="name" name="name" type="text" value="{{ OldInput::value('name') }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
                     @error('name')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -72,7 +73,7 @@
 
                         <div>
                             <label for="name-{{ $rol->id }}" class="mb-1.5 block text-sm font-medium text-stone-700">Nombre</label>
-                            <input id="name-{{ $rol->id }}" name="name" type="text" value="{{ old('name', $rol->name) }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
+                            <input id="name-{{ $rol->id }}" name="name" type="text" value="{{ OldInput::value('name', $rol->name) }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
                         </div>
 
                         <div>
