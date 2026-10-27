@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -48,7 +49,7 @@
                         id="email"
                         name="email"
                         type="email"
-                        value="{{ old('email', $email) }}"
+                        value="{{ OldInput::value('email', $email) }}"
                         readonly
                         class="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-700 outline-none"
                     >
