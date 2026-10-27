@@ -206,7 +206,7 @@ img {
   }
 
   .site-brand-logo {
-    @apply h-11 w-11 shrink-0 rounded-full border border-gold/40 bg-white object-contain p-0.5 shadow-md;
+    @apply h-11 w-11 shrink-0 object-contain;
   }
 
   .site-brand-logo--footer { @apply h-12 w-12; }
@@ -232,7 +232,7 @@ img {
   .home-page .convenio-panel::before { content:''; @apply pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full border border-gold/10; }
   .home-page .convenio-panel::after { content:''; @apply pointer-events-none absolute -bottom-32 -left-28 h-72 w-72 rounded-full border border-white/5; }
   .home-page .convenio-empty, .home-page .convenio-detail { @apply relative z-[1] w-full text-center; }
-  .home-page .convenios-center-logo { @apply mx-auto mb-5 h-24 w-24 rounded-full border border-white/20 bg-white object-contain p-1 shadow-[0_12px_32px_rgba(0,0,0,0.2)]; }
+  .home-page .convenios-center-logo { @apply mx-auto mb-5 h-24 w-24 object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.2)]; }
   .home-page .convenio-empty h3 { @apply text-lg font-bold uppercase tracking-[0.18em] text-white sm:text-xl; }
   .home-page .convenio-empty p { @apply mt-3 text-sm text-white/70; }
   .home-page .convenio-detail { @apply max-h-[470px] overflow-y-auto px-1 pt-5; }
