@@ -33,6 +33,8 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 
 El `package.json` de la raíz contiene únicamente los comandos y dependencias de **Vite de Laravel**. El proyecto histórico tiene su propio manifiesto en `legacy-html-node/package.json`. `npm run dev` desde la raíz inicia Vite. Para trabajar en el sitio histórico, entra en `legacy-html-node/` y sigue su README; su servidor ejecuta `sequelize.sync({ alter: true })` contra MySQL al arrancar.
 
+Las vistas Laravel también usan imágenes, estilos y scripts estáticos de `legacy-html-node/assets/`. `npm run dev` y `npm run build` copian esos recursos a `public/assets/` antes de iniciar o compilar Vite. Esta carpeta generada no se versiona: inclúyela junto con `public/build/` al publicar la aplicación. Para restaurarla sin compilar, ejecuta `npm run assets:sync` desde la raíz. No es necesario iniciar el servidor Node histórico.
+
 ## Requisitos
 
 - PHP **8.2 o superior** y Composer 2. Existe un `composer.phar` local para equipos sin el comando global `composer`.
@@ -151,6 +153,7 @@ node tests/browser/chat-smoke.mjs
 | `419` al enviar el chat | Comprueba que cargas la página y envías a la misma aplicación/host, que la sesión funciona y que la página tiene un token CSRF vigente; recarga la página. |
 | Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_intents` se consulta y `chat_logs` se escribe en cada mensaje. |
 | Página sin estilos o interacción | Ejecuta `npm run build` o inicia `npm run dev`; confirma que visitas Laravel mediante `php artisan serve`. |
+| Imágenes rotas o secciones sin su diseño propio | Ejecuta `npm run assets:sync` y comprueba que exista `public/assets/`. Después recarga la página. |
 | Laravel intenta cargar Vite después de cerrarlo | Confirma que Vite ya no está activo y elimina el marcador temporal `public/hot`; luego usa `npm run build` o reinicia `npm run dev`. |
 | `could not find driver` | Activa `pdo_pgsql` para PostgreSQL o `pdo_sqlite` para las pruebas, según el comando. |
 | No llega un correo | Comprueba `MAIL_MAILER`; con `log` no se envían mensajes reales. |

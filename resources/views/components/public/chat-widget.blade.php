@@ -19,7 +19,7 @@
         <header class="relative flex items-center gap-3 overflow-hidden bg-gradient-to-r from-[#0A2540] via-[#123A59] to-[#0B5664] px-4 py-3 text-white">
             <span aria-hidden="true" class="pointer-events-none absolute -right-8 -top-14 h-32 w-32 rounded-full border border-white/10"></span>
             <span class="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#E9D8AC]/50 bg-[#E9D8AC]/15">
-                <img src="{{ asset('assets/images/chat/horus-mascot.webp') }}" alt="" width="56" height="56" class="h-full w-full object-cover object-top" draggable="false">
+                <img src="{{ asset('assets/images/index/stiker/stiker.png') }}" alt="" width="56" height="56" class="h-full w-full object-contain" draggable="false">
             </span>
             <span class="relative min-w-0 flex-1">
                 <span class="block text-base font-bold leading-tight">Horus</span>
@@ -59,7 +59,7 @@
         class="horus-chat-launcher group relative flex h-[4.5rem] w-[13.5rem] items-center overflow-visible rounded-full border-2 border-[#E6C878] bg-gradient-to-r from-[#0A2540] to-[#124C60] pl-[5.25rem] pr-4 text-left text-white shadow-[0_12px_32px_rgba(10,37,64,0.32)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_16px_38px_rgba(10,37,64,0.38)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-[#C9A961]"
     >
         <span aria-hidden="true" class="absolute -left-1 bottom-0 h-[5.9rem] w-[6.2rem] overflow-hidden rounded-b-full">
-            <img src="{{ asset('assets/images/chat/horus-mascot.webp') }}" alt="" width="98" height="94" class="horus-chat-mascot h-full w-full object-cover object-top" draggable="false">
+            <img src="{{ asset('assets/images/index/stiker/stiker.png') }}" alt="" width="98" height="94" class="horus-chat-mascot h-full w-full object-contain" draggable="false">
         </span>
         <span class="relative block leading-tight">
             <span class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E9D8AC]">Horus te saluda</span>
