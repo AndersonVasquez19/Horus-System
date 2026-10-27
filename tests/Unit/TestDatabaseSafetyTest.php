@@ -37,7 +37,7 @@ class TestDatabaseSafetyTest extends TestCase
         $this->withEnvironment(['APP_ENV' => 'testing', 'DB_CONNECTION' => 'pgsql',
             'DB_DATABASE' => 'horus_group', 'HORUS_PG_TEST_PROFILE' => ''], function (): void {
                 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-                $app->loadEnvironmentFrom('.env.nonexistent-safety-fixture');
+                $this->isolateEnvironmentFile($app);
                 $migrationKernel = $this->createMock(Kernel::class);
                 $migrationKernel->expects($this->never())->method('call');
                 $app->afterBootstrapping(BootProviders::class, fn () => $migrationKernel->call('migrate:fresh'));
@@ -59,7 +59,7 @@ class TestDatabaseSafetyTest extends TestCase
             'QUEUE_CONNECTION' => 'sync', 'MAIL_MAILER' => 'array', 'BROADCAST_CONNECTION' => 'null'];
         $this->withEnvironment($environment, function (): void {
             $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-            $app->loadEnvironmentFrom('.env.nonexistent-safety-fixture');
+            $this->isolateEnvironmentFile($app);
             $kernel = $this->createMock(Kernel::class);
             // All planned destructive dispatches stay behind the bootstrap barrier.
             $kernel->expects($this->never())->method('call');
@@ -233,7 +233,7 @@ class TestDatabaseSafetyTest extends TestCase
             foreach (['scripts/pgsql-test.php', 'tests/bootstrap-pgsql.php'] as $entry) {
                 $this->assertStringContainsString(".'/bootstrap/app.php'", file_get_contents(dirname(__DIR__, 2).'/'.$entry));
                 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-                $app->loadEnvironmentFrom('.env.nonexistent-safety-fixture');
+                $this->isolateEnvironmentFile($app);
                 $driver = $this->createMock(ConnectorInterface::class);
                 $driver->expects($this->never())->method('connect');
                 $app->afterBootstrapping(LoadConfiguration::class, fn () => $app->instance('db.connector.pgsql', $driver));
@@ -319,6 +319,34 @@ class TestDatabaseSafetyTest extends TestCase
                 unlink($path);
             }
         });
+    }
+
+    public function test_isolated_environment_fixture_has_no_variables_and_replaces_the_project_env(): void
+    {
+        $fixture = dirname(__DIR__).'/Fixtures/env/.env.safety-fixture';
+        $lines = file($fixture, FILE_IGNORE_NEW_LINES);
+        $this->assertNotFalse($lines);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            // Solo comentarios: una asignación podría alterar el perfil o filtrar un valor.
+            $this->assertTrue($line === '' || str_starts_with($line, '#'), 'Fixture line is not a comment: '.$line);
+        }
+
+        $app = new Application(dirname(__DIR__, 2));
+        $this->isolateEnvironmentFile($app);
+        $this->assertSame(realpath($fixture), realpath($app->environmentFilePath()));
+        $this->assertNotSame(dirname(__DIR__, 2), realpath($app->environmentPath()));
+    }
+
+    /**
+     * Apunta el arranque a un .env vacío versionado en lugar del .env real del proyecto.
+     * Un archivo inexistente también evitaría el .env real, pero phpdotenv avisa al leerlo
+     * y el runner de Artisan lo reporta como warning.
+     */
+    private function isolateEnvironmentFile(Application $app): void
+    {
+        $app->useEnvironmentPath(dirname(__DIR__).'/Fixtures/env');
+        $app->loadEnvironmentFrom('.env.safety-fixture');
     }
 
     private function withEnvironment(array $values, Closure $callback): void
