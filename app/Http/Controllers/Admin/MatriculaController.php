@@ -11,6 +11,7 @@ use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\ListFilter;
 use App\Support\SensitiveData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -52,12 +53,15 @@ class MatriculaController extends Controller implements HasMiddleware
             ->paginate(15)
             ->withQueryString();
 
+        // Saneado: la vista lo compara con (string); null mantiene el indicador "sin filtro".
+        $cursoId = ListFilter::text($request, 'curso_id');
+
         return view('admin.matriculas.index', [
             'matriculas' => $matriculas,
             'cursos' => Curso::withTrashed()->orderBy('nombre')->get(),
             'estado' => $request->input('estado'),
-            'cursoId' => $request->input('curso_id'),
-            'busqueda' => trim((string) $request->input('busqueda')),
+            'cursoId' => $cursoId !== '' ? $cursoId : null,
+            'busqueda' => ListFilter::text($request, 'busqueda'),
             'eliminados' => $request->boolean('eliminados'),
         ]);
     }
@@ -331,7 +335,7 @@ class MatriculaController extends Controller implements HasMiddleware
             $query->where('curso_id', (int) $cursoId);
         }
 
-        $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
                 $query->whereHas('estudiante', function (Builder $estudiante) use ($busqueda): void {

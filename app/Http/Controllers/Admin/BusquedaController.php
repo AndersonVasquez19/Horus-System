@@ -9,6 +9,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
+use App\Support\ListFilter;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -30,7 +31,7 @@ class BusquedaController extends Controller implements HasMiddleware
 
     public function index(Request $request): View
     {
-        $busqueda = trim((string) $request->input('q'));
+        $busqueda = ListFilter::text($request, 'q');
 
         $resultados = [
             'estudiantes' => collect(),

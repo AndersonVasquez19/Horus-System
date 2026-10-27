@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AprobacionInterna;
 use App\Models\User;
+use App\Support\ListFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -32,17 +33,18 @@ class AprobacionController extends Controller implements HasMiddleware
     {
         $query = AprobacionInterna::query()->with(['solicitante', 'aprobador']);
 
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->input('estado'));
+        $estado = ListFilter::text($request, 'estado');
+        if ($estado !== '') {
+            $query->where('estado', $estado);
         }
 
-        if ($request->filled('busqueda')) {
-            $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
+        if ($busqueda !== '') {
             $query->where(function ($q) use ($busqueda): void {
-                $q->where('titulo', 'like', "%{$busqueda}%")
-                    ->orWhere('tipo', 'like', "%{$busqueda}%")
-                    ->orWhere('descripcion', 'like', "%{$busqueda}%")
-                    ->orWhere('comentario', 'like', "%{$busqueda}%");
+                $q->whereLike('titulo', "%{$busqueda}%")
+                    ->orWhereLike('tipo', "%{$busqueda}%")
+                    ->orWhereLike('descripcion', "%{$busqueda}%")
+                    ->orWhereLike('comentario', "%{$busqueda}%");
             });
         }
 
@@ -54,8 +56,8 @@ class AprobacionController extends Controller implements HasMiddleware
 
         return view('admin.aprobaciones.index', [
             'aprobaciones' => $aprobaciones,
-            'estado' => $request->input('estado'),
-            'busqueda' => $request->input('busqueda'),
+            'estado' => $estado,
+            'busqueda' => $busqueda,
             'usuarios' => User::orderBy('name')->get(),
         ]);
     }
