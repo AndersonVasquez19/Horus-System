@@ -12,10 +12,12 @@
                 <p class="mt-1 text-sm text-stone-600">Controla las inscripciones y los cupos de los cursos.</p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('admin.matriculas.csv', request()->query()) }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-gold px-4 py-2.5 text-sm font-semibold text-gold-dark transition hover:bg-gold/10">
-                    <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
-                    Exportar CSV
-                </a>
+                @can('matriculas.exportar')
+                    <a href="{{ route('admin.matriculas.csv', request()->query()) }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-gold px-4 py-2.5 text-sm font-semibold text-gold-dark transition hover:bg-gold/10">
+                        <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
+                        Exportar CSV
+                    </a>
+                @endcan
                 @unless ($eliminados)
                     <a href="{{ route('admin.matriculas.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark">
                         <i class="fa-solid fa-plus" aria-hidden="true"></i>
@@ -150,15 +152,17 @@
                                                         <i class="fa-solid fa-ban" aria-hidden="true"></i>
                                                     </button>
                                                 @endif
-                                                <button
-                                                    type="button"
-                                                    title="Eliminar matrícula"
-                                                    aria-label="Eliminar matrícula"
-                                                    @click="$dispatch('open-confirm-modal', { title: 'Eliminar matrícula', message: 'El registro se ocultará de la lista principal. Si estaba activa, su cupo será liberado.', action: '{{ route('admin.matriculas.destroy', $matricula) }}', method: 'DELETE', confirmText: 'Sí, eliminar' })"
-                                                    class="flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
-                                                >
-                                                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                                                </button>
+                                                @can('matriculas.eliminar')
+                                                    <button
+                                                        type="button"
+                                                        title="Eliminar matrícula"
+                                                        aria-label="Eliminar matrícula"
+                                                        @click="$dispatch('open-confirm-modal', { title: 'Eliminar matrícula', message: 'El registro se ocultará de la lista principal. Si estaba activa, su cupo será liberado.', action: '{{ route('admin.matriculas.destroy', $matricula) }}', method: 'DELETE', confirmText: 'Sí, eliminar' })"
+                                                        class="flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                                                    >
+                                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                                    </button>
+                                                @endcan
                                             @endif
                                         </div>
                                     </td>

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\SystemSetting;
@@ -15,7 +17,7 @@ class SystemSettingsSeeder extends Seeder
             'correo_contacto' => ['value' => 'contacto@horusgroup.com', 'description' => 'Correo principal'],
             'direccion' => ['value' => 'Lima, Perú', 'description' => 'Dirección general'],
             'moneda' => ['value' => 'S/', 'description' => 'Símbolo monetario'],
-            'api_resend' => ['value' => 'No configurada', 'description' => 'Clave API de Resend'],
+            // Los secretos (Resend, OpenAI, JWT) viven en variables de entorno, nunca en esta tabla.
         ];
 
         // firstOrCreate: repetir el seeder no sobrescribe valores editados desde el panel.

@@ -7,9 +7,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMatriculaRequest;
 use App\Http\Requests\UpdateMatriculaRequest;
+use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\SensitiveData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,11 +34,13 @@ class MatriculaController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:matriculas.ver', only: ['index', 'show', 'exportarCsv']),
+            new Middleware('permission:matriculas.ver', only: ['index', 'show']),
             new Middleware('permission:matriculas.crear', only: ['create', 'store']),
             new Middleware('permission:matriculas.editar', only: ['edit', 'update']),
-            new Middleware('permission:matriculas.anular', only: ['anular', 'destroy']),
+            new Middleware('permission:matriculas.anular', only: ['anular']),
+            new Middleware('permission:matriculas.eliminar', only: ['destroy']),
             new Middleware('permission:matriculas.restaurar', only: ['restaurar']),
+            new Middleware('permission:matriculas.exportar', only: ['exportarCsv']),
         ];
     }
 
@@ -267,6 +271,11 @@ class MatriculaController extends Controller implements HasMiddleware
         $matriculas = $this->filteredQuery($request)->orderBy('id');
         $nombreArchivo = 'matriculas_'.now()->format('Ymd_His').'.csv';
 
+        AuditLog::record('matriculas_csv_exported', Matricula::class, null, [
+            'filename' => $nombreArchivo,
+            'filters' => $request->only(['estado', 'curso_id', 'busqueda', 'eliminados']),
+        ]);
+
         return response()->streamDownload(function () use ($matriculas): void {
             $salida = fopen('php://output', 'wb');
             if (! is_resource($salida)) {
@@ -280,10 +289,10 @@ class MatriculaController extends Controller implements HasMiddleware
                 foreach ($lote as $matricula) {
                     fputcsv($salida, [
                         $matricula->id,
-                        $matricula->estudiante?->dni ?? '',
-                        trim(($matricula->estudiante?->nombres ?? '').' '.($matricula->estudiante?->apellidos ?? '')),
-                        $matricula->curso?->nombre ?? '',
-                        $matricula->curso?->codigo ?? '',
+                        SensitiveData::csvSafe($matricula->estudiante?->dni),
+                        SensitiveData::csvSafe(trim(($matricula->estudiante?->nombres ?? '').' '.($matricula->estudiante?->apellidos ?? ''))),
+                        SensitiveData::csvSafe($matricula->curso?->nombre),
+                        SensitiveData::csvSafe($matricula->curso?->codigo),
                         $matricula->fecha_matricula?->format('Y-m-d') ?? '',
                         match ($matricula->estado) {
                             'pendiente' => 'Pendiente',

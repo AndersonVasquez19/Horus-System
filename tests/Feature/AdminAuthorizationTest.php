@@ -52,7 +52,8 @@ class AdminAuthorizationTest extends TestCase
             'cursos.create' => ['admin.cursos.create', ['admin', 'coordinador']],
             'matriculas.index' => ['admin.matriculas.index', self::ALL],
             'matriculas.create' => ['admin.matriculas.create', self::ALL],
-            'matriculas.csv' => ['admin.matriculas.csv', self::ALL],
+            // L1.1: la exportación CSV tiene permiso propio (matriculas.exportar), solo admin.
+            'matriculas.csv' => ['admin.matriculas.csv', ['admin']],
             'usuarios.index' => ['admin.usuarios.index', ['admin']],
             'usuarios.create' => ['admin.usuarios.create', ['admin']],
             'roles.index' => ['admin.roles.index', ['admin']],

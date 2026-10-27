@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\AdminProtection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -17,6 +18,8 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller implements HasMiddleware
 {
+    public function __construct(private readonly AdminProtection $adminProtection) {}
+
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
@@ -136,49 +139,71 @@ class UserController extends Controller implements HasMiddleware
         ]);
 
         // Asignar roles concede permisos: exige su propio permiso además de usuarios.editar.
-        $canAssignRoles = $request->user()->can('usuarios.asignar-roles');
+        $actor = $request->user();
+        $canAssignRoles = $actor->can('usuarios.asignar-roles');
         abort_if($request->has('roles') && ! $canAssignRoles, 403);
 
-        $previous = $user->only(['name', 'email', 'roles']);
-        $user->fill([
-            'name' => $data['name'],
-            'email' => $data['email'],
-        ]);
+        /** @var list<string> $newRoles */
+        $newRoles = array_values(array_unique($data['roles'] ?? []));
 
-        if (! empty($data['password'])) {
-            $user->password = Hash::make($data['password']);
-        }
+        // Cambiar roles puede dejar al sistema sin administradores: se serializa y se valida bajo bloqueo.
+        $this->adminProtection->runExclusively(function () use ($user, $data, $actor, $canAssignRoles, $newRoles): void {
+            $user = User::query()->whereKey($user->getKey())->firstOrFail();
 
-        $user->save();
+            if ($canAssignRoles) {
+                $this->adminProtection->assertRoleChangeKeepsAdministration($user, $newRoles, $actor);
+            }
 
-        if ($canAssignRoles) {
-            $user->syncRoles($data['roles'] ?? []);
-        }
-
-        AuditLog::record('user_updated', User::class, $user->id, [
-            'before' => $previous,
-            'after' => [
+            $previous = [
                 'name' => $user->name,
                 'email' => $user->email,
                 'roles' => $user->roles->pluck('name')->all(),
-            ],
-        ], auth()->id());
+            ];
+
+            $user->fill([
+                'name' => $data['name'],
+                'email' => $data['email'],
+            ]);
+
+            if (! empty($data['password'])) {
+                $user->password = Hash::make($data['password']);
+            }
+
+            $user->save();
+
+            if ($canAssignRoles) {
+                $user->syncRoles($newRoles);
+            }
+
+            AuditLog::record('user_updated', User::class, $user->id, [
+                'before' => $previous,
+                'after' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'roles' => $user->roles->pluck('name')->all(),
+                ],
+            ], $actor->id);
+        });
 
         return redirect()->route('admin.usuarios.index')->with('success', 'Los datos del usuario se actualizaron correctamente.');
     }
 
-    public function destroy(User $user): RedirectResponse
+    public function destroy(Request $request, User $user): RedirectResponse
     {
-        if ($user->id === auth()->id()) {
-            return back()->withErrors(['usuario' => 'No puedes eliminar tu propio usuario.']);
-        }
+        $actor = $request->user();
 
-        $user->delete();
+        $this->adminProtection->runExclusively(function () use ($user, $actor): void {
+            $user = User::query()->whereKey($user->getKey())->firstOrFail();
 
-        AuditLog::record('user_deleted', User::class, $user->id, [
-            'name' => $user->name,
-            'email' => $user->email,
-        ]);
+            $this->adminProtection->assertUserCanBeDeleted($user, $actor);
+
+            $user->delete();
+
+            AuditLog::record('user_deleted', User::class, $user->id, [
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+        });
 
         return redirect()->route('admin.usuarios.index')->with('success', 'El usuario se eliminó correctamente.');
     }

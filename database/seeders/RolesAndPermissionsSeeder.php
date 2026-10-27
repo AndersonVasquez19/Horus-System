@@ -33,6 +33,8 @@ class RolesAndPermissionsSeeder extends Seeder
         'matriculas.editar',
         'matriculas.anular',
         'matriculas.restaurar',
+        'matriculas.exportar',
+        'matriculas.eliminar',
         'seguimientos.ver',
         'seguimientos.crear',
         'seguimientos.editar',

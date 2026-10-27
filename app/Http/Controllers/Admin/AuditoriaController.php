@@ -9,7 +9,6 @@ use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -61,9 +60,13 @@ class AuditoriaController extends Controller implements HasMiddleware
         ]);
     }
 
+    /**
+     * Exportación administrativa de la auditoría: se entrega al navegador y NO se conserva
+     * ninguna copia en el servidor. Los valores sensibles de los cambios van enmascarados.
+     */
     public function exportar(): StreamedResponse
     {
-        $registros = AuditLog::query()->with('user')->latest('created_at')->get()->map(function ($log): array {
+        $registros = AuditLog::query()->with('user')->latest('created_at')->get()->map(function (AuditLog $log): array {
             return [
                 'id' => $log->id,
                 'usuario' => $log->user?->name ?? 'Sistema',
@@ -72,13 +75,17 @@ class AuditoriaController extends Controller implements HasMiddleware
                 'modelo' => $log->model_type,
                 'modelo_id' => $log->model_id,
                 'ip' => $log->ip_address,
-                'cambios' => json_encode($log->changes ?? []),
+                'cambios' => json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
                 'fecha' => $log->created_at?->format('Y-m-d H:i:s'),
             ];
         })->toArray();
 
         $archivo = 'auditoria_'.now()->format('Ymd_His').'.json';
-        Storage::disk('local')->put('exports/'.$archivo, json_encode($registros, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        AuditLog::record('audit_exported', AuditLog::class, null, [
+            'filename' => $archivo,
+            'records' => count($registros),
+        ]);
 
         return response()->streamDownload(function () use ($registros): void {
             echo json_encode($registros, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
