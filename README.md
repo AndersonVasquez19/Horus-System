@@ -145,6 +145,8 @@ La clave OpenAI se lee en el servidor desde `config/services.php`. No la envíes
 
 ## Pruebas y comprobaciones
 
+El perfil PostgreSQL aislado y sus salvaguardas están en [docs/postgresql-l2.2-a.md](docs/postgresql-l2.2-a.md). Su preparación no autoriza ejecutar pruebas destructivas; la suite habitual conserva SQLite en memoria.
+
 ```powershell
 php artisan test --compact
 npm test
