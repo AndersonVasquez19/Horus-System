@@ -29,7 +29,6 @@ Route::view('/tecnologias/soporte-mantenimiento', 'pages.tecnologias.soporte-man
 Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
 Route::view('/educacion/cursos', 'pages.educacion.cursos')->name('educacion.cursos');
-Route::view('/market', 'pages.market')->name('market');
 Route::view('/galeria', 'pages.galeria')->name('galeria');
 Route::view('/contactos', 'pages.contactos')->name('contactos');
 Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name('legales.devolucion');

@@ -6,6 +6,10 @@
   <link rel="stylesheet" href="{{ asset('assets/css/libro/libro-reclamaciones.css') }}">
 @endpush
 
+@push('scripts')
+  <script src="{{ asset('assets/js/libro-reclamaciones.js') }}" defer></script>
+@endpush
+
 @section('content')
 <div class="legacy-showcase legal-showcase">
 <section class="libro-hero">
@@ -31,7 +35,7 @@
         </div>
     </section>
 
-    <section class="diferencia-section">
+    <section class="diferencia-section" id="seleccion-tipo">
         <div class="diferencia-contenedor">
             <h2 class="seccion-titulo-libro">¿Queja o Reclamo?</h2>
             <p class="seccion-subtitulo">Selecciona el tipo de registro que corresponde a tu situación</p>
@@ -70,7 +74,7 @@
         </div>
     </section>
 
-    <section class="formulario-section">
+    <section class="formulario-section" id="formulario-section" hidden>
         <div class="formulario-contenedor">
 
             <div class="pasos-indicador">
@@ -81,7 +85,7 @@
                 <div class="paso-linea"></div>
                 <div class="paso" data-paso="2">
                     <div class="paso-numero">2</div>
-                    <span>Detalle del reclamo</span>
+                    <span data-reclamo="Detalle del reclamo" data-queja="Detalle de la queja">Detalle del reclamo</span>
                 </div>
                 <div class="paso-linea"></div>
                 <div class="paso" data-paso="3">
@@ -90,7 +94,7 @@
                 </div>
             </div>
 
-            <form id="libroForm" novalidate x-on:submit.prevent>
+            <form id="libroForm" novalidate x-on:submit.prevent data-endpoint="">
 
                 <div class="form-paso activo" id="paso-1">
                     <div class="form-paso-header">
@@ -187,7 +191,7 @@
                             <i class="fas fa-clipboard-list"></i>
                         </div>
                         <div>
-                            <h2>Detalle del Reclamo / Queja</h2>
+                            <h2 data-reclamo="Detalle del Reclamo" data-queja="Detalle de la Queja">Detalle del Reclamo / Queja</h2>
                             <p>Describe con precisión lo ocurrido para que podamos atenderte mejor</p>
                         </div>
                     </div>
@@ -221,7 +225,6 @@
                                     <option value="asesoramiento">Asesoramiento</option>
                                     <option value="capacitaciones">Capacitaciones</option>
                                     <option value="cursos">Cursos</option>
-                                    <option value="market">Market</option>
                                     <option value="atencion">Atención al Cliente</option>
                                     <option value="otro">Otro</option>
                                 </select>
@@ -248,7 +251,7 @@
                         </div>
 
                         <div class="form-grupo form-grupo-full">
-                            <label for="detalle-reclamo">Detalle del Reclamo / Queja <span class="requerido">*</span></label>
+                            <label for="detalle-reclamo"><span data-reclamo="Detalle del Reclamo" data-queja="Detalle de la Queja">Detalle del Reclamo / Queja</span> <span class="requerido">*</span></label>
                             <div class="input-wrapper">
                                 <i class="fas fa-pen input-icon input-icon-top"></i>
                                 <textarea id="detalle-reclamo" name="detalle-reclamo" rows="5" placeholder="Describe detalladamente lo ocurrido, incluyendo fechas, personas involucradas y cualquier información relevante..." required></textarea>
@@ -280,7 +283,7 @@
                         </div>
                         <div>
                             <h2>Confirmación y Envío</h2>
-                            <p>Revisa tu información antes de enviar el reclamo</p>
+                            <p data-reclamo="Revisa tu información antes de enviar el reclamo" data-queja="Revisa tu información antes de enviar la queja">Revisa tu información antes de enviar el reclamo</p>
                         </div>
                     </div>
 
@@ -314,25 +317,26 @@
                         <button type="button" class="btn-anterior" id="btn-paso3-anterior">
                             <i class="fas fa-arrow-left"></i> Anterior
                         </button>
-                        <button type="button" class="btn-enviar" id="btn-enviar">
-                            <i class="fas fa-paper-plane"></i> Enviar Reclamo
+                        <button type="submit" class="btn-enviar" id="btn-enviar">
+                            <i class="fas fa-paper-plane"></i> <span data-reclamo="Enviar Reclamo" data-queja="Enviar Queja">Enviar Reclamo</span>
                         </button>
                     </div>
                 </div>
 
             </form>
 
-            <div class="exito-container" id="exito-container">
+            <div class="exito-container" id="exito-container" hidden>
                 <div class="exito-icono">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <h2>¡Reclamo Registrado Exitosamente!</h2>
-                <p>Tu reclamo ha sido recibido. Te hemos enviado un correo de confirmación con el número de seguimiento.</p>
+                <h2 data-reclamo="¡Reclamo Registrado Exitosamente!" data-queja="¡Queja Registrada Exitosamente!">¡Reclamo Registrado Exitosamente!</h2>
+                <p id="exito-mensaje" data-reclamo="Tu reclamo ha sido recibido. Te hemos enviado un correo de confirmación con el número de seguimiento." data-queja="Tu queja ha sido recibida. Te hemos enviado un correo de confirmación con el número de seguimiento.">Tu reclamo ha sido recibido. Te hemos enviado un correo de confirmación con el número de seguimiento.</p>
+                <p class="exito-simulado" id="exito-simulado" hidden><i class="fas fa-flask"></i> Modo de prueba: este envío fue simulado y no se guardó ni se notificó a Horus Group.</p>
                 <div class="exito-numero">
-                    <span>Número de Reclamo:</span>
+                    <span data-reclamo="Número de Reclamo:" data-queja="Número de Queja:">Número de Reclamo:</span>
                     <strong id="numero-reclamo"></strong>
                 </div>
-                <div class="exito-info">
+                <div class="exito-info" id="exito-info">
                     <div class="exito-item">
                         <i class="fas fa-clock"></i>
                         <span>Recibirás respuesta en un plazo máximo de <strong>15 días hábiles</strong></span>

@@ -826,3 +826,54 @@
         font-size: 1.2rem;
     }
 }
+
+/* ===== INVITACIÓN A INSTAGRAM ===== */
+.gallery-more {
+    max-width: 1400px;
+    margin: 3rem auto 0;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(10, 37, 64, 0.12);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem 0.75rem;
+    text-align: center;
+    color: var(--primary-dark);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.gallery-more-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--primary-dark);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 2px solid var(--accent-gold);
+    padding-bottom: 2px;
+    transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.gallery-more-link i {
+    color: var(--accent-gold);
+    font-size: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.gallery-more-link:hover,
+.gallery-more-link:focus-visible {
+    color: var(--accent-gold);
+}
+
+.gallery-more-link:hover i,
+.gallery-more-link:focus-visible i {
+    transform: scale(1.12);
+}
+
+.gallery-more-link:focus-visible {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 4px;
+    border-radius: 4px;
+}

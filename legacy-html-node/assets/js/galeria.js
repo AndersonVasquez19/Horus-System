@@ -1,76 +1,16 @@
-// ===== LISTA DE IMÁGENES COMPLETA =====
+// ===== LISTA DE IMÁGENES (12 escenas distintas, sin duplicados) =====
 const imageList = [
-    // ========== CAPACITACIONES (12 imágenes) ==========
     { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 1.jpg', title: 'Capacitación 1' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 2.jpg', title: 'Capacitación 2' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 3.jpg', title: 'Capacitación 3' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 4.jpg', title: 'Capacitación 4' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 5.jpg', title: 'Capacitación 5' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 6.jpg', title: 'Capacitación 6' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 7.jpg', title: 'Capacitación 7' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 8.jpg', title: 'Capacitación 8' },
     { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 9.jpg', title: 'Capacitación 9' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 10.jpg', title: 'Capacitación 10' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 11.jpg', title: 'Capacitación 11' },
-    { category: 'capacitaciones', path: 'assets/images/galeria/capacitaciones/imagen 12.jpg', title: 'Capacitación 12' },
-
-    // ========== COLEGIO DE ABOGADOS (7 imágenes - optimizado) ==========
-    { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 1.jpg', title: 'Colegio de Abogados 1' },
-    { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 2.jpg', title: 'Colegio de Abogados 2' },
-    { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 3.jpg', title: 'Colegio de Abogados 3' },
     { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 4.jpg', title: 'Colegio de Abogados 4' },
-    { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 7.jpg', title: 'Colegio de Abogados 7' },
-    { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 9.jpg', title: 'Colegio de Abogados 9' },
     { category: 'colegio-abogados', path: 'assets/images/galeria/colegio de abogados/imagen 10.jpg', title: 'Colegio de Abogados 10' },
-
-   // ========== COLEGIO DE ENFERMEROS (17 imágenes) ==========
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 1.jpg', title: 'Colegio de Enfermeros 1' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 2.jpg', title: 'Colegio de Enfermeros 2' },
     { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 3.jpg', title: 'Colegio de Enfermeros 3' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 4.jpg', title: 'Colegio de Enfermeros 4' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 5.jpg', title: 'Colegio de Enfermeros 5' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 6.jpg', title: 'Colegio de Enfermeros 6' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 7.jpg', title: 'Colegio de Enfermeros 7' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 8.jpg', title: 'Colegio de Enfermeros 8' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 9.jpg', title: 'Colegio de Enfermeros 9' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 10.jpg', title: 'Colegio de Enfermeros 10' },
     { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 11.jpg', title: 'Colegio de Enfermeros 11' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 12.jpg', title: 'Colegio de Enfermeros 12' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 13.jpg', title: 'Colegio de Enfermeros 13' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 14.jpg', title: 'Colegio de Enfermeros 14' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 15.jpg', title: 'Colegio de Enfermeros 15' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 16.jpg', title: 'Colegio de Enfermeros 16' },
-    { category: 'colegio-enfermeros', path: 'assets/images/galeria/colegio de enfermeros/imagen 17.jpg', title: 'Colegio de Enfermeros 17' },
-
-    // ========== ISAM (8 imágenes) ==========
     { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 1.jpg', title: 'ISAM 1' },
-    { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 2.jpg', title: 'ISAM 2' },
-    { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 3.jpg', title: 'ISAM 3' },
     { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 4.jpg', title: 'ISAM 4' },
-    { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 5.jpg', title: 'ISAM 5' },
-    { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 6.jpg', title: 'ISAM 6' },
-    { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 7.jpg', title: 'ISAM 7' },
-    { category: 'isam', path: 'assets/images/galeria/ISAM/imagen 8.jpg', title: 'ISAM 8' },
-
-    // ========== NUESTRO SERVICIO TÉCNICO (10 imágenes) ==========
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 1.jpg', title: 'Servicio Técnico 1' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 2.jpg', title: 'Servicio Técnico 2' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 3.jpg', title: 'Servicio Técnico 3' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 4.jpg', title: 'Servicio Técnico 4' },
     { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 5.jpg', title: 'Servicio Técnico 5' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 6.jpg', title: 'Servicio Técnico 6' },
     { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 7.jpg', title: 'Servicio Técnico 7' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 8.jpg', title: 'Servicio Técnico 8' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 9.jpg', title: 'Servicio Técnico 9' },
-    { category: 'servicio-tecnico', path: 'assets/images/galeria/nuestro servicio tecnico/imagen 10.jpg', title: 'Servicio Técnico 10' },
-
-    // ========== PRÁCTICAS DE PRIMEROS AUXILIOS (7 imágenes) ==========
     { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 1.jpg', title: 'Primeros Auxilios 1' },
-    { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 2.jpg', title: 'Primeros Auxilios 2' },
-    { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 3.jpg', title: 'Primeros Auxilios 3' },
-    { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 4.jpg', title: 'Primeros Auxilios 4' },
-    { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 5.jpg', title: 'Primeros Auxilios 5' },
-    { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 6.jpg', title: 'Primeros Auxilios 6' },
     { category: 'primeros-auxilios', path: 'assets/images/galeria/practicas de primeros auxilios/imagen 7.jpg', title: 'Primeros Auxilios 7' },
 ];
 
@@ -497,17 +437,6 @@ modalDownloadBtn.addEventListener('click', () => {
 // ===== SCROLL INDICATOR =====
 document.querySelector('.scroll-indicator').addEventListener('click', () => {
     document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' });
-});
-
-// ===== NAVEGACIÓN SUAVE =====
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const target = document.querySelector(link.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
-        }
-    });
 });
 
 // ===== INICIALIZAR =====
