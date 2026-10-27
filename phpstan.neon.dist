@@ -1,0 +1,18 @@
+# Análisis estático progresivo (Larastan). Requiere larastan/larastan ^3 en require-dev.
+# Ejecutar: vendor/bin/phpstan analyse
+#
+# Ruta de incremento: subir de nivel o añadir carpetas solo cuando el conjunto actual quede limpio,
+# corrigiendo los errores en lugar de acumularlos en una línea base.
+#   1. Nivel 5: app/Support, app/Services            (inicio)
+#   2. Nivel 5: + app/Models, app/Http/Requests
+#   3. Nivel 5: + app/Http/Controllers
+#   4. Nivel 6 y siguientes sobre todo app/
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - app/Support
+        - app/Services
+    reportUnmatchedIgnoredErrors: true

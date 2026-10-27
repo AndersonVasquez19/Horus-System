@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\User;
-use Firebase\JWT\Key;
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Support\Carbon;
 use RuntimeException;
-use Throwable;
 
 class JwtTokenService
 {
+    /** @return array{access_token: string, token_type: string, expires_in: int} */
     public function issue(User $user): array
     {
         $now = Carbon::now()->timestamp;
