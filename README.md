@@ -92,7 +92,7 @@ Blade genera HTML en el servidor; una vista o respuesta PHP nueva necesita otra 
 | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL por defecto; comprueba el destino antes de migrar o sembrar. |
 | `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | La plantilla usa `database`; las tablas correspondientes se crean con las migraciones. |
 | `MAIL_MAILER`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | `log` registra correos en vez de enviarlos. Para envío real configura un transporte y remitente válidos. |
-| `RESEND_API_KEY` | Solo si eliges el transporte Resend configurado en `config/mail.php`. |
+| `RESEND_API_KEY` | Solo si eliges el transporte Resend configurado en `config/mail.php`. Es la **única** fuente de la clave: el panel de Configuración no la guarda ni la muestra. |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Opcionales; únicamente para consultas que no coinciden con reglas locales del chat. |
 | `JWT_SECRET`, `JWT_TTL`, `JWT_LEEWAY` | Autenticación de `/api/auth/*`. `JWT_SECRET` debe tener al menos 32 bytes; si está vacío, `config/jwt.php` intenta usar `APP_KEY`. |
 
@@ -102,7 +102,7 @@ No publiques `.env` ni pegues secretos en incidencias, registros o documentació
 
 Las migraciones incluyen usuarios, sesiones, caché y trabajos, estudiantes, cursos, matrículas, permisos, ajustes, procesos, auditoría e intenciones/registros del chat. La aplicación puede mostrar páginas públicas sin sembrar datos, pero el chat consulta `chat_intents` y escribe en `chat_logs`: **necesita una base migrada y disponible**.
 
-`php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`: roles, permisos, configuración inicial e intenciones del chat. **No crea usuarios ni contraseñas** y puede repetirse: no modifica cuentas existentes ni sobrescribe la configuración editada desde el panel. Sí sincroniza los permisos de los roles base (`admin`, `coordinador`, `secretaria`) con la matriz de `RolesAndPermissionsSeeder`.
+`php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`: roles, permisos, configuración inicial e intenciones del chat. **No crea usuarios ni contraseñas** y puede repetirse: no modifica cuentas existentes ni sobrescribe la configuración editada desde el panel. Sí sincroniza los permisos de los roles base (`admin`, `coordinador`, `secretaria`) con la matriz de `RolesAndPermissionsSeeder`, por lo que **descarta permisos concedidos a mano** a esos roles; en una base con datos reales, los permisos nuevos se aplican con migraciones (p. ej. `2026_10_27_000012_add_matriculas_exportar_eliminar_permissions.php`), no con el seeder.
 
 ```powershell
 php artisan db:seed
@@ -127,9 +127,9 @@ Para tareas parciales, inspecciona el seeder correspondiente antes de ejecutarlo
 ## Acceso y funciones
 
 - **Público:** `/`, páginas de tecnologías, educación, mercado, galería, contacto y textos legales definidos en `routes/web.php`; `/register`, `/login` y recuperación de contraseña.
-- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo.
+- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo. El rol `admin` no se puede renombrar ni eliminar ni perder sus permisos críticos, y no se puede eliminar ni quitar el rol al último administrador (ni a uno mismo). La exportación CSV de matrículas (`matriculas.exportar`) y su eliminación (`matriculas.eliminar`) son permisos propios, solo de `admin` por defecto.
 - **Gestión:** estudiantes, cursos y matrículas; usuarios/roles; procesos y aprobaciones; notificaciones; configuración; auditoría; reportes CSV, Excel y PDF. Consulta las rutas y permisos reales antes de cambiar una operación.
-- **Respaldo:** existe una exportación ZIP de tablas seleccionadas bajo `admin/respaldo`; requiere extensión ZIP y permiso. No equivale a una copia completa de PostgreSQL ni cubre automáticamente todos los archivos y tablas.
+- **Exportación de datos (`admin/respaldo`):** genera un ZIP de CSV con nueve tablas seleccionadas; requiere extensión ZIP y el permiso `respaldo.exportar`. Es una **exportación administrativa minimizada, no un respaldo**: omite contraseñas, tokens y claves, enmascara secretos, no se puede usar para restaurar y no se conserva ninguna copia en el servidor (queda un registro en auditoría). La copia integral de PostgreSQL (`pg_dump`) y la política de retención son responsabilidad del servidor; véase [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md).
 - **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login web usa sesión y CSRF.
 - **Correo:** el restablecimiento de contraseña depende del transporte configurado. Con `MAIL_MAILER=log` el mensaje queda en los registros locales y no llega a una bandeja externa.
 

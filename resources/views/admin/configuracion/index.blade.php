@@ -39,12 +39,12 @@
                     <label for="settings_direccion" class="mb-1.5 block text-sm font-medium text-stone-700">Dirección</label>
                     <input id="settings_direccion" name="settings[direccion]" type="text" value="{{ old('settings.direccion', $settings['direccion']) }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" />
                 </div>
-
-                <div class="md:col-span-2">
-                    <label for="settings_api_resend" class="mb-1.5 block text-sm font-medium text-stone-700">API de Resend</label>
-                    <input id="settings_api_resend" name="settings[api_resend]" type="text" value="{{ old('settings.api_resend', $settings['api_resend']) }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" />
-                </div>
             </div>
+
+            <p class="mt-5 rounded-xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                <i class="fa-solid fa-lock mr-1.5 text-gold-dark" aria-hidden="true"></i>
+                Las claves de servicios externos (correo, IA) no se editan aquí: se configuran en el servidor mediante variables de entorno.
+            </p>
 
             <div class="mt-6 flex justify-end">
                 <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">

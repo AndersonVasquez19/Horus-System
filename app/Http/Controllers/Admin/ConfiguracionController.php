@@ -16,6 +16,22 @@ use Illuminate\View\View;
 class ConfiguracionController extends Controller implements HasMiddleware
 {
     /**
+     * Ajustes editables desde el panel y su valor por defecto.
+     *
+     * Los secretos (p. ej. la clave de Resend) NO se gestionan aquí: el transporte de correo
+     * lee `RESEND_API_KEY` desde el entorno (config/services.php), nunca desde la base de datos.
+     *
+     * @var array<string, string>
+     */
+    private const SETTINGS = [
+        'nombre_empresa' => 'Horus Group SRL',
+        'telefono' => '+51 987 654 321',
+        'correo_contacto' => 'contacto@horusgroup.com',
+        'direccion' => 'Lima, Perú',
+        'moneda' => 'S/',
+    ];
+
+    /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
      * @return list<Middleware>
@@ -30,31 +46,32 @@ class ConfiguracionController extends Controller implements HasMiddleware
 
     public function index(): View
     {
-        $settings = [
-            'nombre_empresa' => SystemSetting::value('nombre_empresa', 'Horus Group SRL'),
-            'telefono' => SystemSetting::value('telefono', '+51 987 654 321'),
-            'correo_contacto' => SystemSetting::value('correo_contacto', 'contacto@horusgroup.com'),
-            'direccion' => SystemSetting::value('direccion', 'Lima, Perú'),
-            'moneda' => SystemSetting::value('moneda', 'S/'),
-            'api_resend' => SystemSetting::value('api_resend', 'No configurada'),
-        ];
+        $settings = [];
+        foreach (self::SETTINGS as $key => $default) {
+            $settings[$key] = SystemSetting::value($key, $default);
+        }
 
         return view('admin.configuracion.index', ['settings' => $settings]);
     }
 
     public function update(Request $request): RedirectResponse
     {
+        // Solo se validan (y por tanto solo se persisten) las claves permitidas; cualquier otra,
+        // incluida la antigua `api_resend`, se ignora.
         $data = $request->validate([
             'settings.nombre_empresa' => ['nullable', 'string', 'max:255'],
             'settings.telefono' => ['nullable', 'string', 'max:255'],
             'settings.correo_contacto' => ['nullable', 'email', 'max:255'],
             'settings.direccion' => ['nullable', 'string', 'max:255'],
             'settings.moneda' => ['nullable', 'string', 'max:20'],
-            'settings.api_resend' => ['nullable', 'string', 'max:255'],
         ]);
 
         $changes = [];
         foreach ($data['settings'] ?? [] as $key => $value) {
+            if (! array_key_exists($key, self::SETTINGS)) {
+                continue;
+            }
+
             SystemSetting::updateOrCreate(
                 ['key' => $key],
                 ['value' => $value, 'description' => 'Configuración del sistema'],

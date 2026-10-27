@@ -68,7 +68,7 @@
                                 <td class="px-5 py-3 text-stone-600">{{ $registro->ip_address ?? 'N/A' }}</td>
                                 <td class="px-5 py-3 text-stone-600">
                                     @if (! empty($registro->changes))
-                                        <pre class="max-w-xs overflow-auto whitespace-pre-wrap text-xs">{{ json_encode($registro->changes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                        <pre class="max-w-xs overflow-auto whitespace-pre-wrap text-xs">{{ json_encode($registro->redactedChanges(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                                     @else
                                         <span class="text-stone-400">Sin cambios</span>
                                     @endif
