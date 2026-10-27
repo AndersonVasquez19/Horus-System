@@ -39,7 +39,6 @@
         </ul>
       </li>
 
-      <li><a href="{{ route('market') }}" class="nav-link">Market</a></li>
       <li><a href="{{ route('galeria') }}" class="nav-link">Galería</a></li>
       <li><a href="{{ route('contactos') }}" class="nav-link">Contáctanos</a></li>
     </ul>
@@ -54,7 +53,6 @@
         <li><a href="{{ route('educacion.asesoramiento') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Asesoramiento</a></li>
         <li><a href="{{ route('educacion.capacitaciones') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Capacitaciones</a></li>
         <li><a href="{{ route('educacion.cursos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Cursos</a></li>
-        <li><a href="{{ route('market') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Market</a></li>
         <li><a href="{{ route('galeria') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Galería</a></li>
         <li><a href="{{ route('contactos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Contáctanos</a></li>
       </ul>

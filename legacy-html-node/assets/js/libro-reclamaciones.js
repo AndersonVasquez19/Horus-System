@@ -11,24 +11,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const detalleTextarea = document.getElementById('detalle-reclamo');
     const contador        = document.getElementById('contador');
     const fechaInput = document.getElementById('fecha-incidente');
+    const seccionTipo = document.querySelector('.diferencia-section');
+    const seccionFormulario = document.querySelector('.formulario-section');
+    const btnEnviar = document.getElementById('btn-enviar');
+    const htmlBtnEnviar = btnEnviar.innerHTML;
+    let tipoActual = '';
 
     if (fechaInput) {
         fechaInput.max = new Date().toISOString().split('T')[0];
     }
 
-    function seleccionarTipo(tipo) {
+    // Los textos que cambian según el tipo llevan data-reclamo y data-queja.
+    function aplicarTextosTipo(tipo) {
+        document.querySelectorAll('[data-reclamo][data-queja]').forEach(el => {
+            el.textContent = tipo === 'queja' ? el.dataset.queja : el.dataset.reclamo;
+        });
+    }
+
+    function mostrarFormulario() {
+        seccionFormulario.hidden = false;
+        seccionFormulario.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function seleccionarTipo(tipo, mostrar = false) {
+        tipoActual = tipo;
         btnReclamo.classList.toggle('seleccionado', tipo === 'reclamo');
         btnQueja.classList.toggle('seleccionado',   tipo === 'queja');
         btnReclamo.setAttribute('aria-pressed', tipo === 'reclamo');
         btnQueja.setAttribute('aria-pressed',   tipo === 'queja');
         if (selectTipo) selectTipo.value = tipo;
+        form.dataset.tipo = tipo;
+        aplicarTextosTipo(tipo);
+        if (mostrar) mostrarFormulario();
     }
 
-    btnReclamo.addEventListener('click', () => seleccionarTipo('reclamo'));
-    btnQueja.addEventListener('click',   () => seleccionarTipo('queja'));
+    function alActivarTarjeta(tipo) {
+        return e => {
+            if (e.type === 'keydown') {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+            }
+            seleccionarTipo(tipo, true);
+        };
+    }
 
-    btnReclamo.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') seleccionarTipo('reclamo'); });
-    btnQueja.addEventListener('keydown',   e => { if (e.key === 'Enter' || e.key === ' ') seleccionarTipo('queja'); });
+    [[btnReclamo, 'reclamo'], [btnQueja, 'queja']].forEach(([tarjeta, tipo]) => {
+        tarjeta.addEventListener('click',   alActivarTarjeta(tipo));
+        tarjeta.addEventListener('keydown', alActivarTarjeta(tipo));
+    });
 
     if (selectTipo) {
         selectTipo.addEventListener('change', () => {
@@ -68,7 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (errorEl) errorEl.textContent = mensaje;
-        campo.classList.add(valido && campo.value ? 'valido' : valido ? '' : 'error');
+        if (!valido) campo.classList.add('error');
+        else if (campo.value) campo.classList.add('valido');
         return valido;
     }
 
@@ -170,10 +201,56 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    const API_URL = 'http://localhost:3000';
+    // Sin data-endpoint la página histórica usa el servidor Node; data-endpoint="" activa el envío simulado.
+    const ENDPOINT = form.dataset.endpoint ?? 'http://localhost:3000/api/reclamaciones';
+
+    function numeroSimulado() {
+        const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        return `SIM-${fecha}-${Math.floor(Math.random() * 9000) + 1000}`;
+    }
+
+    async function enviarRegistro(payload) {
+        if (!ENDPOINT) {
+            console.warn('Libro de reclamaciones: no hay endpoint configurado, el envío es una simulación.');
+            await new Promise(resolve => setTimeout(resolve, 600));
+            return { ok: true, numero_reclamo: numeroSimulado(), simulado: true };
+        }
+        const res = await fetch(ENDPOINT, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload),
+        });
+        return res.json();
+    }
+
+    function restaurarBotonEnviar() {
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = htmlBtnEnviar;
+        aplicarTextosTipo(tipoActual);
+    }
+
+    function mostrarExito(numero, simulado) {
+        document.getElementById('numero-reclamo').textContent = numero;
+        if (simulado) {
+            document.getElementById('exito-simulado').hidden = false;
+            document.getElementById('exito-mensaje').hidden = true;
+            document.getElementById('exito-info').hidden = true;
+        }
+        form.hidden = true;
+        document.querySelector('.pasos-indicador').hidden = true;
+        if (seccionTipo) seccionTipo.hidden = true;
+        exitoContainer.hidden = false;
+        exitoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 
     form.addEventListener('submit', async e => {
         e.preventDefault();
+
+        // Enter en los pasos 1 y 2 avanza de paso en lugar de enviar.
+        if (pasoActual < totalPasos) {
+            document.getElementById(`btn-paso${pasoActual}-siguiente`).click();
+            return;
+        }
 
         const aceptaTerminos = document.getElementById('acepta-terminos');
         const errorTerminos  = document.getElementById('error-terminos');
@@ -185,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         errorTerminos.textContent = '';
 
-        const btnEnviar = document.getElementById('btn-enviar');
         btnEnviar.disabled = true;
         btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
 
@@ -208,30 +284,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const res  = await fetch(`${API_URL}/api/reclamaciones`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload),
-            });
-
-            const data = await res.json();
+            const data = await enviarRegistro(payload);
 
             if (data.ok) {
-                document.getElementById('numero-reclamo').textContent = data.numero_reclamo;
-                form.style.display = 'none';
-                document.querySelector('.pasos-indicador').style.display = 'none';
-                exitoContainer.style.display = 'block';
-                exitoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                mostrarExito(data.numero_reclamo, !!data.simulado);
             } else {
                 errorTerminos.textContent = data.mensaje || 'Error al registrar el reclamo. Intenta nuevamente.';
-                btnEnviar.disabled = false;
-                btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Reclamo';
+                restaurarBotonEnviar();
             }
         } catch (err) {
             console.error(err);
             errorTerminos.textContent = 'No se pudo conectar con el servidor. Intenta más tarde.';
-            btnEnviar.disabled = false;
-            btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Reclamo';
+            restaurarBotonEnviar();
         }
     });
 
