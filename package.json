@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "npm run test:frontend",
+    "test:frontend": "node scripts/run-frontend-tests.mjs",
     "assets:sync": "node scripts/sync-public-assets.mjs",
     "predev": "npm run assets:sync",
     "dev": "vite",
