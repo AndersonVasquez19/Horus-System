@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Support\Testing\MemoryOnlyConnector;
-use App\Support\Testing\PostgresTestGuard;
 use App\Support\Testing\TestDatabaseSafety;
 use Closure;
 use Illuminate\Config\Repository;
@@ -154,16 +153,6 @@ class TestDatabaseSafetyTest extends TestCase
             $this->expectExceptionMessage('cached configuration is forbidden');
             TestDatabaseSafety::install($app);
         });
-    }
-
-    private function application(array $config): Application
-    {
-        $app = new Application(dirname(__DIR__, 2));
-        $app->instance('config', new Repository($config));
-        $app->instance('config_loaded_from_cache', false);
-        $app->register(DatabaseServiceProvider::class);
-
-        return $app;
     }
 
     public function test_forced_pdo_resolution_and_retry_after_rejection_cannot_bypass_safety(): void
@@ -347,36 +336,5 @@ class TestDatabaseSafetyTest extends TestCase
     {
         $app->useEnvironmentPath(dirname(__DIR__).'/Fixtures/env');
         $app->loadEnvironmentFrom('.env.safety-fixture');
-    }
-
-    private function withEnvironment(array $values, Closure $callback): void
-    {
-        $keys = array_unique([...array_keys($this->safeEnvironment()), ...array_keys($values),
-            ...PostgresTestGuard::FORBIDDEN_ENV]);
-        $previous = [];
-        foreach ($keys as $key) {
-            $previous[$key] = [$_ENV[$key] ?? null, $_SERVER[$key] ?? null, getenv($key)];
-            if (array_key_exists($key, $values)) {
-                $_ENV[$key] = $_SERVER[$key] = $values[$key];
-                putenv($key.'='.$values[$key]);
-            } else {
-                unset($_ENV[$key], $_SERVER[$key]);
-                putenv($key);
-            }
-        }
-        try {
-            $callback();
-        } finally {
-            foreach ($previous as $key => [$env, $server, $process]) {
-                unset($_ENV[$key], $_SERVER[$key]);
-                if ($env !== null) {
-                    $_ENV[$key] = $env;
-                }
-                if ($server !== null) {
-                    $_SERVER[$key] = $server;
-                }
-                putenv($process === false ? $key : $key.'='.$process);
-            }
-        }
     }
 }

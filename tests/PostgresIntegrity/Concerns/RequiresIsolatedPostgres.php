@@ -8,6 +8,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
+use App\Support\Testing\ConcurrentTestSession;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 
@@ -34,21 +35,34 @@ trait RequiresIsolatedPostgres
         }
     }
 
+    /** @var list<Connection> */
+    private array $concurrentSessions = [];
+
+    protected function tearDown(): void
+    {
+        // Revierte y cierra cada segunda sesión aunque la prueba haya fallado a mitad de transacción.
+        foreach ($this->concurrentSessions as $session) {
+            ConcurrentTestSession::close($session);
+        }
+        $this->concurrentSessions = [];
+
+        parent::tearDown();
+    }
+
     /**
      * Segunda sesión PostgreSQL para simular otra petición concurrente.
      *
-     * L2.2-A solo admite la conexión "pgsql". Una segunda conexión a la MISMA base de pruebas
-     * ("pgsql_concurrent") debe añadirse a la lista permitida de TestDatabaseSafety y validarse
-     * con PostgresTestGuard; ese cambio de infraestructura está pendiente de autorización.
+     * Otra instancia de la MISMA conexión "pgsql" validada, creada con la fábrica protegida
+     * (App\Support\Testing\ConcurrentTestSession): no hay nombre lógico nuevo ni configuración
+     * aceptada desde fuera, y su PDO pasa por la misma verificación de identidad del servidor.
      */
     protected function secondSession(): Connection
     {
-        if (config('database.connections.pgsql_concurrent') === null) {
-            $this->markTestIncomplete('Falta la conexión "pgsql_concurrent" aprobada en la barrera L2.2-A.');
-        }
+        $session = ConcurrentTestSession::open($this->app);
+        $this->concurrentSessions[] = $session;
 
-        $session = DB::connection('pgsql_concurrent');
-        $this->assertSame(DB::connection()->getDatabaseName(), $session->getDatabaseName());
+        $this->assertNotSame(DB::connection(), $session);
+        $this->assertSame(DB::connection()->getConfig(), $session->getConfig());
 
         return $session;
     }
