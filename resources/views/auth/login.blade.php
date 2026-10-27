@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 @extends('layouts.auth')
 
 @section('title', 'Iniciar sesión')
@@ -26,7 +27,7 @@
     <form method="POST" action="{{ route('login.post') }}" class="auth-form">
         @csrf
         <label class="auth-label" for="email">Correo electrónico</label>
-        <div class="auth-input-wrap"><i class="fa-regular fa-envelope" aria-hidden="true"></i><input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="username" placeholder="tu@correo.com" required autofocus></div>
+        <div class="auth-input-wrap"><i class="fa-regular fa-envelope" aria-hidden="true"></i><input id="email" name="email" type="email" value="{{ OldInput::value('email') }}" autocomplete="username" placeholder="tu@correo.com" required autofocus></div>
 
         <div class="auth-label-row"><label class="auth-label" for="password">Contraseña</label><a href="{{ route('password.request') }}">¿La olvidaste?</a></div>
         <div class="auth-input-wrap"><i class="fa-solid fa-lock" aria-hidden="true"></i><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required></div>
