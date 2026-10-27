@@ -46,8 +46,8 @@ class CursoController extends Controller implements HasMiddleware
         $busqueda = trim((string) $request->input('busqueda'));
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
-                $query->where('codigo', 'like', "%{$busqueda}%")
-                    ->orWhere('nombre', 'like', "%{$busqueda}%");
+                $query->whereLike('codigo', "%{$busqueda}%")
+                    ->orWhereLike('nombre', "%{$busqueda}%");
             });
         }
 

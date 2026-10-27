@@ -44,9 +44,9 @@ class EstudianteController extends Controller implements HasMiddleware
         $busqueda = trim((string) $request->input('busqueda'));
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
-                $query->where('dni', 'like', "%{$busqueda}%")
-                    ->orWhere('nombres', 'like', "%{$busqueda}%")
-                    ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                $query->whereLike('dni', "%{$busqueda}%")
+                    ->orWhereLike('nombres', "%{$busqueda}%")
+                    ->orWhereLike('apellidos', "%{$busqueda}%");
             });
         }
 
