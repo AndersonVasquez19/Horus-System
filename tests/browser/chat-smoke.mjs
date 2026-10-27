@@ -79,9 +79,9 @@ try {
 
   await command('Runtime.enable');
   try {
-    await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir asistente virtual\\"]")?.getAttribute("aria-expanded") === "false"'));
+    await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.getAttribute("aria-expanded") === "false"'));
   } catch (error) {
-    const state = await evaluate('JSON.stringify({ ready: document.readyState, alpine: !!window.Alpine, button: document.querySelector("[aria-label=\\"Abrir asistente virtual\\"]")?.outerHTML.slice(0, 400), scripts: [...document.querySelectorAll("script[src]")].map((element) => element.src) })');
+    const state = await evaluate('JSON.stringify({ ready: document.readyState, alpine: !!window.Alpine, button: document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.outerHTML.slice(0, 400), scripts: [...document.querySelectorAll("script[src]")].map((element) => element.src) })');
     throw new Error(`Chat did not initialize: ${state}`, { cause: error });
   }
   const result = await evaluate(`(async () => {
@@ -96,8 +96,12 @@ try {
       },
       (error) => { window.__chatFetch.push({ error: String(error) }); throw error; }
     );
-    const button = document.querySelector('[aria-label="Abrir asistente virtual"]');
+    const button = document.querySelector('[aria-label="Abrir chat con el asistente Horus"]');
+    const panelId = button.getAttribute('aria-controls');
     button.click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const panel = document.getElementById(panelId);
+    const panelContract = { controls: panelId, panelFound: !!panel, panelRole: panel?.getAttribute('role') };
     const input = document.querySelector('#mensaje-chat');
     async function send(text, expected) {
       input.value = text;
@@ -116,13 +120,15 @@ try {
     if (known) await new Promise((resolve) => setTimeout(resolve, 600));
     const unknown = known && await send('zzqv desconocido', 'No tengo un dato confirmado');
     return {
-      open: button.getAttribute('aria-expanded'), known, unknown,
+      open: button.getAttribute('aria-expanded'), panelContract, known, unknown,
       texts: [...document.querySelectorAll('[x-ref="messages"] p')].map((el) => el.textContent),
       draft: input.value,
       fetches: window.__chatFetch,
     };
   })()`);
-  if (result.open !== 'true' || !result.known || !result.unknown
+  if (result.open !== 'true' || result.panelContract.controls !== 'horus-chat-panel'
+      || !result.panelContract.panelFound || result.panelContract.panelRole !== 'dialog'
+      || !result.known || !result.unknown
       || result.fetches.length !== 2 || result.fetches.some((request) => request.status !== 200 || !request.tokenMatchesDom)) {
     const browserCookies = await command('Network.getCookies', { urls: [baseUrl] });
     throw new Error(`Chat UI failed: ${JSON.stringify({ ...result, cookieNames: browserCookies.cookies.map((cookie) => cookie.name) })}`);
