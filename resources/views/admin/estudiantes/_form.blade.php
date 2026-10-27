@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 <div class="grid gap-5 md:grid-cols-2">
     <div>
         <label for="dni" class="mb-2 block text-sm font-semibold text-ink">DNI <span class="text-red-600">*</span></label>
@@ -7,7 +8,7 @@
             type="text"
             inputmode="numeric"
             maxlength="8"
-            value="{{ old('dni', $estudiante->dni ?? '') }}"
+            value="{{ OldInput::value('dni', $estudiante->dni ?? '') }}"
             required
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
             placeholder="8 dígitos"
@@ -31,7 +32,7 @@
             name="nombres"
             type="text"
             maxlength="100"
-            value="{{ old('nombres', $estudiante->nombres ?? '') }}"
+            value="{{ OldInput::value('nombres', $estudiante->nombres ?? '') }}"
             required
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
             placeholder="Nombres del estudiante"
@@ -46,7 +47,7 @@
             name="apellidos"
             type="text"
             maxlength="100"
-            value="{{ old('apellidos', $estudiante->apellidos ?? '') }}"
+            value="{{ OldInput::value('apellidos', $estudiante->apellidos ?? '') }}"
             required
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
             placeholder="Apellidos del estudiante"
@@ -61,7 +62,7 @@
             name="email"
             type="email"
             maxlength="150"
-            value="{{ old('email', $estudiante->email ?? '') }}"
+            value="{{ OldInput::value('email', $estudiante->email ?? '') }}"
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
             placeholder="estudiante@correo.com"
         >
@@ -75,7 +76,7 @@
             name="telefono"
             type="tel"
             maxlength="20"
-            value="{{ old('telefono', $estudiante->telefono ?? '') }}"
+            value="{{ OldInput::value('telefono', $estudiante->telefono ?? '') }}"
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
             placeholder="Número de contacto"
         >
@@ -88,7 +89,7 @@
             id="fecha_nacimiento"
             name="fecha_nacimiento"
             type="date"
-            value="{{ old('fecha_nacimiento', isset($estudiante) && $estudiante->fecha_nacimiento ? $estudiante->fecha_nacimiento->format('Y-m-d') : '') }}"
+            value="{{ OldInput::value('fecha_nacimiento', isset($estudiante) && $estudiante->fecha_nacimiento ? $estudiante->fecha_nacimiento->format('Y-m-d') : '') }}"
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
         >
         @error('fecha_nacimiento')<p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>@enderror
@@ -101,7 +102,7 @@
             name="direccion"
             type="text"
             maxlength="255"
-            value="{{ old('direccion', $estudiante->direccion ?? '') }}"
+            value="{{ OldInput::value('direccion', $estudiante->direccion ?? '') }}"
             class="w-full rounded-xl border border-stone-200 px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold"
             placeholder="Dirección del estudiante"
         >

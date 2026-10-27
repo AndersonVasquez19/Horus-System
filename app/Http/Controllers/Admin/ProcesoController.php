@@ -78,7 +78,7 @@ class ProcesoController extends Controller implements HasMiddleware
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'responsable_id' => ['nullable', 'exists:users,id'],
+            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
             'estado' => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'prioridad' => ['required', 'in:baja,media,alta,urgente'],
             'fecha_vencimiento' => ['nullable', 'date'],
@@ -116,7 +116,7 @@ class ProcesoController extends Controller implements HasMiddleware
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'responsable_id' => ['nullable', 'exists:users,id'],
+            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
             'estado' => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'prioridad' => ['required', 'in:baja,media,alta,urgente'],
             'fecha_vencimiento' => ['nullable', 'date'],
