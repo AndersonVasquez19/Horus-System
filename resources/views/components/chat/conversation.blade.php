@@ -1,5 +1,6 @@
-@props(['endpoint'])
+@props(['endpoint', 'public' => false])
 
+@if (! $public)
 <div
     x-data="chatClient"
     data-endpoint="{{ $endpoint }}"
@@ -51,3 +52,65 @@
         </button>
     </form>
 </div>
+@else
+
+<div
+    x-data="chatClient"
+    data-endpoint="{{ $endpoint }}"
+    data-csrf-token="{{ csrf_token() }}"
+    class="hc-conversation"
+>
+    <div x-ref="messages" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Horus" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
+        <template x-for="(message, index) in messages" :key="index">
+            <article class="hc-message" :class="message.role === 'user' ? 'hc-user' : 'hc-assistant'">
+                <strong>
+                    <x-public.robot-mascot x-show="message.role === 'bot'" :portrait="true" class="hc-message-avatar" />
+                    <span x-text="message.role === 'user' ? 'Tú' : 'Horus'"></span>
+                </strong>
+                <p x-text="message.text"></p>
+            </article>
+        </template>
+
+        <div x-show="messages.length === 1 && messages[0].role === 'bot'" class="hc-suggestions" aria-label="Preguntas sugeridas">
+            <p>Puedes empezar por aquí</p>
+            <div>
+                <button type="button" @click="draft = '¿Qué capacitaciones ofrecen?'; $nextTick(() => $refs.question.focus())">¿Qué capacitaciones ofrecen?</button>
+                <button type="button" @click="draft = '¿Qué servicios tecnológicos brindan?'; $nextTick(() => $refs.question.focus())">¿Qué servicios tecnológicos brindan?</button>
+                <button type="button" @click="draft = '¿Cómo puedo solicitar una cotización?'; $nextTick(() => $refs.question.focus())">¿Cómo puedo solicitar una cotización?</button>
+                <button type="button" @click="draft = '¿Qué convenios tiene Horus?'; $nextTick(() => $refs.question.focus())">¿Qué convenios tiene Horus?</button>
+            </div>
+        </div>
+
+        <div x-show="sending" class="hc-thinking" role="status">
+            <span class="hc-thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            Consultando información…
+        </div>
+    </div>
+
+    <div class="hc-compose">
+        <div class="hc-compose-heading">
+            <label for="mensaje-chat">Escribe tu consulta</label>
+            <span><span x-text="draft.length">0</span> / 2000</span>
+        </div>
+        <form @submit.prevent="sendMessage">
+            <label for="mensaje-chat" class="sr-only">Escribe tu mensaje</label>
+            <textarea
+                id="mensaje-chat"
+                x-ref="question"
+                x-model="draft"
+                maxlength="2000"
+                rows="1"
+                autocomplete="off"
+                placeholder="¿Qué te gustaría saber?"
+                :disabled="sending"
+                @keydown.enter="if (!$event.shiftKey && !$event.isComposing) { $event.preventDefault(); if (draft.trim() && !sending) sendMessage(); }"
+                aria-describedby="hc-question-help"
+            ></textarea>
+            <button type="submit" :disabled="sending || !draft.trim()" aria-label="Enviar consulta">
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            </button>
+        </form>
+        <p class="hc-compose-help" id="hc-question-help">Enter para enviar <span>· Shift + Enter para otra línea</span></p>
+    </div>
+</div>
+@endif
