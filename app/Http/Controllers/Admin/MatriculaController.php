@@ -335,12 +335,12 @@ class MatriculaController extends Controller implements HasMiddleware
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
                 $query->whereHas('estudiante', function (Builder $estudiante) use ($busqueda): void {
-                    $estudiante->where('dni', 'like', "%{$busqueda}%")
-                        ->orWhere('nombres', 'like', "%{$busqueda}%")
-                        ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                    $estudiante->whereLike('dni', "%{$busqueda}%")
+                        ->orWhereLike('nombres', "%{$busqueda}%")
+                        ->orWhereLike('apellidos', "%{$busqueda}%");
                 })->orWhereHas('curso', function (Builder $curso) use ($busqueda): void {
-                    $curso->where('codigo', 'like', "%{$busqueda}%")
-                        ->orWhere('nombre', 'like', "%{$busqueda}%");
+                    $curso->whereLike('codigo', "%{$busqueda}%")
+                        ->orWhereLike('nombre', "%{$busqueda}%");
                 });
             });
         }

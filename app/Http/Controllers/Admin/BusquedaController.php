@@ -45,9 +45,9 @@ class BusquedaController extends Controller implements HasMiddleware
             // Cada sección se consulta solo si el usuario puede ver ese módulo.
             if ($usuario->can('estudiantes.ver')) {
                 $resultados['estudiantes'] = Estudiante::query()
-                    ->where('nombres', 'like', "%{$busqueda}%")
-                    ->orWhere('apellidos', 'like', "%{$busqueda}%")
-                    ->orWhere('dni', 'like', "%{$busqueda}%")
+                    ->whereLike('nombres', "%{$busqueda}%")
+                    ->orWhereLike('apellidos', "%{$busqueda}%")
+                    ->orWhereLike('dni', "%{$busqueda}%")
                     ->orderBy('apellidos')
                     ->limit(8)
                     ->get();
@@ -55,18 +55,19 @@ class BusquedaController extends Controller implements HasMiddleware
 
             if ($usuario->can('cursos.ver')) {
                 $resultados['cursos'] = Curso::query()
-                    ->where('nombre', 'like', "%{$busqueda}%")
-                    ->orWhere('codigo', 'like', "%{$busqueda}%")
+                    ->whereLike('nombre', "%{$busqueda}%")
+                    ->orWhereLike('codigo', "%{$busqueda}%")
                     ->limit(8)
                     ->get();
             }
 
             if ($usuario->can('matriculas.ver')) {
                 $resultados['matriculas'] = Matricula::query()
-                    ->where('id', 'like', "%{$busqueda}%")
-                    ->orWhereHas('estudiante', fn ($query) => $query->where('nombres', 'like', "%{$busqueda}%")
-                        ->orWhere('apellidos', 'like', "%{$busqueda}%"))
-                    ->orWhereHas('curso', fn ($query) => $query->where('nombre', 'like', "%{$busqueda}%"))
+                    // Coincidencia parcial por ID, como antes; en PostgreSQL compila a "id"::text ilike.
+                    ->whereLike('id', "%{$busqueda}%")
+                    ->orWhereHas('estudiante', fn ($query) => $query->whereLike('nombres', "%{$busqueda}%")
+                        ->orWhereLike('apellidos', "%{$busqueda}%"))
+                    ->orWhereHas('curso', fn ($query) => $query->whereLike('nombre', "%{$busqueda}%"))
                     ->with(['estudiante', 'curso'])
                     ->limit(8)
                     ->get();
@@ -74,8 +75,8 @@ class BusquedaController extends Controller implements HasMiddleware
 
             if ($usuario->can('usuarios.ver')) {
                 $resultados['usuarios'] = User::query()
-                    ->where('name', 'like', "%{$busqueda}%")
-                    ->orWhere('email', 'like', "%{$busqueda}%")
+                    ->whereLike('name', "%{$busqueda}%")
+                    ->orWhereLike('email', "%{$busqueda}%")
                     ->limit(8)
                     ->get();
             }
