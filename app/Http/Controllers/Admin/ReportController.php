@@ -9,14 +9,17 @@ use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\SafeSpreadsheet;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class ReportController extends Controller implements HasMiddleware
 {
@@ -53,36 +56,28 @@ class ReportController extends Controller implements HasMiddleware
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Matrículas');
-        $sheet->fromArray([
-            ['ID', 'Estudiante', 'Curso', 'Fecha', 'Estado', 'Monto'],
-        ], null, 'A1');
+        SafeSpreadsheet::writeRow($sheet, 1, ['ID', 'Estudiante', 'Curso', 'Fecha', 'Estado', 'Monto']);
 
+        // Nombres y cursos provienen de formularios: se escriben como texto literal, nunca como fórmula.
         $fila = 2;
         foreach ($matriculas as $matricula) {
-            $sheet->fromArray([
-                [
-                    $matricula->id,
-                    $matricula->estudiante?->nombres.' '.$matricula->estudiante?->apellidos,
-                    $matricula->curso?->nombre,
-                    $matricula->fecha_matricula?->format('d/m/Y'),
-                    $matricula->estado,
-                    (float) $matricula->monto_pagado,
-                ],
-            ], null, 'A'.$fila);
+            SafeSpreadsheet::writeRow($sheet, $fila, [
+                $matricula->id,
+                trim(($matricula->estudiante?->nombres ?? '').' '.($matricula->estudiante?->apellidos ?? '')),
+                $matricula->curso?->nombre,
+                $matricula->fecha_matricula?->format('d/m/Y'),
+                $matricula->estado,
+                (float) $matricula->monto_pagado,
+            ]);
 
             $fila++;
         }
 
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.xlsx';
-        $path = 'exports/'.$filename;
-        Storage::disk('local')->makeDirectory('exports');
-        $file = Storage::disk('local')->path($path);
-        $writer->save($file);
-
-        AuditLog::record('report_excel_exported', Matricula::class, null, ['filename' => $filename]);
-
-        return response()->download($file, $filename)->deleteFileAfterSend(true);
+        return $this->downloadTemporaryExport(
+            'xlsx',
+            'report_excel_exported',
+            fn (string $file) => (new Xlsx($spreadsheet))->save($file),
+        );
     }
 
     public function exportarPdf(): BinaryFileResponse
@@ -93,16 +88,43 @@ class ReportController extends Controller implements HasMiddleware
             'matriculas' => $matriculas,
             'fecha' => now()->format('d/m/Y'),
         ]);
-        $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.pdf';
-        $dir = storage_path('app/exports');
-        if (! is_dir($dir)) {
-            mkdir($dir, 0777, true);
+
+        return $this->downloadTemporaryExport(
+            'pdf',
+            'report_pdf_exported',
+            fn (string $file) => $pdf->save($file),
+        );
+    }
+
+    /**
+     * Escribe el reporte en un temporal privado de nombre único, audita y lo entrega para descarga.
+     *
+     * El nombre interno es un UUID para que dos exportaciones simultáneas no compartan archivo.
+     * Si la escritura o la auditoría fallan, el temporal (con datos personales) se borra antes
+     * de propagar el error; en el camino feliz lo elimina deleteFileAfterSend().
+     *
+     * @param  callable(string): mixed  $write
+     */
+    private function downloadTemporaryExport(string $extension, string $auditAction, callable $write): BinaryFileResponse
+    {
+        $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.'.$extension;
+        $disk = Storage::disk('local');
+        $disk->makeDirectory('exports');
+
+        $file = $disk->path('exports/'.Str::uuid()->toString().'.'.$extension);
+
+        try {
+            $write($file);
+
+            AuditLog::record($auditAction, Matricula::class, null, ['filename' => $filename]);
+
+            return response()->download($file, $filename)->deleteFileAfterSend(true);
+        } catch (Throwable $error) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+
+            throw $error;
         }
-        $file = $dir.DIRECTORY_SEPARATOR.$filename;
-        $pdf->save($file);
-
-        AuditLog::record('report_pdf_exported', Matricula::class, null, ['filename' => $filename]);
-
-        return response()->download($file, $filename)->deleteFileAfterSend(true);
     }
 }
