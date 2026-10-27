@@ -10,7 +10,7 @@
         <template x-for="(message, index) in messages" :key="index">
             <div class="flex items-end gap-2" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
                 <span x-show="message.role === 'bot'" class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DCC98F] bg-[#F2E8CA]" aria-hidden="true">
-                    <img src="{{ asset('assets/images/chat/horus-mascot.webp') }}" alt="" width="32" height="32" class="h-full w-full object-cover object-top" draggable="false">
+                    <img src="{{ asset('assets/images/index/stiker/stiker.png') }}" alt="" width="32" height="32" class="h-full w-full object-contain" draggable="false">
                 </span>
                 <p
                     x-text="message.text"
@@ -21,7 +21,7 @@
         </template>
         <div x-show="sending" class="flex items-end gap-2" aria-label="El asistente está escribiendo">
             <span class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DCC98F] bg-[#F2E8CA]" aria-hidden="true">
-                <img src="{{ asset('assets/images/chat/horus-mascot.webp') }}" alt="" width="32" height="32" class="h-full w-full object-cover object-top" draggable="false">
+                <img src="{{ asset('assets/images/index/stiker/stiker.png') }}" alt="" width="32" height="32" class="h-full w-full object-contain" draggable="false">
             </span>
             <div class="rounded-2xl rounded-bl-md border border-[#DFE7E7] bg-white px-4 py-3 text-sm text-[#486075] shadow-sm">
                 <span class="mr-2 inline-flex h-2 w-2 animate-pulse rounded-full bg-[#B8956A]"></span>
