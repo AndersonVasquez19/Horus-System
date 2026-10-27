@@ -1,0 +1,560 @@
+﻿@extends('layouts.app')
+
+@section('title', 'Políticas de Cookies')
+
+@push('styles')
+  <link rel="stylesheet" href="{{ asset('assets/css/politicas-cookies/politicas-cookies.css') }}">
+@endpush
+
+@push('scripts')
+  <script src="{{ asset('assets/js/politicas-cookies/politicas-cookies.js') }}" defer></script>
+@endpush
+
+@section('content')
+<div class="legacy-showcase legal-showcase">
+<section class="hero-politicas">
+        <div class="hero-content">
+            <h1 class="fade-in">Políticas de Cookies</h1>
+            <p class="fade-in">Información sobre el uso de cookies en nuestro sitio web</p>
+        </div>
+    </section>
+
+    <section class="politicas-main">
+        <div class="politicas-container">
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-cookie-bite"></i>
+                    </div>
+                    <h2>1. Introducción</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">Horus Group-Cajamarca SRL describe en el presente documento la
+                        <strong>"Política de Cookies"</strong> que regula el sitio web <strong>www…..</strong> con el
+                        objetivo de garantizar la privacidad del usuario, que en adelante se le llamará <strong>"EL
+                            USUARIO"</strong>.
+                    </p>
+
+                    <div class="alert-box">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <p>El sitio web es propiedad de la empresa Horus Group-Cajamarca SRL, con domicilio en el
+                            <strong>Jr. José Gálvez Nro. 322 – Provincia y de Departamento de Cajamarca</strong>.
+                        </p>
+                    </div>
+
+                    <p>Informamos a "EL USUARIO" que en nuestro sitio web utilizamos <strong>cookies propias</strong>.
+                    </p>
+
+                    <ul class="lista-puntos">
+                        <li>Estas cookies permiten a Horus Group-Cajamarca SRL facilitar el uso y navegación</li>
+                        <li>Garantizar el acceso a determinadas funcionalidades</li>
+                        <li>Nos ayudan a mejorar la calidad del sitio web de acuerdo con los hábitos y estilos de
+                            navegación de "EL USUARIO"</li>
+                    </ul>
+
+                    <div class="contact-info">
+                        <p>Horus Group-Cajamarca SRL utiliza las cookies estrictamente necesarias y esenciales para que
+                            usted utilice el sitio web y le permita navegar libremente, utilizando áreas seguras u
+                            opciones personalizadas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <h2>2. ¿Qué son las cookies?</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">Las cookies son pequeños archivos de texto que los sitios web guardan en tu
+                        computadora o dispositivo móvil cuando los visitas. Estos archivos permiten que el sitio web
+                        recuerde información sobre tu visita, como:</p>
+
+                    <div class="cookies-grid">
+                        <div class="cookie-item">
+                            <i class="fas fa-language"></i>
+                            <p>Preferencias de idioma</p>
+                        </div>
+                        <div class="cookie-item">
+                            <i class="fas fa-user-check"></i>
+                            <p>Estado de inicio de sesión</p>
+                        </div>
+                        <div class="cookie-item">
+                            <i class="fas fa-shopping-cart"></i>
+                            <p>Artículos en tu carrito</p>
+                        </div>
+                        <div class="cookie-item">
+                            <i class="fas fa-cog"></i>
+                            <p>Configuraciones personalizadas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <h2>3. ¿Para qué sirven las cookies?</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">Las cookies sirven para reconocer el dispositivo de "EL USUARIO" cuando
+                        vuelven a visitar el sitio web, facilitándole su uso recordando sus preferencias y configuración
+                        de navegación.</p>
+
+                    <ul class="lista-puntos">
+                        <li>Reconocer el dispositivo de "EL USUARIO" cuando vuelven a visitar el sitio web</li>
+                        <li>Recordar preferencias y configuración de navegación (Idioma, país, etc.)</li>
+                        <li>Mejorar los servicios que ofrecemos</li>
+                        <li>Recopilar información estadística que nos permite entender cómo "EL USUARIO" utiliza este
+                            sitio</li>
+                        <li>Mejorar la estructura y contenidos del sitio web</li>
+                    </ul>
+
+                    <div class="alert-box seguridad">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <p><strong>Seguridad y privacidad:</strong></p>
+                            <p>Las cookies se asocian únicamente a un usuario anónimo y su dispositivo de acceso a
+                                Internet y no proporcionan referencias que permitan deducir datos personales de "EL
+                                USUARIO". Las cookies no pueden dañar su dispositivo y además son muy útiles, puesto que
+                                nos ayudan a identificar y resolver errores.</p>
+                        </div>
+                    </div>
+
+                    <h3>Acciones disponibles para el usuario:</h3>
+                    <div class="acciones-grid">
+                        <div class="accion-item">
+                            <div class="accion-icon"><i class="fas fa-check-circle"></i></div>
+                            <h4>Aceptar</h4>
+                            <p>No se volverá a visualizar este aviso durante la presente sesión</p>
+                        </div>
+                        <div class="accion-item">
+                            <div class="accion-icon"><i class="fas fa-times-circle"></i></div>
+                            <h4>Cerrar</h4>
+                            <p>Se oculta el aviso pero se volverá a mostrar al acceder a otra página</p>
+                        </div>
+                        <div class="accion-item">
+                            <div class="accion-icon"><i class="fas fa-sliders-h"></i></div>
+                            <h4>Modificar configuración</h4>
+                            <p>Podrá modificar la configuración de su navegación</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-list-ul"></i>
+                    </div>
+                    <h2>4. Tipos de cookies</h2>
+                </div>
+
+                <div class="seccion-content">
+
+                    <div class="subseccion">
+                        <h3><span class="numero">A</span> Según la entidad que las gestione</h3>
+
+                        <div class="tipo-cookie-box">
+                            <div class="tipo-header">
+                                <i class="fas fa-home"></i>
+                                <h4>Cookies propias</h4>
+                            </div>
+                            <p>Son aquellas que se envían al dispositivo de acceso a Internet del Usuario desde el sitio
+                                web gestionada por el propio titular del sitio y desde el que se presta el servicio
+                                solicitado por "EL USUARIO".</p>
+                        </div>
+
+                        <div class="tipo-cookie-box">
+                            <div class="tipo-header">
+                                <i class="fas fa-external-link-alt"></i>
+                                <h4>Cookies de terceros</h4>
+                            </div>
+                            <p>Son aquellas que se envían al dispositivo de acceso a Internet de "EL USUARIO" desde el
+                                sitio web pero que no es gestionado por el titular del sitio, sino por otra entidad que
+                                trata los datos obtenidos mediante las cookies.</p>
+                        </div>
+                    </div>
+
+                    <div class="subseccion">
+                        <h3><span class="numero">B</span> Según el plazo de tiempo</h3>
+
+                        <div class="tipo-cookie-box">
+                            <div class="tipo-header">
+                                <i class="fas fa-clock"></i>
+                                <h4>Cookies de sesión</h4>
+                            </div>
+                            <p>Son un tipo de cookies diseñadas para recoger y almacenar datos mientras "EL USUARIO"
+                                accede al sitio web. Se suelen utilizar para almacenar información que sólo interesa
+                                conservar para la prestación del servicio solicitado por "EL USUARIO" en una sola
+                                ocasión.</p>
+                        </div>
+
+                        <div class="tipo-cookie-box">
+                            <div class="tipo-header">
+                                <i class="fas fa-history"></i>
+                                <h4>Cookies persistentes</h4>
+                            </div>
+                            <p>Son un tipo de cookies en la que los datos siguen almacenados en el dispositivo de acceso
+                                a Internet de "EL USUARIO" y pueden ser accedidas y tratadas durante un periodo definido
+                                por el responsable de la cookie, y que puede ir de unos minutos a varios años.</p>
+                        </div>
+                    </div>
+
+                    <div class="subseccion">
+                        <h3><span class="numero">C</span> Según la finalidad</h3>
+
+                        <div class="finalidades-grid">
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-tools"></i></div>
+                                <h4>Cookies técnicas</h4>
+                                <p>Imprescindibles para el correcto funcionamiento del sitio web y la utilización de las
+                                    diferentes opciones y servicios.</p>
+                            </div>
+
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-puzzle-piece"></i></div>
+                                <h4>Cookies funcionales</h4>
+                                <p>Permiten acceder al servicio con características predefinidas según criterios del
+                                    dispositivo (idioma, navegador, configuración regional).</p>
+                            </div>
+
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-map-marked-alt"></i></div>
+                                <h4>Cookies de Geolocalización</h4>
+                                <p>Utilizadas para averiguar en qué país se encuentra cuando se solicita un servicio.
+                                    Totalmente anónima.</p>
+                            </div>
+
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-chart-line"></i></div>
+                                <h4>Cookies analíticas</h4>
+                                <p>Permiten el seguimiento y análisis del comportamiento de "EL USUARIO" para introducir
+                                    mejoras en el servicio.</p>
+                            </div>
+
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-ad"></i></div>
+                                <h4>Cookies publicitarias</h4>
+                                <p>Permiten la gestión eficaz de espacios publicitarios basándose en criterios como el
+                                    contenido o frecuencia de anuncios.</p>
+                            </div>
+
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-bullhorn"></i></div>
+                                <h4>Cookies de publicidad comportamental</h4>
+                                <p>Almacenan información del comportamiento obtenida por la observación de hábitos de
+                                    navegación para mostrar publicidad personalizada.</p>
+                            </div>
+
+                            <div class="finalidad-item">
+                                <div class="finalidad-icon"><i class="fas fa-user-plus"></i></div>
+                                <h4>Cookies de Registro</h4>
+                                <p>Se generan una vez que "EL USUARIO" se ha registrado o abierto sesión para
+                                    identificarle en los servicios.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <h2>5. Tipos de cookies que utiliza Horus Group-Cajamarca SRL</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <div class="alert-box">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Las cookies siguientes no identifican personalmente a "EL USUARIO", sólo proporcionan
+                            información estadística anónima sobre la navegación en este sitio web; sin embargo, puede
+                            deshabilitarlas directamente configurando su navegador.</p>
+                    </div>
+
+                    <div class="cookie-detalle">
+                        <div class="cookie-detalle-header">
+                            <i class="fas fa-cogs"></i>
+                            <h3>Cookies técnicas</h3>
+                            <span class="badge">Propias o de tercero</span>
+                        </div>
+                        <p>Son estrictamente necesarias para que "EL USUARIO" pueda navegar por el sitio web y utilizar
+                            sus funciones. Dado que estas cookies son necesarias para el correcto funcionamiento y uso
+                            del sitio web, "EL USUARIO" no podrá desactivarlas.</p>
+                        <div class="cookie-info">
+                            <div class="info-item">
+                                <strong>Permanencia:</strong> Cookies de sesión y persistentes
+                            </div>
+                            <div class="info-item">
+                                <strong>Finalidades:</strong>
+                                <ul class="lista-finalidades">
+                                    <li>Identificar la sesión</li>
+                                    <li>Acceso al sitio privado</li>
+                                    <li>Recordar los elementos que integran la cesta de la compra</li>
+                                    <li>Permitir la realización del proceso de compra de un pedido</li>
+                                    <li>Gestión del pago</li>
+                                    <li>Controlar el fraude vinculado a la seguridad del servicio</li>
+                                    <li>Utilizar elementos de seguridad durante la navegación</li>
+                                    <li>Almacenar contenidos para la difusión de vídeos o sonido</li>
+                                    <li>Habilitar contenidos dinámicos</li>
+                                    <li>Compartir contenidos a través de redes sociales</li>
+                                    <li>Visualizar ubicación geográfica de nuestras sucursales</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cookie-detalle">
+                        <div class="cookie-detalle-header">
+                            <i class="fas fa-chart-bar"></i>
+                            <h3>Cookies analíticas</h3>
+                            <span class="badge propias">Propias</span>
+                        </div>
+                        <p>Recopilan información agregada y anonimizada sobre cómo se utiliza el sitio web. Su propósito
+                            es mejorar las funciones del sitio web, diseños de las páginas y navegación.</p>
+                        <div class="cookie-info">
+                            <div class="info-item">
+                                <strong>Permanencia:</strong> Cookies de sesión o persistentes
+                            </div>
+                            <div class="info-item">
+                                <strong>Finalidades:</strong>
+                                <ul class="lista-finalidades">
+                                    <li>Estadísticas de uso</li>
+                                    <li>Número de visitas y las fuentes de tráfico</li>
+                                    <li>Velocidad de las búsquedas</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cookie-detalle">
+                        <div class="cookie-detalle-header">
+                            <i class="fas fa-sliders-h"></i>
+                            <h3>Cookies funcionales</h3>
+                            <span class="badge propias">Propias</span>
+                        </div>
+                        <p>Estas cookies permiten almacenar información sobre las preferencias de "EL USUARIO". Si "EL
+                            USUARIO" no permite o desactiva estas cookies tendrá que actualizar sus preferencias cada
+                            vez que inicie una sesión.</p>
+                        <div class="cookie-info">
+                            <div class="info-item">
+                                <strong>Permanencia:</strong> Cookies persistentes
+                            </div>
+                            <div class="info-item">
+                                <strong>Finalidades:</strong>
+                                <ul class="lista-finalidades">
+                                    <li>La página web podrá recordar y brindar funciones personalizadas</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cookie-detalle">
+                        <div class="cookie-detalle-header">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <h3>Cookies de comunicaciones comerciales personalizadas</h3>
+                            <span class="badge">Propias o de tercero</span>
+                        </div>
+                        <p>Estas cookies almacenan información del comportamiento de "EL USUARIO", en el sitio web, lo
+                            que permite desarrollar un perfil específico para ofrecerle comunicaciones comerciales
+                            personalizadas.</p>
+                        <div class="cookie-info">
+                            <div class="info-item">
+                                <strong>Permanencia:</strong> Cookies persistentes
+                            </div>
+                            <div class="info-item">
+                                <strong>Finalidades:</strong>
+                                <ul class="lista-finalidades">
+                                    <li>Almacenan información y el comportamiento en la página para luego mostrar
+                                        anuncios de interés</li>
+                                    <li>Limitar la cantidad de veces que se ve un anuncio y medir la efectividad de las
+                                        campañas publicitarias online</li>
+                                    <li>Son establecidas por las redes sociales que se agregan a la página web</li>
+                                    <li>Pueden rastrear el navegador a través de otros sitios y crear un perfil de
+                                        intereses</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h2>6. Gestión de cookies</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">Horus Group-Cajamarca SRL asume un compromiso sobre el uso de cookies, en
+                        consecuencia, otorga a "EL USUARIO" acceso a información para que pueda comprender qué tipo de
+                        cookies se utiliza en este sitio web y la razón de ello.</p>
+
+                    <ul class="lista-puntos">
+                        <li>Si "EL USUARIO" acepta dichas cookies, permite la mejora del sitio web de Horus
+                            Group-Cajamarca SRL para ofrecerle un acceso óptimo y darle un servicio más eficaz y
+                            personalizado</li>
+                        <li>"EL USUARIO" puede configurar su navegador para establecer que solo los sitios web de
+                            confianza o las páginas por las que está navegando en este momento puedan gestionar cookies
+                        </li>
+                        <li>Si "EL USUARIO" decide no autorizar el tratamiento, solo usaríamos las cookies técnicas y
+                            analíticas, puesto que son imprescindibles para la navegación</li>
+                        <li>En caso de seguir navegando por nuestro sitio web sin denegar su autorización implica que
+                            acepta su uso</li>
+                    </ul>
+
+                    <div class="alert-box advertencia">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <p><strong>Importante:</strong></p>
+                            <p>En caso "EL USUARIO" rechace o borre las cookies de navegación del sitio web, Horus
+                                Group-Cajamarca SRL no mantendrá sus preferencias y algunas características de las
+                                páginas no estarán operativas, así como no podremos ofrecerle servicios personalizados.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>Configuración de navegadores:</h3>
+                    <div class="navegadores-grid">
+                        <div class="navegador-item">
+                            <i class="fab fa-internet-explorer"></i>
+                            <h4>Internet Explorer</h4>
+                            <p>Herramientas → Opciones de Internet → Privacidad → Configuración</p>
+                            <a href="https://support.microsoft.com" target="_blank">Soporte de Microsoft</a>
+                        </div>
+                        <div class="navegador-item">
+                            <i class="fab fa-safari"></i>
+                            <h4>Safari</h4>
+                            <p>Preferencias → Seguridad</p>
+                            <a href="https://support.apple.com" target="_blank">Soporte de Apple</a>
+                        </div>
+                        <div class="navegador-item">
+                            <i class="fab fa-firefox"></i>
+                            <h4>Firefox</h4>
+                            <p>Herramientas → Opciones → Privacidad → Historial → Configuración Personalizada</p>
+                            <a href="https://support.mozilla.org" target="_blank">Soporte de Mozilla</a>
+                        </div>
+                        <div class="navegador-item">
+                            <i class="fab fa-chrome"></i>
+                            <h4>Chrome</h4>
+                            <p>Configuración → Mostrar opciones avanzadas → Privacidad → Configuración de contenido</p>
+                            <a href="https://support.google.com" target="_blank">Soporte de Google</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-power-off"></i>
+                    </div>
+                    <h2>7. ¿Qué ocurre si se deshabilitan las cookies?</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">En caso de que se deshabiliten las Cookies:</p>
+                    <ul class="lista-puntos">
+                        <li>No podremos mantener sus preferencias</li>
+                        <li>Algunas funcionalidades de los Servicios de Horus Group-Cajamarca SRL podrían quedar
+                            inoperativas</li>
+                        <li>No pudiendo ofrecerle servicios personalizados</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="politicas-seccion fade-in">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2>8. Consultas</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">Para realizar cualquier tipo de consulta respecto a esta política puede
+                        dirigirse a la siguiente dirección de correo electrónico:</p>
+                    <div class="contact-box">
+                        <i class="fas fa-envelope"></i>
+                        <a href="mailto:horusgroupcajamarca@gmail.com">horusgroupcajamarca@gmail.com</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="politicas-seccion fade-in modificaciones">
+                <div class="seccion-header">
+                    <div class="seccion-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h2>9. Vigencia y modificación de la presente política de cookies</h2>
+                </div>
+
+                <div class="seccion-content">
+                    <p class="intro-text">Horus Group-Cajamarca SRL puede modificar esta Política de Cookies en función
+                        de exigencias legislativas, reglamentarias, jurisprudenciales o con la finalidad de adaptar
+                        dicha política a las instrucciones dictadas por la Autoridad Nacional de Protección de Datos
+                        Personales, así como por criterios propios institucionales.</p>
+
+                    <div class="alert-box">
+                        <i class="fas fa-sync-alt"></i>
+                        <p>Por ello, y dado que dicha política puede ser actualizada periódicamente, sugerimos a "EL
+                            USUARIO" que la revise de forma regular y que la encontrarán en la web
+                            <strong>www…...</strong>
+                        </p>
+                    </div>
+
+                    <div class="firma">
+                        <img src="{{ asset('assets/images/index/logos/logo-horus.png') }}" alt="Horus Group Logo" class="firma-logo">
+                        <div>
+                            <p><strong>Horus Group-Cajamarca SRL</strong></p>
+                            <p>Jr. José Gálvez Nro. 322 – Cajamarca</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="politicas-cta">
+        <div class="cta-content fade-in">
+            <h3>¿Necesitas más <span>información?</span></h3>
+            <p>Estamos disponibles para resolver cualquier duda sobre nuestra política de cookies.</p>
+            <div class="cta-buttons">
+                <a href="mailto:horusgroupcajamarca@gmail.com" class="btn-gold">
+                    <i class="fas fa-envelope"></i>
+                    Contactar
+                </a>
+                <a href="{{ route('legales.faq') }}" class="btn-outline">
+                    <i class="fas fa-question-circle"></i>
+                    Ver Preguntas Frecuentes
+                </a>
+            </div>
+        </div>
+    </section>
+
+    
+
+
+
+
+    <button class="back-to-top" id="backToTop">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    </div>
+@endsection
+

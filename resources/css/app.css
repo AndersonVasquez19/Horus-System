@@ -1,0 +1,342 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0A2540;
+  background: #0A2540;
+  font-family: 'Poppins', sans-serif;
+  --primary-dark: #0A2540;
+  --primary-light: #1E4976;
+  --primary-medium: #2563A8;
+  --accent-gold: #C9A961;
+  --accent-gold-dark: #B8956A;
+  --accent-light: #E8DCC4;
+  --white: #FFFFFF;
+  --black: #0F1419;
+  --gray-light: #F7F9FC;
+  --gray-medium: #E1E8ED;
+  --gray-dark: #4A5568;
+  --text-primary: #1A202C;
+  --text-secondary: #4A5568;
+}
+
+body {
+  @apply text-ink antialiased;
+}
+
+.public-page { background: var(--primary-dark); }
+.public-page main { min-height: 45vh; background: #F7F9FC; }
+.public-page .home-hero .section-shell { max-width: 1440px; }
+.public-page .home-hero { background: linear-gradient(135deg, #0A2540, #0F1419); }
+.public-page .home-stats { background: linear-gradient(180deg, #F7F9FC, #fff); }
+.public-page .home-convenios { background: #fff; }
+.public-page .home-location { background: #F7F9FC; }
+.public-page .home-convenios,
+.public-page .home-location {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+.public-page main > .section-shell { background: #F7F9FC; }
+.public-page main > .section-shell:nth-of-type(even) { background: #fff; }
+.public-page .legacy-showcase { background: #fff; }
+.public-page .legacy-showcase img { max-width: 100%; }
+.public-page .legacy-showcase > .hero { margin-top: 0; min-height: calc(100vh - 110px); }
+.public-page .legacy-showcase > .qs-header { padding-top: 80px; }
+.public-page .legacy-showcase > .contactos-hero { padding-top: 48px; }
+.public-page .legacy-showcase > .coming-soon-section { min-height: calc(100vh - 110px); padding-top: 40px; }
+.public-page .legacy-showcase > .carta-cursos,
+.public-page .legacy-showcase > .carta-capacitaciones,
+.public-page .legacy-showcase > .carta-asesoramiento { padding-top: 40px; }
+.public-page .legacy-showcase > .carta-soporte-mantenimiento { padding-top: 0; }
+.public-page .legacy-showcase .intro-cableado,
+.public-page .legacy-showcase .intro-videovigilancia { padding-top: 6rem; }
+.public-page .legacy-showcase a:focus-visible,
+.public-page .legacy-showcase button:focus-visible,
+.public-page .nav-pill a:focus-visible,
+.public-page .nav-pill button:focus-visible { outline: 3px solid #C9A961; outline-offset: 3px; }
+
+[x-cloak] {
+  display: none !important;
+}
+
+.horus-chat-panel {
+  width: min(25rem, calc(100vw - 1.5rem));
+  height: min(37rem, calc(100dvh - 7.5rem));
+}
+
+.horus-chat-greeting::after {
+  content: '';
+  position: absolute;
+  right: 1.8rem;
+  bottom: -0.45rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  background: white;
+  border-right: 1px solid #E5D2A0;
+  border-bottom: 1px solid #E5D2A0;
+  transform: rotate(45deg);
+}
+
+.horus-chat-mascot {
+  transform-origin: 55% 90%;
+  animation: horus-wave 2.2s ease-in-out 1;
+}
+
+.horus-chat-launcher:hover .horus-chat-mascot {
+  animation: horus-wave 1.3s ease-in-out infinite;
+}
+
+@keyframes horus-wave {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-7deg); }
+  30% { transform: rotate(6deg); }
+  45% { transform: rotate(-4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .horus-chat-mascot,
+  .horus-chat-launcher:hover .horus-chat-mascot {
+    animation: none;
+  }
+}
+
+img {
+  @apply block max-w-full;
+}
+
+@layer components {
+  .nav-pill {
+    @apply sticky top-4 z-40 mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-gold/30 bg-[#0A2540]/95 px-4 py-3 shadow-xl shadow-[#0A2540]/15 backdrop-blur-xl;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-gold/15 hover:text-gold-light;
+  }
+
+  .nav-submenu {
+    @apply absolute left-0 top-full mt-3 min-w-[220px] rounded-2xl border border-gold/30 bg-[#0A2540]/95 p-2 text-white shadow-xl shadow-black/20 backdrop-blur-xl;
+  }
+
+  .section-shell {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-3xl font-bold uppercase tracking-tight text-ink md:text-4xl;
+  }
+
+  .section-title span {
+    @apply block text-gold;
+  }
+
+  .gold-button {
+    @apply inline-flex items-center justify-center rounded-full border border-gold bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark hover:text-white;
+  }
+
+  .legacy-content {
+    @apply mx-auto max-w-5xl rounded-3xl border border-gold/20 bg-white px-6 py-8 shadow-gold md:px-10;
+  }
+
+  .legacy-content h1,
+  .legacy-content h2,
+  .legacy-content h3,
+  .legacy-content h4 {
+    @apply mb-4 mt-8 font-semibold leading-tight text-ink;
+  }
+
+  .legacy-content h1 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  .legacy-content h2 {
+    @apply border-b border-gold/30 pb-3 text-2xl md:text-3xl;
+  }
+
+  .legacy-content h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+  .legacy-content p,
+  .legacy-content li {
+    @apply leading-7 text-slate-600;
+  }
+
+  .legacy-content p {
+    @apply mb-4;
+  }
+
+  .legacy-content ul,
+  .legacy-content ol {
+    @apply mb-5 list-inside list-disc space-y-2 pl-4;
+  }
+
+  .legacy-content a {
+    @apply font-medium text-gold-dark underline underline-offset-2;
+    overflow-wrap: anywhere;
+  }
+
+  .home-page .carousel-frame {
+    @apply border border-gold/30 bg-[#0A2540] shadow-2xl shadow-[#0A2540]/20;
+  }
+
+  .home-page .stat-card {
+    @apply relative overflow-hidden rounded-2xl border border-gold/20 bg-white p-7 text-center shadow-sm transition duration-300 ease-out hover:-translate-y-1.5 hover:border-gold/60 hover:shadow-xl hover:shadow-[#0A2540]/10;
+  }
+
+  .home-page .stat-card::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-[#0A2540] to-gold transition-transform duration-300;
+  }
+
+  .home-page .stat-card:hover::before {
+    @apply scale-x-100;
+  }
+
+  .home-page .convenio-panel {
+    @apply border-gold/25 bg-gradient-to-br from-[#0A2540] to-[#102d49] shadow-xl shadow-[#0A2540]/15;
+  }
+
+  .home-page .convenio-panel h3 {
+    @apply text-gold-light;
+  }
+
+  .home-page .convenio-panel p {
+    @apply text-white/75;
+  }
+
+  .site-brand-logo {
+    @apply h-11 w-11 shrink-0 rounded-full border border-gold/40 bg-white object-contain p-0.5 shadow-md;
+  }
+
+  .site-brand-logo--footer { @apply h-12 w-12; }
+
+  .home-page .convenios-layout {
+    @apply mx-auto grid max-w-[1440px] items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,1.12fr)_minmax(0,1fr)] lg:gap-6;
+  }
+  .home-page .convenios-list { @apply grid content-center gap-4 sm:grid-cols-2 lg:grid-cols-1; }
+  .home-page .convenio-card {
+    @apply relative flex min-h-[112px] w-full items-center gap-4 overflow-hidden rounded-2xl border border-[#E8DCC4]/75 bg-white px-4 py-4 text-left shadow-[0_5px_18px_rgba(10,37,64,0.055)] transition duration-300 ease-out hover:-translate-y-1 hover:border-gold/70 hover:shadow-[0_16px_32px_rgba(10,37,64,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+  .home-page .convenio-card::before { content:''; @apply absolute inset-y-0 left-0 w-1 origin-top scale-y-0 bg-gold transition-transform duration-300; }
+  .home-page .convenio-card:hover::before { @apply scale-y-100; }
+  .home-page .convenio-card-logo { @apply flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F7F9FC] p-2 ring-1 ring-inset ring-slate-900/5; }
+  .home-page .convenio-card-logo img { @apply h-full w-full object-contain transition duration-300; }
+  .home-page .convenio-card:hover .convenio-card-logo img { @apply scale-105; }
+  .home-page .convenio-card-copy { @apply min-w-0 flex-1; }
+  .home-page .convenio-card-title { @apply block text-[0.82rem] font-semibold uppercase leading-5 text-ink sm:text-sm sm:leading-6; }
+  .home-page .convenio-card-acronym { @apply mt-1 block text-xs font-bold uppercase tracking-[0.2em] text-gold-dark; }
+  .home-page .convenio-card-arrow { @apply hidden text-xs text-gold transition duration-300 sm:block; }
+  .home-page .convenio-card:hover .convenio-card-arrow { @apply translate-x-0.5 -translate-y-0.5 text-ink; }
+  .home-page .convenio-panel { @apply relative flex min-h-[390px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#0A2540] via-[#102D49] to-[#153A59] p-7 text-white shadow-[0_22px_48px_rgba(10,37,64,0.18)]; }
+  .home-page .convenio-panel::before { content:''; @apply pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full border border-gold/10; }
+  .home-page .convenio-panel::after { content:''; @apply pointer-events-none absolute -bottom-32 -left-28 h-72 w-72 rounded-full border border-white/5; }
+  .home-page .convenio-empty, .home-page .convenio-detail { @apply relative z-[1] w-full text-center; }
+  .home-page .convenios-center-logo { @apply mx-auto mb-5 h-24 w-24 rounded-full border border-white/20 bg-white object-contain p-1 shadow-[0_12px_32px_rgba(0,0,0,0.2)]; }
+  .home-page .convenio-empty h3 { @apply text-lg font-bold uppercase tracking-[0.18em] text-white sm:text-xl; }
+  .home-page .convenio-empty p { @apply mt-3 text-sm text-white/70; }
+  .home-page .convenio-detail { @apply max-h-[470px] overflow-y-auto px-1 pt-5; }
+  .home-page .convenio-detail-image { @apply mx-auto h-40 w-full rounded-2xl object-cover shadow-lg sm:h-48; }
+  .home-page .convenio-detail h3 { @apply mt-5 text-xl font-semibold leading-snug text-white sm:text-2xl; }
+  .home-page .convenio-detail p { @apply mx-auto mt-3 max-w-2xl text-left text-sm leading-7 text-white/80; }
+  .home-page .convenio-close { @apply absolute right-1 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-2xl text-white transition hover:rotate-90 hover:bg-gold hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
+
+  .auth-scene { @apply relative flex min-h-screen items-center justify-center overflow-x-hidden bg-[#071727] px-4 py-10 font-sans text-ink sm:px-8; background-image: radial-gradient(ellipse at 16% 10%, rgba(201,169,97,.22), transparent 35%), radial-gradient(ellipse at 90% 90%, rgba(37,99,168,.3), transparent 36%), linear-gradient(135deg,#071727,#0A2540 55%,#102D49); }
+  .auth-orbit { @apply pointer-events-none absolute rounded-full border border-gold/10; }
+  .auth-orbit--one { @apply -left-32 -top-40 h-[420px] w-[420px]; }
+  .auth-orbit--two { @apply -bottom-52 -right-24 h-[520px] w-[520px] border-white/5; }
+  .auth-card { @apply relative z-[1] grid w-full max-w-[1000px] overflow-hidden rounded-[28px] border border-white/40 bg-white shadow-[0_35px_100px_rgba(0,0,0,.42)] lg:min-h-[620px] lg:grid-cols-[.94fr_1.06fr]; animation: auth-arrive .7s cubic-bezier(.2,.75,.25,1) both; }
+  .auth-art { @apply relative hidden min-h-[620px] overflow-hidden bg-[#0A2540] lg:block; }
+  .auth-art-photo { @apply absolute inset-0 h-full w-full object-cover; filter: saturate(.78) contrast(1.04); }
+  .auth-art-overlay { @apply absolute inset-0; background: linear-gradient(180deg,rgba(7,23,39,.34),rgba(10,37,64,.48) 42%,rgba(7,23,39,.96)),linear-gradient(120deg,rgba(10,37,64,.38),rgba(201,169,97,.08)); }
+  .auth-art-content { @apply relative flex min-h-[620px] flex-col justify-between p-9 text-white xl:p-11; }
+  .auth-brand { @apply inline-flex w-fit items-center gap-3 text-sm font-bold tracking-[.18em] text-white; }
+  .auth-brand-logo { @apply h-12 w-12 rounded-full border border-white/40 bg-white object-contain p-0.5 shadow-lg; }
+  .auth-brand small { @apply mt-1 block text-[8px] font-medium tracking-[.2em] text-white/65; }
+  .auth-art-message { @apply max-w-sm pb-3; }
+  .auth-eyebrow { @apply block text-[10px] font-bold tracking-[.23em] text-gold-dark; }
+  .auth-art-message .auth-eyebrow { @apply text-gold-light; }
+  .auth-art-message h1 { @apply mt-5 text-5xl font-bold leading-[1.02] tracking-tight text-white xl:text-[3.5rem]; }
+  .auth-art-message h1 span { @apply text-gold-light; }
+  .auth-art-message p { @apply mt-5 max-w-xs text-sm leading-6 text-white/75; }
+  .auth-art-footer { @apply flex items-center gap-2 text-[10px] font-medium tracking-wide text-white/70; }
+  .auth-live-dot { @apply h-2 w-2 rounded-full bg-gold shadow-[0_0_12px_rgba(201,169,97,.85)]; }
+  .auth-footer-line { @apply mx-1 h-px w-8 bg-white/30; }
+  .auth-form-side { @apply flex items-center bg-white px-6 py-9 sm:px-10 lg:px-12 xl:px-16; }
+  .auth-form-inner { @apply mx-auto w-full max-w-[390px]; }
+  .auth-mobile-brand { @apply mb-7 flex items-center gap-2 text-xs font-bold tracking-[.2em] text-ink lg:hidden; }
+  .auth-mobile-brand img { @apply h-10 w-10 rounded-full border border-gold/30 bg-white object-contain p-0.5 shadow-sm; }
+  .auth-heading { @apply mb-7; }
+  .auth-heading h2 { @apply mt-2 text-3xl font-bold tracking-tight text-ink sm:text-[2.1rem]; }
+  .auth-heading p { @apply mt-2 text-sm leading-6 text-slate-500; }
+  .auth-notice { @apply mb-5 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm leading-5; }
+  .auth-notice--success { @apply border-emerald-200 bg-emerald-50 text-emerald-800; }
+  .auth-notice--error { @apply border-red-200 bg-red-50 text-red-800; }
+  .auth-notice > i { @apply mt-0.5 shrink-0; }
+  .auth-notice ul { @apply list-inside list-disc space-y-1; }
+  .auth-form { @apply space-y-3.5; }
+  .auth-label { @apply block text-xs font-semibold text-slate-700; }
+  .auth-label-row { @apply flex items-center justify-between; }
+  .auth-label-row a { @apply text-xs font-semibold text-gold-dark transition hover:text-ink; }
+  .auth-input-wrap { @apply relative; }
+  .auth-input-wrap > i { @apply pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition; }
+  .auth-input-wrap input { @apply w-full rounded-xl border border-slate-200 bg-[#F9FAFC] py-3 pl-10 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-gold focus:bg-white focus:ring-4 focus:ring-gold/10; }
+  .auth-input-wrap:focus-within > i { @apply text-gold-dark; }
+  .auth-hint { @apply -mt-2 text-[10px] leading-4 text-slate-500; }
+  .auth-consent { @apply flex cursor-pointer items-start gap-2 pt-1 text-xs leading-5 text-slate-600; }
+  .auth-consent input { @apply mt-1 h-4 w-4 shrink-0 accent-[#C9A961] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
+  .auth-consent a { @apply font-semibold text-gold-dark underline decoration-gold/40 underline-offset-2 hover:text-ink; }
+  .auth-submit { @apply mt-2 flex w-full items-center justify-between rounded-xl bg-[#0A2540] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0A2540]/15 transition duration-300 hover:-translate-y-0.5 hover:bg-[#153A59] hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
+  .auth-submit i { @apply flex h-7 w-7 items-center justify-center rounded-full bg-gold text-xs text-ink transition; }
+  .auth-submit:hover i { @apply translate-x-1; }
+  .auth-switch { @apply mt-6 text-center text-xs text-slate-500; }
+  .auth-switch a { @apply ml-1 font-bold text-ink transition hover:text-gold-dark; }
+  .auth-switch a i { @apply ml-0.5 text-[9px] text-gold-dark; }
+  .auth-back { @apply mx-auto mt-5 flex w-fit items-center gap-2 text-xs font-medium text-slate-500 transition hover:text-ink; }
+  .auth-security { @apply mt-7 flex items-center justify-center gap-2 border-t border-slate-100 pt-4 text-[10px] text-slate-400; }
+  .auth-security i { @apply text-gold-dark; }
+  .auth-security b { @apply px-0.5 text-gold; }
+  .auth-copyright { @apply absolute bottom-2 left-0 right-0 text-center text-[10px] tracking-wide text-white/45; }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .home-page .convenios-layout { grid-template-columns: minmax(0,1fr) minmax(300px,1.05fr) minmax(0,1fr); gap: 1rem; }
+  .home-page .convenio-card { gap: .7rem; padding: .85rem; }
+  .home-page .convenio-card-logo { height: 58px; width: 58px; }
+}
+
+@media (max-width: 1023px) {
+  .home-page .convenios-layout { @apply grid grid-cols-1 gap-4; }
+  .home-page .convenio-panel { @apply order-first min-h-[320px]; }
+}
+
+@media (max-width: 639px) {
+  .home-page .convenios-list { @apply grid-cols-1 gap-3; }
+  .home-page .convenio-card { @apply min-h-[92px] rounded-xl px-3 py-3; }
+  .home-page .convenio-card-logo { @apply h-16 w-16 rounded-xl; }
+  .home-page .convenio-panel { @apply min-h-[280px] rounded-3xl p-5; }
+  .home-page .convenios-center-logo { @apply h-20 w-20; }
+}
+
+@keyframes auth-arrive { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 1023px) {
+  .auth-card { @apply max-w-[520px] rounded-3xl; }
+}
+
+@media (max-width: 480px) {
+  .auth-scene { @apply px-3 py-5; }
+  .auth-form-side { @apply px-5 py-7; }
+  .auth-copyright { @apply relative bottom-auto mt-3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

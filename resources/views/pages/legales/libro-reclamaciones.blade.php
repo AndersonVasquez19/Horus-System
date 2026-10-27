@@ -1,0 +1,354 @@
+﻿@extends('layouts.app')
+
+@section('title', 'Libro de Reclamaciones')
+
+@push('styles')
+  <link rel="stylesheet" href="{{ asset('assets/css/libro/libro-reclamaciones.css') }}">
+@endpush
+
+@section('content')
+<div class="legacy-showcase legal-showcase">
+<section class="libro-hero">
+        <div class="libro-hero-bg"></div>
+        <div class="libro-hero-contenido">
+            <div class="libro-hero-badge">
+                <i class="fas fa-shield-alt"></i>
+                <span>Código de Protección al Consumidor – Ley N° 29571</span>
+            </div>
+            <h1>LIBRO DE<br><span class="hero-highlight">RECLAMACIONES</span></h1>
+            <p>Tu opinión es importante para nosotros. Registra aquí tu queja o reclamo y nos comprometemos a responderte en un plazo máximo de <strong>15 días hábiles</strong>.</p>
+        </div>
+    </section>
+
+    <section class="aviso-legal">
+        <div class="aviso-contenedor">
+            <div class="aviso-icono">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="aviso-texto">
+                <strong>Información importante:</strong> La formulación de un reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI. Conforme al Código de Protección y Defensa del Consumidor (Ley N° 29571).
+            </div>
+        </div>
+    </section>
+
+    <section class="diferencia-section">
+        <div class="diferencia-contenedor">
+            <h2 class="seccion-titulo-libro">¿Queja o Reclamo?</h2>
+            <p class="seccion-subtitulo">Selecciona el tipo de registro que corresponde a tu situación</p>
+            <div class="diferencia-cards">
+                <div class="diferencia-card reclamo-card" id="btn-reclamo" role="button" tabindex="0" aria-pressed="false">
+                    <div class="diferencia-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3>RECLAMO</h3>
+                    <p>Disconformidad relacionada con los <strong>productos o servicios</strong> adquiridos. Implica una insatisfacción directa con lo recibido.</p>
+                    <div class="diferencia-ejemplos">
+                        <span><i class="fas fa-dot-circle"></i> Producto defectuoso</span>
+                        <span><i class="fas fa-dot-circle"></i> Servicio no prestado</span>
+                        <span><i class="fas fa-dot-circle"></i> Incumplimiento de garantía</span>
+                    </div>
+                    <div class="diferencia-seleccionado">
+                        <i class="fas fa-check"></i> Seleccionado
+                    </div>
+                </div>
+                <div class="diferencia-card queja-card" id="btn-queja" role="button" tabindex="0" aria-pressed="false">
+                    <div class="diferencia-icon">
+                        <i class="fas fa-comment-alt"></i>
+                    </div>
+                    <h3>QUEJA</h3>
+                    <p>Disconformidad relacionada con la <strong>atención al cliente</strong> o el trato recibido, sin estar vinculada a un producto o servicio específico.</p>
+                    <div class="diferencia-ejemplos">
+                        <span><i class="fas fa-dot-circle"></i> Mala atención</span>
+                        <span><i class="fas fa-dot-circle"></i> Demora en respuesta</span>
+                        <span><i class="fas fa-dot-circle"></i> Trato inadecuado</span>
+                    </div>
+                    <div class="diferencia-seleccionado">
+                        <i class="fas fa-check"></i> Seleccionado
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="formulario-section">
+        <div class="formulario-contenedor">
+
+            <div class="pasos-indicador">
+                <div class="paso activo" data-paso="1">
+                    <div class="paso-numero">1</div>
+                    <span>Datos personales</span>
+                </div>
+                <div class="paso-linea"></div>
+                <div class="paso" data-paso="2">
+                    <div class="paso-numero">2</div>
+                    <span>Detalle del reclamo</span>
+                </div>
+                <div class="paso-linea"></div>
+                <div class="paso" data-paso="3">
+                    <div class="paso-numero">3</div>
+                    <span>Confirmación</span>
+                </div>
+            </div>
+
+            <form id="libroForm" novalidate x-on:submit.prevent>
+
+                <div class="form-paso activo" id="paso-1">
+                    <div class="form-paso-header">
+                        <div class="form-paso-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h2>Datos del Consumidor</h2>
+                            <p>Ingresa tu información personal para poder contactarte</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-grupo">
+                            <label for="nombres">Nombres <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-user input-icon"></i>
+                                <input type="text" id="nombres" name="nombres" placeholder="Ingresa tus nombres" required autocomplete="given-name">
+                            </div>
+                            <span class="error-msg" id="error-nombres"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="apellidos">Apellidos <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-user input-icon"></i>
+                                <input type="text" id="apellidos" name="apellidos" placeholder="Ingresa tus apellidos" required autocomplete="family-name">
+                            </div>
+                            <span class="error-msg" id="error-apellidos"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="tipo-doc">Tipo de Documento <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-id-card input-icon"></i>
+                                <select id="tipo-doc" name="tipo-doc" required>
+                                    <option value="">Selecciona tipo</option>
+                                    <option value="dni">DNI</option>
+                                    <option value="ce">Carnet de Extranjería</option>
+                                    <option value="pasaporte">Pasaporte</option>
+                                    <option value="ruc">RUC</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="error-tipo-doc"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="num-doc">Número de Documento <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-hashtag input-icon"></i>
+                                <input type="text" id="num-doc" name="num-doc" placeholder="Ej: 12345678" required maxlength="15">
+                            </div>
+                            <span class="error-msg" id="error-num-doc"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="email">Correo Electrónico <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input type="email" id="email" name="email" placeholder="correo@ejemplo.com" required autocomplete="email">
+                            </div>
+                            <span class="error-msg" id="error-email"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="telefono">Teléfono <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-phone input-icon"></i>
+                                <input type="tel" id="telefono" name="telefono" placeholder="Ej: 987654321" required autocomplete="tel">
+                            </div>
+                            <span class="error-msg" id="error-telefono"></span>
+                        </div>
+
+                        <div class="form-grupo form-grupo-full">
+                            <label for="direccion">Dirección</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-map-marker-alt input-icon"></i>
+                                <input type="text" id="direccion" name="direccion" placeholder="Calle, número, distrito, ciudad" autocomplete="street-address">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-navegacion">
+                        <div></div>
+                        <button type="button" class="btn-siguiente" id="btn-paso1-siguiente">
+                            Siguiente <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-paso" id="paso-2">
+                    <div class="form-paso-header">
+                        <div class="form-paso-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div>
+                            <h2>Detalle del Reclamo / Queja</h2>
+                            <p>Describe con precisión lo ocurrido para que podamos atenderte mejor</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+
+                        <div class="form-grupo">
+                            <label for="tipo-registro">Tipo de Registro <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-tag input-icon"></i>
+                                <select id="tipo-registro" name="tipo-registro" required>
+                                    <option value="">Selecciona tipo</option>
+                                    <option value="reclamo">Reclamo</option>
+                                    <option value="queja">Queja</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="error-tipo-registro"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="area">Área / Servicio Involucrado <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-building input-icon"></i>
+                                <select id="area" name="area" required>
+                                    <option value="">Selecciona área</option>
+                                    <option value="tecnologias">Tecnologías</option>
+                                    <option value="cableado">Cableado Estructurado</option>
+                                    <option value="camaras">Cámaras de Seguridad</option>
+                                    <option value="soporte">Soporte y Mantenimiento</option>
+                                    <option value="educacion">Educación</option>
+                                    <option value="asesoramiento">Asesoramiento</option>
+                                    <option value="capacitaciones">Capacitaciones</option>
+                                    <option value="cursos">Cursos</option>
+                                    <option value="market">Market</option>
+                                    <option value="atencion">Atención al Cliente</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="error-area"></span>
+                        </div>
+
+                        <div class="form-grupo">
+                            <label for="fecha-incidente">Fecha del Incidente <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-calendar-alt input-icon"></i>
+                                <input type="date" id="fecha-incidente" name="fecha-incidente" required>
+                            </div>
+                            <span class="error-msg" id="error-fecha-incidente"></span>
+                        </div>
+
+                        <div class="form-grupo form-grupo-full">
+                            <label for="descripcion-bien">Descripción del Bien / Servicio Contratado <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-box input-icon input-icon-top"></i>
+                                <textarea id="descripcion-bien" name="descripcion-bien" rows="3" placeholder="Describe brevemente el producto o servicio que adquiriste..." required></textarea>
+                            </div>
+                            <span class="error-msg" id="error-descripcion-bien"></span>
+                        </div>
+
+                        <div class="form-grupo form-grupo-full">
+                            <label for="detalle-reclamo">Detalle del Reclamo / Queja <span class="requerido">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-pen input-icon input-icon-top"></i>
+                                <textarea id="detalle-reclamo" name="detalle-reclamo" rows="5" placeholder="Describe detalladamente lo ocurrido, incluyendo fechas, personas involucradas y cualquier información relevante..." required></textarea>
+                            </div>
+                            <div class="contador-caracteres">
+                                <span id="contador">0</span> / 1000 caracteres
+                            </div>
+                            <span class="error-msg" id="error-detalle-reclamo"></span>
+                        </div>
+
+
+
+                    </div>
+
+                    <div class="form-navegacion">
+                        <button type="button" class="btn-anterior" id="btn-paso2-anterior">
+                            <i class="fas fa-arrow-left"></i> Anterior
+                        </button>
+                        <button type="button" class="btn-siguiente" id="btn-paso2-siguiente">
+                            Siguiente <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-paso" id="paso-3">
+                    <div class="form-paso-header">
+                        <div class="form-paso-icon">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div>
+                            <h2>Confirmación y Envío</h2>
+                            <p>Revisa tu información antes de enviar el reclamo</p>
+                        </div>
+                    </div>
+
+                    <div class="resumen-container">
+                        <div class="resumen-bloque">
+                            <h3><i class="fas fa-user"></i> Datos Personales</h3>
+                            <div class="resumen-grid" id="resumen-personal"></div>
+                        </div>
+                        <div class="resumen-bloque">
+                            <h3><i class="fas fa-clipboard-list"></i> Detalle del Reclamo</h3>
+                            <div class="resumen-grid" id="resumen-reclamo"></div>
+                        </div>
+                    </div>
+
+                    <div class="terminos-container">
+                        <label class="terminos-label">
+                            <input type="checkbox" id="acepta-terminos" name="acepta-terminos" required>
+                            <span class="terminos-custom"></span>
+                            <span>Declaro que la información proporcionada es verídica y acepto que Horus Group SRL procese mis datos personales conforme a su <a href="{{ route('legales.privacidad') }}" target="_blank">Política de Privacidad</a> para gestionar este reclamo.</span>
+                        </label>
+                        <span class="error-msg" id="error-terminos"></span>
+
+                        <label class="terminos-label">
+                            <input type="checkbox" id="acepta-comunicaciones" name="acepta-comunicaciones">
+                            <span class="terminos-custom"></span>
+                            <span>Acepto recibir comunicaciones relacionadas con el seguimiento de mi reclamo por correo electrónico.</span>
+                        </label>
+                    </div>
+
+                    <div class="form-navegacion">
+                        <button type="button" class="btn-anterior" id="btn-paso3-anterior">
+                            <i class="fas fa-arrow-left"></i> Anterior
+                        </button>
+                        <button type="button" class="btn-enviar" id="btn-enviar">
+                            <i class="fas fa-paper-plane"></i> Enviar Reclamo
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+            <div class="exito-container" id="exito-container">
+                <div class="exito-icono">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2>¡Reclamo Registrado Exitosamente!</h2>
+                <p>Tu reclamo ha sido recibido. Te hemos enviado un correo de confirmación con el número de seguimiento.</p>
+                <div class="exito-numero">
+                    <span>Número de Reclamo:</span>
+                    <strong id="numero-reclamo"></strong>
+                </div>
+                <div class="exito-info">
+                    <div class="exito-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Recibirás respuesta en un plazo máximo de <strong>15 días hábiles</strong></span>
+                    </div>
+                    <div class="exito-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>Revisa tu correo electrónico para el comprobante de registro</span>
+                    </div>
+                </div>
+                <a href="{{ route('home') }}" class="btn-volver">
+                    <i class="fas fa-home"></i> Volver al Inicio
+                </a>
+            </div>
+
+        </div>
+    </section>
+    </div>
+@endsection
+
