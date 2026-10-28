@@ -7,7 +7,7 @@
     data-csrf-token="{{ csrf_token() }}"
     class="flex h-full min-h-0 flex-col overflow-hidden"
 >
-    <div x-ref="messages" class="flex-1 space-y-4 overflow-y-auto bg-[#F7F8F6] p-4 sm:p-5" aria-live="polite">
+    <div x-ref="messages" @scroll.passive="trackScroll" class="flex-1 space-y-4 overflow-y-auto bg-[#F7F8F6] p-4 sm:p-5" aria-live="polite">
         <template x-for="(message, index) in messages" :key="index">
             <div class="flex items-end gap-2" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
                 <span x-show="message.role === 'bot'" class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DCC98F] bg-[#F2E8CA]" aria-hidden="true">
@@ -35,6 +35,7 @@
         <label for="mensaje-chat" class="sr-only">Escribe tu mensaje</label>
         <input
             id="mensaje-chat"
+            x-ref="question"
             x-model="draft"
             type="text"
             maxlength="2000"
@@ -60,7 +61,7 @@
     data-csrf-token="{{ csrf_token() }}"
     class="hc-conversation"
 >
-    <div x-ref="messages" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Horus" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
+    <div x-ref="messages" @scroll.passive="trackScroll" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Horus" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
         <template x-for="(message, index) in messages" :key="index">
             <article class="hc-message" :class="message.role === 'user' ? 'hc-user' : 'hc-assistant'">
                 <strong>
@@ -68,6 +69,9 @@
                     <span x-text="message.role === 'user' ? 'Tú' : 'Horus'"></span>
                 </strong>
                 <p x-text="message.text"></p>
+                <template x-for="link in (message.links || [])" :key="link.url">
+                    <a class="hc-action" :href="link.url" x-text="link.label"></a>
+                </template>
             </article>
         </template>
 
@@ -77,7 +81,7 @@
                 <button type="button" @click="draft = '¿Qué capacitaciones ofrecen?'; $nextTick(() => $refs.question.focus())">¿Qué capacitaciones ofrecen?</button>
                 <button type="button" @click="draft = '¿Qué servicios tecnológicos brindan?'; $nextTick(() => $refs.question.focus())">¿Qué servicios tecnológicos brindan?</button>
                 <button type="button" @click="draft = '¿Cómo puedo solicitar una cotización?'; $nextTick(() => $refs.question.focus())">¿Cómo puedo solicitar una cotización?</button>
-                <button type="button" @click="draft = '¿Qué convenios tiene Horus?'; $nextTick(() => $refs.question.focus())">¿Qué convenios tiene Horus?</button>
+                <button type="button" @click="draft = '¿Cómo puedo matricularme?'; $nextTick(() => $refs.question.focus())">¿Cómo puedo matricularme?</button>
             </div>
         </div>
 

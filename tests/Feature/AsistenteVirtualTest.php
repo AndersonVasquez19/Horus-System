@@ -37,7 +37,7 @@ class AsistenteVirtualTest extends TestCase
         $this->assertStringContainsString('cotización', $precio['respuesta']);
         $this->assertSame('consulta_evaluaciones', $evaluacion['intent']);
         $this->assertSame('consulta_cableado', $cableado['intent']);
-        $this->assertDatabaseHas('chat_logs', ['session_id' => 'session-precios', 'intent_detectado' => 'consulta_precios']);
+        $this->assertDatabaseHas('chat_logs', ['intent_detectado' => 'consulta_precios', 'mensaje_usuario' => '[contenido omitido por privacidad]']);
         Http::assertNothingSent();
     }
 
@@ -82,14 +82,15 @@ class AsistenteVirtualTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_unknown_question_uses_openai_with_site_knowledge(): void
+    public function test_complex_orientation_uses_openai_to_select_only_verified_facts(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => 'Respuesta simulada.']]]])]);
+        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => '{"intents":["consulta_modalidades"]}']]]])]);
 
-        $answer = app(AsistenteVirtualService::class)->procesarMensaje('zzqv desconocido', 'session-openai');
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara las modalidades de cursos para orientarme', 'session-openai');
 
         $this->assertNull($answer['intent']);
-        $this->assertSame('Respuesta simulada.', $answer['respuesta']);
+        $this->assertSame('openai', $answer['fuente']);
+        $this->assertStringContainsString('semipresencial', $answer['respuesta']);
         Http::assertSent(fn (Request $request) => $request->url() === 'https://api.openai.com/v1/chat/completions'
             && $request->hasHeader('Authorization', 'Bearer test-openai-key')
             && $request['model'] === 'gpt-test'
@@ -101,12 +102,12 @@ class AsistenteVirtualTest extends TestCase
         Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'Unavailable']], 429)]);
 
         $this->postJson(route('chat.mensaje'), [
-            'mensaje' => 'zzqv desconocido',
+            'mensaje' => 'Compara las modalidades de cursos para orientarme',
             'session_id' => 'session-error',
         ])->assertOk()->assertJsonPath('respuesta', AsistenteVirtualService::RESPUESTA_FALLBACK);
 
         $this->assertDatabaseHas('chat_logs', [
-            'session_id' => 'session-error',
+            'mensaje_usuario' => '[contenido omitido por privacidad]',
             'respuesta_bot' => AsistenteVirtualService::RESPUESTA_FALLBACK,
         ]);
     }
@@ -124,7 +125,7 @@ class AsistenteVirtualTest extends TestCase
             ->postJson(route('admin.asistente.mensaje'), ['mensaje' => 'cursos disponibles', 'session_id' => 'admin-session'])
             ->assertOk()->assertJsonPath('intent', 'consulta_cursos');
         $this->get(route('admin.asistente.index', ['intent' => 'consulta_cursos']))
-            ->assertOk()->assertSee('cursos disponibles');
+            ->assertOk()->assertSee('[contenido omitido por privacidad]');
         $this->assertSame(2, ChatLog::count());
     }
 

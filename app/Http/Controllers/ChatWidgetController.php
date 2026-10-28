@@ -25,6 +25,6 @@ class ChatWidgetController extends Controller
             ],
         );
 
-        return response()->json($asistente->procesarMensaje($datos['mensaje'], $datos['session_id']));
+        return response()->json($asistente->procesarMensaje($datos['mensaje'], $datos['session_id'], 'public:'.$request->session()->getId()));
     }
 }

@@ -49,6 +49,7 @@
 .hc-message>strong { display: flex; align-items: center; gap: 7px; color: #1e4976; font-size: 12px; font-weight: 700; }
 .hc-message-avatar { display: block; width: 25px; height: 25px; margin: -4px 0 -2px; }
 .hc-message p { margin: 8px 0 0; font-size: 14px; line-height: 1.75; white-space: pre-wrap; }
+.hc-action { display: inline-flex; align-items: center; min-height: 44px; margin: 8px 8px 0 0; color: #1847a3; text-decoration: underline; font-weight: 600; }
 .hc-user { margin-left: auto; border: 0; border-radius: 18px 5px 18px 18px; background: var(--hc-blue); color: #fff; box-shadow: 0 4px 12px #2563eb20; }
 .hc-user>strong { color: #fff; }
 .hc-suggestions { margin: 4px 0 8px; }

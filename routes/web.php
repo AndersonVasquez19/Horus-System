@@ -94,7 +94,7 @@ Route::prefix('admin')
         Route::get('respaldo', [RespaldoController::class, 'index'])->name('respaldo.index');
         Route::get('respaldo/exportar', [RespaldoController::class, 'exportar'])->name('respaldo.exportar');
         Route::get('asistente', [AsistenteController::class, 'index'])->name('asistente.index');
-        Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->name('asistente.mensaje');
+        Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:30,1')->name('asistente.mensaje');
     });
 
 Route::post('/chat/mensaje', [ChatWidgetController::class, 'mensajePublico'])

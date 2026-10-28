@@ -67,6 +67,6 @@ class AsistenteController extends Controller implements HasMiddleware
             ],
         );
 
-        return response()->json($asistente->procesarMensaje($datos['mensaje'], $datos['session_id']));
+        return response()->json($asistente->procesarMensaje($datos['mensaje'], $datos['session_id'], 'admin:'.$request->session()->getId()));
     }
 }
