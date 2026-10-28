@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Support\Email;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 
@@ -41,10 +41,11 @@ class CrearUsuarioPanel extends Command
             return self::FAILURE;
         }
 
-        $email = mb_strtolower(trim((string) ($this->option('email') ?: $this->ask('Correo'))));
+        $email = Email::normalize((string) ($this->option('email') ?: $this->ask('Correo')));
         $name = trim((string) ($this->option('name') ?: $this->ask('Nombre')));
 
-        if (User::where('email', $email)->exists()) {
+        // Sin distinguir mayúsculas, como el registro y el panel: una fila histórica con mayúsculas es la misma cuenta.
+        if (User::query()->whereRaw('lower(email) = ?', [$email])->exists()) {
             $this->error('Ya existe una cuenta con ese correo. No se modificó.');
 
             return self::FAILURE;
@@ -56,7 +57,7 @@ class CrearUsuarioPanel extends Command
         $validator = Validator::make(
             ['email' => $email, 'name' => $name, 'password' => $password, 'password_confirmation' => $confirmation],
             [
-                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+                'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con ese correo. No se modificó.')],
                 'name' => ['required', 'string', 'max:120'],
                 'password' => ['required', 'confirmed', Password::min(12)->letters()->mixedCase()->numbers()->symbols()],
             ],

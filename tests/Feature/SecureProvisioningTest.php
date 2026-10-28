@@ -12,6 +12,7 @@ use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
@@ -137,6 +138,21 @@ class SecureProvisioningTest extends TestCase
         $existente->refresh();
         $this->assertSame($hash, $existente->password);
         $this->assertFalse($existente->hasRole('admin'));
+    }
+
+    public function test_command_treats_a_historical_mixed_case_email_as_the_same_account(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $existente = User::factory()->create();
+        // Fila histórica anterior a la normalización: se fuerza sin pasar por el modelo.
+        $this->assertSame(1, DB::table('users')->where('id', $existente->id)->update(['email' => 'Jefa@Example.com']));
+
+        $this->artisan('horus:crear-usuario', ['--email' => 'jefa@example.com', '--name' => 'Otra', '--rol' => 'admin'])
+            ->expectsOutput('Ya existe una cuenta con ese correo. No se modificó.')
+            ->assertFailed();
+
+        $this->assertSame(1, User::count());
+        $this->assertFalse($existente->fresh()->hasRole('admin'));
     }
 
     public function test_command_rejects_weak_or_mismatched_passwords_and_unknown_roles(): void
