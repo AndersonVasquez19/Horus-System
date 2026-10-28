@@ -22,14 +22,12 @@ class DashboardController extends Controller
         $inicioMes = now()->startOfMonth();
         $finMes = now()->endOfMonth();
 
-        $matriculasMes = Matricula::query()
+        $resumenMes = Matricula::query()
             ->whereBetween('fecha_matricula', [$inicioMes, $finMes])
-            ->count();
-
-        $ingresosMes = Matricula::query()
-            ->where('estado', 'pagada')
-            ->whereBetween('fecha_matricula', [$inicioMes, $finMes])
-            ->sum('monto_pagado');
+            ->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
+            ->toBase()->first();
+        $matriculasMes = (int) $resumenMes->total;
+        $ingresosMes = $resumenMes->ingresos;
 
         $primerMes = $inicioMes->copy()->subMonths(5);
         $periodoSql = match (DB::connection()->getDriverName()) {

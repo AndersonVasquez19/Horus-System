@@ -89,13 +89,16 @@ class AsistenteVirtualService
     /** @return array<int, ChatIntent> */
     private function intentsDisponibles(): array
     {
-        $configured = ChatIntent::query()->get()->keyBy('nombre');
+        $definitions = ChatKnowledge::intents();
+        // Las incorporadas desactivadas siguen siendo necesarias para respetar su exclusión.
+        $configured = ChatIntent::query()->where('activo', true)
+            ->orWhereIn('nombre', array_column($definitions, 'nombre'))->get()->keyBy('nombre');
         $intents = [];
         $builtinNames = [];
 
         // Los datos verificados del sitio funcionan sin volver a ejecutar el seeder.
         // Una intención desactivada en la base de datos se respeta.
-        foreach (ChatKnowledge::intents() as $definition) {
+        foreach ($definitions as $definition) {
             $builtinNames[$definition['nombre']] = true;
             if (! $configured->has($definition['nombre']) || $configured->get($definition['nombre'])->activo) {
                 $intents[] = new ChatIntent([...$definition, 'activo' => true]);

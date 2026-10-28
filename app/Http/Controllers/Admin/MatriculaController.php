@@ -58,7 +58,7 @@ class MatriculaController extends Controller implements HasMiddleware
 
         return view('admin.matriculas.index', [
             'matriculas' => $matriculas,
-            'cursos' => Curso::withTrashed()->orderBy('nombre')->get(),
+            'cursos' => Curso::withTrashed()->orderBy('nombre')->get(['id', 'codigo', 'nombre', 'deleted_at']),
             'estado' => $request->input('estado'),
             'cursoId' => $cursoId !== '' ? $cursoId : null,
             'busqueda' => ListFilter::text($request, 'busqueda'),

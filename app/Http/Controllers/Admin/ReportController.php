@@ -45,7 +45,11 @@ class ReportController extends Controller implements HasMiddleware
     public function index(ReportMatriculasRequest $request): View
     {
         $query = $this->filteredQuery($request);
-        $matriculas = $this->batch($query, $request);
+        // El mismo agregado filtrado alimenta el resumen y el total del paginador.
+        $resumen = (clone $query)->toBase()->select([])
+            ->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
+            ->first();
+        $matriculas = $this->batch($query, $request, (int) $resumen->total);
         $cursos = Curso::withTrashed()->orderBy('nombre')->get(['id', 'codigo', 'nombre', 'deleted_at']);
 
         return view('admin.reportes.index', [
@@ -58,7 +62,7 @@ class ReportController extends Controller implements HasMiddleware
                 'estudiantes' => Estudiante::count(),
                 'cursos' => Curso::count(),
                 'matriculas' => $matriculas->total(),
-                'ingresos' => (clone $query)->where('estado', 'pagada')->sum('monto_pagado'),
+                'ingresos' => $resumen->ingresos,
             ],
         ]);
     }
@@ -127,10 +131,10 @@ class ReportController extends Controller implements HasMiddleware
     }
 
     /** @return LengthAwarePaginator<int, Matricula> */
-    private function batch(Builder $query, ReportMatriculasRequest $request): LengthAwarePaginator
+    private function batch(Builder $query, ReportMatriculasRequest $request, ?int $total = null): LengthAwarePaginator
     {
         $matriculas = (clone $query)->orderByDesc('fecha_matricula')->orderByDesc('id')
-            ->paginate(self::PDF_BATCH_SIZE, ['*'], 'lote', (int) ($request->validated('lote') ?? 1))
+            ->paginate(self::PDF_BATCH_SIZE, ['*'], 'lote', (int) ($request->validated('lote') ?? 1), $total)
             ->appends($request->filters());
 
         abort_if($matriculas->currentPage() > $matriculas->lastPage(), 404, 'El lote solicitado no existe. Vuelve a aplicar los filtros.');
