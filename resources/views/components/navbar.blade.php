@@ -42,6 +42,14 @@
       <li><a href="{{ route('market') }}" class="nav-link">Market</a></li>
       <li><a href="{{ route('galeria') }}" class="nav-link">Galería</a></li>
       <li><a href="{{ route('contactos') }}" class="nav-link">Contáctanos</a></li>
+      @auth
+        <li>
+          <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="nav-link">Cerrar sesión</button>
+          </form>
+        </li>
+      @endauth
     </ul>
 
     <div x-show="open" x-transition class="absolute left-0 right-0 top-[calc(100%+0.5rem)] mx-4 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-2xl lg:hidden">
@@ -57,6 +65,14 @@
         <li><a href="{{ route('market') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Market</a></li>
         <li><a href="{{ route('galeria') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Galería</a></li>
         <li><a href="{{ route('contactos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Contáctanos</a></li>
+        @auth
+          <li>
+            <form method="POST" action="{{ route('logout') }}">
+              @csrf
+              <button type="submit" class="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium hover:bg-gold/10">Cerrar sesión</button>
+            </form>
+          </li>
+        @endauth
       </ul>
     </div>
   </div>

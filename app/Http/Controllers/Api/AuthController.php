@@ -5,25 +5,27 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\JwtTokenService;
+use App\Support\Email;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
     public function register(Request $request, JwtTokenService $tokens): JsonResponse
     {
-        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        Email::normalizeRequest($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(10)->letters()->mixedCase()->numbers()],
+            'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
+            'password' => ['required', 'confirmed', PasswordPolicy::rule()],
         ]);
 
         $user = User::create([
             'name' => $data['name'],
-            'email' => mb_strtolower($data['email']),
+            'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
 
@@ -35,13 +37,18 @@ class AuthController extends Controller
 
     public function login(Request $request, JwtTokenService $tokens): JsonResponse
     {
-        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        Email::normalizeRequest($request);
         $data = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()->where('email', mb_strtolower($data['email']))->first();
+        $user = User::query()->where('email', $data['email'])->first();
+
+        if (! $user) {
+            // Gasta el mismo tiempo de hash que un usuario real para no revelar por latencia si el correo existe.
+            Hash::check($data['password'], Hash::make(Str::random(32)));
+        }
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             return response()->json(['message' => 'Las credenciales no son válidas.'], 422);
