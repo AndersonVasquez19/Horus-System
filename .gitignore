@@ -1,7 +1,8 @@
 node_modules/
 /vendor/
 /public/build/
-/public/assets/
+# Market se retiró del sitio; esta copia local obsoleta no se versiona.
+/public/assets/css/Market/
 /public/hot
 /public/storage
 /storage/*.key
