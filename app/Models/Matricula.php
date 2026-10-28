@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Observers\MatriculaNotificationObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[ObservedBy([MatriculaNotificationObserver::class])]
 class Matricula extends Model
 {
     use SoftDeletes;
@@ -27,11 +30,13 @@ class Matricula extends Model
         ];
     }
 
+    /** @return BelongsTo<Estudiante, $this> */
     public function estudiante(): BelongsTo
     {
         return $this->belongsTo(Estudiante::class)->withTrashed();
     }
 
+    /** @return BelongsTo<Curso, $this> */
     public function curso(): BelongsTo
     {
         return $this->belongsTo(Curso::class)->withTrashed();
