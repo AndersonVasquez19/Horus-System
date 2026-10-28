@@ -26,10 +26,11 @@ class MatriculaNotificationService
 
         return config('matricula-mail.enabled') === true
             && in_array(config("queue.connections.{$connection}.driver"), ['database', 'redis', 'sqs', 'beanstalkd'], true)
+            && is_string(config('matricula-mail.queue')) && trim(config('matricula-mail.queue')) !== ''
             && is_string(config('services.resend.key')) && trim(config('services.resend.key')) !== ''
             && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL) !== false
             && ! preg_match('/[\r\n<>]/', (string) config('mail.from.name'))
-            && ! Str::endsWith((string) config('mail.from.address'), ['@example.com', '@example.org', '@example.net']);
+            && ! Str::endsWith(strtolower((string) config('mail.from.address')), ['@example.com', '@example.org', '@example.net']);
     }
 
     // El scheduler solo observa filas persistidas. No se ejecuta desde el controlador.

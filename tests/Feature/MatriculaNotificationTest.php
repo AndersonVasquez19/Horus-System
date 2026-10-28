@@ -10,13 +10,16 @@ use App\Models\Matricula;
 use App\Models\MatriculaNotification;
 use App\Models\User;
 use App\Services\MatriculaNotificationService;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -32,6 +35,7 @@ class MatriculaNotificationTest extends TestCase
         config([
             'matricula-mail.enabled' => true,
             'matricula-mail.connection' => 'database',
+            'matricula-mail.queue' => 'default',
             'services.resend.key' => 'fake-key-not-real',
             'mail.from.address' => 'academia@horus.example',
             'mail.from.name' => 'Horus Group',
@@ -360,6 +364,192 @@ class MatriculaNotificationTest extends TestCase
         $this->enrollment();
         $this->artisan('horus:matriculas-notificar', ['--status' => true])->expectsOutput('pending: 1')->assertSuccessful();
         Http::assertNothingSent();
+    }
+
+    #[DataProvider('invalidOperationalConfiguration')]
+    public function test_invalid_operational_configuration_blocks_dispatch_and_send(string $key, mixed $value): void
+    {
+        $this->enrollment();
+        config([$key => $value]);
+
+        $this->assertFalse($this->service()->configured());
+        $this->assertSame(0, $this->service()->dispatchDue());
+        $this->service()->send(MatriculaNotification::sole()->id);
+        $this->artisan('horus:matriculas-notificar')->assertFailed();
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertSame(0, MatriculaNotification::sole()->attempts);
+        $this->assertNull(MatriculaNotification::sole()->dispatched_until);
+        Http::assertNothingSent();
+    }
+
+    public static function invalidOperationalConfiguration(): array
+    {
+        return [
+            'empty queue' => ['matricula-mail.queue', ''],
+            'whitespace queue' => ['matricula-mail.queue', '   '],
+            'null queue' => ['matricula-mail.queue', null],
+            'uppercase example com' => ['mail.from.address', 'hello@EXAMPLE.COM'],
+            'mixed case example org' => ['mail.from.address', 'hello@Example.Org'],
+            'uppercase example net' => ['mail.from.address', 'hello@EXAMPLE.NET'],
+            'header injection' => ['mail.from.name', "Horus\r\nBcc: other@example.invalid"],
+            'missing connection' => ['matricula-mail.connection', 'missing-connection'],
+            'deferred connection' => ['matricula-mail.connection', 'deferred'],
+            'background connection' => ['matricula-mail.connection', 'background'],
+            'failover connection' => ['matricula-mail.connection', 'failover'],
+        ];
+    }
+
+    #[DataProvider('terminalStatuses')]
+    public function test_terminal_status_cannot_be_dispatched_or_sent_again(string $status): void
+    {
+        $this->enrollment();
+        $row = MatriculaNotification::sole();
+        $row->update(['status' => $status]);
+        $this->assertSame(0, $this->service()->dispatchDue());
+        (new SendMatriculaWelcome($row->id))->handle($this->service());
+        $this->assertSame($status, $row->fresh()->status);
+        $this->assertSame(0, $row->fresh()->attempts);
+        $this->assertDatabaseCount('jobs', 0);
+        Http::assertNothingSent();
+    }
+
+    public static function terminalStatuses(): array
+    {
+        return array_map(fn ($status) => [$status], ['accepted', 'failed', 'uncertain', 'skipped']);
+    }
+
+    public function test_uncertain_attempt_followed_by_rejection_requires_review(): void
+    {
+        $this->enrollment();
+        $this->fakeResend(['api.resend.com/*' => Http::sequence()
+            ->push(['message' => 'PRIVATE-PROVIDER-DETAIL'], 503)
+            ->push(['message' => 'PRIVATE-PROVIDER-DETAIL'], 403)]);
+        $id = MatriculaNotification::sole()->id;
+        Log::spy();
+
+        $this->service()->send($id);
+        $this->travel(60)->seconds();
+        $this->service()->send($id);
+        $this->service()->send($id);
+
+        $row = MatriculaNotification::sole();
+        $this->assertSame('uncertain', $row->status);
+        $this->assertTrue($row->uncertain);
+        $this->assertSame(2, $row->attempts);
+        $this->assertSame('provider_http_403', $row->last_error);
+        $this->assertNull($row->payload);
+        $this->assertNull($row->lease);
+        Http::assertSentCount(2);
+        Log::shouldHaveReceived('info')->with('matricula.mail', ['outcome' => 'retry'])->once();
+        Log::shouldHaveReceived('info')->with('matricula.mail', ['outcome' => 'uncertain'])->once();
+    }
+
+    public function test_backoff_and_attempt_limit_survive_repeated_jobs(): void
+    {
+        $this->travelTo(now()->startOfSecond());
+        $this->enrollment();
+        $this->fakeResend(['api.resend.com/*' => Http::response([], 503)]);
+        $id = MatriculaNotification::sole()->id;
+        foreach ([60, 300, 900] as $attempt => $delay) {
+            $this->service()->send($id);
+            $this->assertSame($attempt + 1, MatriculaNotification::sole()->attempts);
+            $this->assertTrue(now()->addSeconds($delay)->equalTo(MatriculaNotification::sole()->available_at));
+            $this->travel($delay - 1)->seconds();
+            $this->service()->send($id);
+            Http::assertSentCount($attempt + 1);
+            $this->travel(1)->seconds();
+        }
+        $this->service()->send($id);
+        $this->travel(24)->hours();
+        $this->service()->send($id);
+        $this->assertSame(4, MatriculaNotification::sole()->attempts);
+        $this->assertSame('uncertain', MatriculaNotification::sole()->status);
+        $this->assertNull(MatriculaNotification::sole()->payload);
+        Http::assertSentCount(4);
+    }
+
+    public function test_diagnostic_counts_all_states_without_writes_even_when_disabled(): void
+    {
+        $this->enrollment();
+        $seed = MatriculaNotification::sole();
+        $original = Matricula::findOrFail($seed->matricula_id);
+        $original->update(['estado' => 'anulada']);
+        foreach (['sending', 'retry', 'accepted', 'failed', 'uncertain', 'skipped'] as $status) {
+            $next = Matricula::create(['estudiante_id' => $original->estudiante_id, 'curso_id' => $original->curso_id,
+                'fecha_matricula' => today(), 'estado' => 'pendiente']);
+            MatriculaNotification::where('matricula_id', $next->id)->update(['status' => $status]);
+            $next->update(['estado' => 'anulada']);
+        }
+        config(['matricula-mail.enabled' => false]);
+        $before = DB::table('matricula_notifications')->orderBy('id')->get()->toJson();
+        $this->withoutMockingConsoleOutput();
+        $this->assertSame(0, $this->artisan('horus:matriculas-notificar', ['--status' => true]));
+        $output = Artisan::output();
+        foreach (['pending', 'sending', 'retry', 'accepted', 'failed', 'uncertain', 'skipped'] as $status) {
+            $this->assertStringContainsString($status.': 1', $output);
+        }
+        $this->assertStringNotContainsString('student@example.invalid', $output);
+        $this->assertStringNotContainsString('fake-key-not-real', $output);
+        $this->assertSame($before, DB::table('matricula_notifications')->orderBy('id')->get()->toJson());
+        $this->assertDatabaseCount('jobs', 0);
+        Http::assertNothingSent();
+    }
+
+    public function test_scheduler_registers_dispatch_every_minute(): void
+    {
+        $events = collect(app(Schedule::class)->events())
+            ->filter(fn ($event) => str_contains($event->command ?? '', 'horus:matriculas-notificar'));
+        $this->assertCount(1, $events);
+        $this->assertSame('* * * * *', $events->first()->expression);
+        Http::assertNothingSent();
+    }
+
+    public function test_conflict_retries_same_request_and_rate_limit_delay_is_capped(): void
+    {
+        $this->travelTo(now()->startOfSecond());
+        $this->enrollment();
+        $this->fakeResend(['api.resend.com/*' => Http::sequence()
+            ->push(['name' => 'concurrent_idempotent_requests'], 409)
+            ->push([], 429, ['Retry-After' => '999999'])
+            ->push(['id' => 'accepted-same-request'])]);
+        $id = MatriculaNotification::sole()->id;
+        $this->service()->send($id);
+        $this->assertTrue(MatriculaNotification::sole()->uncertain);
+        $this->travel(60)->seconds();
+        $this->service()->send($id);
+        $this->assertTrue(now()->addHour()->equalTo(MatriculaNotification::sole()->available_at));
+        $this->travel(3600)->seconds();
+        $this->service()->send($id);
+        $requests = Http::recorded();
+        $this->assertCount(3, $requests);
+        foreach ($requests as [$request]) {
+            $this->assertSame($requests[0][0]->data(), $request->data());
+            $this->assertSame($requests[0][0]->header('Idempotency-Key'), $request->header('Idempotency-Key'));
+        }
+        $this->assertSame('accepted', MatriculaNotification::sole()->status);
+    }
+
+    public function test_dispatch_command_uses_selected_queue_and_job_contains_no_personal_payload(): void
+    {
+        $this->enrollment();
+        config(['matricula-mail.queue' => 'welcome-test']);
+        $this->artisan('horus:matriculas-notificar', ['--limit' => '0'])->assertFailed();
+        $this->artisan('horus:matriculas-notificar', ['--limit' => '1001'])->assertFailed();
+        $this->assertDatabaseCount('jobs', 0);
+        $this->artisan('horus:matriculas-notificar', ['--limit' => '1'])
+            ->expectsOutput('Notificaciones encoladas: 1')->assertSuccessful();
+        $this->assertDatabaseCount('jobs', 1);
+        $job = DB::table('jobs')->sole();
+        $this->assertSame('welcome-test', $job->queue);
+        foreach (['student@example.invalid', 'Ana', 'fake-key-not-real', 'PRIVATE-NOTE', 'Curso de prueba'] as $private) {
+            $this->assertStringNotContainsString($private, $job->payload);
+        }
+        Http::assertNothingSent();
+        $this->artisan('queue:work', ['connection' => 'database', '--queue' => 'welcome-test', '--once' => true,
+            '--stop-when-empty' => true])->assertSuccessful();
+        $this->assertSame('accepted', MatriculaNotification::sole()->status);
+        $this->assertDatabaseCount('jobs', 0);
+        Http::assertSentCount(1);
     }
 
     private function service(): MatriculaNotificationService
