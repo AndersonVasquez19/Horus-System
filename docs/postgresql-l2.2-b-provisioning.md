@@ -2,7 +2,7 @@
 
 Estado: **preparado, no ejecutado ni autorizado**. Este documento no crea clústeres, servicios, cuentas, roles, bases ni ACL, y no autoriza migraciones ni pruebas contra PostgreSQL. Complementa [docs/postgresql-l2.2-a.md](postgresql-l2.2-a.md); donde ambos difieran en aprovisionamiento (HBA, cuenta de servicio, locale, SQL), **prevalece este documento**. El guard de L2.2-A no se modifica.
 
-**Actualización B2 — incidente S1:** el estado anterior y las referencias a autorización pendiente describen la preparación histórica B1. Posteriormente se concedió autorización A y S1 se ejecutó parcialmente: raíz vacía y evidencia `planned`/`identity.pending`, sin servicio ni clúster nuevo. La ejecución está detenida. Esta corrección documental no autoriza recuperar evidencias ni continuar; el estado parcial y los bloques futuros están delimitados en §7.1.
+**Estado actual B2 — cierre S3 (27/10/2026):** S1 y S2 completadas; S3 completada documentalmente tras reconciliación expresamente autorizada del falso positivo `STOP: locale inesperado`. Clúster `7701505916098505688`, apagado; DPAPI válido en `initialized`, sin reescritura y sin `identity.pending`. Servicio de pruebas Manual y Stopped. Véase el [acta adicional de cierre S3](postgresql-l2.2-b2-s3-cierre.md). La validación funcional SQL de locale sigue pendiente; S4–S7 no están autorizadas por este cierre. Las referencias restantes a falta de autorización A y al incidente S1 describen estados históricos, no el estado actual.
 
 Esta revisión cierra documentalmente los dos P1, el P2 de comprobaciones y el P3 de concurrencia de la auditoría final. D3 queda cerrada documentalmente con todas las mediciones comunicadas por el operador (§8.1). No acredita ejecución real del aprovisionamiento ni aceptación V16. Sigue pendiente la autorización A; la autorización B para pruebas es posterior e independiente. La correspondencia está en el §14.
 
@@ -258,7 +258,7 @@ if (Test-Path "$env:APPDATA\postgresql\pgpass.conf")       { throw 'STOP: existe
 
 ## 6. Procedimiento de aprovisionamiento (fase C; requiere D6)
 
-**Estado histórico B1: todo sin ejecutar. Estado B2 actual: S1 parcial y detenida; S2–S7 sin ejecutar. No repetir S1 completo; ver §7.1.** Orden pensado para que lo más incierto (registrar la cuenta virtual) ocurra **antes** de `initdb`, cuando el rollback es solo borrar un directorio vacío, y para que los archivos de `initdb` hereden la ACL del servicio desde su creación.
+**Estado histórico B1: todo sin ejecutar. Estado B2 actual: S1–S3 completadas, con cierre documental de S3 en el acta adicional; S4–S7 pendientes de autorización separada. No repetir S1 ni `initdb`. El incidente histórico S1 se conserva en §7.1.** Orden pensado para que lo más incierto (registrar la cuenta virtual) ocurra **antes** de `initdb`, cuando el rollback es solo borrar un directorio vacío, y para que los archivos de `initdb` hereden la ACL del servicio desde su creación.
 
 | Etapa | Qué crea | Consola |
 | --- | --- | --- |
@@ -344,7 +344,7 @@ Esperado: `SERVICE_START_NAME` y `StartName` iguales a `NT SERVICE\postgresql-ho
 
 ### S3: `initdb` y verificación de ACL (N)
 
-D3 está resuelta documentalmente con el §8. Los argumentos están definidos con los valores medidos. La confirmación complementaria acredita únicamente esa revisión: no sustituye la autorización A, aún pendiente, ni permite ejecutar ahora el bloque. No hay marcadores de sustitución dentro del comando.
+D3 está resuelta documentalmente con el §8. Los argumentos están definidos con los valores medidos. El bloque siguiente conserva el procedimiento de inicialización ya ejecutado: **no volver a ejecutarlo sobre el clúster existente**. El cierre autorizado de S3 se documenta en el acta adicional; no autoriza S4. No hay marcadores de sustitución dentro del comando.
 
 ```powershell
 $bin = 'C:\Program Files\PostgreSQL\18\bin'
@@ -403,6 +403,17 @@ if ($problems) { $problems | Select-Object -First 20; throw 'STOP: ACL incorrect
 ```
 
 Si la propagación no alcanzó a algún archivo, **parar**: no se aplica `icacls /T` ni `/reset` de forma improvisada.
+
+#### Validación de codificación y locale: corrección del falso positivo S3
+
+El guion externo original `s3-interactive-20261027.ps1`, línea 211, exigía encontrar asignaciones de `lc_collate` y `lc_ctype` en `postgresql.conf` y lanzó `STOP: locale inesperado`. Esa condición es incorrecta y no debe utilizarse como criterio de aceptación. Se conserva el guion original sin editar como evidencia del incidente; la condición no formaba parte del bloque S3 de este documento.
+
+`encoding`, `datlocprovider`, `datcollate` y `datctype` se verifican **por base de datos** mediante el catálogo compartido [`pg_database`](https://www.postgresql.org/docs/18/catalog-pg-database.html). No deben inferirse de asignaciones en `postgresql.conf`, de los locales de mensajes/formato ni de `postgres -C server_encoding`: sin abrir una base, este último no acredita su codificación almacenada.
+
+- **Validación física previa al arranque (S3):** leer únicamente los archivos del clúster apagado. Contrastar `PG_VERSION`, `pg_controldata`, identidad NTFS y DPAPI; verificar páginas con `pg_checksums --check`. Para este incidente se decodificó en memoria `global/1262` (`pg_database`), según el esquema de `share/postgres.bki` de PostgreSQL 18.6 y su formato de páginas/tuplas. Se verificaron los tres registros `template0`, `template1` y `postgres`: `encoding=6` (UTF8), proveedor `c` (libc), `datcollate=datctype=Spanish_Spain.1252`; `datlocale`, `daticurules` y `datcollversion` nulos. El método, sus límites, los hashes y el guion de revalidación están identificados en el acta. Cualquier discrepancia exige detenerse; no se ajustan ni reconstruyen catálogos.
+- **Validación funcional posterior mediante SQL:** sigue pendiente y requiere autorización separada para las etapas correspondientes. Consiste en consultar `pg_database` por base y ejecutar las comprobaciones A/B/E y V16 cuando existan las bases previstas y el servidor esté autorizado a funcionar. La lectura física no demuestra autenticación, comportamiento de ordenación/LIKE/ILIKE ni aceptación V16. No ejecutar SQL ni iniciar servicios durante el cierre S3.
+
+DPAPI ya registra `initialized` y el identificador correcto. La reconciliación conserva ese blob; no vuelve a ejecutar `initdb`, no promueve etapas y no sobrescribe el resultado fallido. El acta adicional acredita el cierre documental y mantiene la validación funcional pendiente.
 
 ### S4: configuración antes del primer arranque (N)
 
@@ -1343,10 +1354,10 @@ Correspondencia histórica de la revisión 2 (no son hallazgos nuevos):
 
 ## 16. Limitaciones y garantías no probadas
 
-- La cuenta virtual con `pg_ctl register` **no se ha probado** en este equipo; D1 queda condicionada hasta S2 y S5.
-- La propagación de ACL, el aislamiento NTFS efectivo (V12) y la desactivación del aprovisionador no se han ejecutado.
-- Todos los resultados D3 de `horus_group` fueron comunicados por el operador (§8.1); D3 está cerrada documentalmente y V16 sigue pendiente. No se ha probado `initdb` con estos argumentos.
-- El agente no ha abierto conexiones ni ejecutado SQL PostgreSQL; solo comprobaciones de versión/ayuda sin conexión. Las pruebas de L2.2-A son SQLite y dobles, y no acreditan PostgreSQL real.
+- S2 acredita el registro del servicio con su cuenta virtual. Su funcionamiento al arrancar sigue pendiente de S5; este cierre S3 no inicia el servicio.
+- La propagación de ACL se verificó en S3 para 997 elementos. El aislamiento NTFS efectivo desde el servidor (V12) y la desactivación del aprovisionador siguen pendientes.
+- Los resultados D3 de `horus_group` fueron comunicados por el operador (§8.1). `initdb` aceptó los argumentos previstos; la lectura física de las tres bases iniciales los confirma según el acta S3. La validación funcional SQL y V16 siguen pendientes.
+- El agente no ha abierto conexiones ni ejecutado SQL PostgreSQL. S3 incorpora comprobaciones físicas offline reales, incluida verificación de checksums; no acredita pruebas funcionales de PostgreSQL. Las pruebas de L2.2-A son SQLite y dobles.
 - `ConcurrentTestSession` está implementada y probada con dobles. Siguen pendientes el paralelismo real entre procesos y la supervivencia del marcador ante `migrate:fresh`, `db:wipe` y `DatabaseTruncation`, con autorización B independiente.
 - La instancia cotidiana escucha en todas las interfaces (`0.0.0.0` y `::`). No se modifica aquí; conviene revisarlo aparte.
 - Los buscadores actuales usan `whereLike` sin sensibilidad a mayúsculas explícita: Laravel lo compila a `ILIKE` en PostgreSQL, de acuerdo con L2.2-C. Eso no garantiza equivalencia completa con SQLite para acentos y orden; se conserva la medición E y V16.
