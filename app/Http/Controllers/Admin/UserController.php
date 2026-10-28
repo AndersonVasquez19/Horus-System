@@ -8,7 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AdminProtection;
+use App\Support\Email;
 use App\Support\ListFilter;
+use App\Support\PasswordPolicy;
+use App\Support\SessionRevoker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -74,20 +77,19 @@ class UserController extends Controller implements HasMiddleware
 
     public function store(Request $request): RedirectResponse
     {
+        Email::normalizeRequest($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'email' => ['required', 'email', 'max:255', Email::uniqueRule()],
+            'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ], [
             'name.required' => 'El nombre es obligatorio.',
             'email.required' => 'El correo es obligatorio.',
-            'email.unique' => 'Este correo ya está registrado.',
             'password.required' => 'La contraseña es obligatoria.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-        ]);
+        ] + PasswordPolicy::messages());
 
         // Asignar roles concede permisos: exige su propio permiso además de usuarios.crear.
         abort_if(! empty($data['roles']) && ! $request->user()->can('usuarios.asignar-roles'), 403);
@@ -123,19 +125,18 @@ class UserController extends Controller implements HasMiddleware
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        Email::normalizeRequest($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'email' => ['required', 'email', 'max:255', Email::uniqueRule($user->id)],
+            'password' => ['nullable', 'string', 'confirmed', PasswordPolicy::rule()],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ], [
             'name.required' => 'El nombre es obligatorio.',
             'email.required' => 'El correo es obligatorio.',
-            'email.unique' => 'Este correo ya está registrado.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-        ]);
+        ] + PasswordPolicy::messages());
 
         // Asignar roles concede permisos: exige su propio permiso además de usuarios.editar.
         $actor = $request->user();
@@ -146,8 +147,9 @@ class UserController extends Controller implements HasMiddleware
         $newRoles = array_values(array_unique($data['roles'] ?? []));
 
         // Cambiar roles puede dejar al sistema sin administradores: se serializa y se valida bajo bloqueo.
-        $this->adminProtection->runExclusively(function () use ($user, $data, $actor, $canAssignRoles, $newRoles): void {
+        $this->adminProtection->runExclusively(function () use ($request, $user, $data, $actor, $canAssignRoles, $newRoles): void {
             $user = User::query()->whereKey($user->getKey())->firstOrFail();
+            $passwordChanged = false;
 
             if ($canAssignRoles) {
                 $this->adminProtection->assertRoleChangeKeepsAdministration($user, $newRoles, $actor);
@@ -166,9 +168,17 @@ class UserController extends Controller implements HasMiddleware
 
             if (! empty($data['password'])) {
                 $user->password = Hash::make($data['password']);
+                // Revoca los JWT emitidos con la contraseña anterior; las sesiones web se cierran tras guardar.
+                $user->jwt_version = (int) $user->jwt_version + 1;
+                $passwordChanged = true;
             }
 
             $user->save();
+
+            if ($passwordChanged) {
+                // Quien cambia su propia clave conserva la sesión actual; las demás se cierran.
+                SessionRevoker::revokeSessions($user, $user->is($actor) ? $request->session()->getId() : null);
+            }
 
             if ($canAssignRoles) {
                 $user->syncRoles($newRoles);
