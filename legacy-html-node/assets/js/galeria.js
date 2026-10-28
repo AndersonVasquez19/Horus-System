@@ -21,7 +21,6 @@ imageList.forEach((item, index) => {
     imageData[id] = {
         title: item.title,
         category: item.category,
-        type: 'image', // todas son imágenes
         likes: 0,
         dislikes: 0,
         comments: [],
@@ -34,12 +33,10 @@ let userVotes = {};
 let currentImageId = 1;
 let currentCommentsId = 1;
 let activeCategory = 'all';
-let activeType = 'image'; // Por defecto, imágenes (ya que no hay "todos")
 
 // ===== ELEMENTOS DEL DOM =====
 const galleryGrid = document.getElementById('galleryGrid');
 const filterBtns = document.querySelectorAll('.filter-btn[data-filter]');
-const typeFilterBtns = document.querySelectorAll('.type-filter-btn');
 const modal = document.getElementById('imageModal');
 const modalContainer = document.getElementById('modalContainer');
 const modalTitle = document.getElementById('modalTitle');
@@ -104,7 +101,6 @@ function renderGallery() {
         galleryItem.className = 'gallery-item';
         galleryItem.dataset.category = item.category;
         galleryItem.dataset.id = id;
-        galleryItem.dataset.type = item.type;
 
         const overlayTitle = item.title ? `<h3 class="image-title">${item.title}</h3>` : '';
         const overlayCategory = `<p class="image-category">${item.category.replace('-', ' ')}</p>`;
@@ -200,11 +196,9 @@ function applyFiltersOptimized() {
         // Separar items visibles y ocultos
         items.forEach(item => {
             const category = item.dataset.category;
-            const type = item.dataset.type;
             const categoryMatch = activeCategory === 'all' || category === activeCategory;
-            const typeMatch = activeType === 'all' || type === activeType;
             
-            if (categoryMatch && typeMatch) {
+            if (categoryMatch) {
                 visibleItems.push(item);
             } else {
                 hiddenItems.push(item);
@@ -268,16 +262,6 @@ filterBtns.forEach(btn => {
             filterBtns.forEach(b => b.disabled = false);
             showToast(`Categoría: ${btn.textContent.trim()}`);
         });
-    });
-});
-
-typeFilterBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        typeFilterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeType = btn.dataset.type;
-        applyFilters();
-        showToast(`Mostrando: ${btn.querySelector('span').textContent}`);
     });
 });
 

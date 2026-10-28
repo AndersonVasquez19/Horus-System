@@ -262,12 +262,12 @@
 }
 
 
-.filter-section, .type-filter-section {
+.filter-section {
     padding: 3rem 2rem;
     background: white;
 }
 
-.filter-container, .type-filter-container {
+.filter-container {
     max-width: 1400px;
     margin: 0 auto;
     display: flex;
@@ -276,7 +276,7 @@
     justify-content: center;
 }
 
-.filter-btn, .type-filter-btn {
+.filter-btn {
     padding: 0.8rem 1.5rem;
     background: white;
     border: 2px solid var(--gray-medium);
@@ -290,13 +290,13 @@
     gap: 0.5rem;
 }
 
-.filter-btn:hover, .type-filter-btn:hover {
+.filter-btn:hover {
     background: var(--primary-dark);
     color: white;
     border-color: var(--primary-dark);
 }
 
-.filter-btn.active, .type-filter-btn.active {
+.filter-btn.active {
     background: var(--accent-gold);
     color: var(--primary-dark);
     border-color: var(--accent-gold);
@@ -790,13 +790,11 @@
         font-size: 0.6rem;
     }
 
-    .filter-section,
-    .type-filter-section {
+    .filter-section {
         padding: 2rem 1rem;
     }
 
-    .filter-btn,
-    .type-filter-btn {
+    .filter-btn {
         padding: 0.6rem 1rem;
         font-size: 0.85rem;
     }

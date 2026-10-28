@@ -32,13 +32,13 @@
 
     <div>
       <h3 class="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">Síguenos</h3>
-      <div class="mb-4 flex flex-wrap items-center gap-3 text-lg text-stone-200">
-        <a href="https://www.facebook.com/share/174BEdCReB/" target="_blank" rel="noopener" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 hover:bg-gold hover:text-ink"><i class="fa-brands fa-facebook-f"></i></a>
+      <div class="footer-social mb-4 flex flex-wrap items-center gap-3 text-lg text-stone-200">
+        <a href="https://www.facebook.com/share/174BEdCReB/" target="_blank" rel="noopener" class="social-btn"><i class="fa-brands fa-facebook-f"></i></a>
         {{-- TODO: confirmar número --}}
-        <a href="https://wa.me/51927582305" target="_blank" rel="noopener" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 hover:bg-gold hover:text-ink"><i class="fa-brands fa-whatsapp"></i></a>
-        <a href="https://www.instagram.com/horusgroupsrl/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Horus Group" title="Instagram" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 transition hover:bg-gold hover:text-ink focus-visible:bg-gold focus-visible:text-ink"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
-        <a href="https://www.tiktok.com/@horus.group.srl?lang=es" target="_blank" rel="noopener noreferrer" aria-label="TikTok de Horus Group" title="TikTok" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 transition hover:bg-gold hover:text-ink focus-visible:bg-gold focus-visible:text-ink"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
-        <a href="https://www.youtube.com/@HORUSGROUPSRL" target="_blank" rel="noopener noreferrer" aria-label="YouTube de Horus Group" title="YouTube" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 transition hover:bg-gold hover:text-ink focus-visible:bg-gold focus-visible:text-ink"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>
+        <a href="https://wa.me/51927582305" target="_blank" rel="noopener" class="social-btn"><i class="fa-brands fa-whatsapp"></i></a>
+        <a href="https://www.instagram.com/horusgroupsrl/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Horus Group" title="Instagram" class="social-btn"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
+        <a href="https://www.tiktok.com/@horus.group.srl?lang=es" target="_blank" rel="noopener noreferrer" aria-label="TikTok de Horus Group" title="TikTok" class="social-btn"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
+        <a href="https://www.youtube.com/@HORUSGROUPSRL" target="_blank" rel="noopener noreferrer" aria-label="YouTube de Horus Group" title="YouTube" class="social-btn"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>
       </div>
       <a href="{{ route('legales.reclamaciones') }}" class="inline-flex items-center gap-3 rounded-2xl border border-gold/40 px-3 py-2 text-sm text-stone-200 hover:bg-gold/10">
         <i class="fa-solid fa-book-open text-gold"></i>
