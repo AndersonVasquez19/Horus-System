@@ -415,9 +415,9 @@ body {
 
 .grid-equipo {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
-    max-width: 1100px;
+    max-width: 760px;
     margin: 0 auto;
 }
 
@@ -427,7 +427,7 @@ body {
 }
 
 .grid-fila2 {
-    max-width: 1100px;
+    max-width: 760px;
     margin: 2rem auto 0;
     display: flex;
     justify-content: center;
@@ -435,8 +435,7 @@ body {
 }
 
 .grid-fila2 .card-equipo {
-    width: calc(33.333% - 0.67rem);
-    max-width: 340px;
+    width: calc(50% - 1rem);
     flex-shrink: 0;
 }
 

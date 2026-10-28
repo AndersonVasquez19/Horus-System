@@ -57,6 +57,9 @@
 
             <div class="carta-grid">
                 <div class="carta-card">
+                    <div class="carta-imagen">
+                        <img src="{{ asset('assets/images/capacitaciones/capacitaciones-empresariales.jpg') }}" alt="Conferencia con expositor y mesa directiva, representando las capacitaciones empresariales" loading="lazy" decoding="async">
+                    </div>
                     <div class="carta-icon">
                         <i class="fas fa-chalkboard-teacher"></i>
                     </div>
@@ -71,6 +74,9 @@
                 </div>
 
                 <div class="carta-card">
+                    <div class="carta-imagen">
+                        <img src="{{ asset('assets/images/capacitaciones/formacion-personalizada.jpg') }}" alt="Participantes atendiendo una exposición con proyector, representando la formación personalizada" loading="lazy" decoding="async">
+                    </div>
                     <div class="carta-icon">
                         <i class="fas fa-layer-group"></i>
                     </div>
@@ -85,6 +91,9 @@
                 </div>
 
                 <div class="carta-card">
+                    <div class="carta-imagen">
+                        <img src="{{ asset('assets/images/capacitaciones/certificaciones-profesionales.jpg') }}" alt="Entrega de certificados a profesionales en un escenario, representando las certificaciones profesionales" loading="lazy" decoding="async">
+                    </div>
                     <div class="carta-icon">
                         <i class="fas fa-certificate"></i>
                     </div>
@@ -99,6 +108,9 @@
                 </div>
 
                 <div class="carta-card">
+                    <div class="carta-imagen">
+                        <img src="{{ asset('assets/images/capacitaciones/convenios-institucionales.jpg') }}" alt="Firma de convenios interinstitucionales entre representantes" loading="lazy" decoding="async">
+                    </div>
                     <div class="carta-icon">
                         <i class="fas fa-handshake"></i>
                     </div>

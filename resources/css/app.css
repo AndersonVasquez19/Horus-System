@@ -49,12 +49,63 @@ body {
 .public-page .legacy-showcase > .carta-capacitaciones,
 .public-page .legacy-showcase > .carta-asesoramiento { padding-top: 40px; }
 .public-page .legacy-showcase > .carta-soporte-mantenimiento { padding-top: 0; }
+/* El bloque azul inicial de cada página llena la ventana bajo la barra de navegación (~110px, se resta 100px para no dejar franja blanca por redondeo). */
+.public-page .legacy-showcase > .qs-header,
+.public-page .legacy-showcase > .carta-cursos,
+.public-page .legacy-showcase > .carta-capacitaciones,
+.public-page .legacy-showcase > .carta-asesoramiento,
+.public-page .legacy-showcase > .contactos-hero,
+.public-page .legacy-showcase > .libro-hero,
+.public-page .legacy-showcase > .hero-politicas,
+.public-page .legacy-showcase .intro-cableado,
+.public-page .legacy-showcase .intro-videovigilancia,
+.public-page .legacy-showcase .intro-soporte-mantenimiento {
+  min-height: calc(100vh - 100px);
+  min-height: calc(100svh - 100px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .public-page .legacy-showcase .intro-cableado,
 .public-page .legacy-showcase .intro-videovigilancia { padding-top: 6rem; }
 .public-page .legacy-showcase a:focus-visible,
 .public-page .legacy-showcase button:focus-visible,
 .public-page .nav-pill a:focus-visible,
 .public-page .nav-pill button:focus-visible { outline: 3px solid #C9A961; outline-offset: 3px; }
+
+/* Redes sociales con los colores originales de cada marca, visibles a simple vista. */
+.public-page .fa-facebook-f { --brand: #1877F2; }
+.public-page .fa-whatsapp { --brand: #25D366; }
+.public-page .fa-youtube { --brand: #FF0000; }
+.public-page .fa-twitter { --brand: #1DA1F2; }
+.public-page .fa-linkedin-in { --brand: #0A66C2; }
+.public-page :is(.footer-social, .social-links, .redes, .share-option, .gallery-more-link) i { color: var(--brand, currentColor); }
+.public-page :is(.footer-social, .social-links, .redes, .share-option, .gallery-more-link) .fa-instagram {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.public-page :is(.footer-social, .social-links, .redes, .share-option, .gallery-more-link) .fa-tiktok {
+  color: #000;
+  text-shadow: -1px -1px 0 #25F4EE, 1px 1px 0 #FE2C55;
+}
+.public-page .social-btn {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.public-page .social-btn:hover,
+.public-page .social-btn:focus-visible { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(201, 169, 97, 0.45); }
+.public-page .redes-sociales .social-link { background: #fff; border: 1px solid #E1E8ED; box-shadow: 0 3px 10px rgba(10, 37, 64, 0.12); }
+.public-page .redes-sociales .social-link::before { display: none; }
+.public-page .redes a:hover,
+.public-page .redes i:hover { background: #fff; color: var(--brand, currentColor); }
 
 [x-cloak] {
   display: none !important;
@@ -176,10 +227,6 @@ img {
     overflow-wrap: anywhere;
   }
 
-  .home-page .carousel-frame {
-    @apply border border-gold/30 bg-[#0A2540] shadow-2xl shadow-[#0A2540]/20;
-  }
-
   .home-page .stat-card {
     @apply relative overflow-hidden rounded-2xl border border-gold/20 bg-white p-7 text-center shadow-sm transition duration-300 ease-out hover:-translate-y-1.5 hover:border-gold/60 hover:shadow-xl hover:shadow-[#0A2540]/10;
   }
@@ -193,17 +240,8 @@ img {
     @apply scale-x-100;
   }
 
-  .home-page .convenio-panel {
-    @apply border-gold/25 bg-gradient-to-br from-[#0A2540] to-[#102d49] shadow-xl shadow-[#0A2540]/15;
-  }
 
-  .home-page .convenio-panel h3 {
-    @apply text-gold-light;
-  }
 
-  .home-page .convenio-panel p {
-    @apply text-white/75;
-  }
 
   .site-brand-logo {
     @apply h-11 w-11 shrink-0 object-contain;
@@ -211,35 +249,6 @@ img {
 
   .site-brand-logo--footer { @apply h-12 w-12; }
 
-  .home-page .convenios-layout {
-    @apply mx-auto grid max-w-[1440px] items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,1.12fr)_minmax(0,1fr)] lg:gap-6;
-  }
-  .home-page .convenios-list { @apply grid content-center gap-4 sm:grid-cols-2 lg:grid-cols-1; }
-  .home-page .convenio-card {
-    @apply relative flex min-h-[112px] w-full items-center gap-4 overflow-hidden rounded-2xl border border-[#E8DCC4]/75 bg-white px-4 py-4 text-left shadow-[0_5px_18px_rgba(10,37,64,0.055)] transition duration-300 ease-out hover:-translate-y-1 hover:border-gold/70 hover:shadow-[0_16px_32px_rgba(10,37,64,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
-  }
-  .home-page .convenio-card::before { content:''; @apply absolute inset-y-0 left-0 w-1 origin-top scale-y-0 bg-gold transition-transform duration-300; }
-  .home-page .convenio-card:hover::before { @apply scale-y-100; }
-  .home-page .convenio-card-logo { @apply flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F7F9FC] p-2 ring-1 ring-inset ring-slate-900/5; }
-  .home-page .convenio-card-logo img { @apply h-full w-full object-contain transition duration-300; }
-  .home-page .convenio-card:hover .convenio-card-logo img { @apply scale-105; }
-  .home-page .convenio-card-copy { @apply min-w-0 flex-1; }
-  .home-page .convenio-card-title { @apply block text-[0.82rem] font-semibold uppercase leading-5 text-ink sm:text-sm sm:leading-6; }
-  .home-page .convenio-card-acronym { @apply mt-1 block text-xs font-bold uppercase tracking-[0.2em] text-gold-dark; }
-  .home-page .convenio-card-arrow { @apply hidden text-xs text-gold transition duration-300 sm:block; }
-  .home-page .convenio-card:hover .convenio-card-arrow { @apply translate-x-0.5 -translate-y-0.5 text-ink; }
-  .home-page .convenio-panel { @apply relative flex min-h-[390px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#0A2540] via-[#102D49] to-[#153A59] p-7 text-white shadow-[0_22px_48px_rgba(10,37,64,0.18)]; }
-  .home-page .convenio-panel::before { content:''; @apply pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full border border-gold/10; }
-  .home-page .convenio-panel::after { content:''; @apply pointer-events-none absolute -bottom-32 -left-28 h-72 w-72 rounded-full border border-white/5; }
-  .home-page .convenio-empty, .home-page .convenio-detail { @apply relative z-[1] w-full text-center; }
-  .home-page .convenios-center-logo { @apply mx-auto mb-5 h-24 w-24 object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.2)]; }
-  .home-page .convenio-empty h3 { @apply text-lg font-bold uppercase tracking-[0.18em] text-white sm:text-xl; }
-  .home-page .convenio-empty p { @apply mt-3 text-sm text-white/70; }
-  .home-page .convenio-detail { @apply max-h-[470px] overflow-y-auto px-1 pt-5; }
-  .home-page .convenio-detail-image { @apply mx-auto h-40 w-full rounded-2xl object-cover shadow-lg sm:h-48; }
-  .home-page .convenio-detail h3 { @apply mt-5 text-xl font-semibold leading-snug text-white sm:text-2xl; }
-  .home-page .convenio-detail p { @apply mx-auto mt-3 max-w-2xl text-left text-sm leading-7 text-white/80; }
-  .home-page .convenio-close { @apply absolute right-1 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-2xl text-white transition hover:rotate-90 hover:bg-gold hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
 
   .auth-scene { @apply relative flex min-h-screen items-center justify-center overflow-x-hidden bg-[#071727] px-4 py-10 font-sans text-ink sm:px-8; background-image: radial-gradient(ellipse at 16% 10%, rgba(201,169,97,.22), transparent 35%), radial-gradient(ellipse at 90% 90%, rgba(37,99,168,.3), transparent 36%), linear-gradient(135deg,#071727,#0A2540 55%,#102D49); }
   .auth-orbit { @apply pointer-events-none absolute rounded-full border border-gold/10; }
@@ -299,25 +308,6 @@ img {
   .auth-copyright { @apply absolute bottom-2 left-0 right-0 text-center text-[10px] tracking-wide text-white/45; }
 }
 
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .home-page .convenios-layout { grid-template-columns: minmax(0,1fr) minmax(300px,1.05fr) minmax(0,1fr); gap: 1rem; }
-  .home-page .convenio-card { gap: .7rem; padding: .85rem; }
-  .home-page .convenio-card-logo { height: 58px; width: 58px; }
-}
-
-@media (max-width: 1023px) {
-  .home-page .convenios-layout { @apply grid grid-cols-1 gap-4; }
-  .home-page .convenio-panel { @apply order-first min-h-[320px]; }
-}
-
-@media (max-width: 639px) {
-  .home-page .convenios-list { @apply grid-cols-1 gap-3; }
-  .home-page .convenio-card { @apply min-h-[92px] rounded-xl px-3 py-3; }
-  .home-page .convenio-card-logo { @apply h-16 w-16 rounded-xl; }
-  .home-page .convenio-panel { @apply min-h-[280px] rounded-3xl p-5; }
-  .home-page .convenios-center-logo { @apply h-20 w-20; }
-}
-
 @keyframes auth-arrive { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 @media (max-width: 1023px) {
@@ -339,4 +329,390 @@ img {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===== Hero del Home: carrusel con fondo oscurecido ===== */
+.hero-carousel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 620px;
+  padding: 4rem 0 5.5rem;
+  background: #0A2540;
+  color: #fff;
+}
+
+.hero-backdrops { position: absolute; inset: 0; z-index: -1; }
+
+.hero-backdrop {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+.hero-backdrop.is-active { opacity: 1; }
+
+.hero-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1);
+  transition: transform 8s ease-out;
+}
+
+.hero-backdrop.is-active img { transform: scale(1.08); }
+
+/* Capa oscura: degradado lateral para el texto + velo uniforme + base para las estadísticas */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(6, 15, 26, 0.65) 0%, rgba(6, 15, 26, 0) 40%),
+    linear-gradient(90deg, rgba(10, 37, 64, 0.92) 0%, rgba(10, 37, 64, 0.7) 48%, rgba(10, 37, 64, 0.38) 100%),
+    rgba(6, 15, 26, 0.28);
+}
+
+.hero-body { position: relative; width: 100%; }
+
+.hero-copy-stack { display: grid; max-width: 44rem; }
+
+.hero-copy {
+  grid-area: 1 / 1;
+  align-self: start;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, transform 0.7s ease, visibility 0s linear 0.7s;
+}
+
+.hero-copy.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s, visibility 0s;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+.hero-badge i { color: var(--accent-gold); }
+
+.hero-title {
+  margin: 1.25rem 0 1rem;
+  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.hero-title span { display: block; color: var(--accent-gold); }
+
+.hero-text {
+  max-width: 34rem;
+  font-size: clamp(0.98rem, 1.6vw, 1.1rem);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.hero-actions { display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 1.75rem; }
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.hero-btn--primary { background: var(--accent-gold); color: var(--primary-dark); }
+.hero-btn--primary:hover { background: #d8bc77; transform: translateY(-2px); }
+
+.hero-btn--ghost {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+.hero-btn--ghost:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.55); }
+
+.hero-btn:focus-visible,
+.hero-arrow:focus-visible,
+.hero-dot:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 3px; }
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 0;
+  max-width: 34rem;
+  margin: 2.5rem 0 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.hero-stat { padding: 0 1.5rem; }
+.hero-stat:first-child { padding-left: 0; }
+.hero-stat + .hero-stat { border-left: 1px solid rgba(255, 255, 255, 0.18); }
+.hero-stat dt { font-size: 1.6rem; font-weight: 700; line-height: 1.1; color: #fff; }
+.hero-stat dd { margin: 0.2rem 0 0; font-size: 0.8rem; color: rgba(255, 255, 255, 0.68); }
+
+.hero-highlights {
+  position: absolute;
+  right: 7.5rem;
+  bottom: 4.5rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 19rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-highlights li {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.9rem;
+  background: rgba(10, 37, 64, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+.hero-highlight-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.7rem;
+  background: rgba(201, 169, 97, 0.2);
+  color: var(--accent-gold);
+}
+
+.hero-highlights strong { display: block; font-size: 0.9rem; font-weight: 600; }
+.hero-highlights small { display: block; margin-top: 0.1rem; font-size: 0.75rem; line-height: 1.35; color: rgba(255, 255, 255, 0.68); }
+
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(10, 37, 64, 0.45);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.hero-arrow:hover { background: var(--accent-gold); color: var(--primary-dark); }
+.hero-arrow--prev { left: 1rem; }
+.hero-arrow--next { right: 1rem; }
+
+.hero-dots {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  display: flex;
+  gap: 0.5rem;
+  transform: translateX(-50%);
+}
+
+.hero-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.hero-dot.is-active { width: 2rem; background: var(--accent-gold); }
+
+@media (min-width: 768px) {
+  .hero-carousel { min-height: 680px; padding: 5rem 0 6rem; }
+  .hero-arrow { display: flex; }
+}
+
+@media (min-width: 1100px) {
+  .hero-carousel { min-height: calc(100svh - 110px); max-height: 780px; }
+  .hero-highlights { display: flex; }
+}
+
+@media (max-width: 767px) {
+  .hero-overlay {
+    background:
+      linear-gradient(0deg, rgba(6, 15, 26, 0.7) 0%, rgba(6, 15, 26, 0) 45%),
+      rgba(10, 37, 64, 0.78);
+  }
+  .hero-btn { flex: 1 1 100%; justify-content: center; }
+  .hero-stat { padding: 0 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-backdrop, .hero-backdrop img, .hero-copy, .hero-copy.is-active, .hero-btn { transition: none; }
+  .hero-backdrop.is-active img { transform: none; }
+}
+
+/* ===== Convenios (Home): lista de convenios + panel de detalle ===== */
+.home-page .convenios-layout {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-page .convenios-list { display: flex; flex-direction: column; gap: 0.85rem; }
+
+.home-page .convenio-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 1.15rem 1rem 1.35rem;
+  overflow: hidden;
+  text-align: left;
+  background: #fff;
+  border: 1px solid rgba(232, 220, 196, 0.9);
+  border-radius: 1rem;
+  box-shadow: 0 4px 14px rgba(10, 37, 64, 0.05);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.home-page .convenio-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--accent-gold);
+  transform: scaleY(0);
+  transition: transform 0.25s ease;
+}
+
+.home-page .convenio-card:hover { transform: translateY(-2px); border-color: rgba(201, 169, 97, 0.8); box-shadow: 0 12px 26px rgba(10, 37, 64, 0.1); }
+.home-page .convenio-card:hover::before,
+.home-page .convenio-card.is-active::before { transform: scaleY(1); }
+.home-page .convenio-card.is-active { border-color: var(--accent-gold); background: #fffcf3; box-shadow: 0 12px 28px rgba(10, 37, 64, 0.12); }
+.home-page .convenio-card:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 3px; }
+
+.home-page .convenio-card-logo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  padding: 0.5rem;
+  overflow: hidden;
+  background: #f7f9fc;
+  border-radius: 0.9rem;
+  box-shadow: inset 0 0 0 1px rgba(10, 37, 64, 0.06);
+}
+
+.home-page .convenio-card-logo img { width: 100%; height: 100%; object-fit: contain; }
+.home-page .convenio-card-copy { flex: 1; min-width: 0; }
+.home-page .convenio-card-title { display: block; font-size: 0.85rem; font-weight: 600; line-height: 1.35; text-transform: uppercase; color: var(--primary-dark); }
+.home-page .convenio-card-acronym { display: block; margin-top: 0.2rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent-gold-dark); }
+.home-page .convenio-card-date { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.4rem; font-size: 0.75rem; color: #5b6b7b; }
+.home-page .convenio-card-date i { color: var(--accent-gold); }
+.home-page .convenio-card-arrow { flex: none; font-size: 0.8rem; color: var(--accent-gold); transition: transform 0.25s ease, color 0.25s ease; }
+.home-page .convenio-card:hover .convenio-card-arrow,
+.home-page .convenio-card.is-active .convenio-card-arrow { transform: translateX(3px); color: var(--primary-dark); }
+
+.home-page .convenio-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  overflow: hidden;
+  padding: 1.5rem;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.75rem;
+  background: linear-gradient(135deg, #0a2540 0%, #102d49 55%, #153a59 100%);
+  box-shadow: 0 22px 48px rgba(10, 37, 64, 0.18);
+}
+
+.home-page .convenio-panel::before { content: ''; position: absolute; top: -6rem; right: -6rem; width: 16rem; height: 16rem; border: 1px solid rgba(201, 169, 97, 0.12); border-radius: 50%; pointer-events: none; }
+.home-page .convenio-panel::after { content: ''; position: absolute; bottom: -8rem; left: -7rem; width: 18rem; height: 18rem; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 50%; pointer-events: none; }
+.home-page .convenio-empty,
+.home-page .convenio-detail { position: relative; z-index: 1; width: 100%; text-align: center; }
+.home-page .convenios-center-logo { width: 6rem; height: 6rem; margin: 0 auto 1.25rem; object-fit: contain; filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.2)); }
+.home-page .convenio-empty h3 { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #fff; }
+.home-page .convenio-empty p { margin-top: 0.75rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); }
+
+.home-page .convenio-detail { align-self: stretch; padding-top: 0.25rem; }
+.home-page .convenio-detail-image { display: block; width: 100%; height: 14rem; object-fit: cover; border-radius: 1rem; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3); }
+.home-page .convenio-detail-logo { display: flex; align-items: center; justify-content: center; height: 14rem; border-radius: 1rem; background: #fff; }
+.home-page .convenio-detail-logo img { width: 9rem; height: 9rem; object-fit: contain; }
+.home-page .convenio-detail-badge { display: inline-block; margin-top: 1.25rem; padding: 0.25rem 0.85rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--primary-dark); background: var(--accent-gold); border-radius: 999px; }
+.home-page .convenio-detail h3 { margin-top: 0.75rem; font-size: 1.3rem; font-weight: 600; line-height: 1.3; color: #fff; }
+.home-page .convenio-detail-vigencia { margin-top: 0.6rem; font-size: 0.85rem; color: rgba(255, 255, 255, 0.78); }
+.home-page .convenio-detail-vigencia i { margin-right: 0.35rem; color: var(--accent-gold); }
+.home-page .convenio-detail-vigencia strong { color: #fff; }
+.home-page .convenio-detail-text { margin-top: 1rem; font-size: 0.88rem; line-height: 1.75; text-align: left; color: rgba(255, 255, 255, 0.82); }
+
+.home-page .convenio-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(10, 37, 64, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.home-page .convenio-close:hover { background: var(--accent-gold); color: var(--primary-dark); transform: rotate(90deg); }
+.home-page .convenio-close:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 2px; }
+
+@media (min-width: 1024px) {
+  .home-page .convenios-layout { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 2rem; align-items: stretch; }
+  .home-page .convenio-panel { padding: 2rem; }
+}
+
+@media (max-width: 639px) {
+  .home-page .convenio-card { gap: 0.75rem; padding: 0.85rem 0.85rem 0.85rem 1.1rem; }
+  .home-page .convenio-card-logo { width: 3.5rem; height: 3.5rem; }
+  .home-page .convenio-card-arrow { display: none; }
+  .home-page .convenio-detail-image,
+  .home-page .convenio-detail-logo { height: 11rem; }
 }
