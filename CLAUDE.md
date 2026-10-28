@@ -82,6 +82,7 @@ Entorno Windows: PowerShell, rutas relativas a la raíz. Existe `composer.phar` 
 
 - **Deshabilitada por defecto** (`MATRICULA_MAIL_ENABLED=false`, `config/matricula-mail.php`). No depende de `MAIL_MAILER`. `RESEND_API_KEY` solo se lee desde el entorno; el panel de Configuración no la guarda ni la muestra.
 - Diseño de bandeja transaccional: el evento `created` de `Matricula` inserta una intención en `matricula_notifications` dentro de la misma transacción (única por `matricula_id`); el scheduler la despacha a un job que lleva solo el ID. El HTTP ocurre fuera de transacción, con snapshot cifrado reutilizado en reintentos, `Idempotency-Key` aleatoria y máximo 4 intentos. Rechaza colas síncronas.
+- **Retención (Sprint 15-B):** un aviso capturado sin envío configurado queda `held` (`captured_while_disabled`) y nunca se despacha al activar después; `000023` retiene el atraso previo y un `pending` sin intentos de más de 24 h pasa a `held` (`stale_before_first_attempt`). `held` no es un estado de entrega y no hay reenvío manual. Mientras `000022` (verificación, suspendida) siga pendiente, no ejecutar `migrate` sin `--path` (`docs/sprint-15-preparacion-integracion.md` §8.4).
 - El observer no actúa en inserciones masivas ni con `withoutEvents`. No modifiques este flujo sin leer `docs/sprint-05-resend-matriculas.md`. No envíes correos reales en pruebas.
 
 ### Publicación editorial de cursos
@@ -159,5 +160,6 @@ Resume qué cambió y por qué, rutas afectadas, comprobaciones ejecutadas con s
 | Robustez del backend (Sprint 06) | `docs/sprint-06-robustez-backend.md` |
 | Consistencia y reglas de matrículas (Sprint 07–08) | `docs/sprint-07-consistencia-matriculas.md`, `docs/sprint-08-reglas-matriculas.md` |
 | Publicación editorial de cursos (Sprint 09) | `docs/sprint-09-publicacion-cursos.md` |
+| Preparación de la integración real (Sprint 15) | `docs/sprint-15-preparacion-integracion.md` |
 | Restauración de la web pública | `docs/restauracion-web-publica.md` |
 | Consolidación de sprints 01–07 | `docs/consolidacion-sprints-01-07.md` |
