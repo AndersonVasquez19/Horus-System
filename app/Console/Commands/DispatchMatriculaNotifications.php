@@ -19,6 +19,12 @@ class DispatchMatriculaNotifications extends Command
             foreach ($counts as $status => $total) {
                 $this->line($status.': '.$total);
             }
+            // Retenidas por motivo: nunca se despachan automáticamente y quedan para revisión.
+            $held = MatriculaNotification::query()->where('status', MatriculaNotificationService::HELD)
+                ->selectRaw('last_error, count(*) as total')->groupBy('last_error')->pluck('total', 'last_error');
+            foreach ($held as $reason => $total) {
+                $this->line(MatriculaNotificationService::HELD.'/'.($reason ?: 'sin_motivo').': '.$total);
+            }
 
             return self::SUCCESS;
         }

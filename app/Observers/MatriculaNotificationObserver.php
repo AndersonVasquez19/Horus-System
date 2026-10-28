@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Matricula;
 use App\Models\MatriculaNotification;
+use App\Services\MatriculaNotificationService;
 use Illuminate\Support\Str;
 
 class MatriculaNotificationObserver
@@ -16,12 +17,15 @@ class MatriculaNotificationObserver
             return;
         }
 
+        // Solo lee configuración (sin consultas ni HTTP): con el envío apagado la matrícula se registra
+        // igual y su aviso queda retenido de forma persistente, sin despacho al activar después.
         $notification = new MatriculaNotification;
         $notification->setConnection($matricula->getConnectionName());
         $notification->fill([
             'matricula_id' => $matricula->getKey(),
             'delivery_key' => (string) Str::uuid(),
             'available_at' => now(),
+            ...app(MatriculaNotificationService::class)->initialState(),
         ])->save();
     }
 }

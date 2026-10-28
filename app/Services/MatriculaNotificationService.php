@@ -20,6 +20,38 @@ class MatriculaNotificationService
 {
     private const ACTIVE = ['pending', 'retry', 'sending'];
 
+    /**
+     * Retenida: nunca se despacha ni se intenta automáticamente. Conserva fila y motivo para revisión.
+     * No es un estado de entrega: no implica aceptación ni fallo del proveedor.
+     */
+    public const HELD = 'held';
+
+    /** Capturada cuando el envío no estaba habilitado y completamente configurado. */
+    public const HELD_DISABLED = 'captured_while_disabled';
+
+    /** Existía sin intentos antes de introducir la política de retención (migración 000023). */
+    public const HELD_BEFORE_POLICY = 'captured_before_policy';
+
+    /** Nunca se intentó dentro del plazo: reactivación tardía o cola/worker detenidos. */
+    public const HELD_STALE = 'stale_before_first_attempt';
+
+    /** Antigüedad máxima de un aviso pendiente para su primer intento. */
+    public const MAX_FIRST_ATTEMPT_AGE_HOURS = 24;
+
+    /**
+     * Estado inicial de una intención nueva. Solo se considera enviable si el envío estaba habilitado y
+     * completamente configurado en el momento de la captura: el criterio queda persistido en la fila,
+     * de modo que activar el envío después nunca despacha avisos anteriores a esa activación.
+     *
+     * @return array{status: string, last_error: string|null}
+     */
+    public function initialState(): array
+    {
+        return $this->configured()
+            ? ['status' => 'pending', 'last_error' => null]
+            : ['status' => self::HELD, 'last_error' => self::HELD_DISABLED];
+    }
+
     public function configured(): bool
     {
         $connection = config('matricula-mail.connection');
@@ -39,6 +71,8 @@ class MatriculaNotificationService
         if (DB::transactionLevel() > 0 || ! $this->configured()) {
             return 0;
         }
+
+        $this->holdStale();
 
         $count = 0;
         $rows = MatriculaNotification::query()->whereIn('status', self::ACTIVE)
@@ -88,6 +122,14 @@ class MatriculaNotificationService
                 return null;
             }
             if ($row->status === 'retry' && $row->available_at?->isFuture()) {
+                return null;
+            }
+            // Un job ya encolado (worker reiniciado, reserva anterior) tampoco envía un aviso caducado.
+            if ($row->status === 'pending' && $row->attempts === 0 && $this->isStale($row)) {
+                $row->update(['status' => self::HELD, 'last_error' => self::HELD_STALE, 'payload' => null,
+                    'dispatched_until' => null]);
+                Log::warning('matricula.mail', ['outcome' => 'held_stale', 'count' => 1]);
+
                 return null;
             }
             if ($row->first_attempt_at?->lte(now()->subHours(23)) || $row->attempts >= 4) {
@@ -164,6 +206,27 @@ class MatriculaNotificationService
             // Ni cuerpo de respuesta ni mensaje de excepción: pueden contener PII o API keys.
             $this->retry($row, true, 'transport_uncertain');
         }
+    }
+
+    /**
+     * Retiene, sin borrarlos, los avisos que nunca se intentaron y superaron la antigüedad máxima.
+     * Solo afecta a `pending` sin intentos: `retry`, `sending` e inciertos siguen su ventana de 23 h.
+     */
+    private function holdStale(): void
+    {
+        $held = MatriculaNotification::query()->where('status', 'pending')->where('attempts', 0)
+            ->where('created_at', '<=', now()->subHours(self::MAX_FIRST_ATTEMPT_AGE_HOURS))
+            ->toBase()->update(['status' => self::HELD, 'last_error' => self::HELD_STALE, 'payload' => null,
+                'dispatched_until' => null, 'updated_at' => now()]);
+        if ($held > 0) {
+            Log::warning('matricula.mail', ['outcome' => 'held_stale', 'count' => $held]);
+        }
+    }
+
+    private function isStale(MatriculaNotification $row): bool
+    {
+        return $row->created_at === null
+            || $row->created_at->lte(now()->subHours(self::MAX_FIRST_ATTEMPT_AGE_HOURS));
     }
 
     private function retry(MatriculaNotification $row, bool $uncertain, string $error, int $delay = 0): void
