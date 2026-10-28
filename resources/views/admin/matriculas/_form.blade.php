@@ -14,7 +14,7 @@
         <select id="estudiante_id" name="estudiante_id" required class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
             <option value="">Selecciona un estudiante</option>
             @foreach ($estudiantes as $estudiante)
-                <option value="{{ $estudiante->id }}" @selected($valorPrevio('estudiante_id', $matricula->estudiante_id ?? '') === (string) $estudiante->id)>
+                <option value="{{ $estudiante->id }}" @selected($valorPrevio('estudiante_id', $matricula->estudiante_id ?? $estudianteSeleccionado ?? '') === (string) $estudiante->id)>
                     {{ $estudiante->dni }} · {{ $estudiante->nombres }} {{ $estudiante->apellidos }}{{ $estudiante->trashed() ? ' (eliminado)' : '' }}
                 </option>
             @endforeach
@@ -27,7 +27,7 @@
         <select id="curso_id" name="curso_id" required class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
             <option value="">Selecciona un curso</option>
             @foreach ($cursos as $curso)
-                <option value="{{ $curso->id }}" @selected($valorPrevio('curso_id', $matricula->curso_id ?? '') === (string) $curso->id)>
+                <option value="{{ $curso->id }}" @selected($valorPrevio('curso_id', $matricula->curso_id ?? $cursoSeleccionado ?? '') === (string) $curso->id)>
                     {{ $curso->codigo }} · {{ $curso->nombre }} ({{ $curso->cupos_disponibles }} cupos){{ $curso->trashed() ? ' (eliminado)' : '' }}
                 </option>
             @endforeach

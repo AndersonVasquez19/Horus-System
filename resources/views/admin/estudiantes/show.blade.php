@@ -15,6 +15,14 @@
                 <p class="mt-1 text-sm text-stone-600">Ficha de estudiante · DNI {{ $estudiante->dni }}</p>
             </div>
             <div class="flex flex-wrap gap-3">
+                @can('matriculas.crear')
+                    @if ($estudiante->estado === 'activo')
+                        <a href="{{ route('admin.matriculas.create', ['estudiante_id' => $estudiante->id]) }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gold px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-dark">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            Nueva matrícula
+                        </a>
+                    @endif
+                @endcan
                 <a href="{{ route('admin.estudiantes.edit', $estudiante) }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-gold px-4 py-2.5 text-sm font-semibold text-gold-dark transition hover:bg-gold/10">
                     <i class="fa-solid fa-pen" aria-hidden="true"></i>
                     Editar

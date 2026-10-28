@@ -66,7 +66,7 @@ class MatriculaController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('admin.matriculas.create', [
             'estudiantes' => Estudiante::query()
@@ -79,6 +79,9 @@ class MatriculaController extends Controller implements HasMiddleware
                 ->where('cupos_disponibles', '>', 0)
                 ->orderBy('nombre')
                 ->get(),
+            // Solo preselecciona opciones de las listas disponibles; no altera datos ni validaciones.
+            'estudianteSeleccionado' => ListFilter::text($request, 'estudiante_id'),
+            'cursoSeleccionado' => ListFilter::text($request, 'curso_id'),
         ]);
     }
 
