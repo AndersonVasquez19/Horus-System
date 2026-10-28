@@ -95,13 +95,14 @@ class MatriculaOperationsTest extends TestCase
         yield 'active' => ['activo', 'activo', null];
         yield 'inactive student' => ['inactivo', 'activo', null];
         yield 'inactive course' => ['activo', 'inactivo', null];
+        yield 'archived course' => ['activo', 'archivado', null];
         yield 'mixed inactive archived' => ['inactivo', 'archivado', null];
         yield 'deleted student' => ['activo', 'activo', 'student'];
         yield 'deleted course' => ['activo', 'activo', 'course'];
     }
 
     #[DataProvider('parentConditions')]
-    public function test_transfer_and_reactivation_keep_existing_parent_eligibility(string $studentState, string $courseState, ?string $deleted): void
+    public function test_transfer_and_reactivation_require_eligible_parents(string $studentState, string $courseState, ?string $deleted): void
     {
         [$student, $source, $enrollment] = $this->enrollment('anulada');
         $target = $this->course('TARGET');
@@ -111,8 +112,8 @@ class MatriculaOperationsTest extends TestCase
             ($deleted === 'student' ? $student : $target)->delete();
         }
         $response = $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pagada'));
-        if ($deleted !== null) {
-            $response->assertUnprocessable()->assertJsonValidationErrors($deleted === 'student' ? 'estudiante_id' : 'curso_id');
+        if ($deleted !== null || $studentState !== 'activo' || $courseState !== 'activo') {
+            $response->assertUnprocessable()->assertJsonValidationErrors($deleted === 'student' || $studentState !== 'activo' ? 'estudiante_id' : 'curso_id');
             $this->assertSame('anulada', $enrollment->fresh()->estado);
             $this->assertSame($source->id, $enrollment->fresh()->curso_id);
         } else {
@@ -134,7 +135,7 @@ class MatriculaOperationsTest extends TestCase
     }
 
     #[DataProvider('restorationConditions')]
-    public function test_restore_preserves_state_and_current_parent_policy_and_cannot_repeat(string $state, string $studentState, string $courseState, ?string $deleted): void
+    public function test_restore_requires_eligible_parents_only_for_current_occupation(string $state, string $studentState, string $courseState, ?string $deleted): void
     {
         [$student, $course, $enrollment] = $this->enrollment($state);
         $this->actingAs($this->adminUser())->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
@@ -143,6 +144,15 @@ class MatriculaOperationsTest extends TestCase
         $course->update(['estado' => $courseState]);
         if ($deleted !== null) {
             ($deleted === 'student' ? $student : $course)->delete();
+        }
+        if ($state !== 'anulada' && ($deleted !== null || $studentState !== 'activo' || $courseState !== 'activo')) {
+            $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertUnprocessable();
+            $this->assertSoftDeleted($enrollment);
+            $this->assertSame($state, $enrollment->fresh()->estado);
+            $this->assertSame(2, $course->fresh()->cupos_disponibles);
+            $this->assertSeats($course);
+
+            return;
         }
         $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertRedirect();
         $this->assertSame($state, $enrollment->fresh()->estado);
@@ -159,6 +169,7 @@ class MatriculaOperationsTest extends TestCase
         yield 'delete' => ['destroy', 'deleting'];
         yield 'restore' => ['restaurar', 'restoring'];
         yield 'transfer and reactivate' => ['update', 'updating'];
+        yield 'transfer occupied seat' => ['transfer', 'updating'];
     }
 
     #[DataProvider('rollbackOperations')]
@@ -181,7 +192,7 @@ class MatriculaOperationsTest extends TestCase
         $this->withoutExceptionHandling();
         try {
             match ($operation) {
-                'update' => $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente')),
+                'update', 'transfer' => $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente')),
                 'destroy' => $this->deleteJson(route('admin.matriculas.destroy', $enrollment)),
                 default => $this->patchJson(route('admin.matriculas.'.$operation, $enrollment->id)),
             };
@@ -317,6 +328,206 @@ class MatriculaOperationsTest extends TestCase
         $this->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertForbidden();
         $this->assertSame('pagada', $enrollment->fresh()->estado);
         $this->assertSeats($course);
+    }
+
+    public static function acquisitionEligibility(): iterable
+    {
+        foreach (self::parentConditions() as $name => $condition) {
+            foreach (['transfer', 'reactivate', 'create'] as $operation) {
+                yield "$operation / $name" => [$operation, ...$condition];
+            }
+        }
+    }
+
+    #[DataProvider('acquisitionEligibility')]
+    public function test_each_acquisition_checks_eligibility_without_partial_writes(string $operation, string $studentState, string $courseState, ?string $deleted): void
+    {
+        [$student, $source, $enrollment] = $this->enrollment('anulada');
+        $target = $operation === 'reactivate' ? $source : $this->course('TARGET');
+        if ($operation === 'transfer') {
+            $enrollment->update(['estado' => 'pagada']);
+            $source->decrement('cupos_disponibles');
+        }
+        $student->update(['estado' => $studentState]);
+        $target->update(['estado' => $courseState]);
+        if ($deleted !== null) {
+            ($deleted === 'student' ? $student : $target)->delete();
+        }
+        $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
+        $sourceSeats = $source->fresh()->cupos_disponibles;
+        $targetSeats = $target->fresh()->cupos_disponibles;
+        $this->actingAs($this->adminUser());
+        $response = $operation === 'create'
+            ? $this->postJson(route('admin.matriculas.store'), $this->data($student, $target, 'pendiente'))
+            : $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente'));
+        if ($studentState === 'activo' && $courseState === 'activo' && $deleted === null) {
+            $response->assertRedirect();
+        } else {
+            $response->assertUnprocessable();
+            $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
+            $this->assertSame($sourceSeats, $source->fresh()->cupos_disponibles);
+            $this->assertSame($targetSeats, $target->fresh()->cupos_disponibles);
+        }
+        $this->assertSeats($source);
+        $this->assertSeats($target);
+        $this->assertSame($deleted === 'student', $student->fresh()->trashed());
+        $this->assertSame($deleted === 'course', $target->fresh()->trashed());
+        Http::assertNothingSent();
+    }
+
+    public static function historicalEdits(): iterable
+    {
+        foreach (['pendiente', 'pagada', 'anulada'] as $state) {
+            foreach (['inactivo', 'archivado'] as $courseState) {
+                yield "$state / $courseState" => [$state, $courseState];
+            }
+        }
+    }
+
+    #[DataProvider('historicalEdits')]
+    public function test_historical_corrections_with_inactive_parents_keep_occupation(string $state, string $courseState): void
+    {
+        [$student, $course, $enrollment] = $this->enrollment($state);
+        $student->update(['estado' => 'inactivo']);
+        $course->update(['estado' => $courseState, 'cupos_maximos' => $state === 'anulada' ? 0 : 1, 'cupos_disponibles' => 0]);
+        $data = $this->data($student, $course, $state === 'pendiente' ? 'pagada' : $state);
+        $data['observaciones'] = 'Corrección histórica';
+        $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $data)->assertRedirect();
+        $this->assertSame('Corrección histórica', $enrollment->fresh()->observaciones);
+        $this->assertSame(0, $course->fresh()->cupos_disponibles);
+        $this->assertSeats($course);
+    }
+
+    public static function lateEligibilityChanges(): iterable
+    {
+        foreach (['transfer', 'reactivate'] as $operation) {
+            foreach (['student inactive', 'student deleted', 'course inactive', 'course archived', 'course deleted'] as $change) {
+                yield "$operation / $change" => [$operation, $change];
+            }
+        }
+    }
+
+    #[DataProvider('lateEligibilityChanges')]
+    public function test_eligibility_is_rechecked_after_request_validation(string $operation, string $change): void
+    {
+        [$student, $source, $enrollment] = $this->enrollment($operation === 'transfer' ? 'pagada' : 'anulada');
+        $target = $operation === 'transfer' ? $this->course('TARGET') : $source;
+        $this->actingAs($this->adminUser());
+        $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
+        $this->app->afterResolving(UpdateMatriculaRequest::class, function () use ($student, $target, $change): void {
+            match ($change) {
+                'student inactive' => $student->update(['estado' => 'inactivo']),
+                'student deleted' => $student->delete(),
+                'course inactive' => $target->update(['estado' => 'inactivo']),
+                'course archived' => $target->update(['estado' => 'archivado']),
+                'course deleted' => $target->delete(),
+            };
+        });
+        $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente'))
+            ->assertUnprocessable()->assertJsonValidationErrors(str_starts_with($change, 'student') ? 'estudiante_id' : 'curso_id');
+        $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
+        $this->assertSeats($source);
+        $this->assertSeats($target);
+    }
+
+    public function test_restoring_annulled_history_with_deleted_parents_and_duplicate_needs_no_seat(): void
+    {
+        [$student, $course, $enrollment] = $this->enrollment('anulada');
+        $course->update(['cupos_maximos' => 1, 'cupos_disponibles' => 1]);
+        $this->actingAs($this->adminUser())->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
+        $this->postJson(route('admin.matriculas.store'), $this->data($student, $course, 'pagada'))->assertRedirect();
+        $student->delete();
+        $course->delete();
+        $notifications = DB::table('matricula_notifications')->count();
+        $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertRedirect();
+        $this->assertNotSoftDeleted($enrollment);
+        $this->assertSame('anulada', $enrollment->fresh()->estado);
+        $this->assertSoftDeleted($student);
+        $this->assertSoftDeleted($course);
+        $this->assertSame(0, $course->fresh()->cupos_disponibles);
+        $this->assertSeats($course);
+        $this->assertDatabaseCount('matricula_notifications', $notifications);
+        Http::assertNothingSent();
+    }
+
+    public function test_annulled_history_can_still_be_created_in_a_full_course_with_a_current_enrollment(): void
+    {
+        [$student, $course] = $this->enrollment('pagada');
+        $course->update(['cupos_maximos' => 1, 'cupos_disponibles' => 0]);
+        $this->actingAs($this->adminUser())->postJson(route('admin.matriculas.store'), $this->data($student, $course, 'anulada'))->assertRedirect();
+        $this->assertSame(1, Matricula::where('estado', 'anulada')->count());
+        $this->assertSame(0, $course->fresh()->cupos_disponibles);
+        $this->assertSeats($course);
+    }
+
+    public function test_changed_relations_during_lock_discovery_reject_without_partial_writes(): void
+    {
+        [$student, $source, $enrollment] = $this->enrollment('pagada');
+        $target = $this->course('TARGET');
+        $this->actingAs($this->adminUser());
+        $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
+        $changed = false;
+        // One connection, deterministic interleaving only; not PostgreSQL concurrency.
+        $this->app->afterResolving(UpdateMatriculaRequest::class, function () use ($source, $target, $enrollment, &$changed): void {
+            DB::listen(function ($query) use ($source, $target, $enrollment, &$changed): void {
+                if (! $changed && DB::transactionLevel() > 0 && str_contains($query->sql, 'select * from "matriculas"')) {
+                    $changed = true;
+                    $source->increment('cupos_disponibles');
+                    $target->decrement('cupos_disponibles');
+                    Matricula::whereKey($enrollment->id)->update(['curso_id' => $target->id]);
+                }
+            });
+        });
+        $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $source, 'pagada'))
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
+        $this->assertTrue($changed);
+        $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
+        $this->assertSeats($source);
+        $this->assertSeats($target);
+    }
+
+    public static function historicalTransfers(): iterable
+    {
+        yield 'annulled history' => ['anulada'];
+        yield 'transfer and annul' => ['pagada'];
+    }
+
+    #[DataProvider('historicalTransfers')]
+    public function test_transfer_without_destination_occupation_keeps_historical_contract(string $state): void
+    {
+        [$student, $source, $enrollment] = $this->enrollment($state);
+        $target = $this->course('TARGET', 0);
+        $student->update(['estado' => 'inactivo']);
+        $target->update(['estado' => 'archivado']);
+        $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'anulada'))->assertRedirect();
+        $this->assertSame('anulada', $enrollment->fresh()->estado);
+        $this->assertSame($target->id, $enrollment->fresh()->curso_id);
+        $this->assertSeats($source);
+        $this->assertSeats($target);
+    }
+
+    public static function historicalSources(): iterable
+    {
+        yield 'inactive' => ['inactivo'];
+        yield 'archived' => ['archivado'];
+        yield 'deleted' => ['deleted'];
+    }
+
+    #[DataProvider('historicalSources')]
+    public function test_transfer_can_release_occupation_from_an_unavailable_source(string $condition): void
+    {
+        [$student, $source, $enrollment] = $this->enrollment('pagada');
+        $target = $this->course('TARGET');
+        if ($condition === 'deleted') {
+            $source->delete();
+        } else {
+            $source->update(['estado' => $condition]);
+        }
+        $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pagada'))->assertRedirect();
+        $this->assertSame($target->id, $enrollment->fresh()->curso_id);
+        $this->assertSame($condition === 'deleted', $source->fresh()->trashed());
+        $this->assertSeats($source);
+        $this->assertSeats($target);
     }
 
     private function enrollment(string $state = 'pendiente'): array

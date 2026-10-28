@@ -156,9 +156,7 @@ class MatriculaController extends Controller implements HasMiddleware
         $datos = $request->validated();
 
         $matricula = DB::transaction(function () use ($matricula, $datos, $request): Matricula {
-            $matricula = Matricula::query()
-                ->lockForUpdate()
-                ->findOrFail($matricula->id);
+            $matricula = $this->lockMatricula($matricula->id, (int) $datos['curso_id'], (int) $datos['estudiante_id']);
 
             $anteriorActiva = $matricula->estado !== 'anulada';
             $nuevaActiva = $datos['estado'] !== 'anulada';
@@ -200,6 +198,10 @@ class MatriculaController extends Controller implements HasMiddleware
             $requiereCupoNuevo = $nuevaActiva
                 && (! $anteriorActiva || $cursoAnteriorId !== $cursoNuevoId);
 
+            if ($requiereCupoNuevo) {
+                $this->assertEligibleForOccupation($estudiante, $cursoNuevo);
+            }
+
             if ($requiereCupoNuevo && $cursoNuevo->cupos_disponibles <= 0) {
                 throw ValidationException::withMessages([
                     'curso_id' => 'El curso no tiene cupos disponibles.',
@@ -227,9 +229,7 @@ class MatriculaController extends Controller implements HasMiddleware
     public function destroy(Matricula $matricula): RedirectResponse
     {
         DB::transaction(function () use ($matricula): void {
-            $matricula = Matricula::query()
-                ->lockForUpdate()
-                ->findOrFail($matricula->id);
+            $matricula = $this->lockMatricula($matricula->id);
 
             if ($matricula->estado !== 'anulada') {
                 $curso = Curso::withTrashed()
@@ -249,9 +249,7 @@ class MatriculaController extends Controller implements HasMiddleware
     public function anular(Matricula $matricula): RedirectResponse
     {
         DB::transaction(function () use ($matricula): void {
-            $matricula = Matricula::query()
-                ->lockForUpdate()
-                ->findOrFail($matricula->id);
+            $matricula = $this->lockMatricula($matricula->id);
 
             if ($matricula->estado !== 'anulada') {
                 $curso = Curso::withTrashed()
@@ -270,9 +268,7 @@ class MatriculaController extends Controller implements HasMiddleware
     public function restaurar(string $matricula): RedirectResponse
     {
         DB::transaction(function () use ($matricula): void {
-            $matricula = Matricula::withTrashed()
-                ->lockForUpdate()
-                ->findOrFail($matricula);
+            $matricula = $this->lockMatricula($matricula, withTrashed: true);
 
             abort_unless($matricula->trashed(), 404);
 
@@ -280,6 +276,9 @@ class MatriculaController extends Controller implements HasMiddleware
                 $curso = Curso::withTrashed()
                     ->lockForUpdate()
                     ->findOrFail($matricula->curso_id);
+
+                $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($matricula->estudiante_id);
+                $this->assertEligibleForOccupation($estudiante, $curso);
 
                 $this->assertNoActiveDuplicate(
                     (int) $matricula->estudiante_id,
@@ -383,6 +382,47 @@ class MatriculaController extends Controller implements HasMiddleware
         }
 
         return $query;
+    }
+
+    /**
+     * Dentro de la transacción: cursos por id, estudiantes por id, matrícula.
+     * La lectura inicial solo descubre las relaciones; la fila bloqueada decide.
+     * Si cambiaron mientras esperábamos, se rechaza sin escribir ni reintentar.
+     */
+    private function lockMatricula(int|string $id, ?int $cursoDestino = null, ?int $estudianteDestino = null, bool $withTrashed = false): Matricula
+    {
+        $query = Matricula::query()->withTrashed($withTrashed);
+        $snapshot = (clone $query)->findOrFail($id);
+
+        Curso::withTrashed()
+            ->whereIn('id', array_unique([$snapshot->curso_id, $cursoDestino ?? $snapshot->curso_id]))
+            ->orderBy('id')->lockForUpdate()->get();
+        Estudiante::withTrashed()
+            ->whereIn('id', array_unique([$snapshot->estudiante_id, $estudianteDestino ?? $snapshot->estudiante_id]))
+            ->orderBy('id')->lockForUpdate()->get();
+        $matricula = $query->lockForUpdate()->findOrFail($id);
+
+        if ($matricula->curso_id !== $snapshot->curso_id || $matricula->estudiante_id !== $snapshot->estudiante_id) {
+            throw ValidationException::withMessages([
+                'curso_id' => 'La matrícula cambió durante la operación. Recarga los datos antes de continuar.',
+            ]);
+        }
+
+        return $matricula;
+    }
+
+    private function assertEligibleForOccupation(Estudiante $estudiante, Curso $curso): void
+    {
+        if ($estudiante->trashed() || $estudiante->estado !== 'activo') {
+            throw ValidationException::withMessages([
+                'estudiante_id' => 'El estudiante seleccionado no está activo.',
+            ]);
+        }
+        if ($curso->trashed() || $curso->estado !== 'activo') {
+            throw ValidationException::withMessages([
+                'curso_id' => 'El curso seleccionado no está disponible.',
+            ]);
+        }
     }
 
     private function assertNoActiveDuplicate(int $estudianteId, int $cursoId, ?int $excluirId = null): void
