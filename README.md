@@ -2,7 +2,7 @@
 
 Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio está hecha con **Laravel 12**, Blade, Alpine.js, Tailwind CSS y Vite. Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, procesos internos, reportes y un asistente virtual.
 
-> **Identifica la aplicación antes de trabajar.** Laravel ocupa la raíz de este repositorio. El sitio HTML y su servidor Node están aislados en [`legacy-html-node/`](legacy-html-node/README.md), con sus propios recursos, dependencias y configuración. El chatbot descrito aquí está en las páginas Blade servidas por Laravel.
+> **Identifica la aplicación antes de trabajar.** Laravel ocupa la raíz de este repositorio. El sitio público son las vistas Blade; el sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git. El chatbot descrito aquí está en las páginas Blade servidas por Laravel.
 
 ## Contenido
 
@@ -29,11 +29,11 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 | `database/migrations/`, `database/seeders/` | Esquema y datos iniciales. |
 | `tests/Feature/`, `tests/Unit/`, `tests/frontend/`, `tests/browser/` | Pruebas PHP, frontend y comprobación de chat en Edge. |
 | `public/` | Raíz pública del servidor web; Vite escribe en `public/build/`. |
-| `legacy-html-node/` | Sitio HTML y API Node/MySQL históricos, con su propio `package.json` y `.env`. |
+| `public/assets/` | Imágenes, estilos y scripts estáticos de las vistas Blade (`css/`, `images/`, `js/`). Está versionada. |
 
-El `package.json` de la raíz contiene únicamente los comandos y dependencias de **Vite de Laravel**. El proyecto histórico tiene su propio manifiesto en `legacy-html-node/package.json`. `npm run dev` desde la raíz inicia Vite. Para trabajar en el sitio histórico, entra en `legacy-html-node/` y sigue su README; su servidor ejecuta `sequelize.sync({ alter: true })` contra MySQL al arrancar.
+El `package.json` de la raíz contiene los comandos y dependencias de **Vite de Laravel**. `npm run dev` desde la raíz inicia Vite.
 
-Las vistas Laravel también usan imágenes, estilos y scripts estáticos de `legacy-html-node/assets/`. `npm run dev` y `npm run build` copian esos recursos a `public/assets/` antes de iniciar o compilar Vite. Esta carpeta generada no se versiona: inclúyela junto con `public/build/` al publicar la aplicación. Para restaurarla sin compilar, ejecuta `npm run assets:sync` desde la raíz. No es necesario iniciar el servidor Node histórico.
+Las vistas Laravel cargan imágenes, estilos y scripts estáticos con `asset('assets/...')`, desde `public/assets/`. Esa carpeta se versiona y no requiere ningún paso de copia o compilación. Para añadir una imagen, colócala directamente en `public/assets/images/`. `public/build/` sí es generada y no se versiona.
 
 ## Requisitos
 
@@ -78,7 +78,7 @@ php artisan serve
 npm run dev
 ```
 
-Visita la URL de **Laravel** que muestra la primera terminal, normalmente `http://127.0.0.1:8000`; no abras directamente la URL de Vite ni los archivos HTML de `legacy-html-node/` para probar Laravel. La directiva `@vite` de las vistas conecta el navegador con el servidor Vite. Los cambios en CSS se actualizan en caliente; los cambios en vistas Blade, rutas y archivos PHP de `app/` provocan una **recarga automática completa** de la página. El JavaScript se actualiza mediante HMR cuando es posible y puede provocar una recarga completa según el módulo. No necesitas ejecutar `npm run build` después de cada edición: ese comando genera archivos para uso sin el servidor de desarrollo.
+Visita la URL de **Laravel** que muestra la primera terminal, normalmente `http://127.0.0.1:8000`; no abras directamente la URL de Vite para probar Laravel. La directiva `@vite` de las vistas conecta el navegador con el servidor Vite. Los cambios en CSS se actualizan en caliente; los cambios en vistas Blade, rutas y archivos PHP de `app/` provocan una **recarga automática completa** de la página. El JavaScript se actualiza mediante HMR cuando es posible y puede provocar una recarga completa según el módulo. No necesitas ejecutar `npm run build` después de cada edición: ese comando genera archivos para uso sin el servidor de desarrollo.
 
 Blade genera HTML en el servidor; una vista o respuesta PHP nueva necesita otra petición para verse. La recarga automática evita pulsar F5, pero no conserva necesariamente el estado de formularios o del chat. Si necesitas actualizar partes de la página sin recarga completa, se requiere implementar interactividad específica (por ejemplo, peticiones AJAX o componentes reactivos) para esas partes.
 
@@ -182,7 +182,7 @@ node tests/browser/chat-smoke.mjs
 | `419` al enviar el chat | Comprueba que cargas la página y envías a la misma aplicación/host, que la sesión funciona y que la página tiene un token CSRF vigente; recarga la página. |
 | Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_intents` se consulta y `chat_logs` se escribe en cada mensaje. |
 | Página sin estilos o interacción | Ejecuta `npm run build` o inicia `npm run dev`; confirma que visitas Laravel mediante `php artisan serve`. |
-| Imágenes rotas o secciones sin su diseño propio | Ejecuta `npm run assets:sync` y comprueba que exista `public/assets/`. Después recarga la página. |
+| Imágenes rotas o secciones sin su diseño propio | Comprueba que exista `public/assets/` (viene en el repositorio) y que la ruta usada en la vista coincida con un archivo real. Después recarga la página. |
 | Laravel intenta cargar Vite después de cerrarlo | Confirma que Vite ya no está activo y elimina el marcador temporal `public/hot`; luego usa `npm run build` o reinicia `npm run dev`. |
 | `could not find driver` | Activa `pdo_pgsql` para PostgreSQL o `pdo_sqlite` para las pruebas, según el comando. |
 | No llega un correo | Comprueba `MAIL_MAILER`; con `log` no se envían mensajes reales. |
