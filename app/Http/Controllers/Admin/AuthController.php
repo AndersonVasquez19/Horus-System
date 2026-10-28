@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Support\ListFilter;
+use App\Models\User;
+use App\Support\Email;
+use App\Support\PasswordPolicy;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
-use App\Models\User;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -21,28 +22,24 @@ class AuthController extends Controller
 
     public function register(Request $request): RedirectResponse
     {
-        $request->merge(['email' => mb_strtolower(ListFilter::text($request, 'email'))]);
+        Email::normalizeRequest($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(10)->letters()->mixedCase()->numbers()],
+            'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
+            'password' => ['required', 'confirmed', PasswordPolicy::rule()],
             'terms' => ['accepted'],
         ], [
             'name.required' => 'Escribe tu nombre para continuar.',
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'Ingresa un correo electrónico válido.',
-            'email.unique' => 'Ya existe una cuenta con este correo.',
-            'password.confirmed' => 'Las contraseñas no coinciden.',
-            'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
-            'password.letters' => 'La contraseña debe incluir letras.',
-            'password.mixed' => 'Combina mayúsculas y minúsculas en tu contraseña.',
-            'password.numbers' => 'La contraseña debe incluir al menos un número.',
             'terms.accepted' => 'Debes aceptar el aviso de privacidad para crear tu cuenta.',
-        ]);
+        ] + PasswordPolicy::messages());
 
+        // El registro público nunca asigna roles. El acceso al panel se concede por consola:
+        // `php artisan horus:crear-usuario`.
         User::create([
             'name' => $data['name'],
-            'email' => mb_strtolower($data['email']),
+            'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
 
@@ -56,7 +53,7 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $request->merge(['email' => mb_strtolower(ListFilter::text($request, 'email'))]);
+        Email::normalizeRequest($request);
         $credentials = $request->validate(
             [
                 'email' => ['required', 'email'],
@@ -77,9 +74,12 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        if ($request->user()->hasAnyRole(['admin', 'coordinador', 'secretaria'])) {
+        if ($request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES)) {
             return redirect()->intended(route('admin.dashboard'));
         }
+
+        // Sin rol de panel: no arrastrar una URL "intended" (p. ej. /admin) a un inicio de sesión posterior.
+        $request->session()->forget('url.intended');
 
         return redirect()->route('home');
     }
