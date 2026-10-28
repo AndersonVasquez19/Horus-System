@@ -283,3 +283,50 @@
         font-size: 0.95rem;
     }
 }
+
+/* Imagen de cabecera de cada carta de cámaras */
+.carta::before {
+    z-index: 3;
+}
+
+.carta-imagen {
+    position: relative;
+    margin: -40px -30px 0;
+    height: 210px;
+    overflow: hidden;
+    background: #fff;
+    border-bottom: 1px solid rgba(10, 37, 64, 0.08);
+}
+
+.carta-imagen img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+/* Fotos de producto sobre fondo blanco: se muestran completas, sin recortar la cámara */
+.carta-imagen--producto {
+    padding: 14px 14px 38px;
+}
+
+.carta-imagen--producto img {
+    object-fit: contain;
+}
+
+.carta:hover .carta-imagen img {
+    transform: scale(1.06);
+}
+
+.carta-imagen + .carta-icon {
+    width: 76px;
+    height: 76px;
+    margin: -38px auto 20px;
+    border: 4px solid #fff;
+    z-index: 2;
+}
+
+.carta-imagen + .carta-icon i {
+    font-size: 2rem;
+}

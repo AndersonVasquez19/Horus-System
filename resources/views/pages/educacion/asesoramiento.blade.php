@@ -74,6 +74,9 @@
 
         <div class="cartas-contenedor">
             <article class="carta">
+                <div class="carta-imagen">
+                    <img src="{{ asset('assets/images/asesoramiento/asesoramiento-educativo.jpg') }}" alt="Capacitación con proyector y participantes sentados, representando el asesoramiento educativo" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icono">
                     <i class="fas fa-graduation-cap"></i>
                 </div>
@@ -87,6 +90,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen">
+                    <img src="{{ asset('assets/images/asesoramiento/asesoramiento-empresarial.jpg') }}" alt="Conferencia institucional con expositor y mesa directiva, representando el asesoramiento empresarial" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icono">
                     <i class="fas fa-briefcase"></i>
                 </div>
@@ -100,6 +106,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen">
+                    <img src="{{ asset('assets/images/asesoramiento/asesoramiento-legal.jpg') }}" alt="Entrega de certificados en el Ilustre Colegio de Abogados de Cajamarca, representando el asesoramiento legal" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icono">
                     <i class="fas fa-balance-scale"></i>
                 </div>

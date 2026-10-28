@@ -26,6 +26,9 @@
 
         <div class="cartas-contenedor">
             <article class="carta">
+                <div class="carta-imagen carta-imagen--producto">
+                    <img src="{{ asset('assets/images/videovigilancia/camara-ip.jpg') }}" alt="Cámara IP giratoria con conexión Wi-Fi" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -34,6 +37,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--producto">
+                    <img src="{{ asset('assets/images/videovigilancia/camara-analogica.jpg') }}" alt="Cámara analógica HD tipo bala" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -43,6 +49,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--producto">
+                    <img src="{{ asset('assets/images/videovigilancia/camara-full-hd.jpg') }}" alt="Cámara Full HD con visión infrarroja" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -52,6 +61,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--producto">
+                    <img src="{{ asset('assets/images/videovigilancia/camara-domo.jpg') }}" alt="Cámara domo de vigilancia para interiores" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -61,6 +73,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--escena">
+                    <img src="{{ asset('assets/images/videovigilancia/camara-360.jpg') }}" alt="Cámara de seguridad de 360 grados montada en el techo" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -70,6 +85,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--producto">
+                    <img src="{{ asset('assets/images/videovigilancia/camara-tubo-bala.jpg') }}" alt="Cámara fija tipo bala para exteriores" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -79,6 +97,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--escena">
+                    <img src="{{ asset('assets/images/videovigilancia/sensor-movimiento.jpg') }}" alt="Sensor de movimiento instalado en la pared" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-wifi"></i>
                 </div>
@@ -88,6 +109,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--escena">
+                    <img src="{{ asset('assets/images/videovigilancia/alarma-email.jpg') }}" alt="Ilustración de una alarma con aviso remoto" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-envelope"></i>
                 </div>
@@ -96,6 +120,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--producto">
+                    <img src="{{ asset('assets/images/videovigilancia/vision-nocturna.jpg') }}" alt="Cámara tipo bala con visión nocturna" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-moon"></i>
                 </div>
@@ -104,6 +131,9 @@
             </article>
 
             <article class="carta">
+                <div class="carta-imagen carta-imagen--escena">
+                    <img src="{{ asset('assets/images/videovigilancia/visualizacion-dispositivos.jpg') }}" alt="Tableta mostrando varias cámaras de vigilancia en vivo" loading="lazy" decoding="async">
+                </div>
                 <div class="carta-icon">
                     <i class="fas fa-mobile-alt"></i>
                 </div>

@@ -1,19 +1,60 @@
-@props(['slides' => []])
-<div x-data="carousel()" class="carousel-frame relative overflow-hidden rounded-[24px] shadow-gold">
-  <div class="relative h-[350px] sm:h-[450px] lg:h-[600px]">
+@props(['slides' => [], 'stats' => [], 'highlights' => []])
+<div x-data="carousel({{ count($slides) }})" x-on:mouseenter="pause()" x-on:mouseleave="resume()" x-on:focusin="pause()" x-on:focusout="resume()" x-on:keydown.left="prev()" x-on:keydown.right="next()" class="carousel-frame hero-carousel" role="region" aria-roledescription="carrusel" aria-label="Servicios de Horus Group SRL">
+  <h1 class="sr-only">Horus Group SRL: tecnología, capacitaciones y soporte en Cajamarca</h1>
+
+  <div class="hero-backdrops" aria-hidden="true">
     @foreach ($slides as $index => $slide)
-      <div x-show="current === {{ $index }}" x-cloak x-transition:enter="transition duration-700 ease-out" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition duration-500 ease-in" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-105" class="absolute inset-0">
-        <img src="{{ asset($slide['image']) }}" alt="{{ $slide['alt'] }}" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" fetchpriority="{{ $index === 0 ? 'high' : 'low' }}" decoding="async" class="h-full w-full object-contain object-center brightness-[0.85] contrast-[1.05] max-sm:object-cover" />
+      <div class="hero-backdrop {{ $index === 0 ? 'is-active' : '' }}" :class="{ 'is-active': current === {{ $index }} }">
+        <img src="{{ asset($slide['image']) }}" alt="" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" fetchpriority="{{ $index === 0 ? 'high' : 'low' }}" decoding="async">
       </div>
     @endforeach
+    <div class="hero-overlay"></div>
   </div>
 
-  <button type="button" @click="prev()" aria-label="Imagen anterior" class="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-lg text-ink shadow-lg hover:bg-gold"><i class="fa-solid fa-chevron-left"></i></button>
-  <button type="button" @click="next()" aria-label="Imagen siguiente" class="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-lg text-ink shadow-lg hover:bg-gold"><i class="fa-solid fa-chevron-right"></i></button>
+  <div class="section-shell hero-body">
+    <div class="hero-copy-stack">
+      @foreach ($slides as $index => $slide)
+        <div class="hero-copy {{ $index === 0 ? 'is-active' : '' }}" :class="{ 'is-active': current === {{ $index }} }" role="group" aria-roledescription="diapositiva" aria-label="{{ $index + 1 }} de {{ count($slides) }}">
+          <span class="hero-badge"><i class="{{ $slide['icon'] }}" aria-hidden="true"></i> {{ $slide['eyebrow'] }}</span>
+          <h2 class="hero-title">{{ $slide['title'] }} <span>{{ $slide['highlight'] }}</span></h2>
+          <p class="hero-text">{{ $slide['text'] }}</p>
+          <div class="hero-actions">
+            <a href="{{ $slide['cta']['url'] }}" class="hero-btn hero-btn--primary">{{ $slide['cta']['label'] }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            <a href="{{ $slide['cta2']['url'] }}" class="hero-btn hero-btn--ghost">{{ $slide['cta2']['label'] }}</a>
+          </div>
+        </div>
+      @endforeach
+    </div>
 
-  <div class="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2">
+    @if ($stats)
+      <dl class="hero-stats">
+        @foreach ($stats as $stat)
+          <div class="hero-stat">
+            <dt>{{ $stat['value'] }}</dt>
+            <dd>{{ $stat['label'] }}</dd>
+          </div>
+        @endforeach
+      </dl>
+    @endif
+  </div>
+
+  @if ($highlights)
+    <ul class="hero-highlights">
+      @foreach ($highlights as $item)
+        <li>
+          <span class="hero-highlight-icon"><i class="{{ $item['icon'] }}" aria-hidden="true"></i></span>
+          <span><strong>{{ $item['title'] }}</strong><small>{{ $item['text'] }}</small></span>
+        </li>
+      @endforeach
+    </ul>
+  @endif
+
+  <button type="button" @click="prev()" aria-label="Diapositiva anterior" class="hero-arrow hero-arrow--prev"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+  <button type="button" @click="next()" aria-label="Diapositiva siguiente" class="hero-arrow hero-arrow--next"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+
+  <div class="hero-dots">
     @foreach ($slides as $index => $slide)
-      <button type="button" @click="current = {{ $index }}" :class="current === {{ $index }} ? 'w-8 bg-gold' : 'w-2.5 bg-white/70'" class="h-2.5 rounded-full transition-all" aria-label="Ir al slide {{ $index + 1 }}"></button>
+      <button type="button" @click="go({{ $index }})" :class="{ 'is-active': current === {{ $index }} }" :aria-current="current === {{ $index }}" class="hero-dot {{ $index === 0 ? 'is-active' : '' }}" aria-label="Ir a la diapositiva {{ $index + 1 }}"></button>
     @endforeach
   </div>
 </div>

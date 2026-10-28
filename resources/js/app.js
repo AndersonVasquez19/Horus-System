@@ -9,19 +9,30 @@ import '../css/chatbot.css';
 window.Alpine = Alpine;
 
 document.addEventListener('alpine:init', () => {
-  Alpine.data('carousel', () => ({
+  Alpine.data('carousel', (total = 1, interval = 6000) => ({
     current: 0,
-    total: 5,
+    total,
+    paused: false,
     init() {
+      if (total < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       setInterval(() => {
-        this.current = (this.current + 1) % this.total;
-      }, 5000);
+        if (!this.paused && !document.hidden) this.next();
+      }, interval);
     },
     next() {
       this.current = (this.current + 1) % this.total;
     },
     prev() {
       this.current = (this.current - 1 + this.total) % this.total;
+    },
+    go(index) {
+      this.current = index;
+    },
+    pause() {
+      this.paused = true;
+    },
+    resume() {
+      this.paused = false;
     },
   }));
 
@@ -30,6 +41,16 @@ document.addEventListener('alpine:init', () => {
     items,
     open(id) {
       this.active = this.items.find((item) => item.id === id) || null;
+      if (this.active && window.matchMedia('(max-width: 1023px)').matches) {
+        this.$nextTick(() => this.$refs.panel?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      }
+    },
+    toggle(id) {
+      if (this.active && this.active.id === id) {
+        this.close();
+        return;
+      }
+      this.open(id);
     },
     close() {
       this.active = null;
