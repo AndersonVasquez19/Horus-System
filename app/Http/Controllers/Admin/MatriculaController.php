@@ -90,9 +90,23 @@ class MatriculaController extends Controller implements HasMiddleware
         $datos = $request->validated();
 
         $matricula = DB::transaction(function () use ($datos): Matricula {
-            $curso = Curso::query()
+            $curso = Curso::withTrashed()
                 ->lockForUpdate()
                 ->findOrFail($datos['curso_id']);
+
+            // La validación HTTP puede haber quedado obsoleta antes de adquirir el lock.
+            if ($curso->trashed() || $curso->estado !== 'activo') {
+                throw ValidationException::withMessages([
+                    'curso_id' => 'El curso seleccionado no está disponible.',
+                ]);
+            }
+
+            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
+            if ($estudiante->trashed() || $estudiante->estado !== 'activo') {
+                throw ValidationException::withMessages([
+                    'estudiante_id' => 'El estudiante seleccionado no está activo.',
+                ]);
+            }
 
             if ($datos['estado'] !== 'anulada') {
                 $this->assertNoActiveDuplicate($datos['estudiante_id'], $curso->id);
@@ -141,13 +155,16 @@ class MatriculaController extends Controller implements HasMiddleware
     {
         $datos = $request->validated();
 
-        $matricula = DB::transaction(function () use ($matricula, $datos): Matricula {
+        $matricula = DB::transaction(function () use ($matricula, $datos, $request): Matricula {
             $matricula = Matricula::query()
                 ->lockForUpdate()
                 ->findOrFail($matricula->id);
 
             $anteriorActiva = $matricula->estado !== 'anulada';
             $nuevaActiva = $datos['estado'] !== 'anulada';
+            if ($anteriorActiva && ! $nuevaActiva) {
+                abort_unless($request->user()->can('matriculas.anular'), 403);
+            }
             $cursoAnteriorId = (int) $matricula->curso_id;
             $cursoNuevoId = (int) $datos['curso_id'];
             $cursos = Curso::withTrashed()
@@ -158,6 +175,19 @@ class MatriculaController extends Controller implements HasMiddleware
                 ->keyBy('id');
             $cursoAnterior = $cursos->get($cursoAnteriorId);
             $cursoNuevo = $cursos->get($cursoNuevoId);
+
+            if ($cursoNuevo === null || $cursoNuevo->trashed()) {
+                throw ValidationException::withMessages([
+                    'curso_id' => 'El curso seleccionado no está disponible.',
+                ]);
+            }
+
+            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
+            if ($estudiante->trashed()) {
+                throw ValidationException::withMessages([
+                    'estudiante_id' => 'El estudiante seleccionado no está disponible.',
+                ]);
+            }
 
             if ($nuevaActiva) {
                 $this->assertNoActiveDuplicate(
