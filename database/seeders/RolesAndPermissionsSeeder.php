@@ -28,6 +28,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'cursos.editar',
         'cursos.eliminar',
         'cursos.restaurar',
+        'cursos.publicar',
         'matriculas.ver',
         'matriculas.crear',
         'matriculas.editar',

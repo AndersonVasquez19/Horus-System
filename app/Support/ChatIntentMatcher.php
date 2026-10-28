@@ -31,7 +31,7 @@ class ChatIntentMatcher
         }
         // Una mención incidental no expresa una consulta. Las frases cortas sí sirven como tema.
         $consulta = count(explode(' ', trim($texto))) <= 3
-            || preg_match('/\b(que|como|cuando|donde|cuanto|cuales|cual|necesito|quiero|busco|ofrecen|tienen|brindan|informacion|consulta|puedo|perdi|falte|recuperar|reprogramar|horarios|requisitos|servicios|cursos disponibles|compara|comparar|orientame|ayudame)\b/', $texto);
+            || preg_match('/\b(que|como|cuando|donde|cuanto|cuales|cual|necesito|quiero|busco|ofrecen|tienen|brindan|informacion|consulta|puedo|perdi|falte|recuperar|reprogramar|horarios|requisitos|inscripcion|matricula|modalidad|servicios|cursos disponibles|compara|comparar|orientame|ayudame)\b/', $texto);
         $matches = [];
         foreach ($intents as $intent) {
             foreach ($intent->keywords ?? [] as $keyword) {

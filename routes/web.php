@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\CursoController;
+use App\Http\Controllers\Admin\CursoPublicacionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
@@ -64,6 +65,9 @@ Route::prefix('admin')
             ->name('estudiantes.restaurar');
 
         Route::resource('cursos', CursoController::class);
+        Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
+        Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
+        Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');
         Route::patch('cursos/{curso}/restaurar', [CursoController::class, 'restaurar'])
             ->name('cursos.restaurar');
 

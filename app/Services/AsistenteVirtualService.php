@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\ChatIntent;
 use App\Models\ChatLog;
+use App\Support\ChatCursosPublicos;
 use App\Support\ChatIntentMatcher;
 use App\Support\ChatKnowledge;
 use Illuminate\Http\Client\ConnectionException;
@@ -21,7 +22,7 @@ class AsistenteVirtualService
 
     public const RESPUESTA_FALLBACK = 'No tengo un dato confirmado para esa consulta. Puedo orientarte sobre cursos, matrículas y servicios de Horus. También puedes consultar /contactos o llamar al +51 927 582 305.';
 
-    public function __construct(private ChatIntentMatcher $matcher) {}
+    public function __construct(private ChatIntentMatcher $matcher, private CatalogoPublicoCursos $catalogo, private ChatCursosPublicos $cursos) {}
 
     /** @return array{respuesta: string, intent: string|null, fuente: string} */
     public function procesarMensaje(string $mensaje, string $sessionId, string $scope = 'direct'): array
@@ -30,11 +31,13 @@ class AsistenteVirtualService
             throw ValidationException::withMessages(['mensaje' => 'Escribe una consulta de hasta 2000 caracteres.']);
         }
         $intents = $this->intentsDisponibles();
+        $catalogoActivo = (bool) config('chatbot.public_catalog_enabled', false);
+        $fichas = $catalogoActivo ? $this->catalogo->vigentes() : [];
         $text = $this->normalizarTexto($mensaje);
         $session = hash_hmac('sha256', $scope.'|'.$sessionId, (string) config('app.key'));
         $contextKey = 'chat:context:'.$session;
         $previous = Cache::get($contextKey);
-        $version = hash('sha256', serialize(array_map(fn (ChatIntent $intent) => $intent->getAttributes(), $intents)));
+        $version = hash('sha256', serialize([array_map(fn (ChatIntent $intent) => $intent->getAttributes(), $intents), $fichas, $catalogoActivo]));
         $key = 'chat:reply:'.hash('sha256', $session.'|'.$text.'|'.$version.'|'.(string) $previous);
         $lock = Cache::lock('chat:lock:'.$session, 30);
         if (! $lock->get()) {
@@ -52,7 +55,7 @@ class AsistenteVirtualService
             }
             $result = preg_match('/@|\d[\d\s-]{6,}\d/u', $mensaje)
                 ? $this->reply('Por privacidad, no incluyas datos personales. Describe únicamente tu consulta sobre cursos o servicios.', null, 'respaldo')
-                : $this->resolver($text, $intents, is_string($previous) ? $previous : null, $session);
+                : $this->resolver($text, $intents, is_string($previous) ? $previous : null, $session, $fichas, $catalogoActivo);
             $this->guardarContexto($contextKey, $result['intent']);
             Cache::put($key, $result, (int) config('chatbot.duplicate_seconds'));
             // También cubre la repetición después de que cambió el contexto.
@@ -110,12 +113,16 @@ class AsistenteVirtualService
 
     /**
      * @param  array<int, ChatIntent>  $intents
+     * @param  list<array<string, string|null>>  $fichas
      * @return array{respuesta: string, intent: string|null, fuente: string}
      */
-    private function resolver(string $text, array $intents, ?string $previous, string $session): array
+    private function resolver(string $text, array $intents, ?string $previous, string $session, array $fichas, bool $catalogoActivo): array
     {
         if ($this->matcher->bloqueado($text)) {
             return $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
+        }
+        if ($this->cursos->mencionaTitulo($text, $fichas) && ! preg_match('/\bcursos?\b/', $text)) {
+            $text .= ' curso';
         }
         // Una referencia breve hereda únicamente el tema, no información privada.
         if (preg_match('/^(y )?(sus |los |el )?(horarios?|fechas?)$/', $text)) {
@@ -132,6 +139,10 @@ class AsistenteVirtualService
         // Consultas compuestas de orientación pueden beneficiarse de selección asistida.
         $synthesis = (bool) preg_match('/\b(compara|comparar|orientame|ayudame a elegir)\b/', $text);
         $intent = $this->matcher->buscar($text, $intents);
+        if ($catalogoActivo && $intent !== null && in_array($intent->nombre, ChatCursosPublicos::INTENTS, true)
+            && (! $synthesis || $fichas !== [] || ! in_array($intent->nombre, self::TEMAS_OPENAI, true))) {
+            return $this->cursos->responder($text, $intent->nombre, $fichas);
+        }
         if ($intent !== null && (! $synthesis || ! in_array($intent->nombre, self::TEMAS_OPENAI, true))) {
             return $this->reply($intent->respuesta, $intent->nombre, 'local');
         }
