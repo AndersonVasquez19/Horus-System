@@ -6,10 +6,7 @@
   "scripts": {
     "test": "npm run test:frontend",
     "test:frontend": "node scripts/run-frontend-tests.mjs",
-    "assets:sync": "node scripts/sync-public-assets.mjs",
-    "predev": "npm run assets:sync",
     "dev": "vite",
-    "prebuild": "npm run assets:sync",
     "build": "vite build",
     "preview": "vite preview"
   },
