@@ -130,7 +130,10 @@ class ReportController extends Controller implements HasMiddleware
         return $query;
     }
 
-    /** @return LengthAwarePaginator<int, Matricula> */
+    /**
+     * @param  Builder<Matricula>  $query
+     * @return LengthAwarePaginator<int, Matricula>
+     */
     private function batch(Builder $query, ReportMatriculasRequest $request, ?int $total = null): LengthAwarePaginator
     {
         $matriculas = (clone $query)->orderByDesc('fecha_matricula')->orderByDesc('id')

@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
@@ -94,21 +95,23 @@ class UserController extends Controller implements HasMiddleware
         // Asignar roles concede permisos: exige su propio permiso además de usuarios.crear.
         abort_if(! empty($data['roles']) && ! $request->user()->can('usuarios.asignar-roles'), 403);
 
-        $usuario = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
+        DB::transaction(function () use ($data): void {
+            $usuario = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
 
-        if (! empty($data['roles'])) {
-            $usuario->syncRoles($data['roles']);
-        }
+            if (! empty($data['roles'])) {
+                $usuario->syncRoles($data['roles']);
+            }
 
-        AuditLog::record('user_created', User::class, $usuario->id, [
-            'name' => $usuario->name,
-            'email' => $usuario->email,
-            'roles' => $usuario->roles->pluck('name')->all(),
-        ]);
+            AuditLog::record('user_created', User::class, $usuario->id, [
+                'name' => $usuario->name,
+                'email' => $usuario->email,
+                'roles' => $usuario->roles->pluck('name')->all(),
+            ]);
+        });
 
         return redirect()->route('admin.usuarios.index')->with('success', 'El usuario se registró correctamente.');
     }

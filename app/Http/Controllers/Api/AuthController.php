@@ -9,6 +9,7 @@ use App\Support\Email;
 use App\Support\PasswordPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -23,16 +24,18 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', PasswordPolicy::rule()],
         ]);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
+        return DB::transaction(function () use ($data, $tokens): JsonResponse {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
 
-        return response()->json([
-            'user' => $this->userPayload($user),
-            ...$tokens->issue($user),
-        ], 201);
+            return response()->json([
+                'user' => $this->userPayload($user),
+                ...$tokens->issue($user),
+            ], 201);
+        });
     }
 
     public function login(Request $request, JwtTokenService $tokens): JsonResponse

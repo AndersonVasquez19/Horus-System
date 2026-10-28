@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ConfiguracionController extends Controller implements HasMiddleware
@@ -66,20 +67,22 @@ class ConfiguracionController extends Controller implements HasMiddleware
             'settings.moneda' => ['nullable', 'string', 'max:20'],
         ]);
 
-        $changes = [];
-        foreach ($data['settings'] ?? [] as $key => $value) {
-            if (! array_key_exists($key, self::SETTINGS)) {
-                continue;
+        DB::transaction(function () use ($data): void {
+            $changes = [];
+            foreach ($data['settings'] ?? [] as $key => $value) {
+                if (! array_key_exists($key, self::SETTINGS)) {
+                    continue;
+                }
+
+                SystemSetting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $value, 'description' => 'Configuración del sistema'],
+                );
+                $changes[$key] = $value;
             }
 
-            SystemSetting::updateOrCreate(
-                ['key' => $key],
-                ['value' => $value, 'description' => 'Configuración del sistema'],
-            );
-            $changes[$key] = $value;
-        }
-
-        AuditLog::record('settings_updated', 'SystemSetting', null, $changes);
+            AuditLog::record('settings_updated', 'SystemSetting', null, $changes);
+        });
 
         return redirect()->route('admin.configuracion.index')->with('success', 'La configuración del sistema se guardó correctamente.');
     }

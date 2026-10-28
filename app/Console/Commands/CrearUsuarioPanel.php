@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -69,8 +70,10 @@ class CrearUsuarioPanel extends Command
             return self::FAILURE;
         }
 
-        $user = User::create(['name' => $name, 'email' => $email, 'password' => $password]);
-        $user->assignRole($rol);
+        DB::transaction(function () use ($name, $email, $password, $rol): void {
+            $user = User::create(['name' => $name, 'email' => $email, 'password' => $password]);
+            $user->assignRole($rol);
+        });
 
         $this->info("Cuenta creada con el rol {$rol}.");
 

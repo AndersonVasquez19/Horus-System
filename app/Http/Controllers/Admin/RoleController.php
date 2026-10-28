@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -50,13 +51,16 @@ class RoleController extends Controller implements HasMiddleware
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $role = Role::create(['name' => $data['name'], 'guard_name' => 'web']);
-        $role->syncPermissions($data['permissions'] ?? []);
+        DB::transaction(function () use ($data): void {
+            $role = Role::create(['name' => $data['name'], 'guard_name' => 'web']);
+            $role->syncPermissions($data['permissions'] ?? []);
+            $this->adminProtection->forgetPermissionCacheAfterCommit();
 
-        AuditLog::record('role_created', Role::class, $role->id, [
-            'name' => $role->name,
-            'permissions' => $role->permissions->pluck('name')->all(),
-        ]);
+            AuditLog::record('role_created', Role::class, $role->id, [
+                'name' => $role->name,
+                'permissions' => $role->permissions->pluck('name')->all(),
+            ]);
+        });
 
         return redirect()->route('admin.roles.index')->with('success', 'El rol se creó correctamente.');
     }

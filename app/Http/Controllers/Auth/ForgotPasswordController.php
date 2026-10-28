@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Support\Email;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class ForgotPasswordController extends Controller
 {
@@ -26,16 +28,14 @@ class ForgotPasswordController extends Controller
             'email.email' => 'Ingresa un correo electrónico válido.',
         ]);
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        // Misma respuesta exista o no la cuenta: no revela qué correos están registrados.
-        // Solo el límite de frecuencia se informa como error, porque no depende de la cuenta.
-        if ($status === Password::RESET_THROTTLED) {
-            return back()->withErrors(['email' => __($status)]);
+        try {
+            Password::sendResetLink($request->only('email'));
+        } catch (TransportExceptionInterface) {
+            // No exponer ni registrar el destinatario, token o detalle del proveedor.
+            Log::warning('auth.password_reset', ['outcome' => 'delivery_unavailable']);
         }
 
+        // También el throttle del broker depende de que exista la cuenta: no revelar ese estado.
         return back()->with('status', 'Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja.');
     }
 }

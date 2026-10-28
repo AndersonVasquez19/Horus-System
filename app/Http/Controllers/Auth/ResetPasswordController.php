@@ -9,9 +9,11 @@ use App\Support\SessionRevoker;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ResetPasswordController extends Controller
@@ -27,19 +29,25 @@ class ResetPasswordController extends Controller
     public function store(Request $request): RedirectResponse
     {
         Email::normalizeRequest($request);
-        $validated = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
-        ], [
-            'token.required' => 'El token es obligatorio.',
-            'email.required' => 'El correo electrónico es obligatorio.',
-            'email.email' => 'Ingresa un correo electrónico válido.',
-            'password.required' => 'La contraseña es obligatoria.',
-            'password.confirmed' => 'La confirmación de contraseña no coincide.',
-        ] + PasswordPolicy::messages());
+        try {
+            $validated = $request->validate([
+                'token' => ['required', 'string'],
+                'email' => ['required', 'email'],
+                'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
+            ], [
+                'token.required' => 'El token es obligatorio.',
+                'email.required' => 'El correo electrónico es obligatorio.',
+                'email.email' => 'Ingresa un correo electrónico válido.',
+                'password.required' => 'La contraseña es obligatoria.',
+                'password.confirmed' => 'La confirmación de contraseña no coincide.',
+            ] + PasswordPolicy::messages());
+        } catch (ValidationException $error) {
+            // El manejador de validación repone la entrada de ESTA petición al redirigir.
+            $request->replace($request->only('email'));
+            throw $error;
+        }
 
-        $status = Password::reset(
+        $status = DB::transaction(fn () => Password::reset(
             [
                 'email' => $validated['email'],
                 'password' => $validated['password'],
@@ -58,12 +66,12 @@ class ResetPasswordController extends Controller
 
                 event(new PasswordReset($user));
             },
-        );
+        ));
 
         if ($status === Password::PASSWORD_RESET) {
             return redirect()->route('login')->with('success', 'Contraseña actualizada correctamente.');
         }
 
-        return back()->withErrors(['email' => __($status)])->withInput();
+        return back()->withErrors(['email' => __($status)])->onlyInput('email');
     }
 }

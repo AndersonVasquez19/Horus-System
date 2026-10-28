@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AprobacionController extends Controller implements HasMiddleware
@@ -77,7 +78,7 @@ class AprobacionController extends Controller implements HasMiddleware
 
         $data['estado'] = $data['estado'] ?? 'pendiente';
 
-        AprobacionInterna::create([
+        DB::transaction(fn () => AprobacionInterna::create([
             'titulo' => $data['titulo'],
             'tipo' => $data['tipo'],
             'descripcion' => $data['descripcion'] ?? null,
@@ -86,7 +87,7 @@ class AprobacionController extends Controller implements HasMiddleware
             'comentario' => $data['comentario'] ?? null,
             'referencia' => $data['referencia'] ?? null,
             'estado' => $data['estado'],
-        ]);
+        ]));
 
         return redirect()->route('admin.aprobaciones.index')->with('success', 'La solicitud de aprobación se registró correctamente.');
     }
@@ -104,7 +105,7 @@ class AprobacionController extends Controller implements HasMiddleware
             'estado' => ['required', 'in:pendiente,aprobado,rechazado'],
         ]);
 
-        $aprobacion->update($data);
+        DB::transaction(fn () => $aprobacion->update($data));
 
         return redirect()->route('admin.aprobaciones.index')->with('success', 'La solicitud de aprobación se actualizó correctamente.');
     }

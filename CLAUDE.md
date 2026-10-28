@@ -42,7 +42,7 @@ Entorno Windows: PowerShell, rutas relativas a la raíz. Existe `composer.phar` 
 | Prueba PHP acotada | `php artisan test --filter=NombreTest` |
 | Suite PHP completa | `php artisan test --compact` |
 | Pruebas frontend | `npm test` |
-| Análisis estático | `vendor/bin/phpstan analyse` (hoy cubre `app/Support` y `app/Services`, nivel 5) |
+| Análisis estático | `vendor/bin/phpstan analyse` (nivel 5 sobre `app/`, `routes/`, `database/`, `config/` y los archivos de arranque indicados en `phpstan.neon.dist`) |
 | Estilo | `vendor/bin/pint --test <archivos propios>` |
 | Diff limpio | `git diff --check` |
 

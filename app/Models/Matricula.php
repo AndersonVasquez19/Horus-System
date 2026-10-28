@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/** @property Carbon $fecha_matricula Fecha convertida por el cast date. */
 #[ObservedBy([MatriculaNotificationObserver::class])]
 class Matricula extends Model
 {

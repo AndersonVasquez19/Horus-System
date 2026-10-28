@@ -50,7 +50,7 @@ class MatriculaSeeder extends Seeder
         Curso::query()
             ->withCount(['matriculas as matriculas_activas_count' => fn ($query) => $query->where('estado', '!=', 'anulada')])
             ->each(function (Curso $curso): void {
-                $curso->cupos_disponibles = max(0, $curso->cupos_maximos - $curso->matriculas_activas_count);
+                $curso->cupos_disponibles = max(0, $curso->cupos_maximos - $curso->getAttribute('matriculas_activas_count'));
                 $curso->save();
             });
     }

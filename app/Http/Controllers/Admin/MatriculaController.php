@@ -18,7 +18,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -321,15 +320,15 @@ class MatriculaController extends Controller implements HasMiddleware
             fwrite($salida, "\xEF\xBB\xBF");
             fputcsv($salida, ['ID', 'DNI', 'Estudiante', 'Curso', 'Código Curso', 'Fecha', 'Estado', 'Monto']);
 
-            $matriculas->chunk(500, function (Collection $lote) use ($salida): void {
+            $matriculas->chunk(500, function ($lote) use ($salida): void {
                 foreach ($lote as $matricula) {
                     fputcsv($salida, [
                         $matricula->id,
                         SensitiveData::csvSafe($matricula->estudiante?->dni),
-                        SensitiveData::csvSafe(trim(($matricula->estudiante?->nombres ?? '').' '.($matricula->estudiante?->apellidos ?? ''))),
+                        SensitiveData::csvSafe(trim(($matricula->estudiante->nombres ?? '').' '.($matricula->estudiante->apellidos ?? ''))),
                         SensitiveData::csvSafe($matricula->curso?->nombre),
                         SensitiveData::csvSafe($matricula->curso?->codigo),
-                        $matricula->fecha_matricula?->format('Y-m-d') ?? '',
+                        $matricula->fecha_matricula->format('Y-m-d'),
                         match ($matricula->estado) {
                             'pendiente' => 'Pendiente',
                             'pagada' => 'Pagada',
@@ -349,6 +348,7 @@ class MatriculaController extends Controller implements HasMiddleware
         ]);
     }
 
+    /** @return Builder<Matricula> */
     private function filteredQuery(Request $request): Builder
     {
         $query = Matricula::query()->with(['estudiante', 'curso']);

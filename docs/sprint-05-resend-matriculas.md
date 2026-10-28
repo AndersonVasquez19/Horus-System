@@ -4,7 +4,7 @@
 
 ## Estado inicial y decisión
 
-`resend/resend-laravel` ya figura en Composer y está instalado. `config/mail.php` declara el transporte `resend`; `config/services.php` toma la clave del entorno. `.env.example` usa correo `log`, remitente de ejemplo y cola `database`. El paquete registra su transporte y una ruta de webhook firmada; no había bienvenida de matrícula, Mailables de matrícula ni procesamiento propio de sus eventos de entrega. No se consultó la cuenta de Resend, DNS, dominio verificado, destinatarios ni credenciales reales. No hay evidencia de entregabilidad en producción.
+`resend/resend-laravel` ya figura en Composer y está instalado. `config/mail.php` declara el transporte `resend`; `config/services.php` toma la clave del entorno. `.env.example` usa correo `log`, remitente de ejemplo y cola `database`. El paquete registra su transporte y puede registrar una ruta de webhook cuya firma solo verifica cuando hay secreto configurado; el Sprint 12 deshabilita esas rutas no utilizadas mediante `config/resend.php`. No había bienvenida de matrícula, Mailables de matrícula ni procesamiento propio de sus eventos de entrega. No se consultó la cuenta de Resend, DNS, dominio verificado, destinatarios ni credenciales reales. No hay evidencia de entregabilidad en producción.
 
 El contrato vigente en requests/controlador es `pendiente`, `pagada`, `anulada`. Una matrícula nueva persistida en estado `pendiente` o `pagada` merece confirmación del **registro**, sin exigir pago. Se excluye la creación anulada. Editar, pagar, restaurar o reactivar una matrícula no genera otra bienvenida. Una rematrícula legítima con una nueva fila sí constituye otro registro. No se modificaron permisos ni reglas de cupos, duplicados o transacciones del controlador.
 

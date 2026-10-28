@@ -72,14 +72,14 @@ class AuditoriaController extends Controller implements HasMiddleware
         $registros = AuditLog::query()->with('user')->latest('created_at')->get()->map(function (AuditLog $log): array {
             return [
                 'id' => $log->id,
-                'usuario' => $log->user?->name ?? 'Sistema',
-                'correo' => $log->user?->email ?? 'N/A',
+                'usuario' => $log->user->name ?? 'Sistema',
+                'correo' => $log->user->email ?? 'N/A',
                 'accion' => $log->action,
                 'modelo' => $log->model_type,
                 'modelo_id' => $log->model_id,
                 'ip' => $log->ip_address,
                 'cambios' => json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
-                'fecha' => $log->created_at?->format('Y-m-d H:i:s'),
+                'fecha' => $log->created_at->format('Y-m-d H:i:s'),
             ];
         })->toArray();
 
