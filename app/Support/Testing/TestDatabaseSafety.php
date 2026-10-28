@@ -64,6 +64,7 @@ final class TestDatabaseSafety
         });
     }
 
+    /** @return array<string, mixed> */
     public static function postgresConfiguration(Application $app): array
     {
         $environment = [];

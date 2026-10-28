@@ -33,6 +33,10 @@ final class PostgresTestGuard
         throw new RuntimeException('Horus PostgreSQL test safety: '.$reason);
     }
 
+    /**
+     * @param  array<string, mixed>  $connection
+     * @return array<string, mixed>
+     */
     public static function laravelConnection(array $connection): array
     {
         // ConfigurationUrlParser removes url, even when empty; ConnectionFactory adds name.
@@ -41,6 +45,11 @@ final class PostgresTestGuard
         return $connection + ['name' => 'pgsql'];
     }
 
+    /**
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $environment
+     * @return array<string, mixed>
+     */
     public function assertConfiguration(array $config, array $environment, bool $cached): array
     {
         if ($cached) {
@@ -120,7 +129,12 @@ final class PostgresTestGuard
         return $connection;
     }
 
-    /** Identity and authorization must come from the server, not from the supplied environment. */
+    /**
+     * Identity and authorization must come from the server, not from the supplied environment.
+     *
+     * @param  array<string, mixed>  $connection
+     * @param  array<string, mixed>  $identity
+     */
     public function assertIdentity(array $connection, array $identity): void
     {
         foreach (['database' => $connection['database'], 'username' => $connection['username'],
@@ -139,7 +153,16 @@ final class PostgresTestGuard
         }
     }
 
-    /** The callback that can enable writes is never reached on a rejection. */
+    /**
+     * The callback that can enable writes is never reached on a rejection.
+     *
+     * @template TResult
+     *
+     * @param  array<string, mixed>  $connection
+     * @param  Closure(): array<string, mixed>  $readIdentity
+     * @param  Closure(): TResult  $enableWrites
+     * @return TResult
+     */
     public function authorize(array $connection, Closure $readIdentity, Closure $enableWrites): mixed
     {
         try {

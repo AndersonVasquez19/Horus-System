@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
 
 class PublicarCursoRequest extends FormRequest
 {
@@ -14,6 +15,7 @@ class PublicarCursoRequest extends FormRequest
         return $this->user()?->can('cursos.publicar') ?? false;
     }
 
+    /** @return array<string, list<string|In>> */
     public function rules(): array
     {
         return [

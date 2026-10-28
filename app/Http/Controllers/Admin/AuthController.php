@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -23,17 +24,24 @@ class AuthController extends Controller
     public function register(Request $request): RedirectResponse
     {
         Email::normalizeRequest($request);
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
-            'password' => ['required', 'confirmed', PasswordPolicy::rule()],
-            'terms' => ['accepted'],
-        ], [
-            'name.required' => 'Escribe tu nombre para continuar.',
-            'email.required' => 'El correo electrónico es obligatorio.',
-            'email.email' => 'Ingresa un correo electrónico válido.',
-            'terms.accepted' => 'Debes aceptar el aviso de privacidad para crear tu cuenta.',
-        ] + PasswordPolicy::messages());
+        try {
+            $data = $request->validate([
+                'name' => ['required', 'string', 'max:120'],
+                'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
+                'password' => ['required', 'confirmed', PasswordPolicy::rule()],
+                'terms' => ['accepted'],
+            ], [
+                'name.required' => 'Escribe tu nombre para continuar.',
+                'email.required' => 'El correo electrónico es obligatorio.',
+                'email.email' => 'Ingresa un correo electrónico válido.',
+                'terms.accepted' => 'Debes aceptar el aviso de privacidad para crear tu cuenta.',
+            ] + PasswordPolicy::messages());
+        } catch (ValidationException $error) {
+            // Reponer solo campos del formulario; nunca credenciales o tokens inesperados.
+            $request->replace($request->only('name', 'email', 'terms'));
+            $request->query->replace([]);
+            throw $error;
+        }
 
         // El registro público nunca asigna roles. El acceso al panel se concede por consola:
         // `php artisan horus:promover-admin` (local) o `horus:crear-usuario`.

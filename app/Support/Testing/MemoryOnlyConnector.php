@@ -16,6 +16,7 @@ final class MemoryOnlyConnector implements ConnectorInterface
         private readonly ConnectorInterface $connector = new SQLiteConnector,
     ) {}
 
+    /** @param array<string, mixed> $config */
     public function connect(array $config): PDO
     {
         if (! $this->allowed || ($config['driver'] ?? null) !== 'sqlite'

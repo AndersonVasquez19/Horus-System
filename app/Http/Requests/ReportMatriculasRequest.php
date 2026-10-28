@@ -6,6 +6,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\Rules\In;
 
 class ReportMatriculasRequest extends FormRequest
 {
@@ -15,6 +17,7 @@ class ReportMatriculasRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|In|Exists>> */
     public function rules(): array
     {
         return [

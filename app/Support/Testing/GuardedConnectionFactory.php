@@ -8,6 +8,7 @@ use Illuminate\Database\Connectors\ConnectionFactory;
 
 final class GuardedConnectionFactory extends ConnectionFactory
 {
+    /** @param array<string, mixed> $config */
     protected function createConnection($driver, $connection, $database, $prefix = '', array $config = [])
     {
         if ($driver === 'pgsql') {

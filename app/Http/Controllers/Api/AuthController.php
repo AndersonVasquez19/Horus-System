@@ -75,6 +75,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Sesión JWT cerrada.']);
     }
 
+    /** @return array{id: int, name: string, email: string} */
     private function userPayload(User $user): array
     {
         return ['id' => $user->getKey(), 'name' => $user->name, 'email' => $user->email];

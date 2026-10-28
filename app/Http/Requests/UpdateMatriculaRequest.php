@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\Models\Matricula;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Validator;
 
 class UpdateMatriculaRequest extends FormRequest
@@ -14,6 +16,7 @@ class UpdateMatriculaRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Exists|In>> */
     public function rules(): array
     {
         return [
@@ -34,6 +37,7 @@ class UpdateMatriculaRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure(Validator): void> */
     public function after(): array
     {
         return [

@@ -6,6 +6,8 @@ use App\Models\Curso;
 use App\Models\Matricula;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Validator;
 
 class StoreMatriculaRequest extends FormRequest
@@ -15,6 +17,7 @@ class StoreMatriculaRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Exists|In>> */
     public function rules(): array
     {
         return [
@@ -35,6 +38,7 @@ class StoreMatriculaRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure(Validator): void> */
     public function after(): array
     {
         return [

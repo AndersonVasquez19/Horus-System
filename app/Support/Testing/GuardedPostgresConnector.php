@@ -12,11 +12,13 @@ use Throwable;
 
 final class GuardedPostgresConnector implements ConnectorInterface
 {
+    /** @param Closure(): array<string, mixed> $configuration */
     public function __construct(
         private readonly Closure $configuration,
         private readonly ConnectorInterface $connector = new PostgresConnector,
     ) {}
 
+    /** @param array<string, mixed> $config */
     public function connect(array $config): PDO
     {
         $guard = new PostgresTestGuard;
@@ -44,6 +46,7 @@ final class GuardedPostgresConnector implements ConnectorInterface
         });
     }
 
+    /** @return array<string, mixed> */
     public static function identity(PDO $pdo): array
     {
         return $pdo->query(<<<'SQL'

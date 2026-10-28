@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\Models\Estudiante;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Unique;
 
 class UpdateEstudianteRequest extends FormRequest
 {
@@ -13,6 +15,7 @@ class UpdateEstudianteRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Unique|In>> */
     public function rules(): array
     {
         $estudiante = $this->route('estudiante');

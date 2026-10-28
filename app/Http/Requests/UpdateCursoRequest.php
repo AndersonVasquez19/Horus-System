@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\Models\Curso;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\Validator;
 
 class UpdateCursoRequest extends FormRequest
@@ -14,6 +16,7 @@ class UpdateCursoRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Unique|In>> */
     public function rules(): array
     {
         $curso = $this->route('curso');
@@ -33,6 +36,7 @@ class UpdateCursoRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure(Validator): void> */
     public function after(): array
     {
         return [

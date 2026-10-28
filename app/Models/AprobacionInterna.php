@@ -62,11 +62,13 @@ class AprobacionInterna extends Model
         });
     }
 
+    /** @return BelongsTo<User, $this> */
     public function solicitante(): BelongsTo
     {
         return $this->belongsTo(User::class, 'solicitante_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function aprobador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'aprobador_id');
