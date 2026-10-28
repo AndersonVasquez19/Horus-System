@@ -70,7 +70,16 @@
         <section class="overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm">
             <div class="border-b border-stone-100 px-5 py-4">
                 <h2 class="font-bold text-ink">Matrículas del estudiante</h2>
-                <p class="mt-1 text-sm text-stone-500">{{ $estudiante->matriculas->count() }} registros activos</p>
+                @php
+                    $estadosMatricula = $estudiante->matriculas->countBy('estado');
+                    $activas = ($estadosMatricula['pendiente'] ?? 0) + ($estadosMatricula['pagada'] ?? 0);
+                @endphp
+                <p class="mt-1 text-sm text-stone-500">{{ $estudiante->matriculas->count() }} registros · {{ $activas }} activas</p>
+                <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600" aria-label="Matrículas por estado">
+                    <li>Pendientes: {{ $estadosMatricula['pendiente'] ?? 0 }}</li>
+                    <li>Pagadas: {{ $estadosMatricula['pagada'] ?? 0 }}</li>
+                    <li>Anuladas: {{ $estadosMatricula['anulada'] ?? 0 }}</li>
+                </ul>
             </div>
 
             @if ($estudiante->matriculas->isEmpty())

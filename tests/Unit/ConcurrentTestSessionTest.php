@@ -8,6 +8,7 @@ use App\Support\Testing\ConcurrentTestSession;
 use App\Support\Testing\GuardedPostgresConnection;
 use App\Support\Testing\GuardedPostgresConnector;
 use App\Support\Testing\TestDatabaseSafety;
+use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\Connectors\ConnectorInterface;
 use Illuminate\Database\LostConnectionException;
 use Illuminate\Foundation\Application;
@@ -133,6 +134,19 @@ class ConcurrentTestSessionTest extends TestCase
             $plano = $this->createMock(ConnectorInterface::class);
             $plano->expects($this->never())->method('connect');
             $app->instance('db.connector.pgsql', $plano);
+
+            $this->expectExceptionMessage('a second session requires the guarded factory and connector');
+            ConcurrentTestSession::open($app);
+        });
+    }
+
+    public function test_an_unguarded_factory_is_refused_before_opening_a_connection(): void
+    {
+        $this->withEnvironment($this->safeEnvironment(), function (): void {
+            $inner = $this->createMock(ConnectorInterface::class);
+            $inner->expects($this->never())->method('connect');
+            $app = $this->profileApplication($inner);
+            $app->instance('db.factory', new ConnectionFactory($app));
 
             $this->expectExceptionMessage('a second session requires the guarded factory and connector');
             ConcurrentTestSession::open($app);

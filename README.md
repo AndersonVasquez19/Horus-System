@@ -143,6 +143,16 @@ Para tareas parciales, inspecciona el seeder correspondiente antes de ejecutarlo
 - **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login web usa sesión y CSRF.
 - **Correo:** el restablecimiento de contraseña depende del transporte configurado. Con `MAIL_MAILER=log` el mensaje queda en los registros locales y no llega a una bandeja externa.
 
+### Reportes de matrículas
+
+`GET /admin/reportes` admite `busqueda` (DNI, nombres, apellidos, código o nombre de curso), `curso_id`, `estado` (`pendiente`, `pagada`, `anulada`) y `eliminados` (`0`: sin eliminadas; `1`: solo eliminadas). Los mismos filtros se envían por POST a las exportaciones Excel y PDF. Al aplicar filtros desde el panel se vuelve al primer lote.
+
+El PDF mantiene un máximo explícito de **50 matrículas por descarga** (`ReportController::PDF_BATCH_SIZE`). El parámetro `lote`, desde 1, permite recorrer todas las coincidencias desde el panel. Panel y PDF muestran total coincidente, cantidad incluida, rango, filtros y lote actual. Se ordena por fecha de matrícula descendente e ID descendente para resolver empates; un lote fuera del rango devuelve 404. Sin coincidencias, el primer lote muestra cero registros. Dompdf recibe como máximo 50 filas con solo los campos necesarios y relaciones precargadas; no se genera un PDF ilimitado.
+
+Excel incluye todas las coincidencias de los filtros, independientemente del lote PDF. Lee modelos en lotes de 500; PhpSpreadsheet todavía conserva el documento completo en memoria, por lo que no garantiza memoria constante para exportaciones grandes. Los datos pueden cambiar entre descargas: los lotes no constituyen una instantánea congelada. Los permisos `reportes.exportar.pdf` y `reportes.exportar.excel` se exigen tanto en los botones como en los endpoints.
+
+Los contadores de matrículas e ingresos del panel respetan los filtros; ingresos suma únicamente matrículas `pagada`. Los contadores generales de estudiantes y cursos excluyen eliminados y no dependen de esos filtros. En la ficha estudiantil, activas significa `pendiente` más `pagada`; las `anulada` se cuentan por separado y las eliminadas no forman parte del historial visible.
+
 ## Asistente virtual
 
 El widget público se muestra en `resources/views/components/public/chat-widget.blade.php`; la conversación reutilizable está en `resources/views/components/chat/conversation.blade.php`. `resources/js/app.js` envía el mensaje a `POST /chat/mensaje` con token CSRF. La ruta valida `mensaje` (máximo 2000 caracteres) y `session_id` (máximo 64), y tiene límite `throttle:30,1`.

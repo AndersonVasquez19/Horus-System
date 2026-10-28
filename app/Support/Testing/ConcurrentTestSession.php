@@ -36,15 +36,18 @@ final class ConcurrentTestSession
             $guard->reject('a second session requires the isolated PostgreSQL profile.');
         }
 
-        if (! $app->make('db.factory') instanceof GuardedConnectionFactory
-            || ! $app->make('db.connector.pgsql') instanceof GuardedPostgresConnector) {
+        // PSR-11 resuelve los bindings dinámicos del perfil, incluidos sus extenders.
+        $factory = $app->get('db.factory');
+        $connector = $app->get('db.connector.pgsql');
+        if (! $factory instanceof GuardedConnectionFactory
+            || ! $connector instanceof GuardedPostgresConnector) {
             $guard->reject('a second session requires the guarded factory and connector.');
         }
 
         // Revalida entorno y configuración completos en cada apertura (rechaza cualquier alteración).
         $expected = PostgresTestGuard::laravelConnection(TestDatabaseSafety::postgresConfiguration($app));
 
-        $connection = $app->make('db.factory')->make($expected, 'pgsql');
+        $connection = $factory->make($expected, 'pgsql');
 
         if (! $connection instanceof GuardedPostgresConnection || $connection->getConfig() !== $expected) {
             $guard->reject('second session does not match the validated connection.');
