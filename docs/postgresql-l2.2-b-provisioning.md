@@ -2,6 +2,8 @@
 
 Estado: **preparado, no ejecutado ni autorizado**. Este documento no crea clústeres, servicios, cuentas, roles, bases ni ACL, y no autoriza migraciones ni pruebas contra PostgreSQL. Complementa [docs/postgresql-l2.2-a.md](postgresql-l2.2-a.md); donde ambos difieran en aprovisionamiento (HBA, cuenta de servicio, locale, SQL), **prevalece este documento**. El guard de L2.2-A no se modifica.
 
+**Actualización B2 — incidente S1:** el estado anterior y las referencias a autorización pendiente describen la preparación histórica B1. Posteriormente se concedió autorización A y S1 se ejecutó parcialmente: raíz vacía y evidencia `planned`/`identity.pending`, sin servicio ni clúster nuevo. La ejecución está detenida. Esta corrección documental no autoriza recuperar evidencias ni continuar; el estado parcial y los bloques futuros están delimitados en §7.1.
+
 Esta revisión cierra documentalmente los dos P1, el P2 de comprobaciones y el P3 de concurrencia de la auditoría final. D3 queda cerrada documentalmente con todas las mediciones comunicadas por el operador (§8.1). No acredita ejecución real del aprovisionamiento ni aceptación V16. Sigue pendiente la autorización A; la autorización B para pruebas es posterior e independiente. La correspondencia está en el §14.
 
 ## 1. Entorno comprobado (solo lectura, 27/10/2026)
@@ -111,7 +113,7 @@ function Save-Identity($Identity, [switch]$First) {
   Assert-EvidenceAcl $tmp
   if ($First) { [IO.File]::Move($tmp, $record) } else {
     Assert-EvidenceAcl $record
-    [IO.File]::Replace($tmp, $record, $null)
+    [IO.File]::Replace($tmp, $record, [System.Management.Automation.Language.NullString]::Value)
   }
   Assert-EvidenceAcl $record
 }
@@ -186,6 +188,8 @@ function Get-SafeTree([string]$Path) {
 
 Cada transición indicada abajo exige leer el registro, contrastar recursos y guardar la nueva etapa **antes de continuar**. Un fallo al guardar impide la siguiente etapa. No promover una etapa manualmente para permitir borrados.
 
+Corrección documental posterior al incidente S1 de L2.2-B2: Windows PowerShell 5.1 convierte `$null` en cadena vacía al enlazar este argumento `string`. `NullString.Value` entrega un null CLR real, admitido por `File.Replace` cuando no se solicita respaldo. No cambia la comprobación de pendientes ni autoriza recuperar uno. La conversión se verificó en memoria; no se ha validado una sustitución real con la llamada corregida. La recuperación excepcional del §7.1 usa un respaldo explícito, no un null. Véanse [NullString](https://learn.microsoft.com/en-us/dotnet/api/system.management.automation.language.nullstring) y [File.Replace](https://learn.microsoft.com/en-us/dotnet/api/system.io.file.replace?view=netframework-4.8.1).
+
 ## 3. Decisiones D1–D6
 
 | # | Decisión | Estado |
@@ -254,7 +258,7 @@ if (Test-Path "$env:APPDATA\postgresql\pgpass.conf")       { throw 'STOP: existe
 
 ## 6. Procedimiento de aprovisionamiento (fase C; requiere D6)
 
-**Todo lo de esta sección está SIN EJECUTAR.** Orden pensado para que lo más incierto (registrar la cuenta virtual) ocurra **antes** de `initdb`, cuando el rollback es solo borrar un directorio vacío, y para que los archivos de `initdb` hereden la ACL del servicio desde su creación.
+**Estado histórico B1: todo sin ejecutar. Estado B2 actual: S1 parcial y detenida; S2–S7 sin ejecutar. No repetir S1 completo; ver §7.1.** Orden pensado para que lo más incierto (registrar la cuenta virtual) ocurra **antes** de `initdb`, cuando el rollback es solo borrar un directorio vacío, y para que los archivos de `initdb` hereden la ACL del servicio desde su creación.
 
 | Etapa | Qué crea | Consola |
 | --- | --- | --- |
@@ -802,6 +806,228 @@ $id = Read-Identity
 if ($id.Stage -ne 'rolled-back') { throw 'STOP: reversión no completada' }
 # y la comparación del V14 con la línea base de §5.1
 ```
+
+### 7.1 Anexo: recuperación manual del incidente S1 de L2.2-B2 (27/10/2026)
+
+**PREPARADO, NO EJECUTADO.** La autorización actual permite exclusivamente corregir este documento y revisar sintaxis/estado mediante lectura. No permite ejecutar los bloques operativos siguientes, crear el archivo del incidente, modificar evidencias, reanudar S1 ni ejecutar rollback o S2–S7. Su ejecución requerirá autorización nueva que nombre expresamente recuperación y, por separado, continuación de S1. No modifica la prohibición general de `identity.pending` residual en `Read-Identity`, R0, R1 ni R2. Esta excepción solo admite el par binario y la raíz identificados abajo; no se extrapola a otros incidentes.
+
+Diagnóstico: falló la primera actualización de `planned` a `root-created` en `Save-Identity`, al normalizar como ruta de respaldo la cadena vacía resultante de `$null`. La sustitución nativa no llegó a ejecutarse. Quedaron el registro original de 646 bytes, el pendiente de 694 bytes y la raíz vacía. No existe directorio hijo, servicio ni clúster de pruebas. El diagnóstico confirmó DPAPI válido en ambos, identidad común, diferencia exclusivamente en `Stage`/`RootId` e identidad NTFS coincidente de la raíz. Esto no convierte el pendiente en registro activo.
+
+Identidades de este incidente (literales; hashes SHA-256 de los blobs cifrados, sin contenido descifrado):
+
+| Elemento | Valor exigido |
+| --- | --- |
+| Operador | `LAPTOP-ONK47RS6\PCT40T`, SID `S-1-5-21-374778135-3788025079-1797161911-1001` |
+| Equipo | `LAPTOP-ONK47RS6` |
+| Almacén | `C:\Users\PCT40T\AppData\Local\HorusL2Provisioning` |
+| `identity.dpapi` | 646 bytes; SHA-256 `7EA6517B494AE214086F30E02BC94127465944B3D636DF8D53FCEFAB38B40549`; NTFS `0x0000000000000000000e0000000d0a49` |
+| `identity.pending` | 694 bytes; SHA-256 `F170D1A7ABF1F34AAF6126A8DE3D99362988ED894DC4FA3DC6588814507B7034`; NTFS `0x0000000000000000004300000014445e` |
+| Raíz vacía | `C:\pgdata`, NTFS `0x000000000000000000080000000d0a50` |
+| Archivo nuevo del incidente | `C:\Users\PCT40T\AppData\Local\HorusL2Provisioning\incident-s1-20261027` |
+| Copias originales, sin sobrescritura | Dentro del archivo: `identity.original.dpapi`, `identity.original.pending` |
+| Respaldo de la promoción | Dentro del archivo: `identity.before-promotion.dpapi` |
+
+**Frontera de confianza y paradas.** Un solo operador, sin otro aprovisionador ni modificaciones concurrentes durante toda la recuperación. DPAPI detecta alteraciones del blob, pero no impide que el propio operador/admin cree otro blob o restaure uno anterior válido. Los hashes fijados y las identidades NTFS refuerzan la identificación; no prueban ausencia de un administrador malicioso ni eliminan carreras frente a ese adversario. `Flush(true)` y `File.Replace` no constituyen una transacción con los directorios ni garantizan recuperación automática tras pérdida de energía. Algunos errores nativos pueden dejar estados parciales: ante cualquier excepción, inspeccionar sin escribir y no repetir. No usar `Move-Item`, `Copy-Item`, `Remove-Item` ni una eliminación manual de originales como sustituto de la promoción. No reconstruir/reproteger JSON para recuperar la evidencia.
+
+#### I0: validadores de solo lectura (N, cargar después del prólogo corregido §2.1)
+
+Estos validadores no llaman a `Read-Identity` sobre un pendiente residual. Descifran únicamente en memoria para comparar; nunca imprimen blobs ni JSON. No autorizan por sí mismos las etapas I1 o I2. La comparación cotidiana usa la línea base previa sin sobrescribirla.
+
+```powershell
+$incidentArchive = Join-Path $evidence 'incident-s1-20261027'
+$incidentRecordHash = '7EA6517B494AE214086F30E02BC94127465944B3D636DF8D53FCEFAB38B40549'
+$incidentPendingHash = 'F170D1A7ABF1F34AAF6126A8DE3D99362988ED894DC4FA3DC6588814507B7034'
+$incidentRootId = '0x000000000000000000080000000d0a50'
+function Assert-IncidentOperator {
+  $elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.SecurityIdentifier]'S-1-5-32-544')
+  if ($elevated -or $opSid -cne 'S-1-5-21-374778135-3788025079-1797161911-1001' -or
+      [Security.Principal.WindowsIdentity]::GetCurrent().Name -ine 'LAPTOP-ONK47RS6\PCT40T' -or
+      $env:COMPUTERNAME -cne 'LAPTOP-ONK47RS6' -or
+      $evidence -cne 'C:\Users\PCT40T\AppData\Local\HorusL2Provisioning' -or
+      $record -cne (Join-Path $evidence 'identity.dpapi') -or
+      $incidentArchive -cne (Join-Path $evidence 'incident-s1-20261027') -or
+      $incidentRecordHash -cne '7EA6517B494AE214086F30E02BC94127465944B3D636DF8D53FCEFAB38B40549' -or
+      $incidentPendingHash -cne 'F170D1A7ABF1F34AAF6126A8DE3D99362988ED894DC4FA3DC6588814507B7034' -or
+      $incidentRootId -cne '0x000000000000000000080000000d0a50' -or
+      $root -cne 'C:\pgdata' -or $dir -cne 'C:\pgdata\horus_l2_test' -or
+      $svc -cne 'postgresql-horus-l2-test') { throw 'STOP: identidad o consola del incidente distinta' }
+}
+function Assert-IncidentDailyBaseline {
+  $baseline = Join-Path $env:TEMP 'horus_l2_baseline_before.txt'
+  Assert-NoReparse $baseline
+  $current = @(
+    'SERVICE'; (Get-CimInstance Win32_Service -Filter "Name='postgresql-x64-18'" -ErrorAction Stop | Format-List Name,State,StartMode,StartName,PathName | Out-String)
+    'ACL'; (Get-Acl -LiteralPath 'C:\Program Files\PostgreSQL\18\data' -ErrorAction Stop).Sddl
+    'LISTEN'; (Get-NetTCPConnection -LocalPort 5432 -State Listen -ErrorAction Stop | Sort-Object LocalAddress | Format-Table LocalAddress,LocalPort -Auto | Out-String)
+  )
+  $text = ($current | ForEach-Object { [string]$_ + [Environment]::NewLine }) -join ''
+  if ([IO.File]::ReadAllText($baseline) -cne $text -or
+      (Get-Service -Name 'postgresql-x64-18' -ErrorAction Stop).Status -ne 'Running') { throw 'STOP: cotidiana distinta de la línea base' }
+}
+function Get-IncidentFileId([string]$Path) {
+  Assert-NoReparse $Path
+  if ((Get-Item -LiteralPath $Path -Force -ErrorAction Stop).PSIsContainer) { throw 'STOP: evidencia no es archivo' }
+  $out = @(& "$env:SystemRoot\System32\fsutil.exe" file queryfileid $Path 2>&1)
+  if ($LASTEXITCODE -ne 0) { throw 'STOP: identidad NTFS de evidencia ilegible' }
+  $ids = [regex]::Matches(($out -join "`n"), '(?i)0x[0-9a-f]{32}\b')
+  if ($ids.Count -ne 1) { throw 'STOP: formato NTFS no reconocido' }
+  return $ids[0].Value.ToLowerInvariant()
+}
+function Assert-IncidentHash([string]$Path, [string]$Hash, [long]$Length) {
+  Assert-EvidenceAcl $Path
+  $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+  if ($item.PSIsContainer -or $item.Length -ne $Length -or
+      (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash -cne $Hash) { throw 'STOP: evidencia distinta del incidente' }
+}
+function Read-IncidentBlob([string]$Path) {
+  Assert-EvidenceAcl $Path
+  $plain = [Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($Path), $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
+  try { return ([Text.Encoding]::UTF8.GetString($plain) | ConvertFrom-Json -ErrorAction Stop) }
+  finally { [Array]::Clear($plain, 0, $plain.Length) }
+}
+function Assert-IncidentBinaryCopy([string]$Source, [string]$Copy) {
+  Assert-EvidenceAcl $Source; Assert-EvidenceAcl $Copy
+  $left = [IO.File]::ReadAllBytes($Source); $right = [IO.File]::ReadAllBytes($Copy)
+  if ($left.Length -ne $right.Length -or [Convert]::ToBase64String($left) -cne [Convert]::ToBase64String($right)) { throw 'STOP: copia binaria distinta' }
+}
+function Assert-IncidentRoot {
+  Assert-IncidentOperator
+  Assert-EvidenceAcl $evidence; Assert-EvidenceAcl $root
+  $acl = Get-Acl -LiteralPath $root -ErrorAction Stop
+  if (-not $acl.AreAccessRulesProtected -or @($acl.Access).Count -ne 3 -or
+      (Get-DirectoryId $root) -cne $incidentRootId) { throw 'STOP: raíz o ACL distintas' }
+  if (Get-Service -ErrorAction Stop | Where-Object Name -eq $svc) { throw 'STOP: servicio de pruebas presente' }
+  Assert-TestPortFree
+  Assert-IncidentDailyBaseline
+}
+function Assert-S1Incident {
+  Assert-IncidentRoot
+  if ((Test-Path -LiteralPath $dir -ErrorAction Stop) -or
+      @(Get-ChildItem -LiteralPath $root -Force -ErrorAction Stop).Count -ne 0) { throw 'STOP: raíz no vacía o hijo presente' }
+  $pending = Join-Path $evidence 'identity.pending'
+  Assert-IncidentHash $record $incidentRecordHash 646
+  Assert-IncidentHash $pending $incidentPendingHash 694
+  if ((Get-IncidentFileId $record) -cne '0x0000000000000000000e0000000d0a49' -or
+      (Get-IncidentFileId $pending) -cne '0x0000000000000000004300000014445e') { throw 'STOP: archivo de evidencia sustituido' }
+  $before = Read-IncidentBlob $record; $after = Read-IncidentBlob $pending
+  $fields = @('Version','Operation','Operator','Machine','Root','Directory','Service','Account','Stage','RootId','DirectoryId','SystemIdentifier','SqlHashes','CreatedUtc')
+  foreach ($obj in @($before, $after)) {
+    if (@(Compare-Object ($fields | Sort-Object) (@($obj.PSObject.Properties.Name) | Sort-Object)).Count -ne 0 -or
+        $obj.Version -ne 1 -or $obj.Operator -cne $opSid -or $obj.Machine -cne $env:COMPUTERNAME -or
+        $obj.Root -cne $root -or $obj.Directory -cne $dir -or $obj.Service -cne $svc -or
+        $obj.Account -cne 'NT SERVICE\postgresql-horus-l2-test' -or $obj.Operation -notmatch '^[0-9a-f-]{36}$' -or
+        $null -ne $obj.DirectoryId -or $null -ne $obj.SystemIdentifier -or
+        @($obj.SqlHashes.PSObject.Properties).Count -ne 0) { throw 'STOP: registro DPAPI inconsistente' }
+  }
+  foreach ($field in ($fields | Where-Object { $_ -notin @('Stage','RootId') })) {
+    $a = ConvertTo-Json -InputObject $before.$field -Depth 4 -Compress
+    $b = ConvertTo-Json -InputObject $after.$field -Depth 4 -Compress
+    if ($a -cne $b) { throw 'STOP: diferencia no permitida entre registros' }
+  }
+  if ($before.Stage -cne 'planned' -or $null -ne $before.RootId -or
+      $after.Stage -cne 'root-created' -or $after.RootId -cne $incidentRootId) { throw 'STOP: transición distinta del incidente' }
+}
+```
+
+#### I1: preservar y promover una sola vez (N; NO AUTORIZADO TODAVÍA)
+
+Tras nueva autorización, cargar §2.1 corregido e I0 en la misma consola N. Ejecutar este bloque completo como un script con parada terminante, nunca pegar sus líneas una a una después de un error. `incident-s1-20261027` debe estar ausente: su creación funciona como barrera persistente contra repetir esta recuperación. Si existe, incluso vacío, detenerse para otra revisión manual; no borrarlo, reutilizarlo ni elegir un sufijo alternativo. Las copias conservan los bytes originales; sus NTFS propios no sustituyen las identidades originales fijadas en la tabla. Conservar esa tabla y la salida de diagnóstico como inventario del incidente.
+
+```powershell
+& {
+  $ErrorActionPreference = 'Stop'
+  Assert-S1Incident
+  Assert-NoReparse $incidentArchive
+  if (Test-Path -LiteralPath $incidentArchive -ErrorAction Stop) { throw 'STOP: recuperación previa o interrumpida' }
+  New-Item -ItemType Directory -Path $incidentArchive -ErrorAction Stop | Out-Null
+  icacls $incidentArchive /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "*${opSid}:(OI)(CI)F"
+  if ($LASTEXITCODE -ne 0) { throw 'STOP: protección del archivo de incidente falló' }
+  Assert-EvidenceAcl $incidentArchive
+  if (-not (Get-Acl -LiteralPath $incidentArchive).AreAccessRulesProtected) { throw 'STOP: archivo con herencia activa' }
+  $pending = Join-Path $evidence 'identity.pending'
+  $originalRecord = Join-Path $incidentArchive 'identity.original.dpapi'
+  $originalPending = Join-Path $incidentArchive 'identity.original.pending'
+  $backup = Join-Path $incidentArchive 'identity.before-promotion.dpapi'
+  foreach ($pair in @(@($record, $originalRecord), @($pending, $originalPending))) {
+    $bytes = [IO.File]::ReadAllBytes($pair[0])
+    $f = [IO.File]::Open($pair[1], [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    try { $f.Write($bytes, 0, $bytes.Length); $f.Flush($true) } finally { $f.Dispose() }
+    Assert-IncidentBinaryCopy $pair[0] $pair[1]
+  }
+  Assert-IncidentHash $originalRecord $incidentRecordHash 646
+  Assert-IncidentHash $originalPending $incidentPendingHash 694
+  $null = Read-IncidentBlob $originalRecord; $null = Read-IncidentBlob $originalPending
+  # Última revalidación antes de consumir el pendiente, sin editarlo ni regenerarlo.
+  Assert-S1Incident
+  Assert-EvidenceAcl $incidentArchive
+  Assert-NoReparse $backup
+  if (Test-Path -LiteralPath $backup -ErrorAction Stop) { throw 'STOP: respaldo ya existe; no sobrescribir' }
+  [IO.File]::Replace($pending, $record, $backup)
+  # No catch con reintento. Toda excepción exige inspección de los tres destinos.
+  if (Test-Path -LiteralPath $pending -ErrorAction Stop) { throw 'STOP: pendiente sigue presente después de promoción' }
+  Assert-IncidentBinaryCopy $originalPending $record
+  Assert-IncidentBinaryCopy $originalRecord $backup
+  Assert-IncidentHash $record $incidentPendingHash 694
+  Assert-IncidentHash $backup $incidentRecordHash 646
+  $null = Read-IncidentBlob $backup
+  $id = Read-Identity
+  if ($id.Stage -cne 'root-created' -or $id.RootId -cne $incidentRootId -or
+      $null -ne $id.DirectoryId -or $null -ne $id.SystemIdentifier) { throw 'STOP: estado promovido incorrecto' }
+  Assert-IncidentRoot
+  if ((Test-Path -LiteralPath $dir) -or @(Get-ChildItem -LiteralPath $root -Force).Count -ne 0) { throw 'STOP: recursos cambiaron durante promoción' }
+  'I1 verificada: root-created recuperado; detenerse antes de continuar S1'
+}
+```
+
+La promoción conserva el registro anterior tanto en la copia verificada como en el respaldo creado por `File.Replace`. No se borra ningún original manualmente: la API consume el pendiente al convertirlo en registro activo. Cualquier archivo del incidente se conserva también tras un eventual rollback. La API puede dejar estados parciales ante ciertos errores nativos; consultar [ReplaceFileW](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew). Una excepción no acredita éxito ni permite volver a ejecutar I1. El archivo persistente impide esa repetición desde este bloque.
+
+#### I2: continuación desde root-created (N; autorización separada, NO EJECUTAR S1 completo)
+
+Solo después de I1 aceptada y una autorización que incluya esta continuación. Cargar §2.1 corregido e I0; mantener exactamente el archivo del incidente anterior. El hash del registro activo debe seguir siendo el del pendiente original: si ya avanzó o existen restos, no repetir I2. Este bloque no recrea la raíz ni el almacén, no vuelve a guardar `planned` y no modifica servicio alguno. Solo añade el hijo, verifica su identidad NTFS y registra la transición normal; esta serialización nueva pertenece a la continuación de S1, no a la recuperación de los blobs originales.
+
+```powershell
+& {
+  $ErrorActionPreference = 'Stop'
+  Assert-IncidentRoot
+  Assert-EvidenceAcl $incidentArchive
+  if (-not (Get-Acl -LiteralPath $incidentArchive).AreAccessRulesProtected) { throw 'STOP: archivo con herencia activa' }
+  $originalRecord = Join-Path $incidentArchive 'identity.original.dpapi'
+  $originalPending = Join-Path $incidentArchive 'identity.original.pending'
+  $backup = Join-Path $incidentArchive 'identity.before-promotion.dpapi'
+  Assert-IncidentHash $originalRecord $incidentRecordHash 646
+  Assert-IncidentHash $originalPending $incidentPendingHash 694
+  Assert-IncidentHash $backup $incidentRecordHash 646
+  Assert-IncidentBinaryCopy $originalRecord $backup
+  Assert-IncidentHash $record $incidentPendingHash 694
+  Assert-IncidentBinaryCopy $originalPending $record
+  $id = Read-Identity
+  if ($id.Stage -cne 'root-created' -or $id.RootId -cne $incidentRootId -or
+      $null -ne $id.DirectoryId -or $null -ne $id.SystemIdentifier -or
+      (Test-Path -LiteralPath $dir) -or @(Get-ChildItem -LiteralPath $root -Force).Count -ne 0) { throw 'STOP: no corresponde continuar S1' }
+  Assert-NoReparse $dir
+  New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
+  $id.DirectoryId = Get-DirectoryId $dir
+  Assert-EvidenceAcl $dir
+  if (@((Get-Acl -LiteralPath $dir).Access).Count -ne 3 -or
+      @(Get-ChildItem -LiteralPath $dir -Force).Count -ne 0) { throw 'STOP: ACL o contenido del hijo inesperados' }
+  $id.Stage = 'directories-created'
+  Save-Identity $id
+  $verified = Read-Identity
+  Assert-Resources $verified
+  if ($verified.Stage -cne 'directories-created' -or $verified.RootId -cne $incidentRootId -or
+      $verified.DirectoryId -cne $id.DirectoryId -or $null -ne $verified.SystemIdentifier) { throw 'STOP: transición no acreditada' }
+  Assert-IncidentRoot
+  Assert-EvidenceAcl $dir
+  if (@((Get-Acl -LiteralPath $dir).Access).Count -ne 3 -or
+      @(Get-ChildItem -LiteralPath $dir -Force).Count -ne 0 -or
+      @(Get-ChildItem -LiteralPath $root -Force).Count -ne 1) { throw 'STOP: directorios no exclusivos o ACL inesperadas' }
+  'I2 verificada: directories-created; detenerse antes de S2'
+}
+```
+
+**Puerta de S2:** registro activo DPAPI válido en `directories-created`, ningún `identity.pending`, `RootId`/`DirectoryId` coincidentes por NTFS, raíz con exclusivamente el hijo vacío, ACL limitadas a los tres principales previstos, copias/respaldo del incidente conservados y verificados, servicio ausente, puerto libre/no excluido y cotidiana igual a la línea base. Antes de S2 confirmar nuevamente operador y elevación de E y cargar allí §2.1 corregido. No inferir los permisos de E desde N. Este anexo termina antes de S2; su ejecución posterior necesita una instrucción expresa para continuar dentro de la autorización aplicable.
+
+**Reversión alternativa:** no se incluye ningún borrado en I0–I2. Si el propietario decide abandonar después de recuperar `root-created`, R0 y R2 solo pueden evaluarse con autorización expresa, registro válido, raíz NTFS coincidente y vacía y servicio ausente. Si I1/I2 se interrumpen, no deducir pertenencia del nombre o contenido; se exige diagnóstico nuevo. Nunca borrar evidencias válidas, elegir rutas alternativas, ampliar ACL ni editar el registro para franquear las comprobaciones.
 
 ## 8. Consultas de solo lectura sobre `horus_group` (las ejecuta el operador)
 
