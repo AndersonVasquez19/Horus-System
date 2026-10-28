@@ -114,7 +114,17 @@ Las cuentas del panel se crean con un comando que pide la contraseña de forma o
 php artisan horus:crear-usuario --email=correo@ejemplo.com --name="Nombre" --rol=admin
 ```
 
-`--rol` acepta `admin`, `coordinador` o `secretaria`. Los datos de ejemplo (cursos, estudiantes, matrículas, procesos y aprobaciones) están separados en `DemoDataSeeder`, no crean usuarios y se niegan a ejecutarse con `APP_ENV=production`. Úsalos **solo en una base local desechable**:
+`--rol` acepta `admin`, `coordinador` o `secretaria`.
+
+**Acceso al panel en tu propia base local.** El registro público (`/register` y `/api/auth/register`) nunca asigna roles. Cada desarrollador, con su base PostgreSQL local ya migrada y con los roles sembrados (`php artisan db:seed --class=RolesAndPermissionsSeeder`), se registra normalmente en `/register` y luego promueve su propia cuenta desde su terminal:
+
+```powershell
+php artisan horus:promover-admin --email=tu@correo.com --base=NOMBRE_DE_TU_BASE
+```
+
+El comando solo promueve una cuenta que ya existe; no crea cuentas, no ejecuta seeders ni migraciones y no tiene ruta HTTP. Se niega a ejecutarse fuera de `local`/`development` (en `testing` solo con SQLite en memoria), si el host de la base no es de esta máquina o si `--base` no coincide con la base conectada. Si falta algún rol base, lo informa y termina sin cambiar nada. Repetirlo no duplica la asignación. Cada promoción queda en auditoría como `admin_role_granted_local`.
+
+Los datos de ejemplo (cursos, estudiantes, matrículas, procesos y aprobaciones) están separados en `DemoDataSeeder`, no crean usuarios y se niegan a ejecutarse con `APP_ENV=production`. Úsalos **solo en una base local desechable**:
 
 ```powershell
 php artisan db:seed --class=DemoDataSeeder
