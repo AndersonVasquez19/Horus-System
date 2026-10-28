@@ -36,7 +36,7 @@ class AuthController extends Controller
         ] + PasswordPolicy::messages());
 
         // El registro público nunca asigna roles. El acceso al panel se concede por consola:
-        // `php artisan horus:crear-usuario`.
+        // `php artisan horus:promover-admin` (local) o `horus:crear-usuario`.
         User::create([
             'name' => $data['name'],
             'email' => $data['email'],
