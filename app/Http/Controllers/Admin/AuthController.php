@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\VerificacionRegistroService;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,13 +23,15 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(Request $request): RedirectResponse|JsonResponse
     {
         Email::normalizeRequest($request);
         try {
             $data = $request->validate([
                 'name' => ['required', 'string', 'max:120'],
-                'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
+                'email' => ['required', 'string', 'email', 'max:255', ...(
+                    VerificacionRegistroService::enabled() ? [] : [Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')]
+                )],
                 'password' => ['required', 'confirmed', PasswordPolicy::rule()],
                 'terms' => ['accepted'],
             ], [
@@ -41,6 +45,14 @@ class AuthController extends Controller
             $request->replace($request->only('name', 'email', 'terms'));
             $request->query->replace([]);
             throw $error;
+        }
+
+        if (VerificacionRegistroService::enabled()) {
+            app(VerificacionRegistroService::class)->solicitar($data['email']);
+
+            return $request->expectsJson()
+                ? response()->json(['message' => VerificacionRegistroService::SOLICITUD_RECIBIDA], 202)
+                : redirect()->route('login')->with('success', VerificacionRegistroService::SOLICITUD_RECIBIDA);
         }
 
         // El registro público nunca asigna roles. El acceso al panel se concede por consola:
@@ -74,13 +86,17 @@ class AuthController extends Controller
             ],
         );
 
-        if (! Auth::attempt($credentials)) {
+        if (! Auth::attemptWhen($credentials, fn (User $user): bool => ! VerificacionRegistroService::enabled() || $user->hasVerifiedEmail())) {
             return back()
                 ->withErrors(['email' => 'Las credenciales ingresadas no son válidas.'])
                 ->onlyInput('email');
         }
 
         $request->session()->regenerate();
+        if (VerificacionRegistroService::enabled()) {
+            $request->session()->put(['auth.verification_user' => $request->user()->getKey(),
+                'auth.verification_version' => (int) $request->user()->jwt_version]);
+        }
 
         if ($request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES)) {
             return redirect()->intended(route('admin.dashboard'));

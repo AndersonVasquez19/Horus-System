@@ -19,7 +19,9 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
+use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home')->name('home');
@@ -39,6 +41,10 @@ Route::view('/preguntas-frecuentes', 'pages.legales.preguntas-frecuentes')->name
 Route::view('/libro-reclamaciones', 'pages.legales.libro-reclamaciones')->name('legales.reclamaciones');
 
 Route::middleware('guest')->group(function () {
+    Route::post('/email-verification/resend', [VerificacionRegistroController::class, 'reenviar'])
+        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:5,1'])->name('verification.resend');
+    Route::post('/email-verification/confirm', [VerificacionRegistroController::class, 'confirmar'])
+        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-confirm'])->name('verification.confirm');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

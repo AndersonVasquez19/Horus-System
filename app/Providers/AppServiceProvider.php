@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('verification-confirm', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
+
         // Login web y API: límite por IP y también por correo, para frenar ataques distribuidos
         // contra una misma cuenta sin que un solo correo bloquee a todos los demás.
         RateLimiter::for('login', fn (Request $request) => [

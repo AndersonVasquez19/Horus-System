@@ -15,6 +15,10 @@ class JwtTokenService
     /** @return array{access_token: string, token_type: string, expires_in: int} */
     public function issue(User $user): array
     {
+        if (VerificacionRegistroService::enabled() && ! $user->hasVerifiedEmail()) {
+            throw new RuntimeException('No se pueden emitir credenciales para esta cuenta.');
+        }
+
         $now = Carbon::now()->timestamp;
         $expiresAt = $now + max(60, (int) config('jwt.ttl', 900));
         $token = JWT::encode([

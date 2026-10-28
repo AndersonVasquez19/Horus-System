@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\VerificacionRegistroService;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use App\Support\SessionRevoker;
@@ -72,6 +73,8 @@ class ResetPasswordController extends Controller
             return redirect()->route('login')->with('success', 'Contraseña actualizada correctamente.');
         }
 
-        return back()->withErrors(['email' => __($status)])->onlyInput('email');
+        $publicStatus = VerificacionRegistroService::enabled() ? Password::INVALID_TOKEN : $status;
+
+        return back()->withErrors(['email' => __($publicStatus)])->onlyInput('email');
     }
 }
