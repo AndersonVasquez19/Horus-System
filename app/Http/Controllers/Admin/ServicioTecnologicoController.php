@@ -12,6 +12,7 @@ use App\Models\ServicioTecnologico;
 use App\Services\GestionServiciosTecnologicos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Validation\Rule;
@@ -31,7 +32,7 @@ class ServicioTecnologicoController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|Response
     {
         $datos = $request->validate([
             'estado' => ['sometimes', Rule::in(['activo', 'inactivo', 'archivado'])],
@@ -44,6 +45,14 @@ class ServicioTecnologicoController extends Controller implements HasMiddleware
         }
 
         $servicios = $consulta->orderBy('id')->paginate((int) ($datos['por_pagina'] ?? 15));
+        if (! $request->expectsJson()) {
+            $servicios->withQueryString();
+            $servicios->getCollection()->load('publicacion');
+
+            return response()->view('admin.servicios.index', ['servicios' => $servicios, 'estado' => $datos['estado'] ?? ''])
+                ->header('Cache-Control', 'no-store, private');
+        }
+
         return response()->json($servicios)
             ->header('Cache-Control', 'no-store, private');
     }

@@ -43,6 +43,17 @@
             </a>
         @endcan
 
+        @can('servicios.ver')
+            <a href="{{ route('admin.servicios.index') }}" title="Servicios tecnológicos" @class([
+                'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                'bg-gold font-semibold text-ink' => request()->is('admin/servicios*'),
+                'text-stone-300 hover:bg-white/10 hover:text-white' => ! request()->is('admin/servicios*'),
+            ])>
+                <i class="fa-solid fa-network-wired w-5 text-center" aria-hidden="true"></i>
+                <span class="hidden xl:inline">Servicios tecnológicos</span>
+            </a>
+        @endcan
+
         @can('matriculas.ver')
             <a href="/admin/matriculas" title="Matrículas" @class([
                 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
