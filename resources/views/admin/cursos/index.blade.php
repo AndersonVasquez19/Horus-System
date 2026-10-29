@@ -84,7 +84,7 @@
             @else
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[900px] text-left text-sm">
-                        <thead class="sticky top-16 z-10 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+                        <thead class="sticky top-0 z-10 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
                             <tr>
                                 <th class="px-5 py-3 font-semibold">Código / Curso</th>
                                 <th class="px-5 py-3 font-semibold">Categoría</th>
@@ -140,6 +140,11 @@
                                                     <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                                                 </button>
                                             @endif
+                                            @can('cursos.publicar')
+                                                <a href="{{ route('admin.cursos.publicacion.edit', $curso) }}" title="Publicación del curso" aria-label="Publicación del curso {{ $curso->codigo }}" class="flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-gold/10 hover:text-ink">
+                                                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+                                                </a>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

@@ -14,11 +14,15 @@
         <div role="alert" class="rounded-xl border border-red-300 bg-red-50 p-4">
             <p class="font-semibold">Revisa la ficha antes de publicar:</p>
             <ul class="list-disc pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+            @if ($errors->has('revision'))
+                <a href="{{ route('admin.cursos.publicacion.edit', $curso) }}" class="inline-flex min-h-11 items-center underline">Cargar versión actual</a>
+            @endif
         </div>
     @endif
     <form method="POST" action="{{ route('admin.cursos.publicacion.update', $curso) }}" class="space-y-5">
         @csrf
         @method('PUT')
+        <input type="hidden" name="_revision" value="{{ OldInput::value('_revision', $revision) }}">
         @foreach (['titulo' => ['Título público', 120, true], 'resumen' => ['Resumen público', 500, true], 'horario' => ['Horario oficial del curso (opcional)', 200, false], 'inscripcion' => ['Información pública de inscripción (opcional)', 400, false]] as $field => [$label, $max, $required])
             <div>
                 <label for="{{ $field }}" class="mb-2 block font-semibold">{{ $label }}</label>
@@ -54,6 +58,7 @@
         <form method="POST" action="{{ route('admin.cursos.publicacion.destroy', $curso) }}">
             @csrf
             @method('DELETE')
+            <input type="hidden" name="_revision" value="{{ OldInput::value('_revision', $revision) }}">
             <button type="submit" class="min-h-11 rounded-xl border border-red-600 px-5 py-3 font-semibold text-red-700">Despublicar ficha</button>
         </form>
     @endif

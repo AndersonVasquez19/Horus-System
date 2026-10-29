@@ -33,6 +33,7 @@ class CursoPublicacionController extends Controller implements HasMiddleware
         return response()->view('admin.cursos.publicacion', [
             'curso' => $curso,
             'publicacion' => $publicacion,
+            'revision' => $this->revision($curso, $publicacion),
         ])->header('ETag', $this->revision($curso, $publicacion))->header('Cache-Control', 'no-store, private');
     }
 
@@ -92,14 +93,26 @@ class CursoPublicacionController extends Controller implements HasMiddleware
 
     private function comprobarRevision(Request $request, Curso $curso, ?CursoPublicacion $publicacion): void
     {
-        $revision = $request->header('If-Match');
-        // Compatibilidad con el formulario existente, que todavía no envía revisión.
-        if ($revision === null) {
+        $cabecera = $request->header('If-Match');
+        $tieneCampo = $request->exists('_revision');
+        $revision = $cabecera ?? $request->input('_revision');
+        // Se conserva la compatibilidad con clientes anteriores sin precondición.
+        if ($cabecera === null && ! $tieneCampo) {
             return;
         }
-        if (! preg_match('/\A"[a-f0-9]{64}"\z/D', $revision)) {
+        if (! is_string($revision) || ! preg_match('/\A"[a-f0-9]{64}"\z/D', $revision)
+            || ($cabecera !== null && $tieneCampo && $cabecera !== $request->input('_revision'))) {
             throw ValidationException::withMessages(['revision' => 'Envía una única revisión fuerte obtenida del editor.']);
         }
-        abort_unless(hash_equals($this->revision($curso, $publicacion), $revision), 412, 'La ficha cambió. Vuelve a abrir el editor antes de continuar.');
+        if (! hash_equals($this->revision($curso, $publicacion), $revision)) {
+            if ($tieneCampo && ! $request->expectsJson()) {
+                throw ValidationException::withMessages([
+                    'revision' => $request->isMethod('DELETE')
+                        ? 'La ficha cambió. No se retiró la publicación. Carga la versión actual y revísala antes de volver a retirarla.'
+                        : 'La ficha cambió. Tu texto se conservó y no se guardó. Cópialo antes de cargar la versión actual y revisar de nuevo la publicación.',
+                ])->redirectTo(route('admin.cursos.publicacion.edit', $curso));
+            }
+            abort(412, 'La ficha cambió. Vuelve a abrir el editor antes de continuar.');
+        }
     }
 }
