@@ -30,8 +30,7 @@ class MatriculaNotificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->assertSame('sqlite', DB::connection()->getDriverName());
-        $this->assertSame(':memory:', config('database.connections.sqlite.database'));
+        $this->assertIsolatedTestDatabase();
         config([
             'matricula-mail.enabled' => true,
             'matricula-mail.connection' => 'database',

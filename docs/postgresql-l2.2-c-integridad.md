@@ -153,7 +153,8 @@ savepoint y transacción sin `commit`.
   conecta nada. Se informan como *skipped*, nunca como aprobadas.
 - `scripts/pgsql-test.php test` solo ejecuta las suites de `phpunit.pgsql.xml` (`tests/Unit` y
   `tests/Feature`) y únicamente acepta `--filter`. Para ejecutar esta carpeta habrá que añadir una
-  suite `tests/PostgresIntegrity` a `phpunit.pgsql.xml` (cambio de infraestructura pendiente).
+  suite `tests/PostgresIntegrity` a `phpunit.pgsql.xml` (hecho en L2.3: suite `PostgreSQL integrity`,
+  filtro `--filter=PostgresTest`; ver `docs/postgresql-l2.3-testing.md`).
 - Con `HORUS_PG_TEST_PROFILE=1`, `TestDatabaseSafety` sustituye la configuración de base de datos
   por el perfil validado y rechaza cualquier otra conexión o identidad antes de abrirla.
 

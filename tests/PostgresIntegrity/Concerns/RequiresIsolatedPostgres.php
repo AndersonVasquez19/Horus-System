@@ -14,11 +14,12 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Pruebas de integridad que solo tienen sentido contra la instancia PostgreSQL desechable de L2.2-B
- * (127.0.0.1:55432, base horus_l2_test). PREPARADAS, NO EJECUTADAS.
+ * (127.0.0.1:55432, base horus_l2_test).
  *
- * Esta carpeta no figura en phpunit.xml ni en phpunit.pgsql.xml: nunca entra en una suite por
- * accidente. Además, cada prueba se omite antes de arrancar Laravel si no corre bajo el perfil
- * aislado (que valida identidad, puerto y base mediante PostgresTestGuard).
+ * Esta carpeta no figura en phpunit.xml (SQLite); solo la suite "PostgreSQL integrity" de
+ * phpunit.pgsql.xml, que únicamente se ejecuta mediante scripts/pgsql-test.php. Además, cada prueba
+ * se omite antes de arrancar Laravel si no corre bajo el perfil aislado (que valida identidad,
+ * puerto y base mediante PostgresTestGuard).
  */
 trait RequiresIsolatedPostgres
 {

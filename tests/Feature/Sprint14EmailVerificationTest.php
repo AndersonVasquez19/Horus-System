@@ -31,8 +31,7 @@ class Sprint14EmailVerificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->assertSame('sqlite', DB::connection()->getDriverName());
-        $this->assertSame(':memory:', DB::connection()->getDatabaseName());
+        $this->assertIsolatedTestDatabase();
         config(['registro-verificacion.enabled' => true, 'registro-verificacion.mailer' => 'array',
             'jwt.secret' => str_repeat('x', 64), 'jwt.issuer' => 'https://horus.example']);
         Mail::fake();

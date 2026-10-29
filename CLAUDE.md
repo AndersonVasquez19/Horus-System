@@ -161,5 +161,6 @@ Resume qué cambió y por qué, rutas afectadas, comprobaciones ejecutadas con s
 | Consistencia y reglas de matrículas (Sprint 07–08) | `docs/sprint-07-consistencia-matriculas.md`, `docs/sprint-08-reglas-matriculas.md` |
 | Publicación editorial de cursos (Sprint 09) | `docs/sprint-09-publicacion-cursos.md` |
 | Preparación de la integración real (Sprint 15) | `docs/sprint-15-preparacion-integracion.md` |
+| PostgreSQL Testing antes de migrar (L2.3) | `docs/postgresql-l2.3-testing.md` |
 | Restauración de la web pública | `docs/restauracion-web-publica.md` |
 | Consolidación de sprints 01–07 | `docs/consolidacion-sprints-01-07.md` |

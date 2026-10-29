@@ -21,8 +21,7 @@ class BackendPerformanceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->assertSame('sqlite', DB::connection()->getDriverName());
-        $this->assertSame(':memory:', DB::connection()->getDatabaseName());
+        $this->assertIsolatedTestDatabase();
         $this->travelTo(now()->setDate(2026, 10, 28)->startOfDay());
         config(['matricula-mail.enabled' => false, 'services.openai.api_key' => null,
             'chatbot.public_catalog_enabled' => false]);

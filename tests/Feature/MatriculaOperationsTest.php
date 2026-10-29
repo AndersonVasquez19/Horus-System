@@ -24,8 +24,7 @@ class MatriculaOperationsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->assertSame('sqlite', DB::connection()->getDriverName());
-        $this->assertSame(':memory:', DB::connection()->getDatabaseName());
+        $this->assertIsolatedTestDatabase();
         config(['matricula-mail.enabled' => false]);
         Http::preventStrayRequests();
     }

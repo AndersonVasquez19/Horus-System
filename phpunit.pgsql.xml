@@ -6,6 +6,13 @@
         <testsuite name="PostgreSQL isolated">
             <directory>tests/Unit</directory>
             <directory>tests/Feature</directory>
+            <!-- SQLite por diseño: pruebas de la propia barrera y del comando que opera sobre SQLite. -->
+            <exclude>tests/Unit/TestDatabaseSafetyTest.php</exclude>
+            <exclude>tests/Unit/ConcurrentTestSessionTest.php</exclude>
+            <exclude>tests/Feature/PromoverAdminLocalTest.php</exclude>
+        </testsuite>
+        <testsuite name="PostgreSQL integrity">
+            <directory>tests/PostgresIntegrity</directory>
         </testsuite>
     </testsuites>
     <php>

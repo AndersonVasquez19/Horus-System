@@ -29,8 +29,7 @@ class Sprint12AuthSecurityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->assertSame('sqlite', DB::connection()->getDriverName());
-        $this->assertSame(':memory:', DB::connection()->getDatabaseName());
+        $this->assertIsolatedTestDatabase();
         config(['matricula-mail.enabled' => false, 'services.openai.api_key' => null]);
         Notification::fake();
         Http::preventStrayRequests();
