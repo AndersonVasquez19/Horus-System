@@ -1,0 +1,704 @@
+{
+  "version": "2026-10-29.2",
+  "description": "Reglas del nivel 1 y léxicos del recomendador. Las respuestas con hechos empresariales NO viven aquí: se toman de knowledge.json (registros verificados).",
+  "templates": [
+    {
+      "name": "greeting",
+      "standalone": true,
+      "patterns": [
+        "hola",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "buenas",
+        "hey",
+        "saludos",
+        "que tal",
+        "holi",
+        "alo"
+      ],
+      "response": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre servicios tecnológicos, cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?"
+    },
+    {
+      "name": "thanks",
+      "standalone": true,
+      "patterns": [
+        "gracias",
+        "muchas gracias",
+        "te agradezco",
+        "mil gracias",
+        "genial gracias",
+        "ok gracias"
+      ],
+      "response": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy."
+    },
+    {
+      "name": "farewell",
+      "standalone": true,
+      "patterns": [
+        "adios",
+        "chao",
+        "chau",
+        "hasta luego",
+        "nos vemos",
+        "bye",
+        "hasta pronto"
+      ],
+      "response": "¡Gracias por escribir a Horus Group SRL! Hasta pronto."
+    },
+    {
+      "name": "capabilities",
+      "standalone": false,
+      "patterns": [
+        "que puedes hacer",
+        "en que me puedes ayudar",
+        "en que me ayudas",
+        "que sabes hacer",
+        "como funcionas",
+        "quien eres",
+        "eres un bot",
+        "eres un robot",
+        "eres humano",
+        "para que sirves"
+      ],
+      "response": "Soy un asistente informativo automático (no una persona). Respondo con información publicada por Horus Group SRL: servicios tecnológicos, modalidades de cursos, capacitaciones, asesoramiento, convenios, preguntas frecuentes y contacto. También puedo recomendarte opciones según lo que buscas. No invento precios, fechas, cupos ni requisitos: para eso te derivo a un asesor."
+    }
+  ],
+  "human_handoff": {
+    "patterns": [
+      "hablar con una persona",
+      "hablar con alguien",
+      "hablar con un humano",
+      "asesor humano",
+      "atencion humana",
+      "persona real",
+      "quiero un asesor",
+      "comunicarme con un asesor",
+      "hablar con un asesor"
+    ],
+    "record_id": "contacto_canales"
+  },
+  "recommendation_cues": {
+    "learn": [
+      "busco",
+      "buscando",
+      "recomiendas",
+      "recomienda",
+      "recomiendan",
+      "recomendacion",
+      "recomendarme",
+      "me conviene",
+      "que curso",
+      "que cursos",
+      "que capacitacion",
+      "quiero aprender",
+      "quiero estudiar",
+      "me gustaria aprender",
+      "me gustaria estudiar",
+      "no se que estudiar",
+      "orientame",
+      "orientar",
+      "oriente",
+      "que deberia estudiar",
+      "aprender",
+      "estudiar",
+      "capacitarme",
+      "formarme",
+      "especializarme",
+      "certificarme",
+      "desde cero",
+      "principiante",
+      "habilidades",
+      "me interesa",
+      "me interesan",
+      "quiero un",
+      "quiero una",
+      "deseo",
+      "me gustaria",
+      "actualizarme",
+      "busco un",
+      "busco una"
+    ],
+    "service": [
+      "necesito",
+      "necesitamos",
+      "buscamos",
+      "echan una mano",
+      "una mano",
+      "ayuda con",
+      "mi empresa",
+      "mi negocio",
+      "mi oficina",
+      "mi local",
+      "mi tienda",
+      "mi casa",
+      "nuestra empresa",
+      "tenemos",
+      "que servicio",
+      "pueden ayudarme",
+      "me pueden ayudar",
+      "puede ayudarme",
+      "quiero mejorar",
+      "quiero instalar",
+      "instalar",
+      "reparar",
+      "arreglar",
+      "funcionan lento",
+      "funcionan lentamente",
+      "lenta",
+      "lentas",
+      "lento",
+      "se malogro",
+      "falla",
+      "cotizar",
+      "queremos",
+      "deseamos",
+      "se cae",
+      "se cuelga",
+      "se cuelgan",
+      "no funciona",
+      "no funcionan",
+      "no prende",
+      "no enciende",
+      "problema",
+      "problemas",
+      "malogrado",
+      "malograda",
+      "tiene virus"
+    ]
+  },
+  "topic_lexicon": {
+    "redes": [
+      "redes",
+      "red",
+      "networking",
+      "red de datos",
+      "conectividad",
+      "internet"
+    ],
+    "cableado": [
+      "cableado",
+      "cablear",
+      "cable",
+      "cables",
+      "punto de red",
+      "puntos de red",
+      "utp",
+      "lan"
+    ],
+    "wifi": [
+      "wifi",
+      "wi fi",
+      "inalambrica",
+      "router"
+    ],
+    "camaras": [
+      "camara",
+      "camaras",
+      "videovigilancia",
+      "vigilancia",
+      "cctv",
+      "robos",
+      "seguridad electronica"
+    ],
+    "mantenimiento": [
+      "mantenimiento",
+      "reparar",
+      "reparacion",
+      "arreglar",
+      "lenta",
+      "lentas",
+      "lento",
+      "lentamente",
+      "se calienta",
+      "virus",
+      "formatear",
+      "formateo",
+      "falla",
+      "se malogro"
+    ],
+    "computadoras": [
+      "computadora",
+      "computadoras",
+      "pc",
+      "pcs",
+      "laptop",
+      "laptops",
+      "ordenador",
+      "equipos",
+      "equipos informaticos",
+      "impresora",
+      "impresoras"
+    ],
+    "software": [
+      "programas",
+      "software",
+      "sistemas informaticos",
+      "sistema operativo",
+      "aplicaciones"
+    ],
+    "ofimatica": [
+      "excel",
+      "word",
+      "office",
+      "ofimatica",
+      "powerpoint"
+    ],
+    "enfermeria": [
+      "enfermeria",
+      "enfermera",
+      "enfermero",
+      "enfermeras",
+      "salud"
+    ],
+    "administracion": [
+      "administracion",
+      "administrador",
+      "administradora",
+      "gestion"
+    ],
+    "economia": [
+      "economia",
+      "economista",
+      "economico"
+    ],
+    "tesis": [
+      "tesis",
+      "trabajo de grado",
+      "titularme",
+      "titulacion"
+    ],
+    "investigacion": [
+      "investigacion",
+      "proyecto de investigacion"
+    ],
+    "finanzas": [
+      "finanzas",
+      "financiero",
+      "contabilidad"
+    ],
+    "liderazgo": [
+      "liderazgo",
+      "liderar",
+      "gestion de equipos"
+    ],
+    "legal": [
+      "legal",
+      "abogado",
+      "juridico",
+      "juridica",
+      "contrato",
+      "derecho"
+    ],
+    "certificacion": [
+      "certificado",
+      "certificacion",
+      "certificarme",
+      "certificar"
+    ],
+    "tecnologia": [
+      "tecnologia",
+      "tecnologico",
+      "informatica",
+      "computacion",
+      "tecnico",
+      "tecnicas",
+      "habilidades tecnicas",
+      "sistemas"
+    ],
+    "capacitacion": [
+      "capacitacion",
+      "capacitaciones",
+      "capacitar",
+      "taller",
+      "talleres",
+      "diplomado",
+      "diplomados"
+    ],
+    "cursos": [
+      "curso",
+      "cursos",
+      "clases"
+    ],
+    "empresas": [
+      "empresa",
+      "negocio",
+      "oficina",
+      "institucion",
+      "trabajadores",
+      "personal",
+      "colaboradores",
+      "mi equipo"
+    ]
+  },
+  "generic_topics": [
+    "tecnologia",
+    "capacitacion",
+    "cursos",
+    "empresas",
+    "certificacion",
+    "formacion",
+    "modalidades"
+  ],
+  "level_lexicon": {
+    "principiante": [
+      "principiante",
+      "desde cero",
+      "de cero",
+      "empezando",
+      "comenzando",
+      "no se nada",
+      "sin experiencia",
+      "basico",
+      "nunca he",
+      "novato",
+      "recien empiezo",
+      "estoy empezando",
+      "estoy comenzando"
+    ],
+    "intermedio": [
+      "intermedio",
+      "algo de experiencia",
+      "ya tengo bases",
+      "conocimientos basicos",
+      "se lo basico"
+    ],
+    "avanzado": [
+      "avanzado",
+      "experto",
+      "mucha experiencia",
+      "especializarme",
+      "nivel avanzado"
+    ]
+  },
+  "modality_lexicon": {
+    "presencial": [
+      "presencial",
+      "en persona",
+      "en la sede"
+    ],
+    "semipresencial": [
+      "semipresencial",
+      "hibrido",
+      "mixto"
+    ],
+    "virtual": [
+      "virtual",
+      "online",
+      "en linea",
+      "a distancia",
+      "desde casa",
+      "remoto"
+    ]
+  },
+  "audience_lexicon": {
+    "empresa": [
+      "mi empresa",
+      "nuestra empresa",
+      "mi negocio",
+      "mi oficina",
+      "la empresa donde trabajo",
+      "mis trabajadores",
+      "mi personal",
+      "colaboradores",
+      "institucion",
+      "mi local",
+      "mi tienda"
+    ],
+    "persona": [
+      "para mi",
+      "yo quiero",
+      "soy estudiante",
+      "soy principiante",
+      "personalmente"
+    ]
+  },
+  "general_guidance": {
+    "redes": "Orientación general (no es una oferta de Horus Group): quien empieza en redes suele comenzar por los fundamentos de una red local, el direccionamiento IP y los tipos de cableado.",
+    "mantenimiento": "Orientación general (no es una oferta de Horus Group): para iniciarse en mantenimiento de computadoras suele empezarse por conocer los componentes de una PC, la limpieza preventiva y la instalación de sistemas operativos.",
+    "ofimatica": "Orientación general (no es una oferta de Horus Group): en ofimática suele empezarse por un procesador de textos y una hoja de cálculo antes de pasar a funciones avanzadas.",
+    "tecnologia": "Orientación general (no es una oferta de Horus Group): si no sabes por dónde empezar en tecnología, piensa si te atrae más el trabajo con equipos (hardware, redes) o con programas (software) y elige un área concreta."
+  },
+  "attribute_lexicon": {
+    "modalidad": [
+      "presencial",
+      "semipresencial",
+      "virtual",
+      "online",
+      "en linea",
+      "a distancia",
+      "remoto",
+      "modalidad",
+      "desde casa"
+    ],
+    "audiencia": [
+      "para casas",
+      "para hogares",
+      "para mi casa",
+      "para casa",
+      "para empresas",
+      "para personas",
+      "para negocios",
+      "para particulares",
+      "para instituciones",
+      "tambien para"
+    ],
+    "certificado": [
+      "certificado",
+      "certificados",
+      "certificacion",
+      "certifican",
+      "diploma",
+      "constancia"
+    ],
+    "precio": [
+      "precio",
+      "precios",
+      "cuanto cuesta",
+      "cuanto sale",
+      "cuanto es",
+      "cuanto cobran",
+      "costo",
+      "costos",
+      "tarifa",
+      "cuanto esta",
+      "cuanto vale"
+    ],
+    "fechas": [
+      "cuando empieza",
+      "cuando empiezan",
+      "cuando inicia",
+      "cuando inician",
+      "fecha de inicio",
+      "fecha",
+      "fechas",
+      "horario del curso",
+      "horario de clases",
+      "convocatoria"
+    ],
+    "duracion": [
+      "cuanto dura",
+      "cuanto duran",
+      "duracion",
+      "cuantas horas",
+      "cuantas semanas",
+      "cuantos meses"
+    ],
+    "cupos": [
+      "cupo",
+      "cupos",
+      "vacante",
+      "vacantes",
+      "hay espacio",
+      "quedan lugares"
+    ],
+    "requisitos": [
+      "requisito",
+      "requisitos",
+      "que documentos"
+    ],
+    "tiempo_atencion": [
+      "cuanto demoran",
+      "cuanto tardan",
+      "en cuanto tiempo",
+      "plazo",
+      "demora",
+      "demoran"
+    ],
+    "contenido": [
+      "temario",
+      "silabo",
+      "que temas",
+      "contenido del curso",
+      "que se ve en"
+    ]
+  },
+  "unavailable_attributes": {
+    "precio": "no_disponible_precios",
+    "fechas": "no_disponible_fechas",
+    "duracion": "no_disponible_fechas",
+    "cupos": "no_disponible_cupos",
+    "requisitos": "no_disponible_requisitos",
+    "contenido": "cursos_catalogo"
+  },
+  "attribute_evidence_terms": {
+    "certificado": [
+      "certific",
+      "diploma"
+    ],
+    "tiempo_atencion": [
+      "horas habiles",
+      "plazo"
+    ],
+    "modalidad": [
+      "presencial",
+      "online",
+      "virtual",
+      "semipresencial"
+    ],
+    "audiencia": [
+      "hogar",
+      "empresa",
+      "institucion",
+      "persona",
+      "colaboradores"
+    ]
+  },
+  "reference_markers": [
+    "eso",
+    "esa",
+    "ese",
+    "esos",
+    "esas",
+    "ello",
+    "lo mismo",
+    "el mismo",
+    "la misma",
+    "lo anterior",
+    "lo que me dijiste",
+    "y el de",
+    "y la de",
+    "y los de",
+    "y las de",
+    "ese servicio",
+    "ese curso",
+    "esa capacitacion",
+    "esa opcion",
+    "esa asesoria"
+  ],
+  "topic_change_markers": [
+    "otra cosa",
+    "otro tema",
+    "cambiando de tema",
+    "aparte de eso",
+    "ahora otra",
+    "otra pregunta",
+    "otra consulta",
+    "una consulta diferente",
+    "por otro lado"
+  ],
+  "quote": {
+    "patterns": [
+      "cotizacion",
+      "cotizaciones",
+      "cotizar",
+      "cotizan",
+      "cotice",
+      "coticen",
+      "presupuesto",
+      "proforma",
+      "cuanto me cobrarian",
+      "cuanto cobrarian",
+      "cuanto me cobran por",
+      "precio exacto"
+    ],
+    "private_patterns": [
+      "cotizacion que me enviaron",
+      "cotizacion que me mandaron",
+      "mi cotizacion",
+      "la cotizacion que me",
+      "estado de mi cotizacion",
+      "numero de cotizacion",
+      "cotizacion anterior",
+      "proforma que me enviaron",
+      "me enviaron la semana"
+    ],
+    "checklist_label": "Sugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group)",
+    "checklist": {
+      "camaras": [
+        "tipo de espacio (hogar, tienda, oficina, institución)",
+        "cantidad aproximada de zonas a vigilar",
+        "si es interior, exterior o ambos",
+        "dirección o zona en Cajamarca"
+      ],
+      "cableado": [
+        "número aproximado de puntos de red o ambientes",
+        "número de pisos",
+        "si ya existe una red instalada"
+      ],
+      "redes": [
+        "número aproximado de puntos de red o ambientes",
+        "número de pisos",
+        "si ya existe una red instalada"
+      ],
+      "wifi": [
+        "tamaño del local",
+        "número de equipos que se conectan",
+        "problema que notas"
+      ],
+      "mantenimiento": [
+        "cantidad y tipo de equipos",
+        "síntomas o falla observada",
+        "si buscas mantenimiento preventivo o correctivo"
+      ],
+      "computadoras": [
+        "cantidad y tipo de equipos",
+        "síntomas o falla observada",
+        "si buscas mantenimiento preventivo o correctivo"
+      ],
+      "software": [
+        "programas o sistemas involucrados",
+        "cantidad de equipos o personas"
+      ],
+      "capacitacion": [
+        "tema de interés",
+        "número aproximado de participantes",
+        "modalidad preferida (presencial u online)"
+      ],
+      "tesis": [
+        "nivel (pregrado, maestría u otro)",
+        "avance actual del trabajo"
+      ],
+      "legal": [
+        "tipo de asunto (sin datos personales en el chat)"
+      ],
+      "finanzas": [
+        "tipo y tamaño del negocio",
+        "objetivo de la asesoría"
+      ],
+      "liderazgo": [
+        "tamaño del equipo",
+        "objetivo de la asesoría o capacitación"
+      ],
+      "_default": [
+        "servicio o capacitación de interés",
+        "un medio de contacto para que el asesor responda"
+      ]
+    }
+  },
+  "objective_lexicon": {
+    "postulacion": {
+      "label": "postular a entidades públicas o privadas",
+      "patterns": [
+        "postular",
+        "postulacion",
+        "postulaciones",
+        "al estado",
+        "entidades publicas",
+        "concurso publico",
+        "sector publico"
+      ],
+      "evidence_terms": [
+        "postulaciones"
+      ]
+    },
+    "actualizacion": {
+      "label": "actualizar conocimientos",
+      "patterns": [
+        "actualizarme",
+        "actualizar mis conocimientos",
+        "ponerme al dia",
+        "actualizacion"
+      ],
+      "evidence_terms": [
+        "actualiza",
+        "vanguardia"
+      ]
+    }
+  },
+  "low_weight_tokens": [
+    "peru",
+    "cajamarca",
+    "lima"
+  ]
+}

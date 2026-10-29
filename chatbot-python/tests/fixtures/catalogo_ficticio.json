@@ -1,0 +1,60 @@
+{
+  "version": "FICTICIO-PRUEBAS",
+  "description": "DATOS FICTICIOS SOLO PARA PRUEBAS AUTOMATIZADAS. Estos cursos NO existen en Horus Group SRL y nunca deben copiarse a data/knowledge.json.",
+  "public_contact": {"phone": "+51 927 582 305", "email": "horusgroupcajamarca@gmail.com", "contact_page": "/contactos"},
+  "records": [
+    {
+      "id": "contacto_canales",
+      "category": "contacto",
+      "kind": "info",
+      "title": "Canales de contacto",
+      "description": "Teléfono y WhatsApp +51 927 582 305 y correo horusgroupcajamarca@gmail.com.",
+      "answer": "Puedes comunicarte al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+      "status": "verified",
+      "source": {"kind": "prueba_ficticia", "url_path": "/contactos", "file": "tests/fixtures/catalogo_ficticio.json", "checked_on": "2026-10-28"},
+      "keywords": ["contacto", "telefono"]
+    },
+    {
+      "id": "formacion_personalizada",
+      "category": "formacion",
+      "kind": "training_program",
+      "title": "Formación personalizada (copia de prueba)",
+      "description": "Capacitaciones personales y grupales adaptadas a necesidades.",
+      "answer": "Capacitaciones personales y grupales adaptadas a tus necesidades.",
+      "status": "verified",
+      "source": {"kind": "prueba_ficticia", "url_path": "/educacion/capacitaciones", "file": "tests/fixtures/catalogo_ficticio.json", "checked_on": "2026-10-28"},
+      "keywords": ["formacion personalizada"],
+      "topics": ["formacion", "capacitacion"],
+      "audience": ["persona"],
+      "recommendable": true
+    },
+    {
+      "id": "ficticio_curso_redes_basico",
+      "category": "formacion",
+      "kind": "course",
+      "title": "[FICTICIO] Fundamentos de redes para principiantes",
+      "description": "Curso ficticio de prueba: fundamentos de redes locales, direccionamiento IP y cableado, para principiantes.",
+      "answer": "[FICTICIO] Curso de fundamentos de redes para principiantes, en modalidad presencial.",
+      "status": "verified",
+      "source": {"kind": "prueba_ficticia", "url_path": "/educacion/cursos", "file": "tests/fixtures/catalogo_ficticio.json", "checked_on": "2026-10-28"},
+      "keywords": ["curso de redes", "redes", "fundamentos de redes"],
+      "topics": ["redes", "cursos", "tecnologia"],
+      "audience": ["persona"],
+      "modalities": ["presencial"],
+      "levels": ["principiante"],
+      "recommendable": true
+    },
+    {
+      "id": "ficticio_curso_redes_avanzado_pendiente",
+      "category": "formacion",
+      "kind": "course",
+      "title": "[FICTICIO] Redes avanzadas (pendiente de validar)",
+      "description": "Curso ficticio provisional de redes avanzadas que no debe recomendarse.",
+      "answer": "[FICTICIO] Pendiente de validación.",
+      "status": "provisional",
+      "source": {"kind": "prueba_ficticia", "url_path": "/educacion/cursos", "file": "tests/fixtures/catalogo_ficticio.json", "checked_on": "2026-10-28"},
+      "keywords": ["redes avanzadas", "redes"],
+      "topics": ["redes", "cursos"]
+    }
+  ]
+}

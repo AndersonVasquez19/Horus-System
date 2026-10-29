@@ -1,0 +1,20 @@
+# Entorno y secretos locales
+.venv/
+.env
+.env.*
+!.env.example
+
+# Modelos y cachés (nunca se versionan)
+models/
+.cache/
+hf-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Informes de evaluación regenerables (incluyen tiempos de la máquina local)
+reports/

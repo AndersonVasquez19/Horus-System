@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "catalog_version": "2026.10.29-ficticio",
+  "source_system": "horus-laravel",
+  "generated_at": "2026-10-29T08:00:00-05:00",
+  "expires_at": "2026-12-15T08:00:00-05:00",
+  "items": [
+    {
+      "stable_id": "curso:redes-basico",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "[FICTICIO] Fundamentos de redes",
+      "summary": "Curso ficticio de prueba sobre redes locales, direccionamiento IP y cableado para principiantes.",
+      "keywords": ["curso de redes", "fundamentos de redes"],
+      "topics": ["redes", "cursos", "tecnologia"],
+      "audience": ["persona"],
+      "modalities": ["presencial"],
+      "levels": ["principiante"],
+      "requirements": ["Requisito ficticio: traer laptop propia"],
+      "duration_text": "ocho semanas (ficticio)",
+      "schedule_text": "sábados por la mañana (ficticio)",
+      "public_price": {"amount": "150.00", "currency": "PEN", "conditions": "por participante, dato ficticio"},
+      "url_path": "/educacion/cursos",
+      "updated_at": "2026-10-28T10:00:00-05:00"
+    },
+    {
+      "stable_id": "capacitacion:ofimatica-empresas",
+      "type": "capacitacion",
+      "publication_status": "vigente",
+      "title": "[FICTICIO] Ofimática para equipos de trabajo",
+      "summary": "Capacitación ficticia de prueba en hojas de cálculo y procesadores de texto para el personal de empresas.",
+      "keywords": ["ofimatica", "excel para empresas"],
+      "topics": ["ofimatica", "capacitacion", "empresas"],
+      "audience": ["empresa"],
+      "modalities": ["presencial", "online"],
+      "updated_at": "2026-10-28T10:00:00-05:00"
+    },
+    {
+      "stable_id": "curso:camaras-instalacion",
+      "type": "curso",
+      "publication_status": "retirado",
+      "title": "[FICTICIO] Instalación de cámaras",
+      "summary": "Curso ficticio retirado sobre instalación de cámaras de videovigilancia.",
+      "keywords": ["curso de camaras", "instalacion de camaras curso"],
+      "topics": ["camaras", "cursos"],
+      "updated_at": "2026-09-01T10:00:00-05:00"
+    },
+    {
+      "stable_id": "curso:excel-avanzado",
+      "type": "curso",
+      "publication_status": "no_publicado",
+      "title": "[FICTICIO] Borrador interno ZETA",
+      "summary": "Borrador ficticio que nunca debe aparecer en una respuesta del asistente.",
+      "keywords": ["borrador zeta"],
+      "topics": ["ofimatica", "cursos"],
+      "updated_at": "2026-10-20T10:00:00-05:00"
+    },
+    {
+      "stable_id": "servicio:redes-wifi",
+      "type": "servicio",
+      "publication_status": "desconocido",
+      "title": "[FICTICIO] Auditoría de red inalámbrica",
+      "summary": "Servicio ficticio con estado de publicación desconocido; no debe afirmarse.",
+      "keywords": ["auditoria wifi", "auditoria de red inalambrica"],
+      "topics": ["wifi", "redes"],
+      "updated_at": "2026-10-20T10:00:00-05:00"
+    },
+    {
+      "stable_id": "curso:enfermeria-uci",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "[FICTICIO] Cuidados intensivos para enfermería",
+      "summary": "Curso ficticio cuya ventana de vigencia ya terminó.",
+      "keywords": ["curso de cuidados intensivos", "uci enfermeria"],
+      "topics": ["enfermeria", "cursos"],
+      "updated_at": "2026-01-10T10:00:00-05:00",
+      "valid_from": "2026-01-01",
+      "valid_until": "2026-01-31"
+    },
+    {
+      "stable_id": "canal:whatsapp-cursos",
+      "type": "canal_consulta",
+      "publication_status": "vigente",
+      "title": "[FICTICIO] Consultas de cursos por WhatsApp",
+      "summary": "Canal ficticio de consulta de cursos por WhatsApp al número público de la empresa.",
+      "inquiry": "WhatsApp +51 927 582 305",
+      "keywords": ["whatsapp de cursos"],
+      "updated_at": "2026-10-28T10:00:00-05:00"
+    }
+  ]
+}
