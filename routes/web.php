@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ProcesoController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\ServicioTecnologicoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -72,6 +73,13 @@ Route::prefix('admin')
             ->name('estudiantes.restaurar');
 
         Route::resource('cursos', CursoController::class);
+        Route::resource('servicios', ServicioTecnologicoController::class)->only(['index', 'store', 'show'])->parameters(['servicios' => 'servicio']);
+        Route::put('servicios/{servicio}', [ServicioTecnologicoController::class, 'update'])->name('servicios.update');
+        Route::patch('servicios/{servicio}/estado', [ServicioTecnologicoController::class, 'estado'])->name('servicios.estado');
+        Route::get('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'publicacion'])->name('servicios.publicacion.show');
+        Route::put('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'preparar'])->name('servicios.publicacion.preparar');
+        Route::post('servicios/{servicio}/publicacion/autorizar', [ServicioTecnologicoController::class, 'autorizar'])->name('servicios.publicacion.autorizar');
+        Route::delete('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'retirar'])->name('servicios.publicacion.retirar');
         Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
         Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
         Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');
