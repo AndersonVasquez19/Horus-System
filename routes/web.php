@@ -21,6 +21,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
+use App\Http\Controllers\CursosPublicosController;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
@@ -31,7 +32,7 @@ Route::view('/tecnologias/camaras-seguridad', 'pages.tecnologias.camaras-segurid
 Route::view('/tecnologias/soporte-mantenimiento', 'pages.tecnologias.soporte-mantenimiento')->name('tecnologias.soporte');
 Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
-Route::view('/educacion/cursos', 'pages.educacion.cursos')->name('educacion.cursos');
+Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
 Route::view('/galeria', 'pages.galeria')->name('galeria');
 Route::view('/contactos', 'pages.contactos')->name('contactos');
 Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name('legales.devolucion');

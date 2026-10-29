@@ -108,6 +108,42 @@
             </div>
         </div>
     </section>
+    @if($catalogoHabilitado ?? false)
+    <section class="cartas-section" aria-labelledby="catalogo-cursos-titulo" id="catalogo-cursos">
+        <div class="container">
+            <div class="seccion-header">
+                <h2 id="catalogo-cursos-titulo">CURSOS PUBLICADOS</h2>
+                @if($catalogoFallo)
+                    <p role="status">No podemos mostrar los cursos publicados en este momento. Puedes consultarnos en <a href="{{ route('contactos') }}" class="underline">Contacto</a>.</p>
+                @elseif(empty($cursosPublicos))
+                    <p>No hay fichas de cursos publicadas vigentes. Puedes consultarnos en <a href="{{ route('contactos') }}" class="underline">Contacto</a>.</p>
+                @else
+                    <p>{{ $totalCursosPublicos }} fichas vigentes. Mostrando 1–{{ count($cursosPublicos) }}, ordenadas por título.</p>
+                @endif
+            </div>
+            @if(!empty($cursosPublicos))
+            <div class="carta-grid">
+                @foreach($cursosPublicos as $ficha)
+                <article class="carta-card min-w-0 [overflow-wrap:anywhere]">
+                    <h3>{{ $ficha['titulo'] }}</h3>
+                    <p>{{ $ficha['resumen'] }}</p>
+                    <div class="carta-features">
+                        <span>Modalidad: {{ ['presencial' => 'Presencial', 'semipresencial' => 'Semipresencial', 'virtual' => 'Virtual', 'hibrido' => 'Híbrida'][$ficha['modalidad']] }}</span>
+                        @if(filled($ficha['horario']))
+                            <span>Horario: {{ $ficha['horario'] }}</span>
+                        @endif
+                        @if(filled($ficha['inscripcion']))
+                            <span>Información de inscripción: {{ $ficha['inscripcion'] }}</span>
+                        @endif
+                        <a href="{{ route('contactos') }}" class="inline-flex min-h-11 items-center underline" aria-label="{{ 'Consultar sobre '.$ficha['titulo'] }}">Consultar curso</a>
+                    </div>
+                </article>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </section>
+    @endif
 </div>
 @endsection
 

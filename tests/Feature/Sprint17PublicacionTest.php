@@ -175,7 +175,7 @@ class Sprint17PublicacionTest extends TestCase
         $this->assertFalse(config('chatbot.public_catalog_enabled'));
     }
 
-    public function test_public_read_is_allowlisted_deterministic_live_and_does_not_change_public_page(): void
+    public function test_public_read_is_allowlisted_deterministic_live_and_feeds_enabled_public_page(): void
     {
         [$admin, $uno] = $this->publicar();
         $this->publicar($admin, ['titulo' => 'Alfabetización digital']);
@@ -189,7 +189,7 @@ class Sprint17PublicacionTest extends TestCase
         foreach (['Nombre interno', '9876', 'autorizado_por', 'cupos', 'curso_id'] as $privado) {
             $this->assertStringNotContainsString($privado, json_encode($antes));
         }
-        $this->get(route('educacion.cursos'))->assertOk()->assertSee('Cursos Disponibles.')->assertDontSee('Alfabetización digital');
+        $this->get(route('educacion.cursos'))->assertOk()->assertSee('Cursos Disponibles.')->assertSee('Alfabetización digital');
         $this->deleteJson(route('admin.cursos.publicacion.destroy', $uno))->assertRedirect();
         $this->assertSame(1, $service->paraWeb()['total']);
         $export = app(ExportadorCatalogoAdvisor::class)->construir($admin);
