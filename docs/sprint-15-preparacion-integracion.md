@@ -462,3 +462,38 @@ Registrar únicamente: fecha y hora, operador, destino (`horus_group@127.0.0.1:5
 6. Cualquier matrícula de prueba en datos reales.
 
 Siguen fuera de alcance sin nueva decisión: `000022` y la verificación de correo, la activación de Resend, la liberación de avisos retenidos, el frontend y S7.
+
+## 10. Fase A: backup verificado y ensayo en PostgreSQL real (ejecutada)
+
+28 de octubre de 2026, con autorización del propietario limitada a respaldo y ensayo. **`horus_group` no recibió escrituras.** Sin servicios detenidos, sin `.env` modificado, sin Resend, verificación, frontend, S7, commits ni push.
+
+| Paso | Resultado |
+| --- | --- |
+| Identidad | `127.0.0.1:5432`, PostgreSQL 18.6, `data_directory = C:/Program Files/PostgreSQL/18/data` (no es S7: `C:/pgdata/horus_l2_test`, `55432`). Bases: `horus_group`, `postgres`. `horus_group_ensayo` no existía |
+| Actividad previa | 0 sesiones adicionales y 0 transacciones de escritura abiertas en `horus_group` |
+| Backup | `pg_dump -Fc` (instantánea transaccional consistente sin detener servicios), 65 093 bytes, SHA-256 `72D0CBD9A4B746A4829DAA52907A896E9E9FE6540AB45537E8DBA5BB3B571276`; índice legible (170 entradas: 24 tablas con datos, 33 restricciones, 9 índices, 12 FK, extensión `uuid-ossp`). Guardado en `%USERPROFILE%\respaldos-horus\fase-a\` sin herencia de permisos (solo el usuario, SYSTEM y Administradores) |
+| Base auxiliar | `horus_group_ensayo` creada desde la base de mantenimiento `postgres`, `template0`, UTF8, `Spanish_Spain.1252` (igual que el origen) |
+| Restauración | `pg_restore --no-owner --exit-on-error --single-transaction`: código 0, sin avisos. **Idéntica** al origen previo: conteos, permisos por rol, migraciones, tablas (24), índices (42), restricciones (148) y huella MD5 del contenido de 10 tablas |
+| `--pretend` | Correcto en `000012`, `000013`, `000020`, `000023`, `000024`; `000021` se detiene con `Undefined array key 0` (limitación prevista en 9.1); 0 cambios |
+| Migraciones | Las seis, una a una con `--path`, contra la conexión `pgsql` redirigida explícitamente a `horus_group_ensayo` en el propio proceso y comprobada en el servidor antes de cada una: lotes 4–9, todas `DONE` |
+| Datos | Cursos 8, estudiantes 10, matrículas 15, usuarios 3, roles de usuario 3: iguales antes y después, con huellas de contenido idénticas |
+| Permisos | 39 → 46; asignaciones 65 → 76; las 65 previas conservadas; 11 nuevas exactamente las previstas; admin 46, coordinador 21, secretaria 9, **idénticas a la matriz del seeder**; 0 asignaciones directas antes y después |
+| Restricciones e índices | 3 `CHECK` creados y validados; `matriculas_vigente_unica` parcial (`deleted_at is null and estado <> 'anulada'`); únicos nuevos en `matricula_notifications` (`matricula_id`, `delivery_key`) y `curso_publicaciones` (`curso_id`); FKs `cascade`, `restrict`, `set null` según lo diseñado |
+| Notificaciones y publicación | 0 avisos, 0 jobs, 0 fichas editoriales: las migraciones no generan avisos ni publican cursos |
+| `000022` | No registrada; `migrate:status` la muestra `Pending`; `registros_pendientes` no existe |
+| Configuración | `matricula-mail.enabled=false`, `configured()=false`, verificación `false/null`, catálogo público `false` |
+| `horus_group` después | Instantánea idéntica a la previa (incluidas huellas); 15 migraciones, 39 permisos, sin tablas nuevas; contador de escrituras de `pg_stat_user_tables` 152 → 152 |
+
+Evidencias (solo conteos, metadatos y huellas; sin filas ni datos personales) y scripts usados: `%USERPROFILE%\respaldos-horus\fase-a\evidencias\`.
+
+**Incidencias y limitaciones**
+
+- Dos fallos de los propios scripts, sin efecto en las bases: la guarda de directorio comparaba con barras invertidas (abortó antes del backup) y una consulta de verificación necesitó una conversión de tipo.
+- El usuario de base de datos de la aplicación es **superusuario** de PostgreSQL. Funciona, pero excede el mínimo privilegio; conviene un rol propio de aplicación en el futuro (decisión operativa).
+- El backup y la base auxiliar contienen datos personales y tablas `sessions`/`cache`. Están protegidos por permisos de carpeta y por las credenciales del servidor, pero el archivo no está cifrado.
+- El ensayo usó caché en memoria. En la Fase B la caché es `database`: las migraciones de permisos ya invalidan la caché de Spatie, y el plan añade `permission:cache-reset`.
+- El ensayo no mide concurrencia ni bloqueos con usuarios activos; cada migración duró entre 3 y 35 ms con este volumen. La Fase B sigue requiriendo ventana de mantenimiento.
+- El nombre del archivo usa hora UTC (`20:58`); la cabecera del dump muestra la hora del servidor (`15:58`, UTC-5).
+- `horus_group_ensayo` y el backup **se conservan**; eliminarlos requiere autorización.
+
+**Recomendación:** el plan funciona sobre una copia exacta en PostgreSQL 18.6 real. Es seguro solicitar autorización para la Fase B (§9), con un backup nuevo tomado en la propia ventana de mantenimiento.
