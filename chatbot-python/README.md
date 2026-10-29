@@ -46,6 +46,7 @@ Todo se instala en `chatbot-python\.venv`. El Python global, Composer, Laragon y
 Desde PowerShell, en la carpeta `chatbot-python`:
 
 ```powershell
+cd "<ruta-del-repositorio>\chatbot-python"
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock
