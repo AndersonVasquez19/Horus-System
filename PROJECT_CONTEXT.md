@@ -3,12 +3,12 @@
 | Control de actualización | Estado examinado |
 | --- | --- |
 | Última actualización | 29 de octubre de 2026, fecha de Lima |
-| Rama / HEAD | `anderson` / `8fc4174790be7d8df38b8858cb8c9825c4e237ea` |
-| Último sprint documentado | 17.2; esta tarea agrega únicamente documentación |
+| Rama / HEAD de partida de la consolidaci?n | `anderson` / `306b168e8d8bbfec23301d7c050c7f7c9ae11d2f` |
+| Último sprint documentado | 18.2; backend, panel y catálogo web preparados, con publicación dinámica apagada |
 | Publicación web / catálogo del chatbot PHP / Advisor | Predeterminados apagados, en configuraciones separadas |
 | Resend / verificación de correo | Envío de matrícula apagado por defecto; verificación `false` y transporte `null` |
 | PostgreSQL S7 / migraciones reales | Suspendidos; ninguna conexión a bases en esta tarea |
-| Última validación funcional documentada | Sprint 17.2: 951 pruebas PHP, 6030 aserciones; no se repitieron al redactar este archivo |
+| Última validación funcional documentada | Sprint 18.2: 1011 pruebas PHP, 6741 aserciones; resultados históricos, no repetidos en la consolidación local |
 
 **Naturaleza del documento:** contexto operativo sustentado en código, locks, pruebas, Git local e informes existentes. No es autorización para ejecutar procedimientos. [AGENTS.md](AGENTS.md) conserva la prioridad normativa; [CLAUDE.md](CLAUDE.md) contiene los contratos y comandos. Una implementación disponible no acredita activación, aplicación de migraciones ni despliegue.
 
@@ -335,6 +335,10 @@ Validación Sprint 18: **30 pruebas específicas/407 aserciones; suite completa 
 
 Validación 18.1: **35 pruebas PHP específicas/466 aserciones; suite completa 986/6498** en SQLite `:memory:`, **18 pruebas frontend**, build, Larastan 6 y Pint acotado aprobados. Smoke Edge con listado/editor a **390/768/1440 px**, teclado, creación/edición/publicación/retiro, conflicto y rechazo 403; fixture exclusiva `127.0.0.1:8773`, memoria reconstruida por petición, sin persistencia ni evidencia de concurrencia PostgreSQL. Catálogo de servicios apagado, sin registros reales, migraciones reales, intervención PostgreSQL/S7/000022 o proveedores. Continúan pendientes aceptación PostgreSQL, autorización operativa y conexión visual independiente a la web pública. Se conserva la documentación PostgreSQL previa; sin commits, push ni cambios de stashes.
 
+**Sprint 18.2, conexión web local del 29/10/2026:** [catálogo de servicios en la web](docs/sprint-18-2-servicios-web.md). El GET/HEAD existente `/tecnologias/soporte-mantenimiento` (`tecnologias.soporte`) usa `ServiciosPublicosController` y añade una sección editorial independiente al final de la vista, conservando tarjetas, imágenes, navegación y estilos originales. Cableado y cámaras permanecen intactos; la categoría libre no se interpreta como una taxonomía para asignar fichas a páginas. El lector del Sprint 18 no cambia: COUNT + LIMIT/OFFSET SQL, 12 fichas por página web, orden estable y metadatos visibles. Solo título/resumen/descripción/categoría editoriales escapados; contacto existente, sin flujo de cotizaciones ni campos administrativos.
+
+`catalogo-servicios.enabled=false` sigue intacto: sin sección, lectura o introspección del esquema nuevo cuando está apagado. Encendido solo en pruebas: excluye estados/autores no elegibles; vacío e infraestructura incompleta tienen respuesta pública controlada y logs de códigos sin datos/SQL. Captura únicamente excepciones SQL o de provisión conocidas; no oculta errores de programación. Respuesta `no-store, private`, sin escrituras públicas. Smoke Edge: **15 casos en 390/768/1440 px**, comparaciones de HTML/geometría originales, textos largos, enlaces, foco/Tab y cero excepciones JS/destinos externos; fixture exclusiva `127.0.0.1:8774`, SQLite en memoria reconstruida por petición. Selección PHP servicios/panel/cursos: **80 aprobadas, 866 aserciones**; 18 pruebas frontend, build, Larastan 6 y Pint acotado aprobados. Suite completa SQLite: **1011 aprobadas, 6741 aserciones**. No datos reales, migraciones reales, interacción PostgreSQL/S7/000022, proveedores, commits/push o cambios de stashes. Continúan pendientes aceptación PostgreSQL, autorización de migraciones concretas y activación operativa separada; Sprint 19 conserva el contrato de UUID estable/snapshot histórico privado, sin módulo comercial nuevo.
+
 <a id="seguridad"></a>
 ## 15. Seguridad y reglas innegociables
 
@@ -359,7 +363,7 @@ El comentario de `config/catalogo-publico.php` describe la preparación anterior
 <a id="calidad"></a>
 ## 16. Estado de calidad y pruebas
 
-**Último resultado funcional comprobable documentado: Sprint 17.2.** No se ejecutó una nueva suite para esta tarea exclusivamente documental.
+**Último resultado funcional documentado: Sprint 18.2**, detallado en §14 y en [su informe](docs/sprint-18-2-servicios-web.md): 1011 pruebas PHP/6741 aserciones en SQLite, 18 pruebas frontend, build, Larastan 6, Pint acotado y 15 casos Edge aprobados. La consolidación local no modifica código ni repite estas pruebas; conserva su evidencia histórica. La tabla siguiente corresponde al Sprint 17.2.
 
 | Comprobación histórica | Resultado / límite |
 | --- | --- |
@@ -389,7 +393,7 @@ Orden propuesto por el propietario para organizar futuras tareas; **no autoriza 
 | 2. PostgreSQL Testing real | Autorización de recuperación acotada, credencial/identidad, cierre S7 y guardas; no repetir aprovisionamiento completo |
 | 3. Migraciones controladas | Autorizar base/ventana/backup/archivos específicos; no activar verificación ni aplicar `000022` a habitual |
 | 4. Activación editorial en entorno autorizado | Revisar `000021`, permiso/autores, fichas reales, retiros/caducidad, logs y rollback operativo del flag |
-| 5. Sprint 18, administración de servicios | Definir contrato editorial y permisos; aprobar cambios mínimos de panel/web que resulten necesarios |
+| 5. Sprints 18–18.2, servicios implementados localmente | Backend, panel y conexión web preparados; pendientes aceptación PostgreSQL, migraciones autorizadas y activación controlada |
 | 6. Sprint 19, cotizaciones y flujo comercial | Diseñar frontera pública/privada, autorización, auditoría, estados, idempotencia y efectos secundarios |
 | 7. Distribución/invalidez del catálogo Python | Resolver carga/recarga, retirada, expiración en caliente y zona horaria; no basta validar HMAC |
 | 8. Validación independiente del chatbot | Corpus separado, usuarios/casos reales autorizados, privacidad, calidad y consumo de recursos |

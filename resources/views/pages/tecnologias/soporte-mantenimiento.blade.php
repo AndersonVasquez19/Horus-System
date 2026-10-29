@@ -74,6 +74,53 @@
             </div>
         </div>
     </section>
+    @if($catalogoServiciosHabilitado ?? false)
+    <section id="catalogo-servicios" class="cartas-section" aria-labelledby="titulo-catalogo-servicios">
+        <div class="container">
+            <h2 id="titulo-catalogo-servicios">Catálogo de servicios tecnológicos</h2>
+            @if($catalogoServiciosFallo)
+                <p>No podemos mostrar los servicios publicados en este momento. Puede contactarnos para más información.</p>
+            @elseif($serviciosTotal === 0)
+                <p>No hay fichas de servicios publicadas vigentes.</p>
+            @else
+                <p>Total de fichas autorizadas vigentes: {{ $serviciosTotal }}. Página {{ $serviciosPagina }} de {{ (int) ceil($serviciosTotal / $serviciosPorPagina) }}.
+                    @if(($serviciosPagina - 1) * $serviciosPorPagina < $serviciosTotal)
+                        Rango consultado: {{ ($serviciosPagina - 1) * $serviciosPorPagina + 1 }}–{{ min($serviciosPagina * $serviciosPorPagina, $serviciosTotal) }}.
+                    @else
+                        Página fuera del rango actual.
+                    @endif
+                    Fichas presentadas: {{ count($serviciosPublicados) }}. Orden de registro.</p>
+                @if(count($serviciosPublicados) === 0)
+                    <p>No hay fichas disponibles en esta página.</p>
+                @endif
+                <div class="carta-grid">
+                    @foreach($serviciosPublicados as $servicio)
+                    <article class="carta-card min-w-0" style="overflow-wrap: anywhere;">
+                        <h3>{{ $servicio['titulo'] }}</h3>
+                        <p>{{ $servicio['resumen'] }}</p>
+                        @if(!empty($servicio['categoria']))
+                            <p>Categoría: {{ $servicio['categoria'] }}</p>
+                        @endif
+                        <p style="white-space: pre-line;">{{ $servicio['descripcion'] }}</p>
+                        <a class="inline-flex items-center min-h-[44px] underline" href="{{ route('contactos') }}" aria-label="Consultar servicio: {{ $servicio['titulo'] }}">Consultar servicio</a>
+                    </article>
+                    @endforeach
+                </div>
+                <nav aria-label="Páginas del catálogo de servicios" class="flex flex-wrap items-center gap-6 mt-6">
+                    @if($serviciosPagina > 1)
+                        <a class="inline-flex items-center min-h-[44px] underline" rel="prev" href="{{ route('tecnologias.soporte', ['servicios_pagina' => $serviciosPagina - 1]) }}#catalogo-servicios">Página anterior</a>
+                    @endif
+                    @if($serviciosPagina * $serviciosPorPagina < $serviciosTotal)
+                        <a class="inline-flex items-center min-h-[44px] underline" rel="next" href="{{ route('tecnologias.soporte', ['servicios_pagina' => $serviciosPagina + 1]) }}#catalogo-servicios">Página siguiente</a>
+                    @endif
+                </nav>
+            @endif
+            @if($catalogoServiciosFallo || $serviciosTotal === 0)
+                <a class="inline-flex items-center min-h-[44px] underline" href="{{ route('contactos') }}">Contactar con Horus Group</a>
+            @endif
+        </div>
+    </section>
+    @endif
 </div>
 @endsection
 

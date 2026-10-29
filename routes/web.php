@@ -23,6 +23,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
 use App\Http\Controllers\CursosPublicosController;
+use App\Http\Controllers\ServiciosPublicosController;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +31,7 @@ Route::view('/', 'pages.home')->name('home');
 Route::view('/quienes-somos', 'pages.quienes-somos')->name('quienes-somos');
 Route::view('/tecnologias/cableado-estructurado', 'pages.tecnologias.cableado-estructurado')->name('tecnologias.cableado');
 Route::view('/tecnologias/camaras-seguridad', 'pages.tecnologias.camaras-seguridad')->name('tecnologias.camaras');
-Route::view('/tecnologias/soporte-mantenimiento', 'pages.tecnologias.soporte-mantenimiento')->name('tecnologias.soporte');
+Route::get('/tecnologias/soporte-mantenimiento', ServiciosPublicosController::class)->name('tecnologias.soporte');
 Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
 Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
