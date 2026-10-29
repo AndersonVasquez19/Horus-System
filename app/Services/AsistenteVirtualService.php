@@ -38,6 +38,11 @@ class AsistenteVirtualService
         $contextKey = 'chat:context:'.$session;
         $previous = Cache::get($contextKey);
         $version = hash('sha256', serialize([array_map(fn (ChatIntent $intent) => $intent->getAttributes(), $intents), $fichas, $catalogoActivo]));
+        $advisorPermitido = (bool) config('horus-advisor.enabled', false) && str_starts_with($scope, 'public:')
+            && array_diff(array_column(ChatKnowledge::intents(), 'nombre'), array_map(fn (ChatIntent $i) => $i->nombre, $intents)) === [];
+        if ($advisorPermitido) {
+            $version = hash('sha256', $version.'|advisor|'.serialize(config('horus-advisor')));
+        }
         $key = 'chat:reply:'.hash('sha256', $session.'|'.$text.'|'.$version.'|'.(string) $previous);
         $lock = Cache::lock('chat:lock:'.$session, 30);
         if (! $lock->get()) {
@@ -55,7 +60,7 @@ class AsistenteVirtualService
             }
             $result = preg_match('/@|\d[\d\s-]{6,}\d/u', $mensaje)
                 ? $this->reply('Por privacidad, no incluyas datos personales. Describe únicamente tu consulta sobre cursos o servicios.', null, 'respaldo')
-                : $this->resolver($text, $intents, is_string($previous) ? $previous : null, $session, $fichas, $catalogoActivo);
+                : $this->resolver($text, $intents, is_string($previous) ? $previous : null, $session, $fichas, $catalogoActivo, $advisorPermitido);
             $this->guardarContexto($contextKey, $result['intent']);
             Cache::put($key, $result, (int) config('chatbot.duplicate_seconds'));
             // También cubre la repetición después de que cambió el contexto.
@@ -119,7 +124,7 @@ class AsistenteVirtualService
      * @param  list<array<string, string|null>>  $fichas
      * @return array{respuesta: string, intent: string|null, fuente: string}
      */
-    private function resolver(string $text, array $intents, ?string $previous, string $session, array $fichas, bool $catalogoActivo): array
+    private function resolver(string $text, array $intents, ?string $previous, string $session, array $fichas, bool $catalogoActivo, bool $advisorPermitido = false): array
     {
         if ($this->matcher->bloqueado($text)) {
             return $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
@@ -153,6 +158,13 @@ class AsistenteVirtualService
             return $this->reply('No tengo datos vigentes para esa comparación. Indica el curso o servicio y confirma precios, fechas o disponibilidad con un asesor en /contactos.', null, 'aclaracion');
         }
         if ($synthesis && preg_match('/\b(cursos?|capacitaciones?|modalidades?|servicios?|tecnologia)\b/', $text)) {
+            if ($advisorPermitido && $intent !== null && in_array($intent->nombre, self::TEMAS_OPENAI, true)) {
+                $advisor = app(HorusAdvisorClient::class)->orientar($intent->nombre);
+                if ($advisor !== null) {
+                    return $advisor;
+                }
+            }
+
             return $this->consultarOpenAI($text, $intents, $session);
         }
         if (preg_match('/\b(cursos?|requisitos|servicios?|horarios?|matricula|capacitaciones?)\b/', $text)) {
