@@ -11,6 +11,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -142,9 +143,18 @@ class AdminProtectionTest extends TestCase
         $ultimo = $this->makeUser('admin');
         $gestor = $this->makeUser('coordinador', ['usuarios.eliminar']);
 
+        // Sprint 21.1: un no administrador ya no llega a la regla del último administrador (403, R3).
         $this->actingAs($gestor)
             ->delete(route('admin.usuarios.destroy', $ultimo))
-            ->assertSessionHasErrors(['usuario' => 'No se puede eliminar al último administrador del sistema.']);
+            ->assertForbidden();
+
+        // La regla de integridad sigue vigente como segunda barrera (p. ej. ante un actor degradado a medias).
+        try {
+            app(AdminProtection::class)->assertUserCanBeDeleted($ultimo, $gestor);
+            $this->fail('Debía rechazar la eliminación del último administrador.');
+        } catch (ValidationException $e) {
+            $this->assertSame('No se puede eliminar al último administrador del sistema.', $e->errors()['usuario'][0]);
+        }
 
         $this->assertModelExists($ultimo);
         $this->assertTrue($ultimo->fresh()->hasRole('admin'));
@@ -154,19 +164,21 @@ class AdminProtectionTest extends TestCase
     {
         $uno = $this->makeUser('admin');
         $dos = $this->makeUser('admin');
-        $gestor = $this->makeUser('coordinador', ['usuarios.eliminar']);
 
-        $this->actingAs($gestor)
+        // Solo un administrador elimina a otro administrador (R3).
+        $this->actingAs($dos)
             ->delete(route('admin.usuarios.destroy', $uno))
             ->assertRedirect(route('admin.usuarios.index'));
 
         $this->assertModelMissing($uno);
         $this->assertSame(1, app(AdminProtection::class)->activeAdminCount());
 
-        // Ahora $dos es el último: ya no puede eliminarse.
+        // Ahora $dos es el último: no puede eliminarse (ni a sí mismo ni por otra vía).
         $this->delete(route('admin.usuarios.destroy', $dos))
             ->assertSessionHasErrors('usuario');
         $this->assertModelExists($dos);
+        $this->expectException(ValidationException::class);
+        app(AdminProtection::class)->assertUserCanBeDeleted($dos, null);
     }
 
     public function test_the_last_admin_cannot_lose_the_admin_role(): void
@@ -174,19 +186,24 @@ class AdminProtectionTest extends TestCase
         $ultimo = $this->makeUser('admin');
         $gestor = $this->makeUser('coordinador', ['usuarios.editar', 'usuarios.asignar-roles']);
 
+        // Sprint 21.1: un no administrador ya no puede tocar al administrador (403, R1/R2).
         $this->actingAs($gestor)
             ->put(route('admin.usuarios.update', $ultimo), [
                 'name' => 'Nombre nuevo',
                 'email' => $ultimo->email,
                 'roles' => ['secretaria'],
             ])
-            ->assertSessionHasErrors(['roles' => 'No se puede retirar el rol de administrador al último administrador del sistema.']);
+            ->assertForbidden();
 
-        // Tampoco quitando todos los roles (formulario sin casillas marcadas).
-        $this->put(route('admin.usuarios.update', $ultimo), [
-            'name' => 'Nombre nuevo',
-            'email' => $ultimo->email,
-        ])->assertSessionHasErrors('roles');
+        // La regla del último administrador sigue vigente como segunda barrera (con roles y sin ninguno).
+        foreach ([['secretaria'], []] as $nuevos) {
+            try {
+                app(AdminProtection::class)->assertRoleChangeKeepsAdministration($ultimo, $nuevos, $gestor);
+                $this->fail('Debía rechazar retirar el rol al último administrador.');
+            } catch (ValidationException $e) {
+                $this->assertSame('No se puede retirar el rol de administrador al último administrador del sistema.', $e->errors()['roles'][0]);
+            }
+        }
 
         $ultimo->refresh();
         $this->assertTrue($ultimo->hasRole('admin'));
@@ -259,17 +276,18 @@ class AdminProtectionTest extends TestCase
     {
         $uno = $this->makeUser('admin');
         $dos = $this->makeUser('admin');
-        $gestor = $this->makeUser('coordinador', ['usuarios.editar', 'usuarios.asignar-roles']);
 
-        $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $uno), ['name' => $uno->name, 'email' => $uno->email, 'roles' => ['secretaria']])
+        // Un administrador degrada al otro...
+        $this->actingAs($uno)
+            ->put(route('admin.usuarios.update', $dos), ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
             ->assertRedirect(route('admin.usuarios.index'));
 
-        $this->put(route('admin.usuarios.update', $dos), ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
+        // ...y el que queda no puede quitarse a sí mismo el rol: nunca se llega a cero administradores.
+        $this->put(route('admin.usuarios.update', $uno), ['name' => $uno->name, 'email' => $uno->email, 'roles' => ['secretaria']])
             ->assertSessionHasErrors('roles');
 
         $this->assertSame(1, app(AdminProtection::class)->activeAdminCount());
-        $this->assertTrue($dos->fresh()->hasRole('admin'));
+        $this->assertTrue($uno->fresh()->hasRole('admin'));
     }
 
     public function test_non_admin_users_can_still_be_managed_normally(): void

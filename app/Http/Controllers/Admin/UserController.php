@@ -16,7 +16,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
@@ -92,25 +91,34 @@ class UserController extends Controller implements HasMiddleware
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
         ] + PasswordPolicy::messages());
 
-        // Asignar roles concede permisos: exige su propio permiso además de usuarios.crear.
-        abort_if(! empty($data['roles']) && ! $request->user()->can('usuarios.asignar-roles'), 403);
+        $actor = $request->user();
 
-        DB::transaction(function () use ($data): void {
+        /** @var list<string> $roles */
+        $roles = array_values(array_unique($data['roles'] ?? []));
+
+        // Sprint 21.1: la creación también es exclusiva. Los permisos del actor se releen bajo el bloqueo y
+        // asignar roles exige su propio permiso, sin superar los privilegios del actor (R2).
+        $this->adminProtection->runAdministrative(function () use ($data, $actor, $roles): void {
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.crear'], 'usuario.crear', User::class, null);
+            $this->adminProtection->assertMayRequestRoles($alcance, $roles !== [], 'usuario.crear', null);
+            $this->adminProtection->assertCanAssignRoles($alcance, null, [], $roles, 'usuario.crear');
+
             $usuario = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
             ]);
 
-            if (! empty($data['roles'])) {
-                $usuario->syncRoles($data['roles']);
+            if ($roles !== []) {
+                $usuario->syncRoles($roles);
+                $this->adminProtection->forgetPermissionCacheAfterCommit();
             }
 
             AuditLog::record('user_created', User::class, $usuario->id, [
                 'name' => $usuario->name,
                 'email' => $usuario->email,
                 'roles' => $usuario->roles->pluck('name')->all(),
-            ]);
+            ], $alcance['actor']->id);
         });
 
         return redirect()->route('admin.usuarios.index')->with('success', 'El usuario se registró correctamente.');
@@ -141,20 +149,31 @@ class UserController extends Controller implements HasMiddleware
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
         ] + PasswordPolicy::messages());
 
-        // Asignar roles concede permisos: exige su propio permiso además de usuarios.editar.
         $actor = $request->user();
-        $canAssignRoles = $actor->can('usuarios.asignar-roles');
-        abort_if($request->has('roles') && ! $canAssignRoles, 403);
+        $solicitaRoles = $request->has('roles');
 
         /** @var list<string> $newRoles */
         $newRoles = array_values(array_unique($data['roles'] ?? []));
 
-        // Cambiar roles puede dejar al sistema sin administradores: se serializa y se valida bajo bloqueo.
-        $this->adminProtection->runExclusively(function () use ($request, $user, $data, $actor, $canAssignRoles, $newRoles): void {
-            $user = User::query()->whereKey($user->getKey())->firstOrFail();
+        // Sprint 21.1: toda decisión de autorización se toma bajo el bloqueo y con datos vigentes (no con la
+        // caché de Spatie). Orden: actor vigente -> objetivo -> R1/R1+ -> R2 -> reglas 422 de último admin.
+        $this->adminProtection->runAdministrative(function () use ($request, $user, $data, $actor, $solicitaRoles, $newRoles): void {
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.actualizar', User::class, $user->getKey());
+            $actor = $alcance['actor'];
+            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
             $passwordChanged = false;
 
-            if ($canAssignRoles) {
+            $this->adminProtection->assertCanModifyUser($alcance, $user, 'usuario.actualizar');
+            $this->adminProtection->assertMayRequestRoles($alcance, $solicitaRoles, 'usuario.actualizar', $user->id);
+
+            $puedeAsignar = in_array('usuarios.asignar-roles', $alcance['permisos'], true);
+            // Un no administrador que edita su propio perfil sin enviar `roles` no cambia sus roles (D-11):
+            // la ausencia del campo no se interpreta como «quitar todos».
+            $cambiaRoles = $puedeAsignar && ($solicitaRoles || ! $actor->is($user) || $alcance['admin']);
+            $rolesActuales = $this->adminProtection->roleNamesOf($user);
+
+            if ($cambiaRoles) {
+                $this->adminProtection->assertCanAssignRoles($alcance, $user, $rolesActuales, $newRoles, 'usuario.actualizar');
                 $this->adminProtection->assertRoleChangeKeepsAdministration($user, $newRoles, $actor);
             }
 
@@ -183,8 +202,9 @@ class UserController extends Controller implements HasMiddleware
                 SessionRevoker::revokeSessions($user, $user->is($actor) ? $request->session()->getId() : null);
             }
 
-            if ($canAssignRoles) {
+            if ($cambiaRoles) {
                 $user->syncRoles($newRoles);
+                $this->adminProtection->forgetPermissionCacheAfterCommit();
             }
 
             AuditLog::record('user_updated', User::class, $user->id, [
@@ -204,17 +224,20 @@ class UserController extends Controller implements HasMiddleware
     {
         $actor = $request->user();
 
-        $this->adminProtection->runExclusively(function () use ($user, $actor): void {
-            $user = User::query()->whereKey($user->getKey())->firstOrFail();
+        $this->adminProtection->runAdministrative(function () use ($user, $actor): void {
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.eliminar'], 'usuario.eliminar', User::class, $user->getKey());
+            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-            $this->adminProtection->assertUserCanBeDeleted($user, $actor);
+            // R3/R1+ primero (403); después las reglas de integridad (422): último administrador y uno mismo.
+            $this->adminProtection->assertCanDeleteUser($alcance, $user, 'usuario.eliminar');
+            $this->adminProtection->assertUserCanBeDeleted($user, $alcance['actor']);
 
             $user->delete();
 
             AuditLog::record('user_deleted', User::class, $user->id, [
                 'name' => $user->name,
                 'email' => $user->email,
-            ]);
+            ], $alcance['actor']->id);
         });
 
         return redirect()->route('admin.usuarios.index')->with('success', 'El usuario se eliminó correctamente.');
