@@ -2399,6 +2399,127 @@ El diff de C9 contra el `PROJECT_CONTEXT.md` de `HEAD` (`038895280000…`) conti
 
 ---
 
+## SPRINT 21.2 — FASE 0: DISEÑO DE AUDITORÍA DE MATRÍCULAS
+
+> Fecha: 31/10/2026 · **Solo análisis y diseño.** No se modificó ningún controlador, modelo, servicio, migración, ruta, request ni prueba; no se ejecutaron pruebas, migraciones ni consultas a bases de datos; no hubo staging, commit ni push. Único archivo tocado: este anexo (sin añadir al índice). Estado verificado al comenzar: rama `anderson`, HEAD `42569608daa7935727af60ad291f210a8ecef118`, árbol limpio, índice vacío, 2 stashes. Anclaje: `sprint-21-2-fase-0`.
+
+### 1. Diagnóstico
+
+- `MatriculaController` es el **único** escritor de matrículas (`store`, `update`, `anular`, `destroy`, `restaurar`); `CursoController` y `EstudianteController` solo leen o bloquean por matrículas activas. No hay otra ruta, comando ni cascada que cree, cambie, anule, elimine o restaure matrículas.
+- **Ninguna de las cinco operaciones se audita hoy.** Solo se audita la exportación CSV (`matriculas_csv_exported`).
+- Las cinco operaciones ya son transaccionales y siguen el protocolo de bloqueo (cursos por id → estudiantes por id → matrícula; `lockMatricula`), por lo que la auditoría puede añadirse como **última escritura de la misma transacción**.
+- **Infraestructura reutilizable ya existente:** `AuditoriaAcademica` (Sprint 20) tiene preparada la lista `MATRICULA` («valores»: `estudiante_id`, `curso_id`, `fecha_matricula`, `estado`, `monto_pagado`; «solo nombre»: `observaciones`), `actorDe($request)`, `diferencias()`, `registrarCreacion()`, `registrarActualizacion()` (no registra si no hay diferencias) y `registrarOperacion()`. Su docblock indica que la lista de matrícula solo prepara la fase 2c y ningún controlador la usa. `CursoController` es el patrón a seguir (actor explícito → `DB::transaction` → bloqueo → `fill` + `diferencias` → `save` → auditoría al final). `AuditLog::record` enmascara claves sensibles y la vista de auditoría muestra `redactedChanges()`: **no hace falta tocar vistas ni rutas**.
+- **Hallazgo de privacidad (CSV):** `exportarCsv` guarda en `audit_logs.changes.filters` el texto libre `busqueda` (el administrador suele escribir un DNI o un nombre de estudiante), además de `estado`, `curso_id` y `eliminados`. Eso persiste datos personales en la auditoría. Además usa `auth()->id()` implícito y el registro no es transaccional (no escribe datos de negocio; falla cerrado antes de transmitir). El **contenido** del CSV exportado incluye DNI y nombre por diseño (permiso `matriculas.exportar`, `SensitiveData::csvSafe`); este sprint no lo cambia. Los otros exportadores de matrículas (`ReportController`) registran solo `filename`; `RespaldoController`, `filename` y tablas: sin texto libre.
+- Efectos sobre cupo hoy: cada operación aplica `increment`/`decrement` sobre `cupos_disponibles` del curso bajo bloqueo; esos cambios **no** pasan por `CursoController`, por lo que la auditoría de curso nunca los ve. De ahí el campo `efecto_cupo`.
+
+### 2. Operaciones y eventos
+
+| Operación | Evento | Cuándo se audita | `efecto_cupo` |
+| --- | --- | --- | --- |
+| Crear (`store`) | `matricula_creada` | siempre (usa `registrarCreacion`) | `ocupa` si `estado` ≠ `anulada`; `ninguno` si nace anulada |
+| Actualizar (`update`) | `matricula_actualizada` | solo si hay diferencias reales en campos permitidos | `ocupa` (anulada→vigente), `traslada` (vigente→vigente con otro curso), `ninguno` (resto) |
+| Anular (`anular` y `PUT` a `anulada`) | `matricula_anulada` | solo si la matrícula no estaba anulada (repetir no audita ni devuelve cupo dos veces) | `libera` |
+| Eliminar (`destroy`) | `matricula_eliminada` | siempre | `libera` si no estaba anulada; `ninguno` si estaba anulada |
+| Restaurar (`restaurar`) | `matricula_restaurada` | siempre | `ocupa` si no está anulada; `ninguno` si está anulada |
+
+- **Cálculo único** (función pura, sede probable: `AuditoriaAcademica`): `efecto = f(activaAntes, activaDespués, cursoAntes, cursoDespués)` con «activa» = existe y `estado` ≠ `anulada`. Crear: antes inactiva. Eliminar: después inactiva. Restaurar: antes inactiva. Se calcula sobre la **fila ya bloqueada**, nunca sobre el modelo de la ruta.
+- `efecto_cupo` pertenece a una **lista cerrada** (`ocupa`, `libera`, `traslada`, `ninguno`); cualquier otro valor lanza `InvalidArgumentException`.
+- Estructura de `changes` (esquema 1, igual que Sprint 20): creación `{esquema, campos, valores, efecto_cupo}`; actualización o anulación `{esquema, campos, antes, despues, efecto_cupo}`; eliminación y restauración `{esquema, operacion, efecto_cupo, curso_id, estado}` donde `estado` es el estado vigente de la matrícula (permite saber qué se liberó u ocupó).
+- Actor: `AuditoriaAcademica::actorDe($request)` (id explícito, 403 si no hay); `destroy`, `anular` y `restaurar` pasarán a recibir `Request` (el enlace de ruta no cambia).
+
+### 3. Privacidad
+
+- **Valores con anterior y nuevo (lista explícita):** `estudiante_id`, `curso_id` (identificadores internos sin dato personal; necesarios para reconstruir traslados), `fecha_matricula`, `estado`, `monto_pagado` (importe de negocio, ya visible al administrador).
+- **Solo nombre del campo, nunca el valor:** `observaciones` (texto libre; puede contener datos personales).
+- **Nunca se registra:** DNI, nombres, apellidos, correo, teléfono, contraseñas, tokens, sesión, observaciones, cabeceras ni textos de error.
+- Todo campo no listado se ignora por completo (ni valor ni nombre), incluso si llega por la petición.
+- **CSV:** el registro `matriculas_csv_exported` pasará de `filters` crudos a una **lista cerrada**: `filename`, `estado` (solo si es uno de los tres valores válidos), `curso_id` (solo dígitos), `eliminados` (booleano) y `busqueda_aplicada` (booleano, sin texto ni longitud). El texto libre `busqueda` deja de persistirse.
+- **Registros históricos ya existentes** de `matriculas_csv_exported` pueden contener `busqueda` con datos personales; la corrección de código no los toca. Opciones en §8 (decisión D6).
+
+### 4. Atomicidad y concurrencia
+
+- Cada operación escribe la auditoría **dentro del mismo `DB::transaction`, como última escritura**. Si `AuditLog::create` falla, la excepción revierte matrícula, cupos, historial y la intención de `matricula_notifications` (el observador inserta en la misma transacción): mismo contrato que `CursoController` y `Sprint12AtomicityTest`.
+- Orden de bloqueo sin cambios: cursos (por id) → estudiantes (por id) → matrícula (`lockMatricula`). La auditoría se escribe después y no adquiere bloqueos sobre esas filas.
+- Los valores `antes` se toman de la fila **recién bloqueada** (`getOriginal` tras `lockForUpdate`), no de la ruta; así un segundo operador obsoleto audita lo que realmente cambió o no audita nada. `update` debe pasar de `$matricula->update($datos)` a `fill` → `diferencias` → `save` → auditoría, de forma equivalente.
+- Operaciones sin cambios (`PUT` idéntico, `anular` repetido) no escriben auditoría ni mueven cupos.
+- **Riesgo no medible aquí:** SQLite ignora `lockForUpdate`; la suite no prueba concurrencia real. La garantía de serialización con auditoría en PostgreSQL requiere una prueba aparte en el perfil aislado 55433 con autorización explícita.
+- Las denegaciones 403 (por ejemplo `PUT` a `anulada` sin `matriculas.anular`) se lanzan dentro de la transacción: no escriben ni auditan (decisión D5).
+
+### 5. Matriz de pruebas propuesta (SQLite en memoria; ninguna PostgreSQL)
+
+| ID | Caso | Verifica |
+| --- | --- | --- |
+| M01 | Crear vigente (`pendiente` o `pagada`) | 1 `matricula_creada`, actor correcto, `valores` permitidos, `efecto_cupo=ocupa`, cupo −1 |
+| M02 | Crear nacida anulada | `efecto_cupo=ninguno`, cupo sin cambio |
+| M03 | Actualizar monto, fecha o `pendiente→pagada` | `matricula_actualizada`, `antes`/`despues` exactos, `ninguno` |
+| M04 | Actualizar a otro curso (vigente) | `traslada`, `curso_id` antes/después, cupos −1/+1 coherentes |
+| M05 | Reactivar `anulada→vigente` | `ocupa`, cupo −1 |
+| M06 | `PUT` a `anulada` (con permiso) | evento `matricula_anulada` (D3), `libera`, cupo +1 |
+| M07 | `anular` por endpoint | `matricula_anulada`, `libera`, cupo +1 |
+| M08 | `anular` repetido, `PUT` idéntico, valores equivalentes (`100` vs `100.00`, misma fecha) | 0 filas nuevas, cupos intactos |
+| M09 | Eliminar vigente y eliminar anulada | `libera` / `ninguno`, `estado` registrado |
+| M10 | Restaurar vigente y restaurar anulada | `ocupa` / `ninguno` |
+| M11 | Invariante | la suma del delta de `cupos_disponibles` coincide con el `efecto_cupo` registrado en todas las pruebas anteriores |
+| M12 | Actor | cada evento lleva el `user_id` explícito del usuario (no otro ni null) |
+| M13 | Privacidad | ni `dni`, ni nombres, ni correo, ni valor de `observaciones` (marcador `PRIVATE-NOTE`), ni token o sesión en `changes`; solo el nombre `observaciones` |
+| M14 | Lista cerrada | un campo no permitido enviado en la petición no aparece; un `efecto_cupo` inválido lanza excepción (unitaria) |
+| M15 | CSV | `filters` ya no contiene `busqueda`; con `busqueda=<DNI>` solo `busqueda_aplicada=true`; `estado` y `curso_id` inválidos descartados; actor explícito |
+| M16 | Rollback | con un hook `AuditLog::creating` que lanza: las 5 operaciones revierten matrícula, cupos y `matricula_notifications`, y quedan 0 filas de auditoría |
+| M17 | Rollback con fallo posterior | una excepción tras el cambio de cupos revierte todo (regresión del test existente) |
+| M18 | Autorización | sin `matriculas.crear/editar/anular/eliminar/restaurar/exportar` → 403 y 0 auditorías; `PUT` a anulada sin `matriculas.anular` → 403 sin escrituras |
+| M19 | Validaciones | 422 (estudiante o curso inactivo, duplicado, sin cupo) → 0 auditorías y 0 cupos movidos |
+| M20 | Segundo operador obsoleto | tras un cambio concurrente simulado, audita solo el cambio real (`antes` de la fila bloqueada) |
+| M21 | Regresión | `MatriculaOperationsTest`, `AdminMatriculaTest`, `AdminMatriculaContextTest`, `MatriculaSensitivePermissionsTest`, `MatriculaIntegrityConstraintsTest`, `MatriculaNotificationTest`, `BackendRobustnessTest`, `Sprint12AtomicityTest`, `AdminAuthorizationTest`, `AuditoriaCursosTest`, `AuditoriaEstudiantesTest`; luego suite completa y Larastan |
+| M22 | Mutación de control | desactivar temporalmente la auditoría en cada operación debe romper al menos una prueba nueva (como en 21.1) |
+
+### 6. Archivos que se modificarían (en fases posteriores, con autorización)
+
+- `app/Support/AuditoriaAcademica.php`: lista cerrada de efectos y parámetro opcional `efecto_cupo` en los registradores; cálculo puro del efecto.
+- `app/Http/Controllers/Admin/MatriculaController.php`: las cinco operaciones, el saneado del registro CSV y el actor explícito.
+- `tests/Unit/AuditoriaAcademicaTest.php` (ampliar) y `tests/Feature/AuditoriaMatriculasTest.php` (nuevo).
+- `docs/sprint-21-2-auditoria-matriculas.md` (nuevo) y `PROJECT_CONTEXT.md`.
+- **No se tocan:** Form Requests, modelos, rutas, vistas y frontend, migraciones, `SensitiveData`, `.env`, chatbots, Docentes/Sesiones/Certificados.
+- Opcional, solo con autorización aparte: una migración de depuración histórica (ver D6).
+
+### 7. Riesgos
+
+1. **Falsos positivos de «cambio»:** `monto_pagado` (cast `decimal:2`) y `fecha_matricula` (cast `date`) podrían parecer sucios por formato; se cubre con M08.
+2. **Cambio de `update()` a `fill/save`:** debe conservar exactamente la lógica de cupos y las 19 pruebas de `MatriculaOperationsTest`.
+3. **Firma de métodos** (`destroy`, `anular`, `restaurar` con `Request`): riesgo bajo; el enlace de rutas no cambia.
+4. **Auditoría tras el observador:** el observador (`created`) inserta una intención en la misma transacción; un fallo de auditoría debe revertirla (M16).
+5. **Concurrencia real en PostgreSQL no medida** (SQLite ignora los bloqueos).
+6. **Datos históricos:** los `matriculas_csv_exported` previos pueden contener `busqueda` con datos personales.
+7. **Crecimiento de `audit_logs`:** un evento por operación; sin índices nuevos en este sprint.
+8. **Denegaciones no auditadas** (decisión D5): el intento rechazado deja solo el 403.
+
+### 8. Decisiones pendientes (requieren autorización del propietario)
+
+| ID | Decisión | Recomendación |
+| --- | --- | --- |
+| D1 | Registrar `estudiante_id` y `curso_id` como valores | Sí (ids internos; necesarios para traslados) |
+| D2 | Registrar los valores de `monto_pagado` | Sí; alternativa: solo el nombre del campo |
+| D3 | `PUT` a `anulada` con otros cambios: un único evento `matricula_anulada` con todo el diff | Sí (un evento por acción del usuario) |
+| D4 | Repetir una anulación (ya anulada): sin evento | Sí |
+| D5 | Auditar las denegaciones 403 de matrículas | No en este sprint (el 21.1 las cubrió solo para administración); evaluar después |
+| D6 | Registros históricos `matriculas_csv_exported` con `busqueda`: (a) dejarlos y documentarlo, (b) enmascararlos al mostrarlos (`redactedChanges`), (c) migración de depuración | (b) o (a); (c) solo con respaldo y autorización expresa |
+| D7 | Estructura de `changes` de eliminar y restaurar con `curso_id` y `estado` | Sí |
+| D8 | Mantener el contenido del CSV exportado (incluye DNI y nombre por diseño) | Sí, fuera de alcance |
+
+### 9. Plan de implementación por fases pequeñas (cada una con su autorización y sus pruebas)
+
+1. **Fase 1 — Núcleo:** `AuditoriaAcademica` (efecto de cupo, lista cerrada, `efecto_cupo` opcional) más pruebas unitarias. Sin tocar el controlador.
+2. **Fase 2 — Crear, actualizar, anular:** `store`, `update`, `anular` con auditoría atómica y pruebas M01–M08, M12–M14 y M16–M20 correspondientes.
+3. **Fase 3 — Eliminar y restaurar:** `destroy`, `restaurar`, M09–M11 y M16.
+4. **Fase 4 — CSV:** saneado de `filters`, actor explícito, M15; decisión D6.
+5. **Fase 5 — Cierre:** regresión M21, mutación M22, suite completa, Larastan, Pint acotado, documento del sprint y `PROJECT_CONTEXT.md`.
+6. **Fuera de alcance, con autorización aparte:** pruebas de concurrencia en PostgreSQL 55433; ocultar en la interfaz las acciones denegadas.
+
+### 10. Próximo paso
+
+Esperar la autorización expresa del propietario y sus respuestas a D1–D8. **No se implementa nada hasta entonces.**
+
+---
+
 ## SPRINT 21.2 — FASE 1: NÚCLEO DE AUDITORÍA DE MATRÍCULAS
 
 > Fecha: 31/10/2026 · Implementa solo el núcleo de la Fase 1 autorizada tras las decisiones D1–D8 de la Fase 0. **Ningún controlador invoca todavía este núcleo**: el comportamiento de las matrículas no cambia. Sin migraciones, sin conexión a bases de datos reales ni a PostgreSQL, sin `.env`, sin staging, commit ni push. Anclaje: `sprint-21-2-fase-1`.
@@ -2491,3 +2612,10 @@ Antes de la fase: `AuditoriaAcademica.php` `2701636616cc6fb475800ac28ae5983b5fa2
 2. Cablear `store`, `update` (`fill` → `diferencias` → `save`) y `anular` con auditoría como última escritura de la transacción, `actorDe($request)` y `efectoCupo` calculado sobre la fila bloqueada.
 3. Pruebas de integración M01–M08, M12–M14 y M16–M20 de la matriz de la Fase 0 (incluido rollback con `AuditLog::creating` que lanza).
 4. Fases 3 (eliminar, restaurar), 4 (CSV, D6) y 5 (cierre) después, cada una con su autorización.
+
+### Nota de consolidación de la Fase 1 (31/10/2026)
+
+- Commit: `024b22223b8d948cca315671519b7391fbdf4078` — `feat(auditoria): preparar núcleo de auditoría de matrículas` — autor Anderson, sin coautores, padre `42569608daa7935727af60ad291f210a8ecef118`. Contiene exactamente 3 archivos: `app/Support/AuditoriaAcademica.php`, `tests/Unit/AuditoriaAcademicaTest.php` y `PROJECT_CONTEXT.md` (718 inserciones, 8 eliminaciones, ninguna en el contexto).
+- Los SHA-256 de los dos archivos PHP del commit coinciden con los de la sección anterior.
+- **Diferencia respecto al informe de la fase:** en el índice se preparó, por mandato del propietario, **solo** el apartado «FASE 1» de este documento. El anexo «SPRINT 21.2 — FASE 0: DISEÑO DE AUDITORÍA DE MATRÍCULAS» (121 líneas) **sigue sin consolidar** y queda como modificación pendiente en el árbol de trabajo; al commitearlo más adelante quedará insertado antes del apartado de la Fase 1. Por eso el `PROJECT_CONTEXT.md` de este commit no contiene la Fase 0 aunque la Fase 1 la menciona.
+- Sin push (la rama sigue adelantada respecto a `origin/anderson`), 2 stashes intactos, índice vacío tras el commit.
