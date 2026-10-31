@@ -18,6 +18,19 @@ final class PostgresTestGuard
 
     public const CONFIRMATION = 'AUTHORIZE_HORUS_L2_DESTRUCTIVE_TESTS';
 
+    /** Single loopback destination of the independent test cluster (PG-TEST-02a). */
+    public const HOST = '127.0.0.1';
+
+    public const PORT = '55433';
+
+    /** Suspended S7 cluster: refused explicitly, never an alternative target. */
+    public const RETIRED_PORTS = ['55432'];
+
+    /** Physical identity of the independent cluster created in PG-TEST-02b (read-only probe only). */
+    public const SYSTEM_IDENTIFIER = '7702263743609677164';
+
+    public const CLUSTER_NAME = 'horus_pgt_55433';
+
     public const FORBIDDEN_ENV = [
         'DB_CACHE_CONNECTION', 'DB_CACHE_LOCK_CONNECTION', 'DB_QUEUE_CONNECTION',
         'DB_QUEUE_FAILED_CONNECTION', 'SESSION_CONNECTION', 'REDIS_URL',
@@ -50,7 +63,7 @@ final class PostgresTestGuard
      * @param  array<string, mixed>  $environment
      * @return array<string, mixed>
      */
-    public function assertConfiguration(array $config, array $environment, bool $cached): array
+    public function assertConfiguration(array $config, array $environment, bool $cached, bool $requireConsent = true): array
     {
         if ($cached) {
             $this->reject('cached configuration is forbidden.');
@@ -60,8 +73,9 @@ final class PostgresTestGuard
             $this->reject('testing environment required.');
         }
 
+        // Only the read-only probe may omit consent; its connector never enables writes.
         if (($environment['HORUS_PG_TEST_PROFILE'] ?? null) !== '1'
-            || ($environment['HORUS_PG_TEST_CONFIRM'] ?? null) !== self::CONFIRMATION) {
+            || ($requireConsent && ($environment['HORUS_PG_TEST_CONFIRM'] ?? null) !== self::CONFIRMATION)) {
             $this->reject('explicit isolated profile and destructive-test consent required.');
         }
 
@@ -77,8 +91,14 @@ final class PostgresTestGuard
             $this->reject('database is not on the fixed test allowlist.');
         }
 
+        foreach ([$connection['port'] ?? null, $environment['DB_PORT'] ?? null] as $port) {
+            if (is_scalar($port) && in_array(trim((string) $port), self::RETIRED_PORTS, true)) {
+                $this->reject('retired S7 port is refused.');
+            }
+        }
+
         $expected = [
-            'driver' => 'pgsql', 'host' => '127.0.0.1', 'port' => '55432',
+            'driver' => 'pgsql', 'host' => self::HOST, 'port' => self::PORT,
             'database' => $name, 'username' => self::TARGETS[$name],
             'charset' => 'utf8', 'prefix' => '', 'prefix_indexes' => true,
             'search_path' => 'public', 'sslmode' => 'prefer',
@@ -105,7 +125,7 @@ final class PostgresTestGuard
             $this->reject('alternate connection options are forbidden.');
         }
 
-        foreach (['DB_CONNECTION' => 'pgsql', 'DB_HOST' => '127.0.0.1', 'DB_PORT' => '55432',
+        foreach (['DB_CONNECTION' => 'pgsql', 'DB_HOST' => self::HOST, 'DB_PORT' => self::PORT,
             'DB_DATABASE' => $name, 'DB_USERNAME' => self::TARGETS[$name], 'DB_PASSWORD' => $connection['password']] as $key => $value) {
             if (($environment[$key] ?? null) !== $value) {
                 $this->reject('environment/configuration mismatch: '.$key.'.');
@@ -137,8 +157,12 @@ final class PostgresTestGuard
      */
     public function assertIdentity(array $connection, array $identity): void
     {
+        if (in_array((string) ($identity['server_port'] ?? ''), self::RETIRED_PORTS, true)) {
+            $this->reject('server reports the retired S7 port; no writes authorized.');
+        }
+
         foreach (['database' => $connection['database'], 'username' => $connection['username'],
-            'server_address' => '127.0.0.1', 'server_port' => '55432',
+            'server_address' => self::HOST, 'server_port' => self::PORT,
             'search_path' => 'public', 'read_only' => 'on', 'timezone' => 'UTC',
             'isolation' => 'read committed', 'marker' => 'horus-l2-destructive-tests'] as $key => $expected) {
             if ((string) ($identity[$key] ?? '') !== $expected) {
@@ -149,6 +173,21 @@ final class PostgresTestGuard
         foreach (['unsafe_role', 'role_memberships', 'other_database_access', 'writable_marker'] as $key) {
             if (! array_key_exists($key, $identity) || (string) $identity[$key] !== '0') {
                 $this->reject('least-privilege or marker ownership check failed.');
+            }
+        }
+    }
+
+    /**
+     * Read-only probe: the session must belong to the independent cluster and still be read-only.
+     *
+     * @param  array<string, mixed>  $cluster
+     */
+    public function assertClusterIdentity(array $cluster): void
+    {
+        foreach (['cluster_name' => self::CLUSTER_NAME, 'system_identifier' => self::SYSTEM_IDENTIFIER,
+            'transaction_read_only' => 'on', 'default_transaction_read_only' => 'on'] as $key => $expected) {
+            if ((string) ($cluster[$key] ?? '') !== $expected) {
+                $this->reject('cluster identity or read-only state mismatch: '.$key.'.');
             }
         }
     }

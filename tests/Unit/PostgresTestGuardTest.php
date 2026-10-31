@@ -33,6 +33,116 @@ class PostgresTestGuardTest extends TestCase
         }
     }
 
+    public function test_only_the_independent_loopback_destination_is_allowed(): void
+    {
+        // Literal values on purpose: a silent constant change must break this test.
+        $this->assertSame('127.0.0.1', PostgresTestGuard::HOST);
+        $this->assertSame('55433', PostgresTestGuard::PORT);
+        $this->assertSame(['55432'], PostgresTestGuard::RETIRED_PORTS);
+        $this->assertSame([
+            'horus_l2_test' => 'horus_l2_test_runner',
+            'horus_l2_restore_test' => 'horus_l2_restore_test_runner',
+        ], PostgresTestGuard::TARGETS);
+
+        $guard = new PostgresTestGuard;
+        $connection = $guard->assertConfiguration($this->safeConfig(), $this->safeEnvironment(), false);
+        $this->assertSame('127.0.0.1', $connection['host']);
+        $this->assertSame('55433', $connection['port']);
+        $this->assertSame('authorized', $guard->authorize($connection, fn () => $this->safeIdentity(), fn () => 'authorized'));
+    }
+
+    public static function s7Manipulations(): iterable
+    {
+        yield 'configuration only' => [['port' => '55432'], []];
+        yield 'environment only' => [[], ['DB_PORT' => '55432']];
+        yield 'configuration and environment consistent' => [['port' => '55432'], ['DB_PORT' => '55432']];
+        yield 'integer port' => [['port' => 55432], ['DB_PORT' => '55432']];
+        yield 'padded port' => [['port' => ' 55432 '], ['DB_PORT' => ' 55432']];
+        yield 'restore target on S7' => [['port' => '55432', 'database' => 'horus_l2_restore_test',
+            'username' => 'horus_l2_restore_test_runner'], ['DB_PORT' => '55432',
+                'DB_DATABASE' => 'horus_l2_restore_test', 'DB_USERNAME' => 'horus_l2_restore_test_runner']];
+    }
+
+    #[DataProvider('s7Manipulations')]
+    public function test_a_manipulated_configuration_cannot_reach_s7(array $connection, array $environment): void
+    {
+        $config = $this->safeConfig();
+        $config['database']['connections']['pgsql'] = array_replace($config['database']['connections']['pgsql'], $connection);
+        $driver = $this->createMock(ConnectorInterface::class);
+        $driver->expects($this->never())->method('connect');
+        $probes = 0;
+        try {
+            $guard = new PostgresTestGuard;
+            $checked = $guard->assertConfiguration($config, array_replace($this->safeEnvironment(), $environment), false);
+            $guard->authorize($checked, function () use (&$probes) {
+                $probes++;
+
+                return $this->safeIdentity();
+            }, fn () => $driver->connect([]));
+            $this->fail('S7 destination accepted.');
+        } catch (RuntimeException $error) {
+            $this->assertSame('Horus PostgreSQL test safety: retired S7 port is refused.', $error->getMessage());
+        }
+        $this->assertSame(0, $probes);
+    }
+
+    public function test_guarded_connector_never_opens_a_socket_towards_s7(): void
+    {
+        $config = $this->safeConfig()['database']['connections']['pgsql'];
+        $config['port'] = '55432';
+        $driver = $this->createMock(ConnectorInterface::class);
+        $driver->expects($this->never())->method('connect');
+        $connector = new GuardedPostgresConnector(
+            fn () => (new PostgresTestGuard)->assertConfiguration(
+                array_replace_recursive($this->safeConfig(), ['database' => ['connections' => ['pgsql' => $config]]]),
+                ['DB_PORT' => '55432'] + $this->safeEnvironment(), false),
+            $driver,
+        );
+        $this->expectExceptionMessage('retired S7 port is refused');
+        $connector->connect(PostgresTestGuard::laravelConnection($config));
+    }
+
+    public function test_server_reporting_the_s7_port_never_enables_writes(): void
+    {
+        $pdo = $this->createMock(PDO::class);
+        $pdo->expects($this->never())->method('exec');
+        $statement = $this->createMock(PDOStatement::class);
+        $statement->method('fetch')->willReturn(array_replace($this->safeIdentity(), ['server_port' => '55432']));
+        $pdo->expects($this->once())->method('query')->willReturn($statement);
+        $this->expectExceptionMessage('server reports the retired S7 port; no writes authorized');
+        $this->mockReadOnlyConnector($pdo)->connect($this->activeConnection());
+    }
+
+    public static function unsafeDestinations(): iterable
+    {
+        yield 'localhost name' => [['host' => 'localhost'], ['DB_HOST' => 'localhost'], 'unexpected connection setting: host'];
+        yield 'IPv6 loopback' => [['host' => '::1'], ['DB_HOST' => '::1'], 'unexpected connection setting: host'];
+        yield 'all interfaces' => [['host' => '0.0.0.0'], ['DB_HOST' => '0.0.0.0'], 'unexpected connection setting: host'];
+        yield 'daily port' => [['port' => '5432'], ['DB_PORT' => '5432'], 'unexpected connection setting: port'];
+        yield 'alternative port' => [['port' => '55434'], ['DB_PORT' => '55434'], 'unexpected connection setting: port'];
+        yield 'integer allowed port' => [['port' => 55433], [], 'unexpected connection setting: port'];
+        yield 'environment port mismatch' => [[], ['DB_PORT' => '55434'], 'environment/configuration mismatch: DB_PORT'];
+        yield 'S7 port injected in host' => [['host' => '127.0.0.1 port=55432'], ['DB_HOST' => '127.0.0.1 port=55432'], 'unexpected connection setting: host'];
+        yield 'S7 port injected in database' => [['database' => 'horus_l2_test port=55432'], ['DB_DATABASE' => 'horus_l2_test port=55432'], 'database is not on the fixed test allowlist'];
+        yield 'libpq port override to S7' => [[], ['PGPORT' => '55432'], 'secondary destinations and external credentials are forbidden'];
+        yield 'daily database' => [['database' => 'horus_group'], ['DB_DATABASE' => 'horus_group'], 'database is not on the fixed test allowlist'];
+        yield 'rehearsal database' => [['database' => 'horus_group_ensayo'], ['DB_DATABASE' => 'horus_group_ensayo'], 'database is not on the fixed test allowlist'];
+        yield 'crossed runner' => [['username' => 'horus_l2_restore_test_runner'], ['DB_USERNAME' => 'horus_l2_restore_test_runner'], 'unexpected connection setting: username'];
+        yield 'missing profile' => [[], ['HORUS_PG_TEST_PROFILE' => ''], 'explicit isolated profile and destructive-test consent required'];
+        yield 'wrong profile value' => [[], ['HORUS_PG_TEST_PROFILE' => 'true'], 'explicit isolated profile and destructive-test consent required'];
+        yield 'missing consent' => [[], ['HORUS_PG_TEST_CONFIRM' => ''], 'explicit isolated profile and destructive-test consent required'];
+        yield 'approximate consent' => [[], ['HORUS_PG_TEST_CONFIRM' => 'authorize_horus_l2_destructive_tests'], 'explicit isolated profile and destructive-test consent required'];
+    }
+
+    #[DataProvider('unsafeDestinations')]
+    public function test_unsafe_destination_is_rejected_with_its_specific_reason(array $connection, array $environment, string $reason): void
+    {
+        $config = $this->safeConfig();
+        $config['database']['connections']['pgsql'] = array_replace($config['database']['connections']['pgsql'], $connection);
+        $this->expectExceptionMessage($reason);
+        (new PostgresTestGuard)->assertConfiguration($config, array_replace($this->safeEnvironment(), $environment), false);
+    }
+
     public static function unsafeConfigurations(): iterable
     {
         yield 'development database' => ['connection', 'database', 'horus_group'];
@@ -117,6 +227,9 @@ class PostgresTestGuardTest extends TestCase
         yield 'wrong role' => ['username', 'postgres'];
         yield 'wrong server' => ['server_address', '192.0.2.1'];
         yield 'wrong port' => ['server_port', '5432'];
+        yield 'S7 port' => ['server_port', '55432'];
+        yield 'alternative port' => ['server_port', '55434'];
+        yield 'IPv6 server' => ['server_address', '::1'];
         yield 'wrong search path' => ['search_path', 'public, other'];
         yield 'not read only' => ['read_only', 'off'];
         yield 'wrong timezone' => ['timezone', 'America/Lima'];
@@ -148,21 +261,95 @@ class PostgresTestGuardTest extends TestCase
         $pdo = $this->createMock(PDO::class);
         $statement = $this->createMock(PDOStatement::class);
         $statement->method('fetch')->willReturn($this->safeIdentity());
-        $pdo->expects($this->once())->method('query')->with($this->callback(
-            fn ($sql) => str_contains($sql, 'current_database()') && str_contains($sql, 'database_oid')
-                && str_contains($sql, 'has_database_privilege') && str_contains($sql, 'writable_marker'),
-        ))->willReturn($statement);
-        $pdo->expects($this->once())->method('exec')->with('SET default_transaction_read_only = off')->willReturn(0);
+        $order = [];
+        $pdo->expects($this->exactly(2))->method('query')->willReturnCallback(function (string $sql) use (&$order, $statement): PDOStatement {
+            $order[] = str_contains($sql, 'pg_control_system') ? 'cluster' : 'identity';
+            if ($order === ['identity']) {
+                $this->assertTrue(str_contains($sql, 'current_database()') && str_contains($sql, 'database_oid')
+                    && str_contains($sql, 'has_database_privilege') && str_contains($sql, 'writable_marker'));
+            }
+
+            return $statement;
+        });
+        $pdo->expects($this->once())->method('exec')->willReturnCallback(function (string $sql) use (&$order): int {
+            // Writes are enabled only after the marker probe AND the physical cluster check.
+            $this->assertSame(['identity', 'cluster'], $order);
+            $this->assertSame('SET default_transaction_read_only = off', $sql);
+
+            return 0;
+        });
         $this->assertSame($pdo, $this->mockReadOnlyConnector($pdo)->connect(
             $this->activeConnection(),
         ));
+    }
+
+    public static function foreignClusters(): iterable
+    {
+        yield 'S7 cluster' => ['system_identifier', '7701505916098505688'];
+        yield 'discarded first cluster' => ['system_identifier', '7702261264381348568'];
+        yield 'daily-like identifier' => ['system_identifier', '1'];
+        yield 'missing identifier' => ['system_identifier', null];
+        yield 'S7 cluster name' => ['cluster_name', 'horus_l2_test'];
+        yield 'empty cluster name' => ['cluster_name', ''];
+        yield 'session already writable' => ['transaction_read_only', 'off'];
+        yield 'default already writable' => ['default_transaction_read_only', 'off'];
+    }
+
+    #[DataProvider('foreignClusters')]
+    public function test_write_path_refuses_any_other_cluster_before_enabling_writes(string $key, ?string $value): void
+    {
+        $pdo = $this->createMock(PDO::class);
+        $statement = $this->createMock(PDOStatement::class);
+        $statement->method('fetch')->willReturn(array_replace($this->safeIdentity(), [$key => $value]));
+        $pdo->method('query')->willReturn($statement);
+        $pdo->expects($this->never())->method('exec');
+        $this->expectExceptionMessage('cluster identity or read-only state mismatch: '.$key);
+        $this->mockReadOnlyConnector($pdo)->connect($this->activeConnection());
+    }
+
+    public function test_write_path_fails_closed_when_the_identifier_cannot_be_read(): void
+    {
+        $identity = $this->createMock(PDOStatement::class);
+        $identity->method('fetch')->willReturn($this->safeIdentity());
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('query')->willReturnCallback(function (string $sql) use ($identity): PDOStatement {
+            if (str_contains($sql, 'pg_control_system')) {
+                throw new PDOException('permission denied for function pg_control_system; password=DO_NOT_EXPOSE');
+            }
+
+            return $identity;
+        });
+        $pdo->expects($this->never())->method('exec');
+        try {
+            $this->mockReadOnlyConnector($pdo)->connect($this->activeConnection());
+            $this->fail('Unreadable cluster identity accepted on the write path.');
+        } catch (RuntimeException $error) {
+            $this->assertSame('Horus PostgreSQL test safety: cluster identity probe failed; no writes authorized.', $error->getMessage());
+            $this->assertNull($error->getPrevious());
+        }
+    }
+
+    public function test_environment_cannot_override_the_expected_cluster_identity(): void
+    {
+        $guard = new PostgresTestGuard;
+        foreach (['HORUS_PG_TEST_SYSTEM_IDENTIFIER', 'HORUS_PG_TEST_CLUSTER_NAME', 'PG_SYSTEM_IDENTIFIER'] as $name) {
+            $this->withEnvironment([$name => '7701505916098505688'] + $this->safeEnvironment(), function () use ($guard): void {
+                try {
+                    $guard->assertClusterIdentity(['system_identifier' => '7701505916098505688'] + $this->safeClusterIdentity());
+                    $this->fail('Environment changed the expected cluster.');
+                } catch (RuntimeException $error) {
+                    $this->assertStringContainsString('cluster identity or read-only state mismatch: system_identifier', $error->getMessage());
+                }
+            });
+        }
+        $this->assertSame('7702263743609677164', PostgresTestGuard::SYSTEM_IDENTIFIER);
     }
 
     public function test_nonexistent_database_or_connection_failure_is_sanitized(): void
     {
         $driver = $this->createMock(ConnectorInterface::class);
         $driver->method('connect')->willThrowException(new PDOException('password=DO_NOT_EXPOSE nonexistent database'));
-        $connector = new GuardedPostgresConnector(fn () => $this->safeConfig()['database']['connections']['pgsql'], $driver);
+        $connector = new GuardedPostgresConnector(fn () => $this->safeConfig()['database']['connections']['pgsql'], $driver, preflight: $this->simulatedPreflight());
         try {
             $connector->connect($this->activeConnection());
             $this->fail('Expected a rejection.');
@@ -185,7 +372,7 @@ class PostgresTestGuardTest extends TestCase
     {
         $driver = $this->createMock(ConnectorInterface::class);
         $driver->expects($this->never())->method('connect');
-        $connector = new GuardedPostgresConnector(fn () => $this->safeConfig()['database']['connections']['pgsql'], $driver);
+        $connector = new GuardedPostgresConnector(fn () => $this->safeConfig()['database']['connections']['pgsql'], $driver, preflight: $this->simulatedPreflight());
         $config = $this->activeConnection();
         $config['database'] = 'horus_group';
         $this->expectExceptionMessage('connection changed');
@@ -232,6 +419,6 @@ class PostgresTestGuardTest extends TestCase
                 && $config['server_options']['statement_timeout'] === '5000',
         ))->willReturn($pdo);
 
-        return new GuardedPostgresConnector(fn () => $this->safeConfig()['database']['connections']['pgsql'], $driver);
+        return new GuardedPostgresConnector(fn () => $this->safeConfig()['database']['connections']['pgsql'], $driver, preflight: $this->simulatedPreflight());
     }
 }

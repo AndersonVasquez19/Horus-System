@@ -36,6 +36,7 @@ class TestDatabaseSafetyTest extends TestCase
         $this->withEnvironment(['APP_ENV' => 'testing', 'DB_CONNECTION' => 'pgsql',
             'DB_DATABASE' => 'horus_group', 'HORUS_PG_TEST_PROFILE' => ''], function (): void {
                 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
+                $app->instance(TestDatabaseSafety::READ_ONLY_PROBE, true);
                 $this->isolateEnvironmentFile($app);
                 $migrationKernel = $this->createMock(Kernel::class);
                 $migrationKernel->expects($this->never())->method('call');
@@ -81,7 +82,7 @@ class TestDatabaseSafetyTest extends TestCase
             $config['database']['default'] = 'sqlite';
             $config['database']['connections']['sqlite'] = ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $driver = $this->createMock(ConnectorInterface::class);
             $driver->expects($this->never())->method('connect');
             $app->instance('db.connector.pgsql', $driver);
@@ -98,7 +99,7 @@ class TestDatabaseSafetyTest extends TestCase
             // These are framework-merged defaults, discarded by the explicit profile.
             $config['database']['connections']['mysql'] = ['driver' => 'mysql', 'database' => 'daily'];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $this->assertSame(['pgsql'], array_keys($app['config']['database.connections']));
             $driver = $this->createMock(ConnectorInterface::class);
             $driver->expects($this->never())->method('connect');
@@ -114,7 +115,7 @@ class TestDatabaseSafetyTest extends TestCase
             $config = $this->safeConfig();
             $config['pgsql-testing-database'] = $config['database'];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $connection = $app->make('db')->connection('pgsql');
             $this->assertSame('horus_l2_test', $connection->getDatabaseName());
             $this->assertInstanceOf(Closure::class, $connection->getRawPdo());
@@ -137,7 +138,7 @@ class TestDatabaseSafetyTest extends TestCase
             $config = $this->safeConfig();
             $config['pgsql-testing-database'] = $config['database'];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $http = $this->createMock(Factory::class);
             $http->expects($this->once())->method('preventStrayRequests')->willReturnSelf();
             $app->bind(Factory::class, fn () => $http);
@@ -151,7 +152,7 @@ class TestDatabaseSafetyTest extends TestCase
             $app = $this->application($this->safeConfig());
             $app->instance('config_loaded_from_cache', true);
             $this->expectExceptionMessage('cached configuration is forbidden');
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
         });
     }
 
@@ -162,7 +163,7 @@ class TestDatabaseSafetyTest extends TestCase
             $config['database']['default'] = 'sqlite';
             $config['database']['connections']['sqlite'] = ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $driver = $this->createMock(ConnectorInterface::class);
             $driver->expects($this->never())->method('connect');
             $app->instance('db.connector.pgsql', new MemoryOnlyConnector(true, $driver));
@@ -194,7 +195,7 @@ class TestDatabaseSafetyTest extends TestCase
             $config = $this->safeConfig();
             $config['pgsql-testing-database'] = $config['database'];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $driver = $this->createMock(ConnectorInterface::class);
             $driver->expects($this->never())->method('connect');
             $app->instance('db.connector.pgsql', $driver);
@@ -219,9 +220,10 @@ class TestDatabaseSafetyTest extends TestCase
             'QUEUE_CONNECTION' => 'sync', 'MAIL_MAILER' => 'array', 'BROADCAST_CONNECTION' => 'null'];
         $this->withEnvironment($environment, function (): void {
             // Both entry points use this bootstrap before dispatch or test execution.
-            foreach (['scripts/pgsql-test.php', 'tests/bootstrap-pgsql.php'] as $entry) {
+            foreach (['scripts/pgsql-test.php', 'scripts/pgsql-test-preflight.php'] as $entry) {
                 $this->assertStringContainsString(".'/bootstrap/app.php'", file_get_contents(dirname(__DIR__, 2).'/'.$entry));
                 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
+                $app->instance(TestDatabaseSafety::READ_ONLY_PROBE, true);
                 $this->isolateEnvironmentFile($app);
                 $driver = $this->createMock(ConnectorInterface::class);
                 $driver->expects($this->never())->method('connect');
@@ -256,7 +258,7 @@ class TestDatabaseSafetyTest extends TestCase
             $config['pgsql-testing-database'] = $config['database'];
             $app = $this->application($config);
             $app->instance('env', 'testing');
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
             $driver = $this->createMock(ConnectorInterface::class);
             $driver->expects($this->never())->method('connect');
             $app->instance('db.connector.pgsql', $driver);

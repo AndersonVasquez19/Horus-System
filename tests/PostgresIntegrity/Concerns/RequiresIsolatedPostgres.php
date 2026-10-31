@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Pruebas de integridad que solo tienen sentido contra la instancia PostgreSQL desechable de L2.2-B
- * (127.0.0.1:55432, base horus_l2_test).
+ * (127.0.0.1:55433 desde PG-TEST-02a; 55432 de S7 se rechaza).
  *
  * Esta carpeta no figura en phpunit.xml (SQLite); solo la suite "PostgreSQL integrity" de
  * phpunit.pgsql.xml, que únicamente se ejecuta mediante scripts/pgsql-test.php. Además, cada prueba

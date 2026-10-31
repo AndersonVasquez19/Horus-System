@@ -1,5 +1,7 @@
 # L2.3: PostgreSQL Testing antes de migrar `horus_group`
 
+> **Nota posterior (29/10/2026, PG-TEST-02a):** documento histórico de S7. Desde PG-TEST-02a la guarda solo acepta `127.0.0.1:55433` y rechaza `55432`; la configuración de §3 y los comandos de §5.3 con `55432` ya no son operativos. Ver [clúster independiente](postgresql-testing-cluster-independiente.md).
+
 28 de octubre de 2026. Evaluación no destructiva y preparación. **No se arrancó ni se modificó ningún clúster**, no se ejecutaron pruebas contra PostgreSQL, ni se tocaron `horus_group`, `horus_group_ensayo`, el backup, Resend, la verificación de correo, el frontend o credenciales. Sin commit.
 
 ## 1. Estado del PostgreSQL Testing existente (S7)

@@ -11,7 +11,18 @@ use Illuminate\Support\Env;
 
 final class TestDatabaseSafety
 {
-    public static function install(Application $app): void
+    /**
+     * Container flag bound only by `scripts/pgsql-test.php probe` before bootstrapping. It cannot come
+     * from .env or the process environment, and it only ever yields a read-only session.
+     */
+    public const READ_ONLY_PROBE = 'horus.pgsql.read_only_probe';
+
+    public static function readOnlyProbe(Application $app): bool
+    {
+        return $app->bound(self::READ_ONLY_PROBE) && $app->make(self::READ_ONLY_PROBE) === true;
+    }
+
+    public static function install(Application $app, ?PostgresTestPreflight $preflight = null): void
     {
         $config = $app->make('config');
         $profile = (string) Env::get('HORUS_PG_TEST_PROFILE', '');
@@ -35,11 +46,17 @@ final class TestDatabaseSafety
             // database namespace with this explicit profile before any provider can resolve DB.
             $config->set('database', $config->get('pgsql-testing-database'));
             self::postgresConfiguration($app);
+            // CLI/XML bootstrap selection is not a security boundary. Independently validate
+            // before installing a write-capable profile, even in a directly bootstrapped app.
+            if (! self::readOnlyProbe($app)) {
+                ($preflight ?? new PostgresTestPreflight)->verify();
+            }
             // Extenders survive the later DatabaseServiceProvider binding. Keep this
             // application-scoped: a static Connection resolver would leak into ordinary apps.
             $app->extend('db.factory', static fn () => new GuardedConnectionFactory($app));
             $app->bind('db.connector.pgsql', fn () => new GuardedPostgresConnector(
                 fn (): array => self::postgresConfiguration($app),
+                readOnlyProbe: self::readOnlyProbe($app),
             ));
             // Install on resolution, including HTTP clients requested while providers boot.
             $app->afterResolving(Factory::class, static fn (Factory $http) => $http->preventStrayRequests());
@@ -84,6 +101,7 @@ final class TestDatabaseSafety
         return (new PostgresTestGuard)->assertConfiguration(
             $app->make('config')->all(), $environment,
             $app->configurationIsCached() || $app->make('config_loaded_from_cache'),
+            requireConsent: ! self::readOnlyProbe($app),
         );
     }
 }

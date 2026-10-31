@@ -110,7 +110,7 @@ Entorno Windows: PowerShell, rutas relativas a la raíz. Existe `composer.phar` 
 ## 5. Base de datos y pruebas
 
 - **Pruebas habituales:** `phpunit.xml` usa SQLite en memoria, sesión/caché `array`, cola `sync` y correo `array`. Esa evidencia **no prueba** PostgreSQL (bloqueos, DDL, concurrencia), OpenAI, correo real ni despliegue; distínguelo siempre en tu informe. Bloquea HTTP no simulado en pruebas nuevas.
-- **Perfil PostgreSQL aislado:** `phpunit.pgsql.xml`, `scripts/pgsql-test.php`, `tests/PostgresIntegrity/` y `.env.pgsql-testing.local` (no versionado; solo existe la plantilla `.example`). Solo acepta la base de pruebas dedicada en `127.0.0.1:55432` y un marcador independiente. **No ejecutes pruebas destructivas, aprovisionamiento ni migraciones sobre PostgreSQL sin autorización explícita**; la preparación documentada en `docs/postgresql-l2.2-*.md` no la concede. No cambies puertos, nombres ni salvaguardas para que una prueba «pase».
+- **Perfil PostgreSQL aislado:** `phpunit.pgsql.xml`, `scripts/pgsql-test.php`, `tests/PostgresIntegrity/` y `.env.pgsql-testing.local` (no versionado; solo existe la plantilla `.example`). Solo acepta la base de pruebas dedicada en `127.0.0.1:55433` (`PostgresTestGuard::PORT`; el `55432` del clúster S7 suspendido se rechaza expresamente) y un marcador independiente. El clúster de 55433 existe desde PG-TEST-02b (`docs/postgresql-testing-cluster-independiente.md`). `php scripts/pgsql-test.php probe` valida identidad y aislamiento en solo lectura sin consentimiento; `check`/`test`/`artisan` exigen el consentimiento destructivo y habilitan escritura. **No ejecutes pruebas destructivas, aprovisionamiento ni migraciones sobre PostgreSQL sin autorización explícita**; la preparación documentada en `docs/postgresql-l2.2-*.md` no la concede. No cambies puertos, nombres ni salvaguardas para que una prueba «pase».
 - **Migraciones con permisos o restricciones de integridad** (`2026_10_27_000012`, `2026_10_27_000013`, `2026_10_28_000021`) están pensadas para aplicarse con revisión previa; no las ejecutes contra datos reales sin confirmación. Las migraciones del Sprint 05 y 09 solo se han probado en SQLite en memoria.
 - **JavaScript:** pruebas unitarias en `tests/frontend/` (hoy `chat-client.test.mjs`) y smokes en `tests/browser/`. Siempre `.mjs`; las unitarias se nombran `*.test.mjs` o `*.spec.mjs`. `npm test` (`scripts/run-frontend-tests.mjs`) rechaza otras extensiones.
 - **Smokes de navegador** (requieren Edge; verifica el destino antes de ejecutarlos):
@@ -163,5 +163,7 @@ Resume qué cambió y por qué, rutas afectadas, comprobaciones ejecutadas con s
 | Publicación editorial de cursos (Sprint 09) | `docs/sprint-09-publicacion-cursos.md` |
 | Preparación de la integración real (Sprint 15) | `docs/sprint-15-preparacion-integracion.md` |
 | PostgreSQL Testing antes de migrar (L2.3) | `docs/postgresql-l2.3-testing.md` |
+| Clúster PostgreSQL Testing independiente (55433) | `docs/postgresql-testing-cluster-independiente.md` |
+| Matriz de migraciones y plan de pruebas PostgreSQL (PG-TEST-04) | `docs/postgresql-testing-pg-test-04.md` |
 | Restauración de la web pública | `docs/restauracion-web-publica.md` |
 | Consolidación de sprints 01–07 | `docs/consolidacion-sprints-01-07.md` |

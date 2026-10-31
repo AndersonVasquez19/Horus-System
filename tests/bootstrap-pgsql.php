@@ -1,11 +1,10 @@
 <?php
 
 declare(strict_types=1);
-use Illuminate\Contracts\Console\Kernel;
+
+use App\Support\Testing\PostgresTestPreflight;
 
 require_once dirname(__DIR__).'/vendor/autoload.php';
 
-// Runs even for plain PHPUnit tests that do not extend Tests\TestCase.
-$app = require dirname(__DIR__).'/bootstrap/app.php';
-$app->make(Kernel::class)->bootstrap();
-$app->make('db')->connection('pgsql')->getPdo();
+// Mandatory even for direct PHPUnit and plain tests. Laravel boots only in the worker or a test.
+(new PostgresTestPreflight)->verify();

@@ -37,7 +37,7 @@ class ConcurrentTestSessionTest extends TestCase
                 // Misma configuración validada, en modo solo lectura hasta verificar la identidad.
                 $this->assertSame('horus_l2_test', $config['database']);
                 $this->assertSame('127.0.0.1', $config['host']);
-                $this->assertSame('55432', $config['port']);
+                $this->assertSame('55433', $config['port']);
                 $this->assertSame('horus_l2_test_runner', $config['username']);
                 $this->assertSame('on', $config['server_options']['default_transaction_read_only']);
 
@@ -65,6 +65,9 @@ class ConcurrentTestSessionTest extends TestCase
     {
         yield 'otro host' => ['host', '10.0.0.5', 'unexpected connection setting: host'];
         yield 'otro puerto' => ['port', '5432', 'unexpected connection setting: port'];
+        yield 'puerto de S7' => ['port', '55432', 'retired S7 port is refused'];
+        yield 'host localhost' => ['host', 'localhost', 'unexpected connection setting: host'];
+        yield 'base de ensayo' => ['database', 'horus_group_ensayo', 'database is not on the fixed test allowlist'];
         yield 'base habitual' => ['database', 'horus_group', 'database is not on the fixed test allowlist'];
         yield 'otro usuario' => ['username', 'postgres', 'unexpected connection setting: username'];
         yield 'opción añadida' => ['options', [PDO::ATTR_PERSISTENT => true], 'alternate connection options are forbidden'];
@@ -92,6 +95,7 @@ class ConcurrentTestSessionTest extends TestCase
     public static function alteredEnvironment(): iterable
     {
         yield 'otro host' => ['DB_HOST', '10.0.0.5', 'environment/configuration mismatch: DB_HOST'];
+        yield 'puerto de S7' => ['DB_PORT', '55432', 'retired S7 port is refused'];
         yield 'base habitual' => ['DB_DATABASE', 'horus_group', 'environment/configuration mismatch: DB_DATABASE'];
         yield 'otro usuario' => ['DB_USERNAME', 'postgres', 'environment/configuration mismatch: DB_USERNAME'];
         yield 'sin consentimiento' => ['HORUS_PG_TEST_CONFIRM', '', 'explicit isolated profile and destructive-test consent required'];
@@ -120,7 +124,7 @@ class ConcurrentTestSessionTest extends TestCase
             $config['database']['default'] = 'sqlite';
             $config['database']['connections'] = ['sqlite' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']];
             $app = $this->application($config);
-            TestDatabaseSafety::install($app);
+            TestDatabaseSafety::install($app, $this->simulatedPreflight());
 
             $this->expectExceptionMessage('a second session requires the isolated PostgreSQL profile');
             ConcurrentTestSession::open($app);
@@ -169,6 +173,25 @@ class ConcurrentTestSessionTest extends TestCase
                 $this->fail('La identidad del servidor no coincide; la sesión debía rechazarse.');
             } catch (RuntimeException $error) {
                 $this->assertStringContainsString('server identity or independent authorization mismatch: marker', $error->getMessage());
+            }
+        });
+    }
+
+    public function test_second_session_on_another_cluster_never_enables_writes(): void
+    {
+        $this->withEnvironment($this->safeEnvironment(), function (): void {
+            // Misma base, rol y marcador, pero otro clúster físico (S7): nunca se habilita escritura.
+            $pdo = $this->pdoWithIdentity(['system_identifier' => '7701505916098505688'] + $this->safeIdentity());
+            $pdo->expects($this->never())->method('exec');
+            $inner = $this->createMock(ConnectorInterface::class);
+            $inner->method('connect')->willReturn($pdo);
+            $sesion = ConcurrentTestSession::open($this->profileApplication($inner));
+
+            try {
+                $sesion->getPdo();
+                $this->fail('Otro clúster físico debía rechazarse.');
+            } catch (RuntimeException $error) {
+                $this->assertStringContainsString('cluster identity or read-only state mismatch: system_identifier', $error->getMessage());
             }
         });
     }
@@ -231,10 +254,11 @@ class ConcurrentTestSessionTest extends TestCase
         $config = $this->safeConfig();
         $config['pgsql-testing-database'] = $config['database'];
         $app = $this->application($config);
-        TestDatabaseSafety::install($app);
+        TestDatabaseSafety::install($app, $this->simulatedPreflight());
         $app->bind('db.connector.pgsql', fn () => new GuardedPostgresConnector(
             fn (): array => TestDatabaseSafety::postgresConfiguration($app),
             $inner,
+            preflight: $this->simulatedPreflight(),
         ));
 
         return $app;

@@ -16,7 +16,14 @@ final class GuardedPostgresConnector implements ConnectorInterface
     public function __construct(
         private readonly Closure $configuration,
         private readonly ConnectorInterface $connector = new PostgresConnector,
+        private readonly bool $readOnlyProbe = false,
+        private readonly ?PostgresTestPreflight $preflight = null,
     ) {}
+
+    public function isReadOnlyProbe(): bool
+    {
+        return $this->readOnlyProbe;
+    }
 
     /** @param array<string, mixed> $config */
     public function connect(array $config): PDO
@@ -25,6 +32,12 @@ final class GuardedPostgresConnector implements ConnectorInterface
         $expected = PostgresTestGuard::laravelConnection(($this->configuration)());
         if ($config !== $expected) {
             $guard->reject('connection changed after configuration validation.');
+        }
+
+        // No cached flag or reusable token: every writable connection requires a fresh worker.
+        // Read-only workers use the same identity guards and can never enable writes.
+        if (! $this->readOnlyProbe) {
+            ($this->preflight ?? new PostgresTestPreflight)->verify();
         }
 
         try {
@@ -38,12 +51,39 @@ final class GuardedPostgresConnector implements ConnectorInterface
             $guard->reject('read-only connection failed; no writes authorized.');
         }
 
-        return $guard->authorize($config, static fn (): array => self::identity($pdo), static function () use ($pdo): PDO {
+        $readOnlyProbe = $this->readOnlyProbe;
+
+        return $guard->authorize($config, static fn (): array => self::identity($pdo), static function () use ($pdo, $guard, $readOnlyProbe): PDO {
+            // Every path verifies the physical cluster while the session is still read-only (PG-TEST-04).
+            // The expected identity is a code constant: no environment value can replace it.
+            try {
+                $cluster = self::clusterIdentity($pdo);
+            } catch (Throwable) {
+                $guard->reject('cluster identity probe failed; no writes authorized.');
+            }
+            $guard->assertClusterIdentity($cluster);
+
+            if ($readOnlyProbe) {
+                // Never enables writes.
+                return $pdo;
+            }
+
             // Keep the exact verified session; reconnects pass through this connector again.
             $pdo->exec('SET default_transaction_read_only = off');
 
             return $pdo;
         });
+    }
+
+    /** @return array<string, mixed> */
+    public static function clusterIdentity(PDO $pdo): array
+    {
+        return $pdo->query(<<<'SQL'
+            SELECT current_setting('cluster_name') AS cluster_name,
+                (SELECT system_identifier::text FROM pg_control_system()) AS system_identifier,
+                current_setting('transaction_read_only') AS transaction_read_only,
+                current_setting('default_transaction_read_only') AS default_transaction_read_only
+            SQL)->fetch(PDO::FETCH_ASSOC);
     }
 
     /** @return array<string, mixed> */
