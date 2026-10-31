@@ -25,6 +25,8 @@ use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
 use App\Http\Controllers\CursosPublicosController;
 use App\Http\Controllers\ServiciosPublicosController;
+use App\Http\Controllers\SolicitudCotizacionPublicaController;
+use App\Http\Middleware\RecepcionCotizacionesHabilitada;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +45,11 @@ Route::view('/politicas-privacidad', 'pages.legales.politicas-privacidad')->name
 Route::view('/politicas-cookies', 'pages.legales.politicas-cookies')->name('legales.cookies');
 Route::view('/preguntas-frecuentes', 'pages.legales.preguntas-frecuentes')->name('legales.faq');
 Route::view('/libro-reclamaciones', 'pages.legales.libro-reclamaciones')->name('legales.reclamaciones');
+
+Route::middleware(RecepcionCotizacionesHabilitada::class)->group(function () {
+    Route::get('/solicitar-cotizacion', [SolicitudCotizacionPublicaController::class, 'show'])->name('cotizacion-publica.show');
+    Route::post('/solicitudes-cotizacion', [SolicitudCotizacionPublicaController::class, 'store'])->name('cotizacion-publica.store');
+});
 
 Route::middleware('guest')->group(function () {
     Route::post('/email-verification/resend', [VerificacionRegistroController::class, 'reenviar'])
