@@ -215,10 +215,8 @@ class AdminAuthorizationTest extends TestCase
             $this->get(route('admin.auditoria.exportar'))->assertForbidden();
         }
 
-        $this->actingAs($this->staff('coordinador'))
-            ->post(route('admin.reportes.exportar.excel'))
-            ->assertOk()
-            ->assertDownload();
+        // La descarga permitida (200) del coordinador se comprueba en ReportExcelExportTest, sin la
+        // transacción envolvente de RefreshDatabase que la salvaguarda de snapshot rechaza en PostgreSQL.
     }
 
     public function test_only_admin_manages_users_roles_settings_and_processes(): void

@@ -224,7 +224,7 @@ class MatriculaNotificationTest extends TestCase
     {
         $this->enrollment();
         $row = MatriculaNotification::sole();
-        $row->update(['status' => 'sending', 'attempts' => 1, 'first_attempt_at' => now(), 'lease' => 'old-lease']);
+        $row->update(['status' => 'sending', 'attempts' => 1, 'first_attempt_at' => now(), 'lease' => '11111111-1111-4111-8111-111111111111']);
         $this->service()->send($row->id);
         Http::assertNothingSent();
         $this->travel(121)->seconds();
@@ -237,12 +237,12 @@ class MatriculaNotificationTest extends TestCase
     {
         $this->enrollment();
         $this->fakeResend(function () {
-            MatriculaNotification::query()->update(['lease' => 'new-owner', 'status' => 'sending']);
+            MatriculaNotification::query()->update(['lease' => '22222222-2222-4222-8222-222222222222', 'status' => 'sending']);
 
             return Http::response(['id' => 'old-result']);
         });
         $this->service()->send(MatriculaNotification::sole()->id);
-        $this->assertSame('new-owner', MatriculaNotification::sole()->lease);
+        $this->assertSame('22222222-2222-4222-8222-222222222222', MatriculaNotification::sole()->lease);
         $this->assertSame('sending', MatriculaNotification::sole()->status);
     }
 

@@ -29,8 +29,8 @@ class CatalogoWebServiciosTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // SQLite :memory: fuera del perfil; conexión protegida de la lista fija dentro de PostgreSQL Testing.
         $this->assertIsolatedTestDatabase();
-        $this->assertSame('sqlite', DB::getDriverName());
         $this->travelTo(Carbon::parse('2026-10-29 12:00:00', 'America/Lima'));
         Http::preventStrayRequests();
     }

@@ -10,19 +10,24 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * DatabaseMigrations: varias pruebas descargan el Excel, que debe abrir su propio snapshot desde el
+ * nivel 0; la transacción READ COMMITTED de RefreshDatabase la haría fallar en PostgreSQL.
+ */
 class AdminReportConsistencyTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->assertIsolatedTestDatabase();
         Storage::fake('local');
     }
 

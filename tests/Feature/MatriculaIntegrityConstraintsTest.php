@@ -51,12 +51,29 @@ class MatriculaIntegrityConstraintsTest extends TestCase
         $eliminada = $this->insertEnrollment($estudiante, $curso, 'pendiente', deleted: true);
         $this->insertEnrollment($estudiante, $curso, 'pendiente');
 
+        $nivel = DB::transactionLevel();
+        $rechazo = null;
+
         try {
-            DB::table('matriculas')->where('id', $eliminada)->update(['deleted_at' => null]);
-            $this->fail('El índice debía impedir la restauración.');
-        } catch (QueryException) {
-            $this->assertNotNull(DB::table('matriculas')->where('id', $eliminada)->value('deleted_at'));
+            // Savepoint: en PostgreSQL la violación aborta solo el savepoint, no la transacción de
+            // RefreshDatabase, de modo que las consultas de comprobación posteriores siguen siendo válidas.
+            DB::transaction(fn () => DB::table('matriculas')->where('id', $eliminada)->update(['deleted_at' => null]));
+        } catch (QueryException $error) {
+            $rechazo = $error;
         }
+
+        $this->assertNotNull($rechazo, 'El índice debía impedir la restauración.');
+        if (DB::getDriverName() === 'pgsql') {
+            $this->assertSame('23505', $rechazo->getCode());
+            $this->assertStringContainsString(self::INDEX, $rechazo->getMessage());
+        } else {
+            $this->assertSame('23000', $rechazo->getCode());
+        }
+
+        $this->assertSame($nivel, DB::transactionLevel(), 'El savepoint debe revertirse sin cerrar la transacción de la prueba.');
+        $this->assertNotNull(DB::table('matriculas')->where('id', $eliminada)->value('deleted_at'));
+        $this->assertSame(1, DB::table('matriculas')->where('estudiante_id', $estudiante->id)->whereNull('deleted_at')->count());
+        $this->assertSame(2, DB::table('matriculas')->where('estudiante_id', $estudiante->id)->count());
     }
 
     public function test_panel_restore_conflict_is_still_a_validation_error_not_a_server_error(): void

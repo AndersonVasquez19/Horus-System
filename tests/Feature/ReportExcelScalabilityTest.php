@@ -10,7 +10,7 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Filesystem\FilesystemAdapter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
@@ -19,9 +19,19 @@ use PhpOffice\PhpSpreadsheet\Settings;
 use RuntimeException;
 use Tests\TestCase;
 
+/**
+ * DatabaseMigrations: la exportación debe abrir su propio snapshot desde el nivel 0; la transacción
+ * READ COMMITTED de RefreshDatabase la haría fallar en PostgreSQL (ver ReportExcelExportTest).
+ */
 class ReportExcelScalabilityTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->assertIsolatedTestDatabase();
+    }
 
     public function test_multiple_batches_preserve_every_row_and_order_without_n_plus_one(): void
     {

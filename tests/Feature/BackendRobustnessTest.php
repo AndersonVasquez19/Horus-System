@@ -131,7 +131,7 @@ class BackendRobustnessTest extends TestCase
     {
         [, $course] = $this->fixtures();
         $data = $course->only(['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado']);
-        $original = $course->getRawOriginal($field);
+        $original = $course->fresh()->getRawOriginal($field);
         $this->actingAs($this->adminUser());
 
         $this->postJson(route('admin.cursos.store'), array_replace($data, ['codigo' => 'NEW', $field => $value]))

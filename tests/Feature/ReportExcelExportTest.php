@@ -8,9 +8,13 @@ use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Models\User;
 use App\Support\SafeSpreadsheet;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -23,16 +27,109 @@ use Tests\TestCase;
 /**
  * El Excel de matrículas debe guardar los textos de usuario como cadenas, nunca como fórmulas.
  * Todos los datos son ficticios.
+ *
+ * DatabaseMigrations y no RefreshDatabase: la exportación debe recibir la petición sin transacción
+ * abierta para crear su propio snapshot (en PostgreSQL, REPEATABLE READ, READ ONLY). La transacción
+ * READ COMMITTED de RefreshDatabase la haría fallar por su salvaguarda, que no se relaja.
  */
 class ReportExcelExportTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->assertIsolatedTestDatabase();
 
         Storage::fake('local');
+    }
+
+    public function test_excel_export_runs_in_its_own_transaction_and_releases_it(): void
+    {
+        // Independiente del driver: nivel de transacción antes, durante y después. No mide aislamiento.
+        $observed = $this->exportObservingFirstEnrollmentRead('10000005');
+
+        $this->assertSame(1, $observed['level'], 'La exportación debe abrir su propia transacción desde el nivel 0.');
+        $this->assertSame(0, DB::connection()->transactionLevel(), 'La transacción debe cerrarse al terminar.');
+    }
+
+    /**
+     * Evidencia exclusiva de PostgreSQL (filtro independiente: ver docs/postgresql-testing-pg-test-04.md §12).
+     * En SQLite se omite a propósito: SQLite no tiene REPEATABLE READ ni READ ONLY por transacción.
+     */
+    public function test_excel_export_opens_its_own_snapshot_instead_of_joining_a_test_transaction(): void
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('Solo el perfil PostgreSQL aislado demuestra REPEATABLE READ, READ ONLY; SQLite no es evidencia.');
+        }
+
+        $observed = $this->exportObservingFirstEnrollmentRead('10000003');
+
+        $this->assertContains('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY', $observed['statements']);
+        $this->assertSame(1, $observed['level'], 'La exportación debe abrir su propia transacción desde el nivel 0.');
+        $this->assertSame('repeatable read', $observed['isolation']);
+        $this->assertSame('on', $observed['read_only']);
+
+        // Cierre: sin transacción abierta y la sesión vuelve a sus valores por defecto (SET TRANSACTION
+        // solo dura hasta el COMMIT/ROLLBACK de la exportación).
+        $this->assertSame(0, DB::connection()->transactionLevel(), 'El snapshot debe liberarse al terminar.');
+        $after = (array) DB::selectOne(<<<'SQL'
+            SELECT current_setting('transaction_isolation') AS isolation,
+                current_setting('default_transaction_isolation') AS default_isolation,
+                current_setting('transaction_read_only') AS read_only,
+                current_setting('default_transaction_read_only') AS default_read_only
+            SQL);
+        $this->assertSame($after['default_isolation'], $after['isolation']);
+        $this->assertNotSame('repeatable read', $after['isolation']);
+        $this->assertSame($after['default_read_only'], $after['read_only']);
+    }
+
+    /**
+     * Ejecuta la exportación Excel y devuelve lo observado en la primera lectura de matrículas.
+     *
+     * @return array{level: int, statements: list<string>, isolation?: string, read_only?: string}
+     */
+    private function exportObservingFirstEnrollmentRead(string $dni): array
+    {
+        $this->makeEnrollment($this->makeStudent($dni, 'Ana', 'Ficticia'), $this->makeCourse('Curso ficticio'));
+        $admin = $this->adminUser();
+        $this->assertSame(0, DB::connection()->transactionLevel(), 'La petición no debe llegar dentro de una transacción de prueba.');
+
+        $observed = null;
+        $statements = [];
+        DB::listen(function (QueryExecuted $event) use (&$observed, &$statements): void {
+            $statements[] = $event->sql;
+            if ($observed !== null || ! str_starts_with($event->sql, 'select') || ! str_contains($event->sql, 'from "matriculas"')) {
+                return;
+            }
+            // Primer lote leído por la exportación: se asigna antes de consultar para no reentrar.
+            $observed = ['level' => $event->connection->transactionLevel()];
+            if ($event->connection->getDriverName() === 'pgsql') {
+                $observed += (array) $event->connection->selectOne(
+                    "SELECT current_setting('transaction_isolation') AS isolation, current_setting('transaction_read_only') AS read_only"
+                );
+            }
+        });
+
+        $response = $this->actingAs($admin)->post(route('admin.reportes.exportar.excel'))->assertOk()->assertDownload();
+        unlink($response->baseResponse->getFile()->getPathname());
+
+        $this->assertNotNull($observed, 'La exportación no leyó matrículas.');
+
+        return $observed + ['statements' => $statements];
+    }
+
+    public function test_coordinador_downloads_the_excel_report_with_the_seeded_permissions(): void
+    {
+        $this->makeEnrollment($this->makeStudent('10000004', 'Luis', 'Ficticio'), $this->makeCourse('Curso ficticio'));
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $coordinador = User::factory()->create();
+        $coordinador->assignRole('coordinador');
+
+        $response = $this->actingAs($coordinador)->post(route('admin.reportes.exportar.excel'))->assertOk()->assertDownload();
+        unlink($response->baseResponse->getFile()->getPathname());
+
+        $this->assertSame(1, AuditLog::where('action', 'report_excel_exported')->count());
     }
 
     /**

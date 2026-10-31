@@ -32,8 +32,8 @@ class ServicioTecnologicoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // SQLite :memory: fuera del perfil; conexión protegida de la lista fija dentro de PostgreSQL Testing.
         $this->assertIsolatedTestDatabase();
-        $this->assertSame('sqlite', DB::getDriverName());
         $this->travelTo(Carbon::parse('2026-10-29 12:00:00', 'America/Lima'));
         Http::preventStrayRequests();
         $this->actingAs($this->adminUser());
@@ -231,7 +231,7 @@ class ServicioTecnologicoTest extends TestCase
         unset($ficha['id']);
         for ($i = 2; $i <= 55; $i++) {
             $nuevo = DB::table('servicios_tecnologicos')->insertGetId([
-                ...get_object_vars($original), 'id' => null, 'codigo' => "TEC-$i", 'identificador_publico' => (string) Str::uuid(),
+                ...array_diff_key(get_object_vars($original), ['id' => true]), 'codigo' => "TEC-$i", 'identificador_publico' => (string) Str::uuid(),
             ]);
             DB::table('servicio_publicaciones')->insert([...$ficha, 'servicio_tecnologico_id' => $nuevo]);
         }
@@ -376,7 +376,8 @@ class ServicioTecnologicoTest extends TestCase
             fn () => DB::table('servicios_tecnologicos')->where('id', $id)->delete(),
         ] as $escribir) {
             try {
-                $escribir();
+                // Savepoint por caso: cada restricción se comprueba por sí misma también en PostgreSQL.
+                DB::transaction($escribir);
                 $this->fail('La escritura inválida debía rechazarse.');
             } catch (QueryException) {
                 $this->assertTrue(true);
