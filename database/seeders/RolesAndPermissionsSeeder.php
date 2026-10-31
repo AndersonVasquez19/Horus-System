@@ -22,10 +22,14 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Solo admin por defecto. @var list<string> */
     public const COTIZACIONES_PERMISSIONS = ['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.gestionar'];
 
+    /** Libro de Reclamaciones (Sprint 20). Solo admin por defecto; ampliar a otros roles es decisión del propietario. @var list<string> */
+    public const RECLAMACIONES_PERMISSIONS = ['reclamaciones.ver', 'reclamaciones.gestionar', 'reclamaciones.responder'];
+
     /** @var list<string> */
     public const PERMISSIONS = [
         ...self::SERVICIOS_PERMISSIONS,
         ...self::COTIZACIONES_PERMISSIONS,
+        ...self::RECLAMACIONES_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',
         'estudiantes.editar',
