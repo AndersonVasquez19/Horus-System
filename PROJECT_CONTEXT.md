@@ -2396,3 +2396,98 @@ Sprint 21.2 (auditoría de matrículas), pruebas de concurrencia de PostgreSQL e
 ### 7. Nota sobre el diff de C9
 
 El diff de C9 contra el `PROJECT_CONTEXT.md` de `HEAD` (`038895280000…`) contiene 21 líneas reemplazadas en las tablas de estado del encabezado y de secciones antiguas (p. ej. «Último sprint documentado: 18.2», «Cotizaciones — sin módulo específico implementado», «Testing, puerto 55432…»). Fueron actualizadas **en fases documentales anteriores a esta ejecución** (PG-TEST-05B, Sprints 19 a 21.1), no durante la consolidación; esta no reescribió ninguna sección histórica. Las secciones y anexos previos permanecen íntegros y el resto del diff son añadidos.
+
+---
+
+## SPRINT 21.2 — FASE 1: NÚCLEO DE AUDITORÍA DE MATRÍCULAS
+
+> Fecha: 31/10/2026 · Implementa solo el núcleo de la Fase 1 autorizada tras las decisiones D1–D8 de la Fase 0. **Ningún controlador invoca todavía este núcleo**: el comportamiento de las matrículas no cambia. Sin migraciones, sin conexión a bases de datos reales ni a PostgreSQL, sin `.env`, sin staging, commit ni push. Anclaje: `sprint-21-2-fase-1`.
+
+### 1. Objetivo y alcance autorizado
+
+Preparar y probar la lógica central que usarán las fases 2 a 4 para auditar crear, actualizar, anular, eliminar y restaurar matrículas. Archivos autorizados: `app/Support/AuditoriaAcademica.php`, `tests/Unit/AuditoriaAcademicaTest.php` y `PROJECT_CONTEXT.md`. No se tocaron `MatriculaController`, modelos, Form Requests, rutas, vistas, JS/CSS, migraciones, `AuditLog`, `SensitiveData` ni el historial CSV (D6 queda para la Fase 4; D8: el CSV no cambia).
+
+### 2. Archivos modificados
+
+| Archivo | Cambio |
+| --- | --- |
+| `app/Support/AuditoriaAcademica.php` | +API de efecto sobre cupos, detalle de creación, detalle de eliminación/restauración y parámetro opcional `efectoCupo`; docblock actualizado; `use InvalidArgumentException` |
+| `tests/Unit/AuditoriaAcademicaTest.php` | Se conservan los 6 tests existentes sin alterar sus aserciones; se añaden 46 pruebas (con datasets) y el trait `RefreshDatabase` para las que comprueban lo persistido |
+| `PROJECT_CONTEXT.md` | Esta sección (anexo; historial intacto) |
+
+### 3. Arquitectura implementada
+
+- `efectoCupo(?string $estadoAntes, ?int $cursoAntes, ?string $estadoDespues, ?int $cursoDespues): string` — **función pura**; solo clasifica, nunca modifica cupos. «Ocupa cupo» = existe y estado `pendiente` o `pagada`; `anulada` y «no existe / eliminada» (`null`) no ocupan. Un estado fuera de `pendiente`/`pagada`/`anulada` lanza `InvalidArgumentException` (sin normalizar mayúsculas).
+- `efectosPermitidos()` devuelve la lista cerrada `['ocupa', 'libera', 'traslada', 'ninguno']` (constantes `EFECTO_*`). Cualquier otro valor lanza `InvalidArgumentException` en todos los puntos de entrada.
+- `detalleCreacion($modelo, $entidad, ?$efectoCupo)`: lógica de `registrarCreacion` extraída a un constructor puro del detalle (campos con valor solo los autorizados). `registrarCreacion` y `registrarActualizacion` aceptan un `?string $efectoCupo` opcional al final de la firma; **sin él, el formato guardado de estudiantes y cursos es idéntico al anterior** (probado).
+- `detalleOperacionMatricula($matricula, $operacion, $efectoCupo)` y `registrarOperacionMatricula(...)` (D7): `operacion` de lista cerrada (`eliminacion_logica`, `restauracion`), `efecto_cupo`, y solo `curso_id` y `estado` como valores. Nada más.
+- Se reutilizan `diferencias()`, `actorDe()`, `registrarActualizacion()` y `AuditLog::record()` sin duplicar mecanismos. Para D3 basta `registrarActualizacion('matricula_anulada', …)` con todas las diferencias; para D4, una matrícula ya anulada no produce diferencias y `registrarActualizacion` devuelve `false` (no escribe).
+- La auditoría no abre transacciones (contrato heredado): el llamador la invoca como última escritura de la transacción de la operación.
+
+### 4. Campos permitidos y política de privacidad
+
+- **Con valor anterior y nuevo (D1, D2):** `estudiante_id`, `curso_id`, `fecha_matricula` (`Y-m-d`), `estado`, `monto_pagado` (cadena `decimal:2`, p. ej. `100.00`).
+- **Solo nombre del campo:** `observaciones` (nunca su contenido, ni el anterior ni el nuevo).
+- Todo campo ajeno a la lista (`dni`, `password`, `remember_token`, `session_id`, etc.) se ignora por completo: ni valor ni nombre. Los atributos técnicos `created_at`, `updated_at`, `deleted_at` se excluyen siempre.
+- Formatos equivalentes no cuentan como cambio (`monto_pagado` `'100'` vs `'100.00'`, fecha igual en distinto formato, ids como cadena).
+- El texto de las excepciones solo contiene el valor técnico rechazado (estado, efecto u operación); `operacion` no admite texto libre.
+
+### 5. Reglas del efecto sobre cupos
+
+| Situación | Entrada (antes → después) | Efecto |
+| --- | --- | --- |
+| Alta vigente | `null` → `pendiente`/`pagada` | `ocupa` |
+| Alta nacida anulada | `null` → `anulada` | `ninguno` |
+| Anulación de vigente | `pendiente`/`pagada` → `anulada` (también con cambio de curso) | `libera` |
+| Ya anulada | `anulada` → `anulada` (también con cambio de curso) | `ninguno` |
+| Reactivación | `anulada` → vigente (mismo u otro curso) | `ocupa` |
+| Eliminación de vigente / de anulada | vigente → `null` / `anulada` → `null` | `libera` / `ninguno` |
+| Restauración de vigente / de anulada | `null` → vigente / `null` → `anulada` | `ocupa` / `ninguno` |
+| Cambio de curso con vigente | vigente → vigente, curso distinto | `traslada` |
+| Vigente a vigente, mismo curso (incluye `pendiente`→`pagada`) | — | `ninguno` |
+| Nada antes ni después | `null` → `null` | `ninguno` |
+
+Convención fijada por prueba: si ambas versiones ocupan y uno de los cursos es desconocido (`null`) frente a otro conocido, se clasifica como `traslada`.
+
+### 6. Pruebas ejecutadas y resultados reales (SQLite en memoria; ninguna PostgreSQL)
+
+- `php artisan test tests/Unit/AuditoriaAcademicaTest.php`: **52 pasan, 141 aserciones** (6 originales + 46 nuevas). Cubren: lista permitida, diferencias antes/después, campos técnicos y ajenos, sin cambios (formatos equivalentes), identificadores, `monto_pagado`, `observaciones`, nulos, 20 casos de efecto (`ocupa`, `libera`, `traslada`, `ninguno`, anuladas, cambios de curso y de estado), estados desconocidos, efecto/operación inválidos, anulación por `PUT` con otros cambios (un solo evento), anulación repetida (cero eventos), persistencia real en `audit_logs` (actor, esquema, valores, sin contenido privado), y compatibilidad de estudiantes y cursos.
+- Pruebas de auditoría existentes (`AuditoriaAcademicaTest`, `AuditoriaCursosTest`, `AuditoriaEstudiantesTest`, `Sprint12AtomicityTest`, `AuditoriaAdministrativaTest`, `ProteccionAdministradoresTest`): **124 pasan, 707 aserciones**.
+- **Control de mutación** (cada cambio revertido de inmediato y comprobado por hash): anular la rama `traslada` → 4 pruebas fallan; desactivar la validación de efectos → 1 falla; filtrar `observaciones` al detalle → 3 fallan.
+- No se ejecutó la suite completa en esta fase (el alcance son tres archivos y no hay llamadores nuevos).
+
+### 7. Calidad
+
+- **Pint** (`vendor/bin/pint --test` sobre los dos archivos PHP): `passed`.
+- **Larastan nivel 6** (`vendor/bin/phpstan analyse`, proyecto completo): `[OK] No errors`.
+- **`git diff --check`** sobre los dos archivos PHP: sin errores (solo la advertencia conocida LF/CRLF de `core.autocrlf`).
+
+### 8. SHA-256 de los archivos modificados
+
+| Archivo | SHA-256 |
+| --- | --- |
+| `app/Support/AuditoriaAcademica.php` | `aec3e0317849d76b89377e902b322836800ef90dafd2b7ff9143dfaf81670919` |
+| `tests/Unit/AuditoriaAcademicaTest.php` | `b74218ab40bdba7955130fd9d71f5564c1a8e329a99e6a61381ecc7a0541d2d2` |
+| `PROJECT_CONTEXT.md` | no consta aquí (un archivo no puede contener su propio hash); ver el informe de entrega |
+
+Antes de la fase: `AuditoriaAcademica.php` `2701636616cc6fb475800ac28ae5983b5fa2481d709b0be47eefa2a376c362d0` y `AuditoriaAcademicaTest.php` `04a2c954db46b313c1d60ab0784ea0a1b82943f1fbea47ad617afcf153ab62d8`.
+
+### 9. Estado Git
+
+- Antes: rama `anderson`, HEAD `42569608daa7935727af60ad291f210a8ecef118`, índice vacío, 2 stashes; `PROJECT_CONTEXT.md` ya modificado (anexo de la Fase 0, sin commit).
+- Después: mismo HEAD y mismos stashes; índice vacío; modificados `PROJECT_CONTEXT.md`, `app/Support/AuditoriaAcademica.php` y `tests/Unit/AuditoriaAcademicaTest.php`. Sin staging, commit ni push; no se usó `reset`, `restore`, `clean`, `checkout` ni `stash`.
+
+### 10. Limitaciones
+
+- Núcleo sin llamadores: la auditoría real de matrículas no existe hasta la Fase 2.
+- No se mide concurrencia (SQLite ignora `lockForUpdate`) ni se usa PostgreSQL.
+- `RefreshDatabase` en la clase unitaria hace que sus pruebas migren SQLite en memoria; el resto de pruebas siguen siendo puras.
+- El detalle de eliminación/restauración depende de que el llamador pase la fila ya bloqueada (su `estado` y `curso_id` vigentes en ese instante).
+- La corrección de `efecto_cupo` frente a los cupos reales se probará en las fases 2–3 con el invariante de delta de `cupos_disponibles`.
+
+### 11. Pendientes para la Fase 2
+
+1. Autorización expresa para tocar `MatriculaController`.
+2. Cablear `store`, `update` (`fill` → `diferencias` → `save`) y `anular` con auditoría como última escritura de la transacción, `actorDe($request)` y `efectoCupo` calculado sobre la fila bloqueada.
+3. Pruebas de integración M01–M08, M12–M14 y M16–M20 de la matriz de la Fase 0 (incluido rollback con `AuditLog::creating` que lanza).
+4. Fases 3 (eliminar, restaurar), 4 (CSV, D6) y 5 (cierre) después, cada una con su autorización.

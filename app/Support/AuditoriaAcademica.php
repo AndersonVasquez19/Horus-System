@@ -9,6 +9,7 @@ use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 
 /**
  * Auditoría de operaciones académicas (Sprint 20): estudiantes, cursos y matrículas.
@@ -24,11 +25,46 @@ use Illuminate\Support\Carbon;
  * El actor se recibe de forma explícita para no depender de {@see auth()}.
  *
  * La lista de «curso» se usa desde la fase 2b (solo precio y cupos llevan valores). La de «matricula»
- * solo prepara la fase 2c; hasta entonces ningún controlador la utiliza.
+ * la usará el controlador en las fases siguientes del Sprint 21.2; el núcleo (diferencias, efecto sobre
+ * los cupos y registro de eliminación/restauración) ya está disponible y probado, pero ningún controlador
+ * lo invoca todavía.
+ *
+ * Efecto sobre los cupos (solo clasificación; esta clase nunca modifica cupos): ver {@see self::efectoCupo()}.
  */
 final class AuditoriaAcademica
 {
     public const ESQUEMA = 1;
+
+    /** Efectos de una operación de matrícula sobre los cupos del curso (lista cerrada). */
+    public const EFECTO_OCUPA = 'ocupa';
+
+    public const EFECTO_LIBERA = 'libera';
+
+    public const EFECTO_TRASLADA = 'traslada';
+
+    public const EFECTO_NINGUNO = 'ninguno';
+
+    /** Operaciones de matrícula que se registran sin diferencias (lista cerrada, sin texto libre). */
+    public const OPERACION_ELIMINACION = 'eliminacion_logica';
+
+    public const OPERACION_RESTAURACION = 'restauracion';
+
+    private const EFECTOS = [
+        self::EFECTO_OCUPA,
+        self::EFECTO_LIBERA,
+        self::EFECTO_TRASLADA,
+        self::EFECTO_NINGUNO,
+    ];
+
+    private const OPERACIONES_MATRICULA = [
+        self::OPERACION_ELIMINACION,
+        self::OPERACION_RESTAURACION,
+    ];
+
+    /** Estados de matrícula que ocupan cupo; «anulada» no lo ocupa. */
+    private const ESTADOS_QUE_OCUPAN = ['pendiente', 'pagada'];
+
+    private const ESTADO_ANULADA = 'anulada';
 
     public const ESTUDIANTE = 'estudiante';
 
@@ -114,9 +150,56 @@ final class AuditoriaAcademica
     }
 
     /**
-     * Registra una creación: nombres de los campos informados y valores solo de los autorizados.
+     * Efectos válidos de una operación de matrícula sobre los cupos.
+     *
+     * @return list<string>
      */
-    public static function registrarCreacion(string $accion, Model $modelo, string $entidad, int $actorId): AuditLog
+    public static function efectosPermitidos(): array
+    {
+        return self::EFECTOS;
+    }
+
+    /**
+     * Clasifica, sin tocar ningún dato, el efecto de una operación de matrícula sobre los cupos.
+     *
+     * Una matrícula «ocupa» cupo cuando existe (no eliminada) y su estado es pendiente o pagada; la
+     * anulada, la eliminada y la inexistente no lo ocupan. El estado «null» representa «no existe / no
+     * está vigente» y sirve para expresar la creación (antes), la eliminación (después) y la
+     * restauración (antes).
+     *
+     *  - no ocupaba y no ocupa      → ninguno (incluye nacer anulada, anulada ya anulada, corregir historia)
+     *  - no ocupaba y ocupa         → ocupa (alta vigente, reactivación, restauración vigente)
+     *  - ocupaba y ya no ocupa      → libera (anulación, eliminación de una vigente)
+     *  - ocupaba y ocupa            → traslada si el curso cambia; ninguno si no cambia
+     *
+     * Un estado distinto de pendiente, pagada o anulada lanza {@see InvalidArgumentException}.
+     */
+    public static function efectoCupo(?string $estadoAntes, ?int $cursoAntes, ?string $estadoDespues, ?int $cursoDespues): string
+    {
+        $ocupabaAntes = self::ocupaCupo($estadoAntes);
+        $ocupaDespues = self::ocupaCupo($estadoDespues);
+
+        if (! $ocupabaAntes && ! $ocupaDespues) {
+            return self::EFECTO_NINGUNO;
+        }
+
+        if (! $ocupabaAntes) {
+            return self::EFECTO_OCUPA;
+        }
+
+        if (! $ocupaDespues) {
+            return self::EFECTO_LIBERA;
+        }
+
+        return $cursoAntes !== $cursoDespues ? self::EFECTO_TRASLADA : self::EFECTO_NINGUNO;
+    }
+
+    /**
+     * Detalle de una creación: nombres de los campos informados y valores solo de los autorizados.
+     *
+     * @return array<string, mixed>
+     */
+    public static function detalleCreacion(Model $modelo, string $entidad, ?string $efectoCupo = null): array
     {
         $lista = self::lista($entidad);
         $campos = [];
@@ -134,23 +217,70 @@ final class AuditoriaAcademica
             }
         }
 
-        return self::registrar($accion, $modelo, ['campos' => $campos, 'valores' => $valores], $actorId);
+        return self::conEfecto(['campos' => $campos, 'valores' => $valores], $efectoCupo);
+    }
+
+    /**
+     * Detalle de una eliminación lógica o restauración de matrícula (decisión D7): operación de una
+     * lista cerrada, efecto sobre cupos, y solo «curso_id» y «estado» como valores. Nada más.
+     *
+     * @return array<string, mixed>
+     */
+    public static function detalleOperacionMatricula(Model $matricula, string $operacion, string $efectoCupo): array
+    {
+        if (! in_array($operacion, self::OPERACIONES_MATRICULA, true)) {
+            throw new InvalidArgumentException("Operación de matrícula desconocida: {$operacion}");
+        }
+
+        $detalle = ['operacion' => $operacion, 'efecto_cupo' => self::validarEfecto($efectoCupo)];
+
+        foreach (['curso_id', 'estado'] as $campo) {
+            $valor = self::normalizar($matricula, $campo, $matricula->getAttribute($campo));
+            if ($valor !== null) {
+                $detalle[$campo] = $valor;
+            }
+        }
+
+        return $detalle;
+    }
+
+    /**
+     * Registra una creación. «efectoCupo» es opcional y solo lo usan las matrículas.
+     */
+    public static function registrarCreacion(string $accion, Model $modelo, string $entidad, int $actorId, ?string $efectoCupo = null): AuditLog
+    {
+        return self::registrar($accion, $modelo, self::detalleCreacion($modelo, $entidad, $efectoCupo), $actorId);
     }
 
     /**
      * Registra una actualización solo si hay diferencias reales. Devuelve false cuando no registra nada.
+     * «efectoCupo» es opcional y solo lo usan las matrículas; sin diferencias tampoco se registra.
      *
      * @param  array{campos: list<string>, antes: array<string, mixed>, despues: array<string, mixed>}  $diferencias
      */
-    public static function registrarActualizacion(string $accion, Model $modelo, array $diferencias, int $actorId): bool
+    public static function registrarActualizacion(string $accion, Model $modelo, array $diferencias, int $actorId, ?string $efectoCupo = null): bool
     {
         if ($diferencias['campos'] === []) {
             return false;
         }
 
-        self::registrar($accion, $modelo, $diferencias, $actorId);
+        $detalle = self::conEfecto([
+            'campos' => $diferencias['campos'],
+            'antes' => $diferencias['antes'],
+            'despues' => $diferencias['despues'],
+        ], $efectoCupo);
+
+        self::registrar($accion, $modelo, $detalle, $actorId);
 
         return true;
+    }
+
+    /**
+     * Registra la eliminación lógica o la restauración de una matrícula (ver {@see self::detalleOperacionMatricula()}).
+     */
+    public static function registrarOperacionMatricula(string $accion, Model $matricula, string $operacion, string $efectoCupo, int $actorId): AuditLog
+    {
+        return self::registrar($accion, $matricula, self::detalleOperacionMatricula($matricula, $operacion, $efectoCupo), $actorId);
     }
 
     /**
@@ -176,11 +306,51 @@ final class AuditoriaAcademica
     }
 
     /**
+     * Añade «efecto_cupo» (validado contra la lista cerrada) solo cuando se informa.
+     *
+     * @param  array<string, mixed>  $detalle
+     * @return array<string, mixed>
+     */
+    private static function conEfecto(array $detalle, ?string $efectoCupo): array
+    {
+        if ($efectoCupo !== null) {
+            $detalle['efecto_cupo'] = self::validarEfecto($efectoCupo);
+        }
+
+        return $detalle;
+    }
+
+    private static function validarEfecto(string $efectoCupo): string
+    {
+        if (! in_array($efectoCupo, self::EFECTOS, true)) {
+            throw new InvalidArgumentException("Efecto de cupo desconocido: {$efectoCupo}");
+        }
+
+        return $efectoCupo;
+    }
+
+    /**
+     * Si una matrícula con este estado ocupa cupo; «null» significa que no existe o no está vigente.
+     */
+    private static function ocupaCupo(?string $estado): bool
+    {
+        if ($estado === null || $estado === self::ESTADO_ANULADA) {
+            return false;
+        }
+
+        if (! in_array($estado, self::ESTADOS_QUE_OCUPAN, true)) {
+            throw new InvalidArgumentException("Estado de matrícula desconocido: {$estado}");
+        }
+
+        return true;
+    }
+
+    /**
      * @return array{valores: list<string>, nombres: list<string>}
      */
     private static function lista(string $entidad): array
     {
-        return self::LISTAS[$entidad] ?? throw new \InvalidArgumentException("Entidad de auditoría desconocida: {$entidad}");
+        return self::LISTAS[$entidad] ?? throw new InvalidArgumentException("Entidad de auditoría desconocida: {$entidad}");
     }
 
     /**
