@@ -54,6 +54,17 @@
             </a>
         @endcan
 
+        @if(auth()->user()?->hasRole('admin') && auth()->user()?->can('cotizaciones.ver'))
+            <a href="{{ route('admin.cotizaciones.index') }}" title="Solicitudes de cotización" @class([
+                'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
+                'bg-gold font-semibold text-ink' => request()->is('admin/cotizaciones*'),
+                'text-stone-300 hover:bg-white/10 hover:text-white' => ! request()->is('admin/cotizaciones*'),
+            ])>
+                <i class="fa-solid fa-file-lines w-5 text-center" aria-hidden="true"></i>
+                <span class="hidden xl:inline">Solicitudes de cotización</span>
+            </a>
+        @endif
+
         @can('matriculas.ver')
             <a href="/admin/matriculas" title="Matrículas" @class([
                 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition',
