@@ -19,9 +19,13 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Solo admin por defecto; no concede acceso a otros roles administrativos. @var list<string> */
     public const SERVICIOS_PERMISSIONS = ['servicios.ver', 'servicios.crear', 'servicios.editar', 'servicios.publicar'];
 
+    /** Solo admin por defecto. @var list<string> */
+    public const COTIZACIONES_PERMISSIONS = ['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.gestionar'];
+
     /** @var list<string> */
     public const PERMISSIONS = [
         ...self::SERVICIOS_PERMISSIONS,
+        ...self::COTIZACIONES_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',
         'estudiantes.editar',

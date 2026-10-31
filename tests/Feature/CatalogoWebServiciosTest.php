@@ -56,6 +56,8 @@ class CatalogoWebServiciosTest extends TestCase
         $this->assertSame(ServiciosPublicosController::class, $ruta->getActionName());
         $this->assertSame(url('/tecnologias/soporte-mantenimiento'), route('tecnologias.soporte'));
         Schema::drop('servicio_publicaciones');
+        Schema::drop('cotizacion_historial');
+        Schema::drop('solicitudes_cotizacion');
         Schema::drop('servicios_tecnologicos');
         $this->mock(CatalogoPublicoServicios::class)->shouldNotReceive('pagina');
         DB::enableQueryLog();
