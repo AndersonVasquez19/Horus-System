@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Jobs\EnviarReclamacionCorreo;
+use App\Models\AuditLog;
 use App\Models\NotificacionInterna;
 use App\Models\Reclamacion;
 use App\Models\ReclamacionEnvio;
@@ -38,6 +39,12 @@ class GestionReclamaciones
         'canal_respuesta', 'es_menor', 'representante_nombre', 'representante_domicilio', 'representante_telefono',
         'representante_email', 'bien_tipo', 'bien_descripcion', 'monto_bien', 'detalle', 'pedido',
     ];
+
+    public const AVISO_POR_VENCER = 'por_vencer';
+
+    public const AVISO_VENCE = 'vence';
+
+    public const SIN_DESTINATARIOS = 'sin_destinatarios';
 
     public function __construct(private readonly NumeradorReclamaciones $numerador) {}
 
@@ -220,6 +227,112 @@ class GestionReclamaciones
     public function resolverVencimiento(string $uuid): bool
     {
         return DB::transaction(fn (): bool => $this->evaluarVencimiento($this->bloquear($uuid)));
+    }
+
+    /**
+     * Umbral de aviso del plazo legal que corresponde hoy a la reclamación, sin importar si ya se avisó:
+     * `por_vencer` (a {@see config('reclamaciones.aviso_dias_habiles')} días hábiles o menos de `fecha_limite`)
+     * o `vence` (hoy es `fecha_limite` o ya pasó). Sin aviso si el caso no está abierto o el plazo está suspendido.
+     */
+    public function umbralAviso(Reclamacion $r): ?string
+    {
+        if ($r->estado !== 'abierto' || $r->suspension_desde !== null) {
+            return null;
+        }
+        $hoy = $this->hoy();
+        $limite = $r->fecha_limite->toImmutable();
+        if ($hoy->toDateString() >= $limite->toDateString()) {
+            return self::AVISO_VENCE;
+        }
+
+        return DiasHabiles::entre($hoy, $limite) <= (int) config('reclamaciones.aviso_dias_habiles', 3) ? self::AVISO_POR_VENCER : null;
+    }
+
+    /** Solo lectura: umbral que falta por avisar para el plazo vigente (`null` si no corresponde o ya se avisó). */
+    public function avisoPendiente(Reclamacion $r): ?string
+    {
+        $umbral = $this->umbralAviso($r);
+
+        return $umbral !== null && ! $this->yaAvisado($r, $umbral) ? $umbral : null;
+    }
+
+    /**
+     * Aviso interno del plazo legal, una sola vez por umbral y por plazo (`fecha_limite`). Sin actor: «Sistema».
+     * Bloquea la reclamación, relee el estado y deja las notificaciones y la marca de deduplicación (la auditoría,
+     * última escritura) en la misma transacción: si algo falla, no queda aviso a medias ni marca.
+     * Sin datos personales: solo número y fecha. Devuelve el umbral avisado, `sin_destinatarios` (no escribe nada
+     * y se reintenta en la siguiente ejecución) o `null` si no correspondía.
+     */
+    public function avisarPlazo(string $uuid): ?string
+    {
+        return DB::transaction(function () use ($uuid): ?string {
+            $r = $this->bloquear($uuid);
+            $this->evaluarVencimiento($r);
+            $umbral = $this->avisoPendiente($r);
+            if ($umbral === null) {
+                return null;
+            }
+            $destinatarios = $this->destinatariosAviso($r);
+            if ($destinatarios === []) {
+                return self::SIN_DESTINATARIOS;
+            }
+            $fecha = $r->fecha_limite->format('d/m/Y');
+            // El umbral `vence` cubre dos situaciones que el texto distingue por la fecha evaluada (Lima).
+            if ($umbral === self::AVISO_POR_VENCER) {
+                $titulo = 'Plazo por vencer: reclamación ';
+                $mensaje = 'El plazo de respuesta vence el '.$fecha.'.';
+            } elseif ($this->hoy()->toDateString() > $r->fecha_limite->toDateString()) {
+                $titulo = 'Plazo vencido: reclamación ';
+                $mensaje = 'El plazo de respuesta venció el '.$fecha.'.';
+            } else {
+                $titulo = 'Plazo vence hoy: reclamación ';
+                $mensaje = 'El plazo de respuesta vence hoy, '.$fecha.'.';
+            }
+            foreach ($destinatarios as $usuarioId) {
+                NotificacionInterna::query()->create([
+                    'user_id' => $usuarioId,
+                    'titulo' => $titulo.$r->numero,
+                    'mensaje' => $mensaje,
+                    'tipo' => 'reclamacion_plazo',
+                ]);
+            }
+            AuditoriaReclamaciones::registrar('aviso_plazo', $r, ['numero' => $r->numero, 'resultado' => $umbral, 'fecha_limite' => $r->fecha_limite->toDateString()], null);
+
+            return $umbral;
+        });
+    }
+
+    /** Consulta de existencia (sin cargar filas): ¿hay marca de este umbral para el plazo vigente? */
+    private function yaAvisado(Reclamacion $r, string $umbral): bool
+    {
+        return AuditLog::query()
+            ->where('action', 'reclamacion_aviso_plazo')
+            ->where('model_type', Reclamacion::class)
+            ->where('model_id', $r->id)
+            ->where('changes->resultado', $umbral)
+            ->where('changes->fecha_limite', $r->fecha_limite->toDateString())
+            ->exists();
+    }
+
+    /**
+     * El responsable si sigue siendo personal del panel con `reclamaciones.ver`; si no hay (o ya no cumple),
+     * todos los usuarios con ese permiso.
+     *
+     * @return list<int>
+     */
+    private function destinatariosAviso(Reclamacion $r): array
+    {
+        if ($r->responsable_id !== null) {
+            $responsable = User::query()->find($r->responsable_id);
+            if ($responsable !== null && $responsable->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES) && $responsable->can('reclamaciones.ver')) {
+                return [$responsable->id];
+            }
+        }
+        if (! Permission::query()->where('name', 'reclamaciones.ver')->where('guard_name', 'web')->exists()) {
+            return [];
+        }
+
+        return User::permission('reclamaciones.ver')->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all();
     }
 
     /**

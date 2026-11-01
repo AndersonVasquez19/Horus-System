@@ -21,6 +21,8 @@ return [
     // verificada (decisión E5); los feriados se cargan aquí (decisión B5) como lista 'AAAA-MM-DD'.
     'plazo_dias_habiles' => 15,
     'suspension_dias_habiles' => 5,
+    // Avisos internos del plazo legal (Sprint 22): días hábiles previos al vencimiento, además del día del vencimiento.
+    'aviso_dias_habiles' => 3,
     'feriados' => [],
     'zona_horaria' => 'America/Lima',
 
