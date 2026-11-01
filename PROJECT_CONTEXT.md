@@ -3340,3 +3340,90 @@ Orden obligatorio 1→2→3 (`SecretsAndExportsTest` depende del cambio de expor
 - **Verificación final (única):** suite completa `php artisan test --compact`: **1 646 pasan, 1 omitida, 0 fallos, 10 385 aserciones**, salida 0, 329 s (1 635 del cierre anterior + 11 de la corrección: 4 + 6 + 1). Larastan nivel 6 sin errores; Pint OK sobre los siete archivos PHP propios; `git diff --check` sin errores de espacios. SQLite en memoria: sin PostgreSQL, migraciones, `.env`, GitHub Actions, despliegue, staging, commits ni push; dos stashes intactos.
 - **SHA-256 finales:** `ProcesarVencimientosReclamaciones.php` `6459a3ec0197ed77cde16c53d0080c063285e4ce6148838e42b8da5b66af1f28`; `GestionReclamaciones.php` `76e5a0ba8074a0f31cb4e1cd4b8b5a00731ec0af5e1761c833dee1551eb5ac6b`; `config/reclamaciones.php` `199eae58b31f1a5ef371063c7efab68f8c078b371d3fe30707369442420a4f33`; `routes/console.php` `6b82d3fb75f25b6322fe7ac6b177f9db058cf436061802d3b860e8e8a66ce00a`; `ProcesarVencimientosReclamacionesTest` `b972e2188f1673c11f50ed0e1e8c9123dc2fe6aab4001c249ae26f93f19b68a3`; `AvisosPlazoReclamacionesTest` `399eb8d581b0cdaaac0ea8d4fe73403d59a482ad4f8e106ffb5872df785a0fbc`; `SchedulerReclamacionesTest` `a8006bf4a1f69d4b6706cd386f60c98cfcea64291438981b06b8d21858208df9`; `docs/sprint-22-reclamaciones-vencimientos.md` `c6e8d4953786baaf07473910f61235b145247794e842623290a3449eb6c3fc5f`.
 - **Veredicto:** corrección H1–H4 **cerrada**. Pendiente: consolidación en Git, solo con autorización del propietario. Sprint 23 no iniciado.
+
+---
+
+## PRIVACIDAD DE NOTIFICACIONES INTERNAS — FASES 1 Y 2 Y CORRECCIONES DE AUDITORÍA (C1–C5)
+
+> Fecha: 31/10/2026 · Rama `anderson`, HEAD `0edd263`. Trabajo de backend fuera del Sprint 23 (no iniciado). Este bloque se añade al final y no modifica el historial anterior. Evidencia solo en SQLite en memoria.
+
+- **Defecto (Fase 1, reproducido con TDD):** `notificaciones_internas.user_id` es nullable con `nullOnDelete()`. Al eliminar un usuario (por HTTP o por Query Builder), sus notificaciones personales quedaban con `user_id` NULL; la bandeja, el contador de pendientes, el contador del dashboard y `marcarLeida()` trataban NULL como «general», de modo que cualquier otro miembro del personal podía verlas, contarlas y marcarlas como leídas.
+- **Corrección (Fase 2):** migración `2026_10_31_000032_add_audiencia_to_notificaciones_internas.php` con la columna `audiencia` (`personal` | `general` | `indeterminada`), independiente de `user_id`. Histórico sin adivinar: `user_id` con valor → `personal`; `user_id` NULL → `indeterminada`; no se reconstruyen destinatarios por texto y no se alteran mensajes, fechas ni lectura. La FK y su `nullOnDelete()` se conservan. Reglas: audiencia obligatoria y válida; general e indeterminada sin destinatario; una personal se inserta con destinatario; la audiencia es inmutable y `user_id` solo puede pasar a NULL (FK al eliminar al usuario o UPDATE explícito a NULL), nunca a otro usuario. En PostgreSQL se implementan con CHECK y una función de trigger; en SQLite, con triggers equivalentes.
+- **Visibilidad centralizada:** `NotificacionInterna::scopeVisiblePara()` (bandeja, pendientes y dashboard) y `esVisiblePara()` (autorización de `marcarLeida`, 403 en otro caso): solo personales propias y generales explícitas. Las personales huérfanas y las indeterminadas no se muestran a nadie. Se mantienen la lectura compartida de las generales (pendiente de negocio) y el marcado repetido. Productores con audiencia explícita mediante `crearPersonal()`/`crearGeneral()`: aprobaciones (alta y cambio de estado), reclamaciones (aviso de alta y avisos de plazo, una fila personal por destinatario) y `ProcesosInternosSeeder`, que omite una personal sin destinatario en lugar de degradarla a general.
+- **`down()`:** rechaza la reversión con una excepción explicativa si hay filas sin destinatario que no son generales (se publicarían como generales); si no las hay, revierte de forma exacta. En PostgreSQL bloquea la tabla antes de comprobar.
+- **Correcciones posteriores a la auditoría de Codex (APROBADO CON OBSERVACIONES, sin críticos ni altos):**
+  - **C1:** `up()` ya no se conforma con que exista la columna. Hace inventario de los objetos de la migración (en SQLite, nombre y definición exacta de los ocho triggers; en PostgreSQL, NOT NULL, los tres CHECK por nombre, el cuerpo literal de la función y el trigger enlazado a ella). Con el esquema completo no hace nada. Ante un esquema parcial, una definición distinta u objetos con estos nombres sin la columna, lanza «Esquema incompleto…» sin crear, borrar ni reconstruir nada. La función PostgreSQL pasa de `CREATE OR REPLACE` a `CREATE` para no sustituir nunca un objeto ajeno, y sus errores usan `check_violation` con el nombre de la regla.
+  - **C2:** `assertRechazada()` exige la regla concreta en el mensaje de la excepción y que la tabla quede idéntica. Una prueba fija que un error SQL ajeno o un rechazo por otra regla ya no cuentan como éxito.
+  - **C3:** una matriz de equivalencia comprueba que el scope y la comprobación de instancia coinciden en los casos personal propia, personal ajena, personal huérfana, general e indeterminada, para dos usuarios. Los casos no persistibles (audiencia desconocida, general o indeterminada con destinatario) se niegan siempre.
+  - **C4:** si la auditoría falla después del DELETE administrativo, la transacción de `AdminProtection` revierte todo: el usuario existe, la notificación conserva `user_id` y `audiencia = personal`, y no queda auditoría de borrado. Sin mocks: el DELETE y el SET NULL de la FK se ejecutan en SQLite y se deshacen.
+  - **C5:** se corrigieron los comentarios de `AdminNotificacionTest` y de la migración (el NULL no proviene solo de la FK). La preparación histórica de `NotificacionAudienciaMigracionTest` aplica solo las migraciones con nombre anterior a la de audiencia.
+- **TDD:** primera corrida de C1–C5 en rojo con 8 fallos esperados (selector que incluía migraciones futuras, seis esquemas parciales o inconsistentes aceptados por `up()` y el helper que aceptaba un error ajeno). C3 y C4 pasaban desde el principio porque fijan un comportamiento correcto; tres mutaciones temporales las hicieron fallar (rama por defecto de `esVisiblePara()`, general sin comprobar `user_id`, `AdminProtection` sin transacción), y los archivos se restauraron con hash verificado.
+- **Verificación:** 47 pruebas de notificaciones; 216 de aprobaciones, reclamaciones y protección administrativa; 110 de autorización y filtros. Suite completa (una sola corrida): **1 690 pasan, 1 omitida, 0 fallos, 10 765 aserciones**. Larastan nivel 6 sin errores; Pint OK sobre los archivos propios (los que ya usaban CRLF en HEAD solo muestran ese aviso conocido); `git diff --check` sin errores.
+- **Riesgos pendientes:** la rama PostgreSQL (CHECK, `SET NOT NULL`, función plpgsql, trigger, inventario por catálogo y `LOCK` de `down()`) no se ha ejecutado: debe validarse en el clúster de pruebas 55433 con autorización. En PostgreSQL los CHECK se verifican por nombre, no por definición. Las generales legítimas ya existentes quedarán `indeterminada` (ocultas) en bases con datos; recuperarlas exige una revisión humana fila por fila y una migración nueva. La lectura compartida de las generales sigue pendiente de negocio.
+- **Restricciones respetadas:** sin PostgreSQL, `horus_group`, migraciones reales, `.env`, GitHub Actions, despliegue, staging, commits ni push. Los dos stashes están intactos y los seis archivos de frontend de Argon no se tocaron (hash verificado antes y después).
+- **SHA-256 finales:** migración `ab04b31d9ba692da1ae302d41d57bb17687ed3d8c9e680b6e3f6e33c829780f8`; `NotificacionInterna.php` `cdc3e3ddde340eec44340e7575c6e5a7cb2be592835d6b5d9d242ab4545a51db`; `NotificacionAudienciaTest` `c5000a2425ae9bd80b4bb3bbedf670e8debdaa06e37b987166b44db520c10910`; `NotificacionAudienciaMigracionTest` `ed1b371783ce9165aecc71add31d69579b9dc18519fb8bb7d11fa9c8ef8e0883`; `NotificacionPrivacidadUsuarioEliminadoTest` `3ade9e5a5e5e59ba94914d3aa7c70f06573fcbdb3f97c12b4159476b115e71fa`; `AdminNotificacionTest` `5b3cd3bb50c2768b8db47d63963ca3df7eb234ec11b6f957014d610353fc8fb8`. Los demás archivos de la Fase 2 no cambiaron en esta corrección.
+- **Estado:** pendiente de consolidar en Git, solo con autorización del propietario.
+
+---
+
+## PRIVACIDAD DE NOTIFICACIONES — CORRECCIÓN FINAL C1: INVENTARIO POSTGRESQL
+
+> Fecha: 31/10/2026 · Auditoría final de Codex: C2–C5 aprobadas; C1 requería correcciones acotadas en la rama PostgreSQL. Solo se tocaron la migración `2026_10_31_000032`, una prueba nueva y este documento. El bloque anterior se conserva tal cual.
+
+- **Defectos corregidos (antes, en PostgreSQL):**
+  - Los CHECK se identificaban solo por nombre: se habría aceptado `CHECK (true)`, una restricción `NOT VALID` o una no aplicada.
+  - La función se identificaba solo por nombre y cuerpo: no se comprobaban argumentos, retorno, lenguaje, tipo ni sobrecargas.
+  - Para el trigger bastaba `tgenabled <> 'D'`: se aceptaban un trigger solo de réplica (`R`), eventos incompletos, AFTER, por sentencia, con WHEN o apuntando a otra función homónima.
+  - La tabla se resolvía en cada consulta.
+  - Un NULL de `information_schema` (columna ausente) se tomaba por correcto.
+- **Diseño:** `catalogoPostgres()` resuelve la tabla una sola vez (`to_regclass`, mismo search_path que los DDL) y obtiene por su OID la columna (`pg_attribute`), los CHECK (`pg_constraint` con `pg_get_constraintdef()`), las funciones homónimas del esquema (`pg_proc` + `pg_language`) y el trigger (`pg_trigger`). `evaluarCatalogoPostgres()` es una función pura que decide sobre esa instantánea. Un valor ausente o NULL nunca se da por satisfecho, y los booleanos se leen de forma estricta (`true`/`'t'`).
+- **Qué se exige por objeto:**
+  - **Tabla:** debe existir; si no, el inventario se detiene con una excepción.
+  - **Columna:** existe, es `NOT NULL` y su tipo es `character varying(20)`.
+  - **Cada CHECK:** `contype 'c'`, `convalidated`, `conenforced` (en versiones anteriores a la 18 se considera aplicada) y definición igual a la que PostgreSQL normaliza para la misma expresión en una tabla temporal de la sesión (`LIKE` de la tabla real, eliminada en `finally`). Así se comparan definiciones normalizadas, no texto SQL.
+  - **Función:** una sola con ese nombre en el esquema (sin sobrecargas), cero argumentos, `prokind 'f'`, retorno `trigger`, lenguaje `plpgsql` y cuerpo literal.
+  - **Trigger:** `tgfoid` igual al OID de esa función, `tgtype` exactamente ROW|BEFORE|INSERT|UPDATE (23), `tgenabled` `O` o `A`, sin WHEN, no interno ni de restricción, sin argumentos y sin lista de columnas.
+- **Pruebas:** nueva `NotificacionAudienciaInventarioPostgresTest` (32 casos con proveedores). **No es evidencia de PostgreSQL:** alimenta el evaluador con catálogos sintéticos y no abre conexiones. Primera corrida en rojo (32 fallos, API inexistente). En verde, tras implementar: 79 pruebas de notificaciones, más `MatriculaNotificationTest` (rollback con `DatabaseMigrations`), 124 en total. Tres mutaciones del evaluador fueron detectadas (aceptar `R`, ignorar la definición del CHECK y leer los booleanos de forma laxa), y el archivo se restauró con hash verificado. Larastan nivel 6 sin errores; Pint OK sobre los dos archivos PHP; no se repitió la suite completa (la referencia sigue siendo la del bloque anterior: 1 690 / 1 / 0).
+- **Pendiente de validar en el clúster aislado 55433 (con autorización):** que las consultas al catálogo funcionen tal como están escritas (`to_regclass`, `format_type`, `prorettype::regtype::text`, `tgattr::int2[]`, la columna `conenforced` en la 18.6); los tipos que devuelve PDO pgsql (OID, `int2`, `char`, booleanos); la creación y eliminación de la tabla temporal de referencia dentro de la transacción del migrador; la ejecución completa de `up()` y `down()`, y el rechazo real de cada esquema alterado.
+- **SHA-256:** migración `c0e65e7f66a9de36302b91c8163cdff33e9e2809446bf156ef1fcc936097e1db`; `NotificacionAudienciaInventarioPostgresTest` `884db57eaec480187a529ed4b04aa99df88c5899553fe535f780ab1c6236cce7`.
+- **Restricciones:** sin PostgreSQL, migraciones reales, `.env`, GitHub Actions, despliegue, staging, commits ni push. Los dos stashes y los seis archivos de Argon están intactos.
+
+---
+
+## PRIVACIDAD DE NOTIFICACIONES Y MIGRACIÓN 000032 — CIERRE DEFINITIVO (H1–H3 Y VALIDACIÓN POSTGRESQL 18.6)
+
+> Fecha: 31/10/2026 · Rama `anderson`. Implementación consolidada en el commit `f30df64ef94dea13b32b43d3ecb17c09c99fb7e0` (`fix(notificaciones): cerrar privacidad y validar migracion 000032`). Los bloques anteriores se conservan tal cual. Sprint 23 no iniciado.
+
+- **Inventario PostgreSQL (sustituye la tabla temporal del bloque anterior):** la primera ejecución en el clúster aislado falló porque el rol no tiene `TEMPORARY`. Ahora la definición de referencia de cada CHECK se obtiene añadiendo la misma expresión a la propia tabla como `CHECK … NOT VALID` (no recorre filas), dentro de un `SAVEPOINT` propio que siempre se deshace. Se compara con `pg_get_constraintdef()` quitando solo el sufijo ` NOT VALID` de la referencia, y después se comprueba que no quede ninguna referencia.
+- **H1 — recuperación ante fallo doble (`enPuntoDeRetorno()`):** sin `DB::transaction()` anidado y sin reintentos. Si el punto de retorno no puede deshacerse, la recuperación es *fail-closed* y escalonada:
+  - Primero, rollback completo, que solo vale si se comprueba (contador de Laravel en 0 y PDO sin transacción).
+  - Si falla o no se comprueba, se descarta la conexión. En Laravel 12.70.1, `Connection::disconnect()` llama a `setPdo(null)`: el contador queda en 0 y sin PDO, así que nada puede confirmarse desde ella. También se olvidan los `afterCommit` pendientes.
+  - La excepción nombra el error original, el fallo al deshacer y los de recuperación, y solo afirma «revertida» si lo comprobó. Si ni el descarte se logra, declara el estado INCIERTO.
+- **H2 — harness PostgreSQL:** la limpieza se extrae a `tests/Support/EscenarioReversible.php`. Conserva el error original y los de rollback y limpieza. Comprueba el estado persistente solo si el rollback no falló y el nivel es 0; si no, informa expresamente «NO comprobado» y no declara la limpieza satisfactoria.
+- **H3 — `xmin`:** documentado como comprobación complementaria. En `test_02` las filas se crean en la misma transacción que ejecuta `up()`, así que un UPDATE de esa transacción conservaría el mismo `xmin`. La comparación completa de valores sigue siendo la comprobación principal.
+- **Pruebas en SQLite en memoria:**
+  - `NotificacionAudienciaPuntoRetornoTest`: 11/11, con 4 nuevas que usan `tests/Support/PdoFalible.php`. Una mutación que quita la limpieza de `afterCommit` es detectada.
+  - `EscenarioReversibleTest`: 8/8. Regresión dirigida: 185.
+  - **Suite completa (una sola corrida): 1 743 pasan, 1 omitida, 10 953 aserciones.**
+  - Larastan nivel 6 sin errores; Pint OK sobre los archivos propios; `git diff --check` solo con avisos LF/CRLF.
+- **Validación real en PostgreSQL 18.6 (autorizada):**
+  - **Destino:** `horus_l2_test`, `horus_l2_test_runner`, 127.0.0.1:55433, clúster `horus_pgt_55433`, identificador 7702263743609677164, verificados con `probe` antes y después.
+  - **Secuencia:** consentimiento activado según PG-TEST-04 §7, `check`, `migrate:status` y **una sola ejecución** de `NotificacionAudienciaPostgresTest`: **29/29, 631 aserciones**.
+  - **Comprobado:**
+    - Identidad, inventario sobre esquema completo y repetición de `up()` sin cambios.
+    - Clasificación histórica e integridad completa de registros.
+    - Rechazo de 17 esquemas alterados: CHECK alterado, no validado o no aplicado; columna nullable o de otro tipo; trigger de réplica, deshabilitado, con eventos, modalidad, WHEN o columnas distintos, o con otra función; función con sobrecarga, cuerpo o firma distintos.
+    - Restricciones de audiencia (23502/23514) y FK `ON DELETE SET NULL`.
+    - Propagación intacta del error SQL original (42710) con su secuencia de `SAVEPOINT`, y ningún `AccessExclusiveLock` residual.
+    - `down()` rechazado con datos ambiguos y exacto con datos seguros.
+    - Sin objetos temporales ni de referencia residuales.
+  - **Estado final:** `migrate:status` idéntico antes y después (000032 `Ran`, lote 2). Datos persistentes sin cambios (`users` 1, `notificaciones_internas` 0).
+  - **Consentimiento retirado:** `HORUS_PG_TEST_CONFIRM=` vacío y perfil con el mismo SHA-256 que antes; `check` sin consentimiento es rechazado.
+  - **Evidencia:** `%LOCALAPPDATA%\HorusPgTest55433\evidencia\pgt-000032-v2\`.
+- **Limitaciones:**
+  - La recuperación ante fallo doble solo está probada con un PDO SQLite simulado.
+  - `migrate:rollback` real no se ejecutó; `down()` y `up()` se validaron dentro de transacciones que se revierten.
+  - En bases con datos, las generales legítimas existentes quedarán `indeterminada` (ocultas) hasta una revisión humana y una migración nueva.
+  - La lectura compartida de las generales sigue pendiente de negocio.
+- **Restricciones respetadas:** sin `horus_group`, 5432 ni 55432; sin `migrate:fresh`, truncados ni seeders; sin cambios de permisos, roles ni `.env`; sin push ni despliegue. Los dos stashes y los seis archivos de frontend de Argon están intactos (SHA-256 verificado).
+- **Estado:** privacidad de notificaciones y migración 000032 **cerradas y consolidadas**.
