@@ -252,7 +252,7 @@ class RespaldoController extends Controller implements HasMiddleware
         if ($table === 'audit_logs' && isset($values['changes']) && is_string($values['changes'])) {
             $decoded = json_decode($values['changes'], true);
             $values['changes'] = is_array($decoded)
-                ? (string) json_encode(SensitiveData::redact($decoded), JSON_UNESCAPED_UNICODE)
+                ? (string) json_encode(AuditLog::redactarCambios($decoded), JSON_UNESCAPED_UNICODE)
                 : SensitiveData::MASK;
         }
 

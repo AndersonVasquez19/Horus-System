@@ -46,7 +46,65 @@ class AuditLog extends Model
         // getAttribute: `$this->changes` dentro del modelo sería la propiedad interna $changes de Eloquent.
         $changes = $this->getAttribute('changes');
 
-        return SensitiveData::redact(is_array($changes) ? $changes : []);
+        return self::redactarCambios(is_array($changes) ? $changes : []);
+    }
+
+    /**
+     * Presentación segura de los cambios: enmascara secretos (por nombre de clave) y el texto libre de
+     * búsqueda que las exportaciones de matrículas guardaban antes del Sprint 21.2 (Fase 4, D6-B).
+     *
+     * Solo transforma la salida: el registro almacenado no se modifica. Toda ruta que muestre o exporte
+     * `audit_logs.changes` debe pasar por aquí (pantalla, JSON, ZIP administrativo y serialización del modelo).
+     *
+     * @param  array<array-key, mixed>  $changes
+     * @return array<array-key, mixed>
+     */
+    public static function redactarCambios(array $changes): array
+    {
+        return self::enmascararBusqueda(SensitiveData::redact($changes));
+    }
+
+    /**
+     * El DNI o el nombre buscado podía quedar en cualquier nivel (`filters.busqueda`, `busqueda`): se
+     * enmascara por nombre de clave, como los secretos. Un valor vacío no contiene ningún dato.
+     *
+     * @param  array<array-key, mixed>  $datos
+     * @return array<array-key, mixed>
+     */
+    private static function enmascararBusqueda(array $datos): array
+    {
+        foreach ($datos as $clave => $valor) {
+            if ($clave === 'busqueda') {
+                if ($valor !== null && $valor !== '' && $valor !== []) {
+                    $datos[$clave] = SensitiveData::MASK;
+                }
+
+                continue;
+            }
+
+            if (is_array($valor)) {
+                $datos[$clave] = self::enmascararBusqueda($valor);
+            }
+        }
+
+        return $datos;
+    }
+
+    /**
+     * Cualquier serialización del modelo (toArray, toJson, respuestas JSON futuras) sale enmascarada.
+     * El atributo `changes` leído directamente conserva el valor almacenado.
+     *
+     * @return array<string, mixed>
+     */
+    public function attributesToArray(): array
+    {
+        $atributos = parent::attributesToArray();
+
+        if (isset($atributos['changes']) && is_array($atributos['changes'])) {
+            $atributos['changes'] = self::redactarCambios($atributos['changes']);
+        }
+
+        return $atributos;
     }
 
     /**
