@@ -2619,3 +2619,611 @@ Antes de la fase: `AuditoriaAcademica.php` `2701636616cc6fb475800ac28ae5983b5fa2
 - Los SHA-256 de los dos archivos PHP del commit coinciden con los de la sección anterior.
 - **Diferencia respecto al informe de la fase:** en el índice se preparó, por mandato del propietario, **solo** el apartado «FASE 1» de este documento. El anexo «SPRINT 21.2 — FASE 0: DISEÑO DE AUDITORÍA DE MATRÍCULAS» (121 líneas) **sigue sin consolidar** y queda como modificación pendiente en el árbol de trabajo; al commitearlo más adelante quedará insertado antes del apartado de la Fase 1. Por eso el `PROJECT_CONTEXT.md` de este commit no contiene la Fase 0 aunque la Fase 1 la menciona.
 - Sin push (la rama sigue adelantada respecto a `origin/anderson`), 2 stashes intactos, índice vacío tras el commit.
+
+---
+
+## SPRINT 21.2 — FASE 2: ANÁLISIS Y DISEÑO DE AUDITORÍA DE MATRÍCULAS
+
+> Fecha: 31/10/2026 · **Solo análisis.** No se modificó código, pruebas, migraciones ni configuración; no se ejecutó Artisan, PHPUnit, Larastan ni Pint; no hubo conexión a bases de datos; sin staging, commit ni push. Estado Git verificado al comenzar: rama `anderson`, HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31` (padre `024b22223b8d948cca315671519b7391fbdf4078`, Fase 1), árbol limpio, índice vacío, 2 stashes. Anclaje: `sprint-21-2-fase-2`.
+> Lo único ejecutado fuera de lectura fue `php -r` con una función de 3 líneas para confirmar la semántica de `strict_types` (ver §4.5).
+
+### 1. Diagnóstico de `MatriculaController`
+
+- Archivo de 445 líneas, `declare(strict_types=1)`, `HasMiddleware` con un permiso Spatie por acción (`matriculas.crear` → `create|store`; `editar` → `edit|update`; `anular` → `anular`; `eliminar` → `destroy`; `restaurar` → `restaurar`; `exportar` → `exportarCsv`). Rutas: `Route::resource('matriculas')` más `PATCH matriculas/{matricula}/anular` y `/restaurar`; el binding excluye las filas eliminadas lógicamente (por eso `restaurar` recibe un `string`).
+- Es el único escritor de `matriculas` y de los contadores `cursos.cupos_disponibles` asociados a ellas.
+- Las tres operaciones de esta fase ya son transaccionales y siguen el protocolo cursos → estudiantes → matrícula. **Ninguna escribe auditoría ni recibe el actor**: `store` y `update` ya reciben `FormRequest` (acceso a `$request->user()`), `anular` hoy solo recibe el modelo.
+- Los cupos se mueven con `increment`/`decrement` SQL atómicos sobre la fila de curso ya bloqueada; el modelo `Curso` en memoria no se usa para calcular nada posterior.
+- Observador: `MatriculaNotificationObserver::created` (solo `created`) inserta en la misma transacción la intención de bienvenida si `estado` es `pendiente` o `pagada`; no actúa en `updated`, ni en `restored`, ni con `anulada`. No hay observadores `updated`/`saved`/`deleted`, por lo que **no puede haber eventos duplicados por observador**.
+- Form Requests: `rules()` idénticas en `Store` y `Update` (ids `required|integer|exists`, fecha `date`, `estado` en lista de 3, `monto_pagado` numérico 0–99 999 999,99, `observaciones` nullable string); `after()` rechaza duplicados vigentes (y, en `Store`, curso sin cupo) sobre datos **sin bloqueo** — el controlador los vuelve a comprobar bajo lock. `validated()` devuelve solo las claves con regla (los campos extra enviados se descartan) y **no castea tipos**.
+
+### 2. Comportamiento actual de las tres operaciones
+
+**A. `store`** (`matriculas.crear`): `validated()` → `DB::transaction`: bloquea el **curso** (`withTrashed`, `lockForUpdate`, `findOrFail`), exige curso no eliminado y `activo`; bloquea el **estudiante**, exige no eliminado y `activo`; si `estado` ≠ `anulada`: `assertNoActiveDuplicate`, exige `cupos_disponibles > 0` y hace `decrement`; `Matricula::create($datos)` (dispara `created` → intención de notificación dentro de la transacción). Redirige a `admin.matriculas.show` con `success` «La matrícula se registró correctamente.». Nace `anulada` solo si el estado pedido es `anulada` (no ocupa cupo ni genera notificación).
+
+**B. `update`** (`matriculas.editar`; pasar a `anulada` exige además `matriculas.anular`, evaluado dentro de la transacción sobre el estado releído): `lockMatricula($id, cursoNuevo, estudianteNuevo)` (relee la fila bloqueada y rechaza si cambió `curso_id`/`estudiante_id` durante el descubrimiento); calcula `anteriorActiva`, `nuevaActiva`; `abort_unless(can('matriculas.anular'),403)` si activa→anulada; bloquea ambos cursos (orden por id) y el estudiante; rechaza curso nuevo eliminado o estudiante eliminado; si `nuevaActiva` comprueba duplicado; si `requiereCupoNuevo` (= `nuevaActiva` y (`!anteriorActiva` o cambio de curso)) exige elegibilidad y cupo; libera el curso anterior si `anteriorActiva` y (`!nuevaActiva` o cambio de curso); ocupa el nuevo si `requiereCupoNuevo`; `$matricula->update($datos)`. Redirige a `show` con «La matrícula se actualizó correctamente.».
+
+**C. `anular`** (`matriculas.anular`): `lockMatricula($id)`; si `estado` ≠ `anulada`: bloquea el curso, `increment`, `update(['estado' => 'anulada'])`; si ya estaba `anulada` no hace nada (no hay doble liberación). Redirige a `index` con «La matrícula se anuló correctamente.» **en ambos casos** (también al repetir); ese mensaje debe conservarse.
+
+### 3. Diseño propuesto
+
+#### 3.1 Principios
+1. La auditoría es la **última escritura** de cada transacción (después de cupos, matrícula y observador) y usa `AuditoriaAcademica` tal como quedó en la Fase 1; **no** se modifica `AuditLog`, `SensitiveData`, modelos, requests, rutas ni vistas.
+2. El actor se obtiene **antes** de abrir la transacción con `AuditoriaAcademica::actorDe($request)` y se pasa explícitamente.
+3. El efecto sobre cupos se calcula con `AuditoriaAcademica::efectoCupo()` sobre la **fila bloqueada** (estado y curso anteriores releídos tras `lockForUpdate`), nunca sobre el modelo de la ruta.
+4. Se registra como máximo **un evento por petición**; sin diferencias reales no se registra nada.
+
+#### 3.2 Puntos exactos de integración
+
+| Operación | Punto de inserción (dentro de la transacción) | Llamada | Evento / efecto |
+| --- | --- | --- | --- |
+| `store` | Inmediatamente después de `Matricula::create($datos)` y **antes** de `return` del closure (tras el observador) | `registrarCreacion('matricula_creada', $matricula, MATRICULA, $actor, efectoCupo(null, null, $matricula->estado, $curso->id))` | `matricula_creada`; `ocupa` si vigente, `ninguno` si nace `anulada` |
+| `update` | Sustituir `$matricula->update($datos)` por: capturar `$estadoAnterior`/`$cursoAnterior` (ya existen como `$matricula->estado` y `$cursoAnteriorId`) → `$matricula->fill($datos)` → `$dif = diferencias($matricula, MATRICULA)` → `$matricula->save()` → `registrarActualizacion($accion, $matricula, $dif, $actor, $efecto)` | `$accion = ($anteriorActiva && ! $nuevaActiva) ? 'matricula_anulada' : 'matricula_actualizada'`; `$efecto = efectoCupo($estadoAnterior, $cursoAnteriorId, $datos['estado'], $cursoNuevoId)` | un solo evento (D3); no registra si `campos` está vacío |
+| `anular` | Dentro de `if ($matricula->estado !== 'anulada')`: `fill(['estado' => 'anulada'])` → `diferencias` → `save()` → `registrarActualizacion('matricula_anulada', …, efectoCupo($estadoAnterior, $curso->id, 'anulada', $curso->id))` | firma nueva `anular(Request $request, Matricula $matricula)` (el binding implícito es por nombre) | `libera`; la rama de «ya anulada» no escribe nada (D4) |
+
+#### 3.3 Coherencia del efecto con la mecánica real de cupos (verificada línea a línea)
+
+`efectoCupo(estadoAnterior, cursoAnterior, estadoNuevo, cursoNuevo)` coincide con las ramas de cupo del `update` actual: activa→activa con otro curso = `traslada` (libera el anterior y ocupa el nuevo); activa→anulada, incluso con cambio de curso = `libera` (solo se libera el curso **anterior**); anulada→activa = `ocupa`; anulada→anulada, incluso con cambio de curso = `ninguno`; mismo curso activo→activo = `ninguno`. La prueba de invariante comparará el delta real de `cupos_disponibles` de los cursos origen y destino con el `efecto_cupo` registrado.
+
+### 4. Hallazgos y errores ocultos (detectados en la lectura)
+
+1. **`monto_pagado`/fecha/ids y falsos cambios.** `diferencias()` se apoya en `getDirty()`. `monto_pagado` (`decimal:2`) compara casteado: `'100'` ≡ `'100.00'` (cubierto en Fase 1). Los ids (sin cast) se comparan numéricamente: `'3'` ≡ `3` (cubierto).
+2. **`fecha_matricula` con hora (riesgo real, a confirmar con prueba).** `setAttribute` convierte el valor con `fromDateTime()` (formato `Y-m-d H:i:s`, conserva la hora) y `originalIsEquivalent` compara `fromDateTime(nuevo)` con `fromDateTime(original)`. Un `PUT` con `2026-03-01 10:30:00` sobre una fila `2026-03-01` quedaría «sucio» aunque la columna sea `date`, y la auditoría registraría `fecha_matricula` con antes = después = `2026-03-01` (falso cambio). El formulario web usa `type=date` (solo `Y-m-d`), por lo que afecta sobre todo a JSON/API. Mitigaciones posibles: (a) en `AuditoriaAcademica::diferencias()` descartar los campos cuyos valores **normalizados** sean iguales (robusto y reutilizable por estudiantes/cursos); (b) normalizar la fecha a `Y-m-d` en el controlador antes del `fill`. Requiere decisión (D10).
+3. **Tipos mezclados en los valores auditados.** `validated()` no castea; un formulario HTML envía `"5"` (cadena) y JSON envía `5` (entero). Tras `create`, `getAttribute('curso_id')` devuelve la cadena; el valor «antes» de una fila leída de la base devuelve entero. El JSON auditado mezclaría `"5"` y `5`. Mitigación: convertir `estudiante_id` y `curso_id` a `int` en el controlador justo tras `validated()` (D9).
+4. **Posible defecto latente preexistente en `store` con ids en cadena.** `store` llama `assertNoActiveDuplicate($datos['estudiante_id'], $curso->id)` con `strict_types=1` y el método declara `int $estudianteId`; `php -r` confirmó que bajo `strict_types=1` un `"5"` provoca `TypeError`. `update` sí castea (`(int) $datos[...]`). Las pruebas actuales publican enteros (los parámetros de `post()`/`postJson()` conservan el tipo PHP), por lo que no lo detectan; un navegador real enviaría cadenas. **No se verificó con una petición real** (esta fase no ejecuta pruebas): debe confirmarse en la Fase 2 con una prueba que publique los ids como cadena. Es el mismo cambio de D9 y, si se confirma, es una corrección de comportamiento que requiere la autorización expresa del propietario.
+5. **Recuento de `audit_logs` en pruebas existentes.** Ninguna prueba de matrículas ni de notificaciones consulta `audit_logs`; las únicas que lo manipulan son de reportes (`ReportExcelExportTest` con `Schema::drop('audit_logs')`, acción `report_excel_exported`) y de otros módulos, ajenas a `store/update/anular`. Riesgo de regresión por filas nuevas: bajo.
+6. **Pruebas que invocan el controlador por HTTP, nunca directamente** (`MatriculaController` solo aparece en `routes/web.php`): cambiar la firma de `anular` es seguro.
+7. **Hooks de las pruebas actuales.** `MatriculaOperationsTest::test_failure_rolls_back_…` simula fallos con `Event::listen('eloquent.updating|creating: Matricula')`; el nuevo flujo `fill → save` sigue disparando `updating`, así que esa prueba conserva su sentido. La prueba de binding obsoleto usa `app->resolving(UpdateMatriculaRequest::class)` para mutar la fila entre validación y controlador: es el patrón para el escenario M20.
+8. **Las respuestas ante denegación no cambian.** Los 403 (`permission` middleware o `abort_unless` interno) ocurren antes de cualquier auditoría; D5 sigue vigente.
+9. **Reactivación y notificación.** Reactivar `anulada → pendiente` por `PUT` no crea nueva intención (el observador solo actúa en `created`); la auditoría no debe alterar esto, y una prueba debe fijarlo.
+10. **`AuditLog::creating` que lanza** (patrón de `Sprint12AtomicityTest`/`AuditoriaCursosTest`) afecta a cualquier `AuditLog::create`; en estas tres operaciones no hay otra escritura de auditoría, por lo que el rollback es inequívoco.
+
+### 5. Orden de bloqueos y atomicidad
+
+- **El orden de bloqueo actual no se cambia.** `store`: curso → estudiante. `update`/`anular`: `lockMatricula` (cursos del snapshot y destino por id → estudiantes por id → matrícula) y después los `lockForUpdate` redundantes sobre filas ya bloqueadas. Cumple el protocolo documentado cursos → estudiantes → matrícula.
+- La auditoría se inserta en `audit_logs` **después** de todos los bloqueos y sin tomar ninguno sobre `cursos`, `estudiantes` ni `matriculas`; no introduce nuevos ciclos de espera. La inserción adquiere únicamente su propia fila (y la secuencia/PK).
+- Si `AuditLog::create` lanza, `DB::transaction` revierte: fila de matrícula, `increment`/`decrement` de cupos e intención en `matricula_notifications`.
+- Anidamiento: bajo `RefreshDatabase` las transacciones usan savepoints; el rollback se prueba igual que en `AuditoriaCursosTest`.
+- **Límite de la evidencia:** SQLite ignora `lockForUpdate`; la serialización real (doble clic en «anular», dos editores simultáneos) solo puede demostrarse en PostgreSQL aislado, con autorización explícita, fuera de esta fase.
+
+### 6. Política de privacidad (sin cambios respecto a las fases 0 y 1)
+
+Valores con antes/después: `estudiante_id`, `curso_id`, `fecha_matricula`, `estado`, `monto_pagado`. `observaciones`: solo el nombre del campo, nunca su contenido. Se ignora todo campo no listado (incluidos los que un cliente envíe de más: `dni`, `password`, `remember_token`…, que además `validated()` ya descarta). No se registran DNI, nombres, correos, teléfonos, contraseñas, hashes, tokens, cookies, sesiones, cabeceras ni mensajes de error.
+
+### 7. Matriz de pruebas de la Fase 2
+
+Se conserva el significado de los identificadores M01–M22 de la Fase 0. Selección y correspondencia real:
+
+| ID Fase 0 | Aplica a | Qué se verificará en la Fase 2 |
+| --- | --- | --- |
+| M01 | `store` | `pendiente` y `pagada`: 1 `matricula_creada`, `model_id`, `valores` (ids enteros, fecha `Y-m-d`, estado, monto), `observaciones` solo por nombre, `efecto_cupo=ocupa`, cupo −1, 1 intención de notificación, redirección y mensaje intactos |
+| M02 | `store` | Nace `anulada`: `ninguno`, cupo sin cambio, 0 notificaciones |
+| M03 | `update` | `pendiente→pagada` y monto/fecha: `matricula_actualizada`, `antes`/`despues` exactos, `ninguno` |
+| M04 | `update` | Traslado vigente→vigente con otro curso: `traslada`, `curso_id` antes/después, cupos origen +1 y destino −1 |
+| M05 | `update` | Reactivar `anulada→vigente` (mismo y otro curso): `ocupa`, cupo −1, sin nueva intención de notificación |
+| M06 | `update` | `PUT` a `anulada` con otros cambios (monto, observaciones, curso): **1** evento `matricula_anulada` y 0 `matricula_actualizada`, `libera`, diferencias completas permitidas, cupo anterior +1 |
+| M07 | `anular` | Endpoint: `matricula_anulada`, `estado` pendiente/pagada→anulada, `libera`, cupo +1, redirección y mensaje intactos |
+| M08 | `update`, `anular` | Sin cambios reales: `PUT` idéntico, formatos equivalentes (`'100'` vs `'100.00'`, ids como cadena), `PUT` a `anulada` sobre una anulada, `anular` repetido → 0 filas de auditoría, cupos intactos, mensajes de éxito conservados |
+| M12 | las tres | `user_id` explícito de quien ejecuta (dos usuarios distintos, cada evento con el suyo) |
+| M13 | las tres | Estudiante con DNI/nombres/correo y observaciones con marcador `PRIVATE-NOTE`: ninguno aparece en `changes` ni en ninguna columna de `audit_logs` |
+| M14 | las tres | Campos enviados de más (`dni`, `password`, `remember_token`, claves arbitrarias) no llegan a la auditoría ni a la matrícula |
+| M16 | las tres | Con `AuditLog::creating` que lanza: matrícula idéntica (`assertEquals` de la fila), cupos origen/destino iguales, `matricula_notifications` sin cambios, 0 filas en `audit_logs`, y la excepción se propaga |
+| M17 | (regresión) | Las pruebas de rollback ya existentes (`MatriculaOperationsTest`, `BackendRobustnessTest`) siguen pasando sin modificarse |
+| M18 | las tres | Sin el permiso de cada acción → 403 y 0 auditorías; `PUT` a `anulada` con editor sin `matriculas.anular` → 403 sin escrituras ni auditoría; con el permiso, se audita |
+| M19 | `store`, `update` | Estudiante/curso inactivo o eliminado, duplicado vigente y curso sin cupo → error de validación, 0 auditorías, 0 cupos movidos |
+| M20 | `update`, `anular` | Segundo operador obsoleto (fila mutada entre validación y controlador con `app->resolving`): el `antes` auditado es el de la fila bloqueada; si ya estaba anulada, no hay evento |
+| Auxiliares | las tres | Invariante: el delta real de `cupos_disponibles` coincide con `efecto_cupo` en todos los casos anteriores; ids publicados como cadena (confirma o descarta el hallazgo §4.4); fecha con hora (confirma o descarta §4.2) |
+
+Quedan **fuera** de la Fase 2: M09–M11 (eliminar/restaurar, Fase 3), M15 (CSV, Fase 4), M21–M22 completos (cierre, Fase 5). Aun así, la Fase 2 debe ejecutar la regresión de matrículas y notificaciones y una mutación de control de las tres integraciones como puertas de calidad propias.
+
+### 8. Archivos que se modificarían en la implementación
+
+- `app/Http/Controllers/Admin/MatriculaController.php` (`store`, `update`, `anular`; `use App\Support\AuditoriaAcademica`; `anular` recibe `Request`).
+- `tests/Feature/AuditoriaMatriculasTest.php` (nuevo).
+- `PROJECT_CONTEXT.md` (sección de resultados).
+- Condicionales, solo con la decisión correspondiente: `app/Support/AuditoriaAcademica.php` y `tests/Unit/AuditoriaAcademicaTest.php` (D10-a); `docs/sprint-21-2-auditoria-matriculas.md` (puede dejarse para la Fase 5).
+- **No se tocan:** `destroy`, `restaurar`, `exportarCsv`, Form Requests, modelos, observadores, servicios de notificación, rutas, vistas, JS/CSS, migraciones, `AuditLog`, `SensitiveData`, `.env`.
+
+### 9. Riesgos y dependencias
+
+1. Cambio `update()` → `fill/diferencias/save`: debe preservar exactamente cupos y mensajes; cubierto por las 19 pruebas de `MatriculaOperationsTest` y las demás de regresión.
+2. Falsos cambios por fecha con hora (§4.2) y tipos mezclados (§4.3).
+3. Posible defecto latente de `store` con ids en cadena (§4.4): al corregirlo cambia un comportamiento (hoy podría devolver 500 desde el navegador); exige autorización.
+4. La Fase 2 depende de que el núcleo de la Fase 1 (`024b222`) permanezca igual; cualquier ajuste (D10-a) debe llevar sus propias pruebas unitarias.
+5. SQLite no demuestra concurrencia ni los bloqueos de PostgreSQL.
+6. La nueva firma `anular(Request, Matricula)` es segura (ninguna prueba ni ruta la invoca directamente), pero cambia una API pública del controlador.
+7. Dependencia con las fases siguientes: `destroy`/`restaurar` (Fase 3) seguirán sin auditoría y `exportarCsv` seguirá guardando `busqueda` hasta la Fase 4; la cobertura de auditoría de matrículas solo será completa al cerrar la Fase 3.
+
+### 10. Plan de implementación (pasos pequeños dentro de la Fase 2)
+
+1. Verificar estado Git, ejecutar la línea base (regresión de matrículas/notificaciones/auditoría) **antes** de tocar nada y registrar los números.
+2. Crear `AuditoriaMatriculasTest` con ayudantes (escenario, datos, hook de fallo, invariante de cupos) y las pruebas de `store` (M01, M02, M12, M13, M14, M16, M18, M19 para `store`); ver fallar; implementar `store`; ver pasar.
+3. Pruebas y cambio de `anular` (M07, M08, M12, M13, M16, M18, M20).
+4. Pruebas y cambio de `update` (M03–M06, M08, M12–M14, M16, M18–M20 y auxiliares de fecha con hora y tipos).
+5. Puertas: regresión completa de matrículas, atomicidad y auditoría; mutación de control (quitar cada integración y comprobar que fallan pruebas); suite completa; Larastan nivel 6; Pint solo sobre archivos propios; `git diff --check`.
+6. Actualizar `PROJECT_CONTEXT.md` con resultados reales y SHA-256. Sin commit hasta nueva autorización.
+
+### 11. Decisiones pendientes (para el propietario)
+
+| ID | Decisión | Recomendación |
+| --- | --- | --- |
+| D9 | Convertir `estudiante_id` y `curso_id` a entero en `store`/`update` justo tras `validated()` (normaliza el JSON auditado y, si se confirma §4.4, corrige un posible `TypeError` en `store` con ids en cadena) | Sí; si la prueba confirma el defecto, informarlo como corrección de comportamiento |
+| D10 | Falsos cambios por fecha con hora: (a) descartar en `diferencias()` los campos cuyo valor normalizado no cambia (toca `AuditoriaAcademica` y su test), (b) normalizar la fecha en el controlador, (c) aceptar y documentar | (a); (b) como alternativa que no toca el núcleo |
+| D11 | La Fase 2 ejecuta como puertas la regresión de matrículas y notificaciones, una mutación de control y la suite completa con Larastan | Sí |
+| D12 | Conservar el mensaje «La matrícula se anuló correctamente.» también cuando `anular` no cambia nada (repetición) | Sí (comportamiento actual) |
+| D13 | Crear el documento `docs/sprint-21-2-auditoria-matriculas.md` en la Fase 5 y no en la 2 | Sí |
+
+### 12. Próximo paso
+
+Esperar la autorización expresa del propietario y su respuesta a D9–D13. No se implementa nada hasta entonces; la Fase 3 (`destroy`, `restaurar`) no se inicia.
+
+### 13. Prompt definitivo para la implementación de la Fase 2
+
+Ver el informe de entrega de esta fase (se reproduce íntegro allí); su contenido operativo es el §3.2 (puntos de integración), §7 (matriz), §8 (archivos), §10 (pasos) y las decisiones D9–D13 resueltas por el propietario.
+
+---
+
+## SPRINT 21.2 — FASE 2: IMPLEMENTACIÓN DE LA AUDITORÍA EN store, update Y anular
+
+> Fecha: 31/10/2026 · Implementa lo analizado en «FASE 2: ANÁLISIS Y DISEÑO» con las decisiones del propietario **D9 (sí), D10 (opción A), D11 (sí), D12 (sí), D13 (sí)**. Alcance: `store`, `update` y `anular` de `MatriculaController`; `destroy`, `restaurar` y `exportarCsv` **no se tocaron** (Fases 3 y 4). Sin migraciones, sin PostgreSQL ni ninguna base real (PHPUnit sobre SQLite en memoria), sin `.env`, sin vistas, rutas ni módulos ajenos; sin staging, commit ni push. Anclaje: `sprint-21-2-fase-2-implementacion`.
+
+### 1. Verificación previa del observador de notificaciones
+
+`MatriculaNotificationObserver::created` solo hace `new MatriculaNotification(...)->save()` dentro de la misma transacción: no hay HTTP, ni `dispatch`, ni `afterCommit`, ni cola. El único despacho (`Bus::dispatch(new SendMatriculaWelcome)`) está en `MatriculaNotificationService::dispatchDue()`, invocado por el scheduler sobre filas ya confirmadas. **Ninguna notificación externa puede salir antes del commit.** Queda fijado por la prueba `test_store_no_despacha_colas_ni_http_durante_la_transaccion` (`Bus::fake`, `Http::fake`, fila `held` con el envío apagado) y por las de rollback (la intención se revierte con la matrícula). Reactivar `anulada → vigente` por `PUT` no crea nueva intención (el observador solo actúa en `created`); también cubierto.
+
+### 2. Línea base (antes de tocar código)
+
+Regresión de matrículas, notificaciones, atomicidad y auditoría (`MatriculaOperationsTest`, `AdminMatriculaTest`, `AdminMatriculaContextTest`, `MatriculaSensitivePermissionsTest`, `MatriculaIntegrityConstraintsTest`, `MatriculaNotificationTest`, `BackendRobustnessTest`, `Sprint12AtomicityTest`, `AuditoriaCursosTest`, `AuditoriaEstudiantesTest`, `AuditoriaAcademicaTest`): **317 pasan, 2 468 aserciones**.
+
+### 3. TDD: rojo y verde
+
+- **Rojo unitario (D10):** 3 de las nuevas pruebas del núcleo fallaron sobre el código de la Fase 1: una fecha `2026-03-01 10:30:00` y una `2026-03-01T10:30:00` sobre una fila `2026-03-01` quedaban como cambio (`fecha_matricula` antes = después = `2026-03-01`); `2026-03-01 00:00:00` no (coincide con `fromDateTime`). Esto confirmó la semántica real de `fecha_matricula` antes de implementar.
+- **Rojo de integración:** `AuditoriaMatriculasTest` falló en 24 de 43 casos sobre el controlador sin auditoría (los 19 restantes eran validaciones, permisos y no-ops que ya se cumplían).
+- **Hallazgo confirmado por prueba roja:** `POST /admin/matriculas` con `estudiante_id`/`curso_id` **como cadena** (lo que envía un formulario HTML) devolvía **500**: `TypeError: MatriculaController::assertNoActiveDuplicate(): Argument #1 ($estudianteId) must be of type int, string given` (`declare(strict_types=1)`; `validated()` no castea). Los tests existentes publicaban enteros y no lo detectaban. **Corregido por D9** (ver §4). `update` ya convertía los ids y no tenía el problema.
+- **Verde:** 101 pruebas (43 de integración + 58 del núcleo), 508 aserciones.
+
+### 4. Cambios realizados
+
+**`app/Http/Controllers/Admin/MatriculaController.php`** (solo `store`, `update`, `anular`, import y un ayudante privado):
+- `use App\Support\AuditoriaAcademica;` y ayudante `conIdentificadoresEnteros()` (D9): `estudiante_id` y `curso_id` pasan a `int` justo tras `validated()`. No cambia ninguna validación ni regla; corrige el `TypeError` de `store`.
+- **`store`:** actor con `AuditoriaAcademica::actorDe($request)` antes de la transacción; tras `Matricula::create` (y tras el observador) `registrarCreacion('matricula_creada', …, efectoCupo(null, null, estado, curso))` como **última escritura**.
+- **`update`:** captura `$estadoAnterior` de la fila bloqueada; sustituye `$matricula->update($datos)` por `fill → diferencias → save → registrarActualizacion`. Evento `matricula_anulada` si `anteriorActiva && ! nuevaActiva`, si no `matricula_actualizada` (**un solo evento por petición**, D3); efecto = `efectoCupo(estadoAnterior, cursoAnteriorId, estadoNuevo, cursoNuevoId)`. Sin diferencias reales no se escribe nada.
+- **`anular`:** firma `anular(Request $request, Matricula $matricula)` (el binding implícito es por nombre; ninguna ruta ni prueba la invocaba directamente). Dentro del `if ($matricula->estado !== 'anulada')`: `fill → diferencias → save → registrarActualizacion('matricula_anulada', …, efectoCupo(estadoAnterior, curso, 'anulada', curso))`. Repetir la anulación no cambia nada, no devuelve cupo, no audita y **conserva el mensaje de éxito exacto** (D12).
+- **No se alteró** el orden de bloqueos (cursos → estudiantes → matrícula), la lógica de cupos, los permisos, las redirecciones ni los mensajes.
+
+**`app/Support/AuditoriaAcademica.php`** (D10, opción A): en `diferencias()`, **solo para `MATRICULA`**, un campo con valor cuyo valor normalizado antes y después es idéntico se descarta (Eloquent lo marca «sucio» cuando la fecha trae hora). No se modifica ningún valor guardado; estudiantes y cursos conservan exactamente su regla (probado con una prueba específica de no regresión).
+
+**`tests/Unit/AuditoriaAcademicaTest.php`:** +6 pruebas (fecha con hora / ISO / medianoche, fecha de otro día con hora, hora sin ocultar otros cambios, no alteración de estudiantes y cursos). Las pruebas previas no se modificaron.
+
+**`tests/Feature/AuditoriaMatriculasTest.php`** (nuevo, 43 casos): ver §5.
+
+### 5. Pruebas de integración (SQLite en memoria; correspondencia con la matriz de la Fase 0)
+
+| ID | Cobertura |
+| --- | --- |
+| M01, M02 | `store` vigente (`pendiente`, `pagada`) y nacida anulada: evento, `model_id`, actor, `valores` exactos (ids enteros, fecha `Y-m-d`, monto), `observaciones` solo por nombre, efecto, cupo, notificación, redirección y mensaje |
+| M03–M06 | `update`: cambio de estado/monto/fecha; traslado (`traslada`, cupos origen +1 y destino −1); reactivación en el mismo y en otro curso (`ocupa`, sin nueva notificación); `PUT` a `anulada` con otros cambios → **un** `matricula_anulada` y **cero** `matricula_actualizada` |
+| M07 | `anular` por endpoint: un evento, `libera`, redirección y mensaje |
+| M08, D4, D12 | `PUT` idéntico con formatos equivalentes (ids como cadena, `'100'` vs `100.00`), fecha con hora, `PUT` a `anulada` sobre una anulada, `anular` repetido y sobre una nacida anulada: 0 auditorías, cupos intactos, mensajes conservados |
+| M12 | Actor de dos usuarios distintos en las tres operaciones |
+| M13, M14 | Privacidad: ni DNI, ni nombre, ni correo, ni `PRIVATE-NOTE` en ninguna columna de `audit_logs`; campos enviados de más (`dni`, `password`, `remember_token`, claves arbitrarias) descartados |
+| M16 | Rollback con `AuditLog::creating` que lanza: `store`, `anular` y 4 variantes de `update` (datos, traslado, a anulada, reactivación) restauran la fila (`assertEquals` de la fila completa), los cupos de origen y destino, `matricula_notifications` y dejan 0 filas de auditoría |
+| M18 | 403 sin permiso en `store`, `update`, `anular`; coordinador sin `matriculas.anular` no puede anular ni por `PUT`; sin escrituras ni auditoría; con permiso se audita con su usuario |
+| M19 | Validaciones (estudiante inactivo, curso archivado/eliminado, sin cupo, duplicado): 0 auditorías, 0 cupos movidos, fila intacta |
+| M20 | Segundo operador obsoleto: el «antes» auditado es el de la fila **bloqueada** (no el del binding); si otro operador ya anuló la fila, no hay evento ni doble liberación |
+| Auxiliares | Invariante `assertEfecto`: el `efecto_cupo` registrado coincide con el delta real de `cupos_disponibles` de los cursos implicados (ocupa/libera/traslada/ninguno); `store` con ids como cadena; sin cola ni HTTP durante la transacción |
+
+### 6. Resultados reales de las puertas de calidad
+
+| Verificación | Resultado |
+| --- | --- |
+| `AuditoriaMatriculasTest` + `AuditoriaAcademicaTest` | **101 pasan, 508 aserciones** |
+| Suite completa `php artisan test --compact` | **1 543 pasan, 1 omitida, 9 728 aserciones** (0 fallos) |
+| Larastan nivel 6 (proyecto completo) | `[OK] No errors` |
+| Pint `--test` sobre los 4 archivos propios | `passed` |
+| `git diff --check` sobre `app` y `tests` | sin errores (solo la advertencia conocida LF/CRLF) |
+
+**Control de mutación** (cada cambio se revirtió de inmediato y se comprobó el hash; todos restaurados):
+
+| Mutación | Resultado |
+| --- | --- |
+| `store`: quitar `registrarCreacion` | 6 fallan |
+| `update`: quitar `registrarActualizacion` | 12 fallan |
+| `anular`: quitar `registrarActualizacion` | 5 fallan |
+| `update`: siempre `matricula_actualizada` | 1 falla |
+| D9: no convertir ids a entero | 2 fallan |
+| `update`: efecto siempre `ninguno` | 4 fallan |
+| `update`: estado anterior tomado de un valor fijo (no de la fila bloqueada) | 2 fallan |
+| Núcleo: sin la normalización de valores iguales (D10-a) | 4 fallan |
+
+### 7. SHA-256 de los archivos de esta fase
+
+| Archivo | SHA-256 |
+| --- | --- |
+| `app/Http/Controllers/Admin/MatriculaController.php` | `7b6d1334ef19339a9077ec37eb8e76c065037ee808a09130a47864b8e8c62520` |
+| `app/Support/AuditoriaAcademica.php` | `333c9c64a6128306b800bb2a0f1625e7944d7bf95440e0835a1afb69acb9cd58` |
+| `tests/Unit/AuditoriaAcademicaTest.php` | `cca3ec0eecc3abdd57a7fcd326816fbb29766345771db50678539b47cdec2ff8` |
+| `tests/Feature/AuditoriaMatriculasTest.php` | `1519d12ae92774224a272c7d6282052cbf8ee7155ee22f108b62c8fdc67d3e76` |
+| `PROJECT_CONTEXT.md` | no consta aquí (un archivo no contiene su propio hash); ver el informe de entrega |
+
+Antes de la fase: controlador `9a9c1bb8eefbcdc83614da099d30af924ade02a80b53314cbf0737d572f2d079`; núcleo `aec3e0317849d76b89377e902b322836800ef90dafd2b7ff9143dfaf81670919`; prueba unitaria `b74218ab40bdba7955130fd9d71f5564c1a8e329a99e6a61381ecc7a0541d2d2`.
+
+### 8. Estado Git
+
+- Antes: rama `anderson`, HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31`, índice vacío, 2 stashes, árbol limpio.
+- Después: mismo HEAD y mismos 2 stashes; índice vacío; modificados `MatriculaController.php`, `AuditoriaAcademica.php`, `AuditoriaAcademicaTest.php` y `PROJECT_CONTEXT.md`; sin seguimiento `tests/Feature/AuditoriaMatriculasTest.php`. Sin staging, commit ni push; no se usó `reset`, `restore`, `clean`, `checkout` ni `stash`; sin worktrees adicionales.
+
+### 9. Limitaciones y riesgos residuales
+
+- **SQLite ignora `lockForUpdate`:** la serialización real (doble clic en «anular», dos editores a la vez) no está medida; requiere PostgreSQL aislado con autorización explícita.
+- **Cobertura incompleta del módulo:** `destroy` y `restaurar` siguen sin auditoría (Fase 3) y `exportarCsv` sigue guardando `busqueda` en texto libre (Fase 4, D6).
+- **Corrección de comportamiento (D9):** el alta de matrículas desde un formulario HTML con ids en cadena fallaba con 500 antes de este cambio; ahora funciona. Conviene una comprobación manual en un entorno de pruebas antes de publicar.
+- **Fecha con hora:** `update` sigue escribiendo la fila (y `updated_at`) cuando la fecha trae hora aunque no haya cambio auditable; solo se evita el falso evento. No se alteran valores guardados.
+- Los eventos de `update` registran únicamente cambios en los campos permitidos; si solo cambian campos fuera de la lista no se audita (no hay ninguno en el formulario actual).
+- `AuditoriaAcademica::diferencias()` cambió el orden en que añade `campos` (primero se decide si el campo cuenta); el contenido y el orden final por lista permitida no cambian.
+
+### 10. Pendientes para la Fase 3 y siguientes
+
+1. **Fase 3:** `destroy` y `restaurar` con `registrarOperacionMatricula` (M09–M11), `Request` para el actor y los mismos rollbacks.
+2. **Fase 4:** saneado del registro CSV (lista cerrada, `busqueda_aplicada`), actor explícito y decisión D6 sobre registros históricos.
+3. **Fase 5:** regresión completa M21, mutación M22 global, `docs/sprint-21-2-auditoria-matriculas.md` (D13) y cierre.
+4. **Aparte, con autorización:** pruebas de concurrencia en PostgreSQL 55433 y consolidación Git (commit) de la Fase 2.
+
+---
+
+## SPRINT 21.2 — FASE 3: AUDITORÍA DE destroy Y restaurar (IMPLEMENTACIÓN)
+
+> Fecha: 31/10/2026 · Autorizada por el propietario. Alcance: `destroy` y `restaurar` de `MatriculaController`, con los eventos `matricula_eliminada` y `matricula_restaurada`. **No se tocó** `exportarCsv` (Fase 4), ni modelos, observadores, Form Requests, rutas, vistas, migraciones, `.env` ni módulos ajenos; sin PostgreSQL ni base real (PHPUnit sobre SQLite en memoria); sin staging, commit ni push. Anclaje: `sprint-21-2-fase-3`.
+
+### 1. Comportamiento previo (revisado antes de implementar)
+
+- **`destroy`:** `lockMatricula` (cursos → estudiantes → matrícula); si la matrícula no está `anulada`, `increment` del cupo del curso (con `withTrashed`, también si el curso está eliminado lógicamente); `delete()` (SoftDeletes). Redirige a `index` con «La matrícula se eliminó correctamente.». Una segunda eliminación responde 404 (el binding excluye las eliminadas).
+- **`restaurar`** (recibe el id como `string`; el binding no incluye eliminadas): `lockMatricula(withTrashed)`, `abort_unless(trashed, 404)`; si no está `anulada`, exige elegibilidad de estudiante y curso (activos y no eliminados), ausencia de duplicado vigente y cupo, y hace `decrement`; `restore()`. Una anulada se restaura sin ocupar cupo y sin esas exigencias. Redirige a `index` con «La matrícula se restauró correctamente.».
+- El observador `MatriculaNotificationObserver` solo actúa en `created`: ni eliminar ni restaurar generan intención de aviso, y esto no cambia.
+
+### 2. Cambios técnicos
+
+**`app/Http/Controllers/Admin/MatriculaController.php`** (+27 / −4 respecto a la Fase 2):
+- `destroy(Request $request, Matricula $matricula)` y `restaurar(Request $request, string $matricula)`: el actor se obtiene con `AuditoriaAcademica::actorDe($request)` **antes** de la transacción (el enlace implícito es por nombre del parámetro de ruta; sin cambios de rutas).
+- `destroy`: tras `$matricula->delete()` y como **última escritura** de la transacción, `registrarOperacionMatricula('matricula_eliminada', …, OPERACION_ELIMINACION, efectoCupo(estado de la fila bloqueada, curso, null, null), $actor)` → `libera` si no estaba anulada, `ninguno` si lo estaba.
+- `restaurar`: tras `$matricula->restore()` y como última escritura, `registrarOperacionMatricula('matricula_restaurada', …, OPERACION_RESTAURACION, efectoCupo(null, curso, estado, curso), $actor)` → `ocupa` si no está anulada, `ninguno` si lo está.
+- **Sin cambios:** orden de bloqueos (cursos → estudiantes → matrícula), lógica de cupos, validaciones, permisos, redirecciones y mensajes. El núcleo `AuditoriaAcademica.php` no se modificó en esta fase (se reutilizó `registrarOperacionMatricula` de la Fase 1).
+- Estructura de `changes` (esquema 1, D7): `{esquema, operacion, efecto_cupo, curso_id, estado}`. Nada más: sin `estudiante_id`, `fecha_matricula`, `monto_pagado`, `observaciones`, DNI ni nombres.
+
+**`tests/Feature/AuditoriaMatriculasTest.php`** (ampliado; ya contenía la Fase 2): +24 casos de la Fase 3 (67 en total) y el ayudante `matriculaEliminada()`.
+
+### 3. TDD
+
+- **Rojo:** con el controlador sin auditoría fallaron 19 de las 67 pruebas (48 pasaban: validaciones, permisos y no-ops que ya se cumplían). Los fallos eran por ausencia de auditoría (`AuditLog::sole()` sin resultados, recuentos de 0, y los rollbacks no lanzaban la excepción simulada).
+- **Verde:** tras los cambios mínimos, 125 pruebas (67 de integración + 58 del núcleo), 720 aserciones.
+- **Prueba reforzada durante el control de mutación:** una mutación «actor fijo en 1» pasó sin ser detectada porque en la prueba de actor eliminaba el usuario con id 1. Se corrigió la **prueba** (eliminan/restauran los usuarios 2 y 3; el 1 no opera) y las mutaciones de actor fijo pasaron a detectarse. No se tocó código de producción para ello.
+
+### 4. Cobertura (correspondencia con la matriz de la Fase 0)
+
+| ID | Cobertura |
+| --- | --- |
+| M09 | `destroy` de una vigente (`pendiente`, `pagada`): un evento, `changes` exacto (`libera`, `curso_id`, `estado`), actor, `model_id`, soft delete, cupo +1, redirección y mensaje; de una anulada: `ninguno`; con curso eliminado lógicamente: se conserva el contrato (libera y audita) |
+| M10 | `restaurar` de una vigente (`pendiente`, `pagada`): `ocupa`, cupo −1, redirección y mensaje; de una anulada: `ninguno` aunque el curso o el estudiante estén eliminados o exista otra vigente |
+| M11 | Eliminar y restaurar: exactamente dos eventos (`libera`, `ocupa`), cupos de vuelta al valor inicial; invariante `assertEfecto`: el `efecto_cupo` coincide con el delta real de `cupos_disponibles` |
+| M12 | Actor explícito de usuarios distintos (ids 2 y 3) en ambas operaciones |
+| M13 | Privacidad: observaciones con marcador `PRIVATE-NOTE DNI 71000001`, estudiante con nombre, DNI y correo, y monto: nada aparece en ninguna columna de `audit_logs` |
+| M16 | Rollback con `AuditLog::creating` que lanza, en 4 casos (destroy vigente/anulada, restaurar vigente/anulada): fila idéntica (`assertEquals` de la fila completa, incluido `deleted_at`), cupos iguales, `matricula_notifications` sin cambios, 0 auditorías |
+| M18 | Permisos conservados: coordinador y secretaria reciben 403 al eliminar; secretaria 403 al restaurar; el coordinador sí restaura (contrato actual) y se audita con su usuario; sin escrituras en los 403 |
+| M19 | Restauración rechazada (duplicado vigente, sin cupo, curso archivado, curso eliminado, estudiante inactivo): 422, sigue eliminada, cupos intactos, sin evento nuevo |
+| M20 | Binding obsoleto: otro operador anuló la matrícula antes del bloqueo; se audita el `estado` de la fila bloqueada (`anulada`), efecto `ninguno`, sin doble liberación |
+| Sin duplicados | Repetir `destroy` o restaurar una no eliminada responden 404 y no generan eventos extra |
+
+### 5. Resultados reales
+
+| Verificación | Resultado |
+| --- | --- |
+| Línea base | No se repitió una ejecución al empezar: se partió del cierre de la Fase 2 (101 pruebas verdes) con los archivos verificados idénticos por SHA-256; la regresión completa se ejecutó al final |
+| `AuditoriaMatriculasTest` + `AuditoriaAcademicaTest` | **125 pasan, 720 aserciones** |
+| Suite completa `php artisan test --compact` | **1 567 pasan, 1 omitida, 9 941 aserciones** (0 fallos) |
+| Larastan nivel 6 | `[OK] No errors` |
+| Pint `--test` (controlador, núcleo y las 2 pruebas) | `passed` |
+| `git diff --check` sobre `app` y `tests` | sin errores (solo la advertencia LF/CRLF conocida) |
+
+**Control de mutación de la Fase 3** (cada cambio revertido de inmediato; hash del controlador comprobado tras cada uno):
+
+| Mutación | Resultado |
+| --- | --- |
+| `destroy`: quitar la auditoría | 11 fallan |
+| `restaurar`: quitar la auditoría | 11 fallan |
+| `destroy`: efecto siempre `libera` | 2 fallan |
+| `restaurar`: efecto siempre `ocupa` | 4 fallan |
+| `destroy`: estado fijo en vez del de la fila bloqueada | 2 fallan |
+| `destroy`: actor fijo en 1 (primer intento) | **no detectada → prueba débil, corregida** |
+| `destroy`: actor fijo en 1 (tras reforzar la prueba) | 1 falla |
+| `restaurar`: actor fijo en 1 | 2 fallan |
+
+### 6. Verificación de privacidad y atomicidad
+
+- **Privacidad:** `changes` de eliminación y restauración es exactamente `{esquema, operacion, efecto_cupo, curso_id, estado}` (aserción de igualdad estricta); las pruebas buscan DNI, nombre, correo, observaciones y monto en toda la fila de `audit_logs` y no los encuentran.
+- **Atomicidad:** la auditoría es la última escritura dentro de `DB::transaction`; si `AuditLog::create` lanza, se revierten el borrado lógico o la restauración, los cupos y todo lo demás (4 casos), y las 3 operaciones de la Fase 2 siguen cubiertas. El orden de bloqueos no cambió.
+- **Notificaciones:** eliminar y restaurar no crean ni modifican `matricula_notifications` (verificado en las pruebas de rollback y de recuento).
+
+### 7. SHA-256 de los archivos
+
+| Archivo | SHA-256 |
+| --- | --- |
+| `app/Http/Controllers/Admin/MatriculaController.php` | `b7c38f75fca6a9b50e04a8a2b02850b05f8e1d5ec757da6e03f0b73741bd07f5` |
+| `app/Support/AuditoriaAcademica.php` (sin cambios en esta fase) | `333c9c64a6128306b800bb2a0f1625e7944d7bf95440e0835a1afb69acb9cd58` |
+| `tests/Unit/AuditoriaAcademicaTest.php` (sin cambios en esta fase) | `cca3ec0eecc3abdd57a7fcd326816fbb29766345771db50678539b47cdec2ff8` |
+| `tests/Feature/AuditoriaMatriculasTest.php` | `2baefe12217d522d64aae1efa8466b622eaf499d059af4553a5eca690be7f97a` |
+| `PROJECT_CONTEXT.md` | no consta aquí (un archivo no contiene su propio hash); ver el informe de entrega |
+
+Antes de la fase: controlador `7b6d1334ef19339a9077ec37eb8e76c065037ee808a09130a47864b8e8c62520`; prueba de integración `1519d12ae92774224a272c7d6282052cbf8ee7155ee22f108b62c8fdc67d3e76`.
+
+### 8. Estado Git
+
+- Antes: rama `anderson`, HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31`, índice vacío, 2 stashes; trabajo de la Fase 2 sin consolidar.
+- Después: mismo HEAD y mismos 2 stashes; índice vacío; modificados `PROJECT_CONTEXT.md`, `MatriculaController.php`, `AuditoriaAcademica.php` y `AuditoriaAcademicaTest.php`; sin seguimiento `tests/Feature/AuditoriaMatriculasTest.php`. Sin staging, commit ni push; no se usó `reset`, `restore`, `clean`, `checkout` ni `stash`; sin worktrees adicionales.
+
+### 9. Riesgos y limitaciones
+
+- **SQLite ignora `lockForUpdate`:** la serialización real (dos operadores eliminando o restaurando a la vez, o restaurando mientras otro llena el curso) no está medida; requiere PostgreSQL aislado con autorización explícita.
+- **Cobertura del módulo:** con esta fase las cinco operaciones de escritura están auditadas. Queda `exportarCsv`, que sigue guardando el texto libre `busqueda` en la auditoría (Fase 4, decisión D6 sobre registros históricos).
+- **Restaurar una vigente cuyo cupo se agotó** (o con duplicado) se rechaza con 422 antes de escribir cualquier auditoría: es el comportamiento previo, ahora cubierto por pruebas.
+- **Denegaciones 403/404/422** no se auditan (D5).
+- La firma de `destroy` y `restaurar` (ahora con `Request`) es una API pública del controlador; ninguna ruta ni prueba las invocaba directamente.
+- Los cambios de las fases 2 y 3 siguen **sin commit**; la consolidación Git requiere autorización aparte.
+
+### 10. Pendientes
+
+1. **Fase 4:** saneado del registro de `exportarCsv` (lista cerrada con `filename`, `estado`, `curso_id`, `eliminados`, `busqueda_aplicada`; actor explícito) y decisión D6 sobre los registros históricos con `busqueda` en texto libre.
+2. **Fase 5:** regresión global M21, mutación M22, `docs/sprint-21-2-auditoria-matriculas.md` (D13) y cierre.
+3. **Aparte, con autorización:** pruebas de concurrencia en PostgreSQL 55433 y commit de las fases 2 y 3.
+
+---
+
+## SPRINT 21.2 — FASE 4: SANEAMIENTO DE LA AUDITORÍA DE `exportarCsv` Y PROTECCIÓN DE REGISTROS HISTÓRICOS
+
+> Fecha: 31/10/2026 · Autorizada por el propietario. Decisión **D6: alternativa B** (los registros históricos se conservan sin modificar; el texto sensible se enmascara al consultarlos). Sin migraciones, sin consultas de modificación sobre `audit_logs`, sin PostgreSQL ni base real (PHPUnit sobre SQLite en memoria), sin `.env`, vistas, rutas ni permisos; sin staging, commit ni push. Anclaje: `sprint-21-2-fase-4`.
+
+### 1. Causa raíz
+
+`MatriculaController::exportarCsv` auditaba `'filters' => $request->only(['estado','curso_id','busqueda','eliminados'])`. El texto libre `busqueda` (que busca por DNI, nombres, apellidos, código o nombre de curso) quedaba almacenado en `audit_logs.changes` y, además, `estado` y `curso_id` se copiaban sin validar (cualquier cadena). El enmascarado existente (`SensitiveData::redact`) actúa por **nombre de clave** de secretos y no reconocía `busqueda`, de modo que los registros ya guardados se mostraban y exportaban íntegros.
+
+### 2. Inventario de puntos que leen `audit_logs`
+
+| Punto | Lee `changes` | Tratamiento |
+| --- | --- | --- |
+| `AuditoriaController::index` + `admin/auditoria/index.blade.php` (HTML) | Sí, vía `redactedChanges()` | Cubierto al cambiar el modelo |
+| `AuditoriaController::exportar` (JSON) | Sí, vía `redactedChanges()` | Cubierto al cambiar el modelo |
+| `RespaldoController::csvRow` (ZIP administrativo, `audit_logs.csv`) | Sí, llamaba **directamente** a `SensitiveData::redact` (no pasaba por el modelo) | Cambiado a `AuditLog::redactarCambios` |
+| Serialización del modelo (`toArray`/`toJson`, respuestas JSON futuras) | Sí | `AuditLog::attributesToArray()` enmascara `changes` |
+| `DashboardController` + `dashboard.blade.php` | No: solo `action`, usuario, fecha y `model_type` | Sin cambio (prueba de no exposición) |
+| `ReportController`, `UserController`, `RoleController`, `ConfiguracionController`, `CursoPublicacionController`, `GestionCotizaciones`, `GestionServiciosTecnologicos`, `AuditoriaReclamaciones`, `PromoverAdminLocal` | Solo **escriben** | Sin cambio |
+| API (`routes/api.php`), JS, componentes Blade | No consultan `audit_logs` | — |
+
+No se tocaron vistas: ambas pantallas ya pasaban por `redactedChanges()`.
+
+### 3. Solución aplicada
+
+- **`exportarCsv`** (`MatriculaController.php`): actor explícito (`AuditoriaAcademica::actorDe`) y llamada a `AuditoriaAcademica::registrarExportacionMatriculas(...)`. Lista cerrada: `filename`, `estado` (solo `pendiente|pagada|anulada`, si no `null`), `curso_id` (entero o `null`), `eliminados` (bool) y `busqueda_aplicada` (bool real; `true` solo si el texto recortado no está vacío, un array o espacios no cuentan). Se conserva la acción `matriculas_csv_exported`, el `model_type` y `model_id = null`. El contenido del CSV y la consulta no cambian. Si la auditoría falla, no se entrega el archivo (comportamiento previo).
+- **`AuditLog::redactarCambios()`** (nuevo, estático): `SensitiveData::redact` + enmascarado por nombre de clave `busqueda` en cualquier nivel (`filters.busqueda`, `busqueda`; texto, array o cualquier valor no vacío pasa a `[REDACTADO]`). Un valor `null` o vacío no se enmascara. `redactedChanges()` lo usa y `attributesToArray()` lo aplica a `changes`. El atributo leído directamente (`$log->changes`) conserva el valor almacenado: solo cambia la presentación.
+- **`RespaldoController::csvRow`**: usa `AuditLog::redactarCambios`.
+- **`AuditoriaAcademica::registrarExportacionMatriculas`**: nuevo; no usa el esquema 1 (no es un evento de entidad). Importa `Matricula`.
+- **Prueba existente actualizada** (`SecretsAndExportsTest`, una aserción): comprobaba `changes['filters']['estado']`; ahora comprueba `changes['estado']` y que no exista `filters`.
+
+### 4. Protección de registros históricos
+
+- No se eliminan ni modifican registros: no hay migración ni consulta de escritura. **El valor original permanece almacenado en PostgreSQL**; no se afirma que se haya borrado. Una prueba compara la fila completa antes y después de usar las tres salidas.
+- El enmascarado se aplica en el modelo (punto único), por lo que cualquier salida actual o futura que use `redactedChanges()`, `toArray()`/`toJson()` o `redactarCambios()` queda protegida. Un acceso directo a `$log->changes` o a `DB::table('audit_logs')` es lectura cruda y **no** está enmascarado.
+- Alcance deliberado: enmascarado por nombre de clave `busqueda`, en cualquier acción. Hoy no hay otra auditoría que use esa clave; no se alteró ninguna auditoría de cursos, estudiantes, usuarios, roles, reclamaciones ni cotizaciones.
+
+### 5. TDD y pruebas
+
+- **Rojo** (antes de implementar): 12 de 19 pruebas nuevas fallaban; 7 pasaban (salvaguardas de comportamiento previo: CSV idéntico, sin entrega si falla la auditoría, valor original intacto, panel de inicio sin exposición, no regresión de otros módulos, búsqueda vacía). Un fallo inicial era un defecto de mi prueba (roles sin sembrar) y se corrigió antes de implementar.
+- **Verde:** 19 pruebas nuevas en `tests/Feature/AuditoriaExportacionMatriculasTest.php` (120 aserciones).
+- Cobertura: lista cerrada exacta; `busqueda_aplicada` booleano real; `eliminados` bool; estado y curso inválidos pasan a `null` sin copiar el texto; ausencia de DNI, nombres, correo y búsqueda en toda la tabla; CSV byte a byte idéntico; auditoría fallida sin entrega ni registro; 403 sin permiso; histórico enmascarado en modelo, pantalla HTML, JSON, ZIP, serialización y panel de inicio; búsqueda histórica como array o en otro nivel; valor vacío no enmascarado; valor original intacto; auditorías de otros módulos sin cambios.
+- **Control de mutación** (cada cambio revertido y hash comprobado): 11 mutaciones, **todas detectadas** — `busqueda_aplicada` siempre true (2 fallan) y siempre false (1); `estado` sin validar (1); `curso_id` sin validar (2); actor fijo en 1 (1, tras reforzar la prueba con un usuario previo para que el administrador no tenga id 1); `eliminados` siempre false (1); modelo sin enmascarar (6); sin serialización enmascarada (1); ZIP con la función antigua (1); enmascarar también vacíos (1); guardar `busqueda` en el núcleo (1).
+
+### 6. Resultados reales
+
+| Verificación | Resultado |
+| --- | --- |
+| Exportación + privacidad histórica + auditoría académica + cursos + estudiantes + secretos/exportaciones + operaciones de matrícula (7 archivos) | **312 pasan, 2 479 aserciones** |
+| Suite completa `php artisan test --compact` | **1 586 pasan, 1 omitida, 10 062 aserciones** (0 fallos) |
+| Larastan nivel 6 | `[OK] No errors` |
+| Pint `--test` (modelo, controlador de matrículas, núcleo, prueba nueva) | `passed` |
+| Pint en `RespaldoController.php` y `SecretsAndExportsTest.php` | **falla**: finales de línea CRLF y construcciones `!` ajenas a mi cambio (1 línea en RespaldoController y 3 en la prueba). No se reformatearon (fallo conocido en archivos ajenos) |
+| `git diff --check` | sin errores (solo la advertencia LF/CRLF conocida) |
+
+### 7. SHA-256
+
+| Archivo | SHA-256 |
+| --- | --- |
+| `app/Http/Controllers/Admin/MatriculaController.php` | `052a0e51e771e3a37a2745d1975156e03be10330d67548c34a2b97e8545bfb77` |
+| `app/Models/AuditLog.php` | `bd0c8f339aae928461396652490c562e94559259410410cddcf39a4aefe49b5c` |
+| `app/Http/Controllers/Admin/RespaldoController.php` | `1e04a219d4763749fc10c89ce01d3f2ea808faaba84fe1c1be36311462483c8c` |
+| `app/Support/AuditoriaAcademica.php` | `910b36b03d839308e39b3ed98d7c8fdb9a988f9e521cdabd0e877543c1729bf1` |
+| `tests/Feature/AuditoriaExportacionMatriculasTest.php` (nuevo) | `4a3c9b2d1bef5116525a7555aa868db5f7f7db2aba2f59abfedc1326a4e85543` |
+| `tests/Feature/SecretsAndExportsTest.php` | `e7b259a88375a8313d04116c10ccc3da98a91c6da0bc947ba6979af40b843f65` |
+| `tests/Feature/AuditoriaMatriculasTest.php` (sin cambios) | `2baefe12217d522d64aae1efa8466b622eaf499d059af4553a5eca690be7f97a` |
+| `tests/Unit/AuditoriaAcademicaTest.php` (sin cambios) | `cca3ec0eecc3abdd57a7fcd326816fbb29766345771db50678539b47cdec2ff8` |
+| `PROJECT_CONTEXT.md` | no consta aquí (un archivo no contiene su propio hash); ver el informe de entrega |
+
+Antes de la fase: `MatriculaController.php` `b7c38f75…07f5`, `AuditLog.php` `5d64d623…8836`, `RespaldoController.php` `7ba32b46…e5e0`, `AuditoriaAcademica.php` `333c9c64…cd58`.
+
+### 8. Estado Git
+
+HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31`, rama `anderson`, índice vacío, 2 stashes. Modificados: `PROJECT_CONTEXT.md`, `MatriculaController.php`, `RespaldoController.php`, `AuditLog.php`, `AuditoriaAcademica.php`, `SecretsAndExportsTest.php`, `AuditoriaAcademicaTest.php`. Sin seguimiento: `AuditoriaExportacionMatriculasTest.php`, `AuditoriaMatriculasTest.php`. Sin staging, commit ni push; sin `reset`, `restore`, `clean`, `checkout` ni `stash`.
+
+### 9. Riesgos y pendientes
+
+- **Los datos históricos siguen almacenados** con el texto de búsqueda; solo se enmascaran las salidas. Quien consulte la base directamente (SQL, copias de PostgreSQL) los verá. Su depuración real exigiría una decisión y un script o migración de datos aparte (descartada por D6-B).
+- **Cobertura por nombre de clave:** un texto sensible bajo otra clave no se detecta. Hoy no existe otra.
+- **Cambio de contrato de la auditoría nueva:** `filters` desaparece de los registros nuevos de `matriculas_csv_exported`; un consumidor externo de esa estructura (no hay en el código) debería leer las claves planas. Los registros antiguos conservan `filters`.
+- **Valores normalizados:** `estado` y `curso_id` de la exportación ya no son los textos recibidos.
+- **Pint** sigue fallando en dos archivos ajenos por formato preexistente.
+- SQLite no mide concurrencia ni PostgreSQL (la exportación no usa bloqueos).
+- Las fases 2, 3 y 4 siguen **sin commit**.
+- **Fase 5** pendiente: regresión global M21, mutación M22, `docs/sprint-21-2-auditoria-matriculas.md` (D13) y cierre. No iniciada.
+
+---
+
+## SPRINT 21.2 — FASE 5: CIERRE Y VALIDACIÓN GLOBAL
+
+> Fecha: 31/10/2026 · Autorizada por el propietario. Alcance: regresión global M21, mutaciones M22, validación global, verificación de Pint, documentación. Sin migraciones, PostgreSQL, `.env`, vistas, rutas, módulos ajenos, staging, commit ni push. Documento del sprint: `docs/sprint-21-2-auditoria-matriculas.md`. Anclaje: `sprint-21-2-fase-5`.
+
+### 1. Estado verificado antes de empezar
+
+Rama `anderson`, HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31`, índice vacío, 2 stashes y 1 worktree. Modificados: `PROJECT_CONTEXT.md`, `MatriculaController.php`, `RespaldoController.php`, `AuditLog.php`, `AuditoriaAcademica.php`, `SecretsAndExportsTest.php`, `AuditoriaAcademicaTest.php`; sin seguimiento: `AuditoriaExportacionMatriculasTest.php`, `AuditoriaMatriculasTest.php`. Presentes los cambios de las fases 2, 3 y 4 (hashes de la Fase 4 coincidentes).
+
+### 2. Verificación de Pint (incidencia pendiente)
+
+Pint 1.32.1, sin `pint.json` (preset por defecto). Se extrajo la versión de HEAD de `RespaldoController.php` y `SecretsAndExportsTest.php` y se probaron cuatro variantes de cada archivo en un directorio temporal:
+
+| Variante | Resultado |
+| --- | --- |
+| HEAD en LF | passed |
+| HEAD convertido a CRLF | **fail** (`line_ending`, `unary_operator_spaces`, `not_operator_with_successor_space` / `class_definition`, `braces_position`, `single_line_empty_body`) |
+| Trabajo actual en LF | passed |
+| Trabajo actual en CRLF (la copia de trabajo real) | **fail**, mismos fixers |
+
+Conclusión demostrada: **no es una regresión del sprint ni una diferencia real de formato**; es un artefacto de la copia de trabajo en CRLF (`core.autocrlf=true`). La corrección del primer informe («preexistente») se sustentaba en una comprobación que usaba LF; ahora está probado con CRLF. Diferencia real de contenido con HEAD: 1 línea en `RespaldoController.php` y 3 en `SecretsAndExportsTest.php`. No se reformateó nada.
+
+Pint global: 88 archivos fallan; 87 incluyen `line_ending` y 1 es ajeno (`chatbot-python/scripts/php_compare/php_matcher.php`). Pint sobre los archivos propios (modelo, controlador de matrículas, núcleo y las tres pruebas del sprint): `passed`.
+
+### 3. Hallazgo y refuerzo de pruebas
+
+- Entre las 32 mutaciones M22, **una no se detectó**: `actorDe` sin la comprobación de usuario (el 403 cuando no hay usuario o el identificador no es numérico). Causa: `actorDe` no tenía pruebas directas; por HTTP el middleware impide llegar sin usuario.
+- Se añadieron 9 pruebas unitarias en `AuditoriaAcademicaTest` (entero, numérico en texto, sin usuario, y 6 identificadores inválidos → 403). Código de producción sin cambios. La mutación pasó a detectarse (7 fallos).
+- La primera tanda de mutaciones se ejecutó con una copia sin `.env` (pruebas «con warnings»); se creó un `.env` vacío solo en la copia, se repitió **todo** M22 con la línea base limpia (153 pasan) y los resultados definitivos son los de esta repetición.
+
+### 4. Regresión M21
+
+| Verificación | Resultado |
+| --- | --- |
+| Tanda 1 (9 archivos: auditoría de matrículas, exportación, núcleo, cursos, estudiantes, secretos/exportaciones, operaciones, autorización, permisos sensibles) | 411 pasan, 2 807 aserciones (antes de añadir las 9 pruebas) |
+| Tanda 2 (9 archivos: contexto y listado de matrículas, integridad, notificaciones ×2, atomicidad Sprint 12, protección de administradores, Excel, filtros) | 153 pasan, 1 omitida, 992 aserciones |
+| **Suite completa** | **1 595 pasan, 1 omitida, 10 071 aserciones, 0 fallos** (línea base Fase 4: 1 586 / 1 / 10 062; +9 pruebas, +9 aserciones) |
+| Larastan nivel 6 | `[OK] No errors` |
+| `git diff --check` | sin errores (solo la advertencia LF/CRLF conocida) |
+
+`BackendRobustnessTest`, `Sprint12AtomicityTest`, `MatriculaOperationsTest`, `AdminAuthorizationTest` y el resto de la lista M21 pasan dentro de las ejecuciones anteriores.
+
+### 5. Mutaciones M22 (copia aislada)
+
+Copia del proyecto en `%TEMP%\horus_m22` (con su `vendor`, sin `.env` real, clave de aplicación desechable por variable de entorno, SQLite en memoria). Antes: copia idéntica al repositorio por SHA-256. Cada mutación se restauró y su hash se verificó; al final copia == original y repositorio real sin cambios. Se ejecutan `AuditoriaMatriculasTest`, `AuditoriaExportacionMatriculasTest` y `AuditoriaAcademicaTest`.
+
+**32 de 32 detectadas.** Fallos por mutación: registro — store 6, update 12, anular 5, destroy 11, restaurar 11, exportación 6, `PUT` anula como actualización 1; efecto — store 1, update 4, anular 2, destroy 2, restaurar 4, traslado 5, intercambio ocupa/libera 23; actor fijo 1 — store 1, update 2, anular 1, destroy 1, restaurar 2, exportación 1, `actorDe` 7; privacidad — observaciones con valor 10, `estudiante_id` en eliminar/restaurar 6, texto de búsqueda 2, `busqueda_aplicada` como texto 8; histórico — modelo 6, serialización 1, ZIP 1, un solo nivel 6; atomicidad y duplicados — auditoría tragada 10, evento duplicado 16, anular repetido 3.
+
+### 6. Archivos modificados y creados en esta fase
+
+- Creado: `docs/sprint-21-2-auditoria-matriculas.md`.
+- Modificado: `tests/Unit/AuditoriaAcademicaTest.php` (+9 pruebas de `actorDe`), `PROJECT_CONTEXT.md` (esta sección).
+- Sin cambios en código de producción durante la fase.
+
+### 7. SHA-256
+
+| Archivo | SHA-256 |
+| --- | --- |
+| `app/Support/AuditoriaAcademica.php` | `910b36b03d839308e39b3ed98d7c8fdb9a988f9e521cdabd0e877543c1729bf1` |
+| `app/Http/Controllers/Admin/MatriculaController.php` | `052a0e51e771e3a37a2745d1975156e03be10330d67548c34a2b97e8545bfb77` |
+| `app/Models/AuditLog.php` | `bd0c8f339aae928461396652490c562e94559259410410cddcf39a4aefe49b5c` |
+| `app/Http/Controllers/Admin/RespaldoController.php` | `1e04a219d4763749fc10c89ce01d3f2ea808faaba84fe1c1be36311462483c8c` |
+| `tests/Unit/AuditoriaAcademicaTest.php` | `f22319c5131acaac76ac89c743b98afaecb40dc772da595687c8c09598782440` |
+| `tests/Feature/AuditoriaMatriculasTest.php` | `2baefe12217d522d64aae1efa8466b622eaf499d059af4553a5eca690be7f97a` |
+| `tests/Feature/AuditoriaExportacionMatriculasTest.php` | `4a3c9b2d1bef5116525a7555aa868db5f7f7db2aba2f59abfedc1326a4e85543` |
+| `tests/Feature/SecretsAndExportsTest.php` | `e7b259a88375a8313d04116c10ccc3da98a91c6da0bc947ba6979af40b843f65` |
+| `docs/sprint-21-2-auditoria-matriculas.md` | `9608d9e2d45eb2f4a2f4c9848e59efa0076c4f4d8bb06de2aab35f5441e70122` |
+| `PROJECT_CONTEXT.md` | no consta aquí; ver el informe de entrega |
+
+### 8. Estado Git
+
+HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31`, rama `anderson`, índice vacío, 2 stashes intactos, 1 worktree. Modificados: los siete archivos de §1; sin seguimiento: las dos pruebas nuevas y el documento del sprint. Sin staging, commit ni push; sin `reset`, `restore`, `clean`, `checkout` ni `stash`.
+
+### 9. Riesgos y pendientes
+
+- Concurrencia real y PostgreSQL no medidos (SQLite ignora `lockForUpdate()`); requiere el perfil aislado 55433 con autorización.
+- Los registros históricos siguen almacenados con el texto de búsqueda; solo se enmascaran las salidas.
+- Comprobación manual en navegador de la creación de matrículas (corrección de identificadores en texto, D9).
+- Pint seguirá fallando en 88 archivos de la copia de trabajo por CRLF hasta que se normalicen finales de línea (decisión aparte).
+- Las fases 2 a 5 siguen **sin commit**.
+
+### 10. Veredicto
+
+**Sprint 21.2 cerrado técnicamente**: todos los criterios de aceptación de la Fase 5 se cumplen con evidencia. Pendiente de consolidación en Git y de verificación en PostgreSQL, ambas con autorización expresa.
+
+### 11. Recomendaciones
+
+1. Autorizar el commit de las fases 2 a 5 en commits separados (núcleo/controlador, privacidad e histórico, pruebas, documentación).
+2. Pruebas de concurrencia de las cinco operaciones en PostgreSQL 55433.
+3. Decidir una política de finales de línea (`.gitattributes`) para que Pint sea verificable globalmente.
+4. Decidir si se depuran de verdad los históricos con búsqueda (script de datos con revisión).
+5. Ocultar en la interfaz las acciones que el rol no puede ejecutar (hoy responden 403).
+
+---
+
+## SPRINT 21.2 — PREPARACIÓN: CONCURRENCIA POSTGRESQL (55433) Y PLAN DE CONSOLIDACIÓN GIT
+
+> Fecha: 31/10/2026 · Solo preparación y planificación. No se ejecutó ninguna prueba, no hubo conexión a PostgreSQL, no se creó ninguna prueba nueva, no se tocó `.env` ni `.env.pgsql-testing.local`, no hubo migraciones, staging, commit ni push. Anclaje: `sprint-21-2-plan-pg-git`.
+
+### Hallazgos de la inspección (solo lectura)
+
+- Perfil aislado: `scripts/pgsql-test.php` (`check|probe|test|artisan`), `phpunit.pgsql.xml`, `tests/PostgresIntegrity/` y `app/Support/Testing/`. `test` solo acepta `--filter=…`, `--stop-on-failure` y `--stop-on-error`.
+- Cobertura PostgreSQL actual de matrículas: `ConcurrencyPostgresTest` (alta por el último cupo, alta duplicada, degradación concurrente de administradores), `MatriculaRulesPostgresTest` y `MatriculaConstraintsPostgresTest`. **No cubren `update`, `anular`, `destroy` ni `restaurar` bajo concurrencia, ni la auditoría.**
+- `HORUS_PG_TEST_CONFIRM` está **vacío** en `.env.pgsql-testing.local` (archivo ignorado por Git): sin ese consentimiento, `check`, `test` y `artisan` se rechazan; solo `probe` (solo lectura) funciona.
+- Se desconoce si `horus_l2_test` está migrada y si el clúster 55433 está levantado; no se comprobó para no conectar antes de presentar el plan.
+
+### Plan de consolidación Git (pendiente de autorización)
+
+Los cambios de las fases 2–4 comparten archivos, por lo que no se pueden separar por fase sin staging parcial interactivo (no disponible). Se propone separar por unidad coherente, con staging por ruta explícita (nunca `git add -A`):
+
+1. `feat(auditoria): auditar las operaciones de matrícula y sanear la exportación CSV` — `MatriculaController.php`, `AuditoriaAcademica.php`, `AuditoriaMatriculasTest.php`, `AuditoriaAcademicaTest.php`, `SecretsAndExportsTest.php`.
+2. `feat(auditoria): enmascarar búsquedas históricas al consultar la auditoría` — `AuditLog.php`, `RespaldoController.php`, `AuditoriaExportacionMatriculasTest.php`.
+3. `docs(contexto): cerrar Sprint 21.2` — `docs/sprint-21-2-auditoria-matriculas.md`, `PROJECT_CONTEXT.md`.
+
+Orden obligatorio 1→2→3 (`SecretsAndExportsTest` depende del cambio de exportación; las pruebas de enmascarado dependen de ambos). Cada estado intermedio se verificaría en una copia aislada fuera del repositorio. Identidad Git configurada, sin coautores automáticos, sin push (la rama lleva 14 commits locales sobre `origin/anderson`).
+
+---
+
+## SPRINT 21.2 — PRUEBAS DE CONCURRENCIA POSTGRESQL: PRUEBA PREPARADA Y PASO 0 (`probe`)
+
+> Fecha: 31/10/2026 · Autorizado por el propietario: crear la prueba y ejecutar solo el paso 0. Anclaje: `sprint-21-2-pg-paso-0`.
+
+- **Creado:** `tests/PostgresIntegrity/MatriculaOperacionesConcurrenciaPostgresTest.php` (7 escenarios: alta bloqueada, anular contra anular, `PUT` que anula, eliminar tras anulación, restaurar sin cupo, traslado a curso lleno, atomicidad con fallo de auditoría). `php -l` y Pint correctos. **No ejecutada.** Limitación: no reproduce un deadlock real (`40P01`).
+- **Paso 0 (`php scripts/pgsql-test.php probe`, solo lectura, sin consentimiento):** base `horus_l2_test`, usuario `horus_l2_test_runner`, puerto `55433`, clúster `horus_pgt_55433`, `transaction_read_only=on`, `search_path=public`, zona `UTC`. Resultado: "Read-only probe passed". Sin escrituras.
+- **No ejecutado:** `check`, `migrate:status`, PHPUnit en PostgreSQL. Pendiente de confirmación del propietario, que gestiona `HORUS_PG_TEST_CONFIRM`. No se tocó `.env` ni `.env.pgsql-testing.local`; sin migraciones, staging, commits ni push.
+- La mutación de control sin `lockForUpdate()` queda pospuesta. Los tres commits siguen sin crearse.
+
+---
+
+## SPRINT 21.2 — EJECUCIÓN POSTGRESQL (`horus_l2_test`, 55433): GRUPOS 1–3 Y DETENCIÓN
+
+> Fecha: 31/10/2026 · Autorizada por el propietario, incluidos los `TRUNCATE` de `DatabaseTruncation`, solo en `horus_l2_test` (127.0.0.1:55433, usuario `horus_l2_test_runner`, clúster `horus_pgt_55433`, identificador `7702263743609677164`). Anclaje: `sprint-21-2-pg-grupos`.
+
+- `check` y `migrate:status` previos: correctos; las 29 migraciones `Ran`, ninguna pendiente. Identidad reverificada con `probe` antes de empezar.
+- **Grupo 1** `MatriculaConstraintsPostgresTest`: OK, 5 pruebas, 7 aserciones, salida 0.
+- **Grupo 2** `MatriculaRulesPostgresTest`: OK, 6 pruebas, 32 aserciones, salida 0.
+- **Grupo 3** `ConcurrencyPostgresTest`: **1 fallo** de 3 pruebas (18 aserciones), salida 1. Falla `test_two_concurrent_demotions_cannot_remove_every_admin` en la línea 125 (`assertSessionHasErrors('roles')`: la sesión no contiene errores). Es una prueba preexistente, nunca ejecutada antes ("preparada, no ejecutada") y ajena a las matrículas; las dos de matrículas (último cupo y alta duplicada) pasan. Sin diagnóstico ni reintento.
+- **Grupo 4** (`MatriculaOperacionesConcurrenciaPostgresTest`): **no ejecutado** por la regla de detenerse ante el primer fallo.
+- Sin código de producción modificado, sin migraciones, sin otra base tocada, sin commits ni push. Salidas completas conservadas en el directorio temporal de sesión.
+
+---
+
+## SPRINT 21.2 — EJECUCIÓN POSTGRESQL: GRUPO 4 (`MatriculaOperacionesConcurrenciaPostgresTest`)
+
+> Fecha: 31/10/2026 · Autorizado por el propietario solo para el grupo 4, en `horus_l2_test` (127.0.0.1:55433, `horus_l2_test_runner`, clúster `horus_pgt_55433`, identificador `7702263743609677164`, reverificado con `probe` antes de ejecutar). Anclaje: `sprint-21-2-pg-grupo-4`.
+
+- Comando: `php scripts/pgsql-test.php test --filter=MatriculaOperacionesConcurrenciaPostgresTest --stop-on-error`. Resultado: **OK, 7 pruebas, 56 aserciones**, 0 fallos, 0 errores, 0 omitidas, 0 risky, salida 0, 46,4 s. Una sola ejecución.
+- Escenarios verificados en PostgreSQL real: alta bloqueada, anular contra anular, `PUT` que anula, eliminar tras anulación, restaurar sin cupo, traslado a curso lleno y atomicidad con fallo de auditoría. En los seis con sesión B, la petición real quedó bloqueada con `55P03` (comprobado por `assertBlocked`) y tras el commit de B decidió con el estado confirmado; sin cupo devuelto dos veces, sin eventos duplicados y sin auditoría de intentos revertidos. En el séptimo, un fallo de `AuditLog` revierte matrícula, cupo y notificación.
+- SHA-256 de la prueba: `ef68c4f15a14bea0d155d3722ff0dd2f044789ca4d7524d27a5f00d15fd9254d` (idéntico antes de ejecutar).
+- Limitaciones: no reproduce un deadlock real (`40P01`); la mutación sin `lockForUpdate()` sigue pospuesta; el fallo del grupo 3 (`test_two_concurrent_demotions_cannot_remove_every_admin`) es una prueba obsoleta tras el Sprint 21.1 (R1 devuelve 403) y se trata en una tarea independiente, sin modificar.
+- Sin cambios de código de producción ni de pruebas durante la ejecución, sin migraciones, sin otra base tocada, sin commits ni push.
+
+---
+
+## SPRINT 21.2 — CONSOLIDACIÓN GIT LOCAL
+
+> Fecha: 31/10/2026 · Autorizada por el propietario: tres commits locales en la rama `anderson`, en el orden C1 → C2 → C3. Sin push, sin despliegue (el proyecto sigue en desarrollo; producción queda reservada para su finalización). Anclaje: `sprint-21-2-consolidacion`.
+
+- **Verificación previa:** rama `anderson`, HEAD `65b1adfd439a0d211eaf9dc81cf92c2e521fbe31`, índice vacío, dos stashes intactos, un worktree; los diez hashes SHA-256 de archivos coincidían con los del último informe; sin cambios ajenos al sprint.
+- **C1** `8682e8e6d251d44148542b766b8e1ffdd091f448` — `feat(auditoria): auditar las operaciones de matrícula y sanear la exportación CSV`: `MatriculaController.php`, `AuditoriaAcademica.php`, `AuditoriaMatriculasTest.php`, `AuditoriaAcademicaTest.php`, `SecretsAndExportsTest.php`, `MatriculaOperacionesConcurrenciaPostgresTest.php`.
+- **C2** `22c85b93a4f623af1ccd66b7b9e594dad1c92ba2` — `feat(auditoria): enmascarar búsquedas históricas al consultar la auditoría`: `AuditLog.php`, `RespaldoController.php`, `AuditoriaExportacionMatriculasTest.php`. Depende de C1 (la prueba usa `registrarExportacionMatriculas`); C1 no usa nada de C2.
+- **C3** `docs(contexto): cerrar Sprint 21.2`: `docs/sprint-21-2-auditoria-matriculas.md` (actualizado con los resultados PostgreSQL y el estado de consolidación) y esta sección de `PROJECT_CONTEXT.md`. Su hash consta en el informe de entrega.
+- **Pruebas:** no se repitió la suite por commit; la evidencia previa sigue vigente (1 595 pasan, 1 omitida, 10 071 aserciones; Larastan 6 limpio; 32/32 mutaciones; PostgreSQL aislado: grupos 1, 2 y 4 OK, grupo 3 con una prueba obsoleta ajena). Los estados intermedios C1 y C2 no se ejecutaron por separado; la separación se basó en que `redactarCambios`/`enmascararBusqueda` solo aparecen en los archivos de C2.
+- **Verificaciones por commit:** `git diff --cached --check` limpio, revisión del diff, búsqueda de secretos (solo datos ficticios de prueba), autor Anderson `<anderson1908x@gmail.com>` y sin coautores.
+- **No incluido:** actualizar la prueba obsoleta de degradación concurrente de administradores, mutación sin `lockForUpdate()`, política de finales de línea, depuración de históricos, ocultar acciones denegadas en la UI, comprobación manual de la creación de matrículas, push.
