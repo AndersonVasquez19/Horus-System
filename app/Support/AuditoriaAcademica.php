@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\AuditLog;
+use App\Models\Matricula;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -138,12 +139,23 @@ final class AuditoriaAcademica
                 continue;
             }
 
-            $campos[] = $campo;
-
             if (in_array($campo, $lista['valores'], true)) {
-                $antes[$campo] = self::normalizar($modelo, $campo, $modelo->getOriginal($campo));
-                $despues[$campo] = self::normalizar($modelo, $campo, $modelo->getAttribute($campo));
+                $valorAntes = self::normalizar($modelo, $campo, $modelo->getOriginal($campo));
+                $valorDespues = self::normalizar($modelo, $campo, $modelo->getAttribute($campo));
+
+                // Sprint 21.2 (D10-a), solo matrículas: Eloquent marca «sucio» un atributo de fecha cuando el valor
+                // nuevo trae hora (se compara con fromDateTime) aunque la fecha sea la misma. Si el valor ya
+                // normalizado es idéntico no hay cambio real que auditar. No se altera ningún valor guardado, y
+                // estudiantes y cursos conservan exactamente su regla anterior.
+                if ($entidad === self::MATRICULA && $valorAntes === $valorDespues) {
+                    continue;
+                }
+
+                $antes[$campo] = $valorAntes;
+                $despues[$campo] = $valorDespues;
             }
+
+            $campos[] = $campo;
         }
 
         return ['campos' => $campos, 'antes' => $antes, 'despues' => $despues];
@@ -281,6 +293,34 @@ final class AuditoriaAcademica
     public static function registrarOperacionMatricula(string $accion, Model $matricula, string $operacion, string $efectoCupo, int $actorId): AuditLog
     {
         return self::registrar($accion, $matricula, self::detalleOperacionMatricula($matricula, $operacion, $efectoCupo), $actorId);
+    }
+
+    /**
+     * Registra la exportación CSV de matrículas con una lista cerrada (Fase 4): nombre del archivo, filtros
+     * efectivos de valor acotado y un booleano que indica que hubo búsqueda. Nunca el texto buscado, que podía
+     * ser un DNI o un nombre. Mantiene la acción histórica `matriculas_csv_exported` y no usa el esquema 1.
+     */
+    public static function registrarExportacionMatriculas(
+        string $archivo,
+        ?string $estado,
+        ?int $cursoId,
+        bool $eliminados,
+        bool $busquedaAplicada,
+        int $actorId,
+    ): AuditLog {
+        return AuditLog::record(
+            'matriculas_csv_exported',
+            Matricula::class,
+            null,
+            [
+                'filename' => $archivo,
+                'estado' => $estado,
+                'curso_id' => $cursoId,
+                'eliminados' => $eliminados,
+                'busqueda_aplicada' => $busquedaAplicada,
+            ],
+            $actorId,
+        );
     }
 
     /**

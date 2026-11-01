@@ -10,9 +10,12 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
 use App\Support\AuditoriaAcademica;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -234,6 +237,77 @@ class AuditoriaAcademicaTest extends TestCase
         $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
 
         $this->assertSame(['campos' => [], 'antes' => [], 'despues' => []], $diferencias);
+    }
+
+    /**
+     * D10-a (Fase 2): una fecha con hora sobre una fila con la misma fecha deja el atributo «sucio» en Eloquent
+     * (se compara con fromDateTime), pero no es un cambio real y no debe auditarse como tal.
+     *
+     * @return array<string, array{0: string}>
+     */
+    public static function fechasConLaMismaFecha(): array
+    {
+        return [
+            'con hora' => ['2026-03-01 10:30:00'],
+            'con hora a medianoche' => ['2026-03-01 00:00:00'],
+            'formato ISO' => ['2026-03-01T10:30:00'],
+        ];
+    }
+
+    #[DataProvider('fechasConLaMismaFecha')]
+    public function test_matricula_una_fecha_con_hora_de_la_misma_fecha_no_es_un_cambio(string $fecha): void
+    {
+        $matricula = $this->matricula();
+        $matricula->fill(['fecha_matricula' => $fecha]);
+
+        $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+
+        $this->assertSame(['campos' => [], 'antes' => [], 'despues' => []], $diferencias);
+        $this->assertFalse(AuditoriaAcademica::registrarActualizacion('matricula_actualizada', $matricula, $diferencias, 1));
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_matricula_con_fecha_de_otro_dia_si_es_un_cambio_aunque_traiga_hora(): void
+    {
+        $matricula = $this->matricula();
+        $matricula->fill(['fecha_matricula' => '2026-03-02 10:30:00', 'estado' => 'pagada']);
+
+        $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+
+        $this->assertEqualsCanonicalizing(['fecha_matricula', 'estado'], $diferencias['campos']);
+        $this->assertSame('2026-03-01', $diferencias['antes']['fecha_matricula']);
+        $this->assertSame('2026-03-02', $diferencias['despues']['fecha_matricula']);
+    }
+
+    public function test_matricula_una_fecha_con_hora_no_oculta_otros_cambios_reales(): void
+    {
+        $matricula = $this->matricula();
+        $matricula->fill(['fecha_matricula' => '2026-03-01 10:30:00', 'estado' => 'pagada', 'observaciones' => 'PRIVATE-NOTE-2']);
+
+        $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+
+        $this->assertEqualsCanonicalizing(['estado', 'observaciones'], $diferencias['campos']);
+        $this->assertSame(['estado' => 'pendiente'], $diferencias['antes']);
+        $this->assertSame(['estado' => 'pagada'], $diferencias['despues']);
+    }
+
+    public function test_la_normalizacion_de_valores_iguales_no_altera_estudiantes_ni_cursos(): void
+    {
+        $estudiante = $this->persistido();
+        $estudiante->fill(['estado' => 'inactivo', 'fecha_nacimiento' => '2000-04-15 10:30:00']);
+        $dEstudiante = AuditoriaAcademica::diferencias($estudiante, AuditoriaAcademica::ESTUDIANTE);
+        // «fecha_nacimiento» solo lleva su nombre: sigue la regla de siempre (atributo sucio ⇒ se nombra).
+        $this->assertEqualsCanonicalizing(['estado', 'fecha_nacimiento'], $dEstudiante['campos']);
+        $this->assertSame(['estado' => 'activo'], $dEstudiante['antes']);
+
+        $curso = new Curso;
+        $curso->setRawAttributes(['id' => 9, 'codigo' => 'A', 'nombre' => 'N', 'precio' => '250.00', 'cupos_maximos' => 20, 'cupos_disponibles' => 20, 'estado' => 'activo'], true);
+        $curso->exists = true;
+        $curso->fill(['precio' => 300, 'cupos_disponibles' => 5]);
+        $dCurso = AuditoriaAcademica::diferencias($curso, AuditoriaAcademica::CURSO);
+        $this->assertEqualsCanonicalizing(['precio', 'cupos_disponibles'], $dCurso['campos']);
+        $this->assertSame(['precio' => '250.00', 'cupos_disponibles' => 20], $dCurso['antes']);
+        $this->assertSame(['precio' => '300.00', 'cupos_disponibles' => 5], $dCurso['despues']);
     }
 
     public function test_observaciones_solo_registra_el_nombre_y_nunca_el_contenido(): void
@@ -546,5 +620,89 @@ class AuditoriaAcademicaTest extends TestCase
                 $this->assertStringNotContainsString($prohibido, $json);
             }
         }
+    }
+
+    // ---- actorDe (Sprint 21.2, Fase 5): el actor siempre es explícito y válido ----------------------
+
+    public function test_actor_de_devuelve_el_identificador_entero_del_usuario_autenticado(): void
+    {
+        $this->assertSame(7, AuditoriaAcademica::actorDe($this->peticionConIdentificador(7)));
+    }
+
+    public function test_actor_de_acepta_un_identificador_numerico_en_texto_y_lo_convierte_a_entero(): void
+    {
+        $this->assertSame(12, AuditoriaAcademica::actorDe($this->peticionConIdentificador('12')));
+    }
+
+    public function test_actor_de_rechaza_con_403_una_peticion_sin_usuario(): void
+    {
+        $this->assertActorRechazado(Request::create('/'));
+    }
+
+    #[DataProvider('identificadoresInvalidos')]
+    public function test_actor_de_rechaza_con_403_un_identificador_no_numerico(mixed $identificador): void
+    {
+        $this->assertActorRechazado($this->peticionConIdentificador($identificador));
+    }
+
+    /** @return array<string, array{0: mixed}> */
+    public static function identificadoresInvalidos(): array
+    {
+        return ['texto' => ['abc'], 'vacio' => [''], 'mixto' => ['12abc'], 'negativo' => ['-3'], 'nulo' => [null], 'decimal' => [1.5]];
+    }
+
+    private function assertActorRechazado(Request $peticion): void
+    {
+        try {
+            AuditoriaAcademica::actorDe($peticion);
+            $this->fail('actorDe debía rechazar la petición con 403.');
+        } catch (HttpException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+        }
+    }
+
+    private function peticionConIdentificador(mixed $identificador): Request
+    {
+        $usuario = new class($identificador) implements Authenticatable
+        {
+            public function __construct(private readonly mixed $identificador) {}
+
+            public function getAuthIdentifierName(): string
+            {
+                return 'id';
+            }
+
+            public function getAuthIdentifier(): mixed
+            {
+                return $this->identificador;
+            }
+
+            public function getAuthPasswordName(): string
+            {
+                return 'password';
+            }
+
+            public function getAuthPassword(): string
+            {
+                return '';
+            }
+
+            public function getRememberToken(): ?string
+            {
+                return null;
+            }
+
+            public function setRememberToken($value): void {}
+
+            public function getRememberTokenName(): string
+            {
+                return 'remember_token';
+            }
+        };
+
+        $peticion = Request::create('/');
+        $peticion->setUserResolver(static fn () => $usuario);
+
+        return $peticion;
     }
 }

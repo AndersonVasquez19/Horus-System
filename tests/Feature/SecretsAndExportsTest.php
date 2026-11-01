@@ -421,7 +421,9 @@ class SecretsAndExportsTest extends TestCase
 
         $log = AuditLog::where('action', 'matriculas_csv_exported')->firstOrFail();
         $this->assertSame($admin->id, $log->user_id);
-        $this->assertSame('pagada', $log->changes['filters']['estado']);
+        // Sprint 21.2 Fase 4: lista cerrada (sin el bloque `filters` ni el texto de búsqueda).
+        $this->assertSame('pagada', $log->changes['estado']);
+        $this->assertArrayNotHasKey('filters', $log->changes);
     }
 
     // ---- Utilidades -------------------------------------------------------------------------

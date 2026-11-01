@@ -7,10 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMatriculaRequest;
 use App\Http\Requests\UpdateMatriculaRequest;
-use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\AuditoriaAcademica;
 use App\Support\ListFilter;
 use App\Support\SensitiveData;
 use Illuminate\Database\Eloquent\Builder;
@@ -86,9 +86,10 @@ class MatriculaController extends Controller implements HasMiddleware
 
     public function store(StoreMatriculaRequest $request): RedirectResponse
     {
-        $datos = $request->validated();
+        $datos = $this->conIdentificadoresEnteros($request->validated());
+        $actor = AuditoriaAcademica::actorDe($request);
 
-        $matricula = DB::transaction(function () use ($datos): Matricula {
+        $matricula = DB::transaction(function () use ($datos, $actor): Matricula {
             $curso = Curso::withTrashed()
                 ->lockForUpdate()
                 ->findOrFail($datos['curso_id']);
@@ -119,7 +120,18 @@ class MatriculaController extends Controller implements HasMiddleware
                 $curso->decrement('cupos_disponibles');
             }
 
-            return Matricula::create($datos);
+            $matricula = Matricula::create($datos);
+
+            // Última escritura de la transacción: si la auditoría falla se revierten matrícula, cupo e intención de aviso.
+            AuditoriaAcademica::registrarCreacion(
+                'matricula_creada',
+                $matricula,
+                AuditoriaAcademica::MATRICULA,
+                $actor,
+                AuditoriaAcademica::efectoCupo(null, null, $datos['estado'], (int) $curso->id),
+            );
+
+            return $matricula;
         });
 
         return redirect()
@@ -152,11 +164,13 @@ class MatriculaController extends Controller implements HasMiddleware
 
     public function update(UpdateMatriculaRequest $request, Matricula $matricula): RedirectResponse
     {
-        $datos = $request->validated();
+        $datos = $this->conIdentificadoresEnteros($request->validated());
+        $actor = AuditoriaAcademica::actorDe($request);
 
-        $matricula = DB::transaction(function () use ($matricula, $datos, $request): Matricula {
+        $matricula = DB::transaction(function () use ($matricula, $datos, $request, $actor): Matricula {
             $matricula = $this->lockMatricula($matricula->id, (int) $datos['curso_id'], (int) $datos['estudiante_id']);
 
+            $estadoAnterior = (string) $matricula->estado;
             $anteriorActiva = $matricula->estado !== 'anulada';
             $nuevaActiva = $datos['estado'] !== 'anulada';
             if ($anteriorActiva && ! $nuevaActiva) {
@@ -215,7 +229,19 @@ class MatriculaController extends Controller implements HasMiddleware
                 $cursoNuevo->decrement('cupos_disponibles');
             }
 
-            $matricula->update($datos);
+            // Las diferencias se calculan sobre la fila bloqueada, antes de guardar. Anular mediante PUT produce
+            // un único evento «matricula_anulada» con todas las diferencias permitidas, nunca dos eventos.
+            $matricula->fill($datos);
+            $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+            $matricula->save();
+
+            AuditoriaAcademica::registrarActualizacion(
+                $anteriorActiva && ! $nuevaActiva ? 'matricula_anulada' : 'matricula_actualizada',
+                $matricula,
+                $diferencias,
+                $actor,
+                AuditoriaAcademica::efectoCupo($estadoAnterior, $cursoAnteriorId, $datos['estado'], $cursoNuevoId),
+            );
 
             return $matricula;
         });
@@ -225,9 +251,11 @@ class MatriculaController extends Controller implements HasMiddleware
             ->with('success', 'La matrícula se actualizó correctamente.');
     }
 
-    public function destroy(Matricula $matricula): RedirectResponse
+    public function destroy(Request $request, Matricula $matricula): RedirectResponse
     {
-        DB::transaction(function () use ($matricula): void {
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($matricula, $actor): void {
             $matricula = $this->lockMatricula($matricula->id);
 
             if ($matricula->estado !== 'anulada') {
@@ -238,6 +266,16 @@ class MatriculaController extends Controller implements HasMiddleware
             }
 
             $matricula->delete();
+
+            // Última escritura de la transacción. El efecto y el estado salen de la fila bloqueada: eliminar una
+            // vigente libera su cupo; eliminar una anulada no mueve ninguno.
+            AuditoriaAcademica::registrarOperacionMatricula(
+                'matricula_eliminada',
+                $matricula,
+                AuditoriaAcademica::OPERACION_ELIMINACION,
+                AuditoriaAcademica::efectoCupo((string) $matricula->estado, (int) $matricula->curso_id, null, null),
+                $actor,
+            );
         });
 
         return redirect()
@@ -245,17 +283,32 @@ class MatriculaController extends Controller implements HasMiddleware
             ->with('success', 'La matrícula se eliminó correctamente.');
     }
 
-    public function anular(Matricula $matricula): RedirectResponse
+    public function anular(Request $request, Matricula $matricula): RedirectResponse
     {
-        DB::transaction(function () use ($matricula): void {
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($matricula, $actor): void {
             $matricula = $this->lockMatricula($matricula->id);
 
+            // Repetir la anulación no cambia nada, no devuelve cupo otra vez y no genera otro evento.
             if ($matricula->estado !== 'anulada') {
                 $curso = Curso::withTrashed()
                     ->lockForUpdate()
                     ->findOrFail($matricula->curso_id);
                 $curso->increment('cupos_disponibles');
-                $matricula->update(['estado' => 'anulada']);
+
+                $estadoAnterior = (string) $matricula->estado;
+                $matricula->fill(['estado' => 'anulada']);
+                $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+                $matricula->save();
+
+                AuditoriaAcademica::registrarActualizacion(
+                    'matricula_anulada',
+                    $matricula,
+                    $diferencias,
+                    $actor,
+                    AuditoriaAcademica::efectoCupo($estadoAnterior, (int) $curso->id, 'anulada', (int) $curso->id),
+                );
             }
         });
 
@@ -264,9 +317,11 @@ class MatriculaController extends Controller implements HasMiddleware
             ->with('success', 'La matrícula se anuló correctamente.');
     }
 
-    public function restaurar(string $matricula): RedirectResponse
+    public function restaurar(Request $request, string $matricula): RedirectResponse
     {
-        DB::transaction(function () use ($matricula): void {
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($matricula, $actor): void {
             $matricula = $this->lockMatricula($matricula, withTrashed: true);
 
             abort_unless($matricula->trashed(), 404);
@@ -294,6 +349,15 @@ class MatriculaController extends Controller implements HasMiddleware
             }
 
             $matricula->restore();
+
+            // Última escritura de la transacción: restaurar una vigente vuelve a ocupar cupo; una anulada no.
+            AuditoriaAcademica::registrarOperacionMatricula(
+                'matricula_restaurada',
+                $matricula,
+                AuditoriaAcademica::OPERACION_RESTAURACION,
+                AuditoriaAcademica::efectoCupo(null, (int) $matricula->curso_id, (string) $matricula->estado, (int) $matricula->curso_id),
+                $actor,
+            );
         });
 
         return redirect()
@@ -303,13 +367,22 @@ class MatriculaController extends Controller implements HasMiddleware
 
     public function exportarCsv(Request $request): StreamedResponse
     {
+        $actor = AuditoriaAcademica::actorDe($request);
         $matriculas = $this->filteredQuery($request)->orderBy('id');
         $nombreArchivo = 'matriculas_'.now()->format('Ymd_His').'.csv';
 
-        AuditLog::record('matriculas_csv_exported', Matricula::class, null, [
-            'filename' => $nombreArchivo,
-            'filters' => $request->only(['estado', 'curso_id', 'busqueda', 'eliminados']),
-        ]);
+        // Lista cerrada (Sprint 21.2, Fase 4): los filtros efectivos son los mismos de filteredQuery(); el texto
+        // buscado (DNI, nombres…) no se audita, solo si se aplicó una búsqueda.
+        $estado = $request->input('estado');
+        $cursoId = $request->input('curso_id');
+        AuditoriaAcademica::registrarExportacionMatriculas(
+            $nombreArchivo,
+            in_array($estado, ['pendiente', 'pagada', 'anulada'], true) ? $estado : null,
+            is_string($cursoId) && ctype_digit($cursoId) ? (int) $cursoId : null,
+            $request->boolean('eliminados'),
+            ListFilter::text($request, 'busqueda') !== '',
+            $actor,
+        );
 
         return response()->streamDownload(function () use ($matriculas): void {
             $salida = fopen('php://output', 'wb');
@@ -346,6 +419,24 @@ class MatriculaController extends Controller implements HasMiddleware
         }, $nombreArchivo, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    /**
+     * `validated()` no convierte tipos: un formulario HTML envía los identificadores como cadena y los métodos
+     * estrictos (`int $estudianteId`) los rechazarían. Se normalizan una sola vez, justo tras la validación.
+     *
+     * @param  array<string, mixed>  $datos
+     * @return array<string, mixed>
+     */
+    private function conIdentificadoresEnteros(array $datos): array
+    {
+        foreach (['estudiante_id', 'curso_id'] as $campo) {
+            if (array_key_exists($campo, $datos)) {
+                $datos[$campo] = (int) $datos[$campo];
+            }
+        }
+
+        return $datos;
     }
 
     /** @return Builder<Matricula> */
