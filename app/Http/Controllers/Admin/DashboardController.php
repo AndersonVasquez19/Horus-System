@@ -91,13 +91,11 @@ class DashboardController extends Controller
 
         $procesosPendientes = ProcesoInterno::query()->where('estado', 'pendiente')->count();
         $aprobacionesPendientes = AprobacionInterna::query()->where('estado', 'pendiente')->count();
-        $notificacionesPendientes = NotificacionInterna::query()
-            ->where(function ($query): void {
-                $query->where('user_id', auth()->id())
-                    ->orWhereNull('user_id');
-            })
-            ->where('leida', false)
-            ->count();
+        $usuarioActual = auth()->user();
+        // Mismo criterio de visibilidad que la bandeja: personales propias y generales explícitas.
+        $notificacionesPendientes = $usuarioActual instanceof User
+            ? NotificacionInterna::query()->visiblePara($usuarioActual)->where('leida', false)->count()
+            : 0;
 
         $rolActual = auth()->user()->getRoleNames()->first() ?? 'sin-rol';
         $miArea = match ($rolActual) {

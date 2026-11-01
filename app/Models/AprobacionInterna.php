@@ -24,8 +24,7 @@ class AprobacionInterna extends Model
     {
         static::created(function (self $aprobacion): void {
             if ($aprobacion->estado === 'pendiente' && $aprobacion->aprobador_id !== null) {
-                NotificacionInterna::create([
-                    'user_id' => $aprobacion->aprobador_id,
+                NotificacionInterna::crearPersonal((int) $aprobacion->aprobador_id, [
                     'titulo' => 'Nueva solicitud de aprobación',
                     'mensaje' => 'Hay una solicitud pendiente para revisar: '.$aprobacion->titulo,
                     'tipo' => 'warning',
@@ -51,8 +50,7 @@ class AprobacionInterna extends Model
                 default => 'cambió de estado.',
             };
 
-            NotificacionInterna::create([
-                'user_id' => $destinatario,
+            NotificacionInterna::crearPersonal((int) $destinatario, [
                 'titulo' => 'Cambio de aprobación',
                 'mensaje' => 'La solicitud "'.$aprobacion->titulo.'" '.$mensaje,
                 'tipo' => $aprobacion->estado === 'aprobado' ? 'success' : 'danger',

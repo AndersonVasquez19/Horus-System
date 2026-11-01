@@ -126,7 +126,33 @@ class AvisosPlazoReclamacionesTest extends TestCase
         $destinatarios = NotificacionInterna::query()->where('tipo', 'reclamacion_plazo')->pluck('user_id')->all();
         $this->assertEqualsCanonicalizing([$this->admin->id, $conPermiso->id], $destinatarios);
         $this->assertNotContains($sinPermiso->id, $destinatarios);
+        // Una fila personal por destinatario; nunca una general compartida.
+        $this->assertSame(['personal', 'personal'], NotificacionInterna::query()->where('tipo', 'reclamacion_plazo')->pluck('audiencia')->all());
         $this->assertSame(1, $this->auditorias());
+    }
+
+    public function test_si_falla_un_aviso_con_varios_destinatarios_no_queda_ninguno_ni_la_marca(): void
+    {
+        $r = $this->reclamacion();
+        $this->usuarioConPermisos('coordinador', ['reclamaciones.ver']);
+        $this->viajarA('2026-11-11 09:00:00');
+        $antes = $this->conteos();
+        $inserciones = 0;
+        DB::connection()->beforeExecuting(function (string $sql) use (&$inserciones): void {
+            if (str_starts_with($sql, 'insert into "notificaciones_internas"') && ++$inserciones === 2) {
+                throw new RuntimeException('Fallo simulado en el segundo aviso');
+            }
+        });
+
+        try {
+            $this->servicio()->avisarPlazo($r->identificador);
+            $this->fail('Se esperaba el fallo simulado.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Fallo simulado en el segundo aviso', $e->getMessage());
+        }
+
+        $this->assertSame(2, $inserciones);
+        $this->assertSame($antes, $this->conteos(), 'Ni avisos parciales ni marca de auditoría');
     }
 
     public function test_un_responsable_que_ya_no_puede_ver_equivale_a_no_tener_responsable(): void

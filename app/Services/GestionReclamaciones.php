@@ -289,8 +289,7 @@ class GestionReclamaciones
                 $mensaje = 'El plazo de respuesta vence hoy, '.$fecha.'.';
             }
             foreach ($destinatarios as $usuarioId) {
-                NotificacionInterna::query()->create([
-                    'user_id' => $usuarioId,
+                NotificacionInterna::crearPersonal($usuarioId, [
                     'titulo' => $titulo.$r->numero,
                     'mensaje' => $mensaje,
                     'tipo' => 'reclamacion_plazo',
@@ -524,8 +523,7 @@ class GestionReclamaciones
             return;
         }
         foreach (User::permission('reclamaciones.ver')->get() as $usuario) {
-            NotificacionInterna::query()->create([
-                'user_id' => $usuario->id,
+            NotificacionInterna::crearPersonal((int) $usuario->id, [
                 'titulo' => 'Nueva reclamación '.$r->numero,
                 'mensaje' => 'Se registró '.($r->tipo === 'reclamo' ? 'un reclamo' : 'una queja').'. Plazo de respuesta hasta el '.$r->fecha_limite->format('d/m/Y').'.',
                 'tipo' => 'reclamacion',

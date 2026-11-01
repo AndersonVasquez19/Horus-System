@@ -236,6 +236,7 @@ class GestionReclamacionesTest extends TestCase
         $this->registrar();
         $avisos = NotificacionInterna::query()->get();
         $this->assertSame([$this->admin->id], $avisos->pluck('user_id')->all());
+        $this->assertSame(['personal'], $avisos->pluck('audiencia')->all());
         $this->assertStringContainsString('000000001-2026', $avisos[0]->titulo);
         foreach (['Persona', 'Ficticia', 'example.test', '12345678', 'Calle'] as $dato) {
             $this->assertStringNotContainsString($dato, $avisos[0]->titulo.$avisos[0]->mensaje);

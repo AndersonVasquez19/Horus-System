@@ -14,9 +14,13 @@ use Tests\TestCase;
  * Bandeja de notificaciones internas: cada usuario ve las suyas y las generales, nunca las ajenas.
  * Datos ficticios.
  *
+ * Una notificación general se declara con audiencia = 'general' (y user_id nulo). user_id nulo por sí
+ * solo NO implica general: también lo tienen las personales huérfanas y las indeterminadas, que no se
+ * muestran a nadie (ver NotificacionPrivacidadUsuarioEliminadoTest y NotificacionAudienciaTest).
+ *
  * PENDIENTE DE NEGOCIO: el estado "leída" se guarda en la propia notificación. Una notificación
- * general (user_id nulo) marcada como leída por un usuario queda leída para todos. Estas pruebas
- * no fijan ese efecto a propósito; cambiarlo a un estado por usuario requiere decisión específica.
+ * general marcada como leída por un usuario queda leída para todos (lo fija
+ * NotificacionPrivacidadUsuarioEliminadoTest); cambiarlo a un estado por usuario requiere decisión específica.
  */
 class AdminNotificacionTest extends TestCase
 {
@@ -103,8 +107,10 @@ class AdminNotificacionTest extends TestCase
 
     private function notify(?User $user, string $titulo, bool $leida = false): NotificacionInterna
     {
+        // Sin destinatario se declara expresamente como general (user_id NULL ya no implica general).
         return NotificacionInterna::create([
             'user_id' => $user?->id,
+            'audiencia' => $user === null ? 'general' : 'personal',
             'titulo' => $titulo,
             'mensaje' => 'Mensaje ficticio de prueba.',
             'tipo' => 'info',
