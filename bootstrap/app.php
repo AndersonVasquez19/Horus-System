@@ -2,11 +2,14 @@
 
 use App\Http\Middleware\AuthenticateJwt;
 use App\Http\Middleware\DescartarSesionSinVerificar;
+use App\Models\User;
 use App\Support\Testing\TestDatabaseSafety;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Support\Env;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -21,6 +24,11 @@ $app = Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [DescartarSesionSinVerificar::class]);
+        // Usuario ya autenticado en /login o /register: el personal vuelve al panel, no a la portada pública.
+        $middleware->redirectUsersTo(fn (Request $request): string => $request->user() instanceof User
+            && $request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES)
+                ? route('admin.dashboard')
+                : route('home'));
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
