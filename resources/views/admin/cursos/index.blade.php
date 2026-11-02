@@ -5,32 +5,32 @@
 
 @section('content')
     <div class="space-y-6">
-        <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <section class="admin-page-header">
             <div>
-                <p class="text-sm font-semibold uppercase tracking-[0.16em] text-gold-dark">Gestión académica</p>
-                <h1 class="mt-1 text-2xl font-bold text-ink">Cursos</h1>
-                <p class="mt-1 text-sm text-stone-600">Administra la oferta de cursos, modalidades y cupos disponibles.</p>
+                <p class="admin-eyebrow">Gestión académica</p>
+                <h1 class="admin-page-title">Cursos</h1>
+                <p class="admin-page-subtitle">Administra la oferta de cursos, modalidades y cupos disponibles.</p>
             </div>
             @unless ($eliminados)
-                <a href="{{ route('admin.cursos.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark">
+                <a href="{{ route('admin.cursos.create') }}" class="admin-btn-primary">
                     <i class="fa-solid fa-plus" aria-hidden="true"></i>
                     Nuevo curso
                 </a>
             @endunless
         </section>
 
-        <section class="overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm">
-            <div class="border-b border-stone-100 p-4 sm:p-5">
+        <section class="admin-card-flush">
+            <div class="border-b border-[#E2E8F0] p-4 sm:p-5">
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <a href="{{ route('admin.cursos.index') }}" @class([
-                        'rounded-full px-4 py-2 text-sm font-semibold transition',
-                        'bg-ink text-white' => ! $eliminados,
-                        'bg-stone-100 text-stone-600 hover:bg-stone-200' => $eliminados,
+                        'admin-tab',
+                        'admin-tab-active' => ! $eliminados,
+                        'admin-tab-inactive' => $eliminados,
                     ])>Activos y vigentes</a>
                     <a href="{{ route('admin.cursos.index', ['eliminados' => 1]) }}" @class([
-                        'rounded-full px-4 py-2 text-sm font-semibold transition',
-                        'bg-ink text-white' => $eliminados,
-                        'bg-stone-100 text-stone-600 hover:bg-stone-200' => ! $eliminados,
+                        'admin-tab',
+                        'admin-tab-active' => $eliminados,
+                        'admin-tab-inactive' => ! $eliminados,
                     ])>Eliminados</a>
                 </div>
 
@@ -39,9 +39,9 @@
                         <input type="hidden" name="eliminados" value="1">
                     @endif
                     <x-admin.search-input name="busqueda" :value="$busqueda" placeholder="Buscar por código o nombre" />
-                    <label>
+                    <label class="block">
                         <span class="sr-only">Filtrar por categoría</span>
-                        <select name="categoria" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
+                        <select name="categoria" class="admin-select">
                             <option value="">Todas las categorías</option>
                             <option value="tecnologia" @selected($categoria === 'tecnologia')>Tecnología</option>
                             <option value="educacion" @selected($categoria === 'educacion')>Educación</option>
@@ -50,21 +50,21 @@
                             <option value="otros" @selected($categoria === 'otros')>Otros</option>
                         </select>
                     </label>
-                    <label>
+                    <label class="block">
                         <span class="sr-only">Filtrar por estado</span>
-                        <select name="estado" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
+                        <select name="estado" class="admin-select">
                             <option value="">Todos los estados</option>
                             <option value="activo" @selected($estado === 'activo')>Activo</option>
                             <option value="inactivo" @selected($estado === 'inactivo')>Inactivo</option>
                             <option value="archivado" @selected($estado === 'archivado')>Archivado</option>
                         </select>
                     </label>
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800">
-                        <i class="fa-solid fa-filter" aria-hidden="true"></i>
+                    <button type="submit" class="admin-btn-secondary">
+                        <i class="fa-solid fa-filter text-xs text-[#19A7A1]" aria-hidden="true"></i>
                         Filtrar
                     </button>
                     @if ($busqueda !== '' || in_array($categoria, ['tecnologia', 'educacion', 'salud', 'gestion', 'otros'], true) || in_array($estado, ['activo', 'inactivo', 'archivado'], true))
-                        <a href="{{ route('admin.cursos.index', $eliminados ? ['eliminados' => 1] : []) }}" class="inline-flex items-center justify-center rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-600 transition hover:bg-stone-50">
+                        <a href="{{ route('admin.cursos.index', $eliminados ? ['eliminados' => 1] : []) }}" class="admin-btn-outline">
                             Limpiar
                         </a>
                     @endif
@@ -72,7 +72,7 @@
             </div>
 
             @if ($cursos->isEmpty())
-                <div class="p-5">
+                <div class="p-5 sm:p-6">
                     <x-admin.empty-state
                         :title="$eliminados ? 'No hay cursos eliminados' : 'No hay cursos registrados'"
                         :message="$eliminados ? 'Los cursos eliminados aparecerán aquí para que puedas restaurarlos.' : 'Registra el primer curso para comenzar a administrar la oferta académica.'"
@@ -82,52 +82,52 @@
                     />
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[900px] text-left text-sm">
-                        <thead class="sticky top-0 z-10 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+                <div class="admin-table-wrap">
+                    <table class="admin-table min-w-[900px]">
+                        <thead>
                             <tr>
-                                <th class="px-5 py-3 font-semibold">Código / Curso</th>
-                                <th class="px-5 py-3 font-semibold">Categoría</th>
-                                <th class="px-5 py-3 font-semibold">Modalidad</th>
-                                <th class="px-5 py-3 font-semibold">Precio</th>
-                                <th class="px-5 py-3 font-semibold">Cupos</th>
-                                <th class="px-5 py-3 font-semibold">Estado</th>
-                                <th class="px-5 py-3 text-right font-semibold">Acciones</th>
+                                <th scope="col">Código / Curso</th>
+                                <th scope="col">Categoría</th>
+                                <th scope="col">Modalidad</th>
+                                <th scope="col">Precio</th>
+                                <th scope="col">Cupos</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col" class="text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-stone-100">
+                        <tbody>
                             @foreach ($cursos as $curso)
-                                <tr class="transition hover:bg-stone-50">
-                                    <td class="px-5 py-4">
-                                        <span class="block text-xs font-semibold text-gold-dark">{{ $curso->codigo }}</span>
-                                        <span class="mt-1 block font-semibold text-ink">{{ $curso->nombre }}</span>
+                                <tr>
+                                    <td>
+                                        <span class="block text-xs font-semibold text-[#176B9A]">{{ $curso->codigo }}</span>
+                                        <span class="mt-0.5 block font-semibold text-[#172B3A]">{{ $curso->nombre }}</span>
                                     </td>
-                                    <td class="px-5 py-4 capitalize text-stone-600">{{ str_replace('_', ' ', $curso->categoria) }}</td>
-                                    <td class="px-5 py-4 capitalize text-stone-600">{{ $curso->modalidad }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-stone-600">S/ {{ number_format((float) $curso->precio, 2, '.', ',') }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-stone-600">{{ $curso->cupos_disponibles }} / {{ $curso->cupos_maximos }}</td>
-                                    <td class="px-5 py-4">
+                                    <td class="capitalize">{{ str_replace('_', ' ', $curso->categoria) }}</td>
+                                    <td class="capitalize">{{ $curso->modalidad }}</td>
+                                    <td class="whitespace-nowrap font-semibold text-[#172B3A]">S/ {{ number_format((float) $curso->precio, 2, '.', ',') }}</td>
+                                    <td class="whitespace-nowrap">{{ $curso->cupos_disponibles }} / {{ $curso->cupos_maximos }}</td>
+                                    <td>
                                         @if ($curso->trashed())
-                                            <span class="inline-flex rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminado</span>
+                                            <span class="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminado</span>
                                         @else
                                             <x-admin.badge-estado :estado="$curso->estado" />
                                         @endif
                                     </td>
-                                    <td class="px-5 py-4">
+                                    <td>
                                         <div class="flex items-center justify-end gap-1">
                                             @if ($curso->trashed())
                                                 <form method="POST" action="{{ route('admin.cursos.restaurar', $curso->id) }}">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button type="submit" title="Restaurar curso" aria-label="Restaurar curso" class="flex h-9 w-9 items-center justify-center rounded-lg text-green-700 transition hover:bg-green-50">
+                                                    <button type="submit" title="Restaurar curso" aria-label="Restaurar curso" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
                                                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                                                     </button>
                                                 </form>
                                             @else
-                                                <a href="{{ route('admin.cursos.show', $curso) }}" title="Ver curso" aria-label="Ver curso" class="flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-gold/10 hover:text-ink">
+                                                <a href="{{ route('admin.cursos.show', $curso) }}" title="Ver curso" aria-label="Ver curso" class="admin-action-btn">
                                                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                                 </a>
-                                                <a href="{{ route('admin.cursos.edit', $curso) }}" title="Editar curso" aria-label="Editar curso" class="flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-gold/10 hover:text-ink">
+                                                <a href="{{ route('admin.cursos.edit', $curso) }}" title="Editar curso" aria-label="Editar curso" class="admin-action-btn">
                                                     <i class="fa-solid fa-pen" aria-hidden="true"></i>
                                                 </a>
                                                 <button
@@ -135,13 +135,13 @@
                                                     title="Desactivar curso"
                                                     aria-label="Desactivar curso"
                                                     @click="$dispatch('open-confirm-modal', { title: 'Desactivar curso', message: 'El curso se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.cursos.destroy', $curso) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
-                                                    class="flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
                                                 >
                                                     <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                                                 </button>
                                             @endif
                                             @can('cursos.publicar')
-                                                <a href="{{ route('admin.cursos.publicacion.edit', $curso) }}" title="Publicación del curso" aria-label="Publicación del curso {{ $curso->codigo }}" class="flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-gold/10 hover:text-ink">
+                                                <a href="{{ route('admin.cursos.publicacion.edit', $curso) }}" title="Publicación del curso" aria-label="Publicación del curso {{ $curso->codigo }}" class="admin-action-btn">
                                                     <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
                                                 </a>
                                             @endcan
@@ -153,9 +153,11 @@
                     </table>
                 </div>
 
-                <div class="border-t border-stone-100 px-5 py-4">
-                    <x-admin.pagination :paginator="$cursos" />
-                </div>
+                @if ($cursos->hasPages())
+                    <div class="border-t border-[#E2E8F0] px-5 py-4">
+                        <x-admin.pagination :paginator="$cursos" />
+                    </div>
+                @endif
             @endif
         </section>
     </div>

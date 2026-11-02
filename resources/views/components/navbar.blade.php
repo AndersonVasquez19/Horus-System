@@ -5,7 +5,7 @@
       <span class="text-base font-semibold tracking-wide text-white">Horus Group SRL</span>
     </a>
 
-    <button type="button" @click="toggleMenu()" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 lg:hidden" aria-label="Abrir menú">
+    <button type="button" @click="toggleMenu()" aria-expanded="false" :aria-expanded="open.toString()" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 lg:hidden" aria-label="Abrir menú">
       <span class="space-y-1.5">
         <span class="block h-0.5 w-5 rounded-full bg-current"></span>
         <span class="block h-0.5 w-5 rounded-full bg-current"></span>

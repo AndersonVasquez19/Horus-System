@@ -1,52 +1,107 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de matrículas</title>
-    <style>
-        body { font-family: Arial, sans-serif; color: #1c1917; }
-        h1 { font-size: 22px; margin-bottom: 8px; }
-        p { color: #57534e; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #e7e5e4; padding: 8px; font-size: 12px; text-align: left; }
-        th { background: #f5f5f4; }
-        thead { display: table-header-group; }
-        tr { page-break-inside: avoid; }
-        td { overflow-wrap: anywhere; }
-    </style>
-</head>
-<body>
-    <h1>Reporte de matrículas</h1>
-    <p>Generado el {{ $fecha }}</p>
-    @include('admin.reportes._alcance')
-    <p>Orden: fecha de matrícula descendente, luego ID descendente.</p>
+@extends('pdf.layout')
 
-    <table>
+@section('title', 'Reporte de Matrículas &middot; Horus Group SRL')
+
+@section('content')
+    @php
+        $documentoIdentificador = 'Reporte de Matrículas';
+    @endphp
+
+    @include('pdf.header', [
+        'titulo' => 'Reporte de Matrículas',
+        'subtitulo' => 'Consolidado institucional y control académico de registros',
+    ])
+
+    {{-- Bloque de información y metadatos del documento --}}
+    <div class="meta-card">
+        <table class="meta-table">
+            <tr>
+                <td style="width: 25%;">
+                    <span class="meta-label">Fecha de emisión</span>
+                    <span class="meta-value">Generado el {{ $fecha }}</span>
+                </td>
+                <td style="width: 25%;">
+                    <span class="meta-label">Total en sistema</span>
+                    <span class="meta-value">Total de coincidencias: {{ $matriculas->total() }}</span>
+                </td>
+                <td style="width: 28%;">
+                    <span class="meta-label">Alcance del lote</span>
+                    <span class="meta-value">Registros incluidos: {{ $matriculas->count() }} &middot; Rango {{ $matriculas->firstItem() ?? 0 }}–{{ $matriculas->lastItem() ?? 0 }}</span>
+                </td>
+                <td style="width: 22%;">
+                    <span class="meta-label">Lote consultado</span>
+                    <span class="meta-value">Lote {{ $matriculas->currentPage() }} de {{ $matriculas->lastPage() }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <span class="meta-label">Búsqueda aplicada</span>
+                    <span class="meta-value">Búsqueda: {{ $filtros['busqueda'] ?? 'Sin búsqueda' }}</span>
+                </td>
+                <td>
+                    <span class="meta-label">Filtro de estado</span>
+                    <span class="meta-value">Estado: {{ isset($filtros['estado']) ? ucfirst($filtros['estado']) : 'Todos' }}</span>
+                </td>
+                <td>
+                    <span class="meta-label">Filtro de curso</span>
+                    <span class="meta-value">Curso: {{ isset($cursoFiltro) ? $cursoFiltro->codigo.' · '.$cursoFiltro->nombre : 'Todos' }}</span>
+                </td>
+                <td>
+                    <span class="meta-label">Capacidad de lote</span>
+                    <span class="meta-value">Máximo {{ $limitePdf }} registros por PDF</span>
+                </td>
+            </tr>
+            @if (!empty($filtros['eliminados']))
+            <tr>
+                <td colspan="4" style="padding-top: 4px;">
+                    <span class="meta-label">Condición especial</span>
+                    <span class="meta-value" style="color: #B91C1C;">Solo matrículas eliminadas</span>
+                </td>
+            </tr>
+            @endif
+        </table>
+        @if ($matriculas->lastPage() > 1)
+            <div class="meta-notice">
+                Este PDF incluye un solo lote. Descarga los demás lotes desde el panel de reportes para obtener todas las coincidencias.
+            </div>
+        @endif
+    </div>
+
+    <p class="order-note">Orden: fecha de matrícula descendente, luego ID descendente.</p>
+
+    {{-- Tabla de registros estructurada y estilizada --}}
+    <table class="data-table">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Estudiante</th>
-                <th>Curso</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Monto</th>
+                <th class="text-center" style="width: 6%;">ID</th>
+                <th class="text-left" style="width: 28%;">Estudiante</th>
+                <th class="text-left" style="width: 31%;">Curso</th>
+                <th class="text-center" style="width: 12%;">Fecha</th>
+                <th class="text-center" style="width: 11%;">Estado</th>
+                <th class="text-right" style="width: 12%;">Monto</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($matriculas as $matricula)
                 <tr>
-                    <td>{{ $matricula->id }}</td>
-                    <td>{{ $matricula->estudiante?->nombres }} {{ $matricula->estudiante?->apellidos }}</td>
-                    <td>{{ $matricula->curso?->nombre }}</td>
-                    <td>{{ $matricula->fecha_matricula?->format('d/m/Y') }}</td>
-                    <td>{{ $matricula->estado }}</td>
-                    <td>{{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}</td>
+                    <td class="text-center font-semibold">{{ $matricula->id }}</td>
+                    <td class="text-left">
+                        <span class="font-bold text-dark">{{ $matricula->estudiante?->nombres }} {{ $matricula->estudiante?->apellidos }}</span>
+                    </td>
+                    <td class="text-left">{{ $matricula->curso?->nombre }}</td>
+                    <td class="text-center">{{ $matricula->fecha_matricula?->format('d/m/Y') }}</td>
+                    <td class="text-center">
+                        @include('pdf.badge-estado', ['estado' => $matricula->estado])
+                    </td>
+                    <td class="text-right font-semibold">
+                        {{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}
+                    </td>
                 </tr>
             @empty
-                <tr><td colspan="6">No hay matrículas que coincidan con los filtros.</td></tr>
+                <tr>
+                    <td colspan="6" class="data-table-empty">No hay matrículas que coincidan con los filtros.</td>
+                </tr>
             @endforelse
         </tbody>
     </table>
-</body>
-</html>
+@endsection

@@ -6,14 +6,14 @@
     'icon' => 'fa-folder-open',
 ])
 
-<div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center">
-    <span class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gold/10 text-2xl text-gold-dark">
+<div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E2E8F0] bg-[#F4F7FB]/70 px-6 py-10 text-center">
+    <span class="mb-3.5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#176B9A]/20 bg-[#176B9A]/10 text-xl text-[#176B9A] shadow-sm">
         <i class="fa-solid {{ $icon }}" aria-hidden="true"></i>
     </span>
-    <h2 class="text-lg font-semibold text-ink">{{ $title }}</h2>
-    <p class="mt-2 max-w-md text-sm leading-6 text-stone-500">{{ $message }}</p>
+    <h2 class="text-base font-bold text-[#172B3A]">{{ $title }}</h2>
+    <p class="mt-1.5 max-w-md text-sm leading-6 text-[#64748B]">{{ $message }}</p>
     @if ($actionUrl && $actionText)
-        <a href="{{ $actionUrl }}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark">
+        <a href="{{ $actionUrl }}" class="admin-btn-primary mt-5">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
             {{ $actionText }}
         </a>

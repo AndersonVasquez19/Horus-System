@@ -11,6 +11,7 @@
   --primary-medium: #2563A8;
   --accent-gold: #C9A961;
   --accent-gold-dark: #B8956A;
+  --accent-gold-text: #856424;
   --accent-light: #E8DCC4;
   --white: #FFFFFF;
   --black: #0F1419;
@@ -19,6 +20,15 @@
   --gray-dark: #4A5568;
   --text-primary: #1A202C;
   --text-secondary: #4A5568;
+  --admin-navy: #0A2540;
+  --admin-blue: #176B9A;
+  --admin-blue-mid: #287FB5;
+  --admin-teal: #19A7A1;
+  --admin-bg: #F4F7FB;
+  --admin-surface-card: #FFFFFF;
+  --admin-text: #172B3A;
+  --admin-muted: #64748B;
+  --admin-border: #E2E8F0;
 }
 
 body {
@@ -111,46 +121,6 @@ body {
   display: none !important;
 }
 
-.horus-chat-panel {
-  width: min(25rem, calc(100vw - 1.5rem));
-  height: min(37rem, calc(100dvh - 7.5rem));
-}
-
-.horus-chat-greeting::after {
-  content: '';
-  position: absolute;
-  right: 1.8rem;
-  bottom: -0.45rem;
-  width: 0.8rem;
-  height: 0.8rem;
-  background: white;
-  border-right: 1px solid #E5D2A0;
-  border-bottom: 1px solid #E5D2A0;
-  transform: rotate(45deg);
-}
-
-.horus-chat-mascot {
-  transform-origin: 55% 90%;
-  animation: horus-wave 2.2s ease-in-out 1;
-}
-
-.horus-chat-launcher:hover .horus-chat-mascot {
-  animation: horus-wave 1.3s ease-in-out infinite;
-}
-
-@keyframes horus-wave {
-  0%, 60%, 100% { transform: rotate(0deg); }
-  15% { transform: rotate(-7deg); }
-  30% { transform: rotate(6deg); }
-  45% { transform: rotate(-4deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .horus-chat-mascot,
-  .horus-chat-launcher:hover .horus-chat-mascot {
-    animation: none;
-  }
-}
 
 img {
   @apply block max-w-full;
@@ -250,6 +220,7 @@ img {
   .site-brand-logo--footer { @apply h-12 w-12; }
 
 
+
   .auth-scene { @apply relative flex min-h-screen items-center justify-center overflow-x-hidden bg-[#071727] px-4 py-10 font-sans text-ink sm:px-8; background-image: radial-gradient(ellipse at 16% 10%, rgba(201,169,97,.22), transparent 35%), radial-gradient(ellipse at 90% 90%, rgba(37,99,168,.3), transparent 36%), linear-gradient(135deg,#071727,#0A2540 55%,#102D49); }
   .auth-orbit { @apply pointer-events-none absolute rounded-full border border-gold/10; }
   .auth-orbit--one { @apply -left-32 -top-40 h-[420px] w-[420px]; }
@@ -306,6 +277,150 @@ img {
   .auth-security i { @apply text-gold-dark; }
   .auth-security b { @apply px-0.5 text-gold; }
   .auth-copyright { @apply absolute bottom-2 left-0 right-0 text-center text-[10px] tracking-wide text-white/45; }
+}
+
+/* ===== Sistema de diseño administrativo Horus ===== */
+.admin-card {
+  @apply rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_2px_12px_rgba(10,37,64,0.04)] sm:p-6;
+}
+
+.admin-card-flush {
+  @apply overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_2px_12px_rgba(10,37,64,0.04)];
+}
+
+.admin-eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.16em] text-[#176B9A];
+}
+
+.admin-label {
+  @apply mb-2 block text-sm font-semibold text-[#172B3A];
+}
+
+.admin-input,
+.admin-select,
+.admin-textarea {
+  @apply min-h-11 w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm text-[#172B3A] outline-none transition placeholder:text-[#64748B] focus:border-[#176B9A] focus:ring-2 focus:ring-[#176B9A]/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+}
+
+.admin-textarea {
+  @apply py-3;
+}
+
+.admin-help {
+  @apply mt-1.5 text-xs leading-5 text-[#64748B];
+}
+
+.admin-error {
+  @apply mt-1.5 text-sm text-red-600;
+}
+
+.admin-btn,
+.admin-btn-primary,
+.admin-btn-secondary,
+.admin-btn-outline,
+.admin-btn-danger {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A] disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.admin-btn-primary {
+  @apply bg-[#176B9A] text-white shadow-sm shadow-[#176B9A]/20 hover:bg-[#0A2540];
+}
+
+.admin-btn-secondary {
+  @apply bg-[#0A2540] text-white shadow-sm shadow-[#0A2540]/15 hover:bg-[#176B9A];
+}
+
+.admin-btn-outline {
+  @apply border border-[#E2E8F0] bg-white text-[#172B3A] hover:border-[#287FB5]/40 hover:bg-[#F4F7FB] hover:text-[#176B9A];
+}
+
+.admin-btn-danger {
+  @apply border border-red-200 bg-red-50 text-red-700 hover:bg-red-100;
+}
+
+.admin-icon-btn {
+  @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#64748B] transition hover:bg-[#176B9A]/10 hover:text-[#176B9A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A] disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.admin-surface {
+  background-color: #F4F7FB;
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(23, 107, 154, 0.06), rgba(25, 167, 161, 0.03) 45%, transparent 70%);
+}
+
+.admin-card-header {
+  @apply flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-5 py-4 sm:px-6;
+}
+
+.admin-stat-card {
+  @apply relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_2px_10px_rgba(10,37,64,0.04)] transition duration-200 hover:-translate-y-0.5 hover:border-[#287FB5]/40 hover:shadow-[0_10px_24px_rgba(10,37,64,0.08)] sm:p-6;
+}
+
+.admin-table-wrap {
+  @apply w-full overflow-x-auto;
+}
+
+.admin-table {
+  @apply w-full text-left text-sm text-[#172B3A];
+}
+
+.admin-table thead {
+  @apply border-b border-[#E2E8F0] bg-[#F4F7FB] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B];
+}
+
+.admin-table th {
+  @apply whitespace-nowrap px-4 py-3.5 font-semibold sm:px-5;
+}
+
+.admin-table tbody {
+  @apply divide-y divide-[#E2E8F0];
+}
+
+.admin-table tbody tr {
+  @apply transition-colors hover:bg-[#F4F7FB]/80;
+}
+
+.admin-table td {
+  @apply px-4 py-3.5 align-middle text-[#64748B] sm:px-5;
+}
+
+.admin-input.pl-10 {
+  padding-left: 2.5rem;
+}
+
+.admin-page-header {
+  @apply flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between;
+}
+
+.admin-page-title {
+  @apply mt-1 text-2xl font-bold tracking-tight text-[#172B3A];
+}
+
+.admin-page-subtitle {
+  @apply mt-1 text-sm text-[#64748B];
+}
+
+.admin-back-link {
+  @apply inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] transition hover:text-[#176B9A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A];
+}
+
+.admin-tab {
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A];
+}
+
+.admin-tab-active {
+  @apply bg-[#0A2540] text-white shadow-sm shadow-[#0A2540]/15;
+}
+
+.admin-tab-inactive {
+  @apply bg-[#F4F7FB] text-[#64748B] hover:bg-[#E2E8F0]/70 hover:text-[#172B3A];
+}
+
+.admin-action-btn {
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-[#64748B] transition hover:border-[#287FB5]/25 hover:bg-[#176B9A]/10 hover:text-[#176B9A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A];
+}
+
+.admin-checkbox {
+  @apply h-4 w-4 rounded border-[#CBD5E1] text-[#176B9A] focus:ring-[#176B9A]/30;
 }
 
 @keyframes auth-arrive { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }

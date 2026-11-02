@@ -33,9 +33,9 @@
     <div>
       <h3 class="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">Síguenos</h3>
       <div class="footer-social mb-4 flex flex-wrap items-center gap-3 text-lg text-stone-200">
-        <a href="https://www.facebook.com/share/174BEdCReB/" target="_blank" rel="noopener" class="social-btn"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="https://www.facebook.com/share/174BEdCReB/" target="_blank" rel="noopener noreferrer" aria-label="Facebook de Horus Group" title="Facebook" class="social-btn"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
         {{-- TODO: confirmar número --}}
-        <a href="https://wa.me/51927582305" target="_blank" rel="noopener" class="social-btn"><i class="fa-brands fa-whatsapp"></i></a>
+        <a href="https://wa.me/51927582305" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp de Horus Group" title="WhatsApp" class="social-btn"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
         <a href="https://www.instagram.com/horusgroupsrl/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Horus Group" title="Instagram" class="social-btn"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
         <a href="https://www.tiktok.com/@horus.group.srl?lang=es" target="_blank" rel="noopener noreferrer" aria-label="TikTok de Horus Group" title="TikTok" class="social-btn"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
         <a href="https://www.youtube.com/@HORUSGROUPSRL" target="_blank" rel="noopener noreferrer" aria-label="YouTube de Horus Group" title="YouTube" class="social-btn"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>

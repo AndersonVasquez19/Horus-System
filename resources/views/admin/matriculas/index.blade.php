@@ -5,21 +5,21 @@
 
 @section('content')
     <div class="space-y-6">
-        <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <section class="admin-page-header">
             <div>
-                <p class="text-sm font-semibold uppercase tracking-[0.16em] text-gold-dark">Gestión académica</p>
-                <h1 class="mt-1 text-2xl font-bold text-ink">Matrículas</h1>
-                <p class="mt-1 text-sm text-stone-600">Controla las inscripciones y los cupos de los cursos.</p>
+                <p class="admin-eyebrow">Gestión académica</p>
+                <h1 class="admin-page-title">Matrículas</h1>
+                <p class="admin-page-subtitle">Controla las inscripciones y los cupos de los cursos.</p>
             </div>
             <div class="flex flex-wrap gap-3">
                 @can('matriculas.exportar')
-                    <a href="{{ route('admin.matriculas.csv', request()->query()) }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-gold px-4 py-2.5 text-sm font-semibold text-gold-dark transition hover:bg-gold/10">
-                        <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
+                    <a href="{{ route('admin.matriculas.csv', request()->query()) }}" class="admin-btn-outline">
+                        <i class="fa-solid fa-file-csv text-[#19A7A1]" aria-hidden="true"></i>
                         Exportar CSV
                     </a>
                 @endcan
                 @unless ($eliminados)
-                    <a href="{{ route('admin.matriculas.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark">
+                    <a href="{{ route('admin.matriculas.create') }}" class="admin-btn-primary">
                         <i class="fa-solid fa-plus" aria-hidden="true"></i>
                         Nueva matrícula
                     </a>
@@ -27,38 +27,38 @@
             </div>
         </section>
 
-        <section class="overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm">
-            <div class="border-b border-stone-100 p-4 sm:p-5">
+        <section class="admin-card-flush">
+            <div class="border-b border-[#E2E8F0] p-4 sm:p-5">
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <a href="{{ route('admin.matriculas.index') }}" @class([
-                        'rounded-full px-4 py-2 text-sm font-semibold transition',
-                        'bg-ink text-white' => ! $eliminados,
-                        'bg-stone-100 text-stone-600 hover:bg-stone-200' => $eliminados,
+                        'admin-tab',
+                        'admin-tab-active' => ! $eliminados,
+                        'admin-tab-inactive' => $eliminados,
                     ])>Vigentes</a>
                     <a href="{{ route('admin.matriculas.index', ['eliminados' => 1]) }}" @class([
-                        'rounded-full px-4 py-2 text-sm font-semibold transition',
-                        'bg-ink text-white' => $eliminados,
-                        'bg-stone-100 text-stone-600 hover:bg-stone-200' => ! $eliminados,
+                        'admin-tab',
+                        'admin-tab-active' => $eliminados,
+                        'admin-tab-inactive' => ! $eliminados,
                     ])>Eliminadas</a>
                 </div>
 
-                <form method="GET" action="{{ route('admin.matriculas.index') }}" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_190px_200px_auto_auto]">
+                <form method="GET" action="{{ route('admin.matriculas.index') }}" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_190px_210px_auto_auto]">
                     @if ($eliminados)
                         <input type="hidden" name="eliminados" value="1">
                     @endif
                     <x-admin.search-input name="busqueda" :value="$busqueda" placeholder="Buscar por estudiante o curso" />
-                    <label>
+                    <label class="block">
                         <span class="sr-only">Filtrar por estado</span>
-                        <select name="estado" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
+                        <select name="estado" class="admin-select">
                             <option value="">Todos los estados</option>
                             <option value="pendiente" @selected($estado === 'pendiente')>Pendiente</option>
                             <option value="pagada" @selected($estado === 'pagada')>Pagada</option>
                             <option value="anulada" @selected($estado === 'anulada')>Anulada</option>
                         </select>
                     </label>
-                    <label>
+                    <label class="block">
                         <span class="sr-only">Filtrar por curso</span>
-                        <select name="curso_id" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
+                        <select name="curso_id" class="admin-select">
                             <option value="">Todos los cursos</option>
                             @foreach ($cursos as $curso)
                                 <option value="{{ $curso->id }}" @selected((string) $cursoId === (string) $curso->id)>
@@ -67,12 +67,12 @@
                             @endforeach
                         </select>
                     </label>
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800">
-                        <i class="fa-solid fa-filter" aria-hidden="true"></i>
+                    <button type="submit" class="admin-btn-secondary">
+                        <i class="fa-solid fa-filter text-xs text-[#19A7A1]" aria-hidden="true"></i>
                         Filtrar
                     </button>
                     @if ($busqueda !== '' || in_array($estado, ['pendiente', 'pagada', 'anulada'], true) || $cursoId !== null)
-                        <a href="{{ route('admin.matriculas.index', $eliminados ? ['eliminados' => 1] : []) }}" class="inline-flex items-center justify-center rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-600 transition hover:bg-stone-50">
+                        <a href="{{ route('admin.matriculas.index', $eliminados ? ['eliminados' => 1] : []) }}" class="admin-btn-outline">
                             Limpiar
                         </a>
                     @endif
@@ -80,7 +80,7 @@
             </div>
 
             @if ($matriculas->isEmpty())
-                <div class="p-5">
+                <div class="p-5 sm:p-6">
                     <x-admin.empty-state
                         :title="$eliminados ? 'No hay matrículas eliminadas' : 'No hay matrículas registradas'"
                         :message="$eliminados ? 'Las matrículas eliminadas aparecerán aquí para que puedas restaurarlas.' : 'Las matrículas registradas aparecerán en esta lista.'"
@@ -90,55 +90,55 @@
                     />
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[900px] text-left text-sm">
-                        <thead class="sticky top-16 z-10 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+                <div class="admin-table-wrap">
+                    <table class="admin-table min-w-[900px]">
+                        <thead>
                             <tr>
-                                <th class="px-5 py-3 font-semibold">Estudiante</th>
-                                <th class="px-5 py-3 font-semibold">Curso</th>
-                                <th class="px-5 py-3 font-semibold">Fecha</th>
-                                <th class="px-5 py-3 font-semibold">Estado</th>
-                                <th class="px-5 py-3 font-semibold">Monto</th>
-                                <th class="px-5 py-3 text-right font-semibold">Acciones</th>
+                                <th scope="col">Estudiante</th>
+                                <th scope="col">Curso</th>
+                                <th scope="col">Fecha</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col">Monto</th>
+                                <th scope="col" class="text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-stone-100">
+                        <tbody>
                             @foreach ($matriculas as $matricula)
-                                <tr class="transition hover:bg-stone-50">
-                                    <td class="px-5 py-4">
-                                        <span class="block font-semibold text-ink">{{ $matricula->estudiante?->nombres }} {{ $matricula->estudiante?->apellidos }}</span>
-                                        <span class="mt-1 block text-xs text-stone-500">{{ $matricula->estudiante?->dni ?? 'Estudiante no disponible' }}</span>
+                                <tr>
+                                    <td>
+                                        <span class="block font-semibold text-[#172B3A]">{{ $matricula->estudiante?->nombres }} {{ $matricula->estudiante?->apellidos }}</span>
+                                        <span class="mt-0.5 block text-xs text-[#64748B]">{{ $matricula->estudiante?->dni ?? 'Estudiante no disponible' }}</span>
                                     </td>
-                                    <td class="px-5 py-4">
-                                        <span class="block font-medium text-ink">{{ $matricula->curso?->nombre ?? 'Curso no disponible' }}</span>
-                                        <span class="mt-1 block text-xs text-stone-500">{{ $matricula->curso?->codigo }}</span>
+                                    <td>
+                                        <span class="block font-medium text-[#172B3A]">{{ $matricula->curso?->nombre ?? 'Curso no disponible' }}</span>
+                                        <span class="mt-0.5 block text-xs font-medium text-[#176B9A]">{{ $matricula->curso?->codigo }}</span>
                                     </td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-stone-600">{{ $matricula->fecha_matricula->format('d/m/Y') }}</td>
-                                    <td class="px-5 py-4">
+                                    <td class="whitespace-nowrap">{{ $matricula->fecha_matricula->format('d/m/Y') }}</td>
+                                    <td>
                                         @if ($matricula->trashed())
-                                            <span class="inline-flex rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminada</span>
+                                            <span class="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminada</span>
                                         @else
                                             <x-admin.badge-estado :estado="$matricula->estado" />
                                         @endif
                                     </td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-stone-600">
+                                    <td class="whitespace-nowrap font-semibold text-[#172B3A]">
                                         {{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}
                                     </td>
-                                    <td class="px-5 py-4">
+                                    <td>
                                         <div class="flex items-center justify-end gap-1">
                                             @if ($matricula->trashed())
                                                 <form method="POST" action="{{ route('admin.matriculas.restaurar', $matricula->id) }}">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button type="submit" title="Restaurar matrícula" aria-label="Restaurar matrícula" class="flex h-9 w-9 items-center justify-center rounded-lg text-green-700 transition hover:bg-green-50">
+                                                    <button type="submit" title="Restaurar matrícula" aria-label="Restaurar matrícula" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
                                                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                                                     </button>
                                                 </form>
                                             @else
-                                                <a href="{{ route('admin.matriculas.show', $matricula) }}" title="Ver matrícula" aria-label="Ver matrícula" class="flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-gold/10 hover:text-ink">
+                                                <a href="{{ route('admin.matriculas.show', $matricula) }}" title="Ver matrícula" aria-label="Ver matrícula" class="admin-action-btn">
                                                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                                 </a>
-                                                <a href="{{ route('admin.matriculas.edit', $matricula) }}" title="Editar matrícula" aria-label="Editar matrícula" class="flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-gold/10 hover:text-ink">
+                                                <a href="{{ route('admin.matriculas.edit', $matricula) }}" title="Editar matrícula" aria-label="Editar matrícula" class="admin-action-btn">
                                                     <i class="fa-solid fa-pen" aria-hidden="true"></i>
                                                 </a>
                                                 @if ($matricula->estado !== 'anulada')
@@ -147,7 +147,7 @@
                                                         title="Anular matrícula"
                                                         aria-label="Anular matrícula"
                                                         @click="$dispatch('open-confirm-modal', { title: 'Anular matrícula', message: 'Al anular esta matrícula se liberará un cupo del curso.', action: '{{ route('admin.matriculas.anular', $matricula) }}', method: 'PATCH', confirmText: 'Sí, anular' })"
-                                                        class="flex h-9 w-9 items-center justify-center rounded-lg text-amber-700 transition hover:bg-amber-50"
+                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-700 transition hover:bg-amber-50"
                                                     >
                                                         <i class="fa-solid fa-ban" aria-hidden="true"></i>
                                                     </button>
@@ -158,7 +158,7 @@
                                                         title="Eliminar matrícula"
                                                         aria-label="Eliminar matrícula"
                                                         @click="$dispatch('open-confirm-modal', { title: 'Eliminar matrícula', message: 'El registro se ocultará de la lista principal. Si estaba activa, su cupo será liberado.', action: '{{ route('admin.matriculas.destroy', $matricula) }}', method: 'DELETE', confirmText: 'Sí, eliminar' })"
-                                                        class="flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
                                                     >
                                                         <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                                                     </button>
@@ -172,9 +172,11 @@
                     </table>
                 </div>
 
-                <div class="border-t border-stone-100 px-5 py-4">
-                    <x-admin.pagination :paginator="$matriculas" />
-                </div>
+                @if ($matriculas->hasPages())
+                    <div class="border-t border-[#E2E8F0] px-5 py-4">
+                        <x-admin.pagination :paginator="$matriculas" />
+                    </div>
+                @endif
             @endif
         </section>
     </div>

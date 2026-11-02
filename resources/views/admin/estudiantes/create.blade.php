@@ -6,15 +6,15 @@
 @section('content')
     <div class="mx-auto max-w-3xl space-y-6">
         <section>
-            <a href="{{ route('admin.estudiantes.index') }}" class="inline-flex items-center gap-2 text-sm font-medium text-stone-500 transition hover:text-ink">
+            <a href="{{ route('admin.estudiantes.index') }}" class="admin-back-link">
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 Volver a estudiantes
             </a>
-            <h1 class="mt-3 text-2xl font-bold text-ink">Nuevo estudiante</h1>
-            <p class="mt-1 text-sm text-stone-600">Completa los datos para registrar a un estudiante.</p>
+            <h1 class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nuevo estudiante</h1>
+            <p class="admin-page-subtitle">Completa los datos para registrar a un estudiante.</p>
         </section>
 
-        <section class="rounded-2xl border border-gold/20 bg-white p-5 shadow-sm sm:p-8">
+        <section class="admin-card sm:p-8">
             @if ($errors->any())
                 <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
                     <p class="font-semibold">Revisa los siguientes campos:</p>
@@ -29,11 +29,11 @@
             <form method="POST" action="{{ route('admin.estudiantes.store') }}" class="space-y-6">
                 @csrf
                 @include('admin.estudiantes._form')
-                <div class="flex flex-col-reverse gap-3 border-t border-stone-100 pt-5 sm:flex-row sm:justify-end">
-                    <a href="{{ route('admin.estudiantes.index') }}" class="inline-flex items-center justify-center rounded-xl border border-gold px-5 py-2.5 text-sm font-semibold text-gold-dark transition hover:bg-gold/10">
+                <div class="flex flex-col-reverse gap-3 border-t border-[#E2E8F0] pt-5 sm:flex-row sm:justify-end">
+                    <a href="{{ route('admin.estudiantes.index') }}" class="admin-btn-outline">
                         Cancelar
                     </a>
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-gold-dark">
+                    <button type="submit" class="admin-btn-primary">
                         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                         Guardar estudiante
                     </button>

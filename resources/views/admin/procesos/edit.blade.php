@@ -2,38 +2,38 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Editar proceso')
-@section('breadcrumb', 'Procesos internos')
+@section('breadcrumb', 'Procesos internos / Editar')
 
 @section('content')
     <div class="mx-auto max-w-4xl space-y-6">
-        <div class="flex items-center justify-between gap-3">
+        <div class="admin-page-header">
             <div>
-                <p class="text-sm font-semibold uppercase tracking-[0.12em] text-gold-dark">Operación</p>
-                <h1 class="mt-1 text-2xl font-bold text-ink">Editar proceso interno</h1>
+                <p class="admin-eyebrow">Operación interna</p>
+                <h1 class="admin-page-title">Editar proceso interno</h1>
             </div>
-            <a href="{{ route('admin.procesos.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-100">
-                <i class="fa-solid fa-arrow-left"></i>
+            <a href="{{ route('admin.procesos.index') }}" class="admin-btn-outline">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 Volver
             </a>
         </div>
 
-        <form action="{{ route('admin.procesos.update', $proceso) }}" method="POST" class="rounded-2xl border border-gold/20 bg-white p-6 shadow-sm">
+        <form action="{{ route('admin.procesos.update', $proceso) }}" method="POST" class="admin-card sm:p-8">
             @csrf
             @method('PUT')
             <div class="grid gap-5 md:grid-cols-2">
                 <div class="md:col-span-2">
-                    <label for="titulo" class="mb-1.5 block text-sm font-medium text-stone-700">Título</label>
-                    <input id="titulo" name="titulo" type="text" value="{{ OldInput::value('titulo', $proceso->titulo) }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required />
+                    <label for="titulo" class="admin-label">Título <span class="text-red-600">*</span></label>
+                    <input id="titulo" name="titulo" type="text" value="{{ OldInput::value('titulo', $proceso->titulo) }}" class="admin-input" required />
                 </div>
 
                 <div class="md:col-span-2">
-                    <label for="descripcion" class="mb-1.5 block text-sm font-medium text-stone-700">Descripción</label>
-                    <textarea id="descripcion" name="descripcion" rows="4" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">{{ OldInput::value('descripcion', $proceso->descripcion) }}</textarea>
+                    <label for="descripcion" class="admin-label">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" rows="4" class="admin-textarea">{{ OldInput::value('descripcion', $proceso->descripcion) }}</textarea>
                 </div>
 
                 <div>
-                    <label for="responsable_id" class="mb-1.5 block text-sm font-medium text-stone-700">Responsable</label>
-                    <select id="responsable_id" name="responsable_id" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">
+                    <label for="responsable_id" class="admin-label">Responsable</label>
+                    <select id="responsable_id" name="responsable_id" class="admin-select">
                         <option value="">Sin asignar</option>
                         @foreach ($responsables as $responsable)
                             <option value="{{ $responsable->id }}" {{ old('responsable_id', $proceso->responsable_id) == $responsable->id ? 'selected' : '' }}>{{ $responsable->name }}</option>
@@ -42,8 +42,8 @@
                 </div>
 
                 <div>
-                    <label for="estado" class="mb-1.5 block text-sm font-medium text-stone-700">Estado</label>
-                    <select id="estado" name="estado" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required>
+                    <label for="estado" class="admin-label">Estado <span class="text-red-600">*</span></label>
+                    <select id="estado" name="estado" class="admin-select" required>
                         <option value="pendiente" {{ old('estado', $proceso->estado) === 'pendiente' ? 'selected' : '' }}>Pendiente</option>
                         <option value="en_proceso" {{ old('estado', $proceso->estado) === 'en_proceso' ? 'selected' : '' }}>En proceso</option>
                         <option value="completado" {{ old('estado', $proceso->estado) === 'completado' ? 'selected' : '' }}>Completado</option>
@@ -52,8 +52,8 @@
                 </div>
 
                 <div>
-                    <label for="prioridad" class="mb-1.5 block text-sm font-medium text-stone-700">Prioridad</label>
-                    <select id="prioridad" name="prioridad" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" required>
+                    <label for="prioridad" class="admin-label">Prioridad <span class="text-red-600">*</span></label>
+                    <select id="prioridad" name="prioridad" class="admin-select" required>
                         <option value="baja" {{ old('prioridad', $proceso->prioridad) === 'baja' ? 'selected' : '' }}>Baja</option>
                         <option value="media" {{ old('prioridad', $proceso->prioridad) === 'media' ? 'selected' : '' }}>Media</option>
                         <option value="alta" {{ old('prioridad', $proceso->prioridad) === 'alta' ? 'selected' : '' }}>Alta</option>
@@ -62,19 +62,19 @@
                 </div>
 
                 <div>
-                    <label for="fecha_vencimiento" class="mb-1.5 block text-sm font-medium text-stone-700">Fecha de vencimiento</label>
-                    <input id="fecha_vencimiento" name="fecha_vencimiento" type="date" value="{{ OldInput::value('fecha_vencimiento', $proceso->fecha_vencimiento?->format('Y-m-d')) }}" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20" />
+                    <label for="fecha_vencimiento" class="admin-label">Fecha de vencimiento</label>
+                    <input id="fecha_vencimiento" name="fecha_vencimiento" type="date" value="{{ OldInput::value('fecha_vencimiento', $proceso->fecha_vencimiento?->format('Y-m-d')) }}" class="admin-input" />
                 </div>
 
                 <div class="md:col-span-2">
-                    <label for="observaciones" class="mb-1.5 block text-sm font-medium text-stone-700">Observaciones</label>
-                    <textarea id="observaciones" name="observaciones" rows="3" class="w-full rounded-xl border border-stone-200 px-3 py-2.5 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20">{{ OldInput::value('observaciones', $proceso->observaciones) }}</textarea>
+                    <label for="observaciones" class="admin-label">Observaciones</label>
+                    <textarea id="observaciones" name="observaciones" rows="3" class="admin-textarea">{{ OldInput::value('observaciones', $proceso->observaciones) }}</textarea>
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-                    <i class="fa-solid fa-floppy-disk"></i>
+            <div class="mt-6 flex justify-end border-t border-[#E2E8F0] pt-5">
+                <button type="submit" class="admin-btn-primary">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                     Actualizar proceso
                 </button>
             </div>

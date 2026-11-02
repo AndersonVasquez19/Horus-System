@@ -1,7 +1,7 @@
 @props(['paginator'])
 
 @if ($paginator->hasPages())
-    <div class="mt-5">
+    <div class="admin-pagination">
         {{ $paginator->onEachSide(1)->links() }}
     </div>
 @endif
