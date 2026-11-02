@@ -351,19 +351,22 @@ class AdminAuthorizationTest extends TestCase
 
     public function test_admin_approval_update_and_delete_act_on_the_bound_record(): void
     {
-        $aprobacion = AprobacionInterna::create(['titulo' => 'Solicitud', 'tipo' => 'general', 'estado' => 'pendiente']);
+        // Editar o eliminar una solicitud pendiente queda reservado a su solicitante o a Gerencia.
+        $coordinador = $this->staff('coordinador');
+        $aprobacion = AprobacionInterna::create(['titulo' => 'Solicitud', 'tipo' => 'general', 'estado' => 'pendiente',
+            'solicitante_id' => $coordinador->id]);
         $total = AprobacionInterna::count();
 
-        $this->actingAs($this->staff('coordinador'))
+        $this->actingAs($coordinador)
             ->put(route('admin.aprobaciones.update', $aprobacion), [
                 'titulo' => 'Solicitud revisada',
                 'tipo' => 'general',
-                'estado' => 'aprobado',
             ])
             ->assertRedirect(route('admin.aprobaciones.index'));
 
         $this->assertSame($total, AprobacionInterna::count());
-        $this->assertSame('aprobado', $aprobacion->fresh()->estado);
+        $this->assertSame('Solicitud revisada', $aprobacion->fresh()->titulo);
+        $this->assertSame('pendiente', $aprobacion->fresh()->estado);
 
         $this->delete(route('admin.aprobaciones.destroy', $aprobacion))->assertRedirect(route('admin.aprobaciones.index'));
         $this->assertModelMissing($aprobacion);

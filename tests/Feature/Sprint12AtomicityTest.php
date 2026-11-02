@@ -8,6 +8,7 @@ use App\Models\AprobacionInterna;
 use App\Models\AuditLog;
 use App\Models\NotificacionInterna;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -66,6 +67,8 @@ class Sprint12AtomicityTest extends TestCase
     {
         $actor = $this->adminUser();
         $this->actingAs($actor);
+        // Destinatario del aviso de creación: otro usuario con autoridad sobre «compra» (Gerencia).
+        User::factory()->create()->assignRole('admin');
         $this->failNotification();
         $this->postJson(route('admin.aprobaciones.store'), ['titulo' => 'Ficticia', 'tipo' => 'compra',
             'aprobador_id' => $actor->id, 'estado' => 'pendiente'])->assertStatus(500);
@@ -77,11 +80,11 @@ class Sprint12AtomicityTest extends TestCase
     {
         $actor = $this->adminUser();
         $this->actingAs($actor);
+        $solicitante = User::factory()->create();
         $approval = AprobacionInterna::create(['titulo' => 'Ficticia', 'tipo' => 'compra',
-            'solicitante_id' => $actor->id, 'estado' => 'pendiente']);
+            'solicitante_id' => $solicitante->id, 'estado' => 'pendiente']);
         $this->failNotification();
-        $this->putJson(route('admin.aprobaciones.update', $approval), ['titulo' => 'Ficticia', 'tipo' => 'compra',
-            'estado' => 'aprobado'])->assertStatus(500);
+        $this->postJson(route('admin.aprobaciones.aprobar', $approval))->assertStatus(500);
         $this->assertSame('pendiente', $approval->fresh()->estado);
         $this->assertDatabaseCount('notificaciones_internas', 0);
     }

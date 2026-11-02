@@ -120,6 +120,9 @@ Route::prefix('admin')
         Route::resource('aprobaciones', AprobacionController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['aprobaciones' => 'aprobacion']);
+        Route::post('aprobaciones/{aprobacion}/aprobar', [AprobacionController::class, 'aprobar'])->name('aprobaciones.aprobar');
+        Route::post('aprobaciones/{aprobacion}/rechazar', [AprobacionController::class, 'rechazar'])->name('aprobaciones.rechazar');
+        Route::post('aprobaciones/{aprobacion}/reabrir', [AprobacionController::class, 'reabrir'])->name('aprobaciones.reabrir');
         Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
         Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
         Route::get('reportes', [ReportController::class, 'index'])->name('reportes.index');
