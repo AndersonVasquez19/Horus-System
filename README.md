@@ -2,7 +2,7 @@
 
 Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio está hecha con **Laravel 12**, Blade, Alpine.js, Tailwind CSS y Vite. Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, procesos internos, reportes y un asistente virtual.
 
-> **Identifica la aplicación antes de trabajar.** Laravel ocupa la raíz de este repositorio. El sitio HTML y su servidor Node están aislados en [`legacy-html-node/`](legacy-html-node/README.md), con sus propios recursos, dependencias y configuración. El chatbot descrito aquí está en las páginas Blade servidas por Laravel.
+> **Identifica la aplicación antes de trabajar.** Laravel ocupa la raíz de este repositorio. El sitio público son las vistas Blade; el sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git. El chatbot descrito aquí está en las páginas Blade servidas por Laravel.
 
 ## Contenido
 
@@ -27,11 +27,13 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 | `app/Models/`, `app/Services/`, `app/Support/` | Modelos, lógica de JWT/chat y conocimiento local del asistente. |
 | `resources/views/`, `resources/js/app.js`, `resources/css/app.css` | Vistas Blade, comportamiento del navegador y estilos. |
 | `database/migrations/`, `database/seeders/` | Esquema y datos iniciales. |
-| `tests/Feature/`, `tests/Unit/`, `tests/browser/` | Pruebas PHP y comprobación de chat en Edge. |
+| `tests/Feature/`, `tests/Unit/`, `tests/frontend/`, `tests/browser/` | Pruebas PHP, frontend y comprobación de chat en Edge. |
 | `public/` | Raíz pública del servidor web; Vite escribe en `public/build/`. |
-| `legacy-html-node/` | Sitio HTML y API Node/MySQL históricos, con su propio `package.json` y `.env`. |
+| `public/assets/` | Imágenes, estilos y scripts estáticos de las vistas Blade (`css/`, `images/`, `js/`). Está versionada. |
 
-El `package.json` de la raíz contiene únicamente los comandos y dependencias de **Vite de Laravel**. El proyecto histórico tiene su propio manifiesto en `legacy-html-node/package.json`. `npm run dev` desde la raíz inicia Vite. Para trabajar en el sitio histórico, entra en `legacy-html-node/` y sigue su README; su servidor ejecuta `sequelize.sync({ alter: true })` contra MySQL al arrancar.
+El `package.json` de la raíz contiene los comandos y dependencias de **Vite de Laravel**. `npm run dev` desde la raíz inicia Vite.
+
+Las vistas Laravel cargan imágenes, estilos y scripts estáticos con `asset('assets/...')`, desde `public/assets/`. Esa carpeta se versiona y no requiere ningún paso de copia o compilación. Para añadir una imagen, colócala directamente en `public/assets/images/`. `public/build/` sí es generada y no se versiona.
 
 ## Requisitos
 
@@ -76,7 +78,7 @@ php artisan serve
 npm run dev
 ```
 
-Visita la URL de **Laravel** que muestra la primera terminal, normalmente `http://127.0.0.1:8000`; no abras directamente la URL de Vite ni los archivos HTML de `legacy-html-node/` para probar Laravel. La directiva `@vite` de las vistas conecta el navegador con el servidor Vite. Los cambios en CSS se actualizan en caliente; los cambios en vistas Blade, rutas y archivos PHP de `app/` provocan una **recarga automática completa** de la página. El JavaScript se actualiza mediante HMR cuando es posible y puede provocar una recarga completa según el módulo. No necesitas ejecutar `npm run build` después de cada edición: ese comando genera archivos para uso sin el servidor de desarrollo.
+Visita la URL de **Laravel** que muestra la primera terminal, normalmente `http://127.0.0.1:8000`; no abras directamente la URL de Vite para probar Laravel. La directiva `@vite` de las vistas conecta el navegador con el servidor Vite. Los cambios en CSS se actualizan en caliente; los cambios en vistas Blade, rutas y archivos PHP de `app/` provocan una **recarga automática completa** de la página. El JavaScript se actualiza mediante HMR cuando es posible y puede provocar una recarga completa según el módulo. No necesitas ejecutar `npm run build` después de cada edición: ese comando genera archivos para uso sin el servidor de desarrollo.
 
 Blade genera HTML en el servidor; una vista o respuesta PHP nueva necesita otra petición para verse. La recarga automática evita pulsar F5, pero no conserva necesariamente el estado de formularios o del chat. Si necesitas actualizar partes de la página sin recarga completa, se requiere implementar interactividad específica (por ejemplo, peticiones AJAX o componentes reactivos) para esas partes.
 
@@ -90,49 +92,89 @@ Blade genera HTML en el servidor; una vista o respuesta PHP nueva necesita otra 
 | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL por defecto; comprueba el destino antes de migrar o sembrar. |
 | `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | La plantilla usa `database`; las tablas correspondientes se crean con las migraciones. |
 | `MAIL_MAILER`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | `log` registra correos en vez de enviarlos. Para envío real configura un transporte y remitente válidos. |
-| `RESEND_API_KEY` | Solo si eliges el transporte Resend configurado en `config/mail.php`. |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | Opcionales; únicamente para consultas que no coinciden con reglas locales del chat. |
+| `RESEND_API_KEY` | Solo si eliges el transporte Resend configurado en `config/mail.php`. Es la **única** fuente de la clave: el panel de Configuración no la guarda ni la muestra. |
+| `HORUS_ADVISOR_ENABLED`, `HORUS_ADVISOR_URL`, `HORUS_ADVISOR_TOKEN` | Advisor apagado por defecto; URL loopback y token solo en servidor. No hay proveedor OpenAI en el chat. |
+| `HORUS_ADVISOR_SIGNING_KEY` | Clave independiente para validar catálogos en seco; no activa su publicación ni sincronización. |
 | `JWT_SECRET`, `JWT_TTL`, `JWT_LEEWAY` | Autenticación de `/api/auth/*`. `JWT_SECRET` debe tener al menos 32 bytes; si está vacío, `config/jwt.php` intenta usar `APP_KEY`. |
 
 No publiques `.env` ni pegues secretos en incidencias, registros o documentación. Cuando cambies variables en una aplicación con configuración cacheada, revisa esa caché antes de atribuir el resultado al código.
 
 ## Base de datos y datos iniciales
 
-Las migraciones incluyen usuarios, sesiones, caché y trabajos, estudiantes, cursos, matrículas, permisos, ajustes, procesos, auditoría e intenciones/registros del chat. La aplicación puede mostrar páginas públicas sin sembrar datos, pero el chat consulta `chat_intents` y escribe en `chat_logs`: **necesita una base migrada y disponible**.
+Las migraciones incluyen usuarios, sesiones, caché y trabajos, estudiantes, cursos, matrículas, permisos, ajustes, procesos, auditoría e intenciones/registros del chat. La aplicación puede mostrar páginas públicas sin sembrar datos, pero el chat escribe auditoría anonimizada en `chat_logs`: **necesita una base migrada y disponible**.
 
-`php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`. Este crea cuentas administrativas con contraseñas conocidas y datos de ejemplo (además de roles, permisos, configuraciones e intenciones). Úsalo **solo en una base local desechable**:
+`php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`: roles, permisos, configuración inicial e intenciones del chat. **No crea usuarios ni contraseñas** y puede repetirse: no modifica cuentas existentes ni sobrescribe la configuración editada desde el panel. Sí sincroniza los permisos de los roles base (`admin`, `coordinador`, `secretaria`) con la matriz de `RolesAndPermissionsSeeder`, por lo que **descarta permisos concedidos a mano** a esos roles; en una base con datos reales, los permisos nuevos se aplican con migraciones (p. ej. `2026_10_27_000012_add_matriculas_exportar_eliminar_permissions.php`), no con el seeder.
 
 ```powershell
 php artisan db:seed
 ```
+
+Las cuentas del panel se crean con un comando que pide la contraseña de forma oculta (mínimo 12 caracteres con mayúsculas, minúsculas, números y símbolos), no la imprime y se niega a modificar un correo ya registrado:
+
+```powershell
+php artisan horus:crear-usuario --email=correo@ejemplo.com --name="Nombre" --rol=admin
+```
+
+`--rol` acepta `admin`, `coordinador` o `secretaria`.
+
+**Acceso al panel en tu propia base local.** El registro público (`/register` y `/api/auth/register`) nunca asigna roles. Cada desarrollador, con su base PostgreSQL local ya migrada y con los roles sembrados (`php artisan db:seed --class=RolesAndPermissionsSeeder`), se registra normalmente en `/register` y luego promueve su propia cuenta desde su terminal:
+
+```powershell
+php artisan horus:promover-admin --email=tu@correo.com --base=NOMBRE_DE_TU_BASE
+```
+
+El comando solo promueve una cuenta que ya existe; no crea cuentas, no ejecuta seeders ni migraciones y no tiene ruta HTTP. Se niega a ejecutarse fuera de `local`/`development` (en `testing` solo con SQLite en memoria), si el host de la base no es de esta máquina o si `--base` no coincide con la base conectada. Si falta algún rol base, lo informa y termina sin cambiar nada. Repetirlo no duplica la asignación. Cada promoción queda en auditoría como `admin_role_granted_local`.
+
+Los datos de ejemplo (cursos, estudiantes, matrículas, procesos y aprobaciones) están separados en `DemoDataSeeder`, no crean usuarios y se niegan a ejecutarse con `APP_ENV=production`. Úsalos **solo en una base local desechable**:
+
+```powershell
+php artisan db:seed --class=DemoDataSeeder
+```
+
+Las versiones anteriores sembraban cuentas `admin@`, `coordinador@` y `secretaria@horusgroup.com` con una contraseña publicada en el repositorio. Si tu base se sembró así, cambia esas contraseñas o elimina esas cuentas.
 
 Para tareas parciales, inspecciona el seeder correspondiente antes de ejecutarlo. En particular, `ChatIntentSeeder` usa `updateOrCreate` y puede reemplazar campos de intenciones existentes; no es un mecanismo inocuo para actualizar producción. `migrate:fresh` y `db:wipe` eliminan datos y no forman parte del arranque normal.
 
 ## Acceso y funciones
 
 - **Público:** `/`, páginas de tecnologías, educación, mercado, galería, contacto y textos legales definidos en `routes/web.php`; `/register`, `/login` y recuperación de contraseña.
-- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Varios controladores aplican permisos específicos de Spatie; comprueba cada acción en su ruta y controlador. La inscripción pública no concede rol administrativo.
+- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo. El rol `admin` no se puede renombrar ni eliminar ni perder sus permisos críticos, y no se puede eliminar ni quitar el rol al último administrador (ni a uno mismo). La exportación CSV de matrículas (`matriculas.exportar`) y su eliminación (`matriculas.eliminar`) son permisos propios, solo de `admin` por defecto.
 - **Gestión:** estudiantes, cursos y matrículas; usuarios/roles; procesos y aprobaciones; notificaciones; configuración; auditoría; reportes CSV, Excel y PDF. Consulta las rutas y permisos reales antes de cambiar una operación.
-- **Respaldo:** existe una exportación ZIP de tablas seleccionadas bajo `admin/respaldo`; requiere extensión ZIP y permiso. No equivale a una copia completa de PostgreSQL ni cubre automáticamente todos los archivos y tablas.
+- **Exportación de datos (`admin/respaldo`):** genera un ZIP de CSV con nueve tablas seleccionadas; requiere extensión ZIP y el permiso `respaldo.exportar`. Es una **exportación administrativa minimizada, no un respaldo**: omite contraseñas, tokens y claves, enmascara secretos, no se puede usar para restaurar y no se conserva ninguna copia en el servidor (queda un registro en auditoría). La copia integral de PostgreSQL (`pg_dump`) y la política de retención son responsabilidad del servidor; véase [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md).
 - **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login web usa sesión y CSRF.
 - **Correo:** el restablecimiento de contraseña depende del transporte configurado. Con `MAIL_MAILER=log` el mensaje queda en los registros locales y no llega a una bandeja externa.
+
+### Reportes de matrículas
+
+`GET /admin/reportes` admite `busqueda` (DNI, nombres, apellidos, código o nombre de curso), `curso_id`, `estado` (`pendiente`, `pagada`, `anulada`) y `eliminados` (`0`: sin eliminadas; `1`: solo eliminadas). Los mismos filtros se envían por POST a las exportaciones Excel y PDF. Al aplicar filtros desde el panel se vuelve al primer lote.
+
+El PDF mantiene un máximo explícito de **50 matrículas por descarga** (`ReportController::PDF_BATCH_SIZE`). El parámetro `lote`, desde 1, permite recorrer todas las coincidencias desde el panel. Panel y PDF muestran total coincidente, cantidad incluida, rango, filtros y lote actual. Se ordena por fecha de matrícula descendente e ID descendente para resolver empates; un lote fuera del rango devuelve 404. Sin coincidencias, el primer lote muestra cero registros. Dompdf recibe como máximo 50 filas con solo los campos necesarios y relaciones precargadas; no se genera un PDF ilimitado.
+
+Excel incluye todas las coincidencias de los filtros, independientemente del lote PDF. Lee modelos en lotes de 500; PhpSpreadsheet todavía conserva el documento completo en memoria, por lo que no garantiza memoria constante para exportaciones grandes. Los datos pueden cambiar entre descargas: los lotes no constituyen una instantánea congelada. Los permisos `reportes.exportar.pdf` y `reportes.exportar.excel` se exigen tanto en los botones como en los endpoints.
+
+Los contadores de matrículas e ingresos del panel respetan los filtros; ingresos suma únicamente matrículas `pagada`. Los contadores generales de estudiantes y cursos excluyen eliminados y no dependen de esos filtros. En la ficha estudiantil, activas significa `pendiente` más `pagada`; las `anulada` se cuentan por separado y las eliminadas no forman parte del historial visible.
 
 ## Asistente virtual
 
 El widget público se muestra en `resources/views/components/public/chat-widget.blade.php`; la conversación reutilizable está en `resources/views/components/chat/conversation.blade.php`. `resources/js/app.js` envía el mensaje a `POST /chat/mensaje` con token CSRF. La ruta valida `mensaje` (máximo 2000 caracteres) y `session_id` (máximo 64), y tiene límite `throttle:30,1`.
 
-`app/Services/AsistenteVirtualService.php` busca coincidencias por palabras y prioridad. Las respuestas locales verificadas están en `app/Support/ChatKnowledge.php`; también admite intenciones personalizadas activas en `chat_intents` y respeta las intenciones incorporadas desactivadas allí. Para intenciones incorporadas activas, el servicio usa las definiciones del código. Una consulta sin coincidencia puede llamar a OpenAI si hay clave; si falta la clave o la llamada no da respuesta utilizable, ofrece una respuesta de respaldo. Cada interacción se guarda en `chat_logs`.
+`app/Services/AsistenteVirtualService.php` aplica privacidad, bloqueo por sesión y deduplicación. Con activación explícita, `HorusAdvisorClient` consulta el servicio Python en loopback (`POST /api/v1/chat`, puerto 8001, `history: []`) y valida su respuesta. El modelo local es `paraphrase-multilingual-MiniLM-L12-v2`. Con el servicio desactivado o ante un fallo, responde mediante contingencia institucional. No participa un motor conversacional PHP ni OpenAI. El registro `chat_logs` omite el mensaje original.
 
-El área `admin/asistente` permite probar respuestas y ver hasta 50 consultas recientes. La tabla de intenciones se muestra para consulta; esa pantalla **no tiene un formulario de entrenamiento**. Para ajustar respuestas incorporadas, revisa el contenido público verificable, modifica `ChatKnowledge.php` y añade o actualiza pruebas de regresión. Para cambios de datos en `chat_intents`, evalúa el efecto del seeder antes de ejecutarlo.
+El área `admin/asistente` permite probar el mismo flujo y consultar hasta 50 registros recientes. La tabla de intenciones PHP es histórica; no entrena ni controla Python. Las clases de diagnóstico, el seeder y las migraciones históricas se conservan. Nunca ejecutes seeders para actualizar respuestas en una base real sin autorización.
 
-La clave OpenAI se lee en el servidor desde `config/services.php`. No la envíes al cliente. El chat local y las pruebas simuladas no verifican conectividad real con OpenAI.
+La plantilla `.env.example` declara `HORUS_ADVISOR_ENABLED=false`, URL loopback y secretos vacíos. El flag continúa apagado por defecto; no habilitarlo para usuarios reales sin autorización. El token de servicio solo vive en el servidor. Laravel usa `config()`; cualquier cambio operativo requiere regenerar la configuración cacheada mediante el procedimiento autorizado. No modificar `.env` para ejecutar pruebas.
 
 ## Pruebas y comprobaciones
 
+El perfil PostgreSQL aislado y sus salvaguardas están en [docs/postgresql-l2.2-a.md](docs/postgresql-l2.2-a.md); el procedimiento de aprovisionamiento preparado (no ejecutado) está en [docs/postgresql-l2.2-b-provisioning.md](docs/postgresql-l2.2-b-provisioning.md). Su preparación no autoriza ejecutar pruebas destructivas; la suite habitual conserva SQLite en memoria.
+
 ```powershell
 php artisan test --compact
+npm test
 npm run build
 ```
+
+`npm test` ejecuta las pruebas unitarias del frontend con el runner nativo de Node. Los tests y smokes JavaScript dentro de `tests/frontend/` y `tests/browser/` deben usar siempre `.mjs`; el comando falla si encuentra allí `.js`, `.cjs`, TypeScript u otra extensión. Nombra las pruebas unitarias `*.test.mjs` o `*.spec.mjs`. Los smokes de navegador que requieren un servidor se ejecutan por separado.
 
 Para un cambio acotado de PHP, puedes ejecutar `php artisan test --filter=AsistenteVirtualTest` u otra clase pertinente. `phpunit.xml` configura SQLite en memoria, sesión y caché aisladas, cola síncrona y correo simulado. Las pruebas PHP no demuestran PostgreSQL ni servicios externos reales. Si cambias el chat del navegador, comprueba también la interfaz, CSRF y las respuestas visibles.
 
@@ -149,8 +191,9 @@ node tests/browser/chat-smoke.mjs
 | Síntoma | Comprobación inicial |
 | --- | --- |
 | `419` al enviar el chat | Comprueba que cargas la página y envías a la misma aplicación/host, que la sesión funciona y que la página tiene un token CSRF vigente; recarga la página. |
-| Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_intents` se consulta y `chat_logs` se escribe en cada mensaje. |
+| Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_logs` se escribe sin guardar el mensaje original; comprobar también la configuración del Advisor. |
 | Página sin estilos o interacción | Ejecuta `npm run build` o inicia `npm run dev`; confirma que visitas Laravel mediante `php artisan serve`. |
+| Imágenes rotas o secciones sin su diseño propio | Comprueba que exista `public/assets/` (viene en el repositorio) y que la ruta usada en la vista coincida con un archivo real. Después recarga la página. |
 | Laravel intenta cargar Vite después de cerrarlo | Confirma que Vite ya no está activo y elimina el marcador temporal `public/hot`; luego usa `npm run build` o reinicia `npm run dev`. |
 | `could not find driver` | Activa `pdo_pgsql` para PostgreSQL o `pdo_sqlite` para las pruebas, según el comando. |
 | No llega un correo | Comprueba `MAIL_MAILER`; con `log` no se envían mensajes reales. |

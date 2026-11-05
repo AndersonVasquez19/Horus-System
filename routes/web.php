@@ -1,52 +1,77 @@
 <?php
 
-use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AprobacionController;
 use App\Http\Controllers\Admin\AsistenteController;
 use App\Http\Controllers\Admin\AuditoriaController;
+use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
+use App\Http\Controllers\Admin\CotizacionController;
 use App\Http\Controllers\Admin\CursoController;
+use App\Http\Controllers\Admin\CursoPublicacionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\ProcesoController;
+use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\ServicioTecnologicoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
+use App\Http\Controllers\CursosPublicosController;
+use App\Http\Controllers\LibroReclamacionesController;
+use App\Http\Controllers\PaginaTecnologicaController;
+use App\Http\Controllers\ServiciosPublicosController;
+use App\Http\Controllers\SolicitudCotizacionPublicaController;
+use App\Http\Middleware\RecepcionCotizacionesHabilitada;
+use App\Http\Middleware\RecepcionReclamacionesHabilitada;
+use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home')->name('home');
 Route::view('/quienes-somos', 'pages.quienes-somos')->name('quienes-somos');
-Route::view('/tecnologias/cableado-estructurado', 'pages.tecnologias.cableado-estructurado')->name('tecnologias.cableado');
-Route::view('/tecnologias/camaras-seguridad', 'pages.tecnologias.camaras-seguridad')->name('tecnologias.camaras');
-Route::view('/tecnologias/soporte-mantenimiento', 'pages.tecnologias.soporte-mantenimiento')->name('tecnologias.soporte');
+Route::get('/tecnologias/cableado-estructurado', [PaginaTecnologicaController::class, 'cableado'])->name('tecnologias.cableado');
+Route::get('/tecnologias/camaras-seguridad', [PaginaTecnologicaController::class, 'camaras'])->name('tecnologias.camaras');
+Route::get('/tecnologias/soporte-mantenimiento', ServiciosPublicosController::class)->name('tecnologias.soporte');
 Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
-Route::view('/educacion/cursos', 'pages.educacion.cursos')->name('educacion.cursos');
-Route::view('/market', 'pages.market')->name('market');
+Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
 Route::view('/galeria', 'pages.galeria')->name('galeria');
 Route::view('/contactos', 'pages.contactos')->name('contactos');
 Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name('legales.devolucion');
 Route::view('/politicas-privacidad', 'pages.legales.politicas-privacidad')->name('legales.privacidad');
 Route::view('/politicas-cookies', 'pages.legales.politicas-cookies')->name('legales.cookies');
 Route::view('/preguntas-frecuentes', 'pages.legales.preguntas-frecuentes')->name('legales.faq');
-Route::view('/libro-reclamaciones', 'pages.legales.libro-reclamaciones')->name('legales.reclamaciones');
+Route::get('/libro-reclamaciones', [LibroReclamacionesController::class, 'show'])->name('legales.reclamaciones');
+// Alta pública: la compuerta va antes del límite para que, apagado, responda 404 sin consumir cupo ni leer el cuerpo.
+Route::post('/libro-reclamaciones', [LibroReclamacionesController::class, 'store'])
+    ->middleware([RecepcionReclamacionesHabilitada::class, 'throttle:reclamaciones'])
+    ->name('legales.reclamaciones.store');
+
+Route::middleware(RecepcionCotizacionesHabilitada::class)->group(function () {
+    Route::get('/solicitar-cotizacion', [SolicitudCotizacionPublicaController::class, 'show'])->name('cotizacion-publica.show');
+    Route::post('/solicitudes-cotizacion', [SolicitudCotizacionPublicaController::class, 'store'])->name('cotizacion-publica.store');
+});
 
 Route::middleware('guest')->group(function () {
+    Route::post('/email-verification/resend', [VerificacionRegistroController::class, 'reenviar'])
+        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:5,1'])->name('verification.resend');
+    Route::post('/email-verification/confirm', [VerificacionRegistroController::class, 'confirmar'])
+        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-confirm'])->name('verification.confirm');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
-    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
-    Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.store');
+    Route::post('/reset-password', [ResetPasswordController::class, 'store'])->middleware('throttle:5,1')->name('password.store');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -65,6 +90,40 @@ Route::prefix('admin')
             ->name('estudiantes.restaurar');
 
         Route::resource('cursos', CursoController::class);
+        // Expedientes comerciales privados: no hay formularios ni recepción pública.
+        Route::get('cotizaciones', [CotizacionController::class, 'index'])->name('cotizaciones.index');
+        Route::post('cotizaciones', [CotizacionController::class, 'store'])->name('cotizaciones.store');
+        Route::get('cotizaciones/{cotizacion:identificador}', [CotizacionController::class, 'show'])->name('cotizaciones.show')->whereUuid('cotizacion');
+        Route::put('cotizaciones/{cotizacion:identificador}', [CotizacionController::class, 'update'])->name('cotizaciones.update')->whereUuid('cotizacion');
+        Route::patch('cotizaciones/{cotizacion:identificador}/estado', [CotizacionController::class, 'estado'])->name('cotizaciones.estado')->whereUuid('cotizacion');
+        Route::patch('cotizaciones/{cotizacion:identificador}/responsable', [CotizacionController::class, 'responsable'])->name('cotizaciones.responsable')->whereUuid('cotizacion');
+        Route::post('cotizaciones/{cotizacion:identificador}/seguimientos', [CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento')->whereUuid('cotizacion');
+        Route::get('cotizaciones/{cotizacion:identificador}/historial', [CotizacionController::class, 'historial'])->name('cotizaciones.historial')->whereUuid('cotizacion');
+
+        // Libro de Reclamaciones: consulta administrativa e impresión, solo lectura (Sprint 20, E3).
+        Route::get('reclamaciones', [ReclamacionController::class, 'index'])->name('reclamaciones.index');
+        Route::get('reclamaciones/{reclamacion:identificador}', [ReclamacionController::class, 'show'])
+            ->name('reclamaciones.show')
+            ->whereUuid('reclamacion');
+        Route::get('reclamaciones/{reclamacion:identificador}/hoja', [ReclamacionController::class, 'hoja'])
+            ->name('reclamaciones.hoja')
+            ->whereUuid('reclamacion');
+
+        Route::resource('servicios', ServicioTecnologicoController::class)->only(['index', 'store', 'show'])->parameters(['servicios' => 'servicio']);
+        Route::put('servicios/{servicio}', [ServicioTecnologicoController::class, 'update'])->name('servicios.update');
+        Route::patch('servicios/{servicio}/estado', [ServicioTecnologicoController::class, 'estado'])->name('servicios.estado');
+        Route::get('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'publicacion'])->name('servicios.publicacion.show');
+        Route::put('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'preparar'])->name('servicios.publicacion.preparar');
+        Route::post('servicios/{servicio}/publicacion/autorizar', [ServicioTecnologicoController::class, 'autorizar'])->name('servicios.publicacion.autorizar');
+        Route::delete('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'retirar'])->name('servicios.publicacion.retirar');
+        // Contenido de la ficha: imagen principal y tarjetas (multipart, mismo If-Match; permiso servicios.editar).
+        Route::post('servicios/{servicio}/publicacion/imagen', [ServicioTecnologicoController::class, 'imagenPrincipal'])->name('servicios.publicacion.imagen');
+        Route::post('servicios/{servicio}/elementos', [ServicioTecnologicoController::class, 'elementoStore'])->name('servicios.elementos.store');
+        Route::post('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoUpdate'])->whereNumber('elemento')->name('servicios.elementos.update');
+        Route::delete('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoDestroy'])->whereNumber('elemento')->name('servicios.elementos.destroy');
+        Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
+        Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
+        Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');
         Route::patch('cursos/{curso}/restaurar', [CursoController::class, 'restaurar'])
             ->name('cursos.restaurar');
 
@@ -76,10 +135,16 @@ Route::prefix('admin')
         Route::patch('matriculas/{matricula}/restaurar', [MatriculaController::class, 'restaurar'])
             ->name('matriculas.restaurar');
 
-        Route::resource('usuarios', UserController::class);
+        // El nombre del parámetro debe coincidir con el argumento del controlador para que el binding resuelva el registro.
+        Route::resource('usuarios', UserController::class)->parameters(['usuarios' => 'user']);
         Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::resource('procesos', ProcesoController::class);
-        Route::resource('aprobaciones', AprobacionController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('aprobaciones', AprobacionController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->parameters(['aprobaciones' => 'aprobacion']);
+        Route::post('aprobaciones/{aprobacion}/aprobar', [AprobacionController::class, 'aprobar'])->name('aprobaciones.aprobar');
+        Route::post('aprobaciones/{aprobacion}/rechazar', [AprobacionController::class, 'rechazar'])->name('aprobaciones.rechazar');
+        Route::post('aprobaciones/{aprobacion}/reabrir', [AprobacionController::class, 'reabrir'])->name('aprobaciones.reabrir');
         Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
         Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
         Route::get('reportes', [ReportController::class, 'index'])->name('reportes.index');
@@ -92,7 +157,7 @@ Route::prefix('admin')
         Route::get('respaldo', [RespaldoController::class, 'index'])->name('respaldo.index');
         Route::get('respaldo/exportar', [RespaldoController::class, 'exportar'])->name('respaldo.exportar');
         Route::get('asistente', [AsistenteController::class, 'index'])->name('asistente.index');
-        Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->name('asistente.mensaje');
+        Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:30,1')->name('asistente.mensaje');
     });
 
 Route::post('/chat/mensaje', [ChatWidgetController::class, 'mensajePublico'])

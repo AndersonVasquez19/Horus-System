@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
 
@@ -79,9 +79,9 @@ try {
 
   await command('Runtime.enable');
   try {
-    await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir asistente virtual\\"]")?.getAttribute("aria-expanded") === "false"'));
+    await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.getAttribute("aria-expanded") === "false"'));
   } catch (error) {
-    const state = await evaluate('JSON.stringify({ ready: document.readyState, alpine: !!window.Alpine, button: document.querySelector("[aria-label=\\"Abrir asistente virtual\\"]")?.outerHTML.slice(0, 400), scripts: [...document.querySelectorAll("script[src]")].map((element) => element.src) })');
+    const state = await evaluate('JSON.stringify({ ready: document.readyState, alpine: !!window.Alpine, button: document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.outerHTML.slice(0, 400), scripts: [...document.querySelectorAll("script[src]")].map((element) => element.src) })');
     throw new Error(`Chat did not initialize: ${state}`, { cause: error });
   }
   const result = await evaluate(`(async () => {
@@ -96,8 +96,12 @@ try {
       },
       (error) => { window.__chatFetch.push({ error: String(error) }); throw error; }
     );
-    const button = document.querySelector('[aria-label="Abrir asistente virtual"]');
+    const button = document.querySelector('[aria-label="Abrir chat con el asistente Horus"]');
+    const panelId = button.getAttribute('aria-controls');
     button.click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const panel = document.getElementById(panelId);
+    const panelContract = { controls: panelId, panelFound: !!panel, panelRole: panel?.getAttribute('role') };
     const input = document.querySelector('#mensaje-chat');
     async function send(text, expected) {
       input.value = text;
@@ -116,18 +120,62 @@ try {
     if (known) await new Promise((resolve) => setTimeout(resolve, 600));
     const unknown = known && await send('zzqv desconocido', 'No tengo un dato confirmado');
     return {
-      open: button.getAttribute('aria-expanded'), known, unknown,
+      open: button.getAttribute('aria-expanded'), panelContract, known, unknown,
       texts: [...document.querySelectorAll('[x-ref="messages"] p')].map((el) => el.textContent),
       draft: input.value,
       fetches: window.__chatFetch,
     };
   })()`);
-  if (result.open !== 'true' || !result.known || !result.unknown
+  if (result.open !== 'true' || result.panelContract.controls !== 'horus-chat-panel'
+      || !result.panelContract.panelFound || result.panelContract.panelRole !== 'dialog'
+      || !result.known || !result.unknown
       || result.fetches.length !== 2 || result.fetches.some((request) => request.status !== 200 || !request.tokenMatchesDom)) {
     const browserCookies = await command('Network.getCookies', { urls: [baseUrl] });
     throw new Error(`Chat UI failed: ${JSON.stringify({ ...result, cookieNames: browserCookies.cookies.map((cookie) => cookie.name) })}`);
   }
-  process.stdout.write(`Edge chat smoke passed: ${result.texts.length} messages, known answer and fallback visible.\n`);
+  await waitFor(() => evaluate(`!document.querySelector('#mensaje-chat').disabled`));
+  await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  const mobile = await evaluate(`(async () => {
+    await document.fonts.ready;
+    const panel = document.getElementById('horus-chat-panel');
+    const input = document.getElementById('mensaje-chat');
+    input.value = '¿Cuáles son los requisitos?';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    return { width: panel.getBoundingClientRect().width, viewport: window.innerWidth };
+  })()`);
+  await waitFor(() => evaluate(`document.querySelector('.hc-log').textContent.includes('No hay una lista general') && !document.querySelector('#mensaje-chat').disabled`));
+  const actions = await evaluate(`({
+    links: [...document.querySelectorAll('.hc-action')].map((el) => el.getAttribute('href')),
+    focus: document.activeElement.id,
+    composerVisible: document.querySelector('.hc-compose').getBoundingClientRect().bottom <= window.innerHeight,
+    minSendTarget: document.querySelector('[aria-label="Enviar consulta"]').getBoundingClientRect().height,
+  })`);
+  if (mobile.width > mobile.viewport || !actions.composerVisible || actions.minSendTarget < 44
+      || !actions.links.includes('/educacion/cursos') || actions.links.some((url) => !url.startsWith('/'))
+      || actions.focus !== 'mensaje-chat') {
+    throw new Error('Mobile, action or keyboard contract failed: ' + JSON.stringify({ mobile, actions }));
+  }
+  await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await waitFor(() => evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').getAttribute('aria-expanded') === 'false' && document.activeElement.getAttribute('aria-label') === 'Abrir chat con el asistente Horus'`));
+  await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').click()`);
+  await evaluate(`(async () => {
+    window.fetch = async () => ({ ok: false, status: 429 });
+    const input = document.getElementById('mensaje-chat');
+    input.value = 'Quiero consultar';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    input.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  })()`);
+  await waitFor(() => evaluate(`document.querySelector('.hc-log').textContent.includes('Espera un minuto') && !document.querySelector('#mensaje-chat').disabled`));
+  if (!await evaluate(`document.querySelector('#mensaje-chat').value === 'Quiero consultar'`)) throw new Error('Draft lost after HTTP 429');
+  if (process.env.CHAT_SMOKE_ARTIFACT_DIR) {
+    const screenshot = await command('Page.captureScreenshot', { format: 'png' });
+    await writeFile(join(process.env.CHAT_SMOKE_ARTIFACT_DIR, 'chat-mobile.png'), Buffer.from(screenshot.data, 'base64'));
+  }
+  process.stdout.write(`Edge chat smoke passed: local reply, fallback, mobile 390x844, safe links, Enter, Escape, focus and simulated 429 with draft preserved.\n`);
 } finally {
   await cleanup();
 }

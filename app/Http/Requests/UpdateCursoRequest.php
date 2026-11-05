@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\Models\Curso;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\Validator;
 
 class UpdateCursoRequest extends FormRequest
@@ -14,6 +16,7 @@ class UpdateCursoRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Unique|In>> */
     public function rules(): array
     {
         $curso = $this->route('curso');
@@ -24,15 +27,16 @@ class UpdateCursoRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:150'],
             'descripcion' => ['required', 'string'],
             'categoria' => ['required', Rule::in(['tecnologia', 'educacion', 'salud', 'gestion', 'otros'])],
-            'duracion_horas' => ['required', 'integer', 'min:1'],
-            'precio' => ['required', 'numeric', 'min:0'],
+            'duracion_horas' => ['required', 'integer', 'min:1', 'max:2147483647'],
+            'precio' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'modalidad' => ['required', Rule::in(['presencial', 'virtual', 'hibrido'])],
             'horario' => ['required', 'string', 'max:100'],
-            'cupos_maximos' => ['required', 'integer', 'min:1'],
+            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:2147483647'],
             'estado' => ['required', Rule::in(['activo', 'inactivo', 'archivado'])],
         ];
     }
 
+    /** @return list<\Closure(Validator): void> */
     public function after(): array
     {
         return [

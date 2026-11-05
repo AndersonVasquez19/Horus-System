@@ -1,39 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\ListFilter;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class AuditoriaController extends Controller
+class AuditoriaController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:auditoria.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:auditoria.exportar'])->only(['exportar']);
+        return [
+            new Middleware('permission:auditoria.ver', only: ['index']),
+            new Middleware('permission:auditoria.exportar', only: ['exportar']),
+        ];
     }
 
     public function index(Request $request): View
     {
         $query = AuditLog::query()->with('user');
 
-        if ($request->filled('accion')) {
-            $query->where('action', 'like', '%'.$request->input('accion').'%');
+        $accion = ListFilter::text($request, 'accion');
+        if ($accion !== '') {
+            $query->whereLike('action', '%'.$accion.'%');
         }
 
-        if ($request->filled('modelo')) {
-            $query->where('model_type', 'like', '%'.$request->input('modelo').'%');
+        $modelo = ListFilter::text($request, 'modelo');
+        if ($modelo !== '') {
+            $query->whereLike('model_type', '%'.$modelo.'%');
         }
 
-        if ($request->filled('usuario')) {
-            $usuario = trim((string) $request->input('usuario'));
+        $usuario = ListFilter::text($request, 'usuario');
+        if ($usuario !== '') {
             $query->whereHas('user', function ($q) use ($usuario): void {
-                $q->where('name', 'like', "%{$usuario}%")
-                    ->orWhere('email', 'like', "%{$usuario}%");
+                $q->whereLike('name', "%{$usuario}%")
+                    ->orWhereLike('email', "%{$usuario}%");
             });
         }
 
@@ -44,30 +57,38 @@ class AuditoriaController extends Controller
 
         return view('admin.auditoria.index', [
             'registros' => $registros,
-            'accion' => $request->input('accion'),
-            'modelo' => $request->input('modelo'),
-            'usuario' => $request->input('usuario'),
+            'accion' => $accion,
+            'modelo' => $modelo,
+            'usuario' => $usuario,
         ]);
     }
 
+    /**
+     * Exportación administrativa de la auditoría: se entrega al navegador y NO se conserva
+     * ninguna copia en el servidor. Los valores sensibles de los cambios van enmascarados.
+     */
     public function exportar(): StreamedResponse
     {
-        $registros = AuditLog::query()->with('user')->latest('created_at')->get()->map(function ($log): array {
+        $registros = AuditLog::query()->with('user')->latest('created_at')->get()->map(function (AuditLog $log): array {
             return [
                 'id' => $log->id,
-                'usuario' => $log->user?->name ?? 'Sistema',
-                'correo' => $log->user?->email ?? 'N/A',
+                'usuario' => $log->user->name ?? 'Sistema',
+                'correo' => $log->user->email ?? 'N/A',
                 'accion' => $log->action,
                 'modelo' => $log->model_type,
                 'modelo_id' => $log->model_id,
                 'ip' => $log->ip_address,
-                'cambios' => json_encode($log->changes ?? []),
-                'fecha' => $log->created_at?->format('Y-m-d H:i:s'),
+                'cambios' => json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
+                'fecha' => $log->created_at->format('Y-m-d H:i:s'),
             ];
         })->toArray();
 
         $archivo = 'auditoria_'.now()->format('Ymd_His').'.json';
-        Storage::disk('local')->put('exports/'.$archivo, json_encode($registros, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        AuditLog::record('audit_exported', AuditLog::class, null, [
+            'filename' => $archivo,
+            'records' => count($registros),
+        ]);
 
         return response()->streamDownload(function () use ($registros): void {
             echo json_encode($registros, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

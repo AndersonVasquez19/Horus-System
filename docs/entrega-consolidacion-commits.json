@@ -1,0 +1,2485 @@
+{
+    "date":  "2026-11-05",
+    "head":  "7914438d59b77b6a5e09a15d371e635cca2d894d",
+    "branch":  "anderson",
+    "commit_authorized":  true,
+    "push_authorized":  false,
+    "existing_commits":  24,
+    "note":  "Propuesta; no staging. Cambios iniciales preservados. La autoria no se infiere del autor Git. Reservas de privacidad solo metadatos; nunca leer para preparar commits.",
+    "files":  [
+                  {
+                      "path":  ".env.example",
+                      "state":  " M",
+                      "sha256":  "da9aaffdb0a3828a9fbc722486c5f78f84f3a461fa4179d527bfda08c621de45",
+                      "group":  "seguridad_ejemplo",
+                      "ownership":  "saneamiento_autorizado",
+                      "proposed_commit":  "seguridad_ejemplo",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "3606908ab4346488d09ae5af2fd385daa52fe7e8"
+                  },
+                  {
+                      "path":  "CLAUDE.md",
+                      "state":  " M",
+                      "sha256":  "3c9b794891dc9df09e1a2eb01f1a830e53ddde99c7dedc15fa9a450d73117bd5",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "PROJECT_CONTEXT.md",
+                      "state":  " M",
+                      "sha256":  "ad5495b42d9e440b1f23a06fd1ccc13c0d873b2e1ad20ad3e5ec95b81ef2791f",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "cierre_documental"
+                  },
+                  {
+                      "path":  "README.md",
+                      "state":  " M",
+                      "sha256":  "af7392351086aba31681717697650a5a9d26f344f8b2130d10cfe59a7e9e1ab5",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/Admin/DashboardController.php",
+                      "state":  " M",
+                      "sha256":  "3a07d1c346bfa6cb13582c3002eaac6af870e142a85218e9a4d4d8e96da4d408",
+                      "group":  "administracion_procesos_notificaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_procesos_notificaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/Admin/ProcesoController.php",
+                      "state":  " M",
+                      "sha256":  "b3d7223b58b7a4bd8e2cbbb243ecdda8bccf92881cb4f9efb9441f6103be7f83",
+                      "group":  "administracion_procesos_notificaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_procesos_notificaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/Admin/ServicioTecnologicoController.php",
+                      "state":  " M",
+                      "sha256":  "434796e5113b599035c3d45b1fa2d700555838339926bc3fa0c546292dbbb9e0",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/ChatWidgetController.php",
+                      "state":  " M",
+                      "sha256":  "dc8c65db9ec7a8b8924abfc17ea561ab87441cacbab9989fa4a229c16856f0a7",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/ServiciosPublicosController.php",
+                      "state":  " M",
+                      "sha256":  "5891a6b409fdb65aab17bb8a68d42eac87b4d2e2b16a584156d8e2bbdba64a6f",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Http/Requests/PrepararServicioPublicacionRequest.php",
+                      "state":  " M",
+                      "sha256":  "7bf32ea85609622c100e1ff7d1e07ca334aecc6d66f730a7e66291041d62dfa7",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Models/ChatLog.php",
+                      "state":  " M",
+                      "sha256":  "1b055ee4d162d89f8b6cfcfd03021b1acee119ed0d3029b0709f6fddb6679e78",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Models/ServicioPublicacion.php",
+                      "state":  " M",
+                      "sha256":  "700562b3992581b6f046558ba63869491a9698db9f77781a774b50fb7c0d568f",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Models/ServicioTecnologico.php",
+                      "state":  " M",
+                      "sha256":  "94a79bcb13e51b390a3fa2e0e2a006da2ca2fb2de5c5ff66b3062f4de612480f",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Providers/AppServiceProvider.php",
+                      "state":  " M",
+                      "sha256":  "1e00f8dc2da147fa8662451ebec9d9b2d488988e90acf56394896ef49a4ebc75",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "app/Services/AsistenteVirtualService.php",
+                      "state":  " M",
+                      "sha256":  "240e90bd1a7a1f5dce27bb8f9cba826f7b701380e22998f4cdc10c36a1240494",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "app/Services/CatalogoPublicoServicios.php",
+                      "state":  " M",
+                      "sha256":  "43ec190cabba06fdd595b4ff08690194a37a7f317e2bbe1ccd34e3015979cb76",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Services/ExportadorCatalogoAdvisor.php",
+                      "state":  " M",
+                      "sha256":  "0a050b3f166d4842ce4546b5fe8e0dcf40460dc1f8f6208266b699300ba29469",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Services/FirmaCatalogoAdvisor.php",
+                      "state":  " M",
+                      "sha256":  "0ffdae56b8b10416702c24ac8b228e8c29b147719aa1359a6bee5d4e3b755791",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Services/GestionReclamaciones.php",
+                      "state":  " M",
+                      "sha256":  "8284b2531f9cac9eb7800b5d8d8660b71d93bf50b0a202d1ff60fe8df6768309",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "app/Services/GestionServiciosTecnologicos.php",
+                      "state":  " M",
+                      "sha256":  "e2a60d3b4985ae9611e307026f676a0569c4cd5024c15c427bf531c58b66f732",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Services/HorusAdvisorClient.php",
+                      "state":  " M",
+                      "sha256":  "7074f3e2ba8f56c47d632a87a8ef1b8753718587dd5f227bb9914118699cd809",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Support/AuditoriaReclamaciones.php",
+                      "state":  " M",
+                      "sha256":  "14031e001ed7f6b50c70182c5edbda823a5f888c7985edeb96700b4ded69fba3",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "app/Support/ChatCursosPublicos.php",
+                      "state":  " D",
+                      "sha256":  null,
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Support/ChatKnowledge.php",
+                      "state":  " M",
+                      "sha256":  "e02b3ff76173a1b7613728be288784768c8fb2f74f9ced219f2054529a36b446",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "chatbot-python/README.md",
+                      "state":  " M",
+                      "sha256":  "5242f0bb717f573fea9f3fe847c3a87a8dce28269b9b98154ea02ce3f122c094",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/api/routes.py",
+                      "state":  " M",
+                      "sha256":  "3b3388de836be60b8a5629172bd5878f0499e1ec554139fcf06b4c2a5f7a52d2",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/core/config.py",
+                      "state":  " M",
+                      "sha256":  "3d7dab973de651cef49c81a3b0fba77b2d711719c3ceecad05d74d64d87d89c5",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/core/security.py",
+                      "state":  " M",
+                      "sha256":  "aec2006d4f744c328cf1e2c88e4691ed3c87b784e248d704e701146aafa773ae",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/main.py",
+                      "state":  " M",
+                      "sha256":  "4c70502be9cad1acb1bf9e86d6d6424cca00eb3ac5fb78c676c2c39e78428324",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/schemas/catalog.py",
+                      "state":  " M",
+                      "sha256":  "f318f3577776eb5236d4f114f6bf971d18eff2501cdf5194857384ca7b792df0",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/schemas/chat.py",
+                      "state":  " M",
+                      "sha256":  "d84be18f0073803bb6c4150120d4f8f5ba5f8e657c5c4168722d1e365d592fe2",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/catalog.py",
+                      "state":  " M",
+                      "sha256":  "6636328f1fb893efa8b15ac2a432b53eda70a59557bf5d31e3a772069c281fd2",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/chat_engine.py",
+                      "state":  " M",
+                      "sha256":  "b2de86a7bc224e41ec2401ff60df33303f398f524cb18290bd1fd417f34d6062",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/knowledge.py",
+                      "state":  " M",
+                      "sha256":  "58832a9be95f114f5629c86c66a2a6764f2b8101d155e06c5b26b51e2728a308",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/lexical_search.py",
+                      "state":  " M",
+                      "sha256":  "407e18e7bb6f49fbfb6961a50ccd5e386a67f92cee2c532f0788cdbd27841d41",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/recommendations.py",
+                      "state":  " M",
+                      "sha256":  "3aeb5a990c92fca57c60ccdd86ff92af2a561c852acd898c8e51e8f052c990ca",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/semantic_search.py",
+                      "state":  " M",
+                      "sha256":  "b92c3471165d913d1ce772706f10144a657447055817b0b8000cee64b38496ab",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/data/intents.json",
+                      "state":  " M",
+                      "sha256":  "10178ef6a827cc0b6162a5db5ad64bd474258abbff55a39c8f958ce61cf3c7fa",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/data/knowledge.json",
+                      "state":  " M",
+                      "sha256":  "25c6470795be79425b1f2c5a7924c840edd29b5dc35ad7db6d32e7c11fa954a0",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_recommendations.py",
+                      "state":  " M",
+                      "sha256":  "4ff9477f4c5bca3538cc6a5ed1c1a8d6d59e9f86c2e15bfc2dbdd9f7475e795c",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "config/chatbot.php",
+                      "state":  " M",
+                      "sha256":  "01187a599c7d14650fa0a181c8eff45c4e0b72a0f1b9db2e47864a7053798663",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "config/horus-advisor.php",
+                      "state":  " M",
+                      "sha256":  "6461bdb23e1ac7b21e78bc166c6fd39126a8398aa5c7aa0b98f0e49879ec7906",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "config/services.php",
+                      "state":  " M",
+                      "sha256":  "8258c4487eb1d73a97e569eb0e411e3f25368044812df4cba807860432be1d92",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "docs/sprint-16-horus-ai-advisor.md",
+                      "state":  " M",
+                      "sha256":  "13ab1f700af9aa526bc34fdeb0b0660908fe3a0b1e9be5628cc7a81a65aeb975",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "public/assets/css/libro/libro-reclamaciones.css",
+                      "state":  " M",
+                      "sha256":  "99506e15472bef1567835e41c9c7e099107726efb2575cb51c21ed5474c44eda",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "public/assets/js/libro-reclamaciones.js",
+                      "state":  " M",
+                      "sha256":  "b6d3377de6d1e6161e99ca5d10bd7a69790ef560af75c29f020ada48e52c4616",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "resources/css/app.css",
+                      "state":  " M",
+                      "sha256":  "c02f6572e3064bc3030f3be80e7102c3104326a0f1ca24fadc646523f5dad6eb",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/css/chatbot.css",
+                      "state":  " M",
+                      "sha256":  "6432b206af512ff9775b6407d225d65502e03612a80b45d61fdfa5eb8c7f60bd",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "resources/js/admin-servicios.mjs",
+                      "state":  " M",
+                      "sha256":  "f6bea11dda5ce74e32169b66ded41bdc00295f11bd3336370c2c16658e61ad3c",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/js/chat-client.js",
+                      "state":  " M",
+                      "sha256":  "144425ae1693935224c862b675940e251b7665994805682b28822e0f8cfce27f",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "resources/views/admin/asistente/index.blade.php",
+                      "state":  " M",
+                      "sha256":  "0918391459cc04f991b8d22d62d7177cbf37e1a034b7f9aae8ffef38ccf7dc4f",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/views/admin/dashboard.blade.php",
+                      "state":  " M",
+                      "sha256":  "5c6a1954065068c2dbb31848ec2073e9e4a76d4e59b0c802f61d5fbf3cbd023f",
+                      "group":  "administracion_procesos_notificaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_procesos_notificaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831"
+                  },
+                  {
+                      "path":  "resources/views/admin/partials/sidebar.blade.php",
+                      "state":  " M",
+                      "sha256":  "04c1f4885ebe8ed125271e5ddad4d7e1c43a8a06b477552b61df499f9b5a587f",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/views/admin/servicios/_editor.blade.php",
+                      "state":  " M",
+                      "sha256":  "0d510030c546e5c9cfca8bb568c4dd7d953be753d274e2b79e26e3c043a1f924",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/views/admin/servicios/index.blade.php",
+                      "state":  " M",
+                      "sha256":  "44e4c8deb153339f1bbdcc76c17fbbc17bf7ababb437d018dcd2832b87ffecc8",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/views/components/admin/badge-estado.blade.php",
+                      "state":  " M",
+                      "sha256":  "dd4d6e44b6e85a43e16a901404680ff162c7080a270ceecdeca25107d338278d",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/views/components/chat/conversation.blade.php",
+                      "state":  " M",
+                      "sha256":  "78faf47f81e4b6d1f21d12f7faea2fa0731ff7478856677a2eb3467ed406f1ea",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "resources/views/components/convenios/card.blade.php",
+                      "state":  " M",
+                      "sha256":  "6e524fbf13e1a554d11ac761d62103ad81ef6259dab8f6cffb318db3eaa5f998",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/views/components/convenios/section.blade.php",
+                      "state":  " M",
+                      "sha256":  "36f31865025382b855c43eb26e0e816afd8622d9491b20e8017181606083dd0d",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/views/pages/home.blade.php",
+                      "state":  " M",
+                      "sha256":  "d9eb2c781b07821d6fa16c561075253daf01995070dabb8a41fb24541ac72886",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "resources/views/pages/legales/libro-reclamaciones.blade.php",
+                      "state":  " M",
+                      "sha256":  "31620ca41e2f9c60968d87a80e203631fb37d69e550fc8dc7463a2bdb3f84198",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "resources/views/pages/tecnologias/cableado-estructurado.blade.php",
+                      "state":  " M",
+                      "sha256":  "884d2599e23700974eb6b0c124a0600a29cab162a33868754ff0e377497e610f",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/views/pages/tecnologias/camaras-seguridad.blade.php",
+                      "state":  " M",
+                      "sha256":  "e03cb806311b755d2ce6de9af8fb819396f7dcedcfaa6d57af2dd3421a01eb3f",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/views/pages/tecnologias/soporte-mantenimiento.blade.php",
+                      "state":  " M",
+                      "sha256":  "76a6ddc1f20479d4370e9cbccb67e51fe8933879a8818f3469a6097df88bb47f",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "routes/console.php",
+                      "state":  " M",
+                      "sha256":  "8769d3b355ba137d97a74c15800051e4b83af804ea82deed3f6049983ec5b38f",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "routes/web.php",
+                      "state":  " M",
+                      "sha256":  "7597cf098722a6c2e6264c8cd7ea4947b6533c0e950e5a2b8bb9311efa5d996e",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/Feature/AdminDashboardTest.php",
+                      "state":  " M",
+                      "sha256":  "d243a2e308fea416aada90bd090e8c96f7f2e91803d886c18fb2860460ee26a5",
+                      "group":  "administracion_procesos_notificaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_procesos_notificaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831"
+                  },
+                  {
+                      "path":  "tests/Feature/AsistenteVirtualTest.php",
+                      "state":  " M",
+                      "sha256":  "b31b245b1d5f3ea8a6a4dada5004e8dc3d8624427c9b62ff11a4532082481f37",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/Feature/BackendPerformanceTest.php",
+                      "state":  " M",
+                      "sha256":  "3b73fd7f2ef92bf5884e03c813482a6b604e7767eb13f3dea46ae75e45694d4a",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/Feature/CatalogoWebServiciosTest.php",
+                      "state":  " M",
+                      "sha256":  "62b5ceb9080a621cb7b1ac99cdc460fd050eade66c6ecd634613f57f1580fa69",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "tests/Feature/ChatbotHybridTest.php",
+                      "state":  " M",
+                      "sha256":  "1c577aa70f531fe2d38fbb49f525ac79eaa8c09ba4c091d213d12157a93e0013",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/CursoPublicacionTest.php",
+                      "state":  " M",
+                      "sha256":  "65f0d6b537db56f876bf3822949165c9c18bfcd3ff695a2771c4a4a495413842",
+                      "group":  "academico",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "academico",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/Feature/GestionReclamacionesTest.php",
+                      "state":  " M",
+                      "sha256":  "5399ddc897f9e631c9909839cdf54a831de3d49c64518d5e9613f98b3f5cfd1e",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusAdvisorTest.php",
+                      "state":  " M",
+                      "sha256":  "eb1134aa8fdc37aeac004425ec968731bcacc5f3a9f87f11a84ef63e2d09cca5",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/MatriculaNotificationBacklogTest.php",
+                      "state":  " M",
+                      "sha256":  "7c680f1a015c3b45ea7ab211654f745696b023dcfb629f835458cb25884cff6b",
+                      "group":  "administracion_procesos_notificaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_procesos_notificaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831"
+                  },
+                  {
+                      "path":  "tests/Feature/ReclamacionesMigracionTest.php",
+                      "state":  " M",
+                      "sha256":  "042a7e19a4e4a73952d721c732024b9d0fb81264633c2652c5165e4da6f4cb3b",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/PostgresIntegrity/ConcurrencyPostgresTest.php",
+                      "state":  " M",
+                      "sha256":  "2d4945089d381bffe3ae374f155a60010f5f718fb8d7f8e8cc5f3dbb6fc7aef9",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/PostgresIntegrity/ReclamacionesDdlPostgresTest.php",
+                      "state":  " M",
+                      "sha256":  "4e1c4e8ba71f1b5cd896100cac95c73c67ea5ead7997c3a749e4ef4d4e513b26",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/browser/servicios-panel-smoke.mjs",
+                      "state":  " M",
+                      "sha256":  "656d40ef5f83ea472dcfa71731b7ce603cf3bf27562897bd99920c3a146a749c",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Console/Commands/OperacionAdvisor.php",
+                      "state":  "??",
+                      "sha256":  "a835eef2228794e83a1e09cdccfa6fca5b4e89c805864bb92581178be23b15a1",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/Admin/ReclamacionController.php",
+                      "state":  "??",
+                      "sha256":  "dc70b3430af442de4f26760cd51502c5c23da2e127122bf43c544d0d83ed52c0",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/LibroReclamacionesController.php",
+                      "state":  "??",
+                      "sha256":  "e3e9f0aa789807b99c118b6eb2583483cd2b2c536325d4157557ce2ffc3bcf2d",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "app/Http/Controllers/PaginaTecnologicaController.php",
+                      "state":  "??",
+                      "sha256":  "8b7305ec49432748d76270cad5f4d80c945fd9612c08bc3cf2ab16ad047da9cb",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "app/Http/Requests/GuardarServicioElementoRequest.php",
+                      "state":  "??",
+                      "sha256":  "31015cbcfd8475347783796d0be88ceedfd57a47f3a0c4828959e0de2f1a4747",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Http/Requests/SubirImagenPrincipalRequest.php",
+                      "state":  "??",
+                      "sha256":  "7b1b97b3515bdf97cf06d2e086b50d2a440c57b560b26250de7e886c08da9d4f",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "app/Jobs/SincronizarCatalogoAdvisor.php",
+                      "state":  "??",
+                      "sha256":  "ac0b07208cedbe1c9e54b82084984dfd2bf9e819406d7cb620e201831030f27f",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Models/ServicioPublicacionElemento.php",
+                      "state":  "??",
+                      "sha256":  "f34ea749708335288a95ab5577baa1587d5caa1115960f8546c3340a97eb389a",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Observers/PublicacionCatalogoAdvisorObserver.php",
+                      "state":  "??",
+                      "sha256":  "4b99367a492a16e8267c3036904b13b3a576a55602951342ef7dd641521e6290",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Services/ContenidoPublicoServicios.php",
+                      "state":  "??",
+                      "sha256":  "71ba6841b8a1e8192a013a95b674b08698c7f89950d12e389062588bd4344487",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Services/FragmentosCatalogoAdvisor.php",
+                      "state":  "??",
+                      "sha256":  "0c8b096b8d861ccdc7946a634ab4381288b86404a3d088ded08ce257370c59ef",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Services/FuentesCatalogoAdvisor.php",
+                      "state":  "??",
+                      "sha256":  "c54c13801d1dea59957c3f1a438339be331582b1f71f6a22ec4f9c24d18a83b0",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Services/ImagenesServicios.php",
+                      "state":  "??",
+                      "sha256":  "8f5f7cc3b19829ce8053576d2783b949041b660a077cc185a94a6d28622a1899",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Services/OperacionHorus.php",
+                      "state":  "??",
+                      "sha256":  "a316f2d8aa0f7e867d3db34d48d04b840bb26a69fbb65c13cf0fc07b7a1f09e6",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Services/PresentacionRecomendacionesHorus.php",
+                      "state":  "??",
+                      "sha256":  "41df2fff646a533462ec60776417c44ea4fbaa7ef6366e6c02a8542bd8cc8a0d",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "app/Support/FiltroPrivacidadChat.php",
+                      "state":  "??",
+                      "sha256":  "975de2929a88255361a51ee6e646004a32cef3bf245c5c5b683b8b319623abe7",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "app/Support/PaginasServicios.php",
+                      "state":  "??",
+                      "sha256":  "291f044d2d63cc15a71f535e610e62c2684608a854dd504dc4012155576097f4",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "app/Support/PresentacionReclamacion.php",
+                      "state":  "??",
+                      "sha256":  "3bfa3e74e5c05f695e31b1aa81db1a1ef28e687cd8698696fa0357eb4cbc4f36",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "app/Support/Privacidad/LexicoPublico.php",
+                      "state":  "??",
+                      "sha256":  "f80a152e86299fcb4e25cddfef7b5fa3b6202b2b73380031efa92b84f36e50bd",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "app/Support/Privacidad/lexico-base.txt",
+                      "state":  "??",
+                      "sha256":  "6fdd5a2a7a5cee8672761374b0e775b31d0c35bec52bfdf633af74b032e5a585",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "app/Support/Privacidad/lexico-general.txt",
+                      "state":  "??",
+                      "sha256":  "36f2513b202868c74ea5d1ca52f258b021d1466e87fb1723eb441a87169fae32",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "app/Support/Privacidad/lexico-publico.php",
+                      "state":  "??",
+                      "sha256":  "38a04ea962a18593f69d6cc4213d68d6dfe975e3f5d2ebcffd8fb43cf611ad77",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "app/Support/Privacidad/lexico-verbos.txt",
+                      "state":  "??",
+                      "sha256":  "905460f249021fe6d0df630c3fa2a418cf240f85d696d153cc4a8d41221d21b8",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "chatbot-python/app/operacion.py",
+                      "state":  "??",
+                      "sha256":  "08146c5e9c276ea7f8bf3b52625ebaef22b7d556909774a84853b81d996c1fb8",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/catalog_documents.py",
+                      "state":  "??",
+                      "sha256":  "54a74bd562c4d2d9869df49c299c09073ca8ee2ab7a01faab088866fb9cf8831",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/catalog_sync.py",
+                      "state":  "??",
+                      "sha256":  "81dcbc6b38a178535fb71ed78bd5269720079022349969440e0f1950ded186f9",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/query_plan.py",
+                      "state":  "??",
+                      "sha256":  "0d81ac9c3ea0a31259fff4395deb65b0880eab1dc60976d717cc57e7d2182cdb",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/app/services/vector_cache.py",
+                      "state":  "??",
+                      "sha256":  "b09b6ffcd3e3e23ea4404addb3e38d9d6ae838d95472c935833f360329bc7f69",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_catalog_sync.py",
+                      "state":  "??",
+                      "sha256":  "383b08a5da1eabb2f73f8d30af84e5abfbb0748b9592f82d210ee75b2329c23e",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_cierre_funcional.py",
+                      "state":  "??",
+                      "sha256":  "fe7bc1b6991ab88054a047f23937b70326a26b3123a449392557681c07519a2b",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_operacion.py",
+                      "state":  "??",
+                      "sha256":  "47226efd7d0994ebb5f29ac29ed88909018d0b03853e1728abd628b19d0dea19",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_phase3b_capacitaciones_whatsapp.py",
+                      "state":  "??",
+                      "sha256":  "5fd6c6bddce54573dede7db7e8d19e231fbd83e781e26539ef944a0a2dd5a061",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_phase_c.py",
+                      "state":  "??",
+                      "sha256":  "712eec9a7a455415e0c963f48a3c2551e2f53d5778337bd0be4af20e97bddd50",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_phase_c_semantic.py",
+                      "state":  "??",
+                      "sha256":  "6b969c360d1da84830e0b9ae96d6746e86ff352fe588f83edc4d9a73ad60fe94",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_rag_public.py",
+                      "state":  "??",
+                      "sha256":  "db0ed21f4d4e37484f8c5e5b288c6e2154b6fd32d30ef68e5ccdb604ddafca82",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "chatbot-python/tests/test_vector_cache.py",
+                      "state":  "??",
+                      "sha256":  "77af73cd5764f8d8b148f2d7174543d38da9c33089e4ea896cf24eeb7b01c6a1",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "db16a2ababc903d40b7ca832dea650da11170d54"
+                  },
+                  {
+                      "path":  "config/horus-catalog.php",
+                      "state":  "??",
+                      "sha256":  "dd3c8cad78f300be1f4684d99a3402aa93ae8123e520e2859f029cb81090df29",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "config/horus-ops.php",
+                      "state":  "??",
+                      "sha256":  "066ae2900ed4ecf96262223296ce67044a527c88a54fa25471098abd198b339e",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "database/migrations/2026_11_02_000033_add_contenido_to_servicio_publicaciones.php",
+                      "state":  "??",
+                      "sha256":  "94e1002d4a16b907eae0e0425c852f9bf4880e42a6bb365da5aebc2d41ff9fc5",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "database/migrations/2026_11_03_000034_add_fuente_to_chat_logs.php",
+                      "state":  "??",
+                      "sha256":  "dd91b6aab6220ed6388eff7b69dc445bf8891bb296c275589981aeeac9b9b4fc",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "database/seeders/ServiciosTecnologicosContenidoSeeder.php",
+                      "state":  "??",
+                      "sha256":  "4121dcaecfe3bdb880e1fe30d3b8983902c0a45849d69b597dcd8efcb4bef972",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "docs/auditoria-independiente-a01-a07.md",
+                      "state":  "??",
+                      "sha256":  "51553682499ef6990fe7ed40c274aa259fabcbff0829cb12a3ef6732e8ed44fe",
+                      "group":  "documentacion",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "documentacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "docs/consolidacion-fase-4-manifiesto.json",
+                      "state":  "??",
+                      "sha256":  "d1038deab252fdad9874d6a48f48cec479dbbefe4fcecb5aa83a5bf7711a93c3",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "docs/consolidacion-fase-4-postgresql.md",
+                      "state":  "??",
+                      "sha256":  "cfb3781419c0e9c4dd6b26ee8f09da3d5ba330ce33c13da6aa9ea6d105e5d96d",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "docs/entrega-consolidacion-commits.json",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "documentacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "documentacion",
+                      "hash_scope":  "autorreferencia_sin_hash",
+                      "committed_in":  "cierre_documental"
+                  },
+                  {
+                      "path":  "docs/entrega-consolidacion.md",
+                      "state":  "??",
+                      "sha256":  "222cfec579c77cc517f62979d229b82275b0e6c88e94fd1bfd7b5dd790e65bf7",
+                      "group":  "documentacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "documentacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "cierre_documental"
+                  },
+                  {
+                      "path":  "docs/fase-4c-auditoria-horus-ai-para-codex.md",
+                      "state":  "??",
+                      "sha256":  "8ef2b14adc740672520fb0e590e05cf8df901abc51334010ac737fce02f1c35c",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "docs/horus-ai-operacion.md",
+                      "state":  "??",
+                      "sha256":  "0d2bb60d8ad8c5a8572eeb5d9cda466754c740d086f1663d51530cbe50ae940a",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6d65b9685c82d9e4c73cab587600186f0713d79b"
+                  },
+                  {
+                      "path":  "docs/sprint-16-privacidad-estabilizacion.md",
+                      "state":  "??",
+                      "sha256":  "5a023356a24f207dfdcddfb67fcf1d9d8a5862c56618cbe04714bacefbc0e345",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "docs/sprint-18-3-contenido-servicios.md",
+                      "state":  "??",
+                      "sha256":  "d88d7749c55c0ace1a0cf77d802b1972593a4855078f299c1072467e05ffd40a",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "ops/horus-ai/horus-ai.service.example",
+                      "state":  "??",
+                      "sha256":  "460c0cbb80d986f39bbd2db16163632aaf074c2b10a4cf3238f6351326911dea",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "ops/horus-ai/horus-catalog-worker.service.example",
+                      "state":  "??",
+                      "sha256":  "d02b53d79d8de154011e5a6fcfc89d368223e594177eba1ec492863bc2b308c8",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "phpunit.pgsql.fase4.xml",
+                      "state":  "??",
+                      "sha256":  "9e08165ba72a08bd3cd84a4771ff72975cda83d3304a06f49baa8b7334ff303e",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "resources/views/admin/reclamaciones/hoja.blade.php",
+                      "state":  "??",
+                      "sha256":  "92e5e57d47bfb4a3380b0d0fe7618fd9f2486554a9c20afab488ea03cec66669",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "resources/views/admin/reclamaciones/index.blade.php",
+                      "state":  "??",
+                      "sha256":  "34daa83188f96d012feb574d4323d5808fb76f2199f5490694c5111f87142f4e",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "resources/views/admin/reclamaciones/show.blade.php",
+                      "state":  "??",
+                      "sha256":  "b8294644378094f52e02db8c6b27d75e581dd4a5afab827a848cf4515e62c6e3",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "resources/views/pages/tecnologias/partials/dinamico-cableado.blade.php",
+                      "state":  "??",
+                      "sha256":  "edeed6d524014d09c177c60580fc9fe815695d5194185ef181a9c2504607b7eb",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/views/pages/tecnologias/partials/dinamico-camaras.blade.php",
+                      "state":  "??",
+                      "sha256":  "f665af386b49b451b7716386c085dd0299eca704064487361dcb5f920b270fa6",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "resources/views/pages/tecnologias/partials/dinamico-soporte.blade.php",
+                      "state":  "??",
+                      "sha256":  "24c3e3bbce5176b6b79ef629104e1dae00512993c87d6dec568915973e00990d",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "scripts/consolidacion-postgres.php",
+                      "state":  "??",
+                      "sha256":  "32a29443f79874c019b6840c24964abf2739b3c28af70177cd1e59fbed91d069",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "scripts/privacidad-evaluar.php",
+                      "state":  "??",
+                      "sha256":  "d1c0cf2e86eb5040d71b455d8d45baa85bb5feb8b7feb81f1ffdbd66aef5fa1a",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "scripts/privacidad-generar-lexico.php",
+                      "state":  "??",
+                      "sha256":  "bd1693b0e965ee46b75a424d9de78e5b410edd85324cdffe620dec22fb5083a0",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/ConsolidacionPostgres/CasoPostgresReversible.php",
+                      "state":  "??",
+                      "sha256":  "0e1b17a3bbbfd3d8b45049335a7e83ae9abd8e88531c3d4f017611d92f416717",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "tests/ConsolidacionPostgres/IntegridadExistenteTest.php",
+                      "state":  "??",
+                      "sha256":  "ca8f8a71bd319966ab33c74c6b287552c83bd55ca0ed4bbc1db29492269137ef",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "tests/ConsolidacionPostgres/MigracionesAprobadasTest.php",
+                      "state":  "??",
+                      "sha256":  "dc741f50dd25585539effeb3ba28c5fe064f914d110e90f94a3797313517fe3d",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "a320216880628ddf413689d43a08f2f1a75196ce"
+                  },
+                  {
+                      "path":  "tests/ConsolidacionSqlite/AuditoriaAiAprobadaTest.php",
+                      "state":  "??",
+                      "sha256":  "89968dfe49a557093ae3bcc76314aab087d0e9096de8a0ef463d034fb0cf61c4",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee7c870a133ba04251da681d26091b8d14ba647e"
+                  },
+                  {
+                      "path":  "tests/ConsolidacionSqlite/ServiciosContenidoAprobadoTest.php",
+                      "state":  "??",
+                      "sha256":  "56e36ad4a63759c558ecb798104064855d0eba52f8acdde85243ec8bd8a11019",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee7c870a133ba04251da681d26091b8d14ba647e"
+                  },
+                  {
+                      "path":  "tests/Feature/AdminReclamacionesTest.php",
+                      "state":  "??",
+                      "sha256":  "dc8b8398929e1d701af179fde8f1fe125de77a794b4db3d5956ebf901151ff0d",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/Feature/AdvisorColaRealTest.php",
+                      "state":  "??",
+                      "sha256":  "83cd061020b7de49582fbf6b4a6dfdf62c65785df5fca1774df0ce83f7d6705d",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/AdvisorFaseCTest.php",
+                      "state":  "??",
+                      "sha256":  "d8bfda7506aa77c3fc1de10eb1468cb4ad0117e4643fb6942b4e7efe68ce0e30",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/AdvisorFuentesCatalogoTest.php",
+                      "state":  "??",
+                      "sha256":  "57e8f771428eed0f2afe40731499f1fdebda6a8d66338e7614db9dc004e5d0c5",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/AdvisorRagFragmentosTest.php",
+                      "state":  "??",
+                      "sha256":  "c499967ac6ddc5592e51ced9f07e588d7b016862dd5a2603cd5e6d0ad7fe069a",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/AdvisorRagSincronizacionLentaTest.php",
+                      "state":  "??",
+                      "sha256":  "ce79f438fb259819672c6d02077507c7855835237e9c6d7226c947681c35abf5",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/AdvisorTarjetasPresentacionTest.php",
+                      "state":  "??",
+                      "sha256":  "45724d8d9675576bb10f9a0c686b23cae71865b3c0c7b3e505a31684720955dd",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/CatalogoAdvisorSincronizacionTest.php",
+                      "state":  "??",
+                      "sha256":  "01351b7bedac1cbedf4d7d82a4b89ca035bb142b1daf2f7ca3463894f3eb30d1",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusAiTransicionTest.php",
+                      "state":  "??",
+                      "sha256":  "f9a5d3e06a832831889ba99d7b5e0cbf97f772bff277c9a8c1c7970d4589fbf6",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusCierreFuncionalTest.php",
+                      "state":  "??",
+                      "sha256":  "8b0e544dbc133f4cf5628f25c19dd1607015b592d336b640bc2ba36efd8b522e",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusCorreccionR01R05Test.php",
+                      "state":  "??",
+                      "sha256":  "839c29f3334b61d3ec8e391004f023e0a16ba63cc6a4626f3f6ac21863e543cd",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusObservacionesTest.php",
+                      "state":  "??",
+                      "sha256":  "f31a519c494b66ddcbb7ba1428a0e3825500548303900429fda855787f84b02f",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusPrivacidadBloqueoCompletoTest.php",
+                      "state":  "??",
+                      "sha256":  "6674e36771ae54ff57c6fb1ccf88d4fb4e65a271f74100dc5bdc176a1dfc617b",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusPrivacidadEstabilizacionTest.php",
+                      "state":  "??",
+                      "sha256":  "a10fa4c7c24fb8a881046681328fbe0e3fa35d859797750eb5bcf517c6d6444a",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Feature/HorusPrivacidadNombresTest.php",
+                      "state":  "??",
+                      "sha256":  "990e2c0da5f5dce27a5b113784b82c4d5941b7cc6ea6556e326cd4784f6473c1",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Feature/LibroReclamacionesHttpTest.php",
+                      "state":  "??",
+                      "sha256":  "bfdb3e7f757be09d8ffb586e9d0ce69598f3c823f046de714b0947b866772fdd",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/Feature/OperacionHorusColaTest.php",
+                      "state":  "??",
+                      "sha256":  "72132e108d33345406977a5a211f7c14633393f2cb10b571c88747b93a753c67",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/OperacionHorusTest.php",
+                      "state":  "??",
+                      "sha256":  "53de3a2b9c30dae0f4fa85fef54b2634aa6b8252ec1bfa4e535dc1d21e8fa545",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Feature/ProcesoResponsableTest.php",
+                      "state":  "??",
+                      "sha256":  "2c319d37ee612bfcfef0eea4f3f0797f979e001d066d1ad1668433dddc8afa98",
+                      "group":  "administracion_procesos_notificaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_procesos_notificaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831"
+                  },
+                  {
+                      "path":  "tests/Feature/ServiciosContenidoTest.php",
+                      "state":  "??",
+                      "sha256":  "d7444fca1419e7b40fde8526dab56583b4faeca8e2721a85d8eedcc38aeda0e5",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "tests/Feature/WidgetPresentacionTest.php",
+                      "state":  "??",
+                      "sha256":  "382c8680ef80ff0417e1773df77f16ae881bb71c9cbd704c81d8074ffc98f179",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Fixtures/cierre-funcional-replies.json",
+                      "state":  "??",
+                      "sha256":  "3d48efa8e8436c7869ae5ba9c064f1518f6745b302ba6b51f385313612d13013",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/Fixtures/horus-auditoria-32.json",
+                      "state":  "??",
+                      "sha256":  "56c5b4dec3fa3694b7aa3dfa0554e9f1b672d76f5933f2a22ee0cc1029dd8429",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Fixtures/horus-auditoria-r01.json",
+                      "state":  "??",
+                      "sha256":  "c2275add1e4600f3288706eb403fa20b271bc9b4d037bb64b54e4c9820f47558",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Fixtures/phase-c-public-replies.json",
+                      "state":  "??",
+                      "sha256":  "2f1b00ae10c71f056775f1bcaf252601ef683e0a8c7cbaaed3abfa22d42809e5",
+                      "group":  "integracion_compartida",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "66a16983ed1188a48a347f37a53053675dd9eb3d"
+                  },
+                  {
+                      "path":  "tests/Fixtures/privacidad/desarrollo.txt",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "excluir_privacidad_entorno",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  null,
+                      "hash_scope":  "solo_metadatos_restringidos"
+                  },
+                  {
+                      "path":  "tests/Fixtures/privacidad/errores-compartibles.txt",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "excluir_privacidad_entorno",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  null,
+                      "hash_scope":  "solo_metadatos_restringidos"
+                  },
+                  {
+                      "path":  "tests/Fixtures/privacidad/forense-compartible.json",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "excluir_privacidad_entorno",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  null,
+                      "hash_scope":  "solo_metadatos_restringidos"
+                  },
+                  {
+                      "path":  "tests/Fixtures/privacidad/holdout-interno-2.txt",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "excluir_privacidad_entorno",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  null,
+                      "hash_scope":  "solo_metadatos_restringidos"
+                  },
+                  {
+                      "path":  "tests/Fixtures/privacidad/holdout-interno-3.txt",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "excluir_privacidad_entorno",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  null,
+                      "hash_scope":  "solo_metadatos_restringidos"
+                  },
+                  {
+                      "path":  "tests/Fixtures/privacidad/holdout-interno.txt",
+                      "state":  "??",
+                      "sha256":  null,
+                      "group":  "excluir_privacidad_entorno",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  null,
+                      "hash_scope":  "solo_metadatos_restringidos"
+                  },
+                  {
+                      "path":  "tests/PostgresIntegrity/ReclamacionesReconstruccionD9Test.php",
+                      "state":  "??",
+                      "sha256":  "b038a95c79f3da7d11e5a5eeb9bba7e5e5bc46195b85c3a2d3b7d3b877591574",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/Support/InstalaMigracionesEnMemoria.php",
+                      "state":  "??",
+                      "sha256":  "5894d9f375292950e3c7b86f0935014b1fe9204244b1066363c8933a1f23c03e",
+                      "group":  "integracion_compartida",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "integracion_compartida",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "ee7c870a133ba04251da681d26091b8d14ba647e"
+                  },
+                  {
+                      "path":  "tests/Support/consolidacion-horus-ai.php",
+                      "state":  "??",
+                      "sha256":  "c8beb33d8d50439e4f4bb53a08e43c1dece68e1fc5238ee58ee06ee825f9d092",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "5d5a1e720198468ecfc87b6473fad20d5ba85510"
+                  },
+                  {
+                      "path":  "tests/Support/horus-ai-browser-router.php",
+                      "state":  "??",
+                      "sha256":  "8be94090fbd5b72d94da587d4474480f58c4d0f6a003f27b3ac155d16b327e6f",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Support/horus-observaciones-bridge.php",
+                      "state":  "??",
+                      "sha256":  "061d0ff0a307d8db76c36fcc5e064933fc49321db3972b5f00c2e8ad9bfc8ac9",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Support/privacidad-integracion.php",
+                      "state":  "??",
+                      "sha256":  "4f11fc1f9cfd9a0ab08a0d62e08d861f632f663787decf9a3a4bba930682bb9d",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Support/reclamaciones-browser-router.php",
+                      "state":  "??",
+                      "sha256":  "68e1523c85108c69ad02cde19076735b6326ca463a812055aaaa831945d1a961",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/Support/run-consolidacion-horus-ai.py",
+                      "state":  "??",
+                      "sha256":  "2ebdaf60a3ce9311cc9d6bd810db98fc970ef2099a17034bb58bcb01cfd04830",
+                      "group":  "validacion_consolidacion",
+                      "ownership":  "propio_esta_continuacion",
+                      "proposed_commit":  "validacion_consolidacion",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "5d5a1e720198468ecfc87b6473fad20d5ba85510"
+                  },
+                  {
+                      "path":  "tests/Support/run-horus-ai-smoke.py",
+                      "state":  "??",
+                      "sha256":  "ce09723bdf5266e00450f5d31a194fae9c518e762d3f5b1c42689ebdc5fa547f",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Support/run-horus-observaciones.py",
+                      "state":  "??",
+                      "sha256":  "bd85431703298b402cca309b23dde0b1785850176552226f88156627d124d9f0",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Support/run-privacidad-integracion.py",
+                      "state":  "??",
+                      "sha256":  "4f8fb20a5aa9914f894da3e1960e015d8ba8ddf823e67d868fc2b9fc3091420d",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Support/servicios-contenido-browser-router.php",
+                      "state":  "??",
+                      "sha256":  "678db63591ff779820b1717ef53babfbf316e033ade60af05fda07f9a8011a49",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "tests/Unit/FiltroPrivacidadChatTest.php",
+                      "state":  "??",
+                      "sha256":  "51d4d040c4fc0e7bd22f85731ed875d2cb6bdbb6c75bf278e7896bca58977a02",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/FiltroPrivacidadCierreFuncionalTest.php",
+                      "state":  "??",
+                      "sha256":  "f1f7d2de0e95b34f678211a95c1c975b7f1c5a3c0a8864722a4657200ec68e19",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/FiltroPrivacidadCierreTest.php",
+                      "state":  "??",
+                      "sha256":  "7cce459b5ac456498c88a7e235dcae8ad1842d2dc93404227cbcaffc71856feb",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/FiltroPrivacidadCorpusTest.php",
+                      "state":  "??",
+                      "sha256":  "0b0b3de1552d6fe62e7aa7c23175b02867ab5e51ffc9b1c6b0c5481ee11e3d95",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/FiltroPrivacidadH1H7Test.php",
+                      "state":  "??",
+                      "sha256":  "3c8723cff79e19e6d114222749f859cfcea175346238bd1be0c58bc5825ec68f",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/FiltroPrivacidadNombresMinusculasTest.php",
+                      "state":  "??",
+                      "sha256":  "1286b15f8d9690e24fdf9f0a76126eb4b4296cb561203fda30139ee0a0b47502",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/FragmentosCatalogoAdvisorTest.php",
+                      "state":  "??",
+                      "sha256":  "75f2758c1cce47546bdcc1b432af2f9fa823402d14cbea78e5a3d35c899709ed",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/Unit/LexicoPublicoTest.php",
+                      "state":  "??",
+                      "sha256":  "2b6ad601dfd3dc08a114fd88beacfe75c26b214b369b5f449b55637c0b27b1e2",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6f7f3cd704aed4178794ea415ae0b0815b14335e"
+                  },
+                  {
+                      "path":  "tests/Unit/ServicioElementosOrdenPreparacionTest.php",
+                      "state":  "??",
+                      "sha256":  "448b86cbf584cda44ffd0a071c5c2ec72918d65c3d0e94186ab3be2afeab41e2",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "tests/browser/horus-ai-integration.mjs",
+                      "state":  "??",
+                      "sha256":  "924df7093defb232b14929629d3b37092f18053cf134683e9354e12c7793cd49",
+                      "group":  "horus_ai",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441"
+                  },
+                  {
+                      "path":  "tests/browser/libro-reclamaciones-smoke.mjs",
+                      "state":  "??",
+                      "sha256":  "19a79423b0dc3f7ced047bd4028b32fd7541e6642041a90d0e0679f19dcbc2ee",
+                      "group":  "administracion_reclamaciones",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "administracion_reclamaciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7"
+                  },
+                  {
+                      "path":  "tests/browser/servicios-contenido-smoke.mjs",
+                      "state":  "??",
+                      "sha256":  "b5a907e18beab32e3d0f239f68251800e5539620745b4eb93fb28b2467cbafa7",
+                      "group":  "comercial_editorial_servicios",
+                      "ownership":  "preexistente_preservado_confirmar_responsable",
+                      "proposed_commit":  "comercial_editorial_servicios",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac"
+                  },
+                  {
+                      "path":  "scripts/aplicar-editorial-auditoria.php",
+                      "state":  "??",
+                      "sha256":  "a5d53502de468f78d3f68a2e9ce9348e6db2e03e6ac36bbf98ee77a6a18b2924",
+                      "group":  "operacion_migraciones",
+                      "ownership":  "propio_aplicacion_autorizada",
+                      "proposed_commit":  "operacion_migraciones",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "d1669439869491a19440a78467facad2b45bdeef"
+                  },
+                  {
+                      "path":  "scripts/horus-local.php",
+                      "state":  "??",
+                      "sha256":  "0a096d9317392d5207dd9276ab6ff41a24a227d5db92a9bbd9a80ffaf57e9738",
+                      "group":  "operacion_local_horus_ai",
+                      "ownership":  "propio_activacion_local_autorizada",
+                      "proposed_commit":  "operacion_local_horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6d65b9685c82d9e4c73cab587600186f0713d79b"
+                  },
+                  {
+                      "path":  "tests/browser/horus-local-smoke.mjs",
+                      "state":  "??",
+                      "sha256":  "f2b90e3c355891039464a047d691540fb10e5bb4f1444405b53e737fb88b814a",
+                      "group":  "operacion_local_horus_ai",
+                      "ownership":  "propio_activacion_local_autorizada",
+                      "proposed_commit":  "operacion_local_horus_ai",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "6d65b9685c82d9e4c73cab587600186f0713d79b"
+                  },
+                  {
+                      "path":  "phpunit.xml",
+                      "state":  " M",
+                      "sha256":  "a186f532d485b0376c4b968ae12a4956cdc9caa709b3754806baf25691cf2340",
+                      "group":  "aislamiento_pruebas",
+                      "ownership":  "propio_activacion_local_autorizada",
+                      "proposed_commit":  "aislamiento_pruebas",
+                      "hash_scope":  "archivo_actual",
+                      "committed_in":  "f39b924dafbbabd37bb3f8231a3440fe89a62a14"
+                  }
+              ],
+    "git_new_commits":  [
+                            {
+                                "title":  "fix(seguridad): retirar contraseña del archivo de ejemplo",
+                                "files":  [
+                                              ".env.example"
+                                          ]
+                            },
+                            {
+                                "title":  "feat(servicios): consolidar editor y contenido editorial",
+                                "files":  [
+                                              "app/Http/Controllers/Admin/ServicioTecnologicoController.php",
+                                              "app/Http/Controllers/ServiciosPublicosController.php",
+                                              "app/Http/Requests/PrepararServicioPublicacionRequest.php",
+                                              "app/Models/ServicioPublicacion.php",
+                                              "app/Models/ServicioTecnologico.php",
+                                              "app/Services/CatalogoPublicoServicios.php",
+                                              "app/Services/GestionServiciosTecnologicos.php",
+                                              "resources/js/admin-servicios.mjs",
+                                              "resources/views/admin/servicios/_editor.blade.php",
+                                              "resources/views/admin/servicios/index.blade.php",
+                                              "resources/views/pages/tecnologias/cableado-estructurado.blade.php",
+                                              "resources/views/pages/tecnologias/camaras-seguridad.blade.php",
+                                              "resources/views/pages/tecnologias/soporte-mantenimiento.blade.php",
+                                              "tests/Feature/CatalogoWebServiciosTest.php",
+                                              "tests/browser/servicios-panel-smoke.mjs",
+                                              "app/Http/Requests/GuardarServicioElementoRequest.php",
+                                              "app/Models/ServicioPublicacionElemento.php",
+                                              "app/Services/ContenidoPublicoServicios.php",
+                                              "app/Services/ImagenesServicios.php",
+                                              "app/Support/PaginasServicios.php",
+                                              "database/migrations/2026_11_02_000033_add_contenido_to_servicio_publicaciones.php",
+                                              "database/seeders/ServiciosTecnologicosContenidoSeeder.php",
+                                              "docs/sprint-18-3-contenido-servicios.md",
+                                              "resources/views/pages/tecnologias/partials/dinamico-cableado.blade.php",
+                                              "resources/views/pages/tecnologias/partials/dinamico-camaras.blade.php",
+                                              "resources/views/pages/tecnologias/partials/dinamico-soporte.blade.php",
+                                              "tests/Feature/ServiciosContenidoTest.php",
+                                              "tests/Support/servicios-contenido-browser-router.php",
+                                              "tests/Unit/ServicioElementosOrdenPreparacionTest.php",
+                                              "tests/browser/servicios-contenido-smoke.mjs"
+                                          ]
+                            },
+                            {
+                                "title":  "feat(reclamaciones): consolidar libro y gestión administrativa",
+                                "files":  [
+                                              "app/Services/GestionReclamaciones.php",
+                                              "app/Support/AuditoriaReclamaciones.php",
+                                              "public/assets/css/libro/libro-reclamaciones.css",
+                                              "public/assets/js/libro-reclamaciones.js",
+                                              "resources/views/pages/legales/libro-reclamaciones.blade.php",
+                                              "tests/Feature/GestionReclamacionesTest.php",
+                                              "tests/Feature/ReclamacionesMigracionTest.php",
+                                              "tests/PostgresIntegrity/ReclamacionesDdlPostgresTest.php",
+                                              "app/Http/Controllers/Admin/ReclamacionController.php",
+                                              "app/Http/Controllers/LibroReclamacionesController.php",
+                                              "app/Support/PresentacionReclamacion.php",
+                                              "resources/views/admin/reclamaciones/hoja.blade.php",
+                                              "resources/views/admin/reclamaciones/index.blade.php",
+                                              "resources/views/admin/reclamaciones/show.blade.php",
+                                              "tests/Feature/AdminReclamacionesTest.php",
+                                              "tests/Feature/LibroReclamacionesHttpTest.php",
+                                              "tests/PostgresIntegrity/ReclamacionesReconstruccionD9Test.php",
+                                              "tests/Support/reclamaciones-browser-router.php",
+                                              "tests/browser/libro-reclamaciones-smoke.mjs"
+                                          ]
+                            },
+                            {
+                                "title":  "fix(administracion): consolidar responsables y consultas del panel",
+                                "files":  [
+                                              "app/Http/Controllers/Admin/DashboardController.php",
+                                              "app/Http/Controllers/Admin/ProcesoController.php",
+                                              "resources/views/admin/dashboard.blade.php",
+                                              "tests/Feature/AdminDashboardTest.php",
+                                              "tests/Feature/MatriculaNotificationBacklogTest.php",
+                                              "tests/Feature/ProcesoResponsableTest.php"
+                                          ]
+                            },
+                            {
+                                "title":  "feat(horus-ai): consolidar motor Python y búsqueda semántica",
+                                "files":  [
+                                              "chatbot-python/README.md",
+                                              "chatbot-python/app/api/routes.py",
+                                              "chatbot-python/app/core/config.py",
+                                              "chatbot-python/app/core/security.py",
+                                              "chatbot-python/app/main.py",
+                                              "chatbot-python/app/schemas/catalog.py",
+                                              "chatbot-python/app/schemas/chat.py",
+                                              "chatbot-python/app/services/catalog.py",
+                                              "chatbot-python/app/services/chat_engine.py",
+                                              "chatbot-python/app/services/knowledge.py",
+                                              "chatbot-python/app/services/lexical_search.py",
+                                              "chatbot-python/app/services/recommendations.py",
+                                              "chatbot-python/app/services/semantic_search.py",
+                                              "chatbot-python/data/intents.json",
+                                              "chatbot-python/data/knowledge.json",
+                                              "chatbot-python/tests/test_recommendations.py",
+                                              "chatbot-python/app/operacion.py",
+                                              "chatbot-python/app/services/catalog_documents.py",
+                                              "chatbot-python/app/services/catalog_sync.py",
+                                              "chatbot-python/app/services/query_plan.py",
+                                              "chatbot-python/app/services/vector_cache.py",
+                                              "chatbot-python/tests/test_catalog_sync.py",
+                                              "chatbot-python/tests/test_cierre_funcional.py",
+                                              "chatbot-python/tests/test_operacion.py",
+                                              "chatbot-python/tests/test_phase3b_capacitaciones_whatsapp.py",
+                                              "chatbot-python/tests/test_phase_c.py",
+                                              "chatbot-python/tests/test_phase_c_semantic.py",
+                                              "chatbot-python/tests/test_rag_public.py",
+                                              "chatbot-python/tests/test_vector_cache.py"
+                                          ]
+                            },
+                            {
+                                "title":  "fix(privacidad): consolidar filtros y léxico público",
+                                "files":  [
+                                              "app/Support/FiltroPrivacidadChat.php",
+                                              "app/Support/Privacidad/LexicoPublico.php",
+                                              "app/Support/Privacidad/lexico-base.txt",
+                                              "app/Support/Privacidad/lexico-general.txt",
+                                              "app/Support/Privacidad/lexico-publico.php",
+                                              "app/Support/Privacidad/lexico-verbos.txt",
+                                              "docs/sprint-16-privacidad-estabilizacion.md",
+                                              "scripts/privacidad-evaluar.php",
+                                              "scripts/privacidad-generar-lexico.php",
+                                              "tests/Feature/HorusPrivacidadBloqueoCompletoTest.php",
+                                              "tests/Feature/HorusPrivacidadEstabilizacionTest.php",
+                                              "tests/Feature/HorusPrivacidadNombresTest.php",
+                                              "tests/Support/privacidad-integracion.php",
+                                              "tests/Support/run-privacidad-integracion.py",
+                                              "tests/Unit/FiltroPrivacidadChatTest.php",
+                                              "tests/Unit/FiltroPrivacidadCierreFuncionalTest.php",
+                                              "tests/Unit/FiltroPrivacidadCierreTest.php",
+                                              "tests/Unit/FiltroPrivacidadCorpusTest.php",
+                                              "tests/Unit/FiltroPrivacidadH1H7Test.php",
+                                              "tests/Unit/FiltroPrivacidadNombresMinusculasTest.php",
+                                              "tests/Unit/LexicoPublicoTest.php",
+                                              "docs/auditoria-independiente-a01-a07.md"
+                                          ]
+                            },
+                            {
+                                "title":  "feat(horus-ai): consolidar catálogo firmado y cliente Laravel",
+                                "files":  [
+                                              "app/Http/Controllers/ChatWidgetController.php",
+                                              "app/Models/ChatLog.php",
+                                              "app/Services/ExportadorCatalogoAdvisor.php",
+                                              "app/Services/FirmaCatalogoAdvisor.php",
+                                              "app/Services/HorusAdvisorClient.php",
+                                              "app/Support/ChatCursosPublicos.php",
+                                              "app/Support/ChatKnowledge.php",
+                                              "config/chatbot.php",
+                                              "config/horus-advisor.php",
+                                              "docs/sprint-16-horus-ai-advisor.md",
+                                              "resources/css/chatbot.css",
+                                              "resources/js/chat-client.js",
+                                              "resources/views/components/chat/conversation.blade.php",
+                                              "tests/Feature/ChatbotHybridTest.php",
+                                              "tests/Feature/HorusAdvisorTest.php",
+                                              "app/Console/Commands/OperacionAdvisor.php",
+                                              "app/Jobs/SincronizarCatalogoAdvisor.php",
+                                              "app/Observers/PublicacionCatalogoAdvisorObserver.php",
+                                              "app/Services/FragmentosCatalogoAdvisor.php",
+                                              "app/Services/FuentesCatalogoAdvisor.php",
+                                              "app/Services/OperacionHorus.php",
+                                              "app/Services/PresentacionRecomendacionesHorus.php",
+                                              "config/horus-catalog.php",
+                                              "config/horus-ops.php",
+                                              "database/migrations/2026_11_03_000034_add_fuente_to_chat_logs.php",
+                                              "docs/fase-4c-auditoria-horus-ai-para-codex.md",
+                                              "ops/horus-ai/horus-ai.service.example",
+                                              "ops/horus-ai/horus-catalog-worker.service.example",
+                                              "tests/Feature/AdvisorColaRealTest.php",
+                                              "tests/Feature/AdvisorFaseCTest.php",
+                                              "tests/Feature/AdvisorFuentesCatalogoTest.php",
+                                              "tests/Feature/AdvisorRagFragmentosTest.php",
+                                              "tests/Feature/AdvisorRagSincronizacionLentaTest.php",
+                                              "tests/Feature/AdvisorTarjetasPresentacionTest.php",
+                                              "tests/Feature/CatalogoAdvisorSincronizacionTest.php",
+                                              "tests/Feature/HorusAiTransicionTest.php",
+                                              "tests/Feature/HorusCierreFuncionalTest.php",
+                                              "tests/Feature/HorusCorreccionR01R05Test.php",
+                                              "tests/Feature/HorusObservacionesTest.php",
+                                              "tests/Feature/OperacionHorusColaTest.php",
+                                              "tests/Feature/OperacionHorusTest.php",
+                                              "tests/Feature/WidgetPresentacionTest.php",
+                                              "tests/Fixtures/horus-auditoria-32.json",
+                                              "tests/Fixtures/horus-auditoria-r01.json",
+                                              "tests/Support/horus-ai-browser-router.php",
+                                              "tests/Support/horus-observaciones-bridge.php",
+                                              "tests/Support/run-horus-ai-smoke.py",
+                                              "tests/Support/run-horus-observaciones.py",
+                                              "tests/Unit/FragmentosCatalogoAdvisorTest.php",
+                                              "tests/browser/horus-ai-integration.mjs"
+                                          ]
+                            },
+                            {
+                                "title":  "feat(integracion): consolidar flujos y contratos compartidos",
+                                "files":  [
+                                              "CLAUDE.md",
+                                              "README.md",
+                                              "app/Providers/AppServiceProvider.php",
+                                              "app/Services/AsistenteVirtualService.php",
+                                              "config/services.php",
+                                              "resources/css/app.css",
+                                              "resources/views/admin/asistente/index.blade.php",
+                                              "resources/views/admin/partials/sidebar.blade.php",
+                                              "resources/views/components/admin/badge-estado.blade.php",
+                                              "resources/views/components/convenios/card.blade.php",
+                                              "resources/views/components/convenios/section.blade.php",
+                                              "resources/views/pages/home.blade.php",
+                                              "routes/console.php",
+                                              "routes/web.php",
+                                              "tests/Feature/AsistenteVirtualTest.php",
+                                              "tests/Feature/BackendPerformanceTest.php",
+                                              "tests/PostgresIntegrity/ConcurrencyPostgresTest.php",
+                                              "app/Http/Controllers/PaginaTecnologicaController.php",
+                                              "app/Http/Requests/SubirImagenPrincipalRequest.php",
+                                              "tests/Fixtures/cierre-funcional-replies.json",
+                                              "tests/Fixtures/phase-c-public-replies.json",
+                                              "tests/Feature/CursoPublicacionTest.php"
+                                          ]
+                            },
+                            {
+                                "title":  "test(postgresql): validar consolidación sin reconstruir la base",
+                                "files":  [
+                                              "scripts/consolidacion-postgres.php",
+                                              "phpunit.pgsql.fase4.xml",
+                                              "tests/ConsolidacionPostgres/CasoPostgresReversible.php",
+                                              "tests/ConsolidacionPostgres/IntegridadExistenteTest.php",
+                                              "tests/ConsolidacionPostgres/MigracionesAprobadasTest.php",
+                                              "docs/consolidacion-fase-4-manifiesto.json",
+                                              "docs/consolidacion-fase-4-postgresql.md"
+                                          ]
+                            },
+                            {
+                                "title":  "test(migraciones): verificar editor y auditoría en memoria",
+                                "files":  [
+                                              "tests/Support/InstalaMigracionesEnMemoria.php",
+                                              "tests/ConsolidacionSqlite/AuditoriaAiAprobadaTest.php",
+                                              "tests/ConsolidacionSqlite/ServiciosContenidoAprobadoTest.php"
+                                          ]
+                            },
+                            {
+                                "title":  "test(horus-ai): integrar catálogo editorial y worker local",
+                                "files":  [
+                                              "tests/Support/consolidacion-horus-ai.php",
+                                              "tests/Support/run-consolidacion-horus-ai.py"
+                                          ]
+                            },
+                            {
+                                "title":  "chore(migraciones): preparar aplicación local controlada",
+                                "files":  [
+                                              "scripts/aplicar-editorial-auditoria.php"
+                                          ]
+                            },
+                            {
+                                "title":  "chore(horus-ai): habilitar operación local supervisada",
+                                "files":  [
+                                              "scripts/horus-local.php",
+                                              "tests/browser/horus-local-smoke.mjs",
+                                              "docs/horus-ai-operacion.md"
+                                          ]
+                            },
+                            {
+                                "title":  "test(configuracion): aislar PHPUnit de la activación local",
+                                "files":  [
+                                              "phpunit.xml"
+                                          ]
+                            },
+                            {
+                                "title":  "docs(entrega): registrar validación y responsables",
+                                "files":  [
+                                              "PROJECT_CONTEXT.md",
+                                              "docs/entrega-consolidacion.md",
+                                              "docs/entrega-consolidacion-commits.json"
+                                          ]
+                            }
+                        ],
+    "pending_owner_approval":  {
+                                   "env_example":  {
+                                                       "file":  ".env.example",
+                                                       "variable":  "DB_PASSWORD",
+                                                       "replacement":  "",
+                                                       "preserve_other_content":  true,
+                                                       "applied":  true
+                                                   },
+                                   "create_commits":  true,
+                                   "push":  false
+                               },
+    "previous_preparation_proposal":  [
+                                          {
+                                              "title":  "test(postgresql): validar consolidación sin reconstruir la base",
+                                              "files":  [
+                                                            "scripts/consolidacion-postgres.php",
+                                                            "phpunit.pgsql.fase4.xml",
+                                                            "tests/ConsolidacionPostgres/CasoPostgresReversible.php",
+                                                            "tests/ConsolidacionPostgres/IntegridadExistenteTest.php",
+                                                            "tests/ConsolidacionPostgres/MigracionesAprobadasTest.php"
+                                                        ]
+                                          },
+                                          {
+                                              "title":  "test(migraciones): verificar editor y auditoría en memoria",
+                                              "files":  [
+                                                            "tests/Support/InstalaMigracionesEnMemoria.php",
+                                                            "tests/ConsolidacionSqlite/AuditoriaAiAprobadaTest.php",
+                                                            "tests/ConsolidacionSqlite/ServiciosContenidoAprobadoTest.php"
+                                                        ]
+                                          },
+                                          {
+                                              "title":  "test(horus-ai): integrar catálogo editorial y worker local",
+                                              "files":  [
+                                                            "tests/Support/consolidacion-horus-ai.php",
+                                                            "tests/Support/run-consolidacion-horus-ai.py"
+                                                        ]
+                                          },
+                                          {
+                                              "title":  "docs(entrega): registrar validación y responsables",
+                                              "files":  [
+                                                            "PROJECT_CONTEXT.md",
+                                                            "docs/entrega-consolidacion.md",
+                                                            "docs/entrega-consolidacion-commits.json"
+                                                        ]
+                                          },
+                                          {
+                                              "title":  "chore(migraciones): preparar aplicación local controlada",
+                                              "files":  [
+                                                            "scripts/aplicar-editorial-auditoria.php"
+                                                        ]
+                                          },
+                                          {
+                                              "title":  "chore(horus-ai): habilitar operación local supervisada",
+                                              "files":  [
+                                                            "scripts/horus-local.php",
+                                                            "tests/browser/horus-local-smoke.mjs",
+                                                            "docs/horus-ai-operacion.md"
+                                                        ]
+                                          },
+                                          {
+                                              "title":  "test(configuracion): aislar PHPUnit de la activación local",
+                                              "files":  [
+                                                            "phpunit.xml"
+                                                        ]
+                                          }
+                                      ],
+    "local_commit_results":  [
+                                 {
+                                     "hash":  "3606908ab4346488d09ae5af2fd385daa52fe7e8",
+                                     "title":  "fix(seguridad): retirar contraseña del archivo de ejemplo",
+                                     "files":  1
+                                 },
+                                 {
+                                     "hash":  "e4694a2821ed94e36f055224c62f2a9c9c8b5dac",
+                                     "title":  "feat(servicios): consolidar editor y contenido editorial",
+                                     "files":  30
+                                 },
+                                 {
+                                     "hash":  "84580fa3f07bc1ca3fd8ca74a8d21afd28f86fa7",
+                                     "title":  "feat(reclamaciones): consolidar libro y gestión administrativa",
+                                     "files":  19
+                                 },
+                                 {
+                                     "hash":  "ee0b9fde0a67f7805181e0fe0f4dbdb946ee5831",
+                                     "title":  "fix(administracion): consolidar responsables y consultas del panel",
+                                     "files":  6
+                                 },
+                                 {
+                                     "hash":  "db16a2ababc903d40b7ca832dea650da11170d54",
+                                     "title":  "feat(horus-ai): consolidar motor Python y búsqueda semántica",
+                                     "files":  29
+                                 },
+                                 {
+                                     "hash":  "6f7f3cd704aed4178794ea415ae0b0815b14335e",
+                                     "title":  "fix(privacidad): consolidar filtros y léxico público",
+                                     "files":  22
+                                 },
+                                 {
+                                     "hash":  "f82adb6f67f4e1f21765f1654b8bab5f3db39441",
+                                     "title":  "feat(horus-ai): consolidar catálogo firmado y cliente Laravel",
+                                     "files":  50
+                                 },
+                                 {
+                                     "hash":  "66a16983ed1188a48a347f37a53053675dd9eb3d",
+                                     "title":  "feat(integracion): consolidar flujos y contratos compartidos",
+                                     "files":  22
+                                 },
+                                 {
+                                     "hash":  "a320216880628ddf413689d43a08f2f1a75196ce",
+                                     "title":  "test(postgresql): validar consolidación sin reconstruir la base",
+                                     "files":  7
+                                 },
+                                 {
+                                     "hash":  "ee7c870a133ba04251da681d26091b8d14ba647e",
+                                     "title":  "test(migraciones): verificar editor y auditoría en memoria",
+                                     "files":  3
+                                 },
+                                 {
+                                     "hash":  "5d5a1e720198468ecfc87b6473fad20d5ba85510",
+                                     "title":  "test(horus-ai): integrar catálogo editorial y worker local",
+                                     "files":  2
+                                 },
+                                 {
+                                     "hash":  "d1669439869491a19440a78467facad2b45bdeef",
+                                     "title":  "chore(migraciones): preparar aplicación local controlada",
+                                     "files":  1
+                                 },
+                                 {
+                                     "hash":  "6d65b9685c82d9e4c73cab587600186f0713d79b",
+                                     "title":  "chore(horus-ai): habilitar operación local supervisada",
+                                     "files":  3
+                                 },
+                                 {
+                                     "hash":  "f39b924dafbbabd37bb3f8231a3440fe89a62a14",
+                                     "title":  "test(configuracion): aislar PHPUnit de la activación local",
+                                     "files":  1
+                                 }
+                             ],
+    "local_consolidation":  {
+                                "authorized":  true,
+                                "commits_total_with_documentary":  15,
+                                "paths_consolidated":  199,
+                                "original_commits_preserved":  24,
+                                "original_head":  "7914438d59b77b6a5e09a15d371e635cca2d894d",
+                                "last_code_commit":  "f39b924dafbbabd37bb3f8231a3440fe89a62a14",
+                                "documentary_commit":  "ultimo commit de este cierre; consultar git log -1",
+                                "branch":  "anderson",
+                                "remote_head_observed":  "306b168e8d8bbfec23301d7c050c7f7c9ae11d2f",
+                                "ahead_after_documentary":  39,
+                                "push_authorized":  false,
+                                "push_performed":  false,
+                                "restricted_corpus_read":  false,
+                                "format_correction":  "Unicamente EOF de chatbot-python/tests/test_catalog_sync.py"
+                            }
+}

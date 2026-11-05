@@ -24,11 +24,13 @@ class ProcesoInterno extends Model
         'fecha_vencimiento' => 'date',
     ];
 
+    /** @return BelongsTo<User, $this> */
     public function responsable(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsable_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function creador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

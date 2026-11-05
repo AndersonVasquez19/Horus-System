@@ -7,6 +7,9 @@
 @endpush
 
 @section('content')
+@if(!empty($contenidoServicio))
+@include('pages.tecnologias.partials.dinamico-cableado', ['c' => $contenidoServicio])
+@else
 <div class="legacy-showcase">
 <section class="cartas-tecnologias">
         <div class="intro-cableado">
@@ -102,5 +105,6 @@
         </div>
     </section>
 </div>
+@endif
 @endsection
 

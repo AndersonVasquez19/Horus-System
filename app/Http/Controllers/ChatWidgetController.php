@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Services\AsistenteVirtualService;
+use App\Services\PresentacionRecomendacionesHorus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ChatWidgetController extends Controller
 {
-    public function mensajePublico(Request $request, AsistenteVirtualService $asistente): JsonResponse
+    public function mensajePublico(Request $request, AsistenteVirtualService $asistente, PresentacionRecomendacionesHorus $presentacion): JsonResponse
     {
         $datos = $request->validate(
             [
@@ -25,6 +26,8 @@ class ChatWidgetController extends Controller
             ],
         );
 
-        return response()->json($asistente->procesarMensaje($datos['mensaje'], $datos['session_id']));
+        return response()->json($presentacion->paraFrontend(
+            $asistente->procesarMensaje($datos['mensaje'], $datos['session_id'], 'public:'.$request->session()->getId()),
+        ));
     }
 }

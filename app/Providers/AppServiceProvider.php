@@ -2,6 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\Curso;
+use App\Models\CursoPublicacion;
+use App\Models\ServicioPublicacion;
+use App\Models\ServicioTecnologico;
+use App\Observers\PublicacionCatalogoAdvisorObserver;
+use App\Support\Email;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +28,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Curso::observe(PublicacionCatalogoAdvisorObserver::class);
+        CursoPublicacion::observe(PublicacionCatalogoAdvisorObserver::class);
+        ServicioTecnologico::observe(PublicacionCatalogoAdvisorObserver::class);
+        ServicioPublicacion::observe(PublicacionCatalogoAdvisorObserver::class);
+
+        RateLimiter::for('verification-confirm', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
+
+        // Login web y API: límite por IP y también por correo, para frenar ataques distribuidos
+        // contra una misma cuenta sin que un solo correo bloquee a todos los demás.
+        RateLimiter::for('login', fn (Request $request) => [
+            Limit::perMinute(10)->by('ip:'.$request->ip()),
+            Limit::perMinute(10)->by('email:'.Email::normalize($request->input('email'))),
+        ]);
+
+        // Libro de Reclamaciones (Sprint 20): por IP (corto y diario) y por correo normalizado. La clave del correo
+        // se guarda como hash para no dejar datos personales en la caché. Aún no hay ruta pública que lo use.
+        RateLimiter::for('reclamaciones', fn (Request $request) => [
+            Limit::perMinutes(10, (int) config('reclamaciones.antispam.limite_ip_10min', 3))->by('reclamaciones-ip10:'.$request->ip()),
+            Limit::perDay((int) config('reclamaciones.antispam.limite_ip_dia', 10))->by('reclamaciones-ipdia:'.$request->ip()),
+            Limit::perDay((int) config('reclamaciones.antispam.limite_correo_dia', 3))->by('reclamaciones-correo:'.hash('sha256', Email::normalize($request->input('email')))),
+        ]);
     }
 }

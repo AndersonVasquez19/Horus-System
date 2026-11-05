@@ -1,36 +1,51 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProcesoInterno;
 use App\Models\User;
+use App\Support\ListFilter;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\View\View;
 
-class ProcesoController extends Controller
+class ProcesoController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
     {
-        $this->middleware(['auth', 'permission:procesos.ver'])->only(['index']);
-        $this->middleware(['auth', 'permission:procesos.gestionar'])->only(['create', 'store', 'edit', 'update', 'destroy']);
+        return [
+            new Middleware('permission:procesos.ver', only: ['index', 'show']),
+            new Middleware('permission:procesos.gestionar', only: ['create', 'store', 'edit', 'update', 'destroy']),
+        ];
     }
 
     public function index(Request $request): View
     {
         $query = ProcesoInterno::query()->with(['responsable', 'creador']);
 
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->input('estado'));
+        $estado = ListFilter::text($request, 'estado');
+        if ($estado !== '') {
+            $query->where('estado', $estado);
         }
 
-        if ($request->filled('busqueda')) {
-            $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
+        if ($busqueda !== '') {
             $query->where(function ($q) use ($busqueda): void {
-                $q->where('titulo', 'like', "%{$busqueda}%")
-                    ->orWhere('descripcion', 'like', "%{$busqueda}%")
-                    ->orWhere('observaciones', 'like', "%{$busqueda}%");
+                $q->whereLike('titulo', "%{$busqueda}%")
+                    ->orWhereLike('descripcion', "%{$busqueda}%")
+                    ->orWhereLike('observaciones', "%{$busqueda}%");
             });
         }
 
@@ -42,9 +57,8 @@ class ProcesoController extends Controller
 
         return view('admin.procesos.index', [
             'procesos' => $procesos,
-            'estado' => $request->input('estado'),
-            'busqueda' => $request->input('busqueda'),
-            'responsables' => User::orderBy('name')->get(),
+            'estado' => $estado,
+            'busqueda' => $busqueda,
         ]);
     }
 
@@ -56,7 +70,7 @@ class ProcesoController extends Controller
     public function create(): View
     {
         return view('admin.procesos.create', [
-            'responsables' => User::orderBy('name')->get(),
+            'responsables' => $this->responsables()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -65,7 +79,7 @@ class ProcesoController extends Controller
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'responsable_id' => ['nullable', 'exists:users,id'],
+            'responsable_id' => ['bail', 'nullable', 'integer', $this->validarResponsable()],
             'estado' => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'prioridad' => ['required', 'in:baja,media,alta,urgente'],
             'fecha_vencimiento' => ['nullable', 'date'],
@@ -94,7 +108,7 @@ class ProcesoController extends Controller
     {
         return view('admin.procesos.edit', [
             'proceso' => $proceso,
-            'responsables' => User::orderBy('name')->get(),
+            'responsables' => $this->responsables($proceso)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -103,7 +117,7 @@ class ProcesoController extends Controller
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'responsable_id' => ['nullable', 'exists:users,id'],
+            'responsable_id' => ['bail', 'nullable', 'integer', $this->validarResponsable($proceso)],
             'estado' => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'prioridad' => ['required', 'in:baja,media,alta,urgente'],
             'fecha_vencimiento' => ['nullable', 'date'],
@@ -120,5 +134,33 @@ class ProcesoController extends Controller
         $proceso->delete();
 
         return redirect()->route('admin.procesos.index')->with('success', 'El proceso interno se eliminó correctamente.');
+    }
+
+    /**
+     * El responsable histórico solo es elegible para conservar su propio proceso.
+     * Spatie incluye permisos directos y heredados, sin conceder facultades de gestión.
+     *
+     * @return Builder<User>
+     */
+    private function responsables(?ProcesoInterno $proceso = null): Builder
+    {
+        return User::query()->where(function (Builder $query) use ($proceso): void {
+            $query->where(function (Builder $elegibles): void {
+                $elegibles->role(['admin', 'coordinador'])->permission('procesos.ver');
+            });
+
+            if ($proceso?->responsable_id !== null) {
+                $query->orWhere('users.id', $proceso->responsable_id);
+            }
+        });
+    }
+
+    private function validarResponsable(?ProcesoInterno $proceso = null): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($proceso): void {
+            if (! $this->responsables($proceso)->whereKey($value)->exists()) {
+                $fail('El responsable seleccionado no está autorizado para este proceso.');
+            }
+        };
     }
 }

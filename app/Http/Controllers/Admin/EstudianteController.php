@@ -1,18 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEstudianteRequest;
 use App\Http\Requests\UpdateEstudianteRequest;
 use App\Models\Estudiante;
+use App\Support\AuditoriaAcademica;
+use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
-class EstudianteController extends Controller
+class EstudianteController extends Controller implements HasMiddleware
 {
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:estudiantes.ver', only: ['index', 'show']),
+            new Middleware('permission:estudiantes.crear', only: ['create', 'store']),
+            new Middleware('permission:estudiantes.editar', only: ['edit', 'update']),
+            new Middleware('permission:estudiantes.eliminar', only: ['destroy']),
+            new Middleware('permission:estudiantes.restaurar', only: ['restaurar']),
+        ];
+    }
+
     public function index(Request $request): View
     {
         $query = Estudiante::query();
@@ -21,12 +44,12 @@ class EstudianteController extends Controller
             $query->onlyTrashed();
         }
 
-        $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
-                $query->where('dni', 'like', "%{$busqueda}%")
-                    ->orWhere('nombres', 'like', "%{$busqueda}%")
-                    ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                $query->whereLike('dni', "%{$busqueda}%")
+                    ->orWhereLike('nombres', "%{$busqueda}%")
+                    ->orWhereLike('apellidos', "%{$busqueda}%");
             });
         }
 
@@ -56,7 +79,14 @@ class EstudianteController extends Controller
 
     public function store(StoreEstudianteRequest $request): RedirectResponse
     {
-        Estudiante::create($request->validated());
+        $actor = $this->actorId($request);
+
+        // La auditoría es la última escritura de la transacción: si falla, el alta se revierte (fail-closed).
+        DB::transaction(function () use ($request, $actor): void {
+            $estudiante = Estudiante::create($request->validated());
+
+            AuditoriaAcademica::registrarCreacion('estudiante_creado', $estudiante, AuditoriaAcademica::ESTUDIANTE, $actor);
+        });
 
         return redirect()
             ->route('admin.estudiantes.index')
@@ -79,29 +109,73 @@ class EstudianteController extends Controller
 
     public function update(UpdateEstudianteRequest $request, Estudiante $estudiante): RedirectResponse
     {
-        $estudiante->update($request->validated());
+        $actor = $this->actorId($request);
+
+        DB::transaction(function () use ($request, $estudiante, $actor): void {
+            // Se relee la fila bajo bloqueo para que «antes» sea el valor real y no el del enlace de ruta.
+            $bloqueado = Estudiante::query()->lockForUpdate()->findOrFail($estudiante->getKey());
+            $bloqueado->fill($request->validated());
+            $diferencias = AuditoriaAcademica::diferencias($bloqueado, AuditoriaAcademica::ESTUDIANTE);
+            $bloqueado->save();
+
+            AuditoriaAcademica::registrarActualizacion('estudiante_actualizado', $bloqueado, $diferencias, $actor);
+        });
 
         return redirect()
             ->route('admin.estudiantes.show', $estudiante)
             ->with('success', 'Los datos del estudiante se actualizaron correctamente.');
     }
 
-    public function destroy(Estudiante $estudiante): RedirectResponse
+    public function destroy(Request $request, Estudiante $estudiante): RedirectResponse
     {
-        $estudiante->delete();
+        $actor = $this->actorId($request);
+
+        DB::transaction(function () use ($estudiante, $actor): void {
+            // Sin SoftDeletes::withTrashed(): si otra petición ya lo eliminó, no hay operación efectiva ni auditoría.
+            $bloqueado = Estudiante::query()->lockForUpdate()->find($estudiante->getKey());
+
+            if ($bloqueado === null) {
+                return;
+            }
+
+            $bloqueado->delete();
+
+            AuditoriaAcademica::registrarOperacion('estudiante_eliminado', $bloqueado, 'eliminacion_logica', $actor);
+        });
 
         return redirect()
             ->route('admin.estudiantes.index')
             ->with('success', 'El estudiante se desactivó correctamente.');
     }
 
-    public function restaurar(string $estudiante): RedirectResponse
+    public function restaurar(Request $request, string $estudiante): RedirectResponse
     {
-        $estudiante = Estudiante::withTrashed()->findOrFail($estudiante);
-        $estudiante->restore();
+        $actor = $this->actorId($request);
+
+        DB::transaction(function () use ($estudiante, $actor): void {
+            $bloqueado = Estudiante::withTrashed()->lockForUpdate()->findOrFail($estudiante);
+
+            // Restaurar un estudiante no eliminado no es una operación efectiva: no se audita (evita duplicados).
+            if (! $bloqueado->trashed()) {
+                return;
+            }
+
+            $bloqueado->restore();
+
+            AuditoriaAcademica::registrarOperacion('estudiante_restaurado', $bloqueado, 'restauracion', $actor);
+        });
 
         return redirect()
             ->route('admin.estudiantes.index', ['eliminados' => 1])
             ->with('success', 'El estudiante se restauró correctamente.');
+    }
+
+    /** Identificador explícito del usuario autenticado; la auditoría no depende del fallback de auth(). */
+    private function actorId(Request $request): int
+    {
+        $id = $request->user()?->getAuthIdentifier();
+        abort_unless(is_int($id) || (is_string($id) && ctype_digit($id)), 403);
+
+        return (int) $id;
     }
 }

@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 @extends('layouts.auth')
 
 @section('title', 'Crear cuenta')
@@ -23,10 +24,10 @@
     <form method="POST" action="{{ route('register.post') }}" class="auth-form">
         @csrf
         <label class="auth-label" for="name">Nombre completo</label>
-        <div class="auth-input-wrap"><i class="fa-regular fa-user" aria-hidden="true"></i><input id="name" name="name" type="text" value="{{ old('name') }}" autocomplete="name" placeholder="¿Cómo te llamas?" maxlength="120" required autofocus></div>
+        <div class="auth-input-wrap"><i class="fa-regular fa-user" aria-hidden="true"></i><input id="name" name="name" type="text" value="{{ OldInput::value('name') }}" autocomplete="name" placeholder="¿Cómo te llamas?" maxlength="120" required autofocus></div>
 
         <label class="auth-label" for="email">Correo electrónico</label>
-        <div class="auth-input-wrap"><i class="fa-regular fa-envelope" aria-hidden="true"></i><input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="email" placeholder="tu@correo.com" required></div>
+        <div class="auth-input-wrap"><i class="fa-regular fa-envelope" aria-hidden="true"></i><input id="email" name="email" type="email" value="{{ OldInput::value('email') }}" autocomplete="email" placeholder="tu@correo.com" required></div>
 
         <label class="auth-label" for="password">Contraseña</label>
         <div class="auth-input-wrap"><i class="fa-solid fa-lock" aria-hidden="true"></i><input id="password" name="password" type="password" autocomplete="new-password" placeholder="Al menos 10 caracteres" minlength="10" required></div>

@@ -33,6 +33,23 @@ class AdminAuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_authenticated_staff_visiting_guest_pages_returns_to_panel(): void
+    {
+        $user = User::factory()->create();
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $user->assignRole('admin');
+
+        $this->actingAs($user)->get(route('login'))->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($user)->get(route('register'))->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_authenticated_user_without_staff_role_visiting_login_goes_home(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('login'))->assertRedirect(route('home'));
+    }
+
     public function test_admin_can_sign_out(): void
     {
         $user = User::factory()->create();

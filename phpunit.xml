@@ -29,6 +29,14 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <!-- Las pruebas conservan los predeterminados seguros aunque .env habilite la operación local. -->
+        <env name="HORUS_ADVISOR_ENABLED" value="false" force="true"/>
+        <env name="HORUS_ADVISOR_URL" value="http://127.0.0.1:8001" force="true"/>
+        <env name="HORUS_ADVISOR_TOKEN" value="" force="true"/>
+        <env name="HORUS_ADVISOR_SIGNING_KEY" value="" force="true"/>
+        <env name="HORUS_AI_CATALOG_SYNC_ENABLED" value="false" force="true"/>
+        <env name="HORUS_OPS_ENABLED" value="false" force="true"/>
+        <env name="HORUS_OPS_RENEW_CATALOG" value="false" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

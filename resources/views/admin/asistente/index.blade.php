@@ -6,20 +6,20 @@
 @section('content')
     <div class="space-y-6">
         <section>
-            <p class="text-sm font-semibold uppercase tracking-[0.16em] text-gold-dark">Atención al usuario</p>
-            <h1 class="mt-1 text-2xl font-bold text-ink">Asistente Virtual</h1>
-            <p class="mt-1 text-sm text-stone-600">Prueba las respuestas por reglas y revisa las consultas recientes.</p>
+            <p class="admin-eyebrow">Atención al usuario</p>
+            <h1 class="admin-page-title">Asistente Virtual</h1>
+            <p class="admin-page-subtitle">Prueba Horus AI Python y revisa las consultas recientes. Si está deshabilitado o no disponible, se utiliza la contingencia institucional.</p>
         </section>
 
         <section class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
-            <div class="overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm">
-                <div class="flex items-center gap-3 border-b border-stone-100 px-5 py-4">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold-dark">
+            <div class="admin-card-flush">
+                <div class="flex items-center gap-3 border-b border-[#E2E8F0] px-5 py-4">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#19A7A1]/15 text-[#19A7A1]">
                         <i class="fa-solid fa-robot" aria-hidden="true"></i>
                     </span>
                     <div>
-                        <h2 class="font-bold text-ink">Conversación de prueba</h2>
-                        <p class="text-xs text-stone-500">El historial de esta conversación no se guarda en el navegador.</p>
+                        <h2 class="font-bold text-[#172B3A]">Conversación de prueba</h2>
+                        <p class="text-xs text-[#64748B]">El historial de esta conversación no se guarda en el navegador.</p>
                     </div>
                 </div>
                 <div class="h-[520px]">
@@ -27,30 +27,31 @@
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm">
-                <div class="border-b border-stone-100 px-5 py-4">
-                    <h2 class="font-bold text-ink">Intenciones configuradas</h2>
-                    <p class="mt-1 text-sm text-stone-500">Respuestas automáticas ordenadas por prioridad.</p>
+            <div class="admin-card-flush">
+                <div class="border-b border-[#E2E8F0] px-5 py-4">
+                    <h2 class="font-bold text-[#172B3A]">Registro histórico de intenciones</h2>
+                    <p class="mt-0.5 text-xs text-[#64748B]">Estas reglas PHP se conservan para consulta histórica y no generan respuestas públicas.</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[400px] text-left text-sm">
-                        <thead class="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+                <div class="admin-table-wrap">
+                    <table class="admin-table min-w-[400px]">
+                        <thead>
                             <tr>
-                                <th class="px-5 py-3 font-semibold">Intención</th>
-                                <th class="px-5 py-3 font-semibold">Prioridad</th>
-                                <th class="px-5 py-3 font-semibold">Activa</th>
+                                <th scope="col">Intención</th>
+                                <th scope="col">Fuente</th>
+                                <th scope="col">Prioridad</th>
+                                <th scope="col">Activa</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-stone-100">
+                        <tbody>
                             @foreach ($intents as $intent)
                                 <tr>
-                                    <td class="px-5 py-3">
-                                        <span class="block font-semibold text-ink">{{ str_replace('_', ' ', $intent->nombre) }}</span>
-                                        <span class="mt-1 block max-w-xs truncate text-xs text-stone-500">{{ $intent->respuesta }}</span>
+                                    <td>
+                                        <span class="block font-semibold text-[#172B3A]">{{ str_replace('_', ' ', $intent->nombre) }}</span>
+                                        <span class="mt-0.5 block max-w-xs truncate text-xs text-[#64748B]">{{ $intent->respuesta }}</span>
                                     </td>
-                                    <td class="px-5 py-3 text-stone-600">{{ $intent->prioridad }}</td>
-                                    <td class="px-5 py-3">
-                                        <input type="checkbox" disabled @checked($intent->activo) aria-label="Intención activa" class="h-4 w-4 rounded border-stone-300 text-gold focus:ring-gold disabled:opacity-100">
+                                    <td class="font-semibold text-[#172B3A]">{{ $intent->prioridad }}</td>
+                                    <td>
+                                        <input type="checkbox" disabled @checked($intent->activo) aria-label="Intención activa" class="admin-checkbox disabled:opacity-100">
                                     </td>
                                 </tr>
                             @endforeach
@@ -60,16 +61,16 @@
             </div>
         </section>
 
-        <section class="overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-sm">
-            <div class="flex flex-col gap-3 border-b border-stone-100 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <section class="admin-card-flush">
+            <div class="flex flex-col gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
                 <div>
-                    <h2 class="font-bold text-ink">Consultas recientes</h2>
-                    <p class="mt-1 text-sm text-stone-500">Se muestran hasta 50 interacciones guardadas.</p>
+                    <h2 class="font-bold text-[#172B3A]">Consultas recientes</h2>
+                    <p class="mt-0.5 text-xs text-[#64748B]">Se muestran hasta 50 interacciones guardadas.</p>
                 </div>
-                <form method="GET" action="{{ route('admin.asistente.index') }}" class="flex flex-wrap gap-2">
-                    <label>
+                <form method="GET" action="{{ route('admin.asistente.index') }}" class="flex flex-wrap items-center gap-2">
+                    <label class="block">
                         <span class="sr-only">Filtrar por intención</span>
-                        <select name="intent" class="w-full min-w-48 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-gold focus:ring-1 focus:ring-gold">
+                        <select name="intent" class="admin-select min-w-48">
                             <option value="">Todas las intenciones</option>
                             @foreach ($intents as $intent)
                                 <option value="{{ $intent->nombre }}" @selected($intentSeleccionado === $intent->nombre)>
@@ -78,38 +79,42 @@
                             @endforeach
                         </select>
                     </label>
-                    <button type="submit" class="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800">Filtrar</button>
+                    <button type="submit" class="admin-btn-secondary">
+                        <i class="fa-solid fa-filter text-xs text-[#19A7A1]" aria-hidden="true"></i>
+                        Filtrar
+                    </button>
                 </form>
             </div>
 
             @if ($logs->isEmpty())
-                <div class="p-5">
+                <div class="p-5 sm:p-6">
                     <x-admin.empty-state title="Sin consultas registradas" message="Las interacciones del asistente aparecerán aquí." icon="fa-comments" />
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[800px] text-left text-sm">
-                        <thead class="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+                <div class="admin-table-wrap">
+                    <table class="admin-table min-w-[800px]">
+                        <thead>
                             <tr>
-                                <th class="px-5 py-3 font-semibold">Fecha</th>
-                                <th class="px-5 py-3 font-semibold">Mensaje</th>
-                                <th class="px-5 py-3 font-semibold">Respuesta</th>
-                                <th class="px-5 py-3 font-semibold">Intención</th>
+                                <th scope="col">Fecha</th>
+                                <th scope="col">Mensaje</th>
+                                <th scope="col">Respuesta</th>
+                                <th scope="col">Intención</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-stone-100">
+                        <tbody>
                             @foreach ($logs as $log)
                                 <tr>
-                                    <td class="whitespace-nowrap px-5 py-4 text-stone-500">{{ $log->created_at->format('d/m/Y H:i') }}</td>
-                                    <td class="max-w-xs whitespace-pre-line px-5 py-4 text-ink">{{ $log->mensaje_usuario }}</td>
-                                    <td class="max-w-md whitespace-pre-line px-5 py-4 text-stone-600">{{ $log->respuesta_bot }}</td>
-                                    <td class="px-5 py-4">
+                                    <td class="whitespace-nowrap">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                                    <td class="max-w-xs whitespace-pre-line font-medium text-[#172B3A]">{{ $log->mensaje_usuario }}</td>
+                                    <td class="max-w-md whitespace-pre-line">{{ $log->respuesta_bot }}</td>
+                                    <td>
                                         @if ($log->intent_detectado)
-                                            <span class="rounded-full bg-gold/10 px-2.5 py-1 text-xs font-semibold text-gold-dark">{{ str_replace('_', ' ', $log->intent_detectado) }}</span>
+                                            <span class="inline-flex rounded-full border border-[#19A7A1]/30 bg-[#19A7A1]/10 px-2.5 py-1 text-xs font-semibold text-[#0F766E]">{{ str_replace('_', ' ', $log->intent_detectado) }}</span>
                                         @else
-                                            <span class="text-xs text-stone-400">Sin coincidencia</span>
+                                            <span class="text-xs text-[#64748B]">Sin coincidencia</span>
                                         @endif
                                     </td>
+                                    <td>{{ ['advisor' => 'Horus AI Python', 'respaldo' => 'Contingencia institucional'][$log->fuente] ?? 'No registrada' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

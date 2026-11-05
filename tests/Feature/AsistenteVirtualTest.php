@@ -6,10 +6,10 @@ use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Models\User;
 use App\Services\AsistenteVirtualService;
+use App\Support\ChatKnowledge;
 use Database\Seeders\ChatIntentSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -24,7 +24,7 @@ class AsistenteVirtualTest extends TestCase
         Http::preventStrayRequests();
     }
 
-    public function test_known_questions_use_verified_local_answers_and_log_the_intent(): void
+    public function test_known_questions_use_contingency_when_python_is_disabled(): void
     {
         $this->seed(ChatIntentSeeder::class);
         $asistente = app(AsistenteVirtualService::class);
@@ -33,11 +33,11 @@ class AsistenteVirtualTest extends TestCase
         $evaluacion = $asistente->procesarMensaje('¿Cuándo es el examen del curso grabado?', 'session-evaluacion');
         $cableado = $asistente->procesarMensaje('Necesito cableado UTP', 'session-cableado');
 
-        $this->assertSame('consulta_precios', $precio['intent']);
-        $this->assertStringContainsString('cotización', $precio['respuesta']);
-        $this->assertSame('consulta_evaluaciones', $evaluacion['intent']);
-        $this->assertSame('consulta_cableado', $cableado['intent']);
-        $this->assertDatabaseHas('chat_logs', ['session_id' => 'session-precios', 'intent_detectado' => 'consulta_precios']);
+        $this->assertNull($precio['intent']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $precio['respuesta']);
+        $this->assertNull($evaluacion['intent']);
+        $this->assertNull($cableado['intent']);
+        $this->assertDatabaseHas('chat_logs', ['intent_detectado' => null, 'mensaje_usuario' => '[contenido omitido por privacidad]']);
         Http::assertNothingSent();
     }
 
@@ -47,8 +47,8 @@ class AsistenteVirtualTest extends TestCase
 
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('¿Dónde están ubicados?', 'session-unseeded');
 
-        $this->assertSame('consulta_ubicacion', $answer['intent']);
-        $this->assertStringContainsString('José Gálvez', $answer['respuesta']);
+        $this->assertNull($answer['intent']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         $this->assertSame(0, ChatIntent::count());
         Http::assertNothingSent();
     }
@@ -65,7 +65,7 @@ class AsistenteVirtualTest extends TestCase
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
     }
 
-    public function test_updated_knowledge_applies_to_existing_rows_and_custom_intents_still_work(): void
+    public function test_legacy_and_custom_intents_do_not_supply_public_replies(): void
     {
         ChatIntent::create([
             'nombre' => 'consulta_precios', 'prioridad' => 1, 'keywords' => ['precio'],
@@ -77,23 +77,19 @@ class AsistenteVirtualTest extends TestCase
         ]);
 
         $asistente = app(AsistenteVirtualService::class);
-        $this->assertStringContainsString('cotización', $asistente->procesarMensaje('precio', 'session-updated')['respuesta']);
-        $this->assertSame('Consulta personalizada.', $asistente->procesarMensaje('convenio especial', 'session-custom')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $asistente->procesarMensaje('precio', 'session-updated')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $asistente->procesarMensaje('convenio especial', 'session-custom')['respuesta']);
         Http::assertNothingSent();
     }
 
-    public function test_unknown_question_uses_openai_with_site_knowledge(): void
+    public function test_complex_orientation_never_calls_openai_and_uses_safe_fallback(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => 'Respuesta simulada.']]]])]);
-
-        $answer = app(AsistenteVirtualService::class)->procesarMensaje('zzqv desconocido', 'session-openai');
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara las modalidades de cursos para orientarme', 'session-openai');
 
         $this->assertNull($answer['intent']);
-        $this->assertSame('Respuesta simulada.', $answer['respuesta']);
-        Http::assertSent(fn (Request $request) => $request->url() === 'https://api.openai.com/v1/chat/completions'
-            && $request->hasHeader('Authorization', 'Bearer test-openai-key')
-            && $request['model'] === 'gpt-test'
-            && str_contains($request['messages'][0]['content'], 'consulta_cursos'));
+        $this->assertSame('respaldo', $answer['fuente']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
+        Http::assertNothingSent();
     }
 
     public function test_openai_failure_returns_a_useful_fallback_instead_of_503(): void
@@ -101,12 +97,12 @@ class AsistenteVirtualTest extends TestCase
         Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'Unavailable']], 429)]);
 
         $this->postJson(route('chat.mensaje'), [
-            'mensaje' => 'zzqv desconocido',
+            'mensaje' => 'Compara las modalidades de cursos para orientarme',
             'session_id' => 'session-error',
         ])->assertOk()->assertJsonPath('respuesta', AsistenteVirtualService::RESPUESTA_FALLBACK);
 
         $this->assertDatabaseHas('chat_logs', [
-            'session_id' => 'session-error',
+            'mensaje_usuario' => '[contenido omitido por privacidad]',
             'respuesta_bot' => AsistenteVirtualService::RESPUESTA_FALLBACK,
         ]);
     }
@@ -114,7 +110,7 @@ class AsistenteVirtualTest extends TestCase
     public function test_public_and_admin_chat_endpoints_work(): void
     {
         $this->postJson(route('chat.mensaje'), ['mensaje' => 'humano', 'session_id' => 'public-session'])
-            ->assertOk()->assertJsonPath('intent', 'derivar_humano');
+            ->assertOk()->assertJsonPath('intent', null);
 
         $this->seed(ChatIntentSeeder::class);
         $this->seed(RolesAndPermissionsSeeder::class);
@@ -122,16 +118,34 @@ class AsistenteVirtualTest extends TestCase
         $admin->assignRole('admin');
         $this->actingAs($admin)
             ->postJson(route('admin.asistente.mensaje'), ['mensaje' => 'cursos disponibles', 'session_id' => 'admin-session'])
-            ->assertOk()->assertJsonPath('intent', 'consulta_cursos');
-        $this->get(route('admin.asistente.index', ['intent' => 'consulta_cursos']))
-            ->assertOk()->assertSee('cursos disponibles');
+            ->assertOk()->assertJsonPath('intent', null);
+        $this->get(route('admin.asistente.index'))
+            ->assertOk()->assertSee('[contenido omitido por privacidad]')
+            ->assertSee('Horus AI Python')->assertSee('Registro histórico')
+            ->assertDontSee('Prueba las respuestas por reglas');
         $this->assertSame(2, ChatLog::count());
     }
 
     public function test_public_pages_render_the_chat_widget(): void
     {
         $this->get(route('home'))->assertOk()
-            ->assertSee('aria-label="Abrir asistente virtual"', false)
+            ->assertSee('aria-label="Abrir chat con el asistente Horus"', false)
+            ->assertSee('aria-controls="horus-chat-panel"', false)
+            ->assertSee('id="horus-chat-panel"', false)
+            ->assertSee(':aria-expanded="abierto.toString()"', false)
             ->assertSee('chat/mensaje', false);
+    }
+
+    public function test_original_attention_hours_are_preserved_and_chat_explains_the_discrepancy(): void
+    {
+        $this->get('/contactos')->assertOk()->assertSee('Lunes - Viernes: 9:00 AM - 6:00 PM')->assertSee('Sábados: 9:00 AM - 1:00 PM');
+        $this->get('/preguntas-frecuentes')->assertOk()->assertSee('lunes a viernes de 8am a 6pm');
+        $this->get('/politicas-devolucion')->assertOk()->assertSee('sábados de 9:00 am – 1:00 pm');
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('Horario de atención', 'hours');
+        $original = collect(ChatKnowledge::intents())->firstWhere('nombre', 'consulta_horarios');
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
+        $this->assertStringContainsString('/contactos', $original['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
+        Http::assertNothingSent();
     }
 }

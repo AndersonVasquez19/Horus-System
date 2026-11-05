@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Curso;
 use App\Models\Matricula;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Validator;
 
 class UpdateMatriculaRequest extends FormRequest
@@ -15,6 +16,7 @@ class UpdateMatriculaRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Exists|In>> */
     public function rules(): array
     {
         return [
@@ -35,6 +37,7 @@ class UpdateMatriculaRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure(Validator): void> */
     public function after(): array
     {
         return [
@@ -57,10 +60,8 @@ class UpdateMatriculaRequest extends FormRequest
                     $validator->errors()->add('estudiante_id', 'El estudiante ya está matriculado en este curso.');
                 }
 
-                $requiereCupo = $matricula->estado === 'anulada' || $matricula->curso_id !== $cursoId;
-                if ($requiereCupo && Curso::query()->findOrFail($cursoId)->cupos_disponibles <= 0) {
-                    $validator->errors()->add('curso_id', 'El curso no tiene cupos disponibles.');
-                }
+                // La necesidad de un cupo depende de la fila actual, no del route binding.
+                // El controlador la comprueba junto con la disponibilidad bajo lock.
             },
         ];
     }

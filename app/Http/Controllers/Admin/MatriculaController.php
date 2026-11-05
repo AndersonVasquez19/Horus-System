@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -8,18 +10,40 @@ use App\Http\Requests\UpdateMatriculaRequest;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\AuditoriaAcademica;
+use App\Support\ListFilter;
+use App\Support\SensitiveData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class MatriculaController extends Controller
+class MatriculaController extends Controller implements HasMiddleware
 {
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:matriculas.ver', only: ['index', 'show']),
+            new Middleware('permission:matriculas.crear', only: ['create', 'store']),
+            new Middleware('permission:matriculas.editar', only: ['edit', 'update']),
+            new Middleware('permission:matriculas.anular', only: ['anular']),
+            new Middleware('permission:matriculas.eliminar', only: ['destroy']),
+            new Middleware('permission:matriculas.restaurar', only: ['restaurar']),
+            new Middleware('permission:matriculas.exportar', only: ['exportarCsv']),
+        ];
+    }
+
     public function index(Request $request): View
     {
         $matriculas = $this->filteredQuery($request)
@@ -28,17 +52,20 @@ class MatriculaController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // Saneado: la vista lo compara con (string); null mantiene el indicador "sin filtro".
+        $cursoId = ListFilter::text($request, 'curso_id');
+
         return view('admin.matriculas.index', [
             'matriculas' => $matriculas,
-            'cursos' => Curso::withTrashed()->orderBy('nombre')->get(),
+            'cursos' => Curso::withTrashed()->orderBy('nombre')->get(['id', 'codigo', 'nombre', 'deleted_at']),
             'estado' => $request->input('estado'),
-            'cursoId' => $request->input('curso_id'),
-            'busqueda' => trim((string) $request->input('busqueda')),
+            'cursoId' => $cursoId !== '' ? $cursoId : null,
+            'busqueda' => ListFilter::text($request, 'busqueda'),
             'eliminados' => $request->boolean('eliminados'),
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('admin.matriculas.create', [
             'estudiantes' => Estudiante::query()
@@ -51,17 +78,35 @@ class MatriculaController extends Controller
                 ->where('cupos_disponibles', '>', 0)
                 ->orderBy('nombre')
                 ->get(),
+            // Solo preselecciona opciones de las listas disponibles; no altera datos ni validaciones.
+            'estudianteSeleccionado' => ListFilter::text($request, 'estudiante_id'),
+            'cursoSeleccionado' => ListFilter::text($request, 'curso_id'),
         ]);
     }
 
     public function store(StoreMatriculaRequest $request): RedirectResponse
     {
-        $datos = $request->validated();
+        $datos = $this->conIdentificadoresEnteros($request->validated());
+        $actor = AuditoriaAcademica::actorDe($request);
 
-        $matricula = DB::transaction(function () use ($datos): Matricula {
-            $curso = Curso::query()
+        $matricula = DB::transaction(function () use ($datos, $actor): Matricula {
+            $curso = Curso::withTrashed()
                 ->lockForUpdate()
                 ->findOrFail($datos['curso_id']);
+
+            // La validación HTTP puede haber quedado obsoleta antes de adquirir el lock.
+            if ($curso->trashed() || $curso->estado !== 'activo') {
+                throw ValidationException::withMessages([
+                    'curso_id' => 'El curso seleccionado no está disponible.',
+                ]);
+            }
+
+            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
+            if ($estudiante->trashed() || $estudiante->estado !== 'activo') {
+                throw ValidationException::withMessages([
+                    'estudiante_id' => 'El estudiante seleccionado no está activo.',
+                ]);
+            }
 
             if ($datos['estado'] !== 'anulada') {
                 $this->assertNoActiveDuplicate($datos['estudiante_id'], $curso->id);
@@ -75,7 +120,18 @@ class MatriculaController extends Controller
                 $curso->decrement('cupos_disponibles');
             }
 
-            return Matricula::create($datos);
+            $matricula = Matricula::create($datos);
+
+            // Última escritura de la transacción: si la auditoría falla se revierten matrícula, cupo e intención de aviso.
+            AuditoriaAcademica::registrarCreacion(
+                'matricula_creada',
+                $matricula,
+                AuditoriaAcademica::MATRICULA,
+                $actor,
+                AuditoriaAcademica::efectoCupo(null, null, $datos['estado'], (int) $curso->id),
+            );
+
+            return $matricula;
         });
 
         return redirect()
@@ -108,15 +164,18 @@ class MatriculaController extends Controller
 
     public function update(UpdateMatriculaRequest $request, Matricula $matricula): RedirectResponse
     {
-        $datos = $request->validated();
+        $datos = $this->conIdentificadoresEnteros($request->validated());
+        $actor = AuditoriaAcademica::actorDe($request);
 
-        $matricula = DB::transaction(function () use ($matricula, $datos): Matricula {
-            $matricula = Matricula::query()
-                ->lockForUpdate()
-                ->findOrFail($matricula->id);
+        $matricula = DB::transaction(function () use ($matricula, $datos, $request, $actor): Matricula {
+            $matricula = $this->lockMatricula($matricula->id, (int) $datos['curso_id'], (int) $datos['estudiante_id']);
 
+            $estadoAnterior = (string) $matricula->estado;
             $anteriorActiva = $matricula->estado !== 'anulada';
             $nuevaActiva = $datos['estado'] !== 'anulada';
+            if ($anteriorActiva && ! $nuevaActiva) {
+                abort_unless($request->user()->can('matriculas.anular'), 403);
+            }
             $cursoAnteriorId = (int) $matricula->curso_id;
             $cursoNuevoId = (int) $datos['curso_id'];
             $cursos = Curso::withTrashed()
@@ -128,6 +187,19 @@ class MatriculaController extends Controller
             $cursoAnterior = $cursos->get($cursoAnteriorId);
             $cursoNuevo = $cursos->get($cursoNuevoId);
 
+            if ($cursoNuevo === null || $cursoNuevo->trashed()) {
+                throw ValidationException::withMessages([
+                    'curso_id' => 'El curso seleccionado no está disponible.',
+                ]);
+            }
+
+            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
+            if ($estudiante->trashed()) {
+                throw ValidationException::withMessages([
+                    'estudiante_id' => 'El estudiante seleccionado no está disponible.',
+                ]);
+            }
+
             if ($nuevaActiva) {
                 $this->assertNoActiveDuplicate(
                     (int) $datos['estudiante_id'],
@@ -138,6 +210,10 @@ class MatriculaController extends Controller
 
             $requiereCupoNuevo = $nuevaActiva
                 && (! $anteriorActiva || $cursoAnteriorId !== $cursoNuevoId);
+
+            if ($requiereCupoNuevo) {
+                $this->assertEligibleForOccupation($estudiante, $cursoNuevo);
+            }
 
             if ($requiereCupoNuevo && $cursoNuevo->cupos_disponibles <= 0) {
                 throw ValidationException::withMessages([
@@ -153,7 +229,19 @@ class MatriculaController extends Controller
                 $cursoNuevo->decrement('cupos_disponibles');
             }
 
-            $matricula->update($datos);
+            // Las diferencias se calculan sobre la fila bloqueada, antes de guardar. Anular mediante PUT produce
+            // un único evento «matricula_anulada» con todas las diferencias permitidas, nunca dos eventos.
+            $matricula->fill($datos);
+            $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+            $matricula->save();
+
+            AuditoriaAcademica::registrarActualizacion(
+                $anteriorActiva && ! $nuevaActiva ? 'matricula_anulada' : 'matricula_actualizada',
+                $matricula,
+                $diferencias,
+                $actor,
+                AuditoriaAcademica::efectoCupo($estadoAnterior, $cursoAnteriorId, $datos['estado'], $cursoNuevoId),
+            );
 
             return $matricula;
         });
@@ -163,12 +251,12 @@ class MatriculaController extends Controller
             ->with('success', 'La matrícula se actualizó correctamente.');
     }
 
-    public function destroy(Matricula $matricula): RedirectResponse
+    public function destroy(Request $request, Matricula $matricula): RedirectResponse
     {
-        DB::transaction(function () use ($matricula): void {
-            $matricula = Matricula::query()
-                ->lockForUpdate()
-                ->findOrFail($matricula->id);
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($matricula, $actor): void {
+            $matricula = $this->lockMatricula($matricula->id);
 
             if ($matricula->estado !== 'anulada') {
                 $curso = Curso::withTrashed()
@@ -178,6 +266,16 @@ class MatriculaController extends Controller
             }
 
             $matricula->delete();
+
+            // Última escritura de la transacción. El efecto y el estado salen de la fila bloqueada: eliminar una
+            // vigente libera su cupo; eliminar una anulada no mueve ninguno.
+            AuditoriaAcademica::registrarOperacionMatricula(
+                'matricula_eliminada',
+                $matricula,
+                AuditoriaAcademica::OPERACION_ELIMINACION,
+                AuditoriaAcademica::efectoCupo((string) $matricula->estado, (int) $matricula->curso_id, null, null),
+                $actor,
+            );
         });
 
         return redirect()
@@ -185,19 +283,32 @@ class MatriculaController extends Controller
             ->with('success', 'La matrícula se eliminó correctamente.');
     }
 
-    public function anular(Matricula $matricula): RedirectResponse
+    public function anular(Request $request, Matricula $matricula): RedirectResponse
     {
-        DB::transaction(function () use ($matricula): void {
-            $matricula = Matricula::query()
-                ->lockForUpdate()
-                ->findOrFail($matricula->id);
+        $actor = AuditoriaAcademica::actorDe($request);
 
+        DB::transaction(function () use ($matricula, $actor): void {
+            $matricula = $this->lockMatricula($matricula->id);
+
+            // Repetir la anulación no cambia nada, no devuelve cupo otra vez y no genera otro evento.
             if ($matricula->estado !== 'anulada') {
                 $curso = Curso::withTrashed()
                     ->lockForUpdate()
                     ->findOrFail($matricula->curso_id);
                 $curso->increment('cupos_disponibles');
-                $matricula->update(['estado' => 'anulada']);
+
+                $estadoAnterior = (string) $matricula->estado;
+                $matricula->fill(['estado' => 'anulada']);
+                $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
+                $matricula->save();
+
+                AuditoriaAcademica::registrarActualizacion(
+                    'matricula_anulada',
+                    $matricula,
+                    $diferencias,
+                    $actor,
+                    AuditoriaAcademica::efectoCupo($estadoAnterior, (int) $curso->id, 'anulada', (int) $curso->id),
+                );
             }
         });
 
@@ -206,12 +317,12 @@ class MatriculaController extends Controller
             ->with('success', 'La matrícula se anuló correctamente.');
     }
 
-    public function restaurar(string $matricula): RedirectResponse
+    public function restaurar(Request $request, string $matricula): RedirectResponse
     {
-        DB::transaction(function () use ($matricula): void {
-            $matricula = Matricula::withTrashed()
-                ->lockForUpdate()
-                ->findOrFail($matricula);
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($matricula, $actor): void {
+            $matricula = $this->lockMatricula($matricula, withTrashed: true);
 
             abort_unless($matricula->trashed(), 404);
 
@@ -219,6 +330,9 @@ class MatriculaController extends Controller
                 $curso = Curso::withTrashed()
                     ->lockForUpdate()
                     ->findOrFail($matricula->curso_id);
+
+                $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($matricula->estudiante_id);
+                $this->assertEligibleForOccupation($estudiante, $curso);
 
                 $this->assertNoActiveDuplicate(
                     (int) $matricula->estudiante_id,
@@ -235,6 +349,15 @@ class MatriculaController extends Controller
             }
 
             $matricula->restore();
+
+            // Última escritura de la transacción: restaurar una vigente vuelve a ocupar cupo; una anulada no.
+            AuditoriaAcademica::registrarOperacionMatricula(
+                'matricula_restaurada',
+                $matricula,
+                AuditoriaAcademica::OPERACION_RESTAURACION,
+                AuditoriaAcademica::efectoCupo(null, (int) $matricula->curso_id, (string) $matricula->estado, (int) $matricula->curso_id),
+                $actor,
+            );
         });
 
         return redirect()
@@ -244,8 +367,22 @@ class MatriculaController extends Controller
 
     public function exportarCsv(Request $request): StreamedResponse
     {
+        $actor = AuditoriaAcademica::actorDe($request);
         $matriculas = $this->filteredQuery($request)->orderBy('id');
         $nombreArchivo = 'matriculas_'.now()->format('Ymd_His').'.csv';
+
+        // Lista cerrada (Sprint 21.2, Fase 4): los filtros efectivos son los mismos de filteredQuery(); el texto
+        // buscado (DNI, nombres…) no se audita, solo si se aplicó una búsqueda.
+        $estado = $request->input('estado');
+        $cursoId = $request->input('curso_id');
+        AuditoriaAcademica::registrarExportacionMatriculas(
+            $nombreArchivo,
+            in_array($estado, ['pendiente', 'pagada', 'anulada'], true) ? $estado : null,
+            is_string($cursoId) && ctype_digit($cursoId) ? (int) $cursoId : null,
+            $request->boolean('eliminados'),
+            ListFilter::text($request, 'busqueda') !== '',
+            $actor,
+        );
 
         return response()->streamDownload(function () use ($matriculas): void {
             $salida = fopen('php://output', 'wb');
@@ -256,15 +393,15 @@ class MatriculaController extends Controller
             fwrite($salida, "\xEF\xBB\xBF");
             fputcsv($salida, ['ID', 'DNI', 'Estudiante', 'Curso', 'Código Curso', 'Fecha', 'Estado', 'Monto']);
 
-            $matriculas->chunk(500, function (Collection $lote) use ($salida): void {
+            $matriculas->chunk(500, function ($lote) use ($salida): void {
                 foreach ($lote as $matricula) {
                     fputcsv($salida, [
                         $matricula->id,
-                        $matricula->estudiante?->dni ?? '',
-                        trim(($matricula->estudiante?->nombres ?? '').' '.($matricula->estudiante?->apellidos ?? '')),
-                        $matricula->curso?->nombre ?? '',
-                        $matricula->curso?->codigo ?? '',
-                        $matricula->fecha_matricula?->format('Y-m-d') ?? '',
+                        SensitiveData::csvSafe($matricula->estudiante?->dni),
+                        SensitiveData::csvSafe(trim(($matricula->estudiante->nombres ?? '').' '.($matricula->estudiante->apellidos ?? ''))),
+                        SensitiveData::csvSafe($matricula->curso?->nombre),
+                        SensitiveData::csvSafe($matricula->curso?->codigo),
+                        $matricula->fecha_matricula->format('Y-m-d'),
                         match ($matricula->estado) {
                             'pendiente' => 'Pendiente',
                             'pagada' => 'Pagada',
@@ -284,6 +421,25 @@ class MatriculaController extends Controller
         ]);
     }
 
+    /**
+     * `validated()` no convierte tipos: un formulario HTML envía los identificadores como cadena y los métodos
+     * estrictos (`int $estudianteId`) los rechazarían. Se normalizan una sola vez, justo tras la validación.
+     *
+     * @param  array<string, mixed>  $datos
+     * @return array<string, mixed>
+     */
+    private function conIdentificadoresEnteros(array $datos): array
+    {
+        foreach (['estudiante_id', 'curso_id'] as $campo) {
+            if (array_key_exists($campo, $datos)) {
+                $datos[$campo] = (int) $datos[$campo];
+            }
+        }
+
+        return $datos;
+    }
+
+    /** @return Builder<Matricula> */
     private function filteredQuery(Request $request): Builder
     {
         $query = Matricula::query()->with(['estudiante', 'curso']);
@@ -302,21 +458,62 @@ class MatriculaController extends Controller
             $query->where('curso_id', (int) $cursoId);
         }
 
-        $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
                 $query->whereHas('estudiante', function (Builder $estudiante) use ($busqueda): void {
-                    $estudiante->where('dni', 'like', "%{$busqueda}%")
-                        ->orWhere('nombres', 'like', "%{$busqueda}%")
-                        ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                    $estudiante->whereLike('dni', "%{$busqueda}%")
+                        ->orWhereLike('nombres', "%{$busqueda}%")
+                        ->orWhereLike('apellidos', "%{$busqueda}%");
                 })->orWhereHas('curso', function (Builder $curso) use ($busqueda): void {
-                    $curso->where('codigo', 'like', "%{$busqueda}%")
-                        ->orWhere('nombre', 'like', "%{$busqueda}%");
+                    $curso->whereLike('codigo', "%{$busqueda}%")
+                        ->orWhereLike('nombre', "%{$busqueda}%");
                 });
             });
         }
 
         return $query;
+    }
+
+    /**
+     * Dentro de la transacción: cursos por id, estudiantes por id, matrícula.
+     * La lectura inicial solo descubre las relaciones; la fila bloqueada decide.
+     * Si cambiaron mientras esperábamos, se rechaza sin escribir ni reintentar.
+     */
+    private function lockMatricula(int|string $id, ?int $cursoDestino = null, ?int $estudianteDestino = null, bool $withTrashed = false): Matricula
+    {
+        $query = Matricula::query()->withTrashed($withTrashed);
+        $snapshot = (clone $query)->findOrFail($id);
+
+        Curso::withTrashed()
+            ->whereIn('id', array_unique([$snapshot->curso_id, $cursoDestino ?? $snapshot->curso_id]))
+            ->orderBy('id')->lockForUpdate()->get();
+        Estudiante::withTrashed()
+            ->whereIn('id', array_unique([$snapshot->estudiante_id, $estudianteDestino ?? $snapshot->estudiante_id]))
+            ->orderBy('id')->lockForUpdate()->get();
+        $matricula = $query->lockForUpdate()->findOrFail($id);
+
+        if ($matricula->curso_id !== $snapshot->curso_id || $matricula->estudiante_id !== $snapshot->estudiante_id) {
+            throw ValidationException::withMessages([
+                'curso_id' => 'La matrícula cambió durante la operación. Recarga los datos antes de continuar.',
+            ]);
+        }
+
+        return $matricula;
+    }
+
+    private function assertEligibleForOccupation(Estudiante $estudiante, Curso $curso): void
+    {
+        if ($estudiante->trashed() || $estudiante->estado !== 'activo') {
+            throw ValidationException::withMessages([
+                'estudiante_id' => 'El estudiante seleccionado no está activo.',
+            ]);
+        }
+        if ($curso->trashed() || $curso->estado !== 'activo') {
+            throw ValidationException::withMessages([
+                'curso_id' => 'El curso seleccionado no está disponible.',
+            ]);
+        }
     }
 
     private function assertNoActiveDuplicate(int $estudianteId, int $cursoId, ?int $excluirId = null): void

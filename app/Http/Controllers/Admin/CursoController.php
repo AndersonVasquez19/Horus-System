@@ -1,20 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCursoRequest;
 use App\Http\Requests\UpdateCursoRequest;
 use App\Models\Curso;
+use App\Support\AuditoriaAcademica;
+use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-class CursoController extends Controller
+class CursoController extends Controller implements HasMiddleware
 {
+    /**
+     * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
+     *
+     * @return list<Middleware>
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:cursos.ver', only: ['index', 'show']),
+            new Middleware('permission:cursos.crear', only: ['create', 'store']),
+            new Middleware('permission:cursos.editar', only: ['edit', 'update']),
+            new Middleware('permission:cursos.eliminar', only: ['destroy']),
+            new Middleware('permission:cursos.restaurar', only: ['restaurar']),
+        ];
+    }
+
     public function index(Request $request): View
     {
         $query = Curso::query();
@@ -23,11 +45,11 @@ class CursoController extends Controller
             $query->onlyTrashed();
         }
 
-        $busqueda = trim((string) $request->input('busqueda'));
+        $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
             $query->where(function (Builder $query) use ($busqueda): void {
-                $query->where('codigo', 'like', "%{$busqueda}%")
-                    ->orWhere('nombre', 'like', "%{$busqueda}%");
+                $query->whereLike('codigo', "%{$busqueda}%")
+                    ->orWhereLike('nombre', "%{$busqueda}%");
             });
         }
 
@@ -62,9 +84,18 @@ class CursoController extends Controller
 
     public function store(StoreCursoRequest $request): RedirectResponse
     {
+        $actor = AuditoriaAcademica::actorDe($request);
         $datos = $request->validated();
         $datos['cupos_disponibles'] = $datos['cupos_maximos'];
-        $curso = Curso::create($datos);
+
+        // La auditoría es la última escritura de la transacción: si falla, el alta se revierte (fail-closed).
+        $curso = DB::transaction(function () use ($datos, $actor): Curso {
+            $curso = Curso::create($datos);
+
+            AuditoriaAcademica::registrarCreacion('curso_creado', $curso, AuditoriaAcademica::CURSO, $actor);
+
+            return $curso;
+        });
 
         return redirect()
             ->route('admin.cursos.show', $curso)
@@ -91,9 +122,10 @@ class CursoController extends Controller
 
     public function update(UpdateCursoRequest $request, Curso $curso): RedirectResponse
     {
+        $actor = AuditoriaAcademica::actorDe($request);
         $datos = $request->validated();
 
-        DB::transaction(function () use ($curso, &$datos): void {
+        DB::transaction(function () use ($curso, &$datos, $actor): void {
             $curso = Curso::query()->lockForUpdate()->findOrFail($curso->id);
             $matriculasActivas = $curso->matriculas()
                 ->where('estado', '!=', 'anulada')
@@ -106,7 +138,11 @@ class CursoController extends Controller
             }
 
             $datos['cupos_disponibles'] = $datos['cupos_maximos'] - $matriculasActivas;
-            $curso->update($datos);
+            $curso->fill($datos);
+            $diferencias = AuditoriaAcademica::diferencias($curso, AuditoriaAcademica::CURSO);
+            $curso->save();
+
+            AuditoriaAcademica::registrarActualizacion('curso_actualizado', $curso, $diferencias, $actor);
         });
 
         return redirect()
@@ -114,19 +150,44 @@ class CursoController extends Controller
             ->with('success', 'Los datos del curso se actualizaron correctamente.');
     }
 
-    public function destroy(Curso $curso): RedirectResponse
+    public function destroy(Request $request, Curso $curso): RedirectResponse
     {
-        $curso->delete();
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($curso, $actor): void {
+            // Sin withTrashed(): si otra petición ya lo archivó, no hay operación efectiva ni auditoría.
+            $bloqueado = Curso::query()->lockForUpdate()->find($curso->getKey());
+
+            if ($bloqueado === null) {
+                return;
+            }
+
+            $bloqueado->delete();
+
+            AuditoriaAcademica::registrarOperacion('curso_archivado', $bloqueado, 'archivado_logico', $actor);
+        });
 
         return redirect()
             ->route('admin.cursos.index')
             ->with('success', 'El curso se archivó correctamente.');
     }
 
-    public function restaurar(string $curso): RedirectResponse
+    public function restaurar(Request $request, string $curso): RedirectResponse
     {
-        $curso = Curso::withTrashed()->findOrFail($curso);
-        $curso->restore();
+        $actor = AuditoriaAcademica::actorDe($request);
+
+        DB::transaction(function () use ($curso, $actor): void {
+            $bloqueado = Curso::withTrashed()->lockForUpdate()->findOrFail($curso);
+
+            // Restaurar un curso no archivado no es una operación efectiva: no se audita (evita duplicados).
+            if (! $bloqueado->trashed()) {
+                return;
+            }
+
+            $bloqueado->restore();
+
+            AuditoriaAcademica::registrarOperacion('curso_restaurado', $bloqueado, 'restauracion', $actor);
+        });
 
         return redirect()
             ->route('admin.cursos.index', ['eliminados' => 1])

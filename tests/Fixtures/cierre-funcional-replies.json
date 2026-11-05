@@ -1,0 +1,569 @@
+{
+  "description": "Respuestas del motor Python actual (05/11/2026) sobre contenido ficticio publicado; regenerar con el motor, no a mano.",
+  "items": [
+    {
+      "stable_id": "curso:datos",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Analisis de datos con Python",
+      "summary": "Aprende analisis de datos con Python.",
+      "details": "Practica limpieza de datos y construccion de graficos con Python.",
+      "keywords": [
+        "analisis de datos",
+        "Python"
+      ],
+      "modalities": [
+        "virtual"
+      ],
+      "updated_at": "2026-11-05T12:00:00+00:00"
+    },
+    {
+      "stable_id": "curso:excel",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Excel empresarial",
+      "summary": "Aprende Excel con tablas dinamicas y formulas.",
+      "details": "Formulas, tablas dinamicas y graficos en Excel.",
+      "keywords": [
+        "Excel",
+        "hojas de calculo"
+      ],
+      "modalities": [
+        "presencial"
+      ],
+      "updated_at": "2026-11-05T12:00:00+00:00"
+    },
+    {
+      "stable_id": "curso:prog",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Programacion con Python",
+      "summary": "Aprende programacion desde cero con Python.",
+      "details": "Variables, funciones y estructuras de control.",
+      "keywords": [
+        "programacion",
+        "Python"
+      ],
+      "modalities": [
+        "virtual"
+      ],
+      "updated_at": "2026-11-05T12:00:00+00:00"
+    },
+    {
+      "stable_id": "servicio:cableado",
+      "type": "servicio",
+      "publication_status": "vigente",
+      "title": "Cableado estructurado",
+      "summary": "Instalacion de cableado estructurado para oficinas.",
+      "details": "Diseno, instalacion y certificacion de puntos de red.",
+      "keywords": [
+        "cableado estructurado",
+        "puntos de red"
+      ],
+      "updated_at": "2026-11-05T12:00:00+00:00"
+    },
+    {
+      "stable_id": "servicio:mant",
+      "type": "servicio",
+      "publication_status": "vigente",
+      "title": "Soporte y mantenimiento",
+      "summary": "Mantenimiento preventivo y correctivo de computadoras.",
+      "details": "Limpieza, diagnostico y reparacion de equipos de computo.",
+      "keywords": [
+        "mantenimiento de computadoras",
+        "soporte tecnico"
+      ],
+      "updated_at": "2026-11-05T12:00:00+00:00"
+    }
+  ],
+  "cases": [
+    {
+      "query": "¿Tienen capacitaciones relacionadas con análisis de datos?",
+      "reply": {
+        "answer": "Analisis de datos con Python: Aprende analisis de datos con Python. Modalidad publicada: virtual. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "intent": "course_recommendation",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "kind": "course",
+            "reason": "El contenido publicado trata tu consulta: «Aprende analisis de datos con Python.».",
+            "evidence": [
+              "cat_curso_datos"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Aprende analisis de datos con Python.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          }
+        ],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "capacitacion"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Hola buenas tardes, quisiera saber si ustedes tienen algun curso o capacitacion que me sirva para aprender a manejar hojas de calculo porque en mi trabajo me lo piden",
+      "reply": {
+        "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas. Modalidad publicada: presencial. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "intent": "course_recommendation",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [
+          {
+            "id": "cat_curso_excel",
+            "title": "Excel empresarial",
+            "kind": "course",
+            "reason": "El contenido publicado trata tu consulta: «Aprende Excel con tablas dinamicas y formulas.».",
+            "evidence": [
+              "cat_curso_excel"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Aprende Excel con tablas dinamicas y formulas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          }
+        ],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_excel",
+            "title": "Excel empresarial",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "capacitacion",
+            "cursos"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "¿Qué capacitaciones tienen para empresas?",
+      "reply": {
+        "answer": "Según el catálogo publicado por Horus Group, están vigentes: Analisis de datos con Python; Excel empresarial; Programacion con Python. Pregúntame por cualquiera para ver su modalidad o requisitos publicados.",
+        "intent": "training_info",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_listado_formacion",
+            "title": "Cursos y capacitaciones vigentes",
+            "url_path": "/educacion/cursos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "capacitacion"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "¿Tienen curso de cocina?",
+      "reply": {
+        "answer": "Por ahora no hay un curso o capacitación publicado sobre ese tema en el catálogo vigente de Horus Group. Si quieres ver lo que está vigente, pregúntame «¿Qué cursos ofrecen?». También puedes consultarlo con un asesor por los canales oficiales.",
+        "intent": "unavailable_info",
+        "match_level": "ninguna",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": true,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cursos"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Quiero aprender reposteria",
+      "reply": {
+        "answer": "No encontré un curso o capacitación publicado sobre ese tema en el catálogo vigente de Horus Group. Si quieres ver lo que está vigente, pregúntame «¿Qué cursos ofrecen?». También puedes consultarlo con un asesor por los canales oficiales.",
+        "intent": "unavailable_info",
+        "match_level": "ninguna",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": true,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Quiero aprender Excel y también necesito cableado para mi oficina",
+      "reply": {
+        "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas. Modalidad publicada: presencial. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "intent": "course_recommendation",
+        "match_level": "alta",
+        "needs_clarification": true,
+        "clarification_question": "Para tu otra consulta también está publicado «Cableado estructurado». ¿Sobre cuál quieres más detalles?",
+        "abstained": false,
+        "recommendations": [
+          {
+            "id": "cat_curso_excel",
+            "title": "Excel empresarial",
+            "kind": "course",
+            "reason": "El contenido publicado trata tu consulta: «Aprende Excel con tablas dinamicas y formulas.».",
+            "evidence": [
+              "cat_curso_excel"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Aprende Excel con tablas dinamicas y formulas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          },
+          {
+            "id": "cat_servicio_cableado",
+            "title": "Cableado estructurado",
+            "kind": "service",
+            "reason": "El contenido publicado trata tu consulta: «Instalacion de cableado estructurado para oficinas.».",
+            "evidence": [
+              "cat_servicio_cableado"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Instalacion de cableado estructurado para oficinas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+          }
+        ],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_excel",
+            "title": "Excel empresarial",
+            "url_path": null
+          },
+          {
+            "id": "cat_servicio_cableado",
+            "title": "Cableado estructurado",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cableado",
+            "empresas",
+            "ofimatica"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Necesito cableado estructurado y mantenimiento de computadoras",
+      "reply": {
+        "answer": "Cableado estructurado: Instalacion de cableado estructurado para oficinas. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "intent": "service_recommendation",
+        "match_level": "alta",
+        "needs_clarification": true,
+        "clarification_question": "Para tu otra consulta también está publicado «Soporte y mantenimiento». ¿Sobre cuál quieres más detalles?",
+        "abstained": false,
+        "recommendations": [
+          {
+            "id": "cat_servicio_cableado",
+            "title": "Cableado estructurado",
+            "kind": "service",
+            "reason": "El contenido publicado trata tu consulta: «Instalacion de cableado estructurado para oficinas.».",
+            "evidence": [
+              "cat_servicio_cableado"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Instalacion de cableado estructurado para oficinas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+          },
+          {
+            "id": "cat_servicio_mant",
+            "title": "Soporte y mantenimiento",
+            "kind": "service",
+            "reason": "El contenido publicado trata tu consulta: «Mantenimiento preventivo y correctivo de computadoras.».",
+            "evidence": [
+              "cat_servicio_mant"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Mantenimiento preventivo y correctivo de computadoras.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+          }
+        ],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_servicio_cableado",
+            "title": "Cableado estructurado",
+            "url_path": null
+          },
+          {
+            "id": "cat_servicio_mant",
+            "title": "Soporte y mantenimiento",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cableado",
+            "computadoras",
+            "mantenimiento"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "me interesa python y excel",
+      "reply": {
+        "answer": "Quiero asegurarme de entenderte bien antes de responder.",
+        "intent": "clarification",
+        "match_level": "baja",
+        "needs_clarification": true,
+        "clarification_question": "¿Te refieres a «Analisis de datos con Python» o a «Programacion con Python»?",
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "ofimatica"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "¿Dónde puedo encontrar más información?",
+      "reply": {
+        "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+        "intent": "contact_info",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "contacto_canales",
+            "title": "Canales de contacto",
+            "url_path": "/contactos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "¿Hacen mantenimiento de computadoras?",
+      "reply": {
+        "answer": "Soporte y mantenimiento: Mantenimiento preventivo y correctivo de computadoras. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "intent": "service_info",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_servicio_mant",
+            "title": "Soporte y mantenimiento",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "computadoras",
+            "mantenimiento"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "¿Cómo puedo matricularme?",
+      "reply": {
+        "answer": "Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula. No compartas datos personales en este chat.",
+        "intent": "enrollment_request",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "contacto_canales",
+            "title": "Canales de contacto",
+            "url_path": "/contactos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Quiero solicitar una cotización",
+      "reply": {
+        "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+        "intent": "quote_request",
+        "match_level": "baja",
+        "needs_clarification": true,
+        "clarification_question": "¿Para qué servicio o capacitación necesitas la cotización? Por ejemplo: cámaras de seguridad, cableado o red, mantenimiento de equipos, capacitación para tu personal o asesoría.",
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [
+          "servicio o capacitación a cotizar"
+        ],
+        "general_guidance": null,
+        "sources": [],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    }
+  ]
+}

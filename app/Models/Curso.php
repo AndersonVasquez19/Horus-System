@@ -35,11 +35,13 @@ class Curso extends Model
         ];
     }
 
+    /** @return HasMany<Matricula, $this> */
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class);
     }
 
+    /** @return BelongsToMany<Estudiante, $this> */
     public function estudiantes(): BelongsToMany
     {
         return $this->belongsToMany(Estudiante::class, 'matriculas')

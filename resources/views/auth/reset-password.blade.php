@@ -1,9 +1,11 @@
+@use('App\Support\OldInput')
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/index/logos/logo-horus.png') }}">
     <title>Restablecer contraseña | Horus Group SRL</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -47,7 +49,7 @@
                         id="email"
                         name="email"
                         type="email"
-                        value="{{ old('email', $email) }}"
+                        value="{{ OldInput::value('email', $email) }}"
                         readonly
                         class="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-700 outline-none"
                     >

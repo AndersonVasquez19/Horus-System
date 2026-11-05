@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Unique;
 
 class StoreEstudianteRequest extends FormRequest
 {
@@ -12,6 +14,7 @@ class StoreEstudianteRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Unique|In>> */
     public function rules(): array
     {
         return [

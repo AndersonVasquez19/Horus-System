@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Unique;
 
 class StoreCursoRequest extends FormRequest
 {
@@ -12,6 +14,7 @@ class StoreCursoRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|Unique|In>> */
     public function rules(): array
     {
         return [
@@ -19,11 +22,11 @@ class StoreCursoRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:150'],
             'descripcion' => ['required', 'string'],
             'categoria' => ['required', Rule::in(['tecnologia', 'educacion', 'salud', 'gestion', 'otros'])],
-            'duracion_horas' => ['required', 'integer', 'min:1'],
-            'precio' => ['required', 'numeric', 'min:0'],
+            'duracion_horas' => ['required', 'integer', 'min:1', 'max:2147483647'],
+            'precio' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'modalidad' => ['required', Rule::in(['presencial', 'virtual', 'hibrido'])],
             'horario' => ['required', 'string', 'max:100'],
-            'cupos_maximos' => ['required', 'integer', 'min:1'],
+            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:2147483647'],
             'estado' => ['required', Rule::in(['activo', 'inactivo', 'archivado'])],
         ];
     }

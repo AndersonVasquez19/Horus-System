@@ -57,6 +57,7 @@ class ProcesosInternosSeeder extends Seeder
         $notificaciones = [
             [
                 'user_id' => $admin?->id,
+                'audiencia' => NotificacionInterna::AUDIENCIA_PERSONAL,
                 'titulo' => 'Nuevo proceso asignado',
                 'mensaje' => 'Revisión de matrículas pendientes requiere atención hoy.',
                 'tipo' => 'warning',
@@ -64,6 +65,7 @@ class ProcesosInternosSeeder extends Seeder
             ],
             [
                 'user_id' => $coordinador?->id,
+                'audiencia' => NotificacionInterna::AUDIENCIA_PERSONAL,
                 'titulo' => 'Revisión de cupos',
                 'mensaje' => 'Se ha iniciado la revisión de cupos por curso.',
                 'tipo' => 'info',
@@ -71,6 +73,7 @@ class ProcesosInternosSeeder extends Seeder
             ],
             [
                 'user_id' => null,
+                'audiencia' => NotificacionInterna::AUDIENCIA_GENERAL,
                 'titulo' => 'Cierre mensual',
                 'mensaje' => 'El reporte mensual finalizó correctamente.',
                 'tipo' => 'success',
@@ -79,9 +82,16 @@ class ProcesosInternosSeeder extends Seeder
         ];
 
         foreach ($notificaciones as $notificacion) {
+            // Audiencia explícita: una personal sin destinatario se omite; nunca se degrada a general.
+            $audiencia = $notificacion['audiencia'];
+            if ($audiencia === NotificacionInterna::AUDIENCIA_PERSONAL && $notificacion['user_id'] === null) {
+                continue;
+            }
+
             NotificacionInterna::query()->firstOrCreate([
                 'titulo' => $notificacion['titulo'],
                 'user_id' => $notificacion['user_id'],
+                'audiencia' => $audiencia,
             ], $notificacion + ['leida' => false]);
         }
     }

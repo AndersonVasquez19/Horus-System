@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -53,7 +54,7 @@
                             id="email"
                             name="email"
                             type="email"
-                            value="{{ old('email') }}"
+                            value="{{ OldInput::value('email') }}"
                             autocomplete="username"
                             required
                             autofocus

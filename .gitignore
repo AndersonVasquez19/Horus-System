@@ -1,6 +1,8 @@
 node_modules/
 /vendor/
 /public/build/
+# Market se retiró del sitio; esta copia local obsoleta no se versiona.
+/public/assets/css/Market/
 /public/hot
 /public/storage
 /storage/*.key
@@ -12,6 +14,7 @@ node_modules/
 /.phpunit.cache
 /.phpunit.result.cache
 .env
+/.env.pgsql-testing.local
 *.log
 horus.db
 database/database.sqlite*

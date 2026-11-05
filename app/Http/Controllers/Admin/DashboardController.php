@@ -22,14 +22,17 @@ class DashboardController extends Controller
         $inicioMes = now()->startOfMonth();
         $finMes = now()->endOfMonth();
 
-        $matriculasMes = Matricula::query()
-            ->whereBetween('fecha_matricula', [$inicioMes, $finMes])
-            ->count();
-
-        $ingresosMes = Matricula::query()
-            ->where('estado', 'pagada')
-            ->whereBetween('fecha_matricula', [$inicioMes, $finMes])
-            ->sum('monto_pagado');
+        // V-03: los ingresos del mes son exclusivos de Gerencia (rol `admin`). Para los demás roles el
+        // agregado financiero ni se calcula ni se envía a la vista (`ingresosMes` = null); solo se cuentan
+        // las matrículas. Reportes, Matrículas y Estudiantes quedan pendientes de decisión institucional.
+        $verIngresos = auth()->user()?->hasRole('admin') === true;
+        $consultaMes = Matricula::query()->whereBetween('fecha_matricula', [$inicioMes, $finMes]);
+        $resumenMes = ($verIngresos
+            ? $consultaMes->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
+            : $consultaMes->selectRaw('COUNT(*) as total'))
+            ->toBase()->first();
+        $matriculasMes = (int) $resumenMes->total;
+        $ingresosMes = $verIngresos ? $resumenMes->ingresos : null;
 
         $primerMes = $inicioMes->copy()->subMonths(5);
         $periodoSql = match (DB::connection()->getDriverName()) {
@@ -70,8 +73,12 @@ class DashboardController extends Controller
             return $mes;
         });
 
+        // V-03 (minimización): la tabla «Últimas matrículas» solo muestra estudiante (nombres, apellidos),
+        // curso (nombre), estado y fecha. Se seleccionan exactamente esas columnas más las claves que necesitan
+        // las relaciones; ningún rol recibe `monto_pagado`, `observaciones` ni `curso.precio` en este bloque.
         $ultimasMatriculas = Matricula::query()
-            ->with(['estudiante', 'curso'])
+            ->select(['id', 'estudiante_id', 'curso_id', 'estado', 'fecha_matricula'])
+            ->with(['estudiante:id,nombres,apellidos', 'curso:id,nombre'])
             ->latest('fecha_matricula')
             ->latest('id')
             ->limit(5)
@@ -82,21 +89,22 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $auditoriasRecientes = AuditLog::query()
-            ->with('user')
-            ->latest('created_at')
-            ->limit(5)
-            ->get();
+        // La actividad de auditoría solo se muestra a quien tiene permiso para consultarla.
+        $auditoriasRecientes = auth()->user()->can('auditoria.ver')
+            ? AuditLog::query()
+                ->with('user')
+                ->latest('created_at')
+                ->limit(5)
+                ->get()
+            : collect();
 
         $procesosPendientes = ProcesoInterno::query()->where('estado', 'pendiente')->count();
         $aprobacionesPendientes = AprobacionInterna::query()->where('estado', 'pendiente')->count();
-        $notificacionesPendientes = NotificacionInterna::query()
-            ->where(function ($query): void {
-                $query->where('user_id', auth()->id())
-                    ->orWhereNull('user_id');
-            })
-            ->where('leida', false)
-            ->count();
+        $usuarioActual = auth()->user();
+        // Mismo criterio de visibilidad que la bandeja: personales propias y generales explícitas.
+        $notificacionesPendientes = $usuarioActual instanceof User
+            ? NotificacionInterna::query()->visiblePara($usuarioActual)->where('leida', false)->count()
+            : 0;
 
         $rolActual = auth()->user()->getRoleNames()->first() ?? 'sin-rol';
         $miArea = match ($rolActual) {

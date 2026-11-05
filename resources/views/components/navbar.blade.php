@@ -5,7 +5,7 @@
       <span class="text-base font-semibold tracking-wide text-white">Horus Group SRL</span>
     </a>
 
-    <button type="button" @click="toggleMenu()" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 lg:hidden" aria-label="Abrir menú">
+    <button type="button" @click="toggleMenu()" aria-expanded="false" :aria-expanded="open.toString()" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 lg:hidden" aria-label="Abrir menú">
       <span class="space-y-1.5">
         <span class="block h-0.5 w-5 rounded-full bg-current"></span>
         <span class="block h-0.5 w-5 rounded-full bg-current"></span>
@@ -39,9 +39,16 @@
         </ul>
       </li>
 
-      <li><a href="{{ route('market') }}" class="nav-link">Market</a></li>
       <li><a href="{{ route('galeria') }}" class="nav-link">Galería</a></li>
       <li><a href="{{ route('contactos') }}" class="nav-link">Contáctanos</a></li>
+      @auth
+        <li>
+          <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="nav-link">Cerrar sesión</button>
+          </form>
+        </li>
+      @endauth
     </ul>
 
     <div x-show="open" x-transition class="absolute left-0 right-0 top-[calc(100%+0.5rem)] mx-4 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-2xl lg:hidden">
@@ -54,9 +61,16 @@
         <li><a href="{{ route('educacion.asesoramiento') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Asesoramiento</a></li>
         <li><a href="{{ route('educacion.capacitaciones') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Capacitaciones</a></li>
         <li><a href="{{ route('educacion.cursos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Cursos</a></li>
-        <li><a href="{{ route('market') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Market</a></li>
         <li><a href="{{ route('galeria') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Galería</a></li>
         <li><a href="{{ route('contactos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Contáctanos</a></li>
+        @auth
+          <li>
+            <form method="POST" action="{{ route('logout') }}">
+              @csrf
+              <button type="submit" class="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium hover:bg-gold/10">Cerrar sesión</button>
+            </form>
+          </li>
+        @endauth
       </ul>
     </div>
   </div>

@@ -70,22 +70,23 @@
         </div>
     </section>
 
-    <section class="type-filter-section">
-        <div class="type-filter-container">
-            <button class="type-filter-btn active" data-type="image">
-                <i class="fas fa-image"></i>
-                <span>IMÁGENES</span>
-            </button>
-            <button class="type-filter-btn" data-type="video">
-                <i class="fas fa-video"></i>
-                <span>VÍDEOS</span>
-            </button>
-        </div>
-    </section>
 
     <section class="gallery-section" id="gallery">
         <div class="gallery-grid" id="galleryGrid"></div>
+
+        <p class="gallery-more">
+            <span>¿Quieres ver más?</span>
+            <a href="https://www.instagram.com/horusgroupsrl/" target="_blank" rel="noopener noreferrer" class="gallery-more-link" aria-label="Visita nuestro Instagram (se abre en una pestaña nueva)">
+                <i class="fab fa-instagram" aria-hidden="true"></i>
+                <span>Visita nuestro Instagram.</span>
+            </a>
+        </p>
     </section>
+
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Acción completada</span>
+    </div>
 
     <div class="modal" id="imageModal">
         <div class="modal-overlay"></div>

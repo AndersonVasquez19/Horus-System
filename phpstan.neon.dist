@@ -1,0 +1,18 @@
+# Análisis estático del backend (Larastan). Requiere larastan/larastan ^3 en require-dev.
+# Ejecutar: vendor/bin/phpstan analyse
+#
+# Sprint 13: nivel 6 en app/, rutas, configuración, arranque y database/.
+# Subir de nivel solo corrigiendo las causas, sin baseline ni supresiones masivas.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - app
+        - routes
+        - database
+        - config
+        - bootstrap/app.php
+        - bootstrap/providers.php
+    reportUnmatchedIgnoredErrors: true
