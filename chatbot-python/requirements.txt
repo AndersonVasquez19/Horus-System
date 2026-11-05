@@ -1,0 +1,21 @@
+# Horus AI: dependencias completas para desarrollo y funcionamiento local.
+# Incluye FastAPI, Uvicorn, Pydantic, sentence-transformers, NumPy, PyTorch CPU,
+# HTTPX, Pytest, Ruff y sus dependencias transitivas.
+# Las versiones y hashes se mantienen en requirements-semantic.lock;
+# este archivo lo reutiliza para evitar listas divergentes.
+# Entorno de referencia: Windows x64 y Python 3.13 (ver README.md).
+#
+# Instalacion desde PowerShell, dentro de chatbot-python:
+#   py -3.13 -m venv .venv
+#   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+#   .\.venv\Scripts\python.exe -m pip check
+#
+# El modelo MiniLM no es un paquete pip. Si no esta disponible localmente:
+#   .\.venv\Scripts\python.exe scripts\download_model.py
+# La instalacion de paquetes y la descarga inicial requieren Internet.
+# Consultar README.md y ../docs/horus-ai-operacion.md para configurar y arrancar.
+# Este archivo no configura secretos, no activa el chatbot ni modifica PostgreSQL.
+
+--require-hashes
+--extra-index-url https://download.pytorch.org/whl/cpu
+-r requirements-semantic.lock
