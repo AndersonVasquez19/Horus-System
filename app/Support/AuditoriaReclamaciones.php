@@ -39,6 +39,36 @@ final class AuditoriaReclamaciones
         ]);
     }
 
+    /** @var list<string> Filtros de la bandeja que pueden constar (por nombre; nunca su valor). */
+    private const FILTROS_BANDEJA = ['busqueda', 'tipo', 'estado', 'desde', 'hasta'];
+
+    /**
+     * Consulta de la bandeja (E3). No apunta a una reclamación concreta (`model_id` nulo). Guarda solo los
+     * NOMBRES de los filtros usados y la página: el término buscado y los resultados no se registran.
+     *
+     * @param  list<string>  $filtros
+     */
+    public static function registrarBandeja(int $actorId, array $filtros, int $pagina): AuditLog
+    {
+        $desconocidos = array_diff($filtros, self::FILTROS_BANDEJA);
+        if ($desconocidos !== []) {
+            throw new InvalidArgumentException('Filtro de bandeja no autorizado: '.implode(', ', $desconocidos));
+        }
+        if ($pagina < 1) {
+            throw new InvalidArgumentException('La página de la bandeja debe ser positiva.');
+        }
+
+        return AuditLog::create([
+            'user_id' => $actorId,
+            'action' => 'reclamacion_bandeja_consultada',
+            'model_type' => Reclamacion::class,
+            'model_id' => null,
+            'changes' => ['esquema' => self::ESQUEMA, 'filtros' => array_values(array_intersect(self::FILTROS_BANDEJA, $filtros)), 'pagina' => $pagina],
+            'ip_address' => request()->ip(),
+            'created_at' => now(),
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $metadatos
      * @return array<string, mixed>

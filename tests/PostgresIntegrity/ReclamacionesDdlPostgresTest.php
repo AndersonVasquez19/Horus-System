@@ -10,7 +10,6 @@ use App\Services\GestionReclamaciones;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -27,7 +26,8 @@ use Tests\TestCase;
  * otro entorno antes de arrancar Laravel. Datos ficticios.
  *
  * RefreshDatabase: cada prueba corre dentro de una transacción que se revierte; el DDL de PostgreSQL es
- * transaccional, de modo que down()/up() y migrate:fresh dentro de la prueba también se revierten.
+ * transaccional para down()/up(). D9 se retiró a una clase sin arranque Laravel y bloqueada:
+ * db:wipe desconecta la conexión y NO queda contenido por esta transacción.
  * Cada sentencia que debe fallar va en su propio SAVEPOINT (assertSqlState).
  */
 class ReclamacionesDdlPostgresTest extends TestCase
@@ -263,12 +263,23 @@ class ReclamacionesDdlPostgresTest extends TestCase
         DB::table('reclamacion_envios')->insert(['reclamacion_id' => $conEnvio, 'tipo' => 'copia_hoja', 'canal' => 'correo', 'clave' => (string) Str::uuid(),
             'estado' => 'pendiente', 'intentos' => 0, 'asunto' => 'A', 'cuerpo' => 'C', 'created_at' => now(), 'updated_at' => now()]);
         foreach ([$conHistorial, $conEnvio] as $id) {
-            $this->assertSqlState('23503', fn () => DB::table('reclamaciones')->where('id', $id)->delete());
+            $this->assertSqlState('23001', fn () => DB::table('reclamaciones')->where('id', $id)->delete());
         }
         $this->assertSame(2, DB::table('reclamaciones')->count());
     }
 
     // D7 ------------------------------------------------------------------------------------------------------
+
+    public function test_referencia_inexistente_conserva_sqlstate_foreign_key_violation(): void
+    {
+        $id = DB::table('reclamaciones')->insertGetId($this->filaReclamacion());
+        DB::table('reclamaciones')->where('id', $id)->delete();
+        $this->assertSqlState('23503', fn () => DB::table('reclamacion_historial')->insert([
+            'reclamacion_id' => $id, 'evento' => 'registrada', 'actor_nombre' => 'Sistema',
+            'metadatos' => '{}', 'created_at' => now(),
+        ]));
+        $this->assertSame(0, DB::table('reclamacion_historial')->where('reclamacion_id', $id)->count());
+    }
 
     public function test_d7_uuid_malformado_en_sql_crudo_es_22p02_y_el_servicio_no_lo_envia(): void
     {
@@ -316,32 +327,7 @@ class ReclamacionesDdlPostgresTest extends TestCase
         $this->assertSqlState('23514', fn () => DB::table('reclamaciones')->insert($this->filaReclamacion(['monto_bien' => -1])));
     }
 
-    // D9 (B1) -------------------------------------------------------------------------------------------------
-
-    public function test_d9_db_wipe_conserva_la_funcion_y_dos_migrate_fresh_seguidos_funcionan(): void
-    {
-        // Causa raíz de B1, observada en el motor real: db:wipe elimina tablas (y con ellas el trigger), no funciones.
-        $this->assertSame(0, Artisan::call('db:wipe', ['--force' => true]));
-        $this->assertSame([self::FUNCION], $this->funciones(), 'La función sobrevive a db:wipe');
-        $this->assertSame([], $this->triggers());
-
-        // Con CREATE OR REPLACE FUNCTION, las reconstrucciones repetidas no fallan con 42723.
-        foreach ([1, 2] as $vuelta) {
-            $this->assertSame(0, Artisan::call('migrate:fresh', ['--force' => true]), "migrate:fresh #$vuelta");
-            $this->assertSame([self::FUNCION], $this->funciones(), "Una sola función tras migrate:fresh #$vuelta");
-            $triggers = $this->triggers();
-            $this->assertCount(1, $triggers, "Un solo trigger tras migrate:fresh #$vuelta");
-            $this->assertSame(self::FUNCION, $triggers[0]->proname);
-        }
-        $this->assertSame(1, (int) DB::selectOne('SELECT count(*) AS n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = current_schema() AND p.proname = ?', [self::FUNCION])->n);
-        // La inmutabilidad sigue activa sobre la tabla recién creada.
-        $id = DB::table('reclamaciones')->insertGetId($this->filaReclamacion());
-        $hid = DB::table('reclamacion_historial')->insertGetId(['reclamacion_id' => $id, 'evento' => 'registrada', 'actor_nombre' => 'Sistema', 'metadatos' => '{}', 'created_at' => now()]);
-        $this->assertSqlState('P0001', fn () => DB::table('reclamacion_historial')->where('id', $hid)->update(['nota' => 'x']));
-        // Las migraciones 000030 y 000031 quedan registradas una vez.
-        $this->assertSame(1, DB::table('migrations')->where('migration', '2026_10_30_000030_create_reclamaciones_tables')->count());
-        $this->assertSame(1, DB::table('migrations')->where('migration', '2026_10_30_000031_add_reclamaciones_permissions')->count());
-    }
+    // D9 está bloqueada en ReclamacionesReconstruccionD9Test, sin RefreshDatabase ni ejecutor destructivo.
 
     // D10 -----------------------------------------------------------------------------------------------------
 

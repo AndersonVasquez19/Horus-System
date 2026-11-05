@@ -107,13 +107,34 @@ class GestionReclamacionesTest extends TestCase
         $this->assertSame('ok', (new RecepcionReclamacionesHabilitada)->handle(Request::create('/x', 'POST'), $siguiente)->getContent());
     }
 
-    public function test_no_existe_ninguna_ruta_que_reciba_reclamaciones(): void
+    /**
+     * E1: la única escritura pública es POST /libro-reclamaciones, con sesión y CSRF (grupo web), la compuerta del
+     * módulo y el límite «reclamaciones». No existe ninguna otra ruta que reciba reclamaciones (el panel es E3/E4).
+     */
+    public function test_solo_existe_la_ruta_publica_de_alta_con_compuerta_csrf_y_limite(): void
     {
+        $rutas = [];
         foreach (app('router')->getRoutes()->getRoutes() as $ruta) {
             if (str_contains($ruta->uri(), 'reclamacion') || str_contains($ruta->uri(), 'libro-reclamaciones')) {
-                $this->assertSame(['GET', 'HEAD'], $ruta->methods(), $ruta->uri());
+                $rutas[$ruta->getName()] = $ruta;
             }
         }
+        $this->assertSame(['legales.reclamaciones', 'legales.reclamaciones.store', 'admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'], array_keys($rutas));
+        foreach (['admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'] as $consulta) {
+            $this->assertSame(['GET', 'HEAD'], $rutas[$consulta]->methods(), "E3 es solo de consulta: {$consulta}");
+        }
+        $this->assertSame(['GET', 'HEAD'], $rutas['legales.reclamaciones']->methods());
+        $this->assertSame(['POST'], $rutas['legales.reclamaciones.store']->methods());
+        $this->assertSame('libro-reclamaciones', $rutas['legales.reclamaciones.store']->uri());
+
+        $middleware = $rutas['legales.reclamaciones.store']->gatherMiddleware();
+        $this->assertContains('web', $middleware, 'Sin el grupo web no hay sesión ni verificación CSRF.');
+        $this->assertSame(
+            [RecepcionReclamacionesHabilitada::class, 'throttle:reclamaciones'],
+            array_values(array_diff($middleware, ['web'])),
+            'La compuerta debe ir antes del límite de envíos.',
+        );
+        $this->assertNotContains(RecepcionReclamacionesHabilitada::class, $rutas['legales.reclamaciones']->gatherMiddleware(), 'La página se muestra aunque el módulo esté apagado.');
     }
 
     // --- Alta pública, numeración, idempotencia ----------------------------------------------------------

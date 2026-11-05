@@ -17,6 +17,7 @@ use App\Support\HojaReclamacion;
 use App\Support\Reclamaciones;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
@@ -78,17 +79,55 @@ class GestionReclamaciones
         return $this->crear($datos, 'respaldo', trim($numeroHoja), hash('sha256', 'respaldo:'.Str::uuid()), $actor);
     }
 
-    /** Lectura del detalle: exige `ver`, aplica el vencimiento pendiente y deja constancia del acceso. */
+    /**
+     * Lectura del detalle (E3): exige `ver` y deja constancia del acceso. Es de SOLO LECTURA sobre la
+     * reclamación: no evalúa vencimientos, no bloquea ni guarda el caso (ni `updated_at`) y no escribe historial.
+     * Los vencimientos los resuelve el proceso diario `horus:reclamaciones-vencimientos`
+     * ({@see self::resolverVencimiento()}); para mostrarlos sin persistir, {@see self::propuestaVencidaSinProcesar()}.
+     * Historial y envíos se cargan con dos consultas agrupadas (sin N+1).
+     */
     public function consultar(User $actor, string $uuid): Reclamacion
     {
-        return DB::transaction(function () use ($actor, $uuid): Reclamacion {
-            $actor = $this->autorizar($actor, 'reclamaciones.ver');
-            $r = $this->bloquear($uuid);
-            $this->evaluarVencimiento($r);
-            AuditoriaReclamaciones::registrar('consultada', $r, ['numero' => $r->numero], $actor->id);
+        return $this->leer($actor, $uuid, 'consultada');
+    }
 
-            return $r->load(['historial', 'envios']);
-        });
+    /** Impresión de la hoja (E3): mismas reglas que {@see self::consultar()}, con su propia constancia de acceso. */
+    public function imprimir(User $actor, string $uuid): Reclamacion
+    {
+        return $this->leer($actor, $uuid, 'impresa');
+    }
+
+    /**
+     * Constancia de la consulta de la bandeja (E3). Solo guarda el actor, los NOMBRES de los filtros usados y la
+     * página: nunca el término buscado, nombres, documentos ni otros datos personales.
+     *
+     * @param  list<string>  $filtros
+     */
+    public function registrarConsultaBandeja(User $actor, array $filtros, int $pagina): void
+    {
+        $actor = $this->autorizar($actor, 'reclamaciones.ver');
+        AuditoriaReclamaciones::registrarBandeja($actor->id, $filtros, $pagina);
+    }
+
+    /**
+     * Solo lectura: la propuesta de solución está pendiente y su ventana ya terminó (hoy en Lima es posterior a
+     * `suspension_hasta`), pero el proceso diario todavía no reanudó el plazo. Misma regla que aplica
+     * {@see self::evaluarVencimiento()}; no modifica nada.
+     */
+    public function propuestaVencidaSinProcesar(Reclamacion $r): bool
+    {
+        return $r->estado === 'abierto' && $r->suspension_desde !== null && $r->suspension_hasta !== null
+            && $this->hoy()->toDateString() > $r->suspension_hasta->toDateString();
+    }
+
+    /** Lectura sin bloqueo ni escrituras sobre la reclamación; la auditoría es la única escritura. */
+    private function leer(User $actor, string $uuid, string $accion): Reclamacion
+    {
+        $actor = $this->autorizar($actor, 'reclamaciones.ver');
+        $r = $this->porIdentificador($uuid)->firstOrFail()->load(['historial', 'envios']);
+        AuditoriaReclamaciones::registrar($accion, $r, ['numero' => $r->numero], $actor->id);
+
+        return $r;
     }
 
     public function asignarResponsable(User $actor, string $uuid, ?int $responsableId): Reclamacion
@@ -553,11 +592,17 @@ class GestionReclamaciones
      */
     private function bloquear(string $uuid): Reclamacion
     {
+        return $this->porIdentificador($uuid)->lockForUpdate()->firstOrFail();
+    }
+
+    /** @return Builder<Reclamacion> */
+    private function porIdentificador(string $uuid): Builder
+    {
         if (! Str::isUuid($uuid)) {
             throw (new ModelNotFoundException)->setModel(Reclamacion::class);
         }
 
-        return Reclamacion::query()->where('identificador', strtolower($uuid))->lockForUpdate()->firstOrFail();
+        return Reclamacion::query()->where('identificador', strtolower($uuid));
     }
 
     private function exigirAbierta(Reclamacion $r): void
@@ -575,7 +620,7 @@ class GestionReclamaciones
 
     private function evaluarVencimiento(Reclamacion $r): bool
     {
-        if ($r->estado !== 'abierto' || $r->suspension_hasta === null || $r->suspension_desde === null || $this->hoy()->toDateString() <= $r->suspension_hasta->toDateString()) {
+        if (! $this->propuestaVencidaSinProcesar($r)) {
             return false;
         }
         [$dias, $nueva] = $this->reanudar($r, $r->suspension_hasta->toImmutable());

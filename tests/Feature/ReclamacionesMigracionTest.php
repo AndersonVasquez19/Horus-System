@@ -215,7 +215,8 @@ class ReclamacionesMigracionTest extends TestCase
     {
         $id = DB::table('reclamaciones')->insertGetId($this->fila());
         DB::table('reclamacion_historial')->insert(['reclamacion_id' => $id, 'evento' => 'registrada', 'actor_nombre' => 'Sistema', 'metadatos' => '{}', 'created_at' => now()]);
-        $this->rechaza(fn () => DB::table('reclamaciones')->where('id', $id)->delete(), '23503');
+        // PostgreSQL 18 distingue RESTRICT (23001) de una referencia inexistente (23503).
+        $this->rechaza(fn () => DB::table('reclamaciones')->where('id', $id)->delete(), '23001');
         $this->assertSame(1, DB::table('reclamaciones')->count());
     }
 
