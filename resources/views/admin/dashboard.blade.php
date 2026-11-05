@@ -131,14 +131,17 @@
                     variant="navy"
                     href="/admin/matriculas"
                 />
-                <x-admin.stat-card
-                    title="Ingresos del mes"
-                    :value="'S/ '.number_format((float) $ingresosMes, 2, '.', ',')"
-                    icon="fa-sack-dollar"
-                    description="Recaudación de matrículas pagadas"
-                    variant="teal"
-                    href="/admin/reportes"
-                />
+                {{-- V-03: solo Gerencia recibe ingresosMes; para los demás roles el backend envía null. --}}
+                @if (! is_null($ingresosMes))
+                    <x-admin.stat-card
+                        title="Ingresos del mes"
+                        :value="'S/ '.number_format((float) $ingresosMes, 2, '.', ',')"
+                        icon="fa-sack-dollar"
+                        description="Recaudación de matrículas pagadas"
+                        variant="teal"
+                        href="/admin/reportes"
+                    />
+                @endif
                 <x-admin.stat-card
                     title="Usuarios"
                     :value="$usuariosActivos"

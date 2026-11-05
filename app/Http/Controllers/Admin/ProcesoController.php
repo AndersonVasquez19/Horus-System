@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ProcesoInterno;
 use App\Models\User;
 use App\Support\ListFilter;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -57,7 +59,6 @@ class ProcesoController extends Controller implements HasMiddleware
             'procesos' => $procesos,
             'estado' => $estado,
             'busqueda' => $busqueda,
-            'responsables' => User::orderBy('name')->get(),
         ]);
     }
 
@@ -69,7 +70,7 @@ class ProcesoController extends Controller implements HasMiddleware
     public function create(): View
     {
         return view('admin.procesos.create', [
-            'responsables' => User::orderBy('name')->get(),
+            'responsables' => $this->responsables()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -78,7 +79,7 @@ class ProcesoController extends Controller implements HasMiddleware
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => ['bail', 'nullable', 'integer', $this->validarResponsable()],
             'estado' => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'prioridad' => ['required', 'in:baja,media,alta,urgente'],
             'fecha_vencimiento' => ['nullable', 'date'],
@@ -107,7 +108,7 @@ class ProcesoController extends Controller implements HasMiddleware
     {
         return view('admin.procesos.edit', [
             'proceso' => $proceso,
-            'responsables' => User::orderBy('name')->get(),
+            'responsables' => $this->responsables($proceso)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -116,7 +117,7 @@ class ProcesoController extends Controller implements HasMiddleware
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => ['bail', 'nullable', 'integer', $this->validarResponsable($proceso)],
             'estado' => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'prioridad' => ['required', 'in:baja,media,alta,urgente'],
             'fecha_vencimiento' => ['nullable', 'date'],
@@ -133,5 +134,33 @@ class ProcesoController extends Controller implements HasMiddleware
         $proceso->delete();
 
         return redirect()->route('admin.procesos.index')->with('success', 'El proceso interno se eliminó correctamente.');
+    }
+
+    /**
+     * El responsable histórico solo es elegible para conservar su propio proceso.
+     * Spatie incluye permisos directos y heredados, sin conceder facultades de gestión.
+     *
+     * @return Builder<User>
+     */
+    private function responsables(?ProcesoInterno $proceso = null): Builder
+    {
+        return User::query()->where(function (Builder $query) use ($proceso): void {
+            $query->where(function (Builder $elegibles): void {
+                $elegibles->role(['admin', 'coordinador'])->permission('procesos.ver');
+            });
+
+            if ($proceso?->responsable_id !== null) {
+                $query->orWhere('users.id', $proceso->responsable_id);
+            }
+        });
+    }
+
+    private function validarResponsable(?ProcesoInterno $proceso = null): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($proceso): void {
+            if (! $this->responsables($proceso)->whereKey($value)->exists()) {
+                $fail('El responsable seleccionado no está autorizado para este proceso.');
+            }
+        };
     }
 }

@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -109,6 +111,9 @@ class MatriculaNotificationBacklogTest extends TestCase
         Http::assertNothingSent();
     }
 
+    // El worker mantiene su límite real de 128 MB; no heredar memoria de otras suites.
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_backlog_migration_holds_only_unattempted_pending_and_keeps_traceability(): void
     {
         $this->activate();

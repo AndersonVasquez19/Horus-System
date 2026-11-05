@@ -22,12 +22,17 @@ class DashboardController extends Controller
         $inicioMes = now()->startOfMonth();
         $finMes = now()->endOfMonth();
 
-        $resumenMes = Matricula::query()
-            ->whereBetween('fecha_matricula', [$inicioMes, $finMes])
-            ->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
+        // V-03: los ingresos del mes son exclusivos de Gerencia (rol `admin`). Para los demás roles el
+        // agregado financiero ni se calcula ni se envía a la vista (`ingresosMes` = null); solo se cuentan
+        // las matrículas. Reportes, Matrículas y Estudiantes quedan pendientes de decisión institucional.
+        $verIngresos = auth()->user()?->hasRole('admin') === true;
+        $consultaMes = Matricula::query()->whereBetween('fecha_matricula', [$inicioMes, $finMes]);
+        $resumenMes = ($verIngresos
+            ? $consultaMes->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
+            : $consultaMes->selectRaw('COUNT(*) as total'))
             ->toBase()->first();
         $matriculasMes = (int) $resumenMes->total;
-        $ingresosMes = $resumenMes->ingresos;
+        $ingresosMes = $verIngresos ? $resumenMes->ingresos : null;
 
         $primerMes = $inicioMes->copy()->subMonths(5);
         $periodoSql = match (DB::connection()->getDriverName()) {
@@ -68,8 +73,12 @@ class DashboardController extends Controller
             return $mes;
         });
 
+        // V-03 (minimización): la tabla «Últimas matrículas» solo muestra estudiante (nombres, apellidos),
+        // curso (nombre), estado y fecha. Se seleccionan exactamente esas columnas más las claves que necesitan
+        // las relaciones; ningún rol recibe `monto_pagado`, `observaciones` ni `curso.precio` en este bloque.
         $ultimasMatriculas = Matricula::query()
-            ->with(['estudiante', 'curso'])
+            ->select(['id', 'estudiante_id', 'curso_id', 'estado', 'fecha_matricula'])
+            ->with(['estudiante:id,nombres,apellidos', 'curso:id,nombre'])
             ->latest('fecha_matricula')
             ->latest('id')
             ->limit(5)
