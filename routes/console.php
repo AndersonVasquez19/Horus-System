@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\OperacionHorus;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -17,3 +18,6 @@ Schedule::command('horus:reclamaciones-vencimientos')
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Sin interruptores, no altera siquiera la lista de tareas de otros módulos.
+app(OperacionHorus::class)->programar();

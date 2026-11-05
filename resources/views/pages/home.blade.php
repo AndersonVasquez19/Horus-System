@@ -153,11 +153,14 @@
     <div class="section-shell"><x-stats-grid :stats="$stats" /></div>
   </section>
 
-  <section id="convenios" class="home-convenios scroll-mt-6 py-12 md:py-16">
+  <section id="convenios" class="home-convenios scroll-mt-6 py-12 md:py-20">
     <div class="section-shell">
-    <div class="mb-8 text-center">
-      <x-ui.section-title>Nuestros Convenios Estratégicos</x-ui.section-title>
-    </div>
+      <div class="mb-10 text-center max-w-2xl mx-auto">
+        <x-ui.section-title>Nuestros Convenios Estratégicos</x-ui.section-title>
+        <p class="mt-3 text-sm md:text-base text-slate-300">
+          Alianzas con colegios profesionales e instituciones que respaldan la validez de nuestras certificaciones a nivel nacional.
+        </p>
+      </div>
     <x-convenios.section :items="$convenios" />
     </div>
   </section>

@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Curso;
+use App\Models\CursoPublicacion;
+use App\Models\ServicioPublicacion;
+use App\Models\ServicioTecnologico;
+use App\Observers\PublicacionCatalogoAdvisorObserver;
 use App\Support\Email;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -23,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Curso::observe(PublicacionCatalogoAdvisorObserver::class);
+        CursoPublicacion::observe(PublicacionCatalogoAdvisorObserver::class);
+        ServicioTecnologico::observe(PublicacionCatalogoAdvisorObserver::class);
+        ServicioPublicacion::observe(PublicacionCatalogoAdvisorObserver::class);
+
         RateLimiter::for('verification-confirm', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
 
         // Login web y API: límite por IP y también por correo, para frenar ataques distribuidos

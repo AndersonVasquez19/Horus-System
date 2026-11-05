@@ -93,14 +93,15 @@ Blade genera HTML en el servidor; una vista o respuesta PHP nueva necesita otra 
 | `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | La plantilla usa `database`; las tablas correspondientes se crean con las migraciones. |
 | `MAIL_MAILER`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | `log` registra correos en vez de enviarlos. Para envío real configura un transporte y remitente válidos. |
 | `RESEND_API_KEY` | Solo si eliges el transporte Resend configurado en `config/mail.php`. Es la **única** fuente de la clave: el panel de Configuración no la guarda ni la muestra. |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | Opcionales; únicamente para consultas que no coinciden con reglas locales del chat. |
+| `HORUS_ADVISOR_ENABLED`, `HORUS_ADVISOR_URL`, `HORUS_ADVISOR_TOKEN` | Advisor apagado por defecto; URL loopback y token solo en servidor. No hay proveedor OpenAI en el chat. |
+| `HORUS_ADVISOR_SIGNING_KEY` | Clave independiente para validar catálogos en seco; no activa su publicación ni sincronización. |
 | `JWT_SECRET`, `JWT_TTL`, `JWT_LEEWAY` | Autenticación de `/api/auth/*`. `JWT_SECRET` debe tener al menos 32 bytes; si está vacío, `config/jwt.php` intenta usar `APP_KEY`. |
 
 No publiques `.env` ni pegues secretos en incidencias, registros o documentación. Cuando cambies variables en una aplicación con configuración cacheada, revisa esa caché antes de atribuir el resultado al código.
 
 ## Base de datos y datos iniciales
 
-Las migraciones incluyen usuarios, sesiones, caché y trabajos, estudiantes, cursos, matrículas, permisos, ajustes, procesos, auditoría e intenciones/registros del chat. La aplicación puede mostrar páginas públicas sin sembrar datos, pero el chat consulta `chat_intents` y escribe en `chat_logs`: **necesita una base migrada y disponible**.
+Las migraciones incluyen usuarios, sesiones, caché y trabajos, estudiantes, cursos, matrículas, permisos, ajustes, procesos, auditoría e intenciones/registros del chat. La aplicación puede mostrar páginas públicas sin sembrar datos, pero el chat escribe auditoría anonimizada en `chat_logs`: **necesita una base migrada y disponible**.
 
 `php artisan db:seed` ejecuta `database/seeders/DatabaseSeeder.php`: roles, permisos, configuración inicial e intenciones del chat. **No crea usuarios ni contraseñas** y puede repetirse: no modifica cuentas existentes ni sobrescribe la configuración editada desde el panel. Sí sincroniza los permisos de los roles base (`admin`, `coordinador`, `secretaria`) con la matriz de `RolesAndPermissionsSeeder`, por lo que **descarta permisos concedidos a mano** a esos roles; en una base con datos reales, los permisos nuevos se aplican con migraciones (p. ej. `2026_10_27_000012_add_matriculas_exportar_eliminar_permissions.php`), no con el seeder.
 
@@ -157,11 +158,11 @@ Los contadores de matrículas e ingresos del panel respetan los filtros; ingreso
 
 El widget público se muestra en `resources/views/components/public/chat-widget.blade.php`; la conversación reutilizable está en `resources/views/components/chat/conversation.blade.php`. `resources/js/app.js` envía el mensaje a `POST /chat/mensaje` con token CSRF. La ruta valida `mensaje` (máximo 2000 caracteres) y `session_id` (máximo 64), y tiene límite `throttle:30,1`.
 
-`app/Services/AsistenteVirtualService.php` busca coincidencias por palabras y prioridad. Las respuestas locales verificadas están en `app/Support/ChatKnowledge.php`; también admite intenciones personalizadas activas en `chat_intents` y respeta las intenciones incorporadas desactivadas allí. Para intenciones incorporadas activas, el servicio usa las definiciones del código. Una consulta sin coincidencia puede llamar a OpenAI si hay clave; si falta la clave o la llamada no da respuesta utilizable, ofrece una respuesta de respaldo. Cada interacción se guarda en `chat_logs`.
+`app/Services/AsistenteVirtualService.php` aplica privacidad, bloqueo por sesión y deduplicación. Con activación explícita, `HorusAdvisorClient` consulta el servicio Python en loopback (`POST /api/v1/chat`, puerto 8001, `history: []`) y valida su respuesta. El modelo local es `paraphrase-multilingual-MiniLM-L12-v2`. Con el servicio desactivado o ante un fallo, responde mediante contingencia institucional. No participa un motor conversacional PHP ni OpenAI. El registro `chat_logs` omite el mensaje original.
 
-El área `admin/asistente` permite probar respuestas y ver hasta 50 consultas recientes. La tabla de intenciones se muestra para consulta; esa pantalla **no tiene un formulario de entrenamiento**. Para ajustar respuestas incorporadas, revisa el contenido público verificable, modifica `ChatKnowledge.php` y añade o actualiza pruebas de regresión. Para cambios de datos en `chat_intents`, evalúa el efecto del seeder antes de ejecutarlo.
+El área `admin/asistente` permite probar el mismo flujo y consultar hasta 50 registros recientes. La tabla de intenciones PHP es histórica; no entrena ni controla Python. Las clases de diagnóstico, el seeder y las migraciones históricas se conservan. Nunca ejecutes seeders para actualizar respuestas en una base real sin autorización.
 
-La clave OpenAI se lee en el servidor desde `config/services.php`. No la envíes al cliente. El chat local y las pruebas simuladas no verifican conectividad real con OpenAI.
+La plantilla `.env.example` declara `HORUS_ADVISOR_ENABLED=false`, URL loopback y secretos vacíos. El flag continúa apagado por defecto; no habilitarlo para usuarios reales sin autorización. El token de servicio solo vive en el servidor. Laravel usa `config()`; cualquier cambio operativo requiere regenerar la configuración cacheada mediante el procedimiento autorizado. No modificar `.env` para ejecutar pruebas.
 
 ## Pruebas y comprobaciones
 
@@ -190,7 +191,7 @@ node tests/browser/chat-smoke.mjs
 | Síntoma | Comprobación inicial |
 | --- | --- |
 | `419` al enviar el chat | Comprueba que cargas la página y envías a la misma aplicación/host, que la sesión funciona y que la página tiene un token CSRF vigente; recarga la página. |
-| Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_intents` se consulta y `chat_logs` se escribe en cada mensaje. |
+| Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_logs` se escribe sin guardar el mensaje original; comprobar también la configuración del Advisor. |
 | Página sin estilos o interacción | Ejecuta `npm run build` o inicia `npm run dev`; confirma que visitas Laravel mediante `php artisan serve`. |
 | Imágenes rotas o secciones sin su diseño propio | Comprueba que exista `public/assets/` (viene en el repositorio) y que la ruta usada en la vista coincida con un archivo real. Después recarga la página. |
 | Laravel intenta cargar Vite después de cerrarlo | Confirma que Vite ya no está activo y elimina el marcador temporal `public/hot`; luego usa `npm run build` o reinicia `npm run dev`. |

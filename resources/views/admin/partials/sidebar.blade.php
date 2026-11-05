@@ -128,6 +128,24 @@
             </a>
         @endif
 
+        @can('reclamaciones.ver')
+            <a href="{{ route('admin.reclamaciones.index') }}" title="Libro de Reclamaciones" @if(request()->is('admin/reclamaciones*')) aria-current="page" @endif @class([
+                'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#19A7A1]',
+                'bg-gradient-to-r from-[#176B9A] to-[#287FB5] font-semibold text-white shadow-sm shadow-[#0A2540]/40 ring-1 ring-[#19A7A1]/40' => request()->is('admin/reclamaciones*'),
+                'text-slate-300 hover:bg-[#176B9A]/25 hover:text-white' => ! request()->is('admin/reclamaciones*'),
+            ])>
+                @if(request()->is('admin/reclamaciones*'))
+                    <span class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#19A7A1]" aria-hidden="true"></span>
+                @endif
+                <i @class([
+                    'fa-solid fa-book-bookmark w-5 shrink-0 text-center transition-colors',
+                    'text-[#19A7A1]' => request()->is('admin/reclamaciones*'),
+                    'text-slate-400 group-hover:text-[#19A7A1]' => ! request()->is('admin/reclamaciones*'),
+                ]) aria-hidden="true"></i>
+                <span class="truncate md:hidden xl:inline">Libro de Reclamaciones</span>
+            </a>
+        @endcan
+
         @can('asistente.ver')
             <a href="/admin/asistente" title="Asistente Virtual" @if(request()->is('admin/asistente*')) aria-current="page" @endif @class([
                 'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#19A7A1]',

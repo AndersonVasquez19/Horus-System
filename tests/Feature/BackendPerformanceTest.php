@@ -128,15 +128,15 @@ class BackendPerformanceTest extends TestCase
         });
         $service = app(AsistenteVirtualService::class);
         $answer = $service->procesarMensaje('beneficio ficticio', 'performance-custom');
-        $this->assertSame('Respuesta ficticia.', $answer['respuesta']);
-        $this->assertEqualsCanonicalizing(['consulta_camaras', 'personalizada'], $retrieved);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
+        $this->assertSame([], $retrieved);
         $this->assertNull($service->buscarIntent('camaras'));
         $builtin->update(['activo' => true]);
         $this->assertSame('consulta_camaras', $service->buscarIntent('camaras')->nombre);
         $custom->update(['activo' => false]);
         $this->assertNull($service->buscarIntent('beneficio ficticio'));
         $custom->update(['activo' => true, 'respuesta' => 'Actualizada.']);
-        $this->assertSame('Actualizada.', $service->procesarMensaje('beneficio ficticio', 'performance-custom')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('beneficio ficticio', 'performance-custom')['respuesta']);
         Http::assertNothingSent();
     }
 

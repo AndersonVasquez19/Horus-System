@@ -78,7 +78,7 @@ class CursoPublicacionTest extends TestCase
         $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Python inicial');
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Qué cursos ofrecen', 'hidden');
         $this->assertStringNotContainsString('Python inicial', $answer['respuesta']);
-        $this->assertStringContainsString('No hay cursos', $answer['respuesta']);
+        $this->assertSame([], app(CatalogoPublicoCursos::class)->vigentes());
         Http::assertNothingSent();
     }
 
@@ -93,12 +93,13 @@ class CursoPublicacionTest extends TestCase
     }
 
     #[DataProvider('localCourseQuestions')]
-    public function test_published_course_facts_are_local_and_do_not_call_openai(string $question, string $expected): void
+    public function test_published_facts_remain_in_editorial_reader_without_entering_chat(string $question, string $expected): void
     {
         $this->publish(['horario' => 'Martes de 19 a 21 horas', 'inscripcion' => 'Solicita orientación en contactos.']);
         $answer = app(AsistenteVirtualService::class)->procesarMensaje($question, 'dynamic');
-        $this->assertSame('local', $answer['fuente']);
-        $this->assertStringContainsString($expected, $answer['respuesta']);
+        $this->assertSame('respaldo', $answer['fuente']);
+        $this->assertStringContainsString($expected, json_encode(app(CatalogoPublicoCursos::class)->vigentes(), JSON_UNESCAPED_UNICODE));
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         $this->assertLessThanOrEqual(1800, mb_strlen($answer['respuesta']));
         foreach (['Nombre interno secreto', '9876.54', 'Horario privado', 'Descripción administrativa'] as $private) {
             $this->assertStringNotContainsString($private, $answer['respuesta']);
@@ -110,9 +111,9 @@ class CursoPublicacionTest extends TestCase
     {
         $this->publish();
         $service = app(AsistenteVirtualService::class);
-        $this->assertStringContainsString('Horario no publicado', $service->procesarMensaje('Horario del curso Python inicial', 'missing-schedule')['respuesta']);
-        $this->assertStringContainsString('inscripción no publicada', $service->procesarMensaje('Inscripción del curso Python inicial', 'missing-enrollment')['respuesta']);
-        $this->assertStringContainsString('No encuentro una ficha pública', $service->procesarMensaje('Horario del curso Robótica', 'unknown')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         Http::assertNothingSent();
     }
 
@@ -122,26 +123,26 @@ class CursoPublicacionTest extends TestCase
         $this->publish(['titulo' => 'Python avanzado']);
         $service = app(AsistenteVirtualService::class);
         $answer = $service->procesarMensaje('Horario del curso Python', 'ambiguous');
-        $this->assertSame('aclaracion', $answer['fuente']);
-        $this->assertStringContainsString('título completo', $answer['respuesta']);
-        $this->assertSame('local', $service->procesarMensaje('Horario del curso Python avanzado', 'specific')['fuente']);
-        $this->assertSame('aclaracion', $service->procesarMensaje('Precio y horario del curso Python inicial', 'compound')['fuente']);
+        $this->assertSame('respaldo', $answer['fuente']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
+        $this->assertSame('respaldo', $service->procesarMensaje('Horario del curso Python avanzado', 'specific')['fuente']);
+        $this->assertSame('respaldo', $service->procesarMensaje('Precio y horario del curso Python inicial', 'compound')['fuente']);
         Http::assertNothingSent();
     }
 
-    public function test_changes_unpublication_and_expiry_invalidate_duplicate_cache_immediately(): void
+    public function test_publication_updates_do_not_enter_public_chat_cache(): void
     {
         $course = $this->publish(['horario' => 'Horario oficial anterior']);
         $service = app(AsistenteVirtualService::class);
         $question = 'Horario del curso Python inicial';
-        $this->assertStringContainsString('Horario oficial anterior', $service->procesarMensaje($question, 'cache')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         $this->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), ['horario' => 'Horario oficial actualizado']))->assertRedirect();
-        $this->assertStringContainsString('Horario oficial actualizado', $service->procesarMensaje($question, 'cache')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         $this->deleteJson(route('admin.cursos.publicacion.destroy', $course))->assertRedirect();
         $this->assertStringNotContainsString('Horario oficial actualizado', $service->procesarMensaje($question, 'cache')['respuesta']);
         $this->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), ['horario' => 'Horario oficial actualizado', 'vigente_hasta' => '2026-10-28']))->assertRedirect();
         $this->travelTo(Carbon::parse('2026-10-28 23:59:50', 'America/Lima'));
-        $this->assertStringContainsString('Horario oficial actualizado', $service->procesarMensaje($question, 'midnight')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         $this->travel(11)->seconds();
         $this->assertStringNotContainsString('Horario oficial actualizado', $service->procesarMensaje($question, 'midnight')['respuesta']);
         $this->get(route('educacion.cursos'))->assertDontSee('Python inicial');
@@ -230,14 +231,14 @@ class CursoPublicacionTest extends TestCase
         $this->assertSame($before, CursoPublicacion::firstOrFail()->getAttributes());
     }
 
-    public function test_scheduled_publication_becomes_visible_without_reusing_a_cached_negative_answer(): void
+    public function test_scheduled_publication_does_not_activate_chat_catalog(): void
     {
         $this->travelTo(Carbon::parse('2026-10-27 23:59:50', 'America/Lima'));
         $this->publish();
         $service = app(AsistenteVirtualService::class);
         $this->assertStringNotContainsString('Python inicial', $service->procesarMensaje('cursos', 'scheduled')['respuesta']);
         $this->travel(11)->seconds();
-        $this->assertStringContainsString('Python inicial', $service->procesarMensaje('cursos', 'scheduled')['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         $this->get(route('educacion.cursos'))->assertDontSee('Python inicial');
         Http::assertNothingSent();
     }
@@ -248,7 +249,7 @@ class CursoPublicacionTest extends TestCase
         $service = app(AsistenteVirtualService::class);
         foreach (['inactivo', 'archivado', 'deleted'] as $condition) {
             $course->update(['estado' => 'activo']);
-            $this->assertStringContainsString('Python inicial', $service->procesarMensaje('cursos', 'state-'.$condition)['respuesta']);
+            $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
             $condition === 'deleted' ? $course->delete() : $course->update(['estado' => $condition]);
             $this->assertStringNotContainsString('Python inicial', $service->procesarMensaje('cursos', 'state-'.$condition)['respuesta']);
         }
@@ -261,8 +262,8 @@ class CursoPublicacionTest extends TestCase
         $this->get(route('admin.cursos.publicacion.edit', $course))->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert("private")</script>', false);
         $this->get(route('educacion.cursos'))->assertDontSee('Python inicial')->assertDontSee('&lt;script&gt;', false);
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'local-comparison');
-        $this->assertSame('local', $answer['fuente']);
-        $this->assertStringContainsString('virtual', $answer['respuesta']);
+        $this->assertSame('respaldo', $answer['fuente']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         Http::assertNothingSent();
     }
 
@@ -277,12 +278,12 @@ class CursoPublicacionTest extends TestCase
         $this->assertFalse(Role::findByName('secretaria')->hasPermissionTo('cursos.publicar'));
     }
 
-    public function test_explicitly_enabled_chat_can_resolve_authorized_facts_without_changing_the_public_page(): void
+    public function test_catalog_flag_does_not_enable_php_conversation_or_change_public_page(): void
     {
         $this->publish(['horario' => 'Miércoles de 18 a 20 horas']);
         $this->postJson(route('chat.mensaje'), ['mensaje' => 'Horario del curso Python inicial', 'session_id' => 'public-course'])
-            ->assertOk()->assertJsonPath('fuente', 'local')->assertJsonPath('intent', 'consulta_horarios_cursos')
-            ->assertJsonPath('respuesta', fn (string $answer): bool => str_contains($answer, 'Miércoles de 18 a 20 horas'))
+            ->assertOk()->assertJsonPath('fuente', 'respaldo')->assertJsonPath('intent', null)
+            ->assertJsonPath('respuesta', AsistenteVirtualService::RESPUESTA_FALLBACK)
             ->assertDontSee('Horario privado');
         $this->get(route('educacion.cursos'))->assertDontSee('Miércoles de 18 a 20 horas')->assertSee('Cursos Disponibles.');
         Http::assertNothingSent();
@@ -300,7 +301,7 @@ class CursoPublicacionTest extends TestCase
         });
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('cursos', 'default-static');
         $original = collect(ChatKnowledge::intents())->firstWhere('nombre', 'consulta_cursos');
-        $this->assertSame($original['respuesta'], $answer['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         $this->assertStringNotContainsString('curso_publicaciones', implode(' ', $queries));
         $this->assertStringNotContainsString('Python inicial', $answer['respuesta']);
         $this->get(route('educacion.cursos'))->assertSee('Horarios Adaptables.')->assertSee('Cursos Disponibles.')

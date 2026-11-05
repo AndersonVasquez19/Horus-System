@@ -19,6 +19,9 @@
         'anulada' => ['Anulada', 'border-red-200 bg-red-50 text-red-700', 'bg-red-500'],
         'rechazado' => ['Rechazado', 'border-red-200 bg-red-50 text-red-700', 'bg-red-500'],
         'cancelado' => ['Cancelado', 'border-red-200 bg-red-50 text-red-700', 'bg-red-500'],
+        'abierto' => ['Abierto', 'border-sky-200 bg-sky-50 text-sky-800', 'bg-sky-500'],
+        'respondido' => ['Respondido', 'border-emerald-200 bg-emerald-50 text-emerald-800', 'bg-emerald-500'],
+        'concluido_por_acuerdo' => ['Concluido por acuerdo', 'border-teal-200 bg-teal-50 text-teal-800', 'bg-[#19A7A1]'],
         default => [ucfirst((string) $estado), 'border-[#E2E8F0] bg-[#F4F7FB] text-[#64748B]', 'bg-[#64748B]'],
     };
 @endphp

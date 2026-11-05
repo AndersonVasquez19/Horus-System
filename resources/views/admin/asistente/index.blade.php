@@ -8,7 +8,7 @@
         <section>
             <p class="admin-eyebrow">Atención al usuario</p>
             <h1 class="admin-page-title">Asistente Virtual</h1>
-            <p class="admin-page-subtitle">Prueba las respuestas por reglas y revisa las consultas recientes.</p>
+            <p class="admin-page-subtitle">Prueba Horus AI Python y revisa las consultas recientes. Si está deshabilitado o no disponible, se utiliza la contingencia institucional.</p>
         </section>
 
         <section class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
@@ -29,14 +29,15 @@
 
             <div class="admin-card-flush">
                 <div class="border-b border-[#E2E8F0] px-5 py-4">
-                    <h2 class="font-bold text-[#172B3A]">Intenciones configuradas</h2>
-                    <p class="mt-0.5 text-xs text-[#64748B]">Respuestas automáticas ordenadas por prioridad.</p>
+                    <h2 class="font-bold text-[#172B3A]">Registro histórico de intenciones</h2>
+                    <p class="mt-0.5 text-xs text-[#64748B]">Estas reglas PHP se conservan para consulta histórica y no generan respuestas públicas.</p>
                 </div>
                 <div class="admin-table-wrap">
                     <table class="admin-table min-w-[400px]">
                         <thead>
                             <tr>
                                 <th scope="col">Intención</th>
+                                <th scope="col">Fuente</th>
                                 <th scope="col">Prioridad</th>
                                 <th scope="col">Activa</th>
                             </tr>
@@ -113,6 +114,7 @@
                                             <span class="text-xs text-[#64748B]">Sin coincidencia</span>
                                         @endif
                                     </td>
+                                    <td>{{ ['advisor' => 'Horus AI Python', 'respaldo' => 'Contingencia institucional'][$log->fuente] ?? 'No registrada' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

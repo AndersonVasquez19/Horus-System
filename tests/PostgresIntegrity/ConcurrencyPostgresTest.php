@@ -94,7 +94,7 @@ class ConcurrencyPostgresTest extends TestCase
         $this->assertSame(4, $curso->fresh()->cupos_disponibles);
     }
 
-    public function test_two_concurrent_demotions_cannot_remove_every_admin(): void
+    public function test_coordinator_cannot_demote_the_remaining_admin_after_a_concurrent_change(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $uno = $this->staffWithRole('admin');
@@ -118,12 +118,14 @@ class ConcurrencyPostgresTest extends TestCase
 
         $b->commit();
 
-        // Con $uno ya degradado, $dos es el último administrador y no puede perder el rol.
+        // Política 1af8843: un coordinador no puede modificar administradores, ni siquiera con
+        // permisos directos. La autorización se reevalúa bajo el bloqueo con el estado confirmado.
         $this->withExceptionHandling()
             ->actingAs($gestor)
             ->put(route('admin.usuarios.update', $dos), ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
-            ->assertSessionHasErrors('roles');
+            ->assertForbidden();
 
+        $this->assertFalse($uno->fresh()->hasRole('admin'));
         $this->assertTrue($dos->fresh()->hasRole('admin'));
         $this->assertSame(1, User::role('admin')->count());
     }

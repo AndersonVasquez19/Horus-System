@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\ProcesoController;
+use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
@@ -24,16 +25,19 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
 use App\Http\Controllers\CursosPublicosController;
+use App\Http\Controllers\LibroReclamacionesController;
+use App\Http\Controllers\PaginaTecnologicaController;
 use App\Http\Controllers\ServiciosPublicosController;
 use App\Http\Controllers\SolicitudCotizacionPublicaController;
 use App\Http\Middleware\RecepcionCotizacionesHabilitada;
+use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home')->name('home');
 Route::view('/quienes-somos', 'pages.quienes-somos')->name('quienes-somos');
-Route::view('/tecnologias/cableado-estructurado', 'pages.tecnologias.cableado-estructurado')->name('tecnologias.cableado');
-Route::view('/tecnologias/camaras-seguridad', 'pages.tecnologias.camaras-seguridad')->name('tecnologias.camaras');
+Route::get('/tecnologias/cableado-estructurado', [PaginaTecnologicaController::class, 'cableado'])->name('tecnologias.cableado');
+Route::get('/tecnologias/camaras-seguridad', [PaginaTecnologicaController::class, 'camaras'])->name('tecnologias.camaras');
 Route::get('/tecnologias/soporte-mantenimiento', ServiciosPublicosController::class)->name('tecnologias.soporte');
 Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
@@ -44,7 +48,11 @@ Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name
 Route::view('/politicas-privacidad', 'pages.legales.politicas-privacidad')->name('legales.privacidad');
 Route::view('/politicas-cookies', 'pages.legales.politicas-cookies')->name('legales.cookies');
 Route::view('/preguntas-frecuentes', 'pages.legales.preguntas-frecuentes')->name('legales.faq');
-Route::view('/libro-reclamaciones', 'pages.legales.libro-reclamaciones')->name('legales.reclamaciones');
+Route::get('/libro-reclamaciones', [LibroReclamacionesController::class, 'show'])->name('legales.reclamaciones');
+// Alta pública: la compuerta va antes del límite para que, apagado, responda 404 sin consumir cupo ni leer el cuerpo.
+Route::post('/libro-reclamaciones', [LibroReclamacionesController::class, 'store'])
+    ->middleware([RecepcionReclamacionesHabilitada::class, 'throttle:reclamaciones'])
+    ->name('legales.reclamaciones.store');
 
 Route::middleware(RecepcionCotizacionesHabilitada::class)->group(function () {
     Route::get('/solicitar-cotizacion', [SolicitudCotizacionPublicaController::class, 'show'])->name('cotizacion-publica.show');
@@ -92,6 +100,15 @@ Route::prefix('admin')
         Route::post('cotizaciones/{cotizacion:identificador}/seguimientos', [CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento')->whereUuid('cotizacion');
         Route::get('cotizaciones/{cotizacion:identificador}/historial', [CotizacionController::class, 'historial'])->name('cotizaciones.historial')->whereUuid('cotizacion');
 
+        // Libro de Reclamaciones: consulta administrativa e impresión, solo lectura (Sprint 20, E3).
+        Route::get('reclamaciones', [ReclamacionController::class, 'index'])->name('reclamaciones.index');
+        Route::get('reclamaciones/{reclamacion:identificador}', [ReclamacionController::class, 'show'])
+            ->name('reclamaciones.show')
+            ->whereUuid('reclamacion');
+        Route::get('reclamaciones/{reclamacion:identificador}/hoja', [ReclamacionController::class, 'hoja'])
+            ->name('reclamaciones.hoja')
+            ->whereUuid('reclamacion');
+
         Route::resource('servicios', ServicioTecnologicoController::class)->only(['index', 'store', 'show'])->parameters(['servicios' => 'servicio']);
         Route::put('servicios/{servicio}', [ServicioTecnologicoController::class, 'update'])->name('servicios.update');
         Route::patch('servicios/{servicio}/estado', [ServicioTecnologicoController::class, 'estado'])->name('servicios.estado');
@@ -99,6 +116,11 @@ Route::prefix('admin')
         Route::put('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'preparar'])->name('servicios.publicacion.preparar');
         Route::post('servicios/{servicio}/publicacion/autorizar', [ServicioTecnologicoController::class, 'autorizar'])->name('servicios.publicacion.autorizar');
         Route::delete('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'retirar'])->name('servicios.publicacion.retirar');
+        // Contenido de la ficha: imagen principal y tarjetas (multipart, mismo If-Match; permiso servicios.editar).
+        Route::post('servicios/{servicio}/publicacion/imagen', [ServicioTecnologicoController::class, 'imagenPrincipal'])->name('servicios.publicacion.imagen');
+        Route::post('servicios/{servicio}/elementos', [ServicioTecnologicoController::class, 'elementoStore'])->name('servicios.elementos.store');
+        Route::post('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoUpdate'])->whereNumber('elemento')->name('servicios.elementos.update');
+        Route::delete('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoDestroy'])->whereNumber('elemento')->name('servicios.elementos.destroy');
         Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
         Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
         Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');
