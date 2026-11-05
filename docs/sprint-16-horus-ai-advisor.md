@@ -1,5 +1,7 @@
 # Sprint 16 — preparación backend de Horus AI Advisor
 
+> Documento histórico. La corrección Fase 4C sustituye la selección conservadora y el fallback PHP descritos aquí: `HORUS_ADVISOR_ENABLED` se lee en `config/horus-advisor.php` y vale `false` por defecto. Al cambiarlo, debe regenerarse la configuración cacheada mediante el procedimiento operativo autorizado; el servicio consume `config()`, nunca `env()` en ejecución. Variables de servidor: `HORUS_ADVISOR_URL` (loopback, puerto 8001), `HORUS_ADVISOR_TOKEN` (secreto de al menos 32 caracteres) y `HORUS_ADVISOR_SIGNING_KEY` (independiente, para validación en seco; no activa sincronización). A-07 actualiza solo `.env.example` con variables Advisor apagadas y secretos vacíos; no modifica `.env` real. El endpoint real es `POST /api/v1/chat` y el modelo local es `paraphrase-multilingual-MiniLM-L12-v2`. Con Advisor apagado o inválido, solo hay contingencia institucional; no FAQ PHP ni OpenAI. El probador administrativo usa ese mismo flujo, con deduplicación aislada del público. Las intenciones históricas no gobiernan Python. No se guarda contexto conversacional. H-11 y H-12 del informe son informativos: la deduplicación identifica ahora texto exacto por HMAC; se conservan los presupuestos existentes (2,5 s Laravel y 5 s Python) sin afirmar cancelación del trabajo Python al abandonar Laravel.
+
 Fecha de verificación local: 28 de octubre de 2026. Integración desactivada. No se publicaron fichas reales, no se inició Python ni se ejecutaron migraciones reales.
 
 ## A. Estado inicial y alcance
@@ -119,7 +121,7 @@ El exportador es un snapshot de vigentes, no un protocolo de sincronización. No
 
 Por ello no se guarda archivo, no se envía automáticamente, no se activa catálogo y la orquestación rechaza todo readiness cuyo catálogo no sea `none`. El soporte de firma/exportación queda listo; **la sincronización activa queda pendiente**.
 
-Antes de habilitar catálogos hacen falta: identidad duradera y no reutilizable, snapshot público anterior, tombstones de retiro, manifiesto de versión/digest, recarga atómica y acuse de versión activa, verificación de caducidad en ejecución e invalidación de respuestas cacheadas. Ante desajuste/retiro o falta de confirmación, Laravel debe bloquear respuestas del catálogo y continuar con PHP. Esto requiere trabajo Python autorizado por separado y probablemente migraciones para el registro de distribución; no se implementó aquí.
+Antes de habilitar catálogos hacen falta: identidad duradera y no reutilizable, snapshot público anterior, tombstones de retiro, manifiesto de versión/digest, recarga atómica y acuse de versión activa, verificación de caducidad en ejecución e invalidación de respuestas cacheadas. Ante desajuste/retiro o falta de confirmación, Laravel debe bloquear respuestas del catálogo y proporcionar contingencia institucional. Esto requiere trabajo Python autorizado por separado y probablemente migraciones para el registro de distribución; no se implementó aquí.
 
 ## E. Diagnóstico administrativo comprobado
 
@@ -155,3 +157,72 @@ La existencia de una migración en disco y su ejecución en SQLite no confirma s
 - Revisión final: sin cambios en `resources/`, `public/` ni rutas; índice vacío; se conservan los cambios preexistentes y `chatbot-python/` sin seguimiento. El inventario propio consta de ocho archivos, siete PHP y este documento.
 
 Esta evidencia no demuestra concurrencia/bloqueos de PostgreSQL, comunicación real con FastAPI, comportamiento semántico, entrega de correo, OpenAI ni despliegue. No se ejecutaron los smokes, frontend build o pruebas JavaScript porque no se modificó frontend. Los resultados sintéticos reportados por Claude no se convirtieron en garantías de producción.
+
+## Corrección A-01 a A-07 (03/11/2026)
+
+El filtro de entrada y la barrera de salida tienen políticas distintas. La salida admite entidades institucionales exactas verificadas, conserva detección de datos privados y rechaza solicitudes de datos dentro del chat. Las fechas de convenios solo se admiten si el texto completo y la fuente coinciden con un registro local verificado de `chatbot-python/data/knowledge.json`; un id suministrado por Python no basta. No hay evidencia autorizada para precios o fechas comerciales. Las reglas contextuales no garantizan comprender toda formulación posible en lenguaje natural.
+
+`chatbot.contingencia` registra categorías cerradas sin mensajes ni excepciones. La columna `fuente` conserva sus valores y compatibilidad con instalaciones sin 000034; no se requiere otra migración. Sin esa columna se reintenta solo la inserción de auditoría dentro de una transacción, sin consulta al catálogo ni caché que sobreviva a una migración. Las métricas categóricas requieren conservar los logs operativos del servidor.
+
+Se retiraron `INTENTS_PERMITIDOS`, `consultar()`, `ChatCursosPublicos` y la configuración OpenAI sin consumidores de producción. `buscarIntent`, `ChatKnowledge`, `ChatIntentMatcher`, `ChatIntent`, seeders y migraciones históricas se conservan por sus consumidores administrativos o de diagnóstico. No participan en las respuestas públicas. El resto de este documento describe evidencia histórica, no instrucciones de activación ni contratos vigentes.
+
+Regresiones: `tests/Feature/HorusObservacionesTest.php`, fixture original de 32 respuestas de Claude, `HorusAiTransicionTest`; integración temporal reproducible con `tests/Support/run-horus-observaciones.py` y el smoke Edge existente `tests/Support/run-horus-ai-smoke.py`. Ambos exigen aislamiento, loopback y cierre de sus procesos. La integración no demuestra PostgreSQL ni publicación.
+
+## Corrección R-01 a R-05 de la auditoría independiente (03/11/2026)
+
+Origen: `docs/auditoria-independiente-a01-a07.md`. Sustituye la lista exacta de entidades y la excepción de fechas de convenios del apartado anterior.
+
+- **Procedencia (R-01).** Si `answer` coincide byte a byte con un registro `verified` de `chatbot-python/data/knowledge.json` y Python lo cita con el mismo `id` y `url_path`, el texto se trata como contenido institucional local: solo se exige ausencia de HTML y de enlaces ajenos a los canales oficiales. Cualquier alteración, una fuente distinta o un registro no verificado devuelven el texto a la validación completa. Para texto compuesto, las entidades capitalizadas se derivan de los registros verificados en lugar de mantenerse a mano. El conocimiento se carga una vez por proceso y se invalida por fecha y tamaño del archivo.
+- **Evidencia (R-02).** En texto no verificado, toda cifra (salvo marcadores de lista), numeral escrito o referencia de calendario debe constar en los registros citados como fuente. Cualquier símbolo o nombre de moneda se rechaza siempre, igual que afirmar disponibilidad de cupos o vacantes (negarla es una abstención válida). Las peticiones de datos se detectan con un léxico normalizado de verbos e interrogativas, sin exigir posesivo, con excepción para advertencias («no compartas…») y derivación a personal humano fuera del chat.
+- **Entrada (R-03).** La heurística de mayúsculas ignora palabras de inicio de frase, productos, lugares de Cajamarca e instituciones (`PALABRAS_NO_PERSONALES`). Nombrar un documento sin aportarlo («¿Necesito DNI?») ya no bloquea; aportarlo sí (dígitos, posesivo o atribución). La barrera de seguridad bloquea patrones de ataque («ignora…», «system prompt», «tus instrucciones», «instrucciones internas») en lugar de las palabras sueltas `instrucciones`, `prompt`, `system` y `dni`.
+- **Evidencia de integración (R-04).** `horus-observaciones-bridge.php` comprueba explícitamente las consultas prohibidas y recorre las consultas reales de `tests/Fixtures/horus-auditoria-r01.json`.
+- **R-05.** La privacidad se evalúa una sola vez por mensaje. Sin la migración 000034, cada inserción sigue generando un intento fallido en el log de PostgreSQL hasta aplicarla; es inherente a no consultar el esquema.
+
+Regresión: `tests/Feature/HorusCorreccionR01R05Test.php`, con los 34 registros verificados, 198 respuestas reales de Python en modo léxico e híbrido (todas las preguntas de ejemplo del conocimiento y los casos R-01), 31 variantes prohibidas en `answer` y `clarification_question`, y entradas legítimas y privadas. Esta evidencia usa `Http::fake` y respuestas reales capturadas del motor en proceso; no demuestra PostgreSQL, concurrencia ni despliegue.
+
+## Corrección de privacidad: nombres completos en minúsculas (03/11/2026)
+
+**Causa raíz.** `FiltroPrivacidadChat` reconocía nombres por tres vías: frases explícitas («me llamo», «mi nombre es»), listas de nombres y apellidos frecuentes, y secuencias con mayúscula inicial. Un nombre en minúsculas con palabras fuera de esas listas («soy anderson vela», «brayan cuzco tello necesita soporte») no activaba ninguna, y llegaba a Python.
+
+**Corrección.** Nuevo `detectaNombreContextual`, aplicado solo a la entrada del visitante (la barrera de salida no cambia). Bloquea dos o más palabras seguidas fuera del vocabulario común e institucional (o presentes en las listas de nombres) cuando aparecen tras:
+
+- una presentación (`soy`, `soi`, `me presento`, `les saluda`, `le escribe`, `habla`);
+- una matrícula, inscripción o registro (`matric…`, `inscri…`, `registr…`, `anot…`), admitiendo relleno como «a la señorita» o «a mi hijo»;
+- una relación con una persona (`mi hijo`, `el alumno`, `mi sobrina`…);
+- una atención solicitada para alguien (`soporte para`, `atención a nombre de`…);
+- o al inicio del mensaje, seguidas de un verbo de sujeto (`necesita`, `quiere`, `desea`…).
+
+El texto se normaliza (NFKD, sin marcas combinantes, espacios Unicode como separadores), de modo que tildes, formas descompuestas y espacios variables no evaden la regla. Una sola palabra desconocida no bloquea. Además, se retiraron falsos positivos previos de la heurística de mayúsculas: «Wi-Fi», «Facebook», «Yape», «Libro de Reclamaciones», «Colegio de Economistas», «Colegio de Licenciados» y los títulos de convenios de ciencias administrativas y económicas.
+
+**Regresión.** `tests/Unit/FiltroPrivacidadNombresMinusculasTest.php` cubre los cuatro fallos originales, los cinco casos ya bloqueados, variantes con errores, Unicode y nombres compuestos, consultas legítimas y todos los títulos y ejemplos de `knowledge.json`. `tests/Feature/HorusPrivacidadNombresTest.php` comprueba que las entradas bloqueadas no producen HTTP, devuelven la respuesta de privacidad y no dejan el dato en `ChatLog` ni en los logs, y que las consultas legítimas llegan a Python con `history: []` y sin `session_id`.
+
+**Límite.** La detección es léxica y contextual. Un nombre sin ningún contexto («anderson vela» solo) no se detecta, y frases legítimas con dos palabras poco comunes tras un ancla («soy mecánico automotriz») se bloquean de forma preventiva con la respuesta de privacidad.
+
+## Corrección de privacidad H-1 a H-7 (03/11/2026) — intervención parcial
+
+**Causa raíz.** La detección contextual descartaba cualquier palabra terminada en `-ado`, `-ida`, `-ista`, `-ando` o `-ción`, de modo que apellidos y nombres frecuentes (Hurtado, Maldonado, Bautista, Orlando, Concepción) cortaban la secuencia (H-1). Solo reconocía relleno gramatical tras «soy», no títulos («soy el ingeniero …»), ni variantes («zoy», «soyy») o apodos («me dicen …») (H-2). La puntuación no delimitaba secuencias y los oficios desconocidos se tomaban por nombres (H-3). El posesivo «su» en una pregunta sobre el RUC de la empresa se trataba como un documento personal (H-4).
+
+**Cambios en `FiltroPrivacidadChat`.**
+
+- La primera palabra de la secuencia (nombre de pila) se descarta si tiene forma de oficio, adjetivo o participio (`-ero`, `-ista`, `-ico`, `-logo`, `-or`, `-ante`, `-ente`, `-ario`, `-ado`, `-ido`…), salvo nombres con esa terminación (`NOMBRES_MORFOLOGIA_AMBIGUA`: Víctor, Mónica, Vicente, Rosario, Concepción…).
+- Las palabras siguientes (apellidos) admiten `-ado`, `-ida`, `-ista` y `-ando`; solo se descartan adjetivos claros (`-ico`, `-ivo`, `-dor` de seis o más letras) y verbos terminados en «ó».
+- Tras un ancla se saltan relleno, tratamientos, títulos (`TITULOS`) y oficios, para encontrar el nombre que sigue («soy el mecánico walter sangay»); un oficio solo no bloquea.
+- Se reconocen `[sz]o+(y+|i+)` y «me dicen / conocen / llaman / apodan» (con estos, basta una palabra). La puntuación delimita secuencias.
+- En `detectaDocumento`, una pregunta sin cifras con «su/sus» se considera dirigida a la empresa. Con cifras, con posesivo propio («mi») o atribuida a una persona, sigue bloqueándose.
+- «registrar / marcar mi asistencia» deja de ser una referencia ambigua a un expediente; «ver mi asistencia» sigue bloqueado.
+
+**Evaluación.** Muestra nueva de 318 mensajes etiquetados antes de modificar el detector: 159 de desarrollo y 159 de reserva, con plantillas y nombres disjuntos, sellada con SHA-256. La reserva se evaluó una sola vez al final, sin ajustes posteriores.
+
+| Conjunto | Cobertura con contexto | Especificidad |
+|---|---|---|
+| Reserva, antes | 62,9 % | 79,6 % |
+| Reserva, después | **98,4 %** (61/62) | **93,5 %** (87/93) |
+
+El objetivo de especificidad (≥95 %) **no se cumple** en la reserva. Siguen pendientes:
+
+- **Falsos positivos:** «soy chef pastelero», «soy fotógrafo freelance», «soy policía retirado», «¿tienen RUC 20?», «batería interna necesita cambio» y «antena sectorial necesita alineación».
+- **Falso negativo:** «visita técnica para teodoro idrogo».
+
+Regresión en `tests/Unit/FiltroPrivacidadH1H7Test.php`.
+
+**Límite H-7 (inherente).** Un nombre sin ningún contexto que lo introduzca («yessenia alcalde chingay», «para dilmer aquino») no se detecta con reglas léxicas: 0 de 4 en la reserva. No se promete detección perfecta de nombres aislados. Cuando se detecta, el mensaje se bloquea completo; nunca se redacta parcialmente ni se envía un fragmento.

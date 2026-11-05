@@ -11,5 +11,6 @@ class ChatLog extends Model
         'mensaje_usuario',
         'respuesta_bot',
         'intent_detectado',
+        'fuente',
     ];
 }

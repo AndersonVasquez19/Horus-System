@@ -1,0 +1,1220 @@
+[
+    {
+        "q":  "Hola",
+        "r":  {
+                  "answer":  "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre servicios tecnológicos, cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+                  "intent":  "greeting",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  null
+              }
+    },
+    {
+        "q":  "¿Qué cursos tienen?",
+        "r":  {
+                  "answer":  "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 927 582 305 o en horusgroupcajamarca@gmail.com.",
+                  "intent":  "unavailable_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  true,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "catálogo de cursos vigentes"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "cursos"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Quiero una cotización",
+        "r":  {
+                  "answer":  "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+                  "intent":  "quote_request",
+                  "match_level":  "baja",
+                  "needs_clarification":  true,
+                  "clarification_question":  "¿Para qué servicio o capacitación necesitas la cotización? Por ejemplo: cámaras de seguridad, cableado o red, mantenimiento de equipos, capacitación para tu personal o asesoría.",
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "servicio o capacitación a cotizar"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Quiero una cotización de cámaras de seguridad",
+        "r":  {
+                  "answer":  "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas.\nPara solicitar una cotización de «Cámaras de seguridad y videovigilancia» (/tecnologias/camaras-seguridad), te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.\nSugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group): tipo de espacio (hogar, tienda, oficina, institución); cantidad aproximada de zonas a vigilar; si es interior, exterior o ambos; dirección o zona en Cajamarca.",
+                  "intent":  "quote_request",
+                  "match_level":  "media",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "precio: lo cotiza un asesor",
+                                       "tipo de espacio (hogar, tienda, oficina, institución)",
+                                       "cantidad aproximada de zonas a vigilar",
+                                       "si es interior, exterior o ambos",
+                                       "dirección o zona en Cajamarca"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_camaras",
+                                      "title":  "Cámaras de seguridad y videovigilancia",
+                                      "url_path":  "/tecnologias/camaras-seguridad"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "camaras"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cómo me matriculo?",
+        "r":  {
+                  "answer":  "Un asesor de Horus Group te atenderá por WhatsApp para coordinar tu matrícula. Por ese medio podrás indicar el curso de tu interés, proporcionar tus datos de inscripción y enviar tu comprobante de pago de forma segura. Consulta tu matrícula por WhatsApp: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula.",
+                  "intent":  "unavailable_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  true,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "requisitos y proceso de matrícula"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cuál es el horario de atención?",
+        "r":  {
+                  "answer":  "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+                  "intent":  "contact_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "horario_atencion",
+                                      "title":  "Horario de atención (fuentes discrepantes)",
+                                      "url_path":  "/contactos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Tienen capacitaciones para empresas?",
+        "r":  {
+                  "answer":  "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+                  "intent":  "training_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "capacitaciones_empresariales",
+                                      "title":  "Capacitaciones empresariales",
+                                      "url_path":  "/educacion/capacitaciones"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "capacitacion"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Qué modalidades tienen?",
+        "r":  {
+                  "answer":  "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+                  "intent":  "training_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "cursos_modalidades",
+                                      "title":  "Modalidades de los cursos",
+                                      "url_path":  "/educacion/cursos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Hacen cableado estructurado?",
+        "r":  {
+                  "answer":  "Horus Group diseña e implementa sistemas de cableado estructurado (UTP/STP) y redes LAN bajo normas técnicas, para lograr una interconexión eficiente y de alta velocidad entre las áreas de una empresa. Detalle en /tecnologias/cableado-estructurado.",
+                  "intent":  "service_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_cableado",
+                                      "title":  "Cableado estructurado y redes LAN",
+                                      "url_path":  "/tecnologias/cableado-estructurado"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "cableado"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Ofrecen soporte y mantenimiento?",
+        "r":  {
+                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "intent":  "service_info",
+                  "match_level":  "media",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_soporte",
+                                      "title":  "Soporte y mantenimiento de equipos",
+                                      "url_path":  "/tecnologias/soporte-mantenimiento"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "mantenimiento"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cuánto cuesta el curso?",
+        "r":  {
+                  "answer":  "La web no publica precios de cursos, capacitaciones ni servicios, así que no puedo darte un monto. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+                  "intent":  "unavailable_info",
+                  "match_level":  "media",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  true,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "precios y tarifas"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "cursos"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cuándo inicia el próximo curso?",
+        "r":  {
+                  "answer":  "La web no publica un calendario vigente con fechas de inicio, horarios de clase ni duración de los cursos. Para confirmarlo, indica el curso que te interesa y consulta al +51 927 582 305.",
+                  "intent":  "unavailable_info",
+                  "match_level":  "media",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  true,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "fechas de inicio y horarios de cursos"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "cursos"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Dan certificado?",
+        "r":  {
+                  "answer":  "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 927 582 305. Fuente: /educacion/cursos.",
+                  "intent":  "training_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "cursos_certificados",
+                                      "title":  "Cursos con certificados físicos y digitales",
+                                      "url_path":  "/educacion/cursos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "certificacion"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Dónde están ubicados?",
+        "r":  {
+                  "answer":  "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+                  "intent":  "contact_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "ubicacion_sede",
+                                      "title":  "Ubicación de la sede",
+                                      "url_path":  "/contactos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Gracias",
+        "r":  {
+                  "answer":  "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+                  "intent":  "thanks",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  null
+              }
+    },
+    {
+        "q":  "¿Qué puedes hacer?",
+        "r":  {
+                  "answer":  "Soy un asistente informativo automático (no una persona). Respondo con información publicada por Horus Group SRL: servicios tecnológicos, modalidades de cursos, capacitaciones, asesoramiento, convenios, preguntas frecuentes y contacto. También puedo recomendarte opciones según lo que buscas. No invento precios, fechas, cupos ni requisitos: para eso te derivo a un asesor.",
+                  "intent":  "capabilities",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  null
+              }
+    },
+    {
+        "q":  "Recomiéndame un curso",
+        "r":  {
+                  "answer":  "Puedo ayudarte a encontrar una formación adecuada.",
+                  "intent":  "course_recommendation",
+                  "match_level":  "ninguna",
+                  "needs_clarification":  true,
+                  "clarification_question":  "¿Tienes alguna experiencia o estás comenzando? ¿Qué área te interesa? En la información publicada hay formación en enfermería, administración y economía (por convenios), uso de programas informáticos, capacitaciones personalizadas, certificaciones profesionales y asesoría de tesis.",
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "tema o necesidad concreta"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "cursos"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Tienen convenios?",
+        "r":  {
+                  "answer":  "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+                  "intent":  "agreement_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "convenios_resumen",
+                                      "title":  "Convenios institucionales",
+                                      "url_path":  "/#convenios"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Quiero revisar mi cotización",
+        "r":  {
+                  "answer":  "No tengo acceso a cotizaciones emitidas ni a datos de clientes, así que no puedo consultarlas. Para revisar una cotización que ya recibiste, comunícate con el asesor que te atendió por WhatsApp: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+                  "intent":  "quote_request",
+                  "match_level":  "ninguna",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  true,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "las cotizaciones emitidas solo las consulta un asesor autorizado"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cómo puedo contactarlos?",
+        "r":  {
+                  "answer":  "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+                  "intent":  "contact_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "contacto_canales",
+                                      "title":  "Canales de contacto",
+                                      "url_path":  "/contactos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Tienen libro de reclamaciones?",
+        "r":  {
+                  "answer":  "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /libro-reclamaciones.",
+                  "intent":  "policy",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "libro_reclamaciones",
+                                      "title":  "Libro de Reclamaciones",
+                                      "url_path":  "/libro-reclamaciones"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cuál es su política de devolución?",
+        "r":  {
+                  "answer":  "Según /politicas-devolucion, en talleres, cursos, capacitaciones y diplomados la devolución del monto pagado procede solo en los casos que lo ameriten, por ejemplo casos fortuitos o de fuerza mayor, actividades con características distintas a las ofrecidas o incumplimiento en los días de capacitación. Las solicitudes se atienden por correo en horusgroupcajamarca@gmail.com. Revisa la política completa para tu caso.",
+                  "intent":  "policy",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "politica_devoluciones",
+                                      "title":  "Política de devoluciones (educación)",
+                                      "url_path":  "/politicas-devolucion"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Necesito asesoramiento",
+        "r":  {
+                  "answer":  "Puedo orientarte hacia el servicio adecuado de Horus Group.",
+                  "intent":  "service_recommendation",
+                  "match_level":  "ninguna",
+                  "needs_clarification":  true,
+                  "clarification_question":  "¿Qué necesitas resolver? Por ejemplo: cámaras de seguridad, cableado o red de la oficina, mantenimiento de computadoras, capacitación para tu personal o asesoramiento empresarial.",
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "tema o necesidad concreta"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Qué es Horus Group?",
+        "r":  {
+                  "answer":  "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+                  "intent":  "company_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "empresa_descripcion",
+                                      "title":  "Qué es Horus Group SRL",
+                                      "url_path":  "/quienes-somos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Cuál es su misión y visión?",
+        "r":  {
+                  "answer":  "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+                  "intent":  "company_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "empresa_mision_vision",
+                                      "title":  "Misión y visión",
+                                      "url_path":  "/quienes-somos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Tienen convenio con ISAM?",
+        "r":  {
+                  "answer":  "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 927 582 305.",
+                  "intent":  "unverified_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  true,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+                                       "convenio con el instituto isam"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Tienen convenio con el Colegio de Enfermeros?",
+        "r":  {
+                  "answer":  "Por convenio con el Colegio de Enfermeros de Cajamarca - CR XIII (vigente hasta el 18 de julio de 2027) y con el Colegio de Enfermeros del Perú - CR II La Libertad (vigente hasta el 4 de junio de 2029), Horus Group realiza talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Según la web, los certificados del convenio de Cajamarca llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+                  "intent":  "agreement_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "convenio_enfermeria",
+                                      "title":  "Formación en Enfermería por convenio",
+                                      "url_path":  "/#convenios"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Mantenimiento de computadoras",
+        "r":  {
+                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "intent":  "service_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_soporte",
+                                      "title":  "Soporte y mantenimiento de equipos",
+                                      "url_path":  "/tecnologias/soporte-mantenimiento"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "computadoras",
+                                                 "mantenimiento"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Arreglan mi PC?",
+        "r":  {
+                  "answer":  "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+                  "intent":  "service_recommendation",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+                                          {
+                                              "id":  "servicio_soporte",
+                                              "title":  "Soporte y mantenimiento de equipos",
+                                              "kind":  "service",
+                                              "reason":  "Coincide con tu interés en computadoras y equipos, mantenimiento.",
+                                              "evidence":  [
+                                                               "servicio_soporte"
+                                                           ],
+                                              "match_level":  "alta",
+                                              "url_path":  "/tecnologias/soporte-mantenimiento",
+                                              "evidence_text":  null,
+                                              "signals":  [
+                                                              "tema: computadoras, mantenimiento"
+                                                          ],
+                                              "limitations":  [
+                                                                  "precio sujeto a cotización con un asesor"
+                                                              ],
+                                              "needs_clarification":  false,
+                                              "clarification_question":  null,
+                                              "next_step":  "Para cotizar, escribe a un asesor e indica: cantidad y tipo de equipos; síntomas o falla observada; si buscas mantenimiento preventivo o correctivo."
+                                          },
+                                          {
+                                              "id":  "servicio_capacitacion_tecnologica",
+                                              "title":  "Asesoría y capacitación tecnológica para equipos",
+                                              "kind":  "service",
+                                              "reason":  "Coincide con tu interés en computadoras y equipos; no cubre mantenimiento.",
+                                              "evidence":  [
+                                                               "servicio_capacitacion_tecnologica"
+                                                           ],
+                                              "match_level":  "baja",
+                                              "url_path":  "/tecnologias/soporte-mantenimiento",
+                                              "evidence_text":  null,
+                                              "signals":  [
+                                                              "tema: computadoras"
+                                                          ],
+                                              "limitations":  [
+                                                                  "no cubre mantenimiento",
+                                                                  "precio sujeto a cotización con un asesor"
+                                                              ],
+                                              "needs_clarification":  false,
+                                              "clarification_question":  null,
+                                              "next_step":  "Para cotizar, escribe a un asesor e indica: programas o sistemas involucrados; cantidad de equipos o personas."
+                                          }
+                                      ],
+                  "missing_data":  [
+                                       "no cubre mantenimiento"
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_soporte",
+                                      "title":  "Soporte y mantenimiento de equipos",
+                                      "url_path":  "/tecnologias/soporte-mantenimiento"
+                                  },
+                                  {
+                                      "id":  "servicio_capacitacion_tecnologica",
+                                      "title":  "Asesoría y capacitación tecnológica para equipos",
+                                      "url_path":  "/tecnologias/soporte-mantenimiento"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "computadoras",
+                                                 "mantenimiento"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Configuran la red wifi?",
+        "r":  {
+                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "intent":  "service_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_soporte",
+                                      "title":  "Soporte y mantenimiento de equipos",
+                                      "url_path":  "/tecnologias/soporte-mantenimiento"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "redes",
+                                                 "wifi"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "¿Quiénes son?",
+        "r":  {
+                  "answer":  "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+                  "intent":  "company_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "empresa_descripcion",
+                                      "title":  "Qué es Horus Group SRL",
+                                      "url_path":  "/quienes-somos"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    },
+    {
+        "q":  "Soporte técnico",
+        "r":  {
+                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "intent":  "service_info",
+                  "match_level":  "alta",
+                  "needs_clarification":  false,
+                  "clarification_question":  null,
+                  "abstained":  false,
+                  "recommendations":  [
+
+                                      ],
+                  "missing_data":  [
+
+                                   ],
+                  "general_guidance":  null,
+                  "sources":  [
+                                  {
+                                      "id":  "servicio_soporte",
+                                      "title":  "Soporte y mantenimiento de equipos",
+                                      "url_path":  "/tecnologias/soporte-mantenimiento"
+                                  }
+                              ],
+                  "mode":  "lexical",
+                  "context":  {
+                                  "turns_considered":  0,
+                                  "topics":  [
+                                                 "tecnologia"
+                                             ],
+                                  "level":  null,
+                                  "modality":  null,
+                                  "focus_ids":  [
+
+                                                ],
+                                  "topic_changed":  false,
+                                  "referential":  false
+                              }
+              }
+    }
+]

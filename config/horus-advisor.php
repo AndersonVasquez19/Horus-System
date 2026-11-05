@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'enabled' => false,
+    'enabled' => (bool) env('HORUS_ADVISOR_ENABLED', false),
     'url' => env('HORUS_ADVISOR_URL', 'http://127.0.0.1:8001'),
     'token' => env('HORUS_ADVISOR_TOKEN'),
     'signing_key' => env('HORUS_ADVISOR_SIGNING_KEY'),

@@ -63,14 +63,41 @@
 >
     <div x-ref="messages" @scroll.passive="trackScroll" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Horus" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
         <template x-for="(message, index) in messages" :key="index">
-            <article class="hc-message" :class="message.role === 'user' ? 'hc-user' : 'hc-assistant'">
+            <article class="hc-message" :class="[message.role === 'user' ? 'hc-user' : 'hc-assistant', (message.cards || []).length ? 'hc-message-with-cards' : '']">
                 <strong>
                     <x-public.robot-mascot x-show="message.role === 'bot'" :portrait="true" class="hc-message-avatar" />
                     <span x-text="message.role === 'user' ? 'Tú' : 'Horus'"></span>
                 </strong>
                 <p x-text="message.text"></p>
+                <div class="hc-cards" x-show="(message.cards || []).length" aria-label="Contenidos publicados relacionados">
+                    <template x-for="card in (message.cards || [])" :key="card.id">
+                        <section class="hc-card" :aria-label="card.titulo">
+                            <div class="hc-card-cover" :class="card.tipo === 'servicio' ? 'hc-card-cover-service' : ''">
+                                <img x-show="card.imagen" :src="card.imagen || null" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" x-on:error="card.imagen = null">
+                                <span class="hc-card-placeholder" x-show="!card.imagen" aria-hidden="true"><i :class="card.tipo === 'servicio' ? 'fa-solid fa-laptop-code' : 'fa-solid fa-book-open'"></i></span>
+                                <span class="hc-card-cover-label" x-show="card.imagen">Imagen de referencia</span>
+                            </div>
+                            <div class="hc-card-body">
+                                <span class="hc-card-kind" x-text="card.tipo === 'servicio' ? 'Servicio tecnológico' : 'Curso y capacitación'"></span>
+                                <h3 x-text="card.titulo"></h3>
+                                <p x-text="card.descripcion"></p>
+                                <a x-show="card.url" :href="card.url || null" class="hc-card-action" :aria-label="(card.accion || 'Ver información') + ': ' + card.titulo"><span x-text="card.accion || 'Ver información'"></span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                                <span class="hc-card-source"><i class="fa-solid fa-check" aria-hidden="true"></i>Catálogo público de Horus</span>
+                            </div>
+                        </section>
+                    </template>
+                </div>
                 <template x-for="link in (message.links || [])" :key="link.url">
-                    <a class="hc-action" :href="link.url" x-text="link.label"></a>
+                    <a
+                        class="hc-action"
+                        :class="link.whatsapp ? 'hc-action-whatsapp' : ''"
+                        :href="link.url"
+                        :target="link.whatsapp ? '_blank' : null"
+                        :rel="link.whatsapp ? 'noopener noreferrer' : null"
+                    >
+                        <i x-show="link.whatsapp" class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+                        <span x-text="link.label"></span>
+                    </a>
                 </template>
             </article>
         </template>
@@ -78,16 +105,16 @@
         <div x-show="messages.length === 1 && messages[0].role === 'bot'" class="hc-suggestions" aria-label="Preguntas sugeridas">
             <p>Puedes empezar por aquí</p>
             <div>
-                <button type="button" @click="draft = '¿Qué capacitaciones ofrecen?'; $nextTick(() => $refs.question.focus())">¿Qué capacitaciones ofrecen?</button>
-                <button type="button" @click="draft = '¿Qué servicios tecnológicos brindan?'; $nextTick(() => $refs.question.focus())">¿Qué servicios tecnológicos brindan?</button>
-                <button type="button" @click="draft = '¿Cómo puedo solicitar una cotización?'; $nextTick(() => $refs.question.focus())">¿Cómo puedo solicitar una cotización?</button>
-                <button type="button" @click="draft = '¿Cómo puedo matricularme?'; $nextTick(() => $refs.question.focus())">¿Cómo puedo matricularme?</button>
+                <button type="button" @click="draft = '¿Qué capacitaciones ofrecen?'; $nextTick(() => $refs.question.focus())"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i><span>Explorar capacitaciones</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                <button type="button" @click="draft = '¿Qué servicios tecnológicos brindan?'; $nextTick(() => $refs.question.focus())"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span>Servicios tecnológicos</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                <button type="button" @click="draft = '¿Cómo puedo solicitar una cotización?'; $nextTick(() => $refs.question.focus())"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i><span>Solicitar una cotización</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                <button type="button" @click="draft = '¿Cómo puedo matricularme?'; $nextTick(() => $refs.question.focus())"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span>Consultar matrícula</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
             </div>
         </div>
 
         <div x-show="sending" class="hc-thinking" role="status">
             <span class="hc-thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            Consultando información…
+            <span>Consultando información publicada…</span>
         </div>
     </div>
 
@@ -115,6 +142,7 @@
             </button>
         </form>
         <p class="hc-compose-help" id="hc-question-help">Enter para enviar <span>· Shift + Enter para otra línea</span></p>
+        <p class="hc-privacy-hint"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>No compartas datos personales en el chat.</p>
     </div>
 </div>
 @endif

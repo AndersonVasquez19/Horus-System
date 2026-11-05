@@ -3,12 +3,98 @@ const chatPaths = [
   '/tecnologias/camaras-seguridad', '/tecnologias/cableado-estructurado',
   '/tecnologias/soporte-mantenimiento', '/politicas-devolucion', '/quienes-somos',
 ];
+const ALLOWED_WHATSAPP_LINKS = [
+  {
+    prefix: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+    label: 'Solicitar cotización por WhatsApp',
+  },
+  {
+    prefix: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
+    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
+    label: 'Consultar matrícula por WhatsApp',
+  },
+  {
+    prefix: 'https://wa.me/51927582305',
+    url: 'https://wa.me/51927582305',
+    label: 'Contactar por WhatsApp',
+  },
+];
+
 export function safeChatLinks(text) {
-  return chatPaths.filter((path) => text.includes(path)).map((url) => ({
-    url, label: ({ '/contactos': 'Contactar con Horus', '/educacion/cursos': 'Ver cursos',
-      '/educacion/capacitaciones': 'Ver capacitaciones', '/preguntas-frecuentes': 'Preguntas frecuentes' })[url]
-      || 'Ver información del servicio',
+  if (typeof text !== 'string') {
+    return [];
+  }
+  const links = chatPaths.filter((path) => text.includes(path)).map((url) => ({
+    url,
+    label: ({
+      '/contactos': 'Contactar con Horus',
+      '/educacion/cursos': 'Ver cursos',
+      '/educacion/capacitaciones': 'Ver capacitaciones',
+      '/preguntas-frecuentes': 'Preguntas frecuentes',
+    })[url] || 'Ver información del servicio',
+    whatsapp: false,
   }));
+
+  for (const wa of ALLOWED_WHATSAPP_LINKS) {
+    if (text.includes(wa.prefix)) {
+      links.push({
+        url: wa.url,
+        label: wa.label,
+        whatsapp: true,
+      });
+      break;
+    }
+  }
+
+  return links;
+}
+
+// Presentation only: the server must supply verified public records. Never derive
+// cards from answer text, visitor input or an arbitrary image URL.
+export function safeChatCards(data) {
+  if (data?.fuente !== 'advisor' || !Array.isArray(data.tarjetas)) return [];
+  const covers = [
+    '/assets/images/capacitaciones/capacitaciones-empresariales.jpg',
+    '/assets/images/tecnologias/cableado.jpg',
+    '/assets/images/tecnologias/mantenimiento.png',
+    '/assets/images/tecnologias/software.jpg',
+  ];
+  const seen = new Set();
+  const cards = [];
+  for (const item of data.tarjetas.slice(0, 20)) {
+    if (!item || !['curso', 'servicio'].includes(item.tipo)
+        || typeof item.id !== 'string' || !/^[a-zA-Z0-9:_-]{1,120}$/.test(item.id)
+        || seen.has(item.id)
+        || typeof item.titulo !== 'string' || !item.titulo.trim() || item.titulo.length > 120
+        || typeof item.descripcion !== 'string' || !item.descripcion.trim() || item.descripcion.length > 500
+        || /[<>\u0000-\u001f]/.test(item.titulo + item.descripcion)) continue;
+    let provenance = null;
+    if (item.procedencia !== undefined) {
+      const source = item.procedencia;
+      if (!source || source.id !== item.id || source.sistema !== 'horus-laravel'
+          || typeof source.version !== 'string' || !/^[a-f0-9]{40}$/.test(source.version)
+          || (source.url !== null && !chatPaths.includes(source.url))
+          || typeof source.actualizado !== 'string' || !Number.isFinite(Date.parse(source.actualizado))) continue;
+      provenance = { id: source.id, sistema: source.sistema, version: source.version, url: source.url, actualizado: source.actualizado };
+    }
+    const publishedImage = provenance && typeof item.imagen === 'string' && !item.imagen.includes('..')
+      && (/^\/assets\/images\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|webp)$/.test(item.imagen)
+        || /^\/storage\/servicios\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|png|webp)$/.test(item.imagen));
+    seen.add(item.id);
+    const card = {
+      id: item.id, tipo: item.tipo, titulo: item.titulo, descripcion: item.descripcion,
+      url: chatPaths.includes(item.url) ? item.url : null,
+      imagen: covers.includes(item.imagen) || publishedImage ? item.imagen : null,
+    };
+    if (provenance) {
+      card.procedencia = provenance;
+      card.accion = ['Ver información', 'Ver cursos', 'Consultar servicio'].includes(item.accion) ? item.accion : 'Ver información';
+    }
+    cards.push(card);
+    if (cards.length === 5) break;
+  }
+  return cards;
 }
 
 export function chatClient() {
@@ -82,7 +168,7 @@ export function chatClient() {
           throw new Error('El servidor devolvió una respuesta inválida.');
         }
 
-        this.messages.push({ role: 'bot', text: data.respuesta, links: safeChatLinks(data.respuesta) });
+        this.messages.push({ role: 'bot', text: data.respuesta, links: safeChatLinks(data.respuesta), cards: safeChatCards(data) });
       } catch (error) {
         if (!this.draft.trim()) {
           this.draft = message;

@@ -54,8 +54,8 @@ class ChatbotHybridTest extends TestCase
     public function test_faq_variants_and_typos_never_call_openai(string $question, string $intent): void
     {
         $answer = app(AsistenteVirtualService::class)->procesarMensaje($question, 'faq');
-        $this->assertSame($intent, $answer['intent']);
-        $this->assertSame('local', $answer['fuente']);
+        $this->assertNull($answer['intent']);
+        $this->assertSame('respaldo', $answer['fuente']);
         Http::assertNothingSent();
     }
 
@@ -80,21 +80,21 @@ class ChatbotHybridTest extends TestCase
     public function test_ambiguity_privacy_and_out_of_scope_do_not_spend_credits(string $question, string $source): void
     {
         $answer = app(AsistenteVirtualService::class)->procesarMensaje($question, 'uncertain');
-        $this->assertSame($source, $answer['fuente']);
+        $this->assertSame('respaldo', $answer['fuente']);
         $this->assertNull($answer['intent']);
         $this->assertStringNotContainsString($question, ChatLog::firstOrFail()->mensaje_usuario);
         Http::assertNothingSent();
     }
 
-    public function test_last_topic_is_bounded_expiring_and_isolated_by_server_session(): void
+    public function test_requests_do_not_inherit_previous_topics_across_sessions_or_time(): void
     {
         $service = app(AsistenteVirtualService::class);
         $service->procesarMensaje('cursos', 'same-client-id', 'browser-a');
         $answer = $service->procesarMensaje('y los horarios', 'same-client-id', 'browser-a');
-        $this->assertSame('consulta_horarios_cursos', $answer['intent']);
-        $this->assertSame('aclaracion', $service->procesarMensaje('y los horarios', 'same-client-id', 'browser-b')['fuente']);
+        $this->assertNull($answer['intent']);
+        $this->assertSame('respaldo', $service->procesarMensaje('y los horarios', 'same-client-id', 'browser-b')['fuente']);
         $this->travel(16)->minutes();
-        $this->assertSame('aclaracion', $service->procesarMensaje('y los horarios', 'same-client-id', 'browser-a')['fuente']);
+        $this->assertSame('respaldo', $service->procesarMensaje('y los horarios', 'same-client-id', 'browser-a')['fuente']);
         Http::assertNothingSent();
     }
 
@@ -104,36 +104,34 @@ class ChatbotHybridTest extends TestCase
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Cursos disponibles y sus horarios', 'private');
         $this->assertStringNotContainsString('Oferta interna', $answer['respuesta']);
         $this->assertStringNotContainsString('9876', $answer['respuesta']);
-        $this->assertStringContainsString('no publica un calendario', $answer['respuesta']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         Http::assertNothingSent();
     }
 
     public function test_comparisons_with_missing_prices_dates_or_availability_do_not_call_ai(): void
     {
         $service = app(AsistenteVirtualService::class);
-        $this->assertSame('consulta_precios', $service->procesarMensaje('Compara precios de cursos', 'no-prices')['intent']);
-        $this->assertSame('consulta_horarios_cursos', $service->procesarMensaje('Compara horarios de cursos', 'no-dates')['intent']);
-        $this->assertSame('aclaracion', $service->procesarMensaje('Compara disponibilidad y cupos de cursos mañana', 'no-availability')['fuente']);
+        $this->assertNull($service->procesarMensaje('Compara precios de cursos', 'no-prices')['intent']);
+        $this->assertNull($service->procesarMensaje('Compara horarios de cursos', 'no-dates')['intent']);
+        $this->assertSame('respaldo', $service->procesarMensaje('Compara disponibilidad y cupos de cursos mañana', 'no-availability')['fuente']);
         Http::assertNothingSent();
     }
 
-    public function test_duplicate_requests_call_openai_once_and_do_not_duplicate_logs(): void
+    public function test_duplicate_requests_reuse_cache_without_external_calls_and_do_not_duplicate_logs(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => '{"intents":["consulta_modalidades"]}']]]])]);
         Log::spy();
         $service = app(AsistenteVirtualService::class);
         $first = $service->procesarMensaje('Compara modalidades de cursos', 'duplicate');
         $second = $service->procesarMensaje('Compara modalidades de cursos', 'duplicate');
         $this->assertSame($first, $second);
-        Http::assertSentCount(1);
+        Http::assertNothingSent();
         $this->assertSame(1, ChatLog::count());
-        Log::shouldHaveReceived('info')->with('chatbot.metric', ['outcome' => 'openai_call'])->once();
+        Log::shouldHaveReceived('info')->with('chatbot.metric', ['outcome' => 'respaldo'])->once();
         Log::shouldHaveReceived('info')->with('chatbot.metric', ['outcome' => 'duplicate'])->once();
     }
 
-    public function test_simulated_corpus_metrics_distinguish_local_answers_ai_calls_and_duplicates(): void
+    public function test_simulated_corpus_metrics_distinguish_local_answers_fallback_and_duplicates(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => '{"intents":["consulta_modalidades"]}']]]])]);
         Log::spy();
         $service = app(AsistenteVirtualService::class);
         foreach (self::localQuestions() as $index => [$question]) {
@@ -142,19 +140,19 @@ class ChatbotHybridTest extends TestCase
         foreach (self::uncertainQuestions() as $index => [$question]) {
             $service->procesarMensaje($question, 'metric-uncertain-'.$index);
         }
-        $service->procesarMensaje('Compara modalidades de cursos', 'metric-ai');
-        $service->procesarMensaje('Compara modalidades de cursos', 'metric-ai');
-        Http::assertSentCount(1);
+        $service->procesarMensaje('Compara modalidades de cursos', 'metric-fallback');
+        $service->procesarMensaje('Compara modalidades de cursos', 'metric-fallback');
+        Http::assertNothingSent();
         $this->assertSame(32, ChatLog::count());
-        foreach (['local' => 20, 'aclaracion' => 4, 'respaldo' => 7, 'openai' => 1, 'openai_call' => 1, 'duplicate' => 1] as $outcome => $count) {
+        foreach (['respaldo' => 32, 'duplicate' => 1] as $outcome => $count) {
             Log::shouldHaveReceived('info')->with('chatbot.metric', ['outcome' => $outcome])->times($count);
         }
     }
 
-    public function test_disabled_facts_invalidate_cached_answers_immediately(): void
+    public function test_php_intent_changes_do_not_influence_public_answers(): void
     {
         $service = app(AsistenteVirtualService::class);
-        $this->assertSame('consulta_camaras', $service->procesarMensaje('camaras', 'disabled')['intent']);
+        $this->assertNull($service->procesarMensaje('camaras', 'disabled')['intent']);
         ChatIntent::create(['nombre' => 'consulta_camaras', 'prioridad' => 1, 'keywords' => ['camaras'], 'respuesta' => 'Antigua', 'activo' => false]);
         $this->assertNull($service->procesarMensaje('camaras', 'disabled')['intent']);
         Http::assertNothingSent();
@@ -171,35 +169,31 @@ class ChatbotHybridTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_session_and_global_ai_budgets_count_failed_requests_and_never_retry(): void
+    public function test_laravel_never_contacts_openai_for_synthesis_or_comparison_queries(): void
     {
-        config(['chatbot.openai_per_session' => 1, 'chatbot.openai_per_minute' => 2]);
-        Http::fake(['api.openai.com/*' => Http::response([], 500)]);
         $service = app(AsistenteVirtualService::class);
-        $service->procesarMensaje('Compara modalidades de cursos', 'budget-a');
-        $service->procesarMensaje('Compara cursos y capacitaciones', 'budget-a');
-        $service->procesarMensaje('Compara modalidades de cursos', 'budget-b');
-        $service->procesarMensaje('Compara modalidades de cursos', 'budget-c');
-        Http::assertSentCount(2);
+        $resA = $service->procesarMensaje('Compara modalidades de cursos', 'no-openai-a');
+        $resB = $service->procesarMensaje('Compara cursos y capacitaciones', 'no-openai-b');
+        $this->assertSame('respaldo', $resA['fuente']);
+        $this->assertSame('respaldo', $resB['fuente']);
+        Http::assertNothingSent();
     }
 
-    public static function invalidResponses(): array
+    public function test_synthesis_queries_without_advisor_return_safe_institutional_fallback(): void
     {
-        return [['texto inventado'], ['{"intents":["admin.users"]}'], ['{"intents":[]}'], ['{"intents":["consulta_cursos","consulta_modalidades","consulta_servicios"]}'], ['{"intents":[123]}'], ['{"intents":"consulta_cursos"}']];
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'synthesis-fallback');
+        $this->assertSame('respaldo', $answer['fuente']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
+        Http::assertNothingSent();
     }
 
-    #[DataProvider('invalidResponses')]
-    public function test_invalid_model_output_is_not_shown(string $content): void
+    public function test_advisor_connection_failure_returns_fallback_without_error(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => $content]]]])]);
-        $this->assertSame('respaldo', app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'invalid')['fuente']);
-        Http::assertSentCount(1);
-    }
-
-    public function test_timeout_returns_fallback_without_retry(): void
-    {
-        Http::fake(['api.openai.com/*' => Http::failedConnection()]);
-        $this->assertSame('respaldo', app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'timeout')['fuente']);
+        config(['horus-advisor.enabled' => true, 'horus-advisor.base_url' => 'http://127.0.0.1:8001']);
+        Http::fake(['http://127.0.0.1:8001/*' => Http::failedConnection()]);
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'timeout', 'public:web');
+        $this->assertSame('respaldo', $answer['fuente']);
+        $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
     }
 
     public function test_input_limits_and_public_throttle(): void

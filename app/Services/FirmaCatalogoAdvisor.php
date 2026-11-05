@@ -20,6 +20,9 @@ class FirmaCatalogoAdvisor
             }
             $payload[$campo] = $catalogo[$campo];
         }
+        if (array_key_exists('managed_types', $catalogo)) {
+            $payload['managed_types'] = $catalogo['managed_types'];
+        }
 
         return json_encode($this->ordenar($payload), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS);
     }
@@ -40,6 +43,18 @@ class FirmaCatalogoAdvisor
     {
         return is_string($catalogo['signature'] ?? null)
             && hash_equals($this->firmar($catalogo), $catalogo['signature']);
+    }
+
+    /** @param array{managed_types: list<string>, items: list<array<string, mixed>>} $contenido */
+    public function versionContenido(array $contenido): string
+    {
+        $contenido['items'] = array_map(static function (array $item): array {
+            unset($item['updated_at']);
+
+            return $item;
+        }, $contenido['items']);
+
+        return substr(hash('sha256', json_encode($this->ordenar($contenido), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS)), 0, 40);
     }
 
     private function ordenar(mixed $valor): mixed

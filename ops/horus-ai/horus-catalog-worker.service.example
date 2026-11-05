@@ -1,0 +1,32 @@
+# Plantilla NO instalada. Requiere resolver cuentas, permisos y rutas antes de usar.
+[Unit]
+Description=Horus Laravel catalog worker
+After=network.target
+ConditionPathExists=/etc/horus-ai/OPERATION_AUTHORIZED
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+CPUAccounting=true
+MemoryAccounting=true
+User=horus-worker
+Group=horus-worker
+WorkingDirectory=/srv/horus/current
+Environment=HORUS_OPS_ENABLED=false
+EnvironmentFile=/etc/horus-ai/laravel-worker.conf
+ExecStartPre=/usr/bin/php artisan horus:advisor-operacion status
+ExecStart=/usr/bin/php artisan horus:advisor-operacion worker --execute
+# El wrapper termina normalmente tras una hora; el gestor lo recicla.
+Restart=always
+RestartSec=10
+TimeoutStopSec=60
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/horus/shared/storage
+UMask=0077
+StandardOutput=journal
+StandardError=journal

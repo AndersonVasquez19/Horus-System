@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\PaginasServicios;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -13,7 +14,11 @@ use InvalidArgumentException;
 
 class ExportadorCatalogoAdvisor
 {
-    public function __construct(private FirmaCatalogoAdvisor $firma) {}
+    public function __construct(
+        private FirmaCatalogoAdvisor $firma,
+        private CatalogoPublicoServicios $servicios,
+        private ContenidoPublicoServicios $paginasServicios,
+    ) {}
 
     /**
      * Construye un snapshot en memoria. No publica, guarda ni transmite contenido.
@@ -23,6 +28,20 @@ class ExportadorCatalogoAdvisor
     public function construir(User $actor): array
     {
         Gate::forUser($actor)->authorize('cursos.publicar');
+
+        return $this->crearSnapshot(false);
+    }
+
+    /** Snapshot completo para un job interno post-commit; cada origen vuelve a validar su autorización editorial. */
+    /** @return array<string, mixed> */
+    public function construirParaSincronizacion(): array
+    {
+        return $this->crearSnapshot(true);
+    }
+
+    /** @return array<string, mixed> */
+    private function crearSnapshot(bool $sincronizacion): array
+    {
         $ahora = now('America/Lima');
         $items = [];
         $vence = $ahora->copy()->addMinutes(5);
@@ -79,10 +98,26 @@ class ExportadorCatalogoAdvisor
                 ];
             }
         }
+        array_push($items, ...$this->serviciosPublicados($ahora, $vence));
+        if (count($items) > 500) {
+            throw new InvalidArgumentException('El catálogo excede 500 fichas; no se exporta parcialmente.');
+        }
+        usort($items, static fn (array $a, array $b): int => strcmp($a['stable_id'], $b['stable_id']));
+        $managedTypes = ['curso', 'servicio'];
+        $version = $sincronizacion
+            ? $this->firma->versionContenido(['managed_types' => $managedTypes, 'items' => $items])
+            : $ahora->copy()->utc()->format('YmdHis').'-'.bin2hex(random_bytes(6));
+        $generado = $sincronizacion
+            ? $ahora->copy()->utc()->format('Y-m-d\\TH:i:s.u\\Z')
+            : $ahora->toIso8601String();
         $catalogo = [
-            'schema_version' => '1.0', 'catalog_version' => $ahora->copy()->utc()->format('YmdHis').'-'.bin2hex(random_bytes(6)),
-            'source_system' => 'horus-laravel', 'generated_at' => $ahora->toIso8601String(),
-            'expires_at' => $vence->toIso8601String(), 'items' => $items,
+            'schema_version' => '1.0', 'catalog_version' => $version,
+            'source_system' => 'horus-laravel', 'generated_at' => $generado,
+            'expires_at' => $sincronizacion
+                ? $vence->copy()->utc()->format('Y-m-d\\TH:i:s.u\\Z')
+                : $vence->toIso8601String(),
+            ...($sincronizacion ? ['managed_types' => $managedTypes] : []),
+            'items' => $items,
         ];
         $catalogo['signature'] = $this->firma->firmar($catalogo);
         if (strlen(json_encode($catalogo, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)) > 1048576) {
@@ -90,5 +125,95 @@ class ExportadorCatalogoAdvisor
         }
 
         return $catalogo;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function serviciosPublicados(Carbon $ahora, Carbon &$vence): array
+    {
+        // Reutiliza las lecturas existentes y sus permisos; el flag de presentación web no se cambia fuera de esta operación.
+        $flagAnterior = (bool) config('catalogo-servicios.enabled', false);
+        config(['catalogo-servicios.enabled' => true]);
+        try {
+            $resultado = [];
+            $pagina = 1;
+            do {
+                $lote = $this->servicios->pagina($pagina, 50);
+                foreach ($lote['servicios'] as $fila) {
+                    if (count($resultado) >= 500) {
+                        throw new InvalidArgumentException('El catálogo excede 500 fichas; no se exporta parcialmente.');
+                    }
+                    $resultado[] = $this->itemServicio(
+                        'servicio:'.strtolower((string) $fila['identificador_publico']),
+                        (string) $fila['titulo'], (string) $fila['resumen'], (string) $fila['descripcion'],
+                        null, (string) $fila['vigente_desde'], (string) $fila['vigente_hasta'], $ahora, $vence,
+                    );
+                }
+                $pagina++;
+            } while (($pagina - 1) * 50 < $lote['total']);
+
+            foreach (PaginasServicios::todas() as $codigo => $paginaPublica) {
+                $ficha = $this->paginasServicios->pagina($codigo);
+                if ($ficha === null) {
+                    continue;
+                }
+                $parrafos = $ficha['parrafos'];
+                $resumen = trim((string) ($parrafos[0] ?? ''));
+                $detalles = implode(' ', array_slice($parrafos, 1));
+                foreach ($ficha['tarjetas'] as $tarjeta) {
+                    $detalles = trim($detalles.' '.$tarjeta['titulo'].'. '.$tarjeta['descripcion']);
+                    foreach ($tarjeta['caracteristicas'] as $caracteristica) {
+                        $detalles = trim($detalles.' '.$caracteristica.'.');
+                    }
+                }
+                $ruta = route($paginaPublica['ruta'], [], false);
+                $resultado[] = $this->itemServicio(
+                    'servicio:pagina-'.strtolower($codigo), (string) $ficha['titulo'], $resumen,
+                    $detalles === '' ? $resumen : $detalles, $ruta, null, null, $ahora, $vence,
+                );
+            }
+
+            return $resultado;
+        } finally {
+            config(['catalogo-servicios.enabled' => $flagAnterior]);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function itemServicio(
+        string $stableId,
+        string $titulo,
+        string $resumen,
+        string $detalles,
+        ?string $url,
+        ?string $vigenteDesde,
+        ?string $vigenteHasta,
+        Carbon $ahora,
+        Carbon &$vence,
+    ): array {
+        if (! preg_match('/\\Aservicio:[a-z0-9][a-z0-9-]{1,50}\\z/D', $stableId)
+            || mb_strlen($titulo) < 3 || mb_strlen($titulo) > 120
+            || mb_strlen($resumen) < 10 || mb_strlen($resumen) > 600
+            || mb_strlen($detalles) > 1500
+            || ($url !== null && ! preg_match('~\\A/[a-z0-9\\-/#]*\\z~D', $url))) {
+            throw new InvalidArgumentException('La ficha de servicio no cumple el contrato público Advisor.');
+        }
+        if (preg_match('/@|\\d[\\d\\s-]{6,}\\d|<|>|\\b(dni|password|token|estudiantes|matriculados|cotizaciones|clientes)\\b/iu', $titulo.' '.$resumen.' '.$detalles)) {
+            throw new InvalidArgumentException('La ficha requiere revisión de privacidad.');
+        }
+        if ($vigenteHasta !== null) {
+            $fin = Carbon::parse($vigenteHasta, 'America/Lima')->startOfDay()->addDay();
+            if ($fin->lessThan($vence)) {
+                $vence = $fin;
+            }
+        }
+
+        return [
+            'stable_id' => $stableId, 'type' => 'servicio', 'publication_status' => 'vigente',
+            'title' => trim($titulo), 'summary' => trim($resumen), 'details' => trim($detalles),
+            'keywords' => [trim($titulo)], 'url_path' => $url,
+            'updated_at' => $ahora->toIso8601String(),
+            'valid_from' => $vigenteDesde === null ? null : substr($vigenteDesde, 0, 10),
+            'valid_until' => $vigenteHasta === null ? null : substr($vigenteHasta, 0, 10),
+        ];
     }
 }
