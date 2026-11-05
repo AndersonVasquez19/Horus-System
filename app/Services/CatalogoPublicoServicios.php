@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\PaginasServicios;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -35,6 +36,8 @@ class CatalogoPublicoServicios
         }
         $hoy = now('America/Lima')->toDateString();
         $consulta = DB::table('servicio_publicaciones as p')->join('servicios_tecnologicos as s', 's.id', '=', 'p.servicio_tecnologico_id')
+            // Las tres páginas con ruta propia se muestran allí, no como fichas del catálogo genérico.
+            ->whereNotIn('s.codigo', PaginasServicios::codigos())
             ->where('s.estado', 'activo')->where('p.estado', 'publicada')
             ->where('p.vigente_desde', '<=', $hoy)->where('p.vigente_hasta', '>=', $hoy)
             ->whereNotNull('p.autorizado_at')->where('p.autorizado_at', '<=', now())

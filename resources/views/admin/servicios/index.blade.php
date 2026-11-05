@@ -42,10 +42,10 @@
             <p class="p-6 text-sm text-[#64748B]">No hay servicios que coincidan con este listado.</p>
         @else
             <div class="admin-table-wrap" tabindex="0" role="region" aria-label="Tabla de servicios, desplazable horizontalmente">
-                <table class="admin-table min-w-[640px]">
+                <table class="admin-table min-w-[780px]">
                     <caption class="sr-only">Servicios y estados administrativos y editoriales</caption>
                     <thead><tr>
-                        <th scope="col">Código / nombre</th><th scope="col">Estado administrativo</th>
+                        <th scope="col">Código / nombre</th><th scope="col">Página pública</th><th scope="col">Estado administrativo</th>
                         <th scope="col">Estado editorial</th><th scope="col" class="text-right">Acciones</th>
                     </tr></thead>
                     <tbody>
@@ -62,6 +62,14 @@
                                 <td class="max-w-xs break-words">
                                     <span class="block text-xs font-semibold text-[#176B9A]">{{ $servicio->codigo }}</span>
                                     <span data-nombre class="mt-0.5 block font-semibold text-[#172B3A]">{{ $servicio->nombre }}</span>
+                                </td>
+                                <td>
+                                    @if ($servicio->pagina_publica)
+                                        <span class="inline-flex items-center rounded-full border border-[#19A7A1]/40 bg-[#19A7A1]/10 px-2.5 py-0.5 text-xs font-semibold text-[#176B9A]">{{ $servicio->pagina_publica['etiqueta'] }}</span>
+                                        <a href="{{ $servicio->pagina_publica['url'] }}" target="_blank" rel="noopener" class="mt-1 block break-all text-xs text-[#176B9A] underline">{{ $servicio->pagina_publica['url'] }}</a>
+                                    @else
+                                        <span class="text-xs text-[#64748B]">Sin página propia</span>
+                                    @endif
                                 </td>
                                 <td data-estado class="font-medium text-[#172B3A]">{{ ucfirst($servicio->estado) }}</td>
                                 <td data-editorial>{{ ucfirst(str_replace('_', ' ', $editorial)) }}</td>

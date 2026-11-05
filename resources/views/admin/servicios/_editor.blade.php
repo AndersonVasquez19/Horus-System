@@ -49,7 +49,7 @@
         <h3 class="text-base font-bold text-[#172B3A]">Ficha editorial guardada</h3>
         <p data-sin-ficha class="text-sm text-[#64748B]">No hay ficha editorial. Su preparación requiere permiso de edición.</p>
         <dl class="space-y-3 rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] p-4 break-words text-sm">
-            @foreach (['titulo' => 'Título público', 'resumen' => 'Resumen', 'descripcion' => 'Descripción editorial', 'categoria' => 'Categoría pública', 'vigente_desde' => 'Desde (Lima)', 'vigente_hasta' => 'Hasta, inclusive (Lima)'] as $campo => $label)
+            @foreach (['titulo' => 'Título público', 'resumen' => 'Resumen', 'descripcion' => 'Descripción editorial', 'categoria' => 'Categoría pública', 'titulo_tarjetas' => 'Título de la sección de tarjetas', 'imagen_principal_alt' => 'Texto alternativo de la imagen principal', 'vigente_desde' => 'Desde (Lima)', 'vigente_hasta' => 'Hasta, inclusive (Lima)'] as $campo => $label)
                 <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#64748B]">{{ $label }}</dt><dd data-publicacion="{{ $campo }}" class="mt-0.5 whitespace-pre-wrap font-medium text-[#172B3A]"></dd></div>
             @endforeach
         </dl>
@@ -65,6 +65,8 @@
                     <div><label for="ficha-{{ $campo }}" class="admin-label">{{ $label }}</label><textarea id="ficha-{{ $campo }}" name="{{ $campo }}" required maxlength="{{ $maximo }}" rows="{{ $filas }}" class="admin-textarea"></textarea></div>
                 @endforeach
                 <div><label for="ficha-categoria" class="admin-label">Categoría pública (opcional)</label><input id="ficha-categoria" name="categoria" maxlength="80" class="admin-input"></div>
+                <div><label for="ficha-titulo_tarjetas" class="admin-label">Título de la sección de tarjetas (opcional)</label><input id="ficha-titulo_tarjetas" name="titulo_tarjetas" maxlength="120" class="admin-input"></div>
+                <div><label for="ficha-imagen_principal_alt" class="admin-label">Texto alternativo de la imagen principal (opcional)</label><input id="ficha-imagen_principal_alt" name="imagen_principal_alt" maxlength="160" class="admin-input" aria-describedby="alt-ayuda"><p id="alt-ayuda" class="admin-help">Descríbela para lectores de pantalla. Déjalo vacío solo si la imagen es decorativa.</p></div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     @foreach (['vigente_desde' => 'Vigente desde (Lima)', 'vigente_hasta' => 'Vigente hasta, inclusive (Lima)'] as $campo => $label)
                         <div class="min-w-0"><label for="ficha-{{ $campo }}" class="admin-label">{{ $label }}</label><input id="ficha-{{ $campo }}" name="{{ $campo }}" type="date" required class="admin-input min-w-0"></div>
@@ -73,6 +75,46 @@
                 <button type="submit" class="admin-btn-primary">Guardar borrador editorial</button>
             </fieldset>
         </form>
+    @endcan
+    @can('servicios.editar')
+        <section data-contenido hidden aria-labelledby="contenido-titulo" class="space-y-5 border-t border-[#E2E8F0] pt-5">
+            <h3 id="contenido-titulo" class="text-base font-bold text-[#172B3A]">Contenido de la página pública</h3>
+            <p class="text-sm text-[#64748B]">Imagen principal y tarjetas que verá el visitante. Las imágenes (JPG, PNG o WebP, hasta 3 MB) se guardan en el servidor; nunca se publican hasta autorizar la ficha y activar el catálogo.</p>
+            <p data-contenido-bloqueado hidden class="rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] p-4 text-sm text-[#172B3A]">La ficha está autorizada: retírala para modificar su imagen o sus tarjetas.</p>
+            <form data-form="portada" method="POST" enctype="multipart/form-data" hidden>
+                @csrf
+                <fieldset class="space-y-3"><legend class="mb-2 text-sm font-bold text-[#172B3A]">Imagen principal</legend>
+                    <img data-portada-imagen alt="Imagen principal actual" hidden class="max-h-40 rounded-xl border border-[#E2E8F0] object-contain">
+                    <div><label for="portada-imagen" class="admin-label">Cambiar imagen principal</label><input id="portada-imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" class="admin-input"></div>
+                    <button type="submit" class="admin-btn-secondary">Subir imagen principal</button>
+                </fieldset>
+            </form>
+            <div class="space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3"><h4 class="text-sm font-bold text-[#172B3A]">Tarjetas</h4>
+                    <button type="button" data-accion="tarjeta-nueva" class="admin-btn-outline px-3.5 py-2 text-xs">Nueva tarjeta</button></div>
+                <p data-sin-tarjetas hidden class="text-sm text-[#64748B]">Aún no hay tarjetas.</p>
+                <ul data-tarjetas class="space-y-2" aria-label="Tarjetas de la página"></ul>
+            </div>
+            <form data-form="tarjeta" method="POST" enctype="multipart/form-data" hidden>
+                @csrf
+                <fieldset class="space-y-4 rounded-xl border border-[#E2E8F0] p-4"><legend class="px-1 text-sm font-bold text-[#172B3A]">Datos de la tarjeta</legend>
+                    <div><label for="tarjeta-titulo" class="admin-label">Título</label><input id="tarjeta-titulo" name="titulo" required maxlength="120" class="admin-input"></div>
+                    <div><label for="tarjeta-descripcion" class="admin-label">Descripción</label><textarea id="tarjeta-descripcion" name="descripcion" required maxlength="1000" rows="4" class="admin-textarea"></textarea></div>
+                    <div><label for="tarjeta-caracteristicas" class="admin-label">Características o especificaciones (una por línea)</label><textarea id="tarjeta-caracteristicas" name="caracteristicas" rows="4" class="admin-textarea"></textarea></div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="min-w-0"><label for="tarjeta-icono" class="admin-label">Icono (opcional)</label><input id="tarjeta-icono" name="icono" maxlength="60" placeholder="fas fa-video" pattern="fa[srb] fa-[a-z0-9]+(-[a-z0-9]+)*" class="admin-input min-w-0" aria-describedby="icono-ayuda"><p id="icono-ayuda" class="admin-help">Clase Font Awesome ya usada en el sitio, por ejemplo «fas fa-bolt».</p></div>
+                        <div class="min-w-0"><label for="tarjeta-variante" class="admin-label">Encuadre de la fotografía</label>
+                            <select id="tarjeta-variante" name="variante_imagen" class="admin-select"><option value="">Estándar</option><option value="producto">Producto</option><option value="escena">Escena</option></select></div>
+                        <div class="min-w-0"><label for="tarjeta-orden" class="admin-label">Orden de visualización</label><input id="tarjeta-orden" name="orden" type="number" min="0" max="9999" class="admin-input min-w-0" aria-describedby="orden-ayuda"><p id="orden-ayuda" class="admin-help">Menor número, primero. Vacío = al final.</p></div>
+                        <div class="min-w-0"><label for="tarjeta-imagen_alt" class="admin-label">Texto alternativo de la fotografía</label><input id="tarjeta-imagen_alt" name="imagen_alt" maxlength="160" class="admin-input min-w-0"></div>
+                    </div>
+                    <div><label for="tarjeta-imagen" class="admin-label">Fotografía (subir o cambiar)</label><input id="tarjeta-imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" class="admin-input"></div>
+                    <label class="flex min-h-11 items-center gap-3 text-sm text-[#172B3A]"><input type="checkbox" name="quitar_imagen" class="h-5 w-5 rounded border-[#CBD5E1] text-[#176B9A]"><span>Quitar la fotografía actual</span></label>
+                    <label class="flex min-h-11 items-center gap-3 text-sm text-[#172B3A]"><input type="checkbox" name="activo" class="h-5 w-5 rounded border-[#CBD5E1] text-[#176B9A]"><span>Tarjeta activa (visible cuando la ficha esté publicada)</span></label>
+                    <div class="flex flex-wrap gap-3"><button type="submit" class="admin-btn-primary">Guardar tarjeta</button><button type="button" data-accion="tarjeta-cancelar" class="admin-btn-outline">Cancelar</button></div>
+                </fieldset>
+            </form>
+        </section>
     @endcan
     @can('servicios.publicar')
         <form data-form="autorizar" method="POST" hidden>

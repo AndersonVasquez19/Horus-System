@@ -7,6 +7,9 @@
 @endpush
 
 @section('content')
+@if(!empty($contenidoServicio))
+@include('pages.tecnologias.partials.dinamico-camaras', ['c' => $contenidoServicio])
+@else
 <div class="legacy-showcase">
 <section class="carta-videovigilancia">
         <div class="intro-videovigilancia">
@@ -143,5 +146,6 @@
         </div>
     </section>
 </div>
+@endif
 @endsection
 

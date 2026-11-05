@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\CatalogoPublicoServicios;
+use App\Services\ContenidoPublicoServicios;
+use App\Support\PaginasServicios;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -16,7 +18,7 @@ use Spatie\Permission\Models\Permission;
 
 class ServiciosPublicosController extends Controller
 {
-    public function __invoke(Request $request, CatalogoPublicoServicios $catalogo): Response
+    public function __invoke(Request $request, CatalogoPublicoServicios $catalogo, ContenidoPublicoServicios $contenido): Response
     {
         $habilitado = (bool) config('catalogo-servicios.enabled', false);
         $servicios = [];
@@ -75,6 +77,8 @@ class ServiciosPublicosController extends Controller
             'catalogoServiciosHabilitado' => $habilitado, 'catalogoServiciosFallo' => $fallo,
             'serviciosPublicados' => $servicios, 'serviciosTotal' => $total,
             'serviciosPagina' => $pagina, 'serviciosPorPagina' => $porPagina,
+            // El contenido propio de la página solo se consulta si el catálogo genérico no falló (un único registro de incidente).
+            'contenidoServicio' => $fallo ? null : $contenido->pagina(PaginasServicios::SOPORTE),
         ])->header('Cache-Control', 'no-store, private');
     }
 }

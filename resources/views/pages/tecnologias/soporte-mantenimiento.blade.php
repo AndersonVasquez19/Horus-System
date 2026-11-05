@@ -8,6 +8,9 @@
 
 @section('content')
 <div class="legacy-showcase">
+@if(!empty($contenidoServicio))
+@include('pages.tecnologias.partials.dinamico-soporte', ['c' => $contenidoServicio])
+@else
 <section class="carta-soporte-mantenimiento">
         <div class="intro-soporte-mantenimiento">
             <div class="info-soporte-mantenimiento">
@@ -74,6 +77,7 @@
             </div>
         </div>
     </section>
+@endif
     @if($catalogoServiciosHabilitado ?? false)
     <section id="catalogo-servicios" class="cartas-section" aria-labelledby="titulo-catalogo-servicios">
         <div class="container">

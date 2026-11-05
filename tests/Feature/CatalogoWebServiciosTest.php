@@ -218,7 +218,7 @@ class CatalogoWebServiciosTest extends TestCase
             ->assertDontSee('Ficha 13')->assertSee('Página 1 de 3')->assertSee('Total de fichas autorizadas vigentes: 25')
             ->assertSee('servicios_pagina=2')->assertSee('Rango consultado: 1–12');
         $this->assertSame($consultasUna, count(DB::getQueryLog()));
-        $filas = array_filter(DB::getQueryLog(), fn ($q) => str_contains($q['query'], '"p"."titulo"'));
+        $filas = array_filter(DB::getQueryLog(), fn ($q) => str_contains($q['query'], '"p"."titulo"') && ! str_contains($q['query'], '"s"."codigo" = '));  // Excluye la lectura del contenido propio de la página.
         $this->assertCount(1, $filas);
         $this->assertStringContainsString('limit 12 offset 0', array_values($filas)[0]['query']);
         $this->get(route('tecnologias.soporte', ['servicios_pagina' => 2, 'secreto' => 'NO_PROPAGAR']))->assertOk()

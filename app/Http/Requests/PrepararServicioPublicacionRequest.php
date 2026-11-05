@@ -23,6 +23,8 @@ class PrepararServicioPublicacionRequest extends FormRequest
             'categoria' => ['nullable', 'string', 'max:80', 'not_regex:/[<>]/u'],
             'vigente_desde' => ['required', 'date_format:Y-m-d'],
             'vigente_hasta' => ['required', 'date_format:Y-m-d', 'after_or_equal:vigente_desde'],
+            'titulo_tarjetas' => ['nullable', 'string', 'max:120', 'not_regex:/[<>]/u'],
+            'imagen_principal_alt' => ['nullable', 'string', 'max:160', 'not_regex:/[<>]/u'],
         ];
     }
 }

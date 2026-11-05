@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AutorizarServicioPublicacionRequest;
+use App\Http\Requests\GuardarServicioElementoRequest;
 use App\Http\Requests\GuardarServicioRequest;
 use App\Http\Requests\PrepararServicioPublicacionRequest;
+use App\Http\Requests\SubirImagenPrincipalRequest;
 use App\Models\ServicioTecnologico;
 use App\Services\GestionServiciosTecnologicos;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +29,7 @@ class ServicioTecnologicoController extends Controller implements HasMiddleware
         return [
             new Middleware('permission:servicios.ver', only: ['index', 'show', 'publicacion']),
             new Middleware('permission:servicios.crear', only: ['store']),
-            new Middleware('permission:servicios.editar', only: ['update', 'estado', 'preparar']),
+            new Middleware('permission:servicios.editar', only: ['update', 'estado', 'preparar', 'imagenPrincipal', 'elementoStore', 'elementoUpdate', 'elementoDestroy']),
             new Middleware('permission:servicios.publicar', only: ['autorizar', 'retirar']),
         ];
     }
@@ -87,6 +89,28 @@ class ServicioTecnologicoController extends Controller implements HasMiddleware
         return $this->respuesta($this->gestion->cambiar($request, $servicio->id, 'preparar', $request->validated()));
     }
 
+    public function imagenPrincipal(SubirImagenPrincipalRequest $request, ServicioTecnologico $servicio): JsonResponse
+    {
+        $datos = $request->safe()->only(['imagen_principal_alt']);
+
+        return $this->respuesta($this->gestion->contenido($request, $servicio->id, 'imagen_principal', $datos, $request->file('imagen')));
+    }
+
+    public function elementoStore(GuardarServicioElementoRequest $request, ServicioTecnologico $servicio): JsonResponse
+    {
+        return $this->respuesta($this->gestion->contenido($request, $servicio->id, 'elemento_crear', $request->safe()->except('imagen'), $request->file('imagen')), 201);
+    }
+
+    public function elementoUpdate(GuardarServicioElementoRequest $request, ServicioTecnologico $servicio, int $elemento): JsonResponse
+    {
+        return $this->respuesta($this->gestion->contenido($request, $servicio->id, 'elemento_editar', $request->safe()->except('imagen'), $request->file('imagen'), $elemento));
+    }
+
+    public function elementoDestroy(Request $request, ServicioTecnologico $servicio, int $elemento): JsonResponse
+    {
+        return $this->respuesta($this->gestion->contenido($request, $servicio->id, 'elemento_eliminar', [], null, $elemento));
+    }
+
     public function autorizar(AutorizarServicioPublicacionRequest $request, ServicioTecnologico $servicio): JsonResponse
     {
         return $this->respuesta($this->gestion->cambiar($request, $servicio->id, 'publicar'));
@@ -100,6 +124,7 @@ class ServicioTecnologicoController extends Controller implements HasMiddleware
     private function respuesta(ServicioTecnologico $servicio, int $status = 200): JsonResponse
     {
         $publicacion = $servicio->publicacion()->first();
+        $publicacion?->load('elementos');
         $estado = $publicacion->estado ?? 'sin_ficha';
         if ($estado === 'publicada') {
             $hoy = now('America/Lima')->toDateString();

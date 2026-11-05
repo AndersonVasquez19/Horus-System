@@ -152,6 +152,21 @@ try {
     if (!layout.noPageOverflow || !layout.labeled || !layout.targets || !layout.keyboardFocus || !layout.consent || layout.fieldWidth < 150) throw new Error(`Layout failed at ${width}: ${JSON.stringify(layout)}`);
     await screenshot(`editor-${width}`);
     report.widths.push({ width, ...layout });
+    // Contenido de la página pública: el formulario de tarjeta se abre, está etiquetado y no desborda.
+    await evaluate('document.querySelector("[data-accion=tarjeta-nueva]").click()');
+    await waitFor(() => evaluate('!document.querySelector("[data-form=tarjeta]").hidden'));
+    const tarjeta = await evaluate(`(() => {
+      const form = document.querySelector('[data-form=tarjeta]');
+      const controles = [...form.querySelectorAll('input:not([type=hidden]), textarea, select')];
+      const botones = [...form.querySelectorAll('button')];
+      return { noPageOverflow: document.documentElement.scrollWidth <= innerWidth,
+        etiquetados: controles.every(el => !!form.querySelector('label[for="' + el.id + '"]') || !!el.closest('label')),
+        objetivos: botones.every(el => el.getBoundingClientRect().height >= 40), campo: Math.round(form.querySelector('#tarjeta-titulo').getBoundingClientRect().width) };
+    })()`);
+    if (!tarjeta.noPageOverflow || !tarjeta.etiquetados || !tarjeta.objetivos || tarjeta.campo < 150) throw new Error(`Card form layout failed at ${width}: ${JSON.stringify(tarjeta)}`);
+    await screenshot(`tarjeta-${width}`);
+    report.widths.at(-1).tarjeta = tarjeta;
+    await evaluate('document.querySelector("[data-accion=tarjeta-cancelar]").click()');
     await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     if (!(await evaluate('!!document.activeElement.closest("[data-editor]")'))) throw new Error('Tab did not enter editor controls');
