@@ -1,5 +1,21 @@
 # Horus-System — Contexto técnico del proyecto
 
+> **Fase E — 04/11/2026: preparación operativa implementada y probada aisladamente; sin producción ni activación pública.** Configuración opt-in, preflight CLI, supervisión del worker, renovación del catálogo y launcher con logs redactados. PHP: 3,401 aprobadas/una omitida; Python: 234; frontend: 52. Plantillas de despliegue/rollback preparadas, no instaladas ni ejecutadas. Guía: docs/horus-ai-operacion.md; cierre y limitaciones en el anexo E final.
+
+> **D6 — 04/11/2026: APROBADA dentro del alcance local probado, sin activación pública.** Widget Blade/JS real en Edge → Laravel → HTTP real → FastAPI/MiniLM/RAG → referencias validadas → tarjetas de curso y servicio. 43 comprobaciones de navegador y 28 del arnés; caché, retirada y contingencias verificadas. Corpus público autorizado: 210 bloqueados sin HTTP adicional ni originales conservados. Regresión focalizada: 379 pruebas PHP y 52 frontend aprobadas. Servicios cerrados y SQLite temporal eliminada; únicamente se actualiza este contexto en el repositorio. Detalles y limitaciones en el anexo D6 final; los resultados aislados anteriores de D permanecen como antecedentes históricos.
+
+> **C6 operativa — 04/11/2026: APROBADA dentro del alcance local probado.** Laravel/FastAPI independientes, HTTP real y MiniLM local: 230 comprobaciones; 210 mensajes privados del corpus público bloqueados sin HTTP. Servicios detenidos y SQLite temporal eliminada. Sin activación pública ni Fase D. Detalles y límites en el anexo C6 operativo final.
+
+
+> **Fase C — 04/11/2026: implementada y probada localmente, sin activación pública.** Comprensión de consultas, selección desde el RAG existente, listados vigentes, recomendaciones con evidencia y derivación institucional. PHP 3.376 aprobadas/una omitida; Python 226 sin modelo y 23 con MiniLM real. Detalles y límites en el anexo C final. Las actas A2/B/B7 conservan su alcance histórico.
+
+
+> **Fase B7 — 04/11/2026: APROBADA en el alcance local probado; Fase B operativamente cerrada en ese alcance.** Cola database SQLite, workers reales y FastAPI/MiniLM por HTTP local: publicación, modificación, retirada, confirmación diferida, duplicados, reintentos y recuperación comprobados. Servicios detenidos; sin activación pública ni Fase C. Resultados y límites en el cierre B7 al final. Las actas B anteriores conservan su alcance histórico.
+
+> **Fase B — 04/11/2026: RAG local implementado, sin activación pública.** Se reutilizan A1/A2, búsqueda léxica y MiniLM para recuperar fragmentos firmados con procedencia, responder de forma extractiva y recomendar desde la consulta actual. No se añadieron dependencias ni se cambiaron filtros de privacidad. Resultados, rendimiento y límites al final del documento, en «Horus AI Advanced — Fase B». El cierre A2 siguiente corresponde al antecedente anterior al inicio de B.
+
+> **Cierre funcional A2 — 04/11/2026: APROBADA en el alcance local de prueba.** Laravel y FastAPI se verificaron mediante HTTP real en `127.0.0.1`, SQLite temporal y MiniLM local. Publicación/modificación/retirada de curso y servicio, firmas/versiones, privacidad y recuperación pasaron; servicios detenidos y puertos libres al cierre. Se corrigió la procedencia de respuestas del catálogo sin cambiar los filtros de privacidad. Evidencia y límites en §12 y §16. Horus AI y la sincronización siguen apagados por defecto para visitantes; no se inició Fase B. Las actas históricas siguientes conservan sus límites propios.
+
 > **Actualización PG-TEST-05B-2A, 30/10/2026 (tras la etapa 1): etapa 2 completada y aprobada.** La ejecución `stage2-ronda1` (autorizada; 16:16–16:18, hora local del equipo) corrió PHPUnit 11.5.57 sobre PostgreSQL 18.6 (`127.0.0.1:55433`, `horus_l2_test`, `horus_l2_test_runner`, clúster `horus_pgt_55433`, identificador `7702263743609677164`) con el filtro `AdminEstudianteTest|AdminCursoTest|CursoPublicacionTest` y terminó con `OK (48 tests, 410 assertions)`: **48 pruebas aprobadas (31 métodos, 3 clases), 410 aserciones, cero risky, cero errores, cero fallos y cero omitidas**, en 01:32,478 min y 66 MB. `migrate:fresh` (mediante `RefreshDatabase`) reconstruyó el esquema `public` de `horus_l2_test`, con autorización destructiva expresa del propietario (no incluye `horus_test_control` ni otras bases). Consentimiento retirado, perfil idéntico (`42372EC6…`), Job Object con `Active=0`, 18 evidencias históricas intactas y `probe` e identidad finales aprobados. **Acumulado de las etapas 1 y 2: 164 pruebas / 935 aserciones.** Detalle, hashes y límites: [etapa 2 ejecutada](docs/postgresql-testing-pg-test-04.md#etapa-2-ejecutada-stage2-ronda1-30102026). Plan de la etapa 3 (147 pruebas, preparado y **no ejecutado**): [plan técnico](docs/postgresql-testing-pg-test-04.md#plan-técnico-de-la-etapa-3-preparado-no-ejecutado). **PG-TEST-05B-2A no está finalizada:** siguen pendientes las etapas 3–7, la concurrencia, la suite completa y la restauración.
 >
 > **Actualización PG-TEST-05B-2A, 30/10/2026 (posterior a la consolidación): etapa 1 completada y aprobada.** La ejecución `stage1-ronda8` (autorizada; 14:11–14:14, hora local del equipo) corrió PHPUnit 11.5.57 sobre PostgreSQL 18.6 (`127.0.0.1:55433`, `horus_l2_test`, `horus_l2_test_runner`, clúster `horus_pgt_55433`, identificador `7702263743609677164`) y terminó con `OK (116 tests, 525 assertions)`: **116 pruebas aprobadas, 525 aserciones, cero risky, cero errores y cero fallos**, sin pruebas omitidas ni avisos. La prueba del snapshot Excel (`REPEATABLE READ, READ ONLY`) y las cinco restricciones de matrículas de PostgreSQL estaban en la selección y no se omitieron. Consentimiento retirado, perfil idéntico, ningún proceso de pruebas al cierre y `probe` e identidad finales aprobados. Auditoría posterior: los 56 hashes de `sha256.json` coinciden con los archivos. **Fue la primera etapa; PG-TEST-05B-2A no está finalizada (ver la actualización de la etapa 2, arriba).**
@@ -26,13 +42,13 @@
 
 | Control de actualización | Estado examinado |
 | --- | --- |
-| Última actualización | 29 de octubre de 2026, fecha de Lima |
+| Última actualización | 4 de noviembre de 2026, fecha de Lima; preparación operativa E y validación aislada (anexo final) |
 | Rama / HEAD de partida de la consolidaci?n | `anderson` / `306b168e8d8bbfec23301d7c050c7f7c9ae11d2f` (inspección PostgreSQL posterior a la publicación) |
-| Último sprint documentado | 19.2; preparación documental de recepción pública, sin implementarla ni habilitar datos reales |
+| Último avance Horus AI documentado | E: configuración opt-in, preflight, heartbeat/renovación y despliegue/rollback preparados; sin servicios operativos ni activación pública |
 | Publicación web / catálogo del chatbot PHP / Advisor | Predeterminados apagados, en configuraciones separadas |
 | Resend / verificación de correo | Envío de matrícula apagado por defecto; verificación `false` y transporte `null` |
 | PostgreSQL S7 / migraciones reales | S7 sigue Running/Manual en loopback 55432, aparcado y sin credenciales; la guarda de pruebas lo rechaza y solo acepta `127.0.0.1:55433` (PG-TEST-02a); clúster 55433 creado en PG-TEST-02b; las 26 migraciones aplicadas solo en `horus_l2_test` (PG-TEST-05B-1), sin pruebas con escrituras. Sin SQL, migraciones ni reparación de credenciales en S7 ni en bases reales el 29/10 |
-| Última validación funcional documentada | Restricción comercial admin: 1066 pruebas PHP, 7447 aserciones; SQLite en memoria, 36 frontend, build, Larastan 6, Pint acotado y smoke del panel aprobados |
+| Última validación Horus AI documentada | E: 3401 PHP aprobadas/una omitida, 234 Python, 52 frontend; PHPStan/Ruff/Pint aprobados. Pruebas aisladas; infraestructura productiva no ejecutada |
 
 **Naturaleza del documento:** contexto operativo sustentado en código, locks, pruebas, Git local e informes existentes. No es autorización para ejecutar procedimientos. [AGENTS.md](AGENTS.md) conserva la prioridad normativa; [CLAUDE.md](CLAUDE.md) contiene los contratos y comandos. Una implementación disponible no acredita activación, aplicación de migraciones ni despliegue.
 
@@ -98,14 +114,13 @@ flowchart TD
     Web[Web pública Blade] --> Laravel[Backend Laravel]
     Panel[Panel administrativo] --> Laravel
     Laravel --> PG[(PostgreSQL habitual)]
-    Laravel --> PHP[Chatbot PHP híbrido]
-    Panel --> Editorial[Fichas CursoPublicacion y autorización]
+    Laravel --> PHP[Privacidad, concurrencia y contingencia institucional]
+    Panel --> Editorial[Fichas públicas de cursos y servicios autorizados]
     Editorial --> PG
     Editorial -. lectura web opcional: flag apagado .-> Web
-    PHP -. OpenAI selectivo si está configurado .-> OpenAI[OpenAI]
-    PHP -. cliente opcional: flag apagado .-> API[Horus AI Advisor / FastAPI]
+    PHP -. cliente autenticado: apagado para visitantes .-> API[Horus AI Python / FastAPI]
     API --> KB[Conocimiento verificado y búsqueda léxica/semántica]
-    Editorial -. exportador HMAC preparado: sin sincronización activa .-> API
+    Editorial -. snapshot firmado A1: A2 local validada, flag apagado .-> API
     Laravel -. outbox preparada: envío apagado .-> Resend[Resend]
     Tests[Pruebas PHP aisladas] --> SQLite[(SQLite en memoria)]
 ```
@@ -150,12 +165,12 @@ El backend Laravel está en la raíz, no dentro de otro backend anidado. `vendor
 | Cupos — implementado dentro de matrículas | Bloqueo y relectura en operaciones de matrícula; índice parcial y restricciones de `000013` | Mismos permisos de la operación, sin endpoint paralelo. Adquisiciones vigentes exigen estudiante/curso elegibles, no duplicado y cupo. `lockForUpdate` no se mide con SQLite; pruebas PostgreSQL pendientes |
 | Publicación editorial — backend/editor/web preparados, consumo apagado | [CursoPublicacion](app/Models/CursoPublicacion.php), [controlador editorial](app/Http/Controllers/Admin/CursoPublicacionController.php), [catálogo](app/Services/CatalogoPublicoCursos.php); GET/PUT/DELETE `/admin/cursos/{curso}/publicacion`, GET `/educacion/cursos` | `cursos.publicar`; `CursoPublicacionTest`, `Sprint17PublicacionTest`, `EditorPublicacionPanelTest`, `CatalogoWebCursosTest`. Editor conectado al panel; fichas solo con autorización separada; depende de `000021` |
 | Reportes — implementado | [ReportController](app/Http/Controllers/Admin/ReportController.php), [MatriculasExcelExport](app/Services/MatriculasExcelExport.php); GET `/admin/reportes`, POST `/admin/reportes/exportar/excel` y `/pdf` | `reportes.ver`, `reportes.exportar.excel/pdf`; `AdminReportConsistencyTest`, `ReportExcelExportTest`, `ReportExcelScalabilityTest`. Filtros coherentes, PDF por lote y temporales; XLSX no tiene memoria constante |
-| Aprobaciones internas — implementado como flujo genérico | [AprobacionInterna](app/Models/AprobacionInterna.php), [controlador](app/Http/Controllers/Admin/AprobacionController.php); GET/POST/PUT/DELETE `/admin/aprobaciones` | `aprobaciones.ver/gestionar`; cobertura de autorización, filtros, atomicidad y `AprobacionesRespaldoPermissionsMigrationTest`. Estados pendiente/aprobado/rechazado; no sustituye autorización editorial ni constituye aprobación de presupuestos |
+| Aprobaciones internas — implementado y estabilizado (Opción A) | [AprobacionInterna](app/Models/AprobacionInterna.php), [GestionAprobaciones](app/Services/GestionAprobaciones.php), [controlador](app/Http/Controllers/Admin/AprobacionController.php); CRUD `/admin/aprobaciones`, POST `aprobar`, `rechazar`, `reabrir` | `aprobaciones.ver` (index/update/destroy) y `aprobaciones.gestionar` (store/aprobar/rechazar/reabrir). Matriz: compra → admin, operativo → coordinador, legacy bloqueado (403), anti-autoaprobación. Opción A ratificada: solicitante edita/elimina propias pendientes; Gerencia propias y ajenas; resueltas inmutables (409); usuario común sin acceso (403). Atomicidad `lockForUpdate`, `AuditLog`, 29 tests en `AprobacionOperationsTest` |
 | Respaldo — exportación administrativa implementada | [RespaldoController](app/Http/Controllers/Admin/RespaldoController.php); GET `/admin/respaldo`, `/admin/respaldo/exportar` | `respaldo.ver/exportar`; `SecretsAndExportsTest`, `AdminAuthorizationTest`, migración de permisos. ZIP de CSV seleccionados con minimización: **no** backup integral ni herramienta de restauración; backup recuperable requiere procedimiento PostgreSQL autorizado |
 | Procesos / atención comercial — parcial, sin CRM acreditado | [ProcesoInterno](app/Models/ProcesoInterno.php), [ProcesoController](app/Http/Controllers/Admin/ProcesoController.php), notificaciones internas; `/admin/procesos`, `/admin/notificaciones`, PATCH de lectura | `procesos.ver/gestionar`; `AdminAuthorizationTest`, `AdminListFilterInputTest`, `AdminNotificacionTest`. Tareas internas con responsable/estado/prioridad; no enlazadas a un expediente comercial completo. Permisos `seguimientos.*` existen, sin CRUD de seguimiento dedicado en las rutas actuales |
 | Cotizaciones — backend y panel privados locales, Sprints 19/19.1 | SolicitudCotizacion, CotizacionHistorial, GestionCotizaciones y CotizacionController; ocho endpoints, listado HTML/editor exclusivo en /admin/cotizaciones | cotizaciones.ver/crear/editar/gestionar y rol admin obligatorio; recibida → en_revision autorizado, snapshot de servicio, seguimiento, revisión/idempotencia y conciliación manual; sin presupuesto formal o recepción pública; aceptación PostgreSQL pendiente |
 | Chatbot PHP — implementado y conservado | [AsistenteVirtualService](app/Services/AsistenteVirtualService.php), [ChatWidgetController](app/Http/Controllers/ChatWidgetController.php); POST `/chat/mensaje`, GET `/admin/asistente`, POST `/admin/asistente/mensaje` | Público con sesión/CSRF/límites; panel `asistente.ver`. `AsistenteVirtualTest`, `ChatbotHybridTest`, pruebas frontend. El permiso `asistente.entrenar` no acredita entrenamiento implementado |
-| Horus AI Advisor — independiente; cliente Laravel preparado y apagado | [API Python](chatbot-python/app/api/routes.py), [cliente Laravel](app/Services/HorusAdvisorClient.php) | Token de servicio, no permisos de panel. Tests Python y `HorusAdvisorTest`/`AdvisorCatalogoTest`; sin sincronización operativa de fichas ni acceso a cotizaciones privadas |
+| Horus AI Advisor — cliente y sincronización A1 implementados, apagados por defecto | [API Python](chatbot-python/app/api/routes.py), [cliente Laravel](app/Services/HorusAdvisorClient.php) | Token de servicio; A1 probada aisladamente y A2 validada localmente (§12); sin acceso a cotizaciones privadas |
 
 Apoyos existentes: [auditoría](app/Http/Controllers/Admin/AuditoriaController.php), [configuración](app/Http/Controllers/Admin/ConfiguracionController.php), dashboard y búsqueda con permisos. Las notificaciones internas no son correos Resend. Las aprobaciones genéricas no permiten publicar un curso omitiendo `cursos.publicar`.
 
@@ -195,6 +210,14 @@ Complementos: [consolidación 10–14](docs/consolidacion-sprints-10-14.md), [re
 
 <a id="git"></a>
 ## 7. Estado actual de Git
+
+**Recomprobado el 04/11/2026 antes de esta edición:** rama `anderson`, HEAD `7914438d59b77b6a5e09a15d371e635cca2d894d` (`7914438`), 24 commits locales frente a la referencia upstream cacheada, sin `fetch`. Dos stashes: `52e2f296e243cacf777f48d8148b0a72e68fc93c` y `d69d6caa1c7b2a18c9c2aa962bc74a473bbdcc82`. Índice SHA-256 `E92BC6D7DD5822A17722273743F367619EE2F2873CF7EC48EC990820C7F22728`. Árbol con cambios locales preexistentes, incluidos este contexto y `.env.example`; no está limpio.
+
+La actualización documental previa modificó únicamente `PROJECT_CONTEXT.md` y preservó índice, HEAD, stashes, `.env`, `.env.example` y demás archivos inventariados, sin commits, push, merges ni reset. Los informes A1 y SQLite (§12) registran respaldos externos verificados: A1, 12 archivos y manifiesto SHA-256; arnés, `run.py.before`. Es evidencia de aquellas ejecuciones, no una nueva verificación de respaldos en esta edición. Recalcular siempre la línea base antes de continuar.
+
+**Cierre A2 posterior, 04/11/2026:** el inventario de la tarea de integración conserva la misma rama/HEAD, índice, 24 commits y dos stashes. Se modifican únicamente cliente, nuevo servicio de procedencia, nueva prueba y este documento (§12); `.env`, `.env.example` y archivos ajenos permanecen iguales. La afirmación anterior de edición exclusiva del contexto corresponde a la tarea documental previa.
+
+**Corte histórico del 29/10/2026 (no describe el árbol actual):**
 
 Inspección PostgreSQL del 29/10: rama `anderson`, HEAD arriba indicado; árbol e índice limpios al comenzar. Los sprints 16–17.2, Python, pruebas PostgreSQL y contexto ya están incorporados a los commits locales. La publicación anterior no autoriza nuevos commits o pushes en esta tarea.
 
@@ -323,13 +346,15 @@ Consecuencia funcional documentada cuando falta `000020`: el alta de matrícula 
 <a id="chatbot-php"></a>
 ## 10. Chatbot PHP existente
 
-El motor [AsistenteVirtualService](app/Services/AsistenteVirtualService.php) utiliza FAQ/intenciones, reconocimiento local y conocimiento institucional de [ChatKnowledge](app/Support/ChatKnowledge.php) y [ChatIntentMatcher](app/Support/ChatIntentMatcher.php). Conserva el contrato público `respuesta`, `intent`, `fuente`. Los diagnósticos y datos del panel no deben convertirse en conocimiento público.
+**Contrato vigente al cierre conocido de privacidad (04/11/2026):** Python Horus AI es el único motor conversacional principal. Laravel actúa como intermediario, filtro de privacidad, auditoría anonimizada, control de concurrencia/caché y contingencia institucional. `AsistenteVirtualService`, `FiltroPrivacidadChat` y `HorusAdvisorClient` conservan el contrato público `respuesta`, `intent`, `fuente`. El motor PHP anterior y el uso selectivo de OpenAI descritos en [Sprint 04](docs/sprint-04-chatbot-hibrido.md) son antecedentes históricos; no autorizan reintroducir ese motor como principal ni enviar mensajes a OpenAI.
 
-Resuelve localmente cuando hay evidencia; OpenAI es selectivo y requiere configuración. No inventar precios, disponibilidad, fechas, políticas o condiciones. [Sprint 04](docs/sprint-04-chatbot-hibrido.md) describe fuentes, métricas y abstención. La integración nueva no elimina este motor: es el flujo normal con Advisor apagado y el fallback cuando la consulta opcional no produce una respuesta válida.
+La decisión de privacidad precede a caché y cliente HTTP. Las aclaraciones no repiten información personal; ChatLog conserva marcadores de contenido omitido y metadatos, no el texto original. POST `/chat/mensaje` mantiene sesión, CSRF, throttle y validación. No solicitar datos personales ni transmitir registros del chat al motor.
 
-Ruta pública POST `/chat/mensaje`: sesión, CSRF, throttle 30/minuto, mensaje hasta 2000 caracteres y `session_id` hasta 64. Configuración [chatbot.php](config/chatbot.php): ventana de duplicados 60 s, contexto 900 s, presupuesto OpenAI por minuto/sesión y límites de contexto/respuesta. Los metadatos de conversación no autorizan transmitir registros completos ni datos personales a otros servicios.
+**Cierre comunicado:** 43 casos conocidos bloqueados, incluidos los 21 restringidos. Para estos 21, los agregados verifican 21/21 procesados y bloqueados, cero llamadas a `HorusAdvisorClient`, cero peticiones HTTP y cero originales en ChatLog, logs, caché y archivos de evidencia revisados; marcador de omisión confirmado. Reserva original preservada sin exportar contenidos. No incorporar aquí mensajes, nombres, datos personales ni etiquetas de la reserva. PHPUnit de ese cierre: 3.350 aprobadas y una omitida por requerir PostgreSQL; cifras A1 separadas en §16.
 
-El catálogo del chatbot (`chatbot.public_catalog_enabled=false`) es distinto del catálogo web. Su lector heredado `vigentes()` conserva su contrato; `paraWeb()` añade comprobación de procedencia editorial vigente. No intercambiar estos métodos ni activar flags para hacer pasar pruebas.
+Fuentes agregadas externas: `%LOCALAPPDATA%/HorusAudits/cierre-21-correccion-20261104/resultado-agregado.json` y `php-completo-agregado.json`. Esta actualización solo revisó agregados, sin acceder a la reserva ni repetir pruebas. Horus AI permanece desactivado por defecto: el cierre de casos conocidos **no constituye garantía universal de privacidad** ni aprobación para activación pública.
+
+Los catálogos heredados de chatbot y web tienen interruptores propios; no confundirlos con A1 ni activarlos para hacer pasar pruebas.
 
 <a id="advisor"></a>
 ## 11. Horus AI Advisor
@@ -350,12 +375,13 @@ Fuente: [routes.py](chatbot-python/app/api/routes.py), [esquemas chat](chatbot-p
 | POST `/api/v1/chat` | Token; `message`, historial y sesión opcionales según esquema; respuesta estructurada con fuentes/recomendaciones |
 | POST `/api/v1/recommend` | Token; solicitud estructurada de orientación según Pydantic; no crea inscripción ni cotización |
 | POST `/api/v1/catalog/validate` | Token; validación **en seco** de estructura/firma/privacidad; no carga ni persiste el catálogo |
+| POST `/api/v1/catalog/sync` | Token; recibe snapshot firmado, valida y construye el índice candidato antes de activarlo atómicamente; A1 probada aisladamente; integración local A2 validada |
 
 Las rutas privadas exigen `X-Horus-Service-Token`, secreto de al menos 32 caracteres configurado en servidor. No publicar valores ni moverlo al navegador. Los esquemas rechazan campos extra. Predeterminados: mensaje 2000 caracteres, historial máximo 10 elementos, cuerpo normal 32 KiB, validación de catálogo hasta 1 MiB, concurrencia 4 y timeout interno 5 s. Son configurables dentro de los límites de los esquemas; no equivalen al presupuesto más corto de Laravel.
 
 Catálogo firmado: [schemas/catalog.py](chatbot-python/app/schemas/catalog.py) y [services/catalog.py](chatbot-python/app/services/catalog.py). Versión `1.0`, origen `horus-laravel`, ID de versión, generación/caducidad, hasta 500 ítems con identidad estable, estado y campos públicos; campos extra prohibidos. El contrato admite estados como `vigente`, `no_publicado` y `retirado`; no todos son recomendables. Revisa el enum completo antes de generar nuevos estados.
 
-Hay carga opcional desde archivo al **arranque**, mediante `catalog_path`; no hay endpoint de ingestión/recarga activa. La transformación de registros y caducidad se evalúa con el instante de carga y el estado del catálogo queda asociado al conocimiento cargado. La documentación Python describe caducidad y Laravel futuro en términos más amplios: no acredita invalidación dinámica durante un proceso largo. Además, Python usa fecha UTC para esa transformación y el editor usa Lima; requiere conciliación antes de una sincronización operativa.
+`catalog_path` permite cargar un catálogo firmado al arranque y conservar el snapshot aplicado. A1 añadió recarga activa por HTTP autenticado, sin suponer directorio compartido con Laravel. Python valida firma, versión, esquema y vigencia; construye conocimiento e índice semántico antes de sustituir los activos y serializa actualizaciones concurrentes. La caducidad se vuelve a comprobar en `/ready` y antes de responder. Durante una actualización, caducidad o fallo se evita presentar información obsoleta como vigente. Detalles y alcance de evidencia en §12.
 
 ### Evaluaciones y memoria
 
@@ -366,19 +392,63 @@ Memoria reportada: modo léxico alrededor de 50 MB de conjunto de trabajo; híbr
 <a id="integracion"></a>
 ## 12. Integración Laravel–FastAPI
 
-El [Sprint 16](docs/sprint-16-horus-ai-advisor.md) incorporó [HorusAdvisorClient](app/Services/HorusAdvisorClient.php), [ExportadorCatalogoAdvisor](app/Services/ExportadorCatalogoAdvisor.php), [FirmaCatalogoAdvisor](app/Services/FirmaCatalogoAdvisor.php) y [configuración](config/horus-advisor.php). `horus-advisor.enabled=false` literal: con flag apagado no exige Python ni genera solicitudes al servicio.
+El [Sprint 16](docs/sprint-16-horus-ai-advisor.md) incorporó cliente, exportador y firma. **A1 (04/11/2026) amplió esa base: implementada y probada aisladamente, sin activación pública.** A2 demostró posteriormente el funcionamiento local entre procesos en el alcance del cierre siguiente.
 
-- El cliente usa HTTP Laravel; solo permite URL HTTP de IP literal `127.0.0.1` y puerto válido, sin DNS, redirecciones ni destinos externos. Desactiva proxy/cookies y no aplica reintentos automáticos.
-- Conexión predeterminada 0,4 s; presupuesto total compartido `/ready` + chat de 2,5 s, acotado a 3 s. Respuesta hasta 64 KiB y validación estructural/fuentes antes de adaptarla.
-- Solo se consulta en el contexto público previsto, para intenciones admitidas. Laravel construye preguntas fijas por tema: **no envía el mensaje libre original, historial, sesión ni registros privados**. La capacidad conversacional Python no implica que Laravel ya la utilice.
-- Red caída, timeout, autorización fallida, errores HTTP, JSON inválido, vacío o contrato incompatible producen fallback PHP, sin error técnico al visitante ni duplicación innecesaria de OpenAI o acciones comerciales.
-- Por seguridad de invalidación, el cliente actual acepta orientación solo cuando `/ready` indica catálogo `none`; rechaza también catálogos cargados, obsoletos o fallidos. No elimina esta barrera para probar la exportación.
+### A1 — sincronización automática del catálogo público
 
-El exportador exige actor con `cursos.publicar` y ficha vigente con autor que conserve permiso. Construye un snapshot en memoria; no publica ni transmite por sí mismo. Máximo 500 ítems/1 MiB; falla antes de exportar parcialmente un catálogo excesivo. Usa campos públicos permitidos y filtros adicionales de privacidad; nunca estudiantes, matrículas, clientes o cotizaciones.
+- Laravel selecciona y publica exclusivamente información autorizada: fichas de cursos y servicios tecnológicos publicados, vigentes y con autorización editorial verificable. Reutiliza fuentes estructuradas existentes, sin derivar contenido público de datos administrativos.
+- `PublicacionCatalogoAdvisorObserver` observa cambios editoriales/estados después del commit, invalida la versión esperada/caché y programa `SincronizarCatalogoAdvisor`. El job genera el snapshot firmado y lo transporta por POST local autenticado a `/api/v1/catalog/sync`.
+- `ExportadorCatalogoAdvisor` y `FirmaCatalogoAdvisor` producen snapshots completos con identificadores estables, procedencia, contenido público y versión. Máximo 500 ítems/1 MiB; rechazo antes de exportar parcialmente un catálogo excesivo. Las retiradas y el snapshot vacío eliminan los registros administrados del conocimiento y del índice.
+- Firma HMAC-SHA256: UTF-8, JSON compacto, claves de objetos ordenadas recursivamente, Unicode/barras sin escapes innecesarios y listas en orden. Campos firmados: `schema_version`, `catalog_version`, `source_system`, `generated_at`, `expires_at`, `items` y, cuando está presente, `managed_types`. `signature` queda fuera y usa prefijo `hmac-sha256:`. Clave externa mínima de 32 caracteres, nunca documentar su valor. El snapshot automático administra `curso` y `servicio`, usa versión de contenido y sello temporal para ordenar actualizaciones.
+- Python valida firmas, versiones, esquema y fechas; rechaza contenido manipulado o antiguo. Construye conocimiento e índice semántico candidatos antes de activarlos, persiste mediante reemplazo atómico y serializa actualizaciones concurrentes. Ante fallo conserva la última versión válida, pero bloquea respuestas que pudieran presentar información retirada como vigente hasta recuperación.
+- La caché Laravel se separa por versión esperada. La vigencia del snapshot es como máximo cinco minutos, acortada al límite editorial de una ficha; la caducidad se comprueba en `/ready` y antes de atender consultas. Conservar el archivo válido no permite servirlo indefinidamente.
+- Readiness: acepta `catalog=none` con sincronización apagada; admite `catalog=loaded` con versión válida. Con sincronización habilitada exige coincidencia exacta de la versión activa y la esperada por Laravel. `stale`, `error`, discrepancia o servicio caído producen fallback institucional.
+- El cliente solo admite HTTP en IP literal `127.0.0.1`, sin DNS, redirecciones ni destinos externos, con autenticación entre servidores. Para conversación filtra antes del cliente y envía el mensaje admitido con `history: []`, sin identificador de sesión; no mensajes bloqueados ni registros privados. Mantiene presupuestos de conexión/respuesta y validación estructural de salida.
+- Interruptores independientes **apagados por defecto**: `horus-advisor.enabled` (`HORUS_ADVISOR_ENABLED`) y `horus-catalog.sync_enabled` (`HORUS_AI_CATALOG_SYNC_ENABLED`). No activarlos para visitantes ni modificar `.env` en esta fase documental.
 
-Firma exacta: HMAC-SHA256 sobre UTF-8, JSON compacto, claves de objetos ordenadas recursivamente, Unicode y barras sin escapes innecesarios, listas en orden. Campos firmados: `schema_version`, `catalog_version`, `source_system`, `generated_at`, `expires_at`, `items`; `signature` queda fuera del payload y tiene prefijo `hmac-sha256:`. Clave externa, mínima de 32 caracteres; nunca hardcodear valores. El snapshot Laravel dura como máximo cinco minutos y se acorta al límite de vigencia local, aunque el esquema Python admita hasta 90 días.
+**Exclusión actual:** convenios fuera del catálogo hasta disponer de una fuente editorial Laravel estructurada y autorizada. No extraerlos de Blade ni crear una fuente artificial. Python no consulta PostgreSQL directamente: recibe solo el catálogo público firmado.
 
-**Pendiente:** distribución, carga efectiva, renovación, reconciliación de fecha/zona y retirada/invalidez segura en el motor activo. Un TTL firmado no invalida por sí solo registros ya materializados al arranque. `/catalog/validate` devuelve validación, no sincronización. No hay catálogo sincronizado en producción ni autorización para activar Advisor.
+Fuente externa: `%LOCALAPPDATA%/HorusAudits/fase-a1-catalog-sync-20261104/informe-implementacion-sincronizacion-catalogo.md`. Resultados en §16; HTTP simulado en PHP y ASGI `TestClient` no prueban comunicación entre procesos reales ni PostgreSQL.
+
+### A2 — preparación histórica e integración real validada
+
+**Primer intento (04/11/2026), detenido antes de iniciar servidores:** PHP terminó con código 0, pero falló la comprobación posterior de identidad SQLite. No se conservó la salida original. La reproducción posterior del mismo bootstrap demostró que las rutas Windows `C:/...` de `APP_*_CACHE` se interpretaban como relativas; Laravel les anteponía el repositorio y `PackageManifest` lanzaba una excepción antes de abrir SQLite. El manejador de excepciones Laravel imprimía el error sin exigir salida 1 en esa rama. Luego el arnés intentaba interpretar stdout como JSON, ocultaba la excepción de lectura y sustituía la identidad por un objeto vacío. No fue evidencia de un defecto A1 ni de una conexión PostgreSQL.
+
+**Segundo intento: corrección del arnés y verificación SQLite (04/11/2026).** Se corrigió exclusivamente `C:/Users/PCT40T/AppData/Local/HorusAudits/fase-a2-integracion-20261104/run.py`, con respaldo previo `run.py.before`. El bootstrap temporal reconoce el prefijo absoluto Windows mediante la API de Laravel; se añadió diagnóstico persistente con etapa, esperado/obtenido, excepción, motivo y salida, conservación de stdout/stderr y rechazo explícito ante JSON inválido o timeout. No se modificaron A1 ni las salvaguardas del repositorio.
+
+Sin migraciones ni servidores, las nueve comprobaciones del init corregido confirmaron conexión efectiva `sqlite`, `DB::connection()->getDriverName() = sqlite`, `PDO::ATTR_DRIVER_NAME = sqlite`, ruta física mediante `PRAGMA database_list` dentro del temporal esperado y una única conexión activa SQLite. **Cero conexiones PostgreSQL en los procesos comprobados**; no es medición de otros procesos del equipo. El probe adicional verificó también el directorio de caché. Se eliminaron los temporales propios y los puertos revisados quedaron libres. Evidencia externa: `%LOCALAPPDATA%/HorusAudits/a2-sqlite-preparacion-20261104/informe-correccion-arnes-sqlite.md`, `corrected-init.diagnostics.json` y `summary.json`; primer intento en `fase-a2-integracion-20261104/informe-integracion-real-a2.md`.
+
+**Estado histórico tras reparar la preparación:** A2 aún no estaba aprobada y la integración real no se había ejecutado. Este estado queda sustituido por el cierre funcional documentado abajo. La autorización previa del propietario para iniciar temporalmente ambos servicios **sigue vigente** bajo las restricciones de loopback, credenciales exclusivas en procesos, SQLite temporal aislada y cierre obligatorio. La parada posterior a corregir el arnés se respetó; esta edición solo registra la autorización para una ejecución posterior. No habilitar visitantes ni comenzar Fase B.
+
+Plan de ejecución A2 autorizado, posteriormente comprobado en el alcance del cierre siguiente:
+
+1. Revalidar Git, puertos, procesos e identidad SQLite temporal antes de operar, con datos ficticios y variables de proceso, sin modificar `.env`.
+2. Iniciar Laravel temporalmente en `127.0.0.1` y puerto libre; FastAPI en `127.0.0.1:8001` solo si está libre.
+3. Comprobar comunicación HTTP autenticada, firma, readiness `catalog=loaded` y versión esperada.
+4. Publicar un curso ficticio mediante el flujo editorial real; comprobar sincronización, índice y consulta conversacional.
+5. Modificar el curso y comprobar actualización; retirarlo y verificar desaparición del índice y de las respuestas como disponible.
+6. Repetir publicación, modificación y retirada con un servicio tecnológico.
+7. Probar firma incorrecta, manipulación, versión antigua, catálogo vacío, token incorrecto, concurrencia, fallo de construcción del índice, caída y recuperación de FastAPI; conservar la versión válida sin responder con información obsoleta.
+8. Comprobar solo campos públicos exportados, ausencia de mensajes personales transmitidos, cero conexiones PostgreSQL y cero llamadas OpenAI/externas. No inventar precios, fechas, cupos o características.
+9. Detener todos los procesos propios, verificar puertos libres, eliminar solo temporales identificados y comparar Git, `.env` y evidencia antes/después. Ante fallo, registrar diagnóstico y detenerse antes de modificar componentes adicionales.
+
+### Cierre funcional A2 — 04/11/2026
+
+**APROBADA para integración local de prueba; no es activación pública ni aprobación universal de privacidad.** Se utilizó el arnés externo corregido `fase-a2-integracion-20261104/run.py`: Laravel real en `127.0.0.1:8765`, FastAPI real en `127.0.0.1:8001`, SQLite física temporal identificada por Laravel/PDO y `PRAGMA database_list`, token/clave exclusivos en variables de proceso y MiniLM local offline. Las migraciones y fixtures solo se ejecutaron en esa SQLite. No se abrió conexión PostgreSQL ni se llamó a OpenAI/servicios externos.
+
+La ejecución final registró **47 comprobaciones nombradas del arnés (incluidas revalidaciones) y tres precondiciones de proceso, todas aprobadas**. Publicación, modificación y retirada de un curso y un servicio mediante controladores editoriales reales sincronizaron el catálogo y el índice; las consultas respondieron con texto nuevo y dejaron de ofrecer lo retirado. Los borradores y campos administrativos de prueba no se exportaron. Laravel registró 16 intentos POST de sincronización, ocho GET de readiness (incluida la caída comprobada) y siete POST conversacionales hacia Python; los ataques de firma/token se probaron además por HTTP directo a FastAPI.
+
+Se comprobaron token incorrecto (401), firma inválida/manipulación (422), snapshot antiguo firmado (409), snapshots vacíos por retirada, dos actualizaciones simultáneas idempotentes (200/200), conservación del archivo válido ante rechazo, contingencia durante caída y recuperación tras reiniciar FastAPI. **El fallo de construcción del índice fue inyectado únicamente en el proceso temporal**, mediante una excepción controlada en `SemanticIndex.rebuilt`: HTTP real 503, archivo válido intacto y recuperación posterior; no representa un fallo físico real ni añade un hook al código de aplicación.
+
+**Defecto de integración corregido:** Laravel rechazaba toda referencia `cat_*`, de modo que un curso correctamente sincronizado terminaba en fallback. Se añadió `FuentesCatalogoAdvisor` y una extensión acotada de procedencia en `HorusAdvisorClient`: solo acepta referencias y texto editorial exactos reconstruidos del snapshot público local firmado que coincide con la versión esperada. No se confía en el prefijo por sí solo; fuentes desconocidas, títulos/textos alterados, firma inválida y fuentes retiradas se rechazan. No se modificaron `FiltroPrivacidadChat` ni los léxicos. Prueba RED reproducida antes de la corrección y regresión posterior en `AdvisorFuentesCatalogoTest`.
+
+El mensaje personal ficticio de esta integración produjo cero HTTP, ChatLog con marcador de omisión y ningún original en archivos temporales revisados, incluidos SQLite, logs y caché. No se accedió a la reserva restringida ni se repitió su evaluación. La identidad de operador editorial fue una cuenta admin ficticia inyectada por el router temporal protegido con cabecera local; se ejercitaron controladores y permisos, **no el login ni la protección CSRF de producción**. Las garantías se limitan a estos procesos y datos ficticios.
+
+El arnés también necesitó correcciones locales para el canal interno `asyncio` de Windows, espera explícita de arranque en frío y cierre del árbol del lanzador Python. Un intento dejó un hijo vivo; se identificó y detuvo antes de continuar. La ejecución final comprobó cierre de los procesos propios, cero listeners en 8001/8765, eliminación del temporal identificado y ningún cambio de archivos durante el recorrido. Las protecciones impiden HTTP externo de Laravel y salidas Python ajenas al canal interno permitido; no es una captura global del tráfico de otros procesos del equipo.
+
+**Regresión final afectada:** PHP 321 aprobadas, 2.228 aserciones, incluidas seis pruebas nuevas de procedencia; Pint acotado, PHPStan de servicios modificados y `git diff --check` aprobados. No se presenta una nueva suite global PHP/Python: las cifras A1 de §16 siguen históricas. Cambios de repositorio de esta tarea: `app/Services/HorusAdvisorClient.php`, nuevo `app/Services/FuentesCatalogoAdvisor.php`, nueva `tests/Feature/AdvisorFuentesCatalogoTest.php` y este contexto. Respaldos previos de cliente y contexto en `fase-a2-integracion-20261104/correccion-fuentes/`; el arnés tiene su copia externa previa. Índice, HEAD, 24 commits, dos stashes, `.env`, `.env.example`, filtros de privacidad y cambios ajenos preservados.
+
+**Evidencia externa final:** `%LOCALAPPDATA%/HorusAudits/fase-a2-integracion-20261104/functional-20261104-072030/` (`results.json`, inventarios Git, transporte y logs saneados), `functional-final-summary.json` e `informe-integracion-real-a2-final.md`. Los intentos fallidos se conservaron separados. Servicios apagados al finalizar; sincronización y Advisor continúan desactivados por defecto para visitantes. Convenios siguen excluidos. **Fase B no iniciada; cualquier activación pública requiere autorización independiente.**
 
 <a id="publicacion"></a>
 ## 13. Publicación administrativa y web
@@ -424,6 +494,8 @@ Validación 18.1: **35 pruebas PHP específicas/466 aserciones; suite completa 9
 
 `catalogo-servicios.enabled=false` sigue intacto: sin sección, lectura o introspección del esquema nuevo cuando está apagado. Encendido solo en pruebas: excluye estados/autores no elegibles; vacío e infraestructura incompleta tienen respuesta pública controlada y logs de códigos sin datos/SQL. Captura únicamente excepciones SQL o de provisión conocidas; no oculta errores de programación. Respuesta `no-store, private`, sin escrituras públicas. Smoke Edge: **15 casos en 390/768/1440 px**, comparaciones de HTML/geometría originales, textos largos, enlaces, foco/Tab y cero excepciones JS/destinos externos; fixture exclusiva `127.0.0.1:8774`, SQLite en memoria reconstruida por petición. Selección PHP servicios/panel/cursos: **80 aprobadas, 866 aserciones**; 18 pruebas frontend, build, Larastan 6 y Pint acotado aprobados. Suite completa SQLite: **1011 aprobadas, 6741 aserciones**. No datos reales, migraciones reales, interacción PostgreSQL/S7/000022, proveedores, commits/push o cambios de stashes. Continúan pendientes aceptación PostgreSQL, autorización de migraciones concretas y activación operativa separada; Sprint 19 conserva el contrato de UUID estable/snapshot histórico privado, sin módulo comercial nuevo.
 
+**Sprint 18.3, contenido administrable local del 02/11/2026:** [contenido de las páginas de servicios](docs/sprint-18-3-contenido-servicios.md). Amplía el módulo existente (sin módulo paralelo) para Cableado estructurado (`CABLEADO`), Sistema de videovigilancia (`VIDEOVIGILANCIA`) y Soporte y mantenimiento (`SOPORTE`), identificados por el `codigo` estable del servicio (`App\Support\PaginasServicios`). Migración aditiva `000033`: columnas `titulo_tarjetas`, `imagen_principal_ruta`, `imagen_principal_alt` en `servicio_publicaciones` y tabla `servicio_publicacion_elementos` (FK restrict, índice de visualización, CHECK/trigger de orden y encuadre). Rutas nuevas bajo `/admin/servicios/{servicio}`: `POST publicacion/imagen`, `POST elementos`, `POST|DELETE elementos/{elemento}`, todas con `servicios.editar`, CSRF, `If-Match`, bloqueo, revisión y auditoría (`servicio_elemento_*`, `servicio_imagen_principal_actualizada`); ficha publicada exige retiro previo. Sin permisos nuevos ni cambios al seeder de roles. Imágenes solo en Laravel Storage disco `public` (`ImagenesServicios`): JPG/PNG/WebP por contenido real, 3 MB, sin SVG, nombre UUID del servidor, rutas relativas, borrado posterior a la confirmación y solo sin referencias; las rutas `assets/images/...` del contenido inicial nunca se borran. `storage:link` **no ejecutado** (pendiente de autorización). `ServiciosTecnologicosContenidoSeeder` idempotente importa 6/10/3 tarjetas originales como borrador inactivo; **no ejecutado** sobre bases persistentes. Páginas: cableado y cámaras pasan a `PaginaTecnologicaController`; soporte conserva `ServiciosPublicosController`; `ContenidoPublicoServicios` solo devuelve contenido activo, publicado, autorizado y vigente con `catalogo-servicios.enabled=true` (sigue `false`); en otro caso se sirve el HTML estático original sin consultas. El catálogo genérico excluye las tres categorías. Validación: 104 pruebas de servicios/1279 aserciones; **suite completa SQLite 1901 aprobadas + 1 omitida/12811 aserciones**; 45 pruebas frontend; build; Larastan 6 y Pint acotado limpios; Edge 390/768/1440: páginas dinámicas idénticas al estático (texto, imágenes, geometría) y panel con formulario de tarjeta. Sin PostgreSQL, migraciones reales, commits ni cambios de stashes.
+
 **Sprint 19, backend privado local del 29/10/2026:** [solicitudes de cotización](docs/sprint-19-cotizaciones.md), sobre `anderson` / `038895280000f57d39c698e40d3436fecc0d716f`. Se reutilizan sesión/rol/CSRF, permisos Spatie y auditoría; nuevos expediente e historial privados, API JSON sin frontend, contacto mínimo, necesidad, responsable y seguimiento. Servicio opcional con snapshot del nombre administrativo y UUID estable; asociación histórica no sustituible y FK RESTRICT, sin efectos por retiro/archivo. El propietario autorizó solo `recibida → en_revision`; no hay cotizada, aceptada, rechazada, cierres, precios o aprobaciones comerciales.
 
 Permisos `cotizaciones.ver|crear|editar|gestionar`, solo admin por defecto, con constante y migración aditiva `000028`; esquema `000027` únicamente probado en SQLite. Escrituras transaccionales con reautorización, bloqueo, ETag/If-Match, historia y auditoría atómicas minimizadas. Claves UUID idempotentes por operador/operación en creación y seguimiento; reserva durante vida del expediente, huella HMAC, sin duplicar por contacto. Mutaciones devuelven recibo mínimo sin conceder lectura; GET no escribe. Retención personal, recepción/consentimiento/antispam públicos, UI, estados comerciales y operación real requieren decisiones posteriores. Catálogos/Resend/verificación/Advisor siguen apagados, sin cambios frontend/Python/cursos/servicios anteriores, PostgreSQL/S7/000022, índice, commits/push o stashes. Se preservan íntegros los documentos PostgreSQL preexistentes; SQLite no valida concurrencia/DDL PostgreSQL.
@@ -455,16 +527,37 @@ Fuente normativa: [AGENTS.md](AGENTS.md), contratos de [CLAUDE.md](CLAUDE.md), [
 - No reintroducir Docentes, Sesiones o Certificados. No ampliar permisos por conveniencia; permisos nuevos requieren constante del seeder y migración propia.
 - Bloquear y releer dentro de transacción las operaciones de cupos/permisos sensibles. Conservar el orden cursos → estudiantes → matrícula y las excepciones históricas documentadas.
 
+### Decisiones permanentes de Horus AI Advanced
+
+PostgreSQL es la fuente institucional privada; Laravel selecciona y publica la información autorizada. Python nunca consulta PostgreSQL directamente y recibe exclusivamente el catálogo público firmado. No incorporar borradores, estudiantes, matrículas individuales, pagos, comprobantes, usuarios, contraseñas ni información administrativa privada. No inventar precios, fechas, cupos o características. Mantener filtros de privacidad, auditoría anonimizada y fallback institucional; no enviar mensajes a OpenAI ni activar el chatbot para visitantes sin autorización expresa. La autorización temporal A2 no autoriza publicación ni despliegue.
+
 ### Discrepancias documentales conocidas
 
 `CLAUDE.md` todavía dice que el controlador público no está enrutado y que solo existe la lectura `vigentes()`; el código actual y Sprint 17.2 confirman ruta conectada y `paraWeb()`, con ambos catálogos apagados por separado. La prohibición general de enrutar/modificar contenido no se elimina: hubo una autorización concreta y limitada para 17.2. Esta tarea solo añade enlace al contexto en esa guía, sin reescribir sus reglas previas.
 
-El comentario de `config/catalogo-publico.php` describe la preparación anterior, y el README Python aún presenta la integración Laravel como futura. En Laravel ya existe cliente opcional, pero sigue apagado y sin sincronización operativa. Las afirmaciones de caducidad en ese README deben contrastarse con la carga al arranque. Los encabezados antiguos de L2.2-A/B/S3 describen etapas anteriores; L2.3 aporta la observación posterior de S7. Señalar la discrepancia antes de una tarea cuyo alcance dependa de resolverla; no interpretar este contexto como autorización para sobrepasar las reglas.
+El comentario de `config/catalogo-publico.php` describe la preparación anterior, y el README Python aún presenta la integración Laravel como futura. A1 ya implementa cliente y sincronización de código, apagados por defecto; A2 verificó su integración HTTP local y cerró los procesos de prueba (§12). Las afirmaciones de caducidad en ese README deben contrastarse con la carga al arranque. Los encabezados antiguos de L2.2-A/B/S3 describen etapas anteriores; L2.3 aporta la observación posterior de S7. Señalar la discrepancia antes de una tarea cuyo alcance dependa de resolverla; no interpretar este contexto como autorización para sobrepasar las reglas.
 
 <a id="calidad"></a>
 ## 16. Estado de calidad y pruebas
 
-**Último resultado funcional documentado: restricción comercial admin**, [informe](docs/restriccion-acceso-comercial-admin.md): **1066 pruebas PHP/7447 aserciones** en SQLite; selección cotizaciones/panel **55/704**, 36 frontend, build, Larastan 6, Pint acotado, diff y smoke Edge 390/768/1440 aprobados; sin PostgreSQL. **Resultado previo Sprint 19.1**, [informe](docs/sprint-19-1-panel-cotizaciones.md): 1064 PHP/7361 aserciones, 7 nuevas/78. **Resultado previo Sprint 19**, [informe](docs/sprint-19-cotizaciones.md): 1057 PHP/7283 aserciones, 46 específicas/540, sin frontend. **Resultado previo de Sprint 18.2**, detallado en §14 y en [su informe](docs/sprint-18-2-servicios-web.md): 1011 pruebas PHP/6741 aserciones en SQLite, 18 pruebas frontend, build, Larastan 6, Pint acotado y 15 casos Edge aprobados. La tabla siguiente corresponde al Sprint 17.2.
+**Resultados al 04/11/2026:** privacidad y A1 son ejecuciones históricas contrastadas con informes/agregados; las filas de integración A2 y regresión afectada corresponden a la ejecución funcional posterior documentada en §12.
+
+| Etapa / comprobación | Resultado y alcance |
+| --- | --- |
+| Cierre de privacidad conocida | 43 casos bloqueados, incluidos 21 restringidos; agregados y límites en §10 |
+| PHPUnit del cierre de privacidad | 3.350 aprobadas, una omitida por requerir PostgreSQL |
+| A1, PHP completo | 3.361 aprobadas, una omitida |
+| A1, bloque focalizado ampliado | 315 pruebas y 2.218 aserciones |
+| A1, Python | 164 aprobadas, 11 deseleccionadas |
+| A1, sincronización específica Python | 10 aprobadas |
+| A1, Ruff / Pint / PHPStan / git diff --check | Aprobados en el alcance del informe; Pint/PHPStan acotados a archivos de implementación |
+| A2, preparación SQLite | Identidad Laravel/PDO/archivo temporal y cero conexiones PostgreSQL en los procesos comprobados; sin migraciones ni servidores en esa verificación |
+| A2, integración real local (04/11) | APROBADA: 47 comprobaciones nombradas y tres precondiciones de proceso; MiniLM real, HTTP loopback y SQLite temporal. Límites y fallos inyectados en §12 |
+| A2, regresión PHP afectada | 321 aprobadas, 2.228 aserciones; seis pruebas nuevas de procedencia; Pint/PHPStan acotados y diff aprobados |
+
+Son ejecuciones distintas: no sumar cifras ni presentar métricas de desarrollo como evaluación independiente. A1 usó SQLite aislada, HTTP simulado en PHP y ASGI en Python; no acredita comunicación real entre procesos, PostgreSQL ni activación pública. Fuentes y secuencia en §10–12. La ejecución A2 añadió la regresión afectada indicada; no se repitieron las suites globales A1 ni la reserva restringida.
+
+**Resultado funcional histórico del 29/10/2026: restricción comercial admin**, [informe](docs/restriccion-acceso-comercial-admin.md): **1066 pruebas PHP/7447 aserciones** en SQLite; selección cotizaciones/panel **55/704**, 36 frontend, build, Larastan 6, Pint acotado, diff y smoke Edge 390/768/1440 aprobados; sin PostgreSQL. **Resultado previo Sprint 19.1**, [informe](docs/sprint-19-1-panel-cotizaciones.md): 1064 PHP/7361 aserciones, 7 nuevas/78. **Resultado previo Sprint 19**, [informe](docs/sprint-19-cotizaciones.md): 1057 PHP/7283 aserciones, 46 específicas/540, sin frontend. **Resultado previo de Sprint 18.2**, detallado en §14 y en [su informe](docs/sprint-18-2-servicios-web.md): 1011 pruebas PHP/6741 aserciones en SQLite, 18 pruebas frontend, build, Larastan 6, Pint acotado y 15 casos Edge aprobados. La tabla siguiente corresponde al Sprint 17.2.
 
 Actualización PostgreSQL 29/10: se ejecutó únicamente la selección de seguridad `TestDatabaseSafetyTest|ConcurrentTestSessionTest|PostgresTestGuardTest`: **96 aprobadas, 366 aserciones**, 15,49 segundos, con dobles y sin sockets PostgreSQL. No se repitieron suite funcional completa ni Larastan; la integración y concurrencia PostgreSQL continúan sin ejecutar por indisponibilidad y dependencia suspendida `000022`.
 
@@ -498,9 +591,9 @@ Orden propuesto por el propietario para organizar futuras tareas; **no autoriza 
 | 4. Activación editorial en entorno autorizado | Revisar `000021`, permiso/autores, fichas reales, retiros/caducidad, logs y rollback operativo del flag |
 | 5. Sprints 18–18.2, servicios implementados localmente | Backend, panel y conexión web preparados; pendientes aceptación PostgreSQL, migraciones autorizadas y activación controlada |
 | 6. Sprints 19/19.1 implementados localmente; 19.2 documental | Backend y panel privados con estados mínimos; propuesta de recepción pública revisable, sin implementar. Pendientes decisiones de privacidad/retención, alcance y autorización de implementación/activación independientes, reglas comerciales adicionales y aceptación PostgreSQL antes de datos reales |
-| 7. Distribución/invalidez del catálogo Python | Resolver carga/recarga, retirada, expiración en caliente y zona horaria; no basta validar HMAC |
-| 8. Validación independiente del chatbot | Corpus separado, usuarios/casos reales autorizados, privacidad, calidad y consumo de recursos |
-| 9. Integración funcional gradual de Advisor | Revisar contrato Python vigente, seguridad, timeout/fallback y observabilidad antes de activar |
+| 7. Catálogo A1 e integración local A2 validados | Recarga, firma/versiones, retirada, caché e índice validados en el alcance de §12; convenios excluidos. Operación pública no activada |
+| 8. Privacidad y calidad residual | Casos conocidos cerrados (§10), sin garantía universal; preservar la reserva restringida y no crear/exportar nuevos corpus sin alcance autorizado |
+| 9. A2 local completada | Curso/servicio, seguridad, privacidad y recuperación comprobados; servicios de prueba detenidos. No comenzar Fase B ni activar visitantes sin autorización posterior |
 | 10. Despliegue y operación | Autorizaciones separadas, privilegios mínimos, backup recuperable, workers/scheduler y control de activaciones |
 
 Deuda adicional acotada: paginación de lectura web para catálogos grandes, imágenes/campos editoriales enriquecidos si se aprueban, actualización de referencias históricas contradictorias y límites de memoria de Excel/semántica. No convertir esta lista en una reimplementación general.
@@ -1165,6 +1258,8 @@ Rama `anderson`, sin commits ni staging de esta fase. Todo es cambio sin seguimi
 
 ### 10. Todavía deshabilitado / no implementado
 Recepción pública (sin ruta `POST`, formulario real, vista, JS, CSS, aviso Anexo III ni política de privacidad: el formulario simulado actual sigue igual); panel `/admin/reclamaciones` (controlador, rutas, vistas, sidebar); envío real de correo; comando de vencimientos; purga/anonimización; pruebas PostgreSQL de concurrencia.
+
+> **Estado posterior (01/11/2026):** esta lista es histórica. La recepción pública (E1), el formulario conectado (E2) y la consulta administrativa con impresión (E3) ya están implementados en el árbol de trabajo, con el módulo apagado; el comando de vencimientos existe desde el Sprint 22. Ver la sección final «LIBRO DE RECLAMACIONES — ETAPAS E1, E2 Y E3».
 
 ### 11. Siguiente paso recomendado
 Fase 3 con autorización expresa: endpoint público tras el flag (`POST` con CSRF, `throttle:reclamaciones`, `RecepcionReclamacionesHabilitada`, token en sesión). Antes, y con autorización, revisar en el perfil PostgreSQL aislado la migración 000030 y la concurrencia de la numeración.
@@ -3427,3 +3522,474 @@ Orden obligatorio 1→2→3 (`SecretsAndExportsTest` depende del cambio de expor
   - La lectura compartida de las generales sigue pendiente de negocio.
 - **Restricciones respetadas:** sin `horus_group`, 5432 ni 55432; sin `migrate:fresh`, truncados ni seeders; sin cambios de permisos, roles ni `.env`; sin push ni despliegue. Los dos stashes y los seis archivos de frontend de Argon están intactos (SHA-256 verificado).
 - **Estado:** privacidad de notificaciones y migración 000032 **cerradas y consolidadas**.
+
+---
+
+## ESTABILIZACIÓN DEL MÓDULO DE APROBACIONES INTERNAS — POLÍTICA OPCIÓN A Y ATOMICIDAD TRANSACCIONAL
+
+> Fecha: 01/11/2026 · Rama `anderson`, commit local `7914438` (`feat(aprobaciones): estabilizacion del modulo de aprobaciones internas con politica opcion a y control de concurrencia`). Trabajo focalizado exclusivamente en backend, reglas de negocio, autorizaciones, atomicidad y pruebas del módulo de Aprobaciones Internas. Evidencia completa en SQLite en memoria (`phpunit.xml`).
+
+- **Servicio de Dominio Centralizado:** Creación de [`GestionAprobaciones.php`](app/Services/GestionAprobaciones.php) que encapsula todas las transacciones del ciclo de vida (`registrar`, `actualizar`, `eliminar`, `aprobar`, `rechazar`, `reabrir`). Utiliza `DB::transaction()` con bloqueo pesimista `AprobacionInterna::query()->lockForUpdate()->findOrFail($id)`.
+- **Matriz de Autoridad Resolutiva:**
+  - **Solicitudes de tipo `compra`:** Autoridad exclusiva de Gerencia (`admin`).
+  - **Solicitudes de tipo `operativo`:** Autoridad exclusiva de Coordinación (`coordinador`).
+  - **Solicitudes sin clasificar (tipo legacy `solicitud`):** Bloqueadas institucionalmente (HTTP 403) para cualquier rol hasta su reclasificación formal.
+  - **Prohibición estricta de autoaprobación:** Si el actor es el solicitante original (`solicitud->esSolicitante($actor)`), tiene terminantemente denegado aprobar o rechazar su propia solicitud (retorna HTTP 403 Forbidden).
+  - **Motivo obligatorio:** Tanto el rechazo como la reapertura exigen motivo obligatorio (`motivo` mínimo 3 caracteres), auditado en la transacción.
+- **Política Institucional Ratificada (Opción A):**
+  - **Solicitante original (cualquier rol staff con acceso):** Puede modificar y eliminar sus propias solicitudes pendientes.
+  - **Gerencia (`admin`):** Puede modificar y eliminar solicitudes pendientes propias y de terceros.
+  - **Coordinación (`coordinador`):** Solo puede modificar y eliminar sus propias solicitudes pendientes. Intentos sobre solicitudes ajenas retornan **HTTP 403 Forbidden**.
+  - **Secretaría (`secretaria`):** Solo puede modificar y eliminar sus propias solicitudes pendientes. Intentos sobre solicitudes ajenas retornan **HTTP 403 Forbidden**.
+  - **Usuario común:** Sin acceso al prefijo `/admin` (`role:admin|coordinador|secretaria`) ni permisos Spatie (`aprobaciones.ver`). Intentos directos de HTTP PUT/DELETE retornan **HTTP 403 Forbidden**.
+  - **Inmutabilidad de solicitudes resueltas:** Cualquier intento de modificar o eliminar solicitudes en estado definitivo (`aprobado` o `rechazado`) retorna **HTTP 409 Conflict** (`exigirPendiente`).
+  - **Inmutabilidad en CRUD genérico:** Se bloquea cualquier intento de sustituir autoría (`solicitante_id`), alterar `tipo`, manipular `aprobador_id` o cambiar `estado` mediante `update` genérico.
+- **Rutas y Middleware:**
+  - En [`routes/web.php`](routes/web.php), se crearon endpoints dedicados:
+    - `POST /admin/aprobaciones/{aprobacion}/aprobar` (`permission:aprobaciones.gestionar`)
+    - `POST /admin/aprobaciones/{aprobacion}/rechazar` (`permission:aprobaciones.gestionar`)
+    - `POST /admin/aprobaciones/{aprobacion}/reabrir` (`permission:aprobaciones.gestionar`)
+  - En `AprobacionController`, las rutas `update` y `destroy` aplican `permission:aprobaciones.ver`, permitiendo que el solicitante (incluida Secretaría) modifique o elimine su solicitud propia, mientras que el controlador y el servicio verifican la autoría/Gerencia (`abort_unless($aprobacion->esSolicitante($actor) || $actor->hasRole('admin'), 403)`).
+- **Rendimiento e Integridad:**
+  - Optimización de consultas: Implementación del método de consulta por lotes `AprobacionInterna::historialesDe(array $ids)` que elimina las consultas N+1 al consultar historiales de auditoría en la bandeja de aprobaciones.
+  - Trazabilidad y Atomicidad: Cada transición registra un evento en `AuditLog` dentro de la transacción. Si el registro de auditoría o la notificación al solicitante/responsable falla, la transacción realiza rollback completo sin dejar estados parciales huérfanos.
+- **Verificación Técnica y Resultados:**
+  - `AprobacionOperationsTest`: **29/29 aprobadas (122 aserciones)**, cubriendo toda la matriz de autoridad, prevención de autoaprobación, tipo legacy, la matriz de edición/eliminación Opción A, reversión atómica y bloqueos.
+  - `AdminAuthorizationTest`: **86/86 aprobadas (259 aserciones)**.
+  - `Sprint12AtomicityTest`: **8/8 aprobadas (40 aserciones)**.
+  - `NotificacionAudienciaTest`: **15/15 aprobadas (106 aserciones)**.
+  - **Suite completa del sistema (`php artisan test --compact`): 1 omitida (Postgres aislada), 1.774 aprobadas (11.082 aserciones), 0 fallos.**
+  - Análisis estático: **Larastan nivel 6 aprobado (0 errores en 197 archivos)**.
+  - Formato y estilo: **Laravel Pint aprobado** y `git diff --check` limpio.
+- **Arnés PostgreSQL Preparado (No Ejecutado):**
+  - Preparación de [`tests/PostgresIntegrity/AprobacionesConcurrenciaPostgresTest.php`](tests/PostgresIntegrity/AprobacionesConcurrenciaPostgresTest.php) con el arnés `RequiresIsolatedPostgres`. Valida de forma determinista entre dos conexiones concurrentes: `SELECT ... FOR UPDATE`, detección de bloqueo con timeout `55P03`, commit de la primera transacción y respuesta `HTTP 409 Conflict` en la segunda conexión. La prueba se mantiene omitida (*skipped*) y **no ejecutada** al permanecer suspendido el entorno PostgreSQL S7.
+- **Restricciones Respetadas:** Sin migraciones reales, sin seeders sobre bases activas, sin conexiones ni pruebas contra PostgreSQL en puerto 55433, sin modificaciones a archivos `.env`, sin push a remoto.
+
+---
+
+## LIBRO DE RECLAMACIONES — ETAPAS E1, E2 Y E3
+
+> Fecha: 01/11/2026 · Rama `anderson`, HEAD `7914438` (sin commits de estas etapas). **Nomenclatura:** E1–E4 son etapas del Libro de Reclamaciones definidas por el propietario (E1 endpoint, E2 formulario, E3 consulta e impresión, E4 gestión). No confundir con las decisiones legales «E1–E6» de la Fase 1.2 (por ejemplo, «E3 Si el teléfono puede ser opcional»), que siguen **sin resolver**. Las fases del diseño (Fase 3 endpoint, Fase 4 panel…) y el «Sprint 25» citado en `docs/sprint-22-reclamaciones-vencimientos.md` describen el mismo trabajo con otra numeración.
+
+**E1 — Endpoint público.** `GET /libro-reclamaciones` ([LibroReclamacionesController](app/Http/Controllers/LibroReclamacionesController.php)) muestra la hoja; `POST /libro-reclamaciones` con grupo `web` (sesión y CSRF), `RecepcionReclamacionesHabilitada` antes de `throttle:reclamaciones`, `StoreReclamacionRequest::datosReclamacion()` y `GestionReclamaciones::registrarPublica()`. Apagado responde 404 sin leer el cuerpo. Pruebas: `LibroReclamacionesHttpTest`, `GestionReclamacionesTest`.
+
+**E2 — Formulario conectado.** Vista `pages/legales/libro-reclamaciones.blade.php`, `public/assets/js/libro-reclamaciones.js` y `public/assets/css/libro/libro-reclamaciones.css`: selección queja/reclamo, validaciones, marca antispam y token de envío, confirmación con el número real del servidor; envío bloqueado mientras el módulo esté apagado. Smoke: `tests/browser/libro-reclamaciones-smoke.mjs` con `tests/Support/reclamaciones-browser-router.php` (opt-in, SQLite en memoria).
+
+**E3 — Consulta administrativa e impresión (solo lectura).**
+- **Rutas** (grupo `/admin`, `role:admin|coordinador|secretaria`, y `permission:reclamaciones.ver` en el controlador): `GET admin/reclamaciones` (`index`), `GET admin/reclamaciones/{uuid}` (`show`), `GET admin/reclamaciones/{uuid}/hoja` (`hoja`, nueva). Solo `GET/HEAD`; ninguna acción de E4 (asignar, reclasificar, notas, propuestas, aceptación/rechazo, respuesta, reintentos) está expuesta.
+- **Listado:** búsqueda `whereLike` por número, nombres, apellidos y nombre completo (sin cambios), filtros tipo/estado/fechas, paginación de 15, métricas, documento enmascarado. Consultas constantes (sin N+1).
+- **Detalle:** datos del registro, consumidor, bien, hechos, pedido, representante, respuesta, plazos; **nuevos** F. Historial de actuaciones (evento, responsable, fecha, transición de estado cuando corresponde, detalles de metadatos conocidos y nota) y G. Envíos y notificaciones (tipo, canal, destinatario enmascarado `pe•••@dominio`, fecha, estado, intentos, código de error o constancia de carta). No muestra cuerpos de correo, asunto, `clave` ni `proveedor_id`. Presentación en [PresentacionReclamacion](app/Support/PresentacionReclamacion.php); historial y envíos con dos consultas agrupadas.
+- **Impresión:** vista independiente `admin/reclamaciones/hoja.blade.php` con el texto oficial de [HojaReclamacion::cuerpo()](app/Support/HojaReclamacion.php) (el mismo de la copia al consumidor; proveedor ausente = «no configurado») más la sección 4 (respuesta y fecha, o «Pendiente de respuesta»). HTML imprimible con `window.print()`; no se creó infraestructura PDF ni se tocó Dompdf/reportes.
+- **GET sin efectos sobre reclamaciones:** `GestionReclamaciones::consultar()` ya **no** ejecuta `evaluarVencimiento()` ni bloquea el caso; `imprimir()` comparte la misma lectura (`leer()`). El vencimiento se muestra en modo lectura con `propuestaVencidaSinProcesar()` (misma regla que usa `evaluarVencimiento()`) y `umbralAviso()`; lo persiste únicamente el proceso diario `horus:reclamaciones-vencimientos` (Sprint 22, 08:00 Lima, sin efecto con el módulo apagado). Plazos y reglas sin cambios.
+- **Auditoría (`audit_logs`, sin datos personales):** `reclamacion_bandeja_consultada` (actor, `model_id` nulo, nombres de filtros usados y página; nunca el término buscado), `reclamacion_consultada` y `reclamacion_impresa` (actor, id y número). Peticiones inválidas o denegadas no se auditan.
+- **Permisos:** sin cambios. `reclamaciones.ver` solo `admin` (migración 000031). Coordinación, Secretaría y usuario común: 403; visitante: login. Sin permisos, roles, seeders ni migraciones nuevas.
+
+**Archivos de E3.** Modificados: `app/Services/GestionReclamaciones.php` (`consultar` de solo lectura, `imprimir`, `registrarConsultaBandeja`, `propuestaVencidaSinProcesar`, `porIdentificador`), `app/Support/AuditoriaReclamaciones.php` (`registrarBandeja`), `app/Http/Controllers/Admin/ReclamacionController.php` (auditoría del listado, indicadores, `hoja`), `routes/web.php` (ruta `hoja`), `resources/views/admin/reclamaciones/show.blade.php`, `tests/Feature/AdminReclamacionesTest.php` (+13 pruebas), `tests/Feature/GestionReclamacionesTest.php` (inventario de rutas con `hoja`, solo GET). Nuevos: `app/Support/PresentacionReclamacion.php`, `resources/views/admin/reclamaciones/hoja.blade.php`.
+
+**Pruebas (SQLite en memoria, `phpunit.xml`).** `AdminReclamacionesTest`: 36 pasadas (388 aserciones), incluye matriz de acceso, auditoría, historial/envíos, aislamiento entre expedientes, escape de HTML, impresión, regresión de GET con propuesta vencida (verificada por mutación: falla si se reintroduce `evaluarVencimiento()` en la lectura) y N+1. Filtro reclamaciones/autorización/auditoría: 551 pasadas (3375 aserciones). Suite completa `php artisan test --compact`: **1831 pasadas, 1 omitida, 11706 aserciones, exit 0**; la omitida es la preexistente `ReportExcelExportTest::test_excel_export_opens_its_own_snapshot_instead_of_joining_a_test_transaction` (solo PostgreSQL). Larastan nivel 6 sin errores; Pint `--test` aprobado en los archivos PHP propios.
+
+**Limitaciones.** PostgreSQL **no validado físicamente** en E1–E3 (SQLite ignora `lockForUpdate`; `whereLike` → `ILIKE` y la concatenación `||` solo se razonaron). Sin smoke de navegador ni `npm run build` para E3 (la vista usa clases Tailwind existentes y estilos en línea en la hoja). La búsqueda por nombres con `LIKE '%…%'` se aparta de la recomendación de la Fase 1.2 («sin LIKE sobre datos personales»); queda aceptada de hecho y pendiente de ratificación. Pendiente para E4 o posterior: acciones de gestión y respuesta, enlace desde los avisos internos al caso, purga/anonimización, decisiones legales E1–E6, datos del proveedor y activación.
+
+**Estado.** `reclamaciones.enabled=false` y `correo.enabled=false` sin cambios; ningún correo enviado. Git: todo E1–E3 sigue sin commit (archivos modificados y sin seguimiento en el árbol de trabajo); dos stashes intactos.
+
+## AUDITORÍA CORRECTIVA DE LOS 61 ARCHIVOS PENDIENTES — 02/11/2026
+
+Al comenzar se verificaron `anderson`, HEAD `7914438d59b77b6a5e09a15d371e635cca2d894d`, 34 archivos modificados, 27 nuevos, índice vacío, 24 commits por delante de la referencia local `origin/anderson` y dos stashes. Se respaldaron externamente los 61 contenidos con SHA-256 y verificación de cada copia. No se consultó el remoto.
+
+Revisión por grupos: V-01 y dashboard conservaron su código tras las pruebas dirigidas; Reclamaciones recibió escape SQL explícito para que `%`, `_`, `!` y la barra invertida se busquen literalmente (regresión reproducida antes de corregir); Servicios recibió manejo del error SQL durante la comprobación de esquema para conservar el respaldo estático (regresión reproducida); Convenios usa un diálogo modal nativo con confinamiento de Tab/Shift+Tab, cierre con Escape y devolución del foco (fallo inicial y corrección comprobados en Edge a 390/768/1440 px). No se cambiaron colores. Rutas, sidebar y estados compartidos se conservaron.
+
+**Decisión funcional vigente de Servicios:** las tres páginas siguen siendo informativas; solicitar cotización deberá abrir el chatbot Python con el contexto del servicio. No se exige reconstruir páginas mediante tarjetas. La migración `000033`, el seeder y el editor se conservan como candidatos a retirada o adaptación coordinada, sin eliminarlos ni ejecutarlos sobre bases persistentes. Véase [la evaluación y las dependencias](docs/sprint-18-3-contenido-servicios.md#auditoría-correctiva-del-02112026-diseño-funcional-vigente). El proxy conversacional, el contexto de servicio y la retirada del motor PHP requieren una fase independiente: sus archivos están fuera de estos 61 y no se modificaron.
+
+Evidencia dirigida nueva: V-01 19 pruebas/318 aserciones; dashboard y notificaciones 27/296; Reclamaciones HTTP/panel tras corregir 58/630; Servicios 105/1287; 20 pruebas frontend específicas de Servicios. Edge aprobó el formulario de Reclamaciones, nueve escenarios de Servicios y tres tamaños del modal de Convenios. Los smokes usan fixtures SQLite en memoria y no acreditan PostgreSQL, entrega real de correo, llamadas a Python/OpenAI ni despliegue. Las migraciones y seeders usados internamente por las pruebas reconstruyen exclusivamente esa memoria, no bases persistentes. El build se dirige fuera del repositorio. El informe externo de la sesión contiene los resultados generales y el inventario final.
+
+Pendientes: integración real del chatbot Python; decisión sobre retirada del editor y `000033`; entrega HTTP de imágenes subidas; aceptación DDL/concurrencia PostgreSQL; decisiones de privacidad de búsquedas y gestión E4 de Reclamaciones. No se activaron catálogos, correo ni proveedores. No se autorizan operaciones Git o de datos por este anexo.
+
+
+## Horus AI Advanced — Fase B (04/11/2026)
+
+**Etapa 0, antecedente de inspección antes de implementar.** Se identificaron para reutilizar `KnowledgeRecord`, `KnowledgeBase`, `LexicalIndex`, `SemanticIndex`, `AdvisorEngine`, recomendaciones y el ciclo firmado/atómico A1/A2. El catálogo tenía detalles públicos recortados al materializar la descripción; el exportador no siempre aportaba temas para recomendaciones. Se decidió añadir normalización/fragmentación con procedencia al mismo índice, sin índices paralelos ni proveedores externos. Laravel mantendría la verificación de texto y fuentes contra su snapshot autorizado. Convenios excluidos; no PDFs, perfiles persistentes, PostgreSQL directo, dependencias nuevas ni cambios de filtros de privacidad. El cierre de B figura más abajo y no atribuye a A2 pruebas de funcionalidades posteriores.
+
+### Fase B — etapas 1–3, avance comprobado (04/11/2026)
+
+Se añadieron documentos/fragmentos públicos inmutables con ID estable, tipo, título, descripción, contenido, categoría, modalidad, estado, versión, actualización y fuente. Textos pequeños permanecen unidos; detalles largos se dividen por párrafos y límite de 600 caracteres Unicode, preservando fuente/versión/ordinal. `KnowledgeBase.search_records` alimenta los índices léxico y semántico existentes; las coincidencias se agrupan por fuente para evitar duplicados. `Hit` conserva el fragmento recuperado y la respuesta determinista cita la fuente original. A1 construye los índices candidatos con esos mismos registros antes de activarlos.
+
+Laravel verifica también los fragmentos exactos contra el catálogo firmado local; no admite subcadenas arbitrarias ni texto añadido. No se modificaron filtros de privacidad. RED inicial Python: tres fallos de funcionalidad y una prueba aprobada; RED PHP: respuesta de fragmento rechazada. Tras implementación: Python completo 168 aprobadas/11 deseleccionadas; PHP de procedencia 7 aprobadas/13 aserciones. Son pruebas aisladas; faltan todavía las comprobaciones ampliadas y mediciones finales de B. No hay dependencias nuevas ni servicios iniciados.
+
+### Fase B — etapas 4–5, avance comprobado (04/11/2026)
+
+El mismo ciclo A1 reemplaza documentos, fragmentos y propietarios del índice; no existe otro canal de sincronización. Se reutilizan en memoria únicamente embeddings de pasajes públicos idénticos entre versiones y se eliminan los de textos retirados; las consultas no entran en esa caché. El resumen se indexa aparte de los detalles para evitar duplicación. Se vuelve a comprobar la caducidad después de construir el candidato. Una actualización pendiente sigue bloqueando las respuestas y los fallos conservan la última versión válida sin presentarla como vigente.
+
+Las recomendaciones del catálogo utilizan solo la consulta actual y cursos/servicios publicados; no recomiendan ofertas heredadas ajenas al snapshot ni crean perfiles persistentes. Empates ambiguos piden aclaración; la similitud vectorial sin evidencia suficiente no autoriza una respuesta factual. No se alteraron umbrales, corpus existentes ni filtros de privacidad.
+
+La medición del catálogo máximo motivó una confirmación posterior al timeout HTTP de sincronización: `/ready` informa opcionalmente `catalog_pending_version` mientras se construye. El job reconsulta esa versión sin reenviar el snapshot ni marcarlo como cargado; una generación editorial posterior invalida el job antiguo. El timeout HTTP no aumenta; las reconsultas están limitadas a cinco minutos y tres excepciones. Requiere una cola con liberación diferida para reconstrucciones que excedan el HTTP; no se ha iniciado ningún worker. RED PHP: dos fallos antes de implementar la confirmación; GREEN: dos pruebas y ocho aserciones. Python ampliado: 180 aprobadas/11 deseleccionadas; bloque RAG/sincronización/semántica simulada: 49 aprobadas. Pendientes al registrar este avance: cierre PHP completo, modelo real, rendimiento final e inventario de integridad.
+
+### Fase B — cierre de implementación y validación local (04/11/2026)
+
+**Implementada y comprobada en el alcance local indicado; no activada públicamente.** Se completaron normalización, fragmentación selectiva, recuperación híbrida, validación de fuentes, respuesta determinista extractiva, recomendaciones desde la consulta actual y actualización mediante A1/A2. Se preserva el contrato conversacional; solo readiness añade un campo opcional de versión pendiente. Se comprueba también que la cola síncrona no confirme silenciosamente una reconstrucción que necesita seguimiento diferido: comunica fallo y mantiene la contingencia. El seguimiento posterior necesita una cola real con liberación diferida y caché compartida cuando se autorice operarla.
+
+**Resultados reales finales:**
+
+| Validación B | Resultado y alcance |
+| --- | --- |
+| PHP completo, SQLite en memoria | 3.373 aprobadas, una omitida, 18.609 aserciones; 986,91 s, exit 0 |
+| PHP chatbot/privacidad/catálogo afectado | 634 aprobadas, 3.375 aserciones; anterior a la prueba adicional de `SyncJob` |
+| PHP catálogo/procedencia/RAG con comprobaciones finales | 24 aprobadas, 113 aserciones; incluye `SyncJob` y compatibilidad de fragmentos/recomendaciones |
+| Python sin modelo | 182 aprobadas; las 12 pruebas con modelo se ejecutan separadas |
+| Python con MiniLM local real | 12 aprobadas, 182 deseleccionadas, ninguna omitida |
+| RAG nuevo sin modelo | 18 aprobadas, una deseleccionada |
+| PHPStan, Ruff, Pint de archivos PHP propios | Aprobados; no formato global ajeno |
+| Paridad fragmentación Python/PHP | 103 casos públicos deterministas, cero diferencias |
+| `git diff --check` | Sin errores; advertencias LF/CRLF conocidas |
+
+La suite PHP completa se complementó con el bloque acotado tras los últimos cambios de `SyncJob` y aserciones de recomendación; las cifras no se suman como pruebas distintas. La omitida no acredita PostgreSQL. No se ejecutaron frontend/build porque no se modificaron sus archivos. El RAG B se probó con FastAPI ASGI en proceso y HTTP PHP simulado; el modelo es real/local, no un doble. La confirmación diferida tiene pruebas simuladas de cola y transporte, no una nueva prueba real entre procesos ni un worker real. Las pruebas públicas cubren actualización/retirada de fragmentos, abstención, Unicode, concurrencia, vigencia, procedencia, ofertas heredadas y ausencia de caché de consultas. No se accedió a la reserva restringida ni se reinterpreta esta regresión como aprobación independiente de privacidad.
+
+**Rendimiento, CPU local y dos hilos MiniLM:** 500 documentos, 1.000 fragmentos y 1.539 registros de búsqueda; índice léxico 450 ms, recuperación léxica p50/p95 74,98/76,80 ms (15 muestras). Construcción semántica inicial 285,69 s; recuperación híbrida grande 532,27/569,80 ms (10 muestras). Reconstrucción sin cambios p50 19,81 ms (tres muestras); cambiar un documento 343,03 ms. Carga de modelo 34,55 s; memoria privada del proceso con modelo/índice aproximadamente 1,97 GB. Son mediciones de recuperación en el equipo con otras comprobaciones activas, no latencia total HTTP ni SLA. La carga inicial masiva se acerca a los cinco minutos de vigencia del snapshot: con mayor carga puede caducar y se rechaza sin activar el candidato. No se amplió esa vigencia ni los tiempos HTTP para ocultarlo. Un cambio masivo de textos distintos conserva el coste de construcción; el ahorro medido corresponde a pasajes públicos reutilizables.
+
+**Integridad y entrega:** 11 archivos existentes modificados y seis nuevos de esta fase; inventario detallado en `%LOCALAPPDATA%/HorusAudits/fase-b-rag-20261104/informe-fase-b-rag.md`. Los 11 respaldos externos se verificaron con SHA-256 contra copias e inventario previo. Rama `anderson`, HEAD `7914438d59b77b6a5e09a15d371e635cca2d894d`, índice, 24 commits frente al upstream cacheado y dos stashes preservados; ningún otro archivo inventariado cambió. `.env` y `.env.example` intactos respecto de la entrada, incluidos cambios preexistentes de colaboradores. Sin commits, push, merges ni reset. Sin dependencias nuevas, descargas de modelos, cambios de filtros, Blade/CSS/JavaScript, migraciones reales o conexiones PostgreSQL. Servicios/worker no iniciados; puertos 8000, 8001, 8765 y 8766 sin listeners al cierre comprobado. Flags predeterminados sin cambios, Horus AI apagado para visitantes. Convenios y otras fuentes, PDFs y generación con LLM quedan fuera; no se inicia fase posterior.
+
+
+## Horus AI Advanced — B7: validación operativa del worker real (04/11/2026)
+
+**APROBADA dentro del alcance local probado; B operativamente cerrada en ese alcance.** Evidencia: `%LOCALAPPDATA%/HorusAudits/fase-b7-worker-20261104/informe-fase-b7-worker-real.md`, ejecución final `functional-20261104-130734`: **114/114 comprobaciones** (incluyen consumos/precondiciones, no 114 escenarios independientes).
+
+**Arquitectura reutilizada:** driver existente/temporal `database`, SQLite física aislada verificada por Laravel, PDO y PRAGMA, cache file compartida, jobs/failed_jobs reales. Observer después del commit → invalidación de expected_version/generación → dispatch → fila pendiente attempts=0 → comando real queue:work con --once → snapshot firmado → HTTP autenticado 127.0.0.1 → candidato RAG/MiniLM → cambio atómico → confirmación de generación/version → respuesta extractiva con fuente. Se ejecutaron dos workers simultáneos para duplicados. No se usó sync ni llamada directa al handler para estos escenarios.
+
+**Corrección B7:** DatabaseQueue libera el payload original; las propiedades pendientes mutadas en handle se perdían. Se reprodujo con RED de cola/worker y con POST repetidos en la ejecución inicial interrumpida. El job conserva ahora versión/generación pendientes en cache compartida por UUID, hasta el plazo original; los siguientes consumos consultan ready sin repetir POST. Limpieza al confirmar/rechazar/invalidar/fallar. Una regresión nueva en `tests/Feature/AdvisorColaRealTest.php` prueba el mismo payload original con queue:work en SQLite memoria y cliente simulado; el arnés externo comprueba HTTP/modelo reales. En la ejecución final, tres consumos y **un solo POST** para una reconstrucción con retardo controlado superior al presupuesto HTTP. Sin cambios de filtros, firma, umbrales ni tiempos.
+
+**Escenarios reales aprobados:** curso publicado/modificado/retirado y consultas actualizadas; servicio borrador excluido, publicado, retirado, editado/reautorizado y retirado; firma inválida y versión antigua sin sustituir archivo válido; duplicados; dos workers concurrentes; fallo transitorio; tres excepciones y failed_jobs; queue:retry; terminación de worker reservado y recuperación tras retry_after=60 s; caída/reinicio de FastAPI; fallback; nueva generación mientras otra construye. Cola final vacía y sin fallos pendientes. Retardos de 32 s y excepciones de índice son inyecciones controladas en FastAPI real, no averías físicas espontáneas. Se conservaron filtros/corpus; un mensaje personal ficticio nuevo produjo cero HTTP, marcador en ChatLog y original ausente de runtime/evidencias revisados, sin acceder a reservas restringidas ni otorgar garantía universal.
+
+**Mediciones locales:** publicar curso con retardo inyectado: espera cola 0,291 s, procesamiento 37,815 s, respuesta conversacional total 39,588 s, un POST. Modificar curso: 0,640 / 1,791 / 3,089 s; retirar: 0,197 / 1,620 / 2,862 s. Publicar servicio: 0,703 / 1,762 / 3,041 s. Dos workers duplicados: 1,445 s. Índice con nuevo texto: curso 0,203 s y servicios 0,236–0,248 s; reutilización/retiradas 0,003–0,005 s. Conjunto pequeño, máximo 41 registros de búsqueda, MiniLM local, dos hilos; sin reconstrucción de 500 documentos. Espera estimada desde created_at de resolución de un segundo; procesamiento incluye arranques/consultas y las liberaciones. Totales incluyen petición editorial y consulta HTTP terminada. No es SLA; suite PHP concurrente en el mismo equipo.
+
+**Regresión ejecutada B7:** PHPUnit completo **3375 aprobadas y 1 omitida, 18624 aserciones**, 1099.17 s. Bloque afectado catálogo/RAG/privacidad: 461 pruebas, 2.532 aserciones. Nueva regresión + confirmación lenta: 4 pruebas, 23 aserciones. Python: 182 aprobadas, 12 deseleccionadas; MiniLM ejercitado realmente por HTTP en B7, sin atribuir una nueva corrida a las 12 pruebas históricas. PHPStan, Pint de archivos propios, Ruff y diff --check aprobados. Sin cambios frontend, sin build necesario; la omitida no acredita PostgreSQL.
+
+**Incidencias del arnés conservadas:** edición de servicio publicado rechazada correctamente con 409; se corrigió el flujo externo a retirar→editar→autorizar. Comparación de firma referida a snapshot anterior a recuperación ajustada a los bytes actuales. Readiness mira al FastAPI actual y no confunde workers terminados. La ejecución interrumpida dejó un Laravel propio: identificado y detenido antes de repetir; tiempos excluidos y diagnóstico conservado. No se modificó A1 para hacer pasar esas condiciones.
+
+**Límites:** SQLite no valida PostgreSQL, Redis ni múltiples máquinas. Worker --once real, con dos instancias simultáneas; no supervisor/daemon prolongado. Windows sin pcntl: no se afirma validación de timeout por señales; terminación supervisada y recuperación sí probadas. Siguen 60 intentos, tres excepciones, backoff 5/30/90 s, plazo cinco minutos y necesidad de cache compartida. La construcción masiva/largos periodos de caída conservan las limitaciones de B; no se extendieron plazos.
+
+**Integridad y cierre:** solo job y este contexto modificados, una prueba nueva; respaldos iniciales y once de B verificados con SHA-256. Rama anderson, HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits frente al upstream cacheado, dos stashes, índice, .env/.env.example y trabajo ajeno preservados. Migraciones solo en SQLite temporal; cero conexiones PostgreSQL de estos procesos, cero OpenAI/servicios externos. Sin credenciales divulgadas ni reservas leídas. Worker/Laravel/FastAPI detenidos, puertos 8001/8765 libres y temporales propios eliminados. Predeterminados de Advisor/sincronización siguen false, sin visitantes reales. **No se inicia Fase C.**
+
+
+## Horus AI Advanced — Fase C (04/11/2026)
+
+### C0 — inspección y diseño
+
+Se revisaron contexto y contratos actuales, README Python, informes A1/A2 final/B/B7 y documentación de privacidad. Se reutilizan KnowledgeBase, Understanding, corrección tipográfica, LexicalIndex, SemanticIndex/MiniLM, AdvisorEngine, fragmentos y sincronización A1/B7. Limitaciones iniciales: selección conversacional por cues rígidos, consultas generales poco consistentes y explicación genérica de recomendaciones. El diseño conserva la respuesta factual exacta verificable por Laravel, sin nuevo índice ni clasificador de terceros.
+
+### C1–C5 — implementación
+
+QueryPlan es local a cada petición: reconoce expresiones de aprendizaje/contratación, diferencia consultas generales de temas concretos y pide aclaración ante objetivos incompatibles o necesidades insuficientes. Depura envolturas conversacionales; no tiene una lista fija de cursos/temas. La búsqueda léxica y MiniLM recuperan el tema desde fuentes vigentes; la categoría de la coincidencia fundamenta la intención informativa y la acción explícita determina recomendación, cotización o matrícula. No es un nuevo clasificador entrenado ni comprensión universal. Se conservan los umbrales de evidencia y la abstención.
+
+Las consultas generales utilizan listados de cursos o servicios vigentes del mismo snapshot. Laravel reproduce exactamente el nuevo listado de servicios para comprobar su procedencia. Las recomendaciones incluyen evidencia literal, motivo, fuente y siguiente paso al WhatsApp autorizado, sin reflejar el texto del visitante. La matrícula explícita deriva sin pedir datos personales. No se modificó el frontend: el contrato API conserva los metadatos de recomendación y Laravel sigue devolviendo texto/aclaración. Las recomendaciones dinámicas solo utilizan la consulta actual. Seguridad, atributos no publicados y solicitudes comerciales conservan su precedencia. Convenios editoriales siguen excluidos.
+
+RED inicial: 20 fallos/nueve aprobadas; RED adicional: cuatro fallos de listado/negación. Primer GREEN completo Python: 215 aprobadas y 12 semánticas separadas; la ampliación y cierre se documentan debajo. Se mantuvieron intactos los corpus y filtros previos.
+
+### C6 — cierre de implementación y validación local (04/11/2026)
+
+**Fase C implementada y comprobada en el alcance local descrito; no activada para visitantes.** Se reutilizan el buscador híbrido, MiniLM local, el RAG extractivo y A1/A2/B7. No hay proveedores externos, modelos generativos, dependencias nuevas ni otra sincronización.
+
+| Comprobación ejecutada C | Resultado real |
+| --- | --- |
+| PHPUnit completo, SQLite en memoria | 3.376 aprobadas, una omitida; 18.642 aserciones, 1.005,72 s, exit 0 |
+| PHP catálogo/RAG/fuentes/privacidad | 1.206 aprobadas, 5.116 aserciones, 68,08 s |
+| Contrato de seis respuestas Python en Laravel | Una prueba, 18 aserciones; HTTP simulado, no servidores |
+| Python sin modelo | 226 aprobadas, 23 deseleccionadas, 55,04 s |
+| Python con MiniLM local real | 23 aprobadas, 226 deseleccionadas, 121,13 s; 11 nuevas y 12 existentes |
+| Frontend sin cambios de código | npm test: 46 aprobadas; build aprobado, salida fuera del repositorio |
+| PHPStan, Ruff, Pint de archivos PHP propios | Aprobados; sin reformateo global |
+| git diff --check | Exit 0; advertencias LF/CRLF conocidas |
+
+Las 44 pruebas Python nuevas sin modelo cubren expresiones informales/reformuladas, errores, múltiples conceptos, intenciones, negación acotada, modalidades, ambigüedad, abstención, procedencia, listado vigente, reemplazo/retirada por ASGI, consultas paralelas y aislamiento de intereses. Las 11 semánticas nuevas usan MiniLM real, CPU y bloqueo de red. Una prueba adicional de conteo evitó duplicar la codificación semántica por recomendación (RED: dos llamadas; GREEN: una). La advertencia de pytest por record_property/xunit2 afecta el formato del informe XML, no el resultado; las propiedades de rendimiento quedaron guardadas.
+
+**Rendimiento:** fixture público pequeño de dos documentos/dos fragmentos y 44 registros de búsqueda; 20 respuestas léxicas completas en proceso: p50 41,919 ms, p95 77,866 ms. Diez respuestas híbridas completas: p50 331,238 ms, p95 739,063 ms. Se consultó «Me interesa estudiar Python»; percentiles empíricos, con suite PHP concurrente. No miden HTTP completo, usuarios reales, carga masiva ni SLA. No se reconstruyeron 500 documentos.
+
+**Privacidad y límites:** filtros, léxicos y corpus anteriores conservan sus hashes; se ejecutaron sus regresiones públicas existentes. No se accedió ni se repitió la reserva restringida de 21 textos y no se copió contenido de ella. El cierre previo de 43 casos permanece como antecedente; C no es una nueva aprobación independiente ni una garantía universal. Se mantienen bloqueo previo a caché/HTTP, ChatLog anonimizado, ausencia de perfiles/historial persistente, controles de publicación y precedencia de seguridad. No se cambió ningún filtro. Las expresiones no cubiertas o sin evidencia suficiente pueden requerir aclaración. Las recomendaciones dinámicas presentan una opción respaldada; los empates se aclaran, no se elige arbitrariamente. Los listados mantienen el límite de 15 títulos. Los metadatos reason/evidence_text/next_step están en la API; Laravel conserva su presentación textual existente. Convenios editoriales, nuevos tipos de fuente y un LLM local siguen fuera.
+
+**Integridad y operación:** cinco archivos existentes modificados y cinco nuevos, inventario y cinco respaldos SHA-256 verificados en `%LOCALAPPDATA%/HorusAudits/fase-c-conversacional-20261104/`. Rama anderson, HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits frente al upstream cacheado y dos stashes preservados; índice, .env/.env.example y trabajo ajeno intactos. No se iniciaron servidores/servicios ni se conectó PostgreSQL; no hubo OpenAI. La evidencia nueva usa ASGI en proceso y cliente PHP con HTTP simulado, no una nueva integración real entre procesos. No quedan procesos de pruebas ni listeners en 8000/8001/8765/8766 al cierre. Flags públicos sin cambios; no se inicia Fase D.
+
+Informe completo: `%LOCALAPPDATA%/HorusAudits/fase-c-conversacional-20261104/informe-fase-c-inteligencia-conversacional.md`.
+
+
+## Horus AI Advanced — C6: integración operativa real (04/11/2026)
+
+**APROBADA dentro del alcance local probado.** Esta comprobación entre procesos es posterior al subapartado histórico «C6 — cierre de implementación y validación local», que solo documentaba ASGI/HTTP simulado. No se activa Horus AI para visitantes ni se inicia D.
+
+**Arquitectura y aislamiento:** PHP cli-server/Laravel en 127.0.0.1:8765 y Uvicorn/FastAPI independiente en 127.0.0.1:8001; MiniLM CPU local real y offline. SQLite física temporal confirmada por conexión efectiva, driver Laravel, PDO y PRAGMA, antes de migrar y en cada bootstrap PHP. Solo se configuró SQLite; sin PostgreSQL. Credenciales efímeras de proceso, sin modificar .env/.env.example. Se reutilizó el arnés corregido A2, sin modificarlo, mediante script nuevo externo. Cola sync temporal para este alcance HTTP; B7 conserva su prueba de worker real, que no se repitió ni se sustituyó como evidencia.
+
+**Ejecución final:** `functional-20261104-150433`, **230/230 comprobaciones nombradas**, no 230 escenarios independientes. 46 consultas sintéticas, incluidas mediciones y contingencias; 30 pasan por la ruta real POST /chat/mensaje, controlador, validación y throttle existentes. Dos cursos y un servicio ficticios publicados por las rutas editoriales reales → snapshot firmado → HTTP autenticado → índice candidato → respuesta extractiva validada en Laravel. Se retiró un curso y se comprobó su ausencia del catálogo y del índice. Sin borradores ni campos administrativos exportados. El índice informó cero infracciones según la comprobación de privacidad existente; no es un detector universal de nombres.
+
+**Resultados funcionales:** listados de cursos/capacitaciones/servicios, programación y análisis de datos, recomendación empresarial y conectividad con fuentes verificables; una consulta genérica de Python pidió aclaración al existir dos cursos; la consulta con alternativas eligió una opción publicada, sin duplicar fuentes. El tema no cubierto pidió aclaración sin afirmar hechos (abstained=false, no se presenta como abstención explícita); el precio desconocido sí devolvió abstained=true. Matrícula/cotización y atención/contacto conservaron canales oficiales. Python entrega recomendaciones/fuentes/metadatos; Laravel los valida y mantiene respuesta/intent/fuente con intent=null, sin frontend nuevo.
+
+**Contingencias reales:** token incorrecto devuelve 401; la credencial errónea desde Laravel activa fallback. Respuesta inválida, fuente desconocida, enlace externo, acción no permitida y retardo de 3,5 s fueron inyecciones controladas en el wrapper del proceso FastAPI real y viajaron por HTTP, sin mocks del cliente. Laravel rechazó o agotó su presupuesto original y devolvió contingencia sin 500. Firma inválida nativa: 422, catálogo no listo y fallback; snapshot válido recuperó el servicio. Se detuvo realmente FastAPI, se comprobó fallback y se reinició para recuperar respuestas. No se alteraron tiempos, listas blancas ni filtros.
+
+**Privacidad:** 210/210 mensajes bloqueados del corpus público autorizado, cero HTTP adicionales a Python, 210 ChatLog con marcador de omisión y cero originales en runtime revisado. Revisión externa adicional: cero originales de esos casos en 117 archivos de evidencia previos al informe final. No se accedió a reservas restringidas ni se reejecutaron sus 21 textos; los filtros, léxicos y corpus conservan hashes. No perfiles, historial persistente, OpenAI ni comunicaciones externas de los procesos de prueba.
+
+**Latencia total por /chat/mensaje:** diez muestras simples, p50 700.397 ms, p95/máximo 1018.236 ms; diez de recomendación, p50 648.013 ms, p95/máximo 869.133 ms. HTTP ready+chat p50 304,157/292,351 ms; RAG 157,224/158,460 ms y MiniLM 69,748/69,160 ms, simple/recomendación. Intervalos anidados, no sumables; muestras pequeñas con PHPUnit concurrente, sin SLA ni tráfico real. Tablas completas y definiciones en el informe.
+
+**Calidad ejecutada:** PHPUnit 3376 aprobadas, 1 omitida, 18642 aserciones, 1113.20 s; Python 226 aprobadas/23 deseleccionadas; MiniLM real 23 aprobadas/226 deseleccionadas; NPM 46 aprobadas, build externo aprobado. PHPStan, Pint focalizado y Ruff aprobados. La omitida no valida PostgreSQL. Sin cambios de código, no se formatearon archivos ajenos.
+
+**Incidencias del arnés:** el segundo fixture omitía descripción obligatoria: SQLite rechazó el insert antes de arrancar servicios, diagnóstico preservado y fixture externo corregido. Otra pasada exigía aclaración aun cuando el servicio publicado respaldaba la consulta empresarial; se corrigió la expectativa para exigir evidencia literal del servicio. La primera comprobación de puertos tuvo una carrera tras taskkill; se añadió espera acotada de liberación. Una pasada completa de 226 comprobaciones precedió a la final ampliada con ruta pública en las mediciones, rechazo de acciones y estado agregado del índice. Ninguna corrección de aplicación ni relajación de controles.
+
+**Cierre y límites:** procesos propios detenidos, puertos 8001/8765 libres y SQLite temporal eliminada tras verificar identidad. Rama anderson, HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits frente al upstream cacheado, dos stashes e índice intactos; .env/.env.example y trabajo ajeno sin cambios. Solo se actualizó PROJECT_CONTEXT.md; respaldo externo verificado. No commits, push, merges, reset ni despliegue. El router temporal usa actor editorial ficticio y excepción CSRF protegida por cabecera efímera/loopback: no demuestra login ni CSRF de producción. La prueba no valida PostgreSQL, exposición pública, carga prolongada ni privacidad universal. Predeterminados apagados, sin visitantes ni Fase D.
+
+Evidencia e informe: `%LOCALAPPDATA%/HorusAudits/fase-c6-integracion-20261104/informe-integracion-real-c6.md`, `functional-summary.json`, `quality-results.json` y carpeta `functional-20261104-150433`.
+
+## Horus AI Advanced — Fase D: presentación Azul institucional (04/11/2026)
+
+**Alcance:** evolución visual autorizada del widget existente, con base Azul institucional y portadas amplias de Vitrina luminosa. Sin reconstrucción ni cambios al SVG, filtros, integración Laravel–FastAPI, RAG, entorno, predeterminados o publicación. La restricción de no modificar la integración impide ampliar unilateralmente la salida de Laravel. Se consultó esa ampliación mínima de presentación; sigue pendiente de respuesta. No declarar completada la conexión de tarjetas reales.
+
+**Plan por etapas:** inspección de contexto/contratos, inventario Git y respaldos externos SHA-256; evolución de CSS y de la rama pública de conversation.blade.php; componente de tarjetas opcionales con defensa de presentación; pruebas, build y regresión PHP; documentación y verificación de integridad. Informe y evidencias fuera del repositorio: `%LOCALAPPDATA%/HorusAudits/fase-d-implementacion-20261104/`.
+
+**Implementación visual:** se conservan chat-widget.blade.php, robot-mascot.blade.php y la estructura Alpine. Cabecera azul/dorado y animación originales; se ajusta solo el encuadre CSS del retrato para evitar recorte. Sugerencias con iconos, acciones de al menos 44 px, contraste mejorado de WhatsApp, carga contextual y recordatorio de privacidad. Tarjetas apiladas con portada de referencia, título íntegro, descripción, acción y procedencia; sin carruseles ni texto truncado. Alternativa neutra si falta o falla una imagen. Composición y scroll independientes, responsive y respeto de movimiento reducido. La rama administrativa conserva su markup previo.
+
+**Datos de tarjetas — preparado, no conectado:** safeChatCards admite únicamente el campo opcional `tarjetas` de una respuesta `fuente=advisor`, con id, tipo curso/servicio, titulo, descripcion, url e imagen. Máximo cinco fichas sin duplicados, texto mediante x-text, sin HTML interpretado. Solo rutas internas de la lista existente y cuatro portadas locales enumeradas; sin imágenes de terceros ni rutas storage arbitrarias. Una acción sin URL autorizada se omite. Esta defensa del navegador no sustituye la validación editorial ni los filtros del servidor. No se infieren fichas ni URLs del texto. Laravel aún no entrega ese campo: las respuestas reales continúan como texto y enlaces seguros; las fichas se verificaron con datos sintéticos. No presentar eso como integración operativa ni como cierre completo de Fase D.
+
+**Salvaguardas:** solicitud HTTP, CSRF, timeout, prevención de doble envío, sesión, Enter/Shift+Enter/IME, Escape, retorno del foco, scroll manual, recuperación del borrador y enlaces oficiales conservados. Sin persistencia de conversaciones nueva. No se leen reservas restringidas. Sin dependencias nuevas, servicios Laravel/FastAPI, PostgreSQL, APIs externas ni activación pública. Edge temporal sobre archivo local con fetch simulado y CSP sin conexiones; proceso y perfil propios retirados al terminar.
+
+**Validación final:** RED del nuevo helper JS antes de implementarlo; GREEN: 13 pruebas focalizadas y suite frontend completa de 51 aprobadas. Render Blade: tres pruebas y 15 aserciones aprobadas; Pint de esa clase aprobado. Edge sobre Blade/CSS/Alpine/cliente reales con datos sintéticos y fetch simulado: 25 comprobaciones, escritorio 1440×1000, tablet 768×1024, móviles 390×844 y 320×568. Sin desbordamiento horizontal, compositor visible, acciones táctiles, imágenes y alternativa, carga, sugerencias, Enter, Shift+Enter, IME, Escape, foco, error 429 con borrador, rechazo de metadatos en contingencia y movimiento reducido. Sin peticiones HTTP de la página. Build Vite externo aprobado; aviso no fatal de temporización del plugin CSS. PHPUnit completo: **3.379 aprobadas, una omitida, 18.657 aserciones, 1136,42 s**, exit 0, sobre SQLite memoria. La omisión requiere PostgreSQL; no se ejecutó ese perfil. No se repitieron Python/MiniLM ni PHPStan porque no se modificó Python ni app/Services o app/Support; sus resultados C6 siguen siendo históricos.
+
+**Incidencias corregidas:** el atributo Alpine @error colisionó con la directiva Blade; se sustituyó por x-on:error y pasaron los tres renders. El primer perfil Edge encontró un bloqueo transitorio al eliminarlo: tras verificar ausencia de procesos e identidad de la ruta, se retiró únicamente ese perfil; el arnés ahora usa reintentos acotados. La vista offline incorporó box-sizing de la base CSS para reflejar el layout real. Se corrigió la codificación del anexo documental escrito desde PowerShell; el historial anterior se preservó. Sin alteraciones de filtros ni integración.
+
+**Integridad y cierre:** cuatro archivos existentes modificados: este contexto, resources/css/chatbot.css, resources/js/chat-client.js y resources/views/components/chat/conversation.blade.php. Dos pruebas nuevas: tests/frontend/chat-cards.test.mjs y tests/Feature/WidgetPresentacionTest.php. Se preservaron las modificaciones preexistentes, seis respaldos externos verificados, rama anderson, HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits respecto al upstream cacheado, dos stashes e índice. Sin commits, push, merges, reset ni despliegue. Sin cambios a .env/.env.example, SVG, filtros, corpus o Python. Laravel/FastAPI no se iniciaron; navegador temporal cerrado, perfil eliminado y sin listeners en 8001/8765/19328 al cierre. Predeterminados sin cambios y Horus AI desactivado para visitantes. No se inicia otra fase. Informe: `%LOCALAPPDATA%/HorusAudits/fase-d-implementacion-20261104/informe-fase-d-experiencia-robot.md`.
+
+## Horus AI Advanced — Fase D: conexión de recomendaciones y tarjetas (04/11/2026)
+
+**Autorización y estado:** el propietario autorizó expresamente el cambio quirúrgico en HorusAdvisorClient para conservar referencias validadas y revalidarlas en caché, además del adaptador de presentación. Esto resuelve el pendiente del registro D anterior. La conexión está implementada y probada dentro del alcance aislado/frontend descrito aquí; sin activación pública ni otra fase. No se modificaron peticiones, endpoints, autenticación o tokens de FastAPI, sincronización A1/A2, filtros, Python, MiniLM ni RAG.
+
+**Flujo:** después de superar todas las validaciones existentes de la respuesta, HorusAdvisorClient conserva únicamente id, título y ruta de recomendaciones editoriales actuales de cursos o servicios. No conserva motivos, imágenes o acciones libres de Python. La estructura interna mantiene respuesta/intent/fuente y añade opcionalmente recomendaciones tipadas. El HMAC existente de caché incluye esas referencias porque ya abarca el resultado serializado completo. En cada acierto se verifican de nuevo forma, duplicados, rutas y pertenencia a fuentes vigentes. Para texto editorial exacto se reutilizan las comprobaciones existentes de procedencia y enlaces de una respuesta fresca; el texto adicional no recibe esa excepción. Las entradas sin recomendaciones conservan la validación anterior de tres campos. El hash de política que ya existía en la clave puede provocar un miss seguro para claves anteriores a la actualización; no se borra ni migra la caché.
+
+**Adaptador de presentación:** PresentacionRecomendacionesHorus vuelve a obtener el snapshot mediante el exportador existente y valida firma, versión esperada, vencimiento, publicación vigente e identidad de cada referencia. Título y descripción se toman de ese snapshot y se comprueban con la barrera de salida existente. ChatWidgetController retira la estructura interna y añade tarjetas con id, tipo, título, descripción, imagen nullable, enlace autorizado, acción y procedencia (id, sistema, versión, ruta y actualización). Las respuestas sin recomendaciones siguen con sus campos anteriores. Ante fallo de presentación se conserva el texto validado y se omiten las tarjetas.
+
+**Imágenes y acciones:** las imágenes disponibles de servicios se resuelven mediante ContenidoPublicoServicios, respetando su interruptor y permisos sin activarlos. Se verifica identidad, título, resumen y ruta de la publicación contra el snapshot, origen local, formato y MIME. Solo archivos públicos locales de imágenes y cargas publicadas con UUID del disco public local; sin consultas a discos remotos. Imágenes ausentes, externas, privadas, con parámetros/fragmentos o no válidas producen la alternativa visual. Los cursos carecen actualmente de una portada editorial en este contrato y usan dicha alternativa; no se asigna una imagen inventada. Un curso sin ficha individual usa la ruta general autorizada con acción «Ver cursos»; un servicio sin ruta usa contactos con «Consultar servicio». No se inventan URLs de fichas. El frontend conserva sus listas y añade reconocimiento estricto de las rutas de imágenes publicadas para tarjetas con procedencia válida; nunca interpreta HTML ni admite destinos externos.
+
+**Archivos de esta ampliación:** HorusAdvisorClient.php (salida y caché), AsistenteVirtualService.php (solo declaración de tipo, lógica intacta), ChatWidgetController.php, chat-client.js, conversation.blade.php, chat-cards.test.mjs y este contexto. Nuevos: app/Services/PresentacionRecomendacionesHorus.php y tests/Feature/AdvisorTarjetasPresentacionTest.php. Sin cambios al CSS o SVG de la fase visual anterior. Siete respaldos externos previos verificados, incluyendo todos los archivos existentes modificados. Sin dependencias nuevas.
+
+**Pruebas reales de esta ejecución:** RED inicial de la ampliación: cinco fallos y una aprobada. Bloque PHP tarjetas/Fase C/Blade: 14 aprobadas y 86 aserciones. PHPUnit completo: **3.389 aprobadas, una omitida, 18.710 aserciones, 1115,01 s**, exit 0. La omitida exige PostgreSQL; no se ejecutó ese perfil. Frontend: **52 aprobadas**. PHPStan, Pint de cinco archivos PHP propios, build Vite externo y git diff --check aprobados; aviso no fatal de temporización del plugin CSS. No se ejecutaron de nuevo Python/MiniLM al no modificarse esos componentes.
+
+**Alcance de la evidencia:** PHP usa SQLite memoria y HTTP simulado, sin migraciones operativas ni bases reales. Se comprueban recomendaciones válidas, petición FastAPI inalterada, referencias inválidas o retiradas, caché con referencias y formato antiguo, texto tradicional, contingencia, bloqueo de privacidad sin HTTP y marcador ChatLog, catálogos manipulados/vencidos y validación de imágenes. Edge: **27 comprobaciones** sobre Blade/CSS/Alpine/JS reales y JSON generado por el cliente y presentador Laravel reales; catálogo firmado ficticio, FastAPI y lecturas editoriales simulados. Escritorio 1440×1000, tablet 768×1024 y móviles 390×844 y 320×568: acciones/procedencia, portada pública y alternativa, carga, teclado/IME, foco, movimiento reducido, 429 con borrador y tildes UTF-8. La página no realiza peticiones HTTP. No es una nueva prueba de servicios independientes, RAG o MiniLM; C6 permanece como antecedente con sus propios límites.
+
+**Incidencias del desarrollo:** la prueba de caché mostró rechazo genérico de texto editorial ya aceptado por procedencia: se reutilizó el verificador exacto existente, sin exenciones nuevas al filtro. PHPStan detectó dos condiciones redundantes del presentador, corregidas; la forma de las referencias sigue validándose en el cliente. Se corrigieron únicamente docblocks y formato de la nueva prueba señalados por Pint. El arnés Edge se corrigió por una variable global duplicada y por lectura de JS sin UTF-8 explícito; la aplicación no necesitó cambios por esos errores.
+
+**Integridad y operación:** rama anderson, HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits respecto al upstream cacheado, índice y dos stashes preservados. Trabajo preexistente, .env/.env.example, filtros, corpus, firma/exportador/sincronización, SVG y Python intactos. Sin commits, push, despliegue ni PostgreSQL. Laravel/FastAPI no se iniciaron; Edge temporal cerrado y perfil retirado, sin listeners en 8001/8765/19328 al cierre. Horus AI sigue apagado para visitantes. No se midió carga prolongada ni se garantiza privacidad universal. Una tarjeta ya vista no se revoca retroactivamente en el DOM; la siguiente consulta vuelve a comprobar vigencia. No se añadió historial persistente ni sincronización paralela del navegador. Informe y evidencias: `%LOCALAPPDATA%/HorusAudits/fase-d-tarjetas-reales-20261104/informe-fase-d-tarjetas-recomendaciones.md`.
+
+## Horus AI Advanced — D6: tarjetas mediante integración funcional real (04/11/2026)
+
+**APROBADA dentro del alcance local probado.** Ejecución final `functional-20261104-221741`: 43/43 comprobaciones Edge y 28/28 comprobaciones del arnés; son comprobaciones nombradas, no 71 escenarios independientes. Se utilizó el widget Blade, su mascota SVG, CSS, Alpine y chat-client.js actuales, renderizados por Laravel en una página contenedora temporal. El fetch del widget fue real: POST /chat/mensaje → controlador y servicio existentes → HorusAdvisorClient → HTTP autenticado → FastAPI independiente/MiniLM local/RAG → validación y presentador Laravel → tarjetas. Sin HTTP simulado, ASGI en proceso ni respuestas prefabricadas en el recorrido normal. No se modificó código de aplicación.
+
+**Aislamiento y preparación:** reutilizado el arnés A2/C6 corregido, mediante archivos nuevos externos sin alterar los históricos. PHP/Laravel en 127.0.0.1:8765 y Uvicorn/FastAPI en 127.0.0.1:8001; Edge headless con depuración loopback 19328. SQLite física dentro del directorio temporal propio: conexión efectiva, driver Laravel, PDO y PRAGMA comprobados antes del esquema; todos los bootstraps posteriores registraron únicamente sqlite. Migraciones existentes y fixtures exclusivamente en esa base desechable. Token, clave de firma y APP_KEY efímeros en memoria/entorno de procesos, sin guardar valores. Sesiones y caché de archivo temporales para probar aciertos entre peticiones reales; cola sync solo para este alcance HTTP, sin sustituir la evidencia de worker B7. El catálogo de servicios se habilitó únicamente con config del proceso temporal para comprobar la portada editorial, sin cambiar predeterminados. El router temporal exige loopback/cabecera secreta y asigna un administrador ficticio; conserva las excepciones CSRF de C6 para las rutas de prueba. No certifica autenticación administrativa o CSRF de producción.
+
+**Publicación y resultados:** dos cursos ficticios (Programacion con Python; Analisis de datos con Python) y un servicio Cableado estructurado se publicaron mediante las rutas editoriales reales. Borradores y campos administrativos no aparecieron en el snapshot; firma/versiones aceptadas, catalog=loaded y versión esperada coincidente, índice con tres documentos y cero infracciones según su comprobación existente. Los listados de cursos/servicios devolvieron texto fundamentado; «Quiero aprender programación» y la solicitud específica de cableado generaron tarjetas reales. Títulos, descripciones e identificadores se cotejaron con el snapshot publicado. Curso sin portada: alternativa neutra y /educacion/cursos. Servicio: imagen pública existente cableado.jpg, ruta /tecnologias/cableado-estructurado y procedencia validada. Sin duplicados por respuesta ni destinos externos. La pregunta larga «¿Tienen capacitaciones relacionadas con análisis de datos?» pidió aclaración; una reformulación directa sí recuperó el curso de datos. Esa limitación de comprensión se registra sin modificar RAG o filtros.
+
+**Caché real:** misma sesión del navegador, repetición con referencias/tarjetas válidas y cero POST adicionales a Python. Inyección controlada de una referencia desconocida con HMAC correcto: rechazada y respuesta renovada por HTTP. HMAC manipulado: entrada descartada. Entrada antigua de tres campos inyectada con HMAC correcto: respuesta textual compatible, sin tarjetas ni HTTP nuevo. Tras generar una respuesta del curso de datos, su retirada por la ruta editorial cambió el catálogo; la siguiente consulta no volvió a mostrarlo. La caché anterior no evitó la comprobación de vigencia. Las tarjetas ya mostradas siguen como mensajes anteriores del DOM; no hay revocación retroactiva de la conversación.
+
+**Edge y contingencias:** escritorio 1440×900, tablet 768×1024 y móvil 390×844, capturas reales, ausencia de desbordamiento horizontal, botones de al menos 44 px, imagen cargada, alternativa sin imagen, SVG/animación conservados y estado de carga visible. Enlaces nativos autorizados y destinos comprobados por GET. Una URL de imagen inexistente en el DOM produjo HTTP 404 real y alternativa visual, sin borrar archivos publicados. Respuesta inválida, recomendación cuyo ID no corresponde a una fuente verificable y retardo de 3,5 s se inyectaron únicamente en el wrapper externo del servidor FastAPI real: transporte real y fallback seguro, sin tarjetas. Firma incorrecta nativa: 422, catálogo en error y fallback; sincronización válida recuperó el catálogo. FastAPI se detuvo realmente y Laravel devolvió contingencia sin error 500. Edge mostró el fallback ante respuesta inválida.
+
+**Privacidad y regresión actual:** 210/210 mensajes bloqueados del corpus público autorizado, cero HTTP adicional a Python, 210 ChatLog nuevos con marcador y cero originales encontrados en ChatLog/runtime revisado. Reservas restringidas no leídas ni copiadas. Revisión de evidencia externa contra esos originales: cero coincidencias; resultados agregados en privacy-evidence-scan.json. Pruebas PHP focalizadas de tarjetas, correcciones R01–R05, bloqueo completo y render Blade: **379 aprobadas, 2.083 aserciones, 59,99 s**, exit 0, SQLite memoria y HTTP simulado en esas suites. Frontend: **52 aprobadas**, exit 0. git diff --check aprobado. No se repitieron PHPUnit completo, Python, MiniLM unitario, build, PHPStan o Pint: no se cambió código; sus resultados anteriores conservan su fecha y alcance. La integración real usa MiniLM instalado y offline, sin dependencias nuevas. No constituye garantía universal de privacidad.
+
+**Latencia local:** primeras cinco consultas reales desde Edge, p50 1234,25 ms, p95/máximo 2219,32 ms (n=5; incluye polling/espera del arnés visual, sin SLA). Repetición comprobada de caché: 714,33 ms; entrada antigua: 627,41 ms, una muestra cada una. En llamadas de chat instrumentadas: HTTP Laravel→Python p50 355,80 ms y p95/máximo 597,23 ms (n=12); motor p50 337,05 ms; recuperación 212,84 ms; MiniLM 114,72 ms. Intervalos anidados, no sumables; parte de las llamadas pertenece a fallos controlados. El retardo inyectado se distingue en el informe y no se presenta como rendimiento normal. No se midió carga prolongada.
+
+**Incidencia del arnés:** la primera ejecución se detuvo porque exigía tres tarjetas aunque las cinco consultas solo generaban dos recomendaciones: los listados eran textuales y una consulta pidió aclaración. Se corrigió esa expectativa comprobando curso y servicio, sin cambiar código, respuestas ni etiquetas. Su diagnóstico y cierre se conservaron. La ejecución final superó todas las comprobaciones previstas.
+
+**Integridad y cierre:** solo PROJECT_CONTEXT.md cambia en el repositorio. Rama anderson y HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits frente al upstream cacheado, dos stashes, índice y todos los archivos preexistentes salvo este contexto preservados. .env/.env.example idénticos al inicio. Respaldo SHA-256 de este contexto y siete respaldos anteriores de D verificados. Laravel, FastAPI y Edge cerrados; perfil y SQLite temporales eliminados, puertos 8001/8765/19328 libres y sin procesos propios huérfanos. Cero conexiones PostgreSQL en los procesos instrumentados; PHP limitado a HTTP loopback 8001, Python offline con barrera de sockets/DNS y página Edge limitada al Laravel local. Sin llamadas OpenAI ni conexiones externas observadas en ese alcance; no es una auditoría del tráfico global de Windows. Horus AI y la sincronización permanecen apagados por defecto para visitantes. Sin commits, push, despliegue ni Fase E.
+
+**Informe y evidencias:** `%LOCALAPPDATA%/HorusAudits/fase-d6-integracion-20261104/informe-d6-tarjetas-integracion-real.md`. Capturas desktop.png, tablet.png, mobile.png y mobile-fallback.png en functional-20261104-221741; métricas, preparación SQLite, transporte, resultados y manifiestos SHA-256 conservados fuera del repositorio.
+
+## Horus AI Advanced — Fase E: preparación operativa (04/11/2026)
+
+**Preparada y comprobada dentro del alcance local aislado; producción y activación pública NO autorizadas.** No se iniciaron Laravel, FastAPI, worker operativo ni Edge. No se conectó PostgreSQL, no se instalaron gestores/dependencias y no se modificaron filtros, RAG, transporte, frontend, .env o .env.example. B7/D6 conservan su evidencia real histórica; E no la presenta como una nueva integración real ni como certificación independiente de privacidad.
+
+**E0 — diagnóstico y diseño:** se inspeccionaron arranques Laravel/Python, queue database, job y observer existentes, health/readiness, logs y persistencia. Riesgos operativos: snapshots con vigencia máxima de cinco minutos sin renovación por eventos cuando el contenido no cambia; /ready puede informar status ready con semantic loading; vectores solo en memoria y reconstrucción al reiniciar; falta un gestor productivo validado. Diseño: reutilizar job, scheduler y endpoints existentes, con comandos CLI opt-in y plantillas no instaladas. No se reconstruye A1–D6.
+
+**E1/E2 — implementado:** config/horus-ops.php añade HORUS_OPS_ENABLED=false y HORUS_OPS_RENEW_CATALOG=false. Comando horus:advisor-operacion (status por defecto; worker/sync requieren --execute y configuración válida). Status sin probe no toca red/caché/cola. --probe consulta /health, /ready y /api/v1/info autenticado, lee heartbeat y versión de caché; impone loopback 127.0.0.1, sin redirects, lectura acotada y códigos seguros. Exige MiniLM loaded, versión coincidente, autenticación aceptada y worker vigente. --queue agrega conteos explícitos de pendientes/fallidos; sin payloads o excepciones, nunca por defecto. No existe endpoint público nuevo ni colector instalado. Logs existentes y gestor del host completan respuesta/errores/CPU/RAM/disco; no se inventan mediciones de servicios apagados.
+
+**E3 — implementado y probado aisladamente:** wrapper sobre queue:work con heartbeat TTL 90 s (cada 15 s en espera), timeout 45 s, reciclado 3600 s, memoria PHP 256 MB y lock con TTL 3700 s. No se cambian los límites del job existente (60 intentos, tres excepciones, backoff 5/30/90 y deadline 300 s). Renovación del scheduler cada dos minutos, apagada por defecto, condicionada a heartbeat vigente y agrupada por lock de 110 s; error de despacho libera el lock. Reutiliza SincronizarCatalogoAdvisor, no una segunda sincronización. La prueba ASGI confirma que mismo contenido conserva versión y extiende expires_at. Se comprueban agrupación, error de despacho, gating del scheduler, heartbeat y cierre del wrapper mediante dobles; el wrapper nuevo no se arrancó como proceso real. Tras muerte forzada puede persistir el lock hasta su TTL: recuperación específica por operador tras demostrar ausencia del proceso o esperar caducidad, sin limpieza global ni promesa de reinicio inmediato.
+
+**E4 — seguridad:** entrada Python nueva `python -m app.operacion check` no carga el modelo ni abre sockets; run requiere --execute y HORUS_OPS_ENABLED. Solo entorno del proceso, sin leer .env del checkout; exige token/clave, firma obligatoria, modelo/rutas y loopback. La entrada de operación instala registros de lista positiva: códigos, versión hexadecimal y métricas numéricas permitidas; elimina argumentos originales y trazas, cubriendo diagnósticos de arranque que podían incluir detalles de validación. No cambia detectores o RAG. La entrada histórica/Uvicorn directo omite ese endurecimiento adicional, por lo que las plantillas usan el launcher nuevo. Secretos externos, cuentas mínimas y sin DB_* en Python. La aceptación independiente de privacidad sigue pendiente: no se abre otra auditoría ni se accede a reservas restringidas.
+
+**E5/E6 — preparado, NO ejecutado:** guía docs/horus-ai-operacion.md y dos plantillas *.service.example sin sección Install, con marcador externo OPERATION_AUTHORIZED, EnvironmentFile externo y reinicios limitados. Propuesta inicial: un host Linux, HTTPS/PHP-FPM Laravel, FastAPI loopback con un proceso MiniLM, worker database y scheduler existentes; snapshots persistentes fuera del release y modelos de solo lectura. No son unidades instaladas o validadas en Linux. Perfiles y APP_CONFIG_CACHE externos separados para web apagado y operación interna; caché de datos/política coherente. Activación futura gradual, supervisión, criterios de corte y rollback documentados, sin ejecutar. Rollback no restaura como vigente un snapshot antiguo: mantener fallback y generar desde Laravel actual uno firmado/vigente.
+
+**Recursos y límites:** propuesta de evaluación 4 vCPU/8 GB, sin SLA ni costos inventados; faltan región/proveedor/carga/retención. Modelo local inventariado: 499.565.457 bytes. Referencias históricas: memoria privada Python alrededor de 1,85–1,9 GB; construcción de 500 documentos ~286 s, cercana al deadline de 300 s y que requiere benchmark del catálogo objetivo. El índice candidato puede incrementar memoria; no se midió carga o recuperación del host en E. Un worker vivo con FastAPI caído puede seguir generando intentos periódicos: alerta y pausa operativa, no circuit breaker nuevo. Cola compartida y lock tras caída son límites explícitos.
+
+**Pruebas finales reales ejecutadas:** RED inicial: seis pruebas fallaron antes de implementar. Bloque PHP operación/sincronización/scheduler previo: 34 aprobadas, 180 aserciones. PHPUnit completo final: **3,401 aprobadas, 1 omitida, 18,758 aserciones, 943.15 s**, exit 0 (SQLite memoria; HTTP simulado). Omisión PostgreSQL conservada; no se ejecutó ese perfil. Python completo: **234 aprobadas, 23 semánticas deseleccionadas, 54.77 s**; ocho pruebas nuevas de operación, incluida renovación ASGI y redacción. Frontend: **52 aprobadas**. PHPStan, Ruff, Pint acotado y git diff --check aprobados. Plantillas verificadas estáticamente, no por systemd. Sin nueva integración real, modelo real o build frontend en E, al no tocar recuperación/UI; no se atribuyen esos alcances a mocks. Una suite inicial se interrumpió para completar autenticación. La siguiente detectó una regresión propia: registrar el cron apagado alteraba el espaciado de schedule:list y fallaba una prueba existente de Reclamaciones. Se reprodujo, se corrigió solo el registro E para que no exista con flags apagados, sin tocar Reclamaciones ni sus pruebas, y se repitió el bloque y la suite completa final.
+
+**Archivos:** existentes modificados únicamente routes/console.php y este contexto. Diez nuevos: OperacionAdvisor.php, OperacionHorus.php, config/horus-ops.php, OperacionHorusTest.php, OperacionHorusColaTest.php, chatbot-python/app/operacion.py, chatbot-python/tests/test_operacion.py, docs/horus-ai-operacion.md y dos unidades de ejemplo en ops/horus-ai. Sin dependencias nuevas. Respaldos externos SHA-256 de contexto y rutas anteriores, inventarios completos y hashes finales.
+
+**Git y operación:** rama anderson, HEAD 7914438d59b77b6a5e09a15d371e635cca2d894d, 24 commits frente al upstream cacheado sin fetch, dos stashes e índice preservados; árbol previamente modificado, sin staging/commits/push/merges/reset. Archivos ajenos y .env/.env.example idénticos al inicio. Servicios operativos no iniciados; puertos y procesos se revisan al cierre, sin intervenciones en servicios ajenos. Horus AI sigue desactivado para visitantes. Instalación real, perfiles/secretos externos, HTTPS, permisos efectivos, respaldo/restauración, benchmark y habilitación requieren autorización posterior. No comienza otra fase.
+
+**Informe:** `%LOCALAPPDATA%/HorusAudits/fase-e-operacion-20261104/informe-fase-e-preparacion-operativa.md`. Guía reutilizable: docs/horus-ai-operacion.md. Evidencia: quality-results.json, registros de suites, templates-static.json, initial/final.json, integrity-final.json, closure-final.json y manifiesto SHA-256.
+
+## Horus AI Advanced — Cierre funcional (05/11/2026)
+
+**Cuatro estados, distintos:** (1) desarrollo funcional — **terminado** dentro del alcance autorizado; (2) validación técnica — **completada localmente** (suites, MiniLM real, integración HTTP loopback); (3) aceptación independiente de privacidad — **PENDIENTE** (requiere un tercero y una reserva nueva; nada de lo aquí descrito la sustituye); (4) autorización de activación pública — **NO concedida**. `HORUS_ADVISOR_ENABLED`, la sincronización y la operación siguen en `false`; no se desplegó ni se tocó `.env`/`.env.example`.
+
+**Inspección y defectos reales encontrados (medidos antes de corregir):** consultas con «relacionadas con…» y consultas largas pedían una aclaración genérica (el relleno conversacional sin presencia en ningún contenido diluía la cobertura léxica y se perdía la frase clave «hojas de cálculo»); «capacitaciones para empresas» recomendaba una sola ficha por la palabra «empresarial»; un tema inexistente («curso de cocina») recibía una aclaración genérica; «¿Dónde puedo encontrar más información?» se abstenía; las consultas mixtas («Excel y también cableado») perdían uno de los temas; la barrera de salida descartaba en silencio la tarjeta de un curso cuyo resumen empezaba con «Aprende Excel…»; tres falsos positivos residuales de privacidad en holdouts internos («Soy auxiliar contable…», `${jndi:…}` como nombre y la edad con cifra); las sondas de inyección de código llegaban a Python y volvían como respuesta rechazada; los vectores MiniLM no persistían y cada reinicio recodificaba todo.
+
+**Correcciones (reglas generales, sin listas de casos):**
+- Python `query_plan.py`/`chat_engine.py`: el tema conserva solo palabras que algún contenido indexado usa (`LexicalIndex.knows`) y las funcionales entre ellas, de modo que la frase publicada se reconoce; frases de destinatario/lugar («para mi oficina», «en mi trabajo») y «relacionado(s/a/as) con/a» no son tema; destinatarios genéricos solos («para empresas») llevan al listado vigente; tema sin ningún contenido publicado → abstención honesta `unavailable_info` sin repetir el texto del visitante (dos redacciones deterministas); consulta con varios temas → una ficha publicada por tema (texto afirmado = ficha exacta de la primera; la segunda se nombra en la pregunta de seguimiento; si una parte es ambigua se pregunta, no se elige). Se reutilizan retrieve, umbrales y filtros de vigencia existentes.
+- `knowledge.json`: palabras clave y un ejemplo adicionales del registro verificado `contacto_canales` (sin texto de respuesta nuevo).
+- Privacidad (`FiltroPrivacidadChat`): fragmentos técnicos (URI, `${…}`, `#{…}`, `{{…}}`) no cuentan como «nombre aislado», pero el resto del mensaje se examina completo; barrera de salida alineada con el criterio de la entrada (nombre listado o palabra no explicada por el léxico). Léxico: categoría de ocupaciones (+36 palabras curadas, sin apellidos homónimos; +1 «referencia» procedente de vistas públicas), regenerado con el script. Política de bloqueo completo intacta.
+- Seguridad: sondas de código detectadas en Laravel (antes de HTTP, motivo `seguridad`) y en Python.
+- Operación: caché opcional de vectores de pasajes públicos `HORUS_AI_SEMANTIC_CACHE_DIR` (apagada por defecto; huella del modelo, SHA-256, escritura atómica, solo pasajes vigentes, nunca consultas) y su comprobación en `app.operacion check`.
+- Sin cambios en el contrato HTTP de FastAPI, firma/sincronización A1/A2, worker, umbrales, frontend (Blade/CSS/JS), migraciones ni dependencias.
+
+**Resultados reales de esta ejecución:**
+
+| Comprobación | Resultado |
+| --- | --- |
+| PHPUnit completo, SQLite memoria | 3.457 aprobadas, 1 omitida (PostgreSQL), 18.891 aserciones, 229,80 s, exit 0 |
+| Bloque PHP Horus/privacidad/catálogo/operación | 1.685 aprobadas, 6.657 aserciones (antes del último ajuste); repetido al cierre, ver informe |
+| Python sin modelo / con MiniLM real offline | 272 aprobadas / 24 aprobadas |
+| Frontend `npm test` | 52 aprobadas (sin cambios de frontend; no se reconstruyó Vite) |
+| PHPStan, Ruff check, Pint de archivos propios | Aprobados (Ruff format solo sobre los tres archivos Python nuevos) |
+| Evaluador de privacidad (corpus conocidos, contaminados) | desarrollo y errores compartibles sin errores; holdouts 1 y 3 sin errores; holdout 2: 1 FP de política (edad con cifra) |
+| Integración HTTP real loopback (Laravel→FastAPI 127.0.0.1:8001, MiniLM real) | 53/53 comprobaciones: consultas nuevas, tarjetas multitema, sondas detenidas, bloqueo previo de privacidad, retirada de un curso por nueva versión firmada, versión no coincidente y FastAPI detenido con contingencia; reinicio con caché 10,94 s frente a 16,44 s en frío hasta `semantic=loaded` (catálogo pequeño, una muestra; no es SLA); registros redactados de FastAPI sin mensajes ni credenciales |
+
+Las suites PHP usan HTTP simulado; la integración real usó SQLite en memoria, exportador simulado con catálogo ficticio firmado por las clases reales y la entrada operativa E. No prueba PostgreSQL, el panel editorial real, carga prolongada, despliegue ni privacidad universal. No se accedió a reservas restringidas.
+
+**Pendientes que requieren decisión humana:** aceptación independiente de privacidad (reserva nueva, tercero); política sobre la edad con cifra vinculada a una persona; portada editorial de cursos (hoy no existe campo: las tarjetas de curso usan la alternativa neutra; añadirla exige modelo de datos y autorización); autorización de infraestructura, perfiles/secretos externos y activación pública; ruta de directorio persistente para la caché de vectores en el futuro host.
+
+**Integridad:** rama `anderson`, HEAD `7914438d59b77b6a5e09a15d371e635cca2d894d`, dos stashes e índice preservados; sin commits, push ni operaciones destructivas. Respaldos SHA-256 verificados e informe: `%LOCALAPPDATA%/HorusAudits/cierre-funcional-20261105/`.
+
+## Consolidación principal — Fase 4: correcciones y preparación (05/11/2026)
+
+**Alcance:** correcciones expresamente autorizadas de pruebas y propuesta 000033; preparación de validación. No es cierre de consolidación, autorización PostgreSQL ni sincronización. Se conserva el historial anterior. Informes: `docs/consolidacion-fase-4-postgresql.md` y `docs/consolidacion-fase-4-manifiesto.json`.
+
+**Correcciones:** la carrera de administradores conserva bloqueo 55P03, dos sesiones, commit y un administrador restante, pero exige 403 al coordinador conforme a 1af8843, sin modificar producción. Las dos expectativas de borrado RESTRICT en Reclamaciones pasan a 23001; se añade caso PostgreSQL de referencia inexistente que exige 23503. Confirmación estática con fuente oficial PostgreSQL 18 y observación histórica de este contexto; no nueva conexión real. No se generalizan errores ni se debilitan FK, CHECK o triggers.
+
+**D9:** se retiran los comandos db:wipe/migrate:fresh de ReclamacionesDdlPostgresTest y se corrige la afirmación de contención transaccional. El escenario queda en ReclamacionesReconstruccionD9Test, clase PHPUnit sin Laravel, sin comandos destructivos y omitida incondicionalmente. No se ejecutó D9. La recuperación futura requiere ejecutor independiente, identidad física y marcador verificados antes de cada operación/reconexión, destino certificado desechable y autorización exclusiva; el consentimiento PG general no basta. El documento conserva las comprobaciones del escenario original.
+
+**000033:** propuesta `orden >= 0 AND orden <= 9999`, compartida por CHECK PostgreSQL y triggers SQLite. Down intacto: elimina hija y después columnas editoriales del padre, con pérdida de contenido; no restaura archivos. No se ejecutó la migración. Si un destino ya la aplicó, esta edición no corrige su CHECK instalado: detenerse y proponer migración posterior autorizada. Se preparan dos regresiones integradas para INSERT/UPDATE directo, negativas y por encima del máximo; no ejecutadas.
+
+**Manifiesto:** 32 nombres completos y hashes; 28 candidatas, ninguna autorizada para ejecución; excluidas 000022, 000023, 000033 y 000034. Incluye rutas reales de pruebas y 55 hashes de dependencias de código/pruebas. Verificado: cero discrepancias de hashes y cero rutas de pruebas ausentes. Las asociaciones base son cobertura indirecta, no garantías de rollback. Se documentan orden, roles/seeders, dependencias de consumidores del editor, pruebas destructivas y cápsulas todavía pendientes. Ni phpunit.pgsql.xml ni un filtro aplican automáticamente las exclusiones. El registro migrations no acredita el catálogo real.
+
+**Pruebas nuevas ejecutadas en esta fase:** bloque PHPUnit directo bajo phpunit.xml, sin caché de resultados: **113 aprobadas, 404 aserciones, exit 0**, repetido al cierre con el mismo resultado. PostgresTestGuardTest y PostgresTestArgumentsTest usan dobles, sin conexión PostgreSQL. ServicioElementosOrdenPreparacionTest aporta **4 pruebas/36 aserciones incluidas en las 113**: extrae el predicado del AST y comprueba -1, 0, 9999 y 10000 en INSERT/UPDATE con triggers de una tabla sintética SQLite :memory:. No llama a up/down ni Artisan y no acredita aplicación de 000033 o DDL PostgreSQL. Sintaxis de siete PHP y Pint acotado aprobados; diff --check aprobado. No se cambiaron app/Support, app/Services, frontend o Python.
+
+**Validación pendiente:** suites integradas y completa no ejecutadas porque RefreshDatabase invoca migrate:fresh, prohibido para esta fase. No nuevas pruebas PostgreSQL, pruebas de concurrencia real, rollback, servicios o llamadas externas. La evidencia PostgreSQL 000032 de 29/631 y los resultados anteriores conservan su carácter histórico. Las regresiones PostgreSQL corregidas/preparadas no se declaran aprobadas por ejecución.
+
+**Archivos de esta fase (10):** PROJECT_CONTEXT.md; tests/PostgresIntegrity/ConcurrencyPostgresTest.php; tests/PostgresIntegrity/ReclamacionesDdlPostgresTest.php; tests/PostgresIntegrity/ReclamacionesReconstruccionD9Test.php (nuevo); tests/Feature/ReclamacionesMigracionTest.php; tests/Feature/ServiciosContenidoTest.php (conserva trabajo previo); tests/Unit/ServicioElementosOrdenPreparacionTest.php (nuevo); database/migrations/2026_11_02_000033_add_contenido_to_servicio_publicaciones.php (ya existía sin seguimiento); docs/consolidacion-fase-4-postgresql.md (nuevo); docs/consolidacion-fase-4-manifiesto.json (nuevo).
+
+**Estado y siguiente paso:** rama anderson y HEAD inicial conservados, 24 commits locales frente a origin/anderson cacheado, índice vacío y dos stashes preservados. Sin fetch, commits, push, migraciones aplicadas, cambios de entorno/credenciales ni servicios. Horus AI permanece apagado. Revisar correcciones, decisiones 000023/000033/000034 y preparar cápsula con selección real antes de autorizar validación integrada. DB_PASSWORD en .env.example conserva la revisión pendiente de la Fase 2, sin imprimir ni cambiar valores. No comienza la Fase 5 ni se declara consolidación terminada.
+
+## Continuación autorizada de consolidación — validación integrada (05/11/2026)
+
+El propietario autorizó ejecutar escenarios controlados PostgreSQL y probar 000033/000034 en aislamiento;
+000022 sigue suspendida y 000023 excluida. Destino principal confirmado: horus_group, 127.0.0.1:5432,
+sin autorización todavía para conectarlo, migrarlo o modificar archivos de entorno.
+
+Se arrancó el clúster de pruebas existente y se verificó físicamente horus_l2_test:55433 con las guardas
+intactas. Ya contenía 000022/000023 registradas, registros_pendientes y una cuenta; el propietario autorizó
+conservar ese estado y continuar con transacciones reversibles, sin ejecutar/revertir esas migraciones.
+Resultados nuevos: integridad PostgreSQL **8/105**, DDL aislado 000033/000034 **2/45**, SQLite memoria
+**3/31**, todos aprobados. No se ejecutaron migrate:fresh, db:wipe ni D9. Se compararon esquema, datos,
+migrations y secuencias antes/después de cada escenario y permanecieron intactos. Un fixture académico
+inicial incompleto se corrigió sin cambiar producción. El caso original de último administrador tras
+degradación confirmada queda pendiente para preservar la cuenta existente; bloqueo 55P03 y 403 sí probados.
+
+Archivos nuevos: scripts/consolidacion-postgres.php, phpunit.pgsql.fase4.xml, tests/ConsolidacionPostgres/*,
+tests/ConsolidacionSqlite/*, tests/Support/InstalaMigracionesEnMemoria.php y los dos auxiliares
+consolidacion-horus-ai.php/run-consolidacion-horus-ai.py. Informe único: docs/entrega-consolidacion.md;
+propuesta exacta de commits: docs/entrega-consolidacion-commits.json. Los cambios iniciales se conservaron.
+
+Carlos Manuel Castope Izquierdo asumirá inicialmente administración, reclamaciones, procesos,
+aprobaciones y notificaciones; Cristopher Pulache Minchan, académico/comercial, cursos, servicios,
+cotizaciones, convocatorias y preinscripciones. El propietario mantiene coordinación e integración.
+Sin comunicaciones externas, commits, push, cambios de stash ni activación permanente en esta continuación.
+
+**Integración real nueva al cierre de esta continuación:** 16 comprobaciones aprobadas, con marcador
+CONSOLIDACION_OK y exit 0: exportador real sin dobles, curso y servicio publicados sintéticos, firma,
+worker database sobre SQLite memoria, FastAPI por entrada operativa, MiniLM offline, tarjeta de
+recomendación, cero HTTP ante entrada privada, auditoría redactada, retirada sincronizada y contingencia.
+FastAPI temporal detenido; el servicio ajeno de 8001 quedó intacto. Evidencia:
+`%TEMP%/horus-consolidacion-real-vq1rf6_j/integracion.txt`. Se corrigieron únicamente defectos de fixtures,
+la detección de finalización de Artisan y el transporte del arnés ante proxies heredados; sin ampliar
+tiempos ni relajar modelos de producción. No son pruebas del worker en PostgreSQL ni de activación
+permanente. UI y suites anteriores siguen históricas porque no cambió su código.
+
+Sintaxis de ocho PHP nuevos, Pint acotado, Ruff y diff --check aprobados. Las pruebas aprobadas
+000033/000034 quedan preparadas para solicitar aplicación específica posterior, todavía no aplicada
+en horus_group. La asignación de responsabilidades y la propuesta exacta de commits quedan en el informe
+único de entrega. Se requiere autorización posterior para acceder al destino principal, respaldarlo,
+aplicar cambios persistentes, modificar entorno, crear commits y sincronizar; no se presume concedida.
+
+## Aplicación local autorizada de 000033/000034 — 05/11/2026
+
+Autorización expresa posterior del propietario: respaldo privado y aplicación exclusiva en
+horus_group, 127.0.0.1:5432, PostgreSQL 18.6, system_identifier 7701086120026667920.
+El preflight de solo lectura encontró 29 migraciones registradas: las 28 candidatas y 000023 ya
+aplicada en lote 4. 000022 seguía ausente; las estructuras de 000033/000034 también estaban ausentes.
+
+Respaldo custom completo creado con ACL privada (usuario y SYSTEM), SHA-256 y lectura íntegra
+pg_restore hacia NUL verificados, sin ejecutar restauración. Ubicación y hash completos en
+docs/entrega-consolidacion.md; resultado-aplicacion.json junto al respaldo externo.
+
+scripts/aplicar-editorial-auditoria.php verificó destino físico y hashes de los dos archivos probados,
+aplicó exclusivamente 000033/000034 mediante el migrador Laravel en una transacción exterior única
+y confirmó ambas en **lote 6**. Verificación independiente con conexión nueva en solo lectura:
+31 migraciones registradas; tabla editorial vacía, tres columnas nullable, CHECK de orden 0..9999,
+CHECK de variante, FK RESTRICT e índice presentes; chat_logs.fuente varchar(16) nullable.
+Datos preexistentes comparados por resúmenes calculados dentro del servidor: intactos, incluidos
+cuenta e historial anterior de migrations. Ninguna fuente inferida para históricos ni contenido
+editorial generado. Secuencias previas intactas salvo la de migrations para sus dos registros nuevos.
+
+000022 continúa suspendida y sin aplicar. 000023 se conservó sin ejecutar, revertir ni modificar.
+No hubo fixtures en la base principal, seeders, migrate:fresh, db:wipe ni D9. Sin cambios de entorno,
+activación de Horus AI, commits, push o alteraciones de stashes. El informe único conserva el historial
+y distingue la verificación del archivo de respaldo de una restauración real todavía no ensayada.
+
+## Activación local autorizada de Horus AI — 05/11/2026
+
+El propietario autorizó configurar .env y chatbot-python/.env, concordar credenciales, iniciar
+FastAPI/worker y habilitar Advisor tras un preflight correcto. Ratificó expresamente **no migrar 000022**.
+Hay 31 migraciones aplicadas y únicamente esa pendiente/suspendida; no se ejecutaron migraciones en esta etapa.
+
+Entornos respaldados en directorio externo privado (usuario y SYSTEM), con comparación posterior de
+todas las claves no administradas: intactas. Credenciales concordantes, sin valores en informes,
+Python sin DB_*, firma obligatoria y MiniLM offline. .env.example conservado. Directorio operativo:
+`%LOCALAPPDATA%/HorusAI/horus-group-local-20261105-165916`.
+
+Aplicación **http://127.0.0.1:18080**, FastAPI 127.0.0.1:18081 y worker database sobre horus_group:5432.
+scripts/horus-local.php mantiene esos procesos y renueva solamente el catálogo cada 120 s; no ejecuta
+el programador general. Advisor se habilitó en el entorno web solo después de ready=true, worker vivo,
+semántica/catálogo loaded y versión coincidente. PID gestor 14032 al verificar; no se tocaron procesos ajenos.
+
+Pruebas reales nuevas: verificación del servicio sobre PostgreSQL (respuesta advisor, cero HTTP para
+entrada privada, auditoría redactada con fuente y contingencia); Edge sobre la aplicación real
+(HTTP 200/advisor, apertura, móvil 390x844 y Escape); firma y renovación posterior al arranque; cola
+vacía y cero trabajos de catálogo fallidos. Catálogo actual: **0 fichas vigentes exportables**; no se
+publicó contenido automáticamente. No se atribuyen las tarjetas de fixtures anteriores a contenido real.
+
+Correcciones del arnés: presupuesto de arranque nuevo ajustado de 60 a 180 s tras medir imports
+125,48 s y pesos 5,74 s (total 131,6 s), sin cambiar límites HTTP/cola/bloqueos; captura del smoke con
+Network de DevTools en lugar de sustituir fetch. Se reprodujo además que PHPUnit heredaba los flags
+locales activados; phpunit.xml conserva ahora predeterminados seguros y credenciales vacías solo para
+pruebas. Regresión OperacionHorusTest: **11 pruebas/42 aserciones**, aprobadas, sin migraciones ni red real.
+
+Procesos activos al cierre; no se instalaron servicios ni arranque automático de Windows. Sintaxis PHP,
+Pint acotado y sintaxis Node aprobados. El informe único docs/entrega-consolidacion.md contiene resultados,
+comandos y límites. Sin acceso a reservas de privacidad, correos reales, despliegue, commits, push o cambios
+de stashes. La consolidación Git sigue requiriendo revisión/autorización propia; no se declara terminada.
+
+## Consolidación local de commits autorizada — 05/11/2026
+
+El propietario autorizó sanear exclusivamente DB_PASSWORD de .env.example y crear los commits
+temáticos del manifiesto, sin push. Se conservaron las demás variables del ejemplo. El manifiesto
+coincidió con las revisiones de archivos; la comprobación de credenciales sobre 198 archivos presentes
+no encontró valores locales conocidos ni patrones de tokens no ficticios. Material privado y respaldos
+quedaron fuera de staging, sin leer el contenido de los seis archivos restringidos.
+
+Bloque de **15 commits locales / 199 rutas**: seguridad del ejemplo, Servicios, Reclamaciones,
+Administración, motor Python, privacidad, catálogo/cliente Laravel, integración, validación PostgreSQL,
+regresión SQLite, integración real de AI, ejecutor de migraciones locales, operación supervisada,
+aislamiento de PHPUnit y cierre documental. Los 14 commits previos al documental terminan en
+f39b924dafbbabd37bb3f8231a3440fe89a62a14; sus hashes, títulos y rutas figuran en el informe único y JSON.
+El último commit documental registra este cierre y se identifica con git log -1, sin autorreferencia.
+
+Cada staging usó rutas explícitas, comprobación SHA-256 y comparación entre blobs del índice y
+archivos revisados. git diff --cached --check detectó una sola línea vacía sobrante al final de
+chatbot-python/tests/test_catalog_sync.py: se normalizó exclusivamente ese EOF antes de continuar.
+No cambió la lógica ni se repitieron suites aprobadas por un ajuste de formato.
+
+Rama anderson, los 24 commits previos preservados como ancestros, índice vacío y dos stashes
+conservados. Sin push, fetch, rebase o reset. Consulta real de solo lectura de origin/anderson:
+306b168e8d8bbfec23301d7c050c7f7c9ae11d2f; al cierre hay 39 commits locales por sincronizar.
+Horus AI local y sus perfiles permanecen operativos; no hubo nuevas migraciones ni cambios en datos
+por estas operaciones Git. 000022 continúa suspendida. La autorización de push sigue pendiente.
