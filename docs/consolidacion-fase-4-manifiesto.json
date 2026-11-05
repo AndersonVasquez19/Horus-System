@@ -1,0 +1,617 @@
+{
+  "version": 1,
+  "date": "2026-11-05",
+  "branch": "anderson",
+  "head": "7914438d59b77b6a5e09a15d371e635cca2d894d",
+  "execution_authorized": false,
+  "postgres_executed_this_phase": false,
+  "d9": "bloqueada_sin_ejecutor",
+  "included_count": 28,
+  "excluded_count": 4,
+  "migrations": [
+    {
+      "file": "database/migrations/0001_01_01_000000_create_users_table.php",
+      "sha256": "30ad4ac0a24a08dd8564677405932387036b73aa7dd4433c13d08368b4489469",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminAuthenticationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/0001_01_01_000001_create_cache_table.php",
+      "sha256": "3fbfab6650f819341b8b3353c37998495b1ffbe243dcfac24002c893b85d8695",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminAuthenticationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/0001_01_01_000002_create_jobs_table.php",
+      "sha256": "f93b64ef40689caa812cfad49cdb586cf98d1cb9f2308102e740bac4b9bac86b",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/MatriculaNotificationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_26_000001_create_estudiantes_table.php",
+      "sha256": "0fcffbc4ad106fccafa3d902f7d432981e45407a3521442ff62aa88ca26e8bcf",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminEstudianteTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_26_000002_create_cursos_table.php",
+      "sha256": "bc642ea77984f587e62a0a3f4187d5452b9e24f82ddcc35a02b90ce3030bc25c",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminCursoTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_26_000003_create_matriculas_table.php",
+      "sha256": "357cb97ca109c8236ca0b65a40ad671b4f6f0a078ec7329cb34d153deacafbea",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminMatriculaTest.php",
+        "tests/Feature/MatriculaOperationsTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_26_000004_create_chat_intents_table.php",
+      "sha256": "906e381531a02fde79ef6d7d0499ab27577a754a2684772e61658de3fc489ece",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AsistenteVirtualTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_26_000005_create_chat_logs_table.php",
+      "sha256": "4b193c013fecdaf54ebf974e79c4ebf3ce433802e8864b360e3b6ecbf88d5efe",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AsistenteVirtualTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000006_create_permission_tables.php",
+      "sha256": "836543a1fc7f18b52a037b79ce6fa62a92c1f9674f10451fd419a864717cee7c",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminAuthorizationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000007_create_audit_logs_table.php",
+      "sha256": "b2bd0ebfe65887ced51765889abca85745a248d507f72c24c5b974c227844aee",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/ProteccionAdministradoresTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000008_create_system_settings_table.php",
+      "sha256": "946cb0621eee7cbaf7f58e0223e01e57e3d7fc0b2755dbd843d2ce3ca4f432c2",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/BackendPerformanceTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000009_add_jwt_version_to_users_table.php",
+      "sha256": "3f967eddaead26f61590645fa726c62eb7ec81fc89be45afbe30fc904ed08859",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminAuthenticationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000009_create_procesos_internos_table.php",
+      "sha256": "562cd972b98b4478f3923fac5c7d7abe6583373383d3f3d48e065b2cff2f403a",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/ProcesoResponsableTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000010_create_notificaciones_internas_table.php",
+      "sha256": "627492b2a4daf6ac7e5914f51cb5114b28e581e05694b0d59568f979e50fba6a",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AdminNotificacionTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000011_create_aprobaciones_internas_table.php",
+      "sha256": "80436e0afefdcedca030745027fef7268788298d67c11aff380bd85a54359f62",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AprobacionesRespaldoPermissionsMigrationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000012_add_matriculas_exportar_eliminar_permissions.php",
+      "sha256": "7b3c8c7cf15c9b92f9cfe3e603bab529272ef8391828d86246678bbb99bccbcf",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/MatriculaSensitivePermissionsTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_27_000013_add_matriculas_integrity_constraints.php",
+      "sha256": "c1fdb9fe0e15d2d0f73f7785484b0e34f050f2c40ce2e5cc599632bfa0c86bd4",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/MatriculaIntegrityConstraintsTest.php"
+      ],
+      "postgres_tests": [
+        "tests/PostgresIntegrity/MatriculaConstraintsPostgresTest.php",
+        "tests/PostgresIntegrity/MatriculaRulesPostgresTest.php",
+        "tests/PostgresIntegrity/ConcurrencyPostgresTest.php",
+        "tests/PostgresIntegrity/MatriculaOperacionesConcurrenciaPostgresTest.php"
+      ],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_28_000020_create_matricula_notifications_table.php",
+      "sha256": "3c43d79f4fe90329500d5f2a3e1205ea86ffa858b802667d45c3fd4efa673ca7",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/MatriculaNotificationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_28_000021_create_curso_publicaciones_table.php",
+      "sha256": "c7ff18303336feb824ffbacfb351c433b6d06a87cd6cf4760792292d941d978d",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/CursoPublicacionTest.php",
+        "tests/Feature/Sprint17PublicacionTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_28_000022_create_registros_pendientes_table.php",
+      "sha256": "ed2b564c187531269cad4ee7f165476d0195fcb448b22cc3ab79645c0d1095bd",
+      "status": "excluida",
+      "reason": "Suspendida; verificacion de correo no autorizada.",
+      "tests": [
+        "tests/Feature/Sprint14EmailVerificationTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_28_000023_hold_matricula_notifications_backlog.php",
+      "sha256": "21b4b1adbe304958dad56b6a721de47ab9cdd46bd2912a76f2f1ff2f789c2054",
+      "status": "excluida",
+      "reason": "Transformacion irreversible del backlog; requiere autorizacion expresa.",
+      "tests": [
+        "tests/Feature/MatriculaNotificationBacklogTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_28_000024_add_aprobaciones_respaldo_permissions.php",
+      "sha256": "cdec8d112009ed06ba784f7d527ec18588e6666933b0aa34fcdf3125aba7431c",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/AprobacionesRespaldoPermissionsMigrationTest.php"
+      ],
+      "postgres_tests": [
+        "tests/PostgresIntegrity/AprobacionesConcurrenciaPostgresTest.php"
+      ],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_29_000025_create_servicios_tecnologicos_tables.php",
+      "sha256": "6f5c8d505a82d1af98195d43caab34dd314cc3ec6c848206060f7152a134c6e2",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/ServicioTecnologicoTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_29_000026_add_servicios_permissions.php",
+      "sha256": "c352ea7096ffcb25302e05122273a155eeacee298fc91d8ebe196cb0a1968c62",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/ServicioTecnologicoTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_29_000027_create_solicitudes_cotizacion_tables.php",
+      "sha256": "c3e8c961abc7f0b4b06f90f3e97b2052a99250a8554af5c0a1307bee730e0255",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/CotizacionTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_29_000028_add_cotizaciones_permissions.php",
+      "sha256": "e341315ab98a28a7bea2e08cc929fa7a2cffd9ca2eb181bef9fe89205c55b0d7",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/CotizacionTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_29_000029_add_origen_to_solicitudes_cotizacion.php",
+      "sha256": "193bdca1c178adeea826323723630c0e004b057308dd8eaf324689f166619aa1",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/CotizacionOrigenMigracionTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_30_000030_create_reclamaciones_tables.php",
+      "sha256": "f776eb5e5515bd8f11e738063a3499e88e58b1f42f15a7c702e92f382261dd9d",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/ReclamacionesMigracionTest.php"
+      ],
+      "postgres_tests": [
+        "tests/PostgresIntegrity/ReclamacionesDdlPostgresTest.php",
+        "tests/PostgresIntegrity/ReclamacionesConcurrenciaPostgresTest.php"
+      ],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_30_000031_add_reclamaciones_permissions.php",
+      "sha256": "bfa51f431563b5ab3e57f075f3f651ccfa25bb1558831ea684f1031ab334ebc0",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/ReclamacionesMigracionTest.php"
+      ],
+      "postgres_tests": [
+        "tests/PostgresIntegrity/ReclamacionesDdlPostgresTest.php"
+      ],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_10_31_000032_add_audiencia_to_notificaciones_internas.php",
+      "sha256": "fd987c19ddc2e173f6026ae7934a8eea52bedacdcc7349a5c0f22120309b24e9",
+      "status": "candidata_no_autorizada",
+      "reason": "Requiere preflight de catalogo, datos y autorizacion de ejecucion.",
+      "tests": [
+        "tests/Feature/NotificacionAudienciaMigracionTest.php",
+        "tests/Feature/NotificacionAudienciaInventarioPostgresTest.php",
+        "tests/Feature/NotificacionAudienciaPuntoRetornoTest.php"
+      ],
+      "postgres_tests": [
+        "tests/PostgresIntegrity/NotificacionAudienciaPostgresTest.php"
+      ],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_11_02_000033_add_contenido_to_servicio_publicaciones.php",
+      "sha256": "94e1002d4a16b907eae0e0425c852f9bf4880e42a6bb365da5aebc2d41ff9fc5",
+      "status": "excluida",
+      "reason": "Correccion propuesta y continuidad editorial pendientes.",
+      "tests": [
+        "tests/Feature/ServiciosContenidoTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    },
+    {
+      "file": "database/migrations/2026_11_03_000034_add_fuente_to_chat_logs.php",
+      "sha256": "dd91b6aab6220ed6388eff7b69dc445bf8891bb296c275589981aeeac9b9b4fc",
+      "status": "excluida",
+      "reason": "Incorporacion independiente de Horus AI pendiente.",
+      "tests": [
+        "tests/Feature/HorusAiTransicionTest.php"
+      ],
+      "postgres_tests": [],
+      "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
+    }
+  ],
+  "notes": [
+    "Manifiesto de seleccion y revision; no es un ejecutor ni acredita el esquema real.",
+    "Las pruebas Feature utilizan RefreshDatabase; no se ejecutan en Fase 4 porque invocan migrate:fresh.",
+    "No usar phpunit.pgsql.xml indiscriminadamente: puede preparar las 32 migraciones.",
+    "000029 tiene una prueba exclusiva SQLite; falta variante PostgreSQL.",
+    "Algunas pruebas necesitan tablas excluidas: preparar capsulas y seleccionar metodos antes de ejecutar.",
+    "El esquema debe cotejarse con pg_catalog; la tabla migrations es insuficiente."
+  ],
+  "code_and_test_dependencies": [
+    {
+      "file": "app/Services/AdminProtection.php",
+      "sha256": "e0084ddc6f1f2623a07e5c4edddb539001724ba126f4e9c624552ac877f34523"
+    },
+    {
+      "file": "app/Http/Controllers/Admin/UserController.php",
+      "sha256": "00b220f9c9413d65f6ce5bc806419cc4918219dcad835ca58857e8795574240a"
+    },
+    {
+      "file": "database/seeders/RolesAndPermissionsSeeder.php",
+      "sha256": "a7c8d52321f27800503b595f23080ba903b474860117c008ef3cdbd025283906"
+    },
+    {
+      "file": "app/Models/ServicioPublicacion.php",
+      "sha256": "700562b3992581b6f046558ba63869491a9698db9f77781a774b50fb7c0d568f"
+    },
+    {
+      "file": "app/Models/ServicioPublicacionElemento.php",
+      "sha256": "f34ea749708335288a95ab5577baa1587d5caa1115960f8546c3340a97eb389a"
+    },
+    {
+      "file": "app/Services/GestionServiciosTecnologicos.php",
+      "sha256": "e2a60d3b4985ae9611e307026f676a0569c4cd5024c15c427bf531c58b66f732"
+    },
+    {
+      "file": "app/Services/GestionReclamaciones.php",
+      "sha256": "8284b2531f9cac9eb7800b5d8d8660b71d93bf50b0a202d1ff60fe8df6768309"
+    },
+    {
+      "file": "app/Support/Testing/PostgresTestGuard.php",
+      "sha256": "84f7293d265efdd5c1a59ee60b5786bfe9c4275ba50fc71073c45614dd37506e"
+    },
+    {
+      "file": "app/Support/Testing/PostgresTestPreflight.php",
+      "sha256": "d07142269261d77009e7c10530d9360dbff4d004870413dd0afd610fca990068"
+    },
+    {
+      "file": "app/Support/Testing/GuardedPostgresConnection.php",
+      "sha256": "30da5980cbaaf8de0028e8d5535e6f22e35345ed4ea3d92500adbbb8e5e28ccd"
+    },
+    {
+      "file": "config/pgsql-testing-database.php",
+      "sha256": "e95e99d259d09526bd21724e793c3fb287237f18992fe9a3f52a890c27a0538d"
+    },
+    {
+      "file": "tests/bootstrap-pgsql.php",
+      "sha256": "6f0a7aec4546ebca6d3a21fd4d524496430a65286b6cee56bf9c5be773e93fbf"
+    },
+    {
+      "file": "tests/TestCase.php",
+      "sha256": "1ce776ecb58475c93af760078cf101d3ab354e86d6973c6762676d6bbbe8a9bc"
+    },
+    {
+      "file": "tests/PostgresIntegrity/Concerns/RequiresIsolatedPostgres.php",
+      "sha256": "5140c2abcace53ffeccd7fcce932fad424dd79396e8c89941b36143207a4dd1f"
+    },
+    {
+      "file": "tests/PostgresIntegrity/Concerns/ReclamacionesPostgres.php",
+      "sha256": "7f7e2082f6e12509ce1073d32241b645b61f68c54b60c23fd01d6d080560e165"
+    },
+    {
+      "file": "phpunit.xml",
+      "sha256": "700166e55754e4f1e1642d6ef5780648fc62cbaa3a1b1b84300c302bafd47b68"
+    },
+    {
+      "file": "phpunit.pgsql.xml",
+      "sha256": "7ce1ccd7f08d946bb19b47628f1b0a2624c73e2db7eb917ba1d987005f2f82c9"
+    },
+    {
+      "file": "tests/Feature/AdminAuthenticationTest.php",
+      "sha256": "63ce5abf15a7b7b7c7877150d1d5d408f4206b7677275105a860ab4d180d1148"
+    },
+    {
+      "file": "tests/Feature/MatriculaNotificationTest.php",
+      "sha256": "d0424beaca63c9c42220df19a53a20b5cadab2a28314aacf5ed870fdbb5d6285"
+    },
+    {
+      "file": "tests/Feature/AdminEstudianteTest.php",
+      "sha256": "51dc7179d43e8412bae504ee4c5b7cd683f663ac21a6ba709b3878786bdd995a"
+    },
+    {
+      "file": "tests/Feature/AdminCursoTest.php",
+      "sha256": "6d70c570920feb3c5ef985134f27cd23af30011751c20528218243e82b887b35"
+    },
+    {
+      "file": "tests/Feature/AdminMatriculaTest.php",
+      "sha256": "e41a07c38d14b7670a96523c6d36b09129863f16af09b990b868f1fa7a2f9e0e"
+    },
+    {
+      "file": "tests/Feature/MatriculaOperationsTest.php",
+      "sha256": "19562a23f8034ba8251312cd863bb7da6d6cb01c1108ab0bb463059f539e0d77"
+    },
+    {
+      "file": "tests/Feature/AsistenteVirtualTest.php",
+      "sha256": "b31b245b1d5f3ea8a6a4dada5004e8dc3d8624427c9b62ff11a4532082481f37"
+    },
+    {
+      "file": "tests/Feature/AdminAuthorizationTest.php",
+      "sha256": "2b7465a51d5a66dd9328d3da5dd68ae3a9e451fd30a7518f7e90f7050b3f45ae"
+    },
+    {
+      "file": "tests/Feature/ProteccionAdministradoresTest.php",
+      "sha256": "b1c393a9a3afb35af944192f8660d70d397e9d87c32c44f46d42a57bd9318d9a"
+    },
+    {
+      "file": "tests/Feature/BackendPerformanceTest.php",
+      "sha256": "3b73fd7f2ef92bf5884e03c813482a6b604e7767eb13f3dea46ae75e45694d4a"
+    },
+    {
+      "file": "tests/Feature/ProcesoResponsableTest.php",
+      "sha256": "2c319d37ee612bfcfef0eea4f3f0797f979e001d066d1ad1668433dddc8afa98"
+    },
+    {
+      "file": "tests/Feature/AdminNotificacionTest.php",
+      "sha256": "5b3cd3bb50c2768b8db47d63963ca3df7eb234ec11b6f957014d610353fc8fb8"
+    },
+    {
+      "file": "tests/Feature/AprobacionesRespaldoPermissionsMigrationTest.php",
+      "sha256": "3d0bb71b331801cd940d6718447af0d14d1be42289d5cd9f63cffd0de856f097"
+    },
+    {
+      "file": "tests/Feature/MatriculaSensitivePermissionsTest.php",
+      "sha256": "4655b17d72925c1586af65973c3b0200c096d8e7f428b8035a982e53e1250e80"
+    },
+    {
+      "file": "tests/Feature/MatriculaIntegrityConstraintsTest.php",
+      "sha256": "3f66cae74f8135475321da6b99fb847fb4b2d8eda2b9746a6c8bab1fd97afda9"
+    },
+    {
+      "file": "tests/PostgresIntegrity/MatriculaConstraintsPostgresTest.php",
+      "sha256": "acca6f314e85a89663b2282b1dd039ebe510e4c876c6b01bf26e0c8ce713902e"
+    },
+    {
+      "file": "tests/PostgresIntegrity/MatriculaRulesPostgresTest.php",
+      "sha256": "dc9d28d07bef3e1ebcf00714aa8758d5b240daa53381c6aa5567603699684134"
+    },
+    {
+      "file": "tests/PostgresIntegrity/ConcurrencyPostgresTest.php",
+      "sha256": "2d4945089d381bffe3ae374f155a60010f5f718fb8d7f8e8cc5f3dbb6fc7aef9"
+    },
+    {
+      "file": "tests/PostgresIntegrity/MatriculaOperacionesConcurrenciaPostgresTest.php",
+      "sha256": "ef68c4f15a14bea0d155d3722ff0dd2f044789ca4d7524d27a5f00d15fd9254d"
+    },
+    {
+      "file": "tests/Feature/CursoPublicacionTest.php",
+      "sha256": "65f0d6b537db56f876bf3822949165c9c18bfcd3ff695a2771c4a4a495413842"
+    },
+    {
+      "file": "tests/Feature/Sprint17PublicacionTest.php",
+      "sha256": "b16a17b06585f3b0930946004f28b0421a9ddb6bd796d7ee23ac13dd1ef6baf1"
+    },
+    {
+      "file": "tests/Feature/Sprint14EmailVerificationTest.php",
+      "sha256": "b2d0e8a1fb39cb3363ecd37d727deb44743b375c54dfdfde1a0845f97421998f"
+    },
+    {
+      "file": "tests/Feature/MatriculaNotificationBacklogTest.php",
+      "sha256": "7c680f1a015c3b45ea7ab211654f745696b023dcfb629f835458cb25884cff6b"
+    },
+    {
+      "file": "tests/PostgresIntegrity/AprobacionesConcurrenciaPostgresTest.php",
+      "sha256": "b8250418aa4a503c2c5a4f7d0f91ec010ed52593d52404a6af7eaf8240fa8132"
+    },
+    {
+      "file": "tests/Feature/ServicioTecnologicoTest.php",
+      "sha256": "44bbb526db80407951854de6a7beeec89c312a91ee4d2db0b0bb60899ab8ee58"
+    },
+    {
+      "file": "tests/Feature/CotizacionTest.php",
+      "sha256": "3f7de733bd8a3c0da6377561f600588a59a5d333e03d34311902555fd5961eea"
+    },
+    {
+      "file": "tests/Feature/CotizacionOrigenMigracionTest.php",
+      "sha256": "6465afa618648d924cb19ea9c500e1e290199dd85040edc644bfb9f2600d37f0"
+    },
+    {
+      "file": "tests/Feature/ReclamacionesMigracionTest.php",
+      "sha256": "042a7e19a4e4a73952d721c732024b9d0fb81264633c2652c5165e4da6f4cb3b"
+    },
+    {
+      "file": "tests/PostgresIntegrity/ReclamacionesDdlPostgresTest.php",
+      "sha256": "4e1c4e8ba71f1b5cd896100cac95c73c67ea5ead7997c3a749e4ef4d4e513b26"
+    },
+    {
+      "file": "tests/PostgresIntegrity/ReclamacionesConcurrenciaPostgresTest.php",
+      "sha256": "85ba8156b39faa3fb9a1c91220501702d4f2eae29b4e462b95f4cf4011b92ed3"
+    },
+    {
+      "file": "tests/Feature/NotificacionAudienciaMigracionTest.php",
+      "sha256": "a58ed75df837010082e435e77626deb07902d93953361ccc3410a2e6c0db7b44"
+    },
+    {
+      "file": "tests/Feature/NotificacionAudienciaInventarioPostgresTest.php",
+      "sha256": "6b6041432d6eca689be12190e734e42e0f0770463173b699cea7aa6817603229"
+    },
+    {
+      "file": "tests/Feature/NotificacionAudienciaPuntoRetornoTest.php",
+      "sha256": "f8ef9e64b993db1a0e9742064685c07b8e570b10d5b631cd06fa1e77fbf8c0e6"
+    },
+    {
+      "file": "tests/PostgresIntegrity/NotificacionAudienciaPostgresTest.php",
+      "sha256": "8a7cc7f98a5abb6ddccda0bd0010e155032b3ef7c79a5491f3705f795d570232"
+    },
+    {
+      "file": "tests/Feature/ServiciosContenidoTest.php",
+      "sha256": "d7444fca1419e7b40fde8526dab56583b4faeca8e2721a85d8eedcc38aeda0e5"
+    },
+    {
+      "file": "tests/Feature/HorusAiTransicionTest.php",
+      "sha256": "f9a5d3e06a832831889ba99d7b5e0cbf97f772bff277c9a8c1c7970d4589fbf6"
+    },
+    {
+      "file": "tests/Unit/ServicioElementosOrdenPreparacionTest.php",
+      "sha256": "448b86cbf584cda44ffd0a071c5c2ec72918d65c3d0e94186ab3be2afeab41e2"
+    },
+    {
+      "file": "tests/PostgresIntegrity/ReclamacionesReconstruccionD9Test.php",
+      "sha256": "b038a95c79f3da7d11e5a5eeb9bba7e5e5bc46195b85c3a2d3b7d3b877591574"
+    }
+  ],
+  "seeders": {
+    "base": "RolesAndPermissionsSeeder: solo instalacion nueva autorizada; no resincronizar bases compartidas.",
+    "optional_excluded": "ServiciosTecnologicosContenidoSeeder: importacion editorial excluida; no necesaria para el DDL."
+  }
+}
