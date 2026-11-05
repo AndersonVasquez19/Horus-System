@@ -292,3 +292,49 @@ DB_PASSWORD queda vacío en la versión actual del ejemplo; esta operación no e
 históricos de Git ni rota credenciales de servicios. Los perfiles locales autorizados y los procesos
 de Horus AI se mantuvieron operativos. Solo queda autorización de push para sincronizar este bloque;
 no se declara la entrega sincronizada mientras esa operación no se realice.
+
+## Recuperación del supervisor local — 05/11/2026
+
+Una comprobación posterior encontró detenidos los servicios del primer arranque. El registro
+conservado solo indicaba un error técnico genérico; su horario coincide con el límite de 30 s
+del control de renovación, pero no permite afirmar la clase exacta de aquella excepción.
+El defecto comprobado en código era que un fallo de ese control alcanzaba el finally global
+y cerraba también los procesos sanos.
+
+Se aisló exclusivamente la renovación periódica en scripts/Support/LocalCatalogRenewal.php.
+Un fallo registra tipo de excepción, evento y fecha, sin mensajes privados; conserva API, web
+y worker, sin reintento inmediato ni ampliación de timeouts. Se mantienen la caducidad del
+catálogo, el arranque cerrado ante errores y la parada ante muerte real de los procesos hijos.
+El gestor ahora conserva también la clase de los errores fatales.
+
+Regresión ejecutada: tests/Unit/LocalCatalogRenewalTest.php, **3 pruebas y 11 aserciones aprobadas**.
+Incluye timeout real de un proceso de control, supervivencia de un proceso independiente,
+ausencia de reintento y fallo del registro. Sintaxis de los tres archivos PHP y Pint acotado
+aprobados. No se ejecutaron migraciones ni se repitieron las suites cerradas.
+
+El propietario autorizó recuperar únicamente el lock abandonado del worker. Se comprobó la
+ausencia de los procesos anteriores, identidad física del clúster local y correspondencia
+temporal con aquella instancia; se liberó el lock mediante su propietario, dentro de una
+transacción. No se vació la caché ni se intervinieron locks de otros procesos. Un primer intento
+falló por el nombre de tabla de locks nulo y revirtió; se corrigió la resolución al valor efectivo
+cache_locks y se exigió confirmación explícita antes del reinicio.
+
+La nueva instancia quedó lista a las 23:02:47 UTC: gestor 10508, FastAPI 22604, worker 22032 y
+web 24360. Comprobación real posterior: enabled=true, ready=true, errors=[], semantic=loaded,
+catalog=loaded, versión coincidente, autenticación correcta, worker vivo, cero pendientes y cero
+trabajos fallidos del catálogo. Acceso local: http://127.0.0.1:18080. El catálogo exportable tiene
+cero fichas publicadas; no se publicaron contenidos automáticamente. 000022 sigue siendo la
+única migración pendiente. Estos resultados sustituyen la afirmación de continuidad de los
+procesos del primer arranque, sin cambiar sus evidencias históricas de pruebas.
+Comprobación de continuidad a las 23:09:12 UTC: los cuatro procesos seguían vivos y el snapshot
+se había renovado a las 23:08:53 UTC, después del reinicio. Esto confirma una renovación posterior;
+no constituye garantía de disponibilidad indefinida ni instalación como servicio de Windows.
+
+Los primeros 15 commits autorizados terminan en 79b7370. El propietario autorizó incorporar
+la corrección y este registro en un commit adicional: fix(horus-ai): aislar fallos de renovación
+del supervisor. Contiene exclusivamente scripts/horus-local.php,
+scripts/Support/LocalCatalogRenewal.php, tests/Unit/LocalCatalogRenewalTest.php,
+PROJECT_CONTEXT.md y docs/entrega-consolidacion.md. El bloque suma 16 commits nuevos y
+201 rutas distintas respecto del HEAD inicial; el manifiesto JSON previo conserva el inventario
+histórico de los primeros 15 commits. El último hash se consulta en Git, sin autorreferencia.
+No hubo push. Los cambios concurrentes ajenos se conservaron fuera de este ajuste.

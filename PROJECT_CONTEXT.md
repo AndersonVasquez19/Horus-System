@@ -3993,3 +3993,26 @@ conservados. Sin push, fetch, rebase o reset. Consulta real de solo lectura de o
 306b168e8d8bbfec23301d7c050c7f7c9ae11d2f; al cierre hay 39 commits locales por sincronizar.
 Horus AI local y sus perfiles permanecen operativos; no hubo nuevas migraciones ni cambios en datos
 por estas operaciones Git. 000022 continúa suspendida. La autorización de push sigue pendiente.
+
+## Recuperación operativa posterior a los commits — 05/11/2026
+
+La comprobación posterior detectó detenidos los servicios originales: un fallo del control de
+renovación podía alcanzar el cierre global del supervisor. Su registro genérico no demuestra
+la clase exacta del error original. Se aisló ese control sin ampliar timeouts, reintentar de
+inmediato, debilitar caducidad ni ocultar la muerte de procesos hijos. Se añadió registro del
+tipo de excepción sin mensajes privados. Regresión LocalCatalogRenewalTest: 3 pruebas y 11
+aserciones aprobadas, incluido timeout real y supervivencia de un proceso independiente.
+Sintaxis PHP y Pint de los tres archivos propios aprobados.
+
+Con autorización específica se verificaron procesos antiguos ausentes, identidad del clúster
+y pertenencia temporal del único lock abandonado del worker; se liberó por propietario y se
+reiniciaron exclusivamente los servicios propios. Instancia lista a las 23:02:47 UTC; comprobación
+real posterior: ready=true, MiniLM/catálogo cargados, versión coincidente, worker vivo y cero
+pendientes/fallidos. A las 23:09:12 UTC seguían vivos los cuatro procesos; snapshot renovado
+a las 23:08:53 UTC, posterior al reinicio. Sin nuevas migraciones, cambios de perfiles, correos ni OpenAI.
+
+Los primeros 15 commits locales terminan en 79b73700d132a0a4dee74e99f93013bfbcb88e9a. El propietario
+autorizó incorporar el ajuste posterior en un commit adicional con cinco archivos: supervisor,
+helper, prueba, este contexto e informe único. El bloque resultante suma 16 commits nuevos;
+su último hash se consulta en Git. No hubo push. Se preservaron los dos stashes y cambios ajenos.
+El informe único docs/entrega-consolidacion.md registra recuperación y límites. 000022 suspendida.

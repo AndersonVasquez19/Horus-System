@@ -6,12 +6,14 @@ use App\Services\AsistenteVirtualService;
 use App\Services\ExportadorCatalogoAdvisor;
 use App\Services\OperacionHorus;
 use Dotenv\Dotenv;
+use Horus\Local\LocalCatalogRenewal;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\Process\Process;
 
 require dirname(__DIR__).'/vendor/autoload.php';
+require_once __DIR__.'/Support/LocalCatalogRenewal.php';
 
 $root = dirname(__DIR__);
 $action = $argv[1] ?? '';
@@ -262,7 +264,14 @@ try {
             }
         }
         if (time() - $lastRenew >= 120) {
-            runLocal([PHP_BINARY, $root.'/artisan', 'horus:advisor-operacion', 'sync', '--execute'], $root, operationalEnv());
+            LocalCatalogRenewal::attempt(
+                static fn () => runLocal([PHP_BINARY, $root.'/artisan', 'horus:advisor-operacion', 'sync', '--execute'], $root, operationalEnv()),
+                static function (array $event) use ($runtime): void {
+                    file_put_contents($runtime.'/control-events.log', json_encode($event, JSON_THROW_ON_ERROR).PHP_EOL, FILE_APPEND | LOCK_EX);
+                },
+            );
+            // No se reintenta una escritura incierta de inmediato. La versión/caducidad real
+            // sigue gobernando la contingencia; la siguiente renovación usa su intervalo normal.
             $lastRenew = time();
         }
         sleep(1);
@@ -271,7 +280,8 @@ try {
     $message = get_class($e) === RuntimeException::class ? $e->getMessage() : 'Error técnico local; datos privados omitidos.';
     fwrite(STDERR, $message.PHP_EOL);
     if (is_dir($runtime)) {
-        file_put_contents($runtime.'/failure.json', json_encode(['failed' => true, 'message' => $message, 'at' => date(DATE_ATOM)]), LOCK_EX);
+        file_put_contents($runtime.'/failure.json', json_encode(['failed' => true, 'message' => $message,
+            'exception_type' => $e::class, 'at' => date(DATE_ATOM)]), LOCK_EX);
     }
     $exitCode = 1;
 } finally {
