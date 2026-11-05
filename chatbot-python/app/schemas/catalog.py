@@ -97,6 +97,7 @@ class PublicCatalog(BaseModel):
     source_system: Literal["horus-laravel"]
     generated_at: AwareDatetime
     expires_at: AwareDatetime
+    managed_types: list[Literal["curso", "capacitacion", "servicio"]] = Field(default_factory=list, max_length=3)
     items: list[CatalogItem] = Field(max_length=500)
     signature: str | None = Field(default=None, pattern=r"^hmac-sha256:[0-9a-f]{64}$")
 
@@ -106,6 +107,10 @@ class PublicCatalog(BaseModel):
             raise ValueError("expires_at debe ser posterior a generated_at")
         if self.expires_at - self.generated_at > MAX_CATALOG_LIFETIME:
             raise ValueError("la vigencia del catálogo no puede superar 90 días")
+        if len(set(self.managed_types)) != len(self.managed_types):
+            raise ValueError("managed_types no admite duplicados")
+        if self.managed_types and any(item.type not in self.managed_types for item in self.items):
+            raise ValueError("cada ítem debe pertenecer a un tipo administrado por el catálogo")
         ids = [i.stable_id for i in self.items]
         dup = sorted({i for i in ids if ids.count(i) > 1})
         if dup:

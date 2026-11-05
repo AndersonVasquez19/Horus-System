@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
@@ -25,9 +26,15 @@ from app.schemas.chat import (
     RecommendResponse,
 )
 from app.services.catalog import validate_payload
+from app.services.catalog_sync import CatalogSyncRejected, build_catalog_candidate, persist_catalog_atomically
 from app.services.chat_engine import AdvisorEngine
 
 logger = logging.getLogger("horus_ai.api")
+
+
+def _catalog_expired(engine: AdvisorEngine | None) -> bool:
+    catalog = engine.kb.catalog.catalog if engine is not None and engine.kb.catalog is not None else None
+    return catalog is not None and catalog.is_expired(datetime.now(UTC))
 
 public = APIRouter()
 api = APIRouter(
@@ -44,7 +51,14 @@ api = APIRouter(
 
 def get_engine(request: Request) -> AdvisorEngine:
     engine: AdvisorEngine | None = getattr(request.app.state, "engine", None)
-    if engine is None:
+    if _catalog_expired(engine):
+        request.app.state.catalog_status = "stale"
+    if (
+        engine is None
+        or getattr(request.app.state, "catalog_pending", False)
+        or getattr(request.app.state, "catalog_status", "none") == "stale"
+        or getattr(request.app.state, "catalog_sync_failed", False)
+    ):
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE, "La base de conocimiento no está disponible."
         )
@@ -75,17 +89,23 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
-@public.get("/ready", response_model=ReadyResponse, tags=["estado"])
+@public.get("/ready", response_model=ReadyResponse, response_model_exclude_none=True, tags=["estado"])
 def ready(request: Request, settings: Settings = Depends(get_settings)) -> ReadyResponse:
     engine: AdvisorEngine | None = getattr(request.app.state, "engine", None)
+    if _catalog_expired(engine):
+        request.app.state.catalog_status = "stale"
     semantic = request.app.state.semantic
-    is_ready = engine is not None and settings.service_token_configured
+    catalog_status = getattr(request.app.state, "catalog_status", "none")
+    pending = getattr(request.app.state, "catalog_pending", False)
+    is_ready = engine is not None and settings.service_token_configured and not pending and catalog_status not in {"stale", "error"}
     return ReadyResponse(
         status="ready" if is_ready else "not_ready",
         knowledge="loaded" if engine is not None else "unavailable",
         semantic=semantic.status if semantic is not None else "disabled",
         auth="configured" if settings.service_token_configured else "missing",
-        catalog=getattr(request.app.state, "catalog_status", "none"),
+        catalog="stale" if pending else catalog_status,
+        catalog_version=getattr(request.app.state, "catalog_version", None),
+        catalog_pending_version=getattr(request.app.state, "catalog_pending_version", None),
     )
 
 
@@ -123,8 +143,11 @@ async def chat(
     engine: AdvisorEngine = Depends(get_engine),
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
+    generation = request.app.state.catalog_generation
     started = time.perf_counter()
     reply = await _run_limited(request, settings, engine.chat, payload.message, payload.history)
+    if request.app.state.catalog_pending or request.app.state.catalog_generation != generation:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "El conocimiento se está actualizando.")
     # Solo metadatos: nunca se registra el texto del visitante.
     logger.info(
         "chat intent=%s match=%s clarify=%s abstained=%s mode=%s ms=%.1f",
@@ -145,11 +168,94 @@ async def recommend(
     engine: AdvisorEngine = Depends(get_engine),
     settings: Settings = Depends(get_settings),
 ) -> RecommendResponse:
+    generation = request.app.state.catalog_generation
     reply = await _run_limited(request, settings, engine.recommend, payload)
+    if request.app.state.catalog_pending or request.app.state.catalog_generation != generation:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "El conocimiento se está actualizando.")
     logger.info(
         "recommend intent=%s match=%s options=%d", reply.intent, reply.match_level, len(reply.recommendations)
     )
     return RecommendResponse(**reply.model_dump())
+
+
+@api.post("/catalog/sync", tags=["catálogo"])
+async def sync_catalog(
+    request: Request,
+    payload: dict[str, Any] = Body(..., description="Snapshot público firmado por Laravel"),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Valida y aplica un snapshot completo sin reiniciar ni exponer acceso a PostgreSQL."""
+    app = request.app
+    if settings.catalog_path is None or settings.catalog_key is None:
+        app.state.catalog_status = "error"
+        app.state.catalog_sync_failed = True
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "La sincronización no está configurada.")
+    engine: AdvisorEngine | None = getattr(app.state, "engine", None)
+    if engine is None:
+        app.state.catalog_status = "error"
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "El conocimiento base no está disponible.")
+
+    app.state.catalog_sync_waiters += 1
+    app.state.catalog_pending = True
+    sync_lock: asyncio.Lock = app.state.catalog_sync_lock
+    lock_acquired = False
+    slots: asyncio.Semaphore = app.state.slots
+    acquired = 0
+    try:
+        try:
+            await asyncio.wait_for(sync_lock.acquire(), timeout=settings.request_timeout_seconds)
+            lock_acquired = True
+            pending_version = payload.get("catalog_version")
+            app.state.catalog_pending_version = pending_version if (
+                isinstance(pending_version, str) and len(pending_version) == 40
+                and all(character in "0123456789abcdef" for character in pending_version)
+            ) else None
+        except TimeoutError as exc:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "La sincronizaci\u00f3n est\u00e1 ocupada.") from exc
+
+        engine: AdvisorEngine | None = getattr(app.state, "engine", None)
+        if engine is None:
+            app.state.catalog_status = "error"
+            app.state.catalog_sync_failed = True
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "El conocimiento base no est\u00e1 disponible.")
+
+        # Drena las solicitudes ya iniciadas; las nuevas quedan bloqueadas por get_engine.
+        for _ in range(settings.max_concurrent_requests):
+            await slots.acquire()
+            acquired += 1
+        semantic = getattr(app.state, "semantic", None)
+        try:
+            candidate, candidate_semantic, version, _ = await asyncio.to_thread(
+                build_catalog_candidate, payload, settings, engine, semantic
+            )
+            if candidate is not engine:
+                await asyncio.to_thread(persist_catalog_atomically, settings.catalog_path, payload)
+            app.state.engine = candidate
+            app.state.semantic = candidate_semantic
+            app.state.catalog_version = version
+            app.state.catalog_status = candidate.kb.catalog_status
+            app.state.catalog_generation += 1
+            app.state.catalog_sync_failed = False
+            logger.info("catalog-sync outcome=applied version=%s", version)
+            return {"accepted": True, "applied": candidate is not engine, "catalog": app.state.catalog_status, "catalog_version": version}
+        except CatalogSyncRejected as exc:
+            app.state.catalog_status = "error"
+            app.state.catalog_sync_failed = True
+            logger.warning("catalog-sync outcome=rejected code=%s", exc.status_code)
+            raise HTTPException(exc.status_code, str(exc)) from None
+        except Exception as exc:
+            app.state.catalog_status = "error"
+            app.state.catalog_sync_failed = True
+            logger.error("catalog-sync outcome=failed error=%s", type(exc).__name__)
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "No se pudo aplicar el catálogo.") from None
+    finally:
+        if lock_acquired:
+            app.state.catalog_pending_version = None
+            sync_lock.release()
+        app.state.catalog_sync_waiters = max(0, app.state.catalog_sync_waiters - 1)
+        app.state.catalog_pending = app.state.catalog_sync_waiters > 0
+        for _ in range(acquired):
+            slots.release()
 
 
 @api.post("/catalog/validate", response_model=CatalogValidationResponse, tags=["catálogo"])

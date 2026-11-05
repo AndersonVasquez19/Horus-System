@@ -153,6 +153,9 @@ class ReadyResponse(BaseModel):
     semantic: Literal["loaded", "loading", "disabled", "unavailable"]
     auth: Literal["configured", "missing"]
     catalog: Literal["none", "loaded", "stale", "error"] = "none"
+    catalog_version: str | None = None
+
+    catalog_pending_version: str | None = Field(default=None, pattern=r"^[a-f0-9]{40}$")
 
 
 class InfoResponse(BaseModel):

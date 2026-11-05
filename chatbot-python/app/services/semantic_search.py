@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from app.schemas.knowledge import KnowledgeRecord
+from app.services.vector_cache import PassageVectorCache
 
 logger = logging.getLogger("horus_ai.semantic")
 
@@ -74,7 +75,11 @@ class SemanticIndex:
         self._matrix: Any = None
         self._owners: list[str] = []
         self._query_prefix = ""
+        self._passage_prefix = ""
         self._encode_slots = threading.BoundedSemaphore(2)
+        self._loader_thread: threading.Thread | None = None
+        self._passage_vectors: dict[str, Any] = {}
+        self.vector_cache: PassageVectorCache | None = None  # opt-in; ver vector_cache.py
 
     @property
     def status(self) -> SemanticStatus:
@@ -91,7 +96,7 @@ class SemanticIndex:
         passages.extend(k for k in record.keywords if len(k.split()) >= 2)
         return passages
 
-    def attach(self, embedder: Embedder, query_prefix: str = "", passage_prefix: str = "") -> None:
+    def attach(self, embedder: Embedder, query_prefix: str = "", passage_prefix: str = "", cached: dict[str, Any] | None = None) -> None:
         """Construye el índice con un embedder ya creado (también lo usan las pruebas)."""
         texts: list[str] = []
         owners: list[str] = []
@@ -99,13 +104,49 @@ class SemanticIndex:
             for passage in self.passages_for(record):
                 texts.append(passage_prefix + passage)
                 owners.append(record.id)
-        matrix = embedder.encode(texts)
+        import numpy as np
+
+        previous = dict(cached or {})
+        unique = list(dict.fromkeys(texts))
+        if self.vector_cache is not None and any(text not in previous for text in unique):
+            previous.update(self.vector_cache.load([t for t in unique if t not in previous]))
+        missing = [text for text in unique if text not in previous]
+        encoded = embedder.encode(missing) if missing else []
+        vectors = {text: previous[text] for text in unique if text in previous}
+        vectors.update(zip(missing, encoded, strict=True))
+        if self.vector_cache is not None and (missing or not self.vector_cache.path.is_file()):
+            self.vector_cache.save(vectors, unique)
+        matrix = np.stack([vectors[text] for text in texts]) if texts else np.empty((0, 0))
         with self._lock:
             self._embedder = embedder
             self._matrix = matrix
             self._owners = owners
             self._query_prefix = query_prefix
+            self._passage_prefix = passage_prefix
             self._status = "loaded"
+            self._passage_vectors = vectors
+
+    def rebuilt(self, records: list[KnowledgeRecord], wait_seconds: float = 30.0) -> SemanticIndex:
+        """Prepara un índice candidato con los mismos pesos locales antes de publicarlo."""
+        loader = self._loader_thread
+        if self.status == "loading" and loader is not None:
+            loader.join(wait_seconds)
+        if self.status == "loading":
+            raise TimeoutError("El modelo semántico aún está cargando.")
+
+        replacement = SemanticIndex(records)
+        replacement.vector_cache = self.vector_cache
+        with self._lock:
+            embedder = self._embedder
+            status = self._status
+            query_prefix = self._query_prefix
+            passage_prefix = self._passage_prefix
+            vectors = dict(self._passage_vectors)
+        if status == "loaded" and embedder is not None:
+            replacement.attach(embedder, query_prefix, passage_prefix, vectors)
+        else:
+            replacement._status = status
+        return replacement
 
     def load_in_background(
         self, model_dir: Path, threads: int, query_prefix: str = "", passage_prefix: str = ""
@@ -126,12 +167,13 @@ class SemanticIndex:
                 self._status = "unavailable"
 
         thread = threading.Thread(target=_run, name="semantic-loader", daemon=True)
+        self._loader_thread = thread
         thread.start()
         return thread
 
     def search(self, query: str, record_ids: set[str] | None = None) -> dict[str, SemanticHit]:
         """Devuelve la mejor similitud por registro. Vacío si el índice no está listo u ocupado."""
-        if not self.ready or self._embedder is None:
+        if not self.ready or self._embedder is None or not self._owners:
             return {}
         if not self._encode_slots.acquire(timeout=2):
             return {}  # saturado: el motor sigue con la parte léxica

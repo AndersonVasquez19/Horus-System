@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     semantic_query_prefix: str = ""
     semantic_passage_prefix: str = ""
     ml_threads: int = Field(default=2, ge=1, le=16)
+    # Caché opcional de vectores de pasajes públicos (no consultas). Vacío = desactivada.
+    semantic_cache_dir: Path | None = None
 
     max_message_chars: int = Field(default=2000, ge=1, le=4000)
     max_history_items: int = Field(default=10, ge=0, le=30)
@@ -64,14 +66,14 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
-    @field_validator("catalog_path", "catalog_signing_key", mode="before")
+    @field_validator("catalog_path", "catalog_signing_key", "semantic_cache_dir", mode="before")
     @classmethod
     def _empty_is_none(cls, value: object) -> object:
         return (
             None if isinstance(value, str) and not value.strip() else value
         )  # "HORUS_AI_CATALOG_PATH=" = sin catálogo
 
-    @field_validator("semantic_model_dir", "knowledge_path", "intents_path", "catalog_path", mode="after")
+    @field_validator("semantic_model_dir", "knowledge_path", "intents_path", "catalog_path", "semantic_cache_dir", mode="after")
     @classmethod
     def _resolve_relative(cls, value: Path | None) -> Path | None:
         if value is None:

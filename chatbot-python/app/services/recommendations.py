@@ -116,7 +116,17 @@ def extract_profile(text: str, kb: KnowledgeBase) -> Profile:
     elif service > learn:
         profile.goal = "service"
     elif learn:
-        profile.goal = "service" if profile.audience == "empresa" else "learn"
+        specific = profile.specific_topics(set(rules.generic_topics))
+        learning_topics = {"cursos", "capacitacion", "formacion", "modalidades"}
+        has_verified_service = bool(
+            specific
+            and not (profile.topics & learning_topics)
+            and any(r.kind in SERVICE_KINDS and (specific & set(r.topics)) for r in kb.recommendable())
+        )
+        if profile.audience == "empresa" or has_verified_service:
+            profile.goal = "service"
+        else:
+            profile.goal = "learn"
     return profile
 
 

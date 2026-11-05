@@ -72,7 +72,23 @@ _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 )
 
 
+# Sondas de inyección de código sobre el texto ORIGINAL: la normalización borra «${», «{{» o «'».
+# El motor nunca las ejecuta; reconocerlas solo permite responder como manipulación y no como tema.
+_CODE_PROBE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(p, re.IGNORECASE)
+    for p in (
+        r"\$\{[^}]{0,200}\}",  # ${jndi:...}, ${env:...}
+        r"[#{]\{[^}]{0,200}\}",  # #{7*7}, {{7*7}}
+        r"\bjndi\s*:",
+        r"<\s*(?:script|img|iframe|svg|object|embed)\b|\bon(?:error|load|click|mouseover)\s*=",
+        r"'\s*(?:or|and)\s+'?\d+'?\s*=\s*'?\d+|'\s*;|;\s*--|\bunion\s+(?:all\s+)?select\b",
+    )
+)
+
+
 def detect_prompt_injection(text: str) -> bool:
+    if any(p.search(text) for p in _CODE_PROBE_PATTERNS):
+        return True
     normalized = normalize(text)
     return any(p.search(normalized) for p in _INJECTION_PATTERNS)
 

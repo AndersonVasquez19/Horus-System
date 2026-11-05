@@ -23,6 +23,7 @@ from app.core.config import Settings, get_settings
 from app.services.chat_engine import AdvisorEngine
 from app.services.knowledge import KnowledgeBase, KnowledgeError
 from app.services.semantic_search import SemanticIndex
+from app.services.vector_cache import PassageVectorCache, model_fingerprint
 
 logger = logging.getLogger("horus_ai")
 
@@ -92,6 +93,8 @@ def load_knowledge(settings: Settings) -> tuple[KnowledgeBase | None, str]:
         return None, "none"
     if settings.catalog_path is None:
         return base, "none"
+    if not settings.catalog_path.exists():
+        return base, "none"
     try:
         kb = KnowledgeBase.load(
             settings.knowledge_path,
@@ -110,7 +113,12 @@ def build_engine(settings: Settings) -> tuple[AdvisorEngine | None, SemanticInde
     kb, catalog_status = load_knowledge(settings)
     if kb is None:
         return None, None, catalog_status
-    semantic = SemanticIndex(kb.records)
+    semantic = SemanticIndex(kb.search_records)
+    if settings.semantic_enabled and settings.semantic_cache_dir is not None:
+        semantic.vector_cache = PassageVectorCache(
+            settings.semantic_cache_dir,
+            model_fingerprint(settings.semantic_model_dir, settings.semantic_model_name, settings.semantic_passage_prefix),
+        )
     if settings.semantic_enabled:
         semantic.load_in_background(
             settings.semantic_model_dir,
@@ -133,6 +141,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.semantic = semantic
         app.state.catalog_status = catalog_status
+        app.state.catalog_version = (
+            engine.kb.catalog.catalog.catalog_version if engine is not None and engine.kb.catalog is not None else None
+        )
         app.state.slots = asyncio.Semaphore(settings.max_concurrent_requests)
         if not settings.service_token_configured:
             logger.warning("HORUS_AI_SERVICE_TOKEN no configurado (>=32 caracteres): /api/v1 responderá 503.")
@@ -151,6 +162,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = None
     app.state.semantic = None
     app.state.catalog_status = "none"
+    app.state.catalog_version = None
+    app.state.catalog_pending = False
+    app.state.catalog_sync_failed = False
+    app.state.catalog_generation = 0
+    app.state.catalog_sync_waiters = 0
+    app.state.catalog_sync_lock = asyncio.Lock()
     app.state.slots = asyncio.Semaphore(settings.max_concurrent_requests)
 
     # Protección frente a DNS rebinding: solo nombres de host locales. Sin CORS: es un servicio interno.
@@ -158,7 +175,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         BodySizeLimitMiddleware,
         max_bytes=settings.max_body_bytes,
-        overrides={"/api/v1/catalog/validate": settings.max_catalog_bytes},
+        overrides={
+            "/api/v1/catalog/validate": settings.max_catalog_bytes,
+            "/api/v1/catalog/sync": settings.max_catalog_bytes,
+        },
     )
 
     @app.exception_handler(RequestValidationError)

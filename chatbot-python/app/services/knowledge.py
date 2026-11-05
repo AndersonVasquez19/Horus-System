@@ -9,13 +9,16 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from app.core.text import content_tokens
 from app.schemas.knowledge import KnowledgeFile, KnowledgeRecord
-from app.services.catalog import CatalogError, CatalogLoad, load_catalog
+from app.services.catalog import CatalogError, CatalogLoad, load_catalog, load_catalog_payload
+from app.services.catalog_documents import PublicDocument, PublicFragment, document_for
 
 
 class KnowledgeError(RuntimeError):
@@ -166,13 +169,28 @@ class KnowledgeBase:
     catalog: CatalogLoad | None = None
     by_id: dict[str, KnowledgeRecord] = field(init=False)
     _records: list[KnowledgeRecord] = field(init=False)
+    documents: tuple[PublicDocument, ...] = field(init=False)
+    search_records: list[KnowledgeRecord] = field(init=False)
+    search_by_id: dict[str, KnowledgeRecord] = field(init=False)
+    fragments: dict[str, PublicFragment] = field(init=False)
+    documents_by_source: dict[str, PublicDocument] = field(init=False)
 
     def __post_init__(self) -> None:
         records = list(self.data.records)
         if self.catalog is not None:
             current_types = self.catalog.vigente_types
-            # Un registro "no publicado aún" deja de valer cuando el catálogo publica ese tipo.
-            records = [r for r in records if not set(r.superseded_by_catalog) & current_types]
+            managed_types = set(self.catalog.catalog.managed_types) or current_types
+            kind_by_type = {"curso": "course", "capacitacion": "training_program", "servicio": "service"}
+            managed_kinds = {
+                kind_by_type[kind]
+                for kind in managed_types
+                if kind in kind_by_type
+            }
+            # El snapshot completo también retira el conocimiento estático cuando no quedan ítems vigentes.
+            records = [
+                r for r in records
+                if r.kind not in managed_kinds and not set(r.superseded_by_catalog) & managed_types
+            ]
             clash = {r.id for r in records} & {r.id for r in self.catalog.records}
             if clash:
                 raise KnowledgeError(f"El catálogo repite identificadores del conocimiento: {sorted(clash)}")
@@ -182,6 +200,33 @@ class KnowledgeBase:
             records += self.catalog.records
         self._records = records
         self.by_id = {r.id: r for r in records}
+        documents = []
+        self.search_records = list(records)
+        self.fragments = {}
+        if self.catalog is not None:
+            by_stable_id = {r.stable_id: r for r in self.catalog.records if r.stable_id}
+            for item in self.catalog.catalog.items:
+                record = by_stable_id.get(item.stable_id)
+                if item.type not in {"curso", "servicio"} or record is None or record.status != "verified":
+                    continue
+                document = document_for(item, record, self.catalog.catalog.catalog_version)
+                documents.append(document)
+                for fragment in document.fragments:
+                    self.fragments[fragment.id] = fragment
+                    self.search_records.append(record.model_copy(update={
+                        "id": fragment.id, "description": record.title + ". " + fragment.text,
+                        "keywords": list(dict.fromkeys(content_tokens(fragment.text))) or [record.title],
+                    }))
+        self.documents = tuple(documents)
+        self.documents_by_source = {d.source_id: d for d in documents}
+        # El resumen se indexa una vez; los detalles completos viven en sus fragmentos.
+        self.search_records = [r.model_copy(update={"description": self.documents_by_source[r.id].description})
+            if r.id in self.documents_by_source else r for r in self.search_records]
+        # Los fragmentos amplían el texto indexado: validarlos completos con la barrera existente.
+        problems = find_record_privacy_violations(self.search_records, self.data.public_contact)
+        if problems:
+            raise KnowledgeError("Posibles datos privados en los fragmentos del catálogo.")
+        self.search_by_id = {r.id: r for r in self.search_records}
         for attribute, record_id in self.intents.unavailable_attributes.items():
             target = self.by_id.get(record_id) or self.data_record(record_id)
             if target is not None and target.status != "unavailable":
@@ -207,7 +252,13 @@ class KnowledgeBase:
         return [r for r in self._records if r.status == "verified"]
 
     def recommendable(self) -> list[KnowledgeRecord]:
-        return [r for r in self._records if r.recommendable and r.status == "verified"]
+        records = [r for r in self._records if r.recommendable and r.status == "verified"]
+        if self.catalog is not None:
+            if self.catalog.catalog.is_expired(datetime.now(UTC)):
+                return []
+            return [r for r in records if r.source.kind == "catalogo_laravel" and r.kind in {"course", "service"}
+                and r.id in self.documents_by_source and self.documents_by_source[r.id].current()]
+        return records
 
     def get(self, record_id: str) -> KnowledgeRecord | None:
         return self.by_id.get(record_id)
@@ -237,4 +288,20 @@ class KnowledgeBase:
                 catalog = load_catalog(catalog_path, signing_key, allow_unsigned_catalog)
             except CatalogError as exc:
                 raise KnowledgeError(str(exc)) from exc
+        return cls(load_knowledge_file(knowledge_path), load_intents_file(intents_path), catalog)
+
+    @classmethod
+    def load_with_catalog_payload(
+        cls,
+        knowledge_path: Path,
+        intents_path: Path,
+        raw: Any,
+        signing_key: str | None,
+        allow_unsigned_catalog: bool = False,
+    ) -> KnowledgeBase:
+        """Construye una base candidata en memoria para sincronización atómica."""
+        try:
+            catalog = load_catalog_payload(raw, signing_key, allow_unsigned_catalog)
+        except CatalogError as exc:
+            raise KnowledgeError(str(exc)) from exc
         return cls(load_knowledge_file(knowledge_path), load_intents_file(intents_path), catalog)

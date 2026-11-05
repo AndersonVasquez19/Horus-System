@@ -74,6 +74,12 @@ class LexicalIndex:
             for tok in tokenize(text)
         )
 
+    def knows(self, token: str) -> bool:
+        """¿La raíz aparece en algún registro indexado? Una palabra que ningún contenido usa no es un tema."""
+        if token in self._idf:
+            return True
+        return any(tokens_match(token, term) for term in self._idf)
+
     def _idf_of(self, token: str) -> float:
         if token in self._low_weight:
             return 0.3 * self._idf.get(token, self._max_idf)

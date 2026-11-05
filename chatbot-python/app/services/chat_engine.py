@@ -16,7 +16,9 @@ los últimos MAX_CONTEXT_TURNS mensajes del USUARIO, volviendo a ejecutar el mot
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Literal
 
 from app.core.security import detect_prompt_injection, detect_sensitive_request
@@ -26,12 +28,15 @@ from app.schemas.chat import (
     ConversationContext,
     HistoryItem,
     MatchLevel,
+    Recommendation,
     RecommendRequest,
     SourceRef,
 )
 from app.schemas.knowledge import KnowledgeRecord
+from app.services.catalog_documents import PublicFragment
 from app.services.knowledge import KnowledgeBase
 from app.services.lexical_search import LexicalIndex
+from app.services.query_plan import QUERY_WORDS, plan_query
 from app.services.recommendations import (
     AUDIENCE_LABEL,
     CONTACT_LINE,
@@ -84,6 +89,10 @@ QUOTE_INTRO = (
     "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta "
     "cotizaciones emitidas."
 )
+WHATSAPP_QUOTE_URL = "https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
+WHATSAPP_MATRICULA_URL = (
+    "https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula"
+)
 CONTACT_CHANNELS = "+51 927 582 305 (teléfono o WhatsApp) o horusgroupcajamarca@gmail.com"
 
 
@@ -95,6 +104,7 @@ class Hit:
     semantic: float | None
     phrase_hit: bool
     matched: tuple[str, ...]
+    fragment: PublicFragment | None = None
 
 
 def _retrieval_level(score: float) -> MatchLevel:
@@ -111,14 +121,14 @@ class AdvisorEngine:
     def __init__(self, kb: KnowledgeBase, semantic: SemanticIndex | None = None) -> None:
         self.kb = kb
         rules = kb.intents
-        self.lexical = LexicalIndex(kb.records, frozenset(rules.low_weight_tokens))
+        self.lexical = LexicalIndex(kb.search_records, frozenset(rules.low_weight_tokens))
         self.semantic = semantic
         rule_texts = [p for t in rules.templates for p in t.patterns]
         rule_texts += [p for ps in rules.topic_lexicon.values() for p in ps]
         rule_texts += [p for ps in rules.attribute_lexicon.values() for p in ps]
         rule_texts += rules.recommendation_cues.learn + rules.recommendation_cues.service
         rule_texts += rules.quote.patterns + rules.reference_markers
-        self.vocabulary = self.lexical.vocabulary | frozenset(t for p in rule_texts for t in tokenize(p))
+        self.vocabulary = self.lexical.vocabulary | QUERY_WORDS | frozenset(t for p in rule_texts for t in tokenize(p))
         self.recommender = Recommender(kb, self._similarity)
         self.generic = set(rules.generic_topics)
 
@@ -132,13 +142,23 @@ class AdvisorEngine:
 
     def retrieve(self, text: str, record_ids: set[str] | None = None, limit: int = 5) -> list[Hit]:
         query = self.corrected(text)
-        lexical = {h.record_id: h for h in self.lexical.search(query, limit=50, record_ids=record_ids)}
-        semantic = self.semantic.search(text, record_ids) if self.mode == "hybrid" and self.semantic else {}
+        allowed = None if record_ids is None else record_ids | {
+            f.id for f in self.kb.fragments.values() if f.source_id in record_ids
+        }
+        lexical = {h.record_id: h for h in self.lexical.search(query, limit=max(50, len(self.kb.search_records)), record_ids=allowed)}
+        semantic = self.semantic.search(text, allowed) if self.mode == "hybrid" and self.semantic else {}
         hits: list[Hit] = []
         for rid in set(lexical) | set(semantic):
-            record = self.kb.get(rid)
+            fragment = self.kb.fragments.get(rid)
+            record = self.kb.get(fragment.source_id if fragment else rid)
             if record is None:
                 continue
+            if record.source.kind == "catalogo_laravel" and record.status == "verified" and self.kb.catalog is not None:
+                if self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+                    continue
+                document = self.kb.documents_by_source.get(record.id)
+                if document is not None and not document.current():
+                    continue
             lex = lexical[rid].score if rid in lexical else 0.0
             sem_hit = semantic.get(rid)
             sem = sem_hit.score if sem_hit is not None else None
@@ -160,8 +180,17 @@ class AdvisorEngine:
                     sem,
                     bool(lh and lh.phrase_hit),
                     lh.matched_terms if lh else (),
+                    fragment,
                 )
             )
+        unique: dict[str, Hit] = {}
+        for hit in hits:
+            previous = unique.get(hit.record.id)
+            if previous is None or (hit.score, len(hit.matched), not bool(hit.fragment), -(hit.fragment.ordinal if hit.fragment else 0)) > (
+                previous.score, len(previous.matched), not bool(previous.fragment), -(previous.fragment.ordinal if previous.fragment else 0)
+            ):
+                unique[hit.record.id] = hit
+        hits = list(unique.values())
         hits.sort(key=lambda h: (-h.score, h.record.id))
         return hits[:limit]
 
@@ -265,6 +294,16 @@ class AdvisorEngine:
         )
         if ambiguous:
             return self._clarify(hits)
+
+        if (second is not None and second.record.status == "verified"
+            and top.record.stable_id is not None and second.record.stable_id is not None
+            and top.score - second.score < AMBIGUITY_MARGIN
+            and not set(content_tokens(top.record.title)) <= query_terms):
+            return self._clarify([])
+
+        if top.fragment is not None:
+            return self._reply(answer=top.fragment.answer, intent=CATEGORY_INTENTS[top.record.category],
+                match_level=_retrieval_level(top.score), sources=[self._source(top.record)])
 
         records = [top.record]
         if (
@@ -511,7 +550,7 @@ class AdvisorEngine:
         return self._reply(
             answer=(
                 "No tengo acceso a cotizaciones emitidas ni a datos de clientes, así que no puedo consultarlas. "
-                f"Para revisar una cotización que ya recibiste, comunícate con el asesor que te atendió: {CONTACT_CHANNELS}."
+                f"Para revisar una cotización que ya recibiste, comunícate con el asesor que te atendió por WhatsApp: {WHATSAPP_QUOTE_URL}."
             ),
             intent="quote_request",
             match_level="ninguna",
@@ -529,7 +568,7 @@ class AdvisorEngine:
         rules = self.kb.intents.quote
         if subject is None:
             return self._reply(
-                answer=f"{QUOTE_INTRO} Puedes solicitarla a un asesor: {CONTACT_CHANNELS}.",
+                answer=f"{QUOTE_INTRO} Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: {WHATSAPP_QUOTE_URL}.",
                 intent="quote_request",
                 match_level="baja",
                 needs_clarification=True,
@@ -542,7 +581,7 @@ class AdvisorEngine:
         checklist = self.recommender.checklist_for(subject, profile)
         path = f" ({subject.source.url_path})" if subject.source.url_path else ""
         answer = (
-            f"{QUOTE_INTRO}\nPara solicitar una cotización de «{subject.title}»{path}, escribe a {CONTACT_CHANNELS}.\n"
+            f"{QUOTE_INTRO}\nPara solicitar una cotización de «{subject.title}»{path}, te invitamos a continuar por WhatsApp con un asesor oficial: {WHATSAPP_QUOTE_URL}.\n"
             f"{rules.checklist_label}: {'; '.join(checklist)}."
         )
         if subject.public_price:
@@ -624,7 +663,13 @@ class AdvisorEngine:
         focus: list[KnowledgeRecord],
         users: list[str],
     ) -> AdvisorReply:
-        hits = self.retrieve(message)
+        plan = plan_query(corrected) if self.kb.catalog is not None else None
+        planned_search = bool(plan and plan.recommend and plan.subject and not u.attributes and not u.quote)
+        # El tema se busca solo con palabras que algún contenido indexado usa: el relleno conversacional
+        # («relacionadas», «que me sirva», «me lo piden») no diluye la cobertura ni inventa un tema.
+        topic = self._published_terms(plan.subject, corrected) if plan else ""
+        unpublished = bool(planned_search and plan and content_tokens(plan.subject) and not content_tokens(topic))
+        hits = self.retrieve(topic if planned_search and topic else message)
         terms = set(content_tokens(corrected))
 
         # 2. Solicitudes comerciales.
@@ -647,11 +692,45 @@ class AdvisorEngine:
                 return reply
 
         # 5. Recomendación o búsqueda.
+        if plan is not None:
+            if plan.enrollment:
+                contact = self.kb.get(self.kb.intents.human_handoff.record_id)
+                return self._reply(
+                    answer=("Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: "
+                            f"{WHATSAPP_MATRICULA_URL}. No compartas datos personales en este chat."),
+                    intent="enrollment_request", match_level="alta",
+                    sources=[self._source(contact)] if contact else [],
+                )
+            if plan.ambiguous:
+                return self._clarify_goal()
+            if plan.browse:
+                listing_id = "cat_listado_formacion" if plan.goal == "learn" else "cat_listado_servicios"
+                listing = self.kb.get(listing_id)
+                if listing is not None and not self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+                    return self._reply(answer=listing.answer, intent="training_info" if plan.goal == "learn" else "service_info",
+                        match_level="alta", sources=[self._source(listing)])
+                subject = "cursos" if plan.goal == "learn" else "servicios"
+                return self._reply(answer=f"No hay {subject} publicados vigentes en el catálogo disponible.",
+                    intent="unavailable_info", match_level="ninguna", abstained=True)
+            if plan.recommend:
+                if not plan.subject:
+                    return self._clarify_goal()
+                if unpublished:
+                    return self._unpublished_topic(plan.goal, corrected)
+                current.goal = plan.goal if plan.goal != "unknown" else current.goal
+                relevant = hits if planned_search else self.retrieve(topic or plan.subject)
+                return (self._multi_recommend(corrected) or self._catalog_recommend(relevant, current)
+                        or self._clarify(relevant))
+
         cue = has_recommendation_cue(corrected, self.kb)
         follow_up = (
             not cue and continued and has_profile_slot(corrected, self.kb) and len(tokenize(message)) <= 14
         )
         if cue or follow_up:
+            if self.kb.catalog is not None:
+                if hits and hits[0].record.id == "cat_listado_formacion":
+                    return self._answer_from_hits(hits, terms)
+                return self._multi_recommend(corrected) or self._catalog_recommend(hits, current) or self._clarify([])
             top = hits[0] if hits else None
             wants_topic = bool(self.recommender.wanted_topics(profile))
             if top is not None and top.score >= ANSWER_THRESHOLD:
@@ -684,4 +763,135 @@ class AdvisorEngine:
             profile.audience = request.audience
         if profile.goal == "unknown" and profile.audience == "empresa":
             profile.goal = "service"
+        if self.kb.catalog is not None:
+            plan = plan_query(self.corrected(text))
+            if plan.ambiguous:
+                return self._clarify_goal()
+            if plan.goal != "unknown":
+                profile.goal = plan.goal
+            return self._catalog_recommend(self.retrieve(plan.subject or text), profile) or self._clarify([])
         return self.recommender.recommend(profile, self.mode)
+
+    def _published_terms(self, subject: str, text: str | None = None) -> str:
+        """Palabras del tema que algún contenido indexado usa, en el orden del texto original.
+
+        Las palabras funcionales entre dos palabras conservadas se mantienen para que una frase clave
+        publicada («hojas de cálculo») siga reconociéndose; el resto del relleno se descarta.
+        """
+        wanted = set(subject.split())
+        tokens = tokenize(text) if text is not None else subject.split()
+        known = [t in wanted and bool(content_tokens(t)) and self.lexical.knows(content_tokens(t)[0]) for t in tokens]
+        kept: list[str] = []
+        for i, token in enumerate(tokens):
+            if known[i]:
+                kept.append(token)
+            elif not content_tokens(token) and kept and kept[-1] == tokens[i - 1] and any(
+                known[j] for j in range(i + 1, min(i + 3, len(tokens)))
+            ):
+                kept.append(token)  # «de» en «hojas de cálculo»
+        return " ".join(kept)
+
+    def _unpublished_topic(self, goal: str, text: str) -> AdvisorReply:
+        """Tema sin ningún contenido publicado: se reconoce sin inventar ni repetir lo escrito."""
+        kind = {"learn": "un curso o capacitación", "service": "un servicio tecnológico"}.get(goal, "información")
+        listing = {"learn": "¿Qué cursos ofrecen?", "service": "¿Qué servicios ofrecen?"}.get(
+            goal, "¿Qué cursos ofrecen? o ¿Qué servicios ofrecen?"
+        )
+        openings = (
+            f"No encontré {kind} publicado sobre ese tema en el catálogo vigente de Horus Group.",
+            f"Por ahora no hay {kind} publicado sobre ese tema en el catálogo vigente de Horus Group.",
+        )
+        opening = openings[sum(map(ord, text)) % len(openings)]  # determinista: misma consulta, misma respuesta
+        return self._reply(
+            answer=(f"{opening} Si quieres ver lo que está vigente, pregúntame «{listing}». "
+                    "También puedes consultarlo con un asesor por los canales oficiales."),
+            intent="unavailable_info",
+            match_level="ninguna",
+            abstained=True,
+        )
+
+    def _multi_recommend(self, text: str) -> AdvisorReply | None:
+        """Consulta con varios temas («Excel y también cableado»): una opción publicada por tema, sin mezclar fuentes."""
+        parts = re.split(r"\b(?:y|e|tambien|ademas|asi como|junto con)\b|[,;]", normalize(text))
+        segments = [s for s in parts if content_tokens(s)]
+        if len(segments) < 2:
+            return None
+        chosen: list[Hit] = []
+        undecided: list[list[Hit]] = []
+        for segment in segments[:3]:
+            plan = plan_query(segment)
+            terms = self._published_terms(plan.subject, segment)
+            if not content_tokens(terms):
+                continue
+            options = [
+                h for h in self.retrieve(terms)
+                if h.record.source.kind == "catalogo_laravel" and h.record.status == "verified"
+                and h.record.kind in {"course", "service"} and h.score >= ANSWER_THRESHOLD
+                and not (plan.goal == "learn" and h.record.kind != "course")
+                and not (plan.goal == "service" and h.record.kind != "service")
+            ]
+            if not options:
+                continue
+            if (len(options) > 1 and options[0].score - options[1].score < AMBIGUITY_MARGIN
+                    and not set(content_tokens(options[0].record.title)) <= set(content_tokens(terms))):
+                undecided.append([h for h in options if options[0].score - h.score < AMBIGUITY_MARGIN])
+            elif all(c.record.id != options[0].record.id for c in chosen):
+                chosen.append(options[0])
+        ids = {c.record.id for c in chosen}
+        # Una parte ambigua que ya cubre otra parte («limpieza de datos y gráficos») no es un tema distinto.
+        pending = [opts for opts in undecided if not ids & {h.record.id for h in opts}]
+        if pending and chosen:
+            return self._clarify(pending[0])  # dos opciones parecidas para un tema: se pregunta, no se elige al azar
+        if len(chosen) < 2:
+            return None
+        first = chosen[0]
+        titles = [f"«{h.record.title}»" for h in chosen[1:]]
+        others = titles[0] if len(titles) == 1 else f"{', '.join(titles[:-1])} y {titles[-1]}"
+        verb = "está publicado" if len(titles) == 1 else "están publicados"
+        return self._reply(
+            answer=first.fragment.answer if first.fragment else first.record.answer,
+            intent="course_recommendation" if first.record.kind == "course" else "service_recommendation",
+            match_level=_retrieval_level(min(h.score for h in chosen)),
+            sources=[self._source(h.record) for h in chosen],
+            recommendations=[self._recommendation(h) for h in chosen],
+            needs_clarification=True,
+            clarification_question=f"Para tu otra consulta también {verb} {others}. ¿Sobre cuál quieres más detalles?",
+        )
+
+    def _recommendation(self, hit: Hit) -> Recommendation:
+        record = hit.record
+        evidence = hit.fragment.text if hit.fragment else self.kb.documents_by_source[record.id].description
+        action = "cotización" if record.kind == "service" else "matrícula"
+        url = WHATSAPP_QUOTE_URL if record.kind == "service" else WHATSAPP_MATRICULA_URL
+        return Recommendation(id=record.id, title=record.title, kind=record.kind,
+            reason=f"El contenido publicado trata tu consulta: «{evidence}».", evidence=[record.id],
+            evidence_text=evidence,
+            next_step=f"Para consultar la {action}, continúa por el WhatsApp oficial: {url}.",
+            match_level=_retrieval_level(hit.score), url_path=record.source.url_path)
+
+    def _clarify_goal(self) -> AdvisorReply:
+        return self._reply(answer="Puedo ayudarte a encontrar información publicada de Horus Group.",
+            intent="clarification", match_level="baja", needs_clarification=True,
+            clarification_question="¿Buscas un curso para aprender o un servicio tecnológico? ¿Sobre qué tema?")
+
+    def _catalog_recommend(self, hits: list[Hit], profile: Profile) -> AdvisorReply | None:
+        candidates = []
+        for hit in hits:
+            record = hit.record
+            if record.source.kind != "catalogo_laravel" or record.status != "verified" or record.kind not in {"course", "service"} or hit.score < ANSWER_THRESHOLD:
+                continue
+            if profile.goal == "learn" and record.kind != "course" or profile.goal == "service" and record.kind != "service":
+                continue
+            if profile.modality != "cualquiera" and profile.modality not in record.modalities:
+                continue
+            candidates.append(hit)
+        if (len(candidates) > 1 and candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN
+            and not set(content_tokens(candidates[0].record.title)) <= set(content_tokens(profile.text))):
+            return None
+        for hit in candidates[:1]:
+            record = hit.record
+            return self._reply(answer=hit.fragment.answer if hit.fragment else record.answer,
+                intent="course_recommendation" if record.kind == "course" else "service_recommendation",
+                match_level=_retrieval_level(hit.score), sources=[self._source(record)],
+                recommendations=[self._recommendation(hit)])
+        return None

@@ -157,3 +157,33 @@ def test_fictitious_catalog_course_is_recommended_when_it_exists() -> None:
     virtual = engine.chat("Quiero aprender redes en modalidad virtual")
     assert virtual.recommendations[0].id == "ficticio_curso_redes_basico"
     assert any("virtual" in m for m in virtual.missing_data)
+
+
+def test_orientame_cameras_prioritizes_verified_service(engine: AdvisorEngine) -> None:
+    reply = engine.chat("Oriéntame sobre cámaras de seguridad.")
+    assert reply.intent == "service_recommendation"
+    assert not reply.abstained
+    assert not reply.needs_clarification
+    assert reply.match_level in ("alta", "media")
+    assert _ids(reply)[0] == "servicio_camaras"
+    assert reply.sources[0].id == "servicio_camaras"
+
+
+def test_orientame_support_and_maintenance_prioritizes_verified_service(engine: AdvisorEngine) -> None:
+    reply = engine.chat("Oriéntame sobre soporte y mantenimiento de equipos.")
+    assert reply.intent == "service_recommendation"
+    assert not reply.abstained
+    assert not reply.needs_clarification
+    assert reply.match_level in ("alta", "media")
+    assert _ids(reply)[0] == "servicio_soporte"
+    assert reply.sources[0].id == "servicio_soporte"
+
+
+def test_orientame_preserves_abstention_on_unoffered_courses_and_clarification_on_ambiguity(
+    engine: AdvisorEngine,
+) -> None:
+    networking = engine.chat("¿Qué cursos de redes ofrecen?")
+    assert networking.intent == "course_recommendation"
+    assert networking.abstained
+    ambiguous = engine.chat("Oriéntame para elegir una opción")
+    assert ambiguous.needs_clarification and ambiguous.clarification_question

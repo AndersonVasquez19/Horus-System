@@ -43,7 +43,15 @@ KIND = {
     "info_comercial": "info",
 }
 RECOMMENDABLE_TYPES = {"curso", "capacitacion", "servicio", "asesoria"}
-SIGNED_FIELDS = ("schema_version", "catalog_version", "source_system", "generated_at", "expires_at", "items")
+SIGNED_FIELDS = (
+    "schema_version",
+    "catalog_version",
+    "source_system",
+    "generated_at",
+    "expires_at",
+    "managed_types",
+    "items",
+)
 MODALITY_LABEL = {
     "online": "online",
     "virtual": "virtual",
@@ -112,7 +120,7 @@ def _answer(item: CatalogItem, catalog: PublicCatalog) -> str:
     if item.inquiry:
         parts.append(f"Consultas: {item.inquiry}.")
     parts.append(
-        f"Fuente: catálogo publicado por Horus Group (versión {catalog.catalog_version}, "
+        f"Fuente: catálogo publicado por Horus Group "
         f"actualizado el {item.updated_at.date().isoformat()})."
     )
     return " ".join(parts)[:1500]
@@ -183,9 +191,10 @@ def to_records(catalog: PublicCatalog, now: datetime) -> tuple[list[KnowledgeRec
                 stable_id=item.stable_id,
             )
         )
-    listing = _listing_record(catalog, records)
-    if listing is not None:
-        records.append(listing)
+    for service in (False, True):
+        listing = _listing_record(catalog, records, service=service)
+        if listing is not None:
+            records.append(listing)
     summary = {
         "catalog_version": catalog.catalog_version,
         "stale": stale,
@@ -196,30 +205,31 @@ def to_records(catalog: PublicCatalog, now: datetime) -> tuple[list[KnowledgeRec
     return records, summary
 
 
-def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord]) -> KnowledgeRecord | None:
+def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord], *, service: bool = False) -> KnowledgeRecord | None:
     """Registro sintético con la lista de cursos y capacitaciones vigentes (solo títulos verificados)."""
-    current = [r for r in records if r.status == "verified" and r.kind in {"course", "training_program"}]
+    kinds = {"service"} if service else {"course", "training_program"}
+    current = [r for r in records if r.status == "verified" and r.kind in kinds]
     if not current:
         return None
     titles = "; ".join(r.title for r in current[:15])
     return KnowledgeRecord(
-        id="cat_listado_formacion",
-        category="formacion",
+        id="cat_listado_servicios" if service else "cat_listado_formacion",
+        category="servicio" if service else "formacion",
         kind="info",
-        title="Cursos y capacitaciones vigentes",
-        description=f"Cursos y capacitaciones vigentes según el catálogo publicado: {titles}.",
+        title="Servicios tecnológicos vigentes" if service else "Cursos y capacitaciones vigentes",
+        description=f"{'Servicios tecnológicos' if service else 'Cursos y capacitaciones'} vigentes según el catálogo publicado: {titles}.",
         answer=(
-            f"Según el catálogo publicado por Horus Group (versión {catalog.catalog_version}), están vigentes: "
-            f"{titles}. Pregúntame por cualquiera para ver su modalidad o requisitos publicados."
+            f"Según el catálogo publicado por Horus Group, están vigentes: "
+            f"{titles}. " + ("Pregúntame por cualquiera para ver su contenido publicado." if service else "Pregúntame por cualquiera para ver su modalidad o requisitos publicados.")
         )[:1500],
         status="verified",
         source=Source(
             kind="catalogo_laravel",
-            url_path="/educacion/cursos",
+            url_path=None if service else "/educacion/cursos",
             file=f"catalogo:{catalog.catalog_version}",
             checked_on=catalog.generated_at.date().isoformat(),
         ),
-        keywords=[
+        keywords=["servicios tecnologicos", "servicios informaticos", "que servicios ofrecen"] if service else [
             "que cursos hay",
             "que cursos tienen",
             "cursos disponibles",
@@ -229,7 +239,7 @@ def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord]) -> K
             "que capacitaciones hay",
             "catalogo de cursos",
         ],
-        topics=["cursos", "formacion"],
+        topics=["tecnologia"] if service else ["cursos", "formacion"],
     )
 
 
@@ -256,6 +266,13 @@ def load_catalog(
         raise CatalogError(f"No existe el catálogo: {path.name}") from exc
     except json.JSONDecodeError as exc:
         raise CatalogError(f"{path.name} no es JSON válido (línea {exc.lineno}).") from exc
+    return load_catalog_payload(raw, signing_key, allow_unsigned, now)
+
+
+def load_catalog_payload(
+    raw: Any, signing_key: str | None, allow_unsigned: bool = False, now: datetime | None = None
+) -> CatalogLoad:
+    """Valida un snapshot recibido sin asumir una ruta compartida entre procesos."""
     catalog = parse_catalog(raw, signing_key, allow_unsigned)
     records, summary = to_records(catalog, now or datetime.now(UTC))
     return CatalogLoad(catalog, records, summary)

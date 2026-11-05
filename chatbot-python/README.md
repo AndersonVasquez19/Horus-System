@@ -1,6 +1,9 @@
 # Horus AI Advisor (fase 1 + sprint 2)
 
-Motor informativo y de recomendaciones de **Horus Group SRL**, escrito en Python con FastAPI. Es un servicio **independiente**: no modifica ni reemplaza el chatbot PHP de Laravel, no se conecta a PostgreSQL ni llama a OpenAI.
+> Estado vigente (04/11/2026): A1/A2/B/B7 y Fase C implementadas y probadas en sus alcances locales, sin activación pública. Las propuestas históricas de integración futura y sus cifras no describen el contrato actual: consultar §14 y PROJECT_CONTEXT.md.
+
+
+Motor conversacional principal de **Horus Group SRL**, escrito en Python con FastAPI. Laravel conserva la fachada y sus controles de privacidad, validación y contingencia institucional. Python no se conecta a PostgreSQL ni llama a OpenAI. El servicio permanece desactivado por defecto en Laravel; el endpoint es `POST /api/v1/chat` y el modelo local es `paraphrase-multilingual-MiniLM-L12-v2`.
 
 Qué hace:
 
@@ -166,7 +169,9 @@ Latencia en proceso: léxico p50 ≈ 45-58 ms; híbrido p50 ≈ 85-170 ms. Varí
 - El 100 % en conversaciones se mide sobre 12 escenarios propios: indica que el mecanismo funciona, no que generalice.
 - Fallos que persisten en test: paráfrasis sin palabras compartidas, «¿reparan autos?» (recomienda soporte de computadoras), «muchas gracias por todo», coloquialismos como «mi laptop está hecha leña» o «jala señal feo el wifi», y «Quiero capacitar a mi equipo de ventas» (responde con información en vez de recomendar). Lista completa en `reports/evaluation-*-final.md`.
 
-### Comparación con el chatbot PHP (fase G)
+### Comparación histórica con el chatbot PHP (fase G)
+
+El arnés siguiente es histórico y ya no es ejecutable contra el motor PHP retirado. Sus métricas no describen el flujo público vigente; no usarlo como prueba actual de integración.
 
 ```powershell
 .venv\Scripts\python.exe scripts\compare_php.py --python-tag final
@@ -232,6 +237,10 @@ Comportamiento:
 - Carga única en segundo plano (≈ 19-57 s según la caché de disco). Mientras tanto responde en modo léxico.
 - Sin descargas en ejecución (`HF_HUB_OFFLINE=1`).
 - Si el modelo falta o está dañado, el servicio sigue en modo léxico; está probado.
+- **Caché de vectores opcional (05/11/2026):** `HORUS_AI_SEMANTIC_CACHE_DIR` (vacío = desactivada) guarda en disco los vectores de los
+  **pasajes públicos** del índice, con clave SHA-256 del texto y archivo ligado a la huella del modelo; nunca consultas ni texto plano.
+  Tras un reinicio solo se codifican los pasajes nuevos. Escritura atómica, solo pasajes vigentes, archivo dañado = se ignora y se
+  recodifica. No ahorra la carga del modelo. Ver `app/services/vector_cache.py` y `tests/test_vector_cache.py`.
 
 **Sprint 2: menos falsos positivos.** Una coincidencia **sin apoyo léxico** (puntuación léxica < 0,15) solo cuenta si el coseno es ≥ 0,72. Aun así puntúa como máximo 0,5, por debajo del umbral de respuesta: nunca afirma, como mucho pide aclaración. Antes, «¿Cuál es la capital del Perú?» (coseno 0,67) provocaba una aclaración sobre la sede; ahora se abstiene. El caso `xfail` de la fase 1 («billeteras digitales») era un hueco de vocabulario: Yape y Plin no figuraban como billeteras. Se resolvió con palabras clave y ahora es una prueba normal.
 
@@ -358,3 +367,21 @@ Registros `provisional`:
 - el convenio con ISAM.
 
 El horario se presenta con su discrepancia. La web **no publica ningún curso con nombre**: el catálogo de §13 es la vía prevista para que eso cambie.
+
+
+## 14. Contrato vigente — Horus AI Advanced, Fase C (04/11/2026)
+
+Laravel selecciona cursos y servicios tecnológicos publicados y envía snapshots firmados/versionados por `/api/v1/catalog/sync`. Python nunca consulta PostgreSQL. A1/A2/B/B7 sustituyen las propuestas históricas de §12–13: sincronización operativa, índice candidato atómico, bloqueo durante actualización/error/caducidad y confirmación diferida con cola real. La contingencia Laravel es institucional; el antiguo motor PHP no vuelve a ser principal. Los interruptores siguen apagados; convenios editoriales excluidos.
+
+La Fase C reutiliza el mismo RAG y añade `services/query_plan.py`. Distingue acciones de aprendizaje/contratación, peticiones generales y temas concretos. El tema es abierto: lo recuperan `LexicalIndex` y MiniLM contra fuentes activas. Las categorías recuperadas fundamentan la intención informativa; acciones comerciales, atributos no publicados y seguridad mantienen su prioridad. Los empates/necesidades imprecisas requieren aclaración. No hay un LLM generativo ni otro clasificador entrenado.
+
+- Listados exactos de cursos/servicios vigentes: hasta 15 títulos, respetando el límite existente.
+- Una recomendación suficientemente relacionada: `reason`, `evidence_text`, fuente original y `next_step` con WhatsApp autorizado. No se selecciona arbitrariamente ante empate.
+- Consulta actual para recomendaciones dinámicas; sin perfiles ni historial persistente. El seguimiento opcional existente es efímero y acotado; Laravel transmite `history=[]`.
+- `enrollment_request`: matrícula explícita derivada al WhatsApp institucional sin recoger datos. Cotizaciones conservan su contrato.
+- `answer` permanece extractivo y exacto. Laravel valida texto/fuente y reproduce el nuevo listado de servicios desde su snapshot firmado. Los metadatos de recomendación están disponibles en la API; el widget conserva la respuesta/aclaración textual existente.
+- Sin rebajar umbrales ni cambiar filtros. Las negaciones/expresiones nuevas y las paráfrasis sin palabras compartidas siguen teniendo límites; la similitud aislada no basta para afirmar.
+
+Pruebas nuevas: `tests/test_phase_c.py` y `tests/test_phase_c_semantic.py`. El contrato público ficticio compartido está en `tests/Fixtures/phase-c-public-replies.json` del repositorio Laravel: Python comprueba que sus respuestas actuales coinciden y `AdvisorFaseCTest` las valida con HTTP simulado. ASGI en proceso no equivale a integración real entre servidores.
+
+Resultados C: PHP 3.376 aprobadas/una omitida; Python 226 sin modelo y 23 con MiniLM real; npm test 46 aprobadas; build externo, PHPStan, Pint focalizado, Ruff y diff aprobados. Sin nuevas dependencias ni descargas. Mediciones, evidencia y límites en el anexo C de PROJECT_CONTEXT.md y el informe externo. No iniciar servicios ni activar flags siguiendo ejemplos históricos sin autorización específica.
