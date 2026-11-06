@@ -15,8 +15,29 @@ function client() {
 
 test('only predefined public internal links are rendered from untrusted responses', () => {
   const links = safeChatLinks('<img src=x onerror=alert(1)> https://evil.example/admin javascript:alert(1) /educacion/cursos');
-  assert.deepEqual(links, [{ url: '/educacion/cursos', label: 'Ver cursos' }]);
+  assert.deepEqual(links, [{ url: '/educacion/cursos', label: 'Ver cursos', whatsapp: false }]);
   assert.deepEqual(safeChatLinks('https://evil.example /admin/usuarios'), []);
+});
+
+test('whitelisted official whatsapp destinations produce safe action buttons', () => {
+  const quoteText = 'Para solicitar una cotización continúa por WhatsApp: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n';
+  const quoteLinks = safeChatLinks(quoteText);
+  assert.deepEqual(quoteLinks, [{
+    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+    label: 'Solicitar cotización por WhatsApp',
+    whatsapp: true,
+  }]);
+
+  const matText = 'Un asesor te atenderá: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula';
+  const matLinks = safeChatLinks(matText);
+  assert.deepEqual(matLinks, [{
+    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
+    label: 'Consultar matrícula por WhatsApp',
+    whatsapp: true,
+  }]);
+
+  // Arbitrary or spoofed WhatsApp destinations are rejected
+  assert.deepEqual(safeChatLinks('https://wa.me/51999999999 https://evil.com/whatsapp'), []);
 });
 
 test('double submit shares one request and bounds the visible history', async () => {
