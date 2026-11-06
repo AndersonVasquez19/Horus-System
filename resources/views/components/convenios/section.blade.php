@@ -1,4 +1,4 @@
-@props(['items' => []])
+@props(['items' => [], 'title' => 'Convenios estratégicos', 'intro' => null])
 
 <div x-data="convenios(@js($items))" class="relative"
   x-init="$watch('active', value => $nextTick(() => {
@@ -6,13 +6,67 @@
     if (value && !dialog.open) dialog.showModal();
     else if (!value && dialog.open) dialog.close();
   }))">
-  {{-- Contenedor Flex Wrap Centrado: 3 en la 1ra fila y 2 en la 2da fila en desktop, 1 en móvil, 2 en tablet --}}
-  <div class="flex flex-wrap justify-center gap-6 lg:gap-8 max-w-7xl mx-auto">
-    @foreach ($items as $item)
-      <div class="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] max-w-md flex">
-        <x-convenios.card :item="$item" class="w-full" />
+  {{-- Carrusel con scroll-snap: 3 tarjetas en escritorio, 2 en tablet y 1 con asomo en móvil --}}
+  <div
+    x-data="conveniosCarousel({{ count($items) }})"
+    x-on:mouseenter="hovering = true"
+    x-on:mouseleave="hovering = false"
+    x-on:focusin="hovering = true"
+    x-on:focusout="hovering = false"
+    x-on:resize.window.debounce.150ms="measure()"
+    :class="{ 'is-in': inView }"
+    class="convenios-carousel mx-auto max-w-7xl"
+    role="region"
+    aria-roledescription="carrusel"
+    aria-label="{{ $title }}"
+  >
+    <div class="cv-head">
+      <div>
+        <h2 class="cv-title">{{ $title }}</h2>
+        @if ($intro)
+          <p class="cv-intro">{{ $intro }}</p>
+        @endif
       </div>
-    @endforeach
+
+      <div class="cv-ctrls" x-show="pages > 1">
+        <span class="cv-count" x-text="range" aria-live="polite"></span>
+        <button type="button" x-on:click="prev()" class="cv-ctrl" aria-label="Convenios anteriores">
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <button type="button" x-on:click="next()" class="cv-ctrl" aria-label="Convenios siguientes">
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          x-show="autoplay"
+          x-on:click="toggleAutoplay()"
+          :aria-label="userPaused ? 'Reanudar rotación automática' : 'Pausar rotación automática'"
+          class="cv-ctrl"
+        >
+          <i class="fa-solid" :class="userPaused ? 'fa-play' : 'fa-pause'" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <div
+      x-ref="track"
+      x-on:scroll.passive="onScroll()"
+      :aria-live="running ? 'off' : 'polite'"
+      class="convenios-track"
+    >
+      @foreach ($items as $item)
+        <div
+          class="convenios-slide"
+          style="--i: {{ $loop->index }}"
+          :class="{ 'is-dim': !inWindow({{ $loop->index }}) }"
+          role="group"
+          aria-roledescription="diapositiva"
+          aria-label="{{ $loop->iteration }} de {{ $loop->count }}"
+        >
+          <x-convenios.card :item="$item" />
+        </div>
+      @endforeach
+    </div>
   </div>
 
   {{-- Modal de Detalle Completo --}}
@@ -90,9 +144,9 @@
       {{-- Cuerpo Desplazable del Modal --}}
       <div class="p-6 sm:p-8 overflow-y-auto space-y-4" tabindex="0" role="region" aria-label="Detalle del convenio, desplazable">
         <div class="flex flex-wrap items-center gap-3">
-          <span class="px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-slate-100 text-[#0A2540] border border-slate-200" x-text="active ? active.siglas : ''"></span>
-          <span class="text-xs font-medium text-slate-500">
-            <i class="fa-regular fa-calendar-check text-slate-400 mr-1"></i> Vigente hasta <strong class="text-slate-800" x-text="active ? active.vigencia : ''"></strong>
+          <span class="px-3 py-1 rounded-full text-sm font-bold tracking-wide bg-slate-100 text-[#0A2540] border border-slate-200" x-text="active ? active.siglas : ''"></span>
+          <span class="text-sm font-medium text-slate-600">
+            <i class="fa-regular fa-calendar-check text-slate-500 mr-1"></i> Vigente hasta <strong class="text-slate-800" x-text="active ? active.vigencia : ''"></strong>
           </span>
         </div>
 
@@ -100,16 +154,16 @@
 
         {{-- Garantías Destacadas --}}
         <div class="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-2">
+          <h4 class="text-base font-semibold text-slate-900 mb-2.5 flex items-center gap-2">
             <i class="fa-solid fa-award text-[#0A2540]"></i> Beneficios para participantes
           </h4>
-          <ul class="text-xs sm:text-sm text-slate-700 space-y-2">
+          <ul class="text-sm text-slate-700 space-y-2">
             <li class="flex items-start gap-2">
-              <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5 shrink-0"></i>
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
               <span>Certificados oficiales con firma y sello de Decanatura y representantes de Horus Group.</span>
             </li>
             <li class="flex items-start gap-2">
-              <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5 shrink-0"></i>
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
               <span>Validez acreditada para postulaciones y convocatorias en entidades públicas y privadas a nivel nacional.</span>
             </li>
           </ul>
@@ -117,19 +171,19 @@
 
         {{-- Descripción Oficial Completa --}}
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Alcance del convenio:</h4>
-          <p class="text-xs sm:text-sm leading-relaxed text-slate-600" x-text="active ? active.descripcion : ''"></p>
+          <h4 class="text-base font-semibold text-slate-900 mb-2">Alcance del convenio</h4>
+          <p class="text-sm leading-relaxed text-slate-600" x-text="active ? active.descripcion : ''"></p>
         </div>
 
         {{-- Footer de Modal --}}
         <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
-          <div class="text-xs text-slate-400">
+          <div class="text-sm text-slate-500">
             Horus Group SRL &copy; Alianzas Estratégicas
           </div>
           <button
             type="button"
             x-on:click="close()"
-            class="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#0A2540] text-white hover:bg-slate-800 transition-colors shadow-sm"
+            class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#0A2540] text-white hover:bg-slate-800 transition-colors shadow-sm"
           >
             Entendido
           </button>
