@@ -11,151 +11,76 @@
 @endpush
 
 @section('content')
+@php
+  $base = 'assets/images/galeria/';
+  $categorias = [
+    'capacitaciones' => 'Capacitaciones',
+    'servicio-tecnico' => 'Servicio técnico',
+    'primeros-auxilios' => 'Primeros auxilios',
+    'convenios' => 'Convenios',
+  ];
+  $fotos = [
+    ['cat' => 'capacitaciones', 'label' => 'Capacitaciones', 'alt' => 'Capacitación de Horus Group con participantes', 'src' => $base.'capacitaciones/imagen 1.jpg', 'w' => 1600, 'h' => 721],
+    ['cat' => 'convenios', 'label' => 'Colegio de Abogados', 'alt' => 'Actividad con el Colegio de Abogados', 'src' => $base.'colegio de abogados/imagen 4-web.jpg', 'w' => 1600, 'h' => 715],
+    ['cat' => 'convenios', 'label' => 'Colegio de Abogados', 'alt' => 'Actividad con el Colegio de Abogados', 'src' => $base.'colegio de abogados/imagen 10.jpg', 'w' => 1156, 'h' => 521],
+    ['cat' => 'convenios', 'label' => 'Colegio de Enfermeros', 'alt' => 'Actividad con el Colegio de Enfermeros', 'src' => $base.'colegio de enfermeros/imagen 3.jpg', 'w' => 1600, 'h' => 900],
+    ['cat' => 'convenios', 'label' => 'Colegio de Enfermeros', 'alt' => 'Actividad con el Colegio de Enfermeros', 'src' => $base.'colegio de enfermeros/imagen 11-web.jpg', 'w' => 1600, 'h' => 1600],
+    ['cat' => 'convenios', 'label' => 'ISAM', 'alt' => 'Actividad en el ISAM', 'src' => $base.'ISAM/imagen 1.jpg', 'w' => 1280, 'h' => 960],
+    ['cat' => 'convenios', 'label' => 'ISAM', 'alt' => 'Actividad en el ISAM', 'src' => $base.'ISAM/imagen 4.jpg', 'w' => 960, 'h' => 1280, 'pos' => 'center 30%'],
+    ['cat' => 'servicio-tecnico', 'label' => 'Servicio técnico', 'alt' => 'Servicio técnico de Horus Group', 'src' => $base.'nuestro servicio tecnico/imagen 5.jpg', 'w' => 1156, 'h' => 521],
+    ['cat' => 'servicio-tecnico', 'label' => 'Servicio técnico', 'alt' => 'Servicio técnico de Horus Group', 'src' => $base.'nuestro servicio tecnico/imagen 7.jpg', 'w' => 1280, 'h' => 575],
+    ['cat' => 'primeros-auxilios', 'label' => 'Práctica de primeros auxilios', 'alt' => 'Práctica de primeros auxilios', 'src' => $base.'practicas de primeros auxilios/imagen 1.jpg', 'w' => 1280, 'h' => 575],
+    ['cat' => 'primeros-auxilios', 'label' => 'Práctica de primeros auxilios', 'alt' => 'Práctica de primeros auxilios', 'src' => $base.'practicas de primeros auxilios/imagen 7.jpg', 'w' => 1156, 'h' => 521],
+  ];
+@endphp
 <div class="legacy-showcase">
-<section class="hero">
-        <canvas class="hero-particles" id="heroParticles"></canvas>
-        <div class="hero-overlay"></div>
+<section class="gal-hero">
+  <div class="gal-hero-in">
+    <div class="gal-orn" aria-hidden="true"><i></i><b></b><i></i></div>
+    <h1>Nuestra <span>galería</span></h1>
+    <p>Momentos que inspiran</p>
+  </div>
+</section>
 
-        <div class="hero-grid-lines">
-            <span></span><span></span><span></span><span></span><span></span>
-        </div>
+<div class="gal-filters" role="group" aria-label="Filtrar fotos por categoría">
+  <div class="gal-filters-in">
+    <button type="button" class="gal-chip" data-filter="all" aria-pressed="true">Todas <small>{{ count($fotos) }}</small></button>
+    @foreach ($categorias as $clave => $nombre)
+      <button type="button" class="gal-chip" data-filter="{{ $clave }}" aria-pressed="false">{{ $nombre }} <small>{{ count(array_filter($fotos, fn ($f) => $f['cat'] === $clave)) }}</small></button>
+    @endforeach
+  </div>
+</div>
 
-        <div class="hero-content">
-            <div class="hero-badge">
-                <span class="badge-dot"></span>
-                <span>Horus Group SRL</span>
-                <span class="badge-dot"></span>
-            </div>
+<section class="gal-section" id="gallery">
+  <div class="gal-grid" id="galleryGrid">
+    @foreach ($fotos as $foto)
+      <button type="button" class="gal-shot" data-category="{{ $foto['cat'] }}" data-full="{{ asset($foto['src']) }}" data-alt="{{ $foto['alt'] }}" data-label="{{ $foto['label'] }}" aria-label="Ampliar foto: {{ $foto['label'] }}">
+        <span class="gal-ph">
+          <img src="{{ asset($foto['src']) }}" alt="{{ $foto['alt'] }}" width="{{ $foto['w'] }}" height="{{ $foto['h'] }}" loading="{{ $loop->index < 3 ? 'eager' : 'lazy' }}" decoding="async" style="object-position: {{ $foto['pos'] ?? 'center' }}">
+          <span class="gal-zoom" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span>
+        </span>
+        <span class="gal-cap"><span>{{ $foto['label'] }}</span><em>{{ $categorias[$foto['cat']] }}</em></span>
+      </button>
+    @endforeach
+  </div>
 
-            <div class="hero-ornament top">
-                <span class="ornament-line"></span>
-                <span class="ornament-diamond"></span>
-                <span class="ornament-line"></span>
-            </div>
+  <div class="gal-more">
+    <p>¿Quieres ver más?</p>
+    <a href="https://www.instagram.com/horusgroupsrl/" target="_blank" rel="noopener noreferrer" aria-label="Visita nuestro Instagram (se abre en una pestaña nueva)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+      <span>Visita nuestro Instagram</span>
+    </a>
+  </div>
+</section>
 
-            <h1 class="hero-title">
-                <span class="title-line small-text">Nuestra</span>
-                <span class="title-line highlight">GALERÍA</span>
-                <span class="title-line small-text">Corporativa</span>
-            </h1>
-
-            <div class="hero-ornament bottom">
-                <span class="ornament-line"></span>
-                <span class="ornament-diamond"></span>
-                <span class="ornament-line"></span>
-            </div>
-
-            <p class="hero-subtitle">
-                <span class="subtitle-char">M</span><span class="subtitle-char">o</span><span class="subtitle-char">m</span><span class="subtitle-char">e</span><span class="subtitle-char">n</span><span class="subtitle-char">t</span><span class="subtitle-char">o</span><span class="subtitle-char">s</span>&nbsp;<span class="subtitle-char">q</span><span class="subtitle-char">u</span><span class="subtitle-char">e</span>&nbsp;<span class="subtitle-char">i</span><span class="subtitle-char">n</span><span class="subtitle-char">s</span><span class="subtitle-char">p</span><span class="subtitle-char">i</span><span class="subtitle-char">r</span><span class="subtitle-char">a</span><span class="subtitle-char">n</span>
-            </p>
-
-
-        </div>
-
-        <div class="scroll-indicator" onclick="document.querySelector('.filter-section').scrollIntoView({behavior:'smooth'})">
-            <span class="scroll-text">Explorar</span>
-            <i class="fas fa-chevron-down"></i>
-        </div>
-    </section>
-
-    <section class="filter-section">
-        <div class="filter-container">
-            <button class="filter-btn active" data-filter="all"><i class="fas fa-th"></i> TODOS</button>
-            <button class="filter-btn" data-filter="capacitaciones"><i class="fas fa-chalkboard-teacher"></i>
-                CAPACITACIONES</button>
-            <button class="filter-btn" data-filter="servicio-tecnico"><i class="fas fa-tools"></i> SERVICIO
-                TÉCNICO</button>
-            <button class="filter-btn" data-filter="primeros-auxilios"><i class="fas fa-heartbeat"></i>
-                CEREMONIAS</button>
-        </div>
-    </section>
-
-
-    <section class="gallery-section" id="gallery">
-        <div class="gallery-grid" id="galleryGrid"></div>
-
-        <p class="gallery-more">
-            <span>¿Quieres ver más?</span>
-            <a href="https://www.instagram.com/horusgroupsrl/" target="_blank" rel="noopener noreferrer" class="gallery-more-link" aria-label="Visita nuestro Instagram (se abre en una pestaña nueva)">
-                <i class="fab fa-instagram" aria-hidden="true"></i>
-                <span>Visita nuestro Instagram.</span>
-            </a>
-        </p>
-    </section>
-
-    <div class="toast" id="toast">
-        <i class="fas fa-check-circle"></i>
-        <span id="toastMessage">Acción completada</span>
-    </div>
-
-    <div class="modal" id="imageModal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
-            <button class="modal-nav prev" id="modalPrev"><i class="fas fa-chevron-left"></i></button>
-            <button class="modal-nav next" id="modalNext"><i class="fas fa-chevron-right"></i></button>
-            <div class="modal-image-container" id="modalContainer"></div>
-            <div class="modal-info">
-                <h3 class="modal-title" id="modalTitle"></h3>
-                <p class="modal-category" id="modalCategory"></p>
-                <div class="modal-actions">
-                    <div class="action-group left">
-                        <button class="action-btn like-btn modal-like" id="modalLike"><i class="far fa-heart"></i> <span
-                                class="count">0</span></button>
-                        <button class="action-btn dislike-btn modal-dislike" id="modalDislike"><i
-                                class="far fa-thumbs-down"></i> <span class="count">0</span></button>
-                    </div>
-                    <div class="action-group right">
-                        <button class="action-btn comment-btn modal-comment" id="modalComment"><i
-                                class="far fa-comment"></i> <span class="count">0</span></button>
-                        <button class="action-btn share-btn modal-share" id="modalShare"><i
-                                class="fas fa-share-alt"></i></button>
-                        <button class="action-btn download-btn modal-download" id="modalDownload"><i
-                                class="fas fa-download"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="comments-modal" id="commentsModal">
-        <div class="comments-overlay"></div>
-        <div class="comments-content">
-            <div class="comments-header">
-                <h3><i class="far fa-comment"></i> Comentarios</h3>
-                <button class="comments-close" id="commentsClose"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="comments-body" id="commentsBody"></div>
-            <div class="comments-footer">
-                <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-                <button id="submitComment"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <div class="share-modal" id="shareModal">
-        <div class="share-overlay"></div>
-        <div class="share-content">
-            <div class="share-header">
-                <h3><i class="fas fa-share-alt"></i> Compartir</h3>
-                <button class="share-close" id="shareClose"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="share-body">
-                <a href="#" class="share-option facebook" data-platform="facebook"><i
-                        class="fab fa-facebook-f"></i><span>Facebook</span></a>
-                <a href="#" class="share-option twitter" data-platform="twitter"><i
-                        class="fab fa-twitter"></i><span>Twitter</span></a>
-                <a href="#" class="share-option whatsapp" data-platform="whatsapp"><i
-                        class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
-                <a href="#" class="share-option linkedin" data-platform="linkedin"><i
-                        class="fab fa-linkedin-in"></i><span>LinkedIn</span></a>
-                <a href="#" class="share-option email" data-platform="email"><i
-                        class="fas fa-envelope"></i><span>Email</span></a>
-                <button class="share-option copy-link" id="copyLink"><i class="fas fa-link"></i><span>Copiar
-                        Link</span></button>
-            </div>
-        </div>
-    </div>
+<div class="gal-lb" id="galLightbox" role="dialog" aria-modal="true" aria-label="Visor de fotos" hidden>
+  <button type="button" class="gal-lb-x" id="galLbClose" aria-label="Cerrar">&#10005;</button>
+  <button type="button" class="gal-lb-nav gal-lb-p" id="galLbPrev" aria-label="Foto anterior">&#8249;</button>
+  <button type="button" class="gal-lb-nav gal-lb-n" id="galLbNext" aria-label="Foto siguiente">&#8250;</button>
+  <figure>
+    <img id="galLbImg" alt="">
+    <figcaption><span id="galLbCaption"></span><small id="galLbCount"></small></figcaption>
+  </figure>
+</div>
 </div>
 @endsection
-
