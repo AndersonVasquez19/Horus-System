@@ -7,7 +7,7 @@
   --hc-navy: #142e52;
   --hc-blue: #2563eb;
   --hc-sky: #f4f9ff;
-  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
 }
 
 .horus-chat-widget { position: fixed; inset: auto 24px 20px auto; z-index: 900; }

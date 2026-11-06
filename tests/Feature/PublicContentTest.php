@@ -36,6 +36,40 @@ class PublicContentTest extends TestCase
             ->assertDontSee('fa-video', false);
     }
 
+    public function test_gallery_shows_eleven_uniform_photos_without_social_actions(): void
+    {
+        $response = $this->get('/galeria')->assertOk();
+
+        $this->assertSame(11, substr_count($response->getContent(), 'class="gal-shot"'));
+
+        $response->assertSee('Primeros auxilios', false)
+            ->assertDontSee('Ceremonias', false)
+            ->assertDontSee('capacitaciones/imagen 9.jpg', false)
+            ->assertDontSee('like-btn', false)
+            ->assertDontSee('comment-btn', false)
+            ->assertDontSee('share-btn', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), '<h1'));
+    }
+
+    public function test_contact_page_builds_whatsapp_and_mail_actions_with_working_links(): void
+    {
+        $response = $this->get('/contactos')->assertOk();
+
+        $response->assertSee('https://wa.me/51927582305', false)
+            ->assertSee('Enviar por WhatsApp', false)
+            ->assertSee('Enviar por correo', false)
+            ->assertSee('Lunes - Viernes: 9:00 AM - 6:00 PM', false)
+            ->assertSee('Sábados: 9:00 AM - 1:00 PM', false)
+            ->assertSee('assets/js/contactos-form.js', false)
+            ->assertDontSee('libro-reclamaciones.html', false)
+            ->assertDontSee('youtube.com/watch', false)
+            ->assertDontSee('Síguenos en redes sociales', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), '<h1'));
+    }
+
+
     public function test_team_section_no_longer_lists_humberto_camacho(): void
     {
         $this->get('/quienes-somos')

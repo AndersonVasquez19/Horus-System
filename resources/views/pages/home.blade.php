@@ -15,6 +15,14 @@
       'image' => asset('assets/images/index/hero/hero-tecnologia.jpg'),
       'description' => 'Soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú.',
       'telephone' => '+51927582305',
+      'areaServed' => ['@type' => 'City', 'name' => 'Cajamarca'],
+      'hasOfferCatalog' => [
+        '@type' => 'OfferCatalog',
+        'name' => 'Servicios de Horus Group SRL',
+        'itemListElement' => collect([
+          'Cámaras de seguridad', 'Cableado estructurado', 'Soporte y mantenimiento', 'Cursos con certificado', 'Capacitaciones', 'Asesoramiento',
+        ])->map(fn ($servicio) => ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $servicio]])->all(),
+      ],
       'email' => 'horusgroupcajamarca@gmail.com',
       'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Cajamarca', 'addressCountry' => 'PE'],
       'sameAs' => [
@@ -32,6 +40,7 @@
     $slides = [
       [
         'image' => 'assets/images/index/hero/hero-tecnologia.jpg',
+        'position' => 'center 38%',
         'icon' => 'fa-solid fa-tower-broadcast',
         'eyebrow' => 'Telecomunicaciones y tecnología',
         'title' => 'Soluciones tecnológicas',
@@ -42,6 +51,7 @@
       ],
       [
         'image' => 'assets/images/index/hero/hero-capacitaciones.jpg',
+        'position' => 'center 68%',
         'icon' => 'fa-solid fa-graduation-cap',
         'eyebrow' => 'Educación y capacitación',
         'title' => 'Capacítate y certifica',
@@ -52,6 +62,7 @@
       ],
       [
         'image' => 'assets/images/index/hero/hero-convenios.jpg',
+        'position' => 'center 55%',
         'icon' => 'fa-solid fa-handshake',
         'eyebrow' => 'Convenios estratégicos',
         'title' => 'Respaldados por',
@@ -62,6 +73,7 @@
       ],
       [
         'image' => 'assets/images/index/hero/hero-asesoramiento.jpg',
+        'position' => 'center 62%',
         'icon' => 'fa-solid fa-user-tie',
         'eyebrow' => 'Asesoría profesional',
         'title' => 'Asesoramiento',
@@ -76,18 +88,7 @@
       ['value' => '+400', 'label' => 'Personas capacitadas'],
       ['value' => '4.8/5', 'label' => 'Calificación promedio'],
       ['value' => '+200', 'label' => 'Trabajos realizados'],
-    ];
-
-    $heroHighlights = [
-      ['icon' => 'fa-solid fa-handshake', 'title' => 'Convenios institucionales', 'text' => 'Con colegios profesionales e instituciones educativas.'],
-      ['icon' => 'fa-solid fa-certificate', 'title' => 'Certificados con respaldo', 'text' => 'Válidos para postulaciones a entidades públicas y privadas.'],
-    ];
-
-    $stats = [
-      ['icon' => 'fa-solid fa-user-check', 'value' => '+400', 'label' => 'Personas capacitadas y certificadas entre estudiantes y profesionales a lo largo del país.'],
-      ['icon' => 'fa-solid fa-star', 'value' => '4.8/5', 'label' => 'Calificación promedio en nuestros cursos y capacitaciones.'],
-      ['icon' => 'fa-solid fa-building', 'value' => '+200', 'label' => 'Trabajos realizados a hogares y empresas en diversas áreas.'],
-      ['icon' => 'fa-solid fa-laptop', 'value' => '98%', 'label' => 'De nuestros participantes mencionan haber fortalecido sus habilidades y conocimientos.'],
+      ['value' => '98%', 'label' => 'Participantes que fortalecieron sus habilidades'],
     ];
 
     $convenios = [
@@ -146,22 +147,16 @@
   @endphp
 
   <section id="inicio" class="home-hero">
-    <x-carousel :slides="$slides" :stats="$heroStats" :highlights="$heroHighlights" />
+    <x-carousel :slides="$slides" :stats="$heroStats" />
   </section>
 
-  <section class="home-stats py-12 md:py-16">
-    <div class="section-shell"><x-stats-grid :stats="$stats" /></div>
-  </section>
-
-  <section id="convenios" class="home-convenios scroll-mt-6 py-12 md:py-20">
+  <section id="convenios" class="home-convenios scroll-mt-6 py-16 md:py-20">
     <div class="section-shell">
-      <div class="mb-10 text-center max-w-2xl mx-auto">
-        <x-ui.section-title>Nuestros Convenios Estratégicos</x-ui.section-title>
-        <p class="mt-3 text-sm md:text-base text-slate-300">
-          Alianzas con colegios profesionales e instituciones que respaldan la validez de nuestras certificaciones a nivel nacional.
-        </p>
-      </div>
-    <x-convenios.section :items="$convenios" />
+      <x-convenios.section
+        :items="$convenios"
+        title="Convenios estratégicos"
+        intro="Alianzas con colegios profesionales e instituciones que respaldan la validez de nuestras certificaciones a nivel nacional."
+      />
     </div>
   </section>
 

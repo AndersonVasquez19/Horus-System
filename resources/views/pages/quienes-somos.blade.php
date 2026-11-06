@@ -15,11 +15,13 @@
 <section class="qs-header">
         <div class="header-overlay"></div>
         <div class="header-content">
-            <h1 class="typing">
-                <span id="typing-text"></span>
-            </h1>
-            <h2>Descubre nuestra misión, visión y valores.</h2>
-            <img src="{{ asset('assets/images/index/stiker/stiker.png') }}" alt="Decoración" class="header-sticker">
+            <div class="header-text">
+                <h1 class="typing">
+                    <span id="typing-text"></span>
+                </h1>
+                <h2>Descubre nuestra misión, visión y valores.</h2>
+            </div>
+            <img src="{{ asset('assets/images/index/stiker/stiker.png') }}" alt="Decoración" class="header-sticker" width="150" height="108">
         </div>
     </section>
 
