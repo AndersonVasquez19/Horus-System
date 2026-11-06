@@ -1,5 +1,179 @@
 # Entrega técnica de consolidación — 05/11/2026
 
+## Informe consolidado vigente
+
+Corte documental: **05/11/2026, 18:17, America/Lima**. Esta sección resume el estado vigente y
+prevalece sobre los estados intermedios conservados más abajo. No constituye una nueva auditoría
+general ni autorización para ejecutar los comandos históricos. Las pruebas indicadas como
+antecedentes no se repitieron durante esta actualización documental.
+
+### Resultado de la etapa
+
+La consolidación local autorizada está registrada en **17 commits nuevos**, sin reescribir los
+24 commits anteriores. Horus AI está habilitado y responde en el entorno local; las migraciones
+editorial y de auditoría fueron aplicadas previamente bajo autorización. **La entrega todavía
+no está sincronizada**, y la aceptación de producción, privacidad independiente y restauración
+ensayada no se consideran completadas.
+
+| Área | Resultado y límite |
+| --- | --- |
+| Servicios | Editor y contenido editorial consolidados; restricción de orden probada en SQLite y PostgreSQL e instalada localmente. No se publicaron fichas automáticamente. |
+| Reclamaciones | Libro y gestión administrativa consolidados; errores de integridad específicos y protecciones conservados. D9 permanece fuera de ejecución. |
+| Administración e integración | Responsables, consultas del panel y contratos compartidos incorporados. Política 403 del coordinador sobre administradores preservada. |
+| Horus AI | Motor Python, privacidad, catálogo firmado, cliente Laravel, worker, búsqueda semántica, contingencia y supervisor local consolidados. Python recibe contenido público firmado; no consulta datos operativos privados. |
+| Migraciones | 31 registradas en la instalación local; 000022 es la única pendiente y continúa suspendida. 000023 preexistente se conservó. |
+| Dependencias Python | requirements.txt incorporado; reutiliza el bloqueo completo de 59 paquetes con versiones y hashes, incluido PyTorch CPU. El modelo se descarga por separado. |
+| Entrega | Responsabilidades iniciales documentadas; no se afirma recepción o aceptación formal de los compañeros. |
+
+### Comprobaciones realizadas para este informe
+
+Estas son verificaciones nuevas de estado, **no una repetición de las suites**:
+
+- Rama anderson; HEAD **e5dfe127deee74292beadff60349117f1b3fab41**.
+- Índice vacío al comenzar; dos stashes preservados, con hashes idénticos a los de la consolidación.
+- Git confirma 17 commits desde 7914438d59b77b6a5e09a15d371e635cca2d894d y **202 rutas distintas**
+  consolidadas en ese bloque. Las adiciones posteriores al primer bloque de 199 rutas son el helper
+  del supervisor, su prueba y requirements.txt. No es un recuento del inventario físico inicial.
+- Respecto de la referencia local origin/anderson: **41 delante, 0 detrás**. No se consultó de nuevo
+  el servidor remoto en esta actualización; la última consulta real documentada observó
+  306b168e8d8bbfec23301d7c050c7f7c9ae11d2f. No hubo fetch ni push.
+- `php artisan horus:advisor-operacion status --probe --queue`: enabled=true, ready=true, errors=[],
+  health correcto, knowledge/semantic/catalog loaded, autenticación comprobada, versión coincidente,
+  worker vivo, pending_queue_total=0 y failed_catalog_jobs=0.
+- `php scripts/horus-local.php inspect --runtime=<directorio privado existente>`: cero fichas
+  exportables, cero trabajos pendientes y únicamente 2026_10_28_000022_create_registros_pendientes_table
+  pendiente. Esta consulta no ejecuta migraciones ni acredita nuevamente toda la integridad física.
+- Los cambios concurrentes preexistentes permanecen fuera del alcance. No se declara limpio todo
+  el árbol de trabajo. Esta actualización modifica exclusivamente el informe y PROJECT_CONTEXT.md;
+  queda sin staging ni commit hasta una autorización posterior.
+
+### Migraciones, respaldo y reversión
+
+| Migración | Decisión y estado final documentado |
+| --- | --- |
+| 2026_10_28_000022_create_registros_pendientes_table | Suspendida expresamente. No ejecutar ni revertir. Pendiente en la instalación local. |
+| 000023 | Transformación irreversible excluida de las ejecuciones de consolidación. Ya estaba registrada en batch 4 en la instalación local; se conservó sin volver a ejecutar ni revertir. |
+| 2026_11_02_000033_add_contenido_to_servicio_publicaciones | Probada aisladamente; aplicada previamente en horus_group, batch 6. CHECK orden 0..9999, variante, FK RESTRICT e índice verificados entonces. |
+| 2026_11_03_000034_add_fuente_to_chat_logs | Probada aisladamente; aplicada previamente en horus_group, batch 6. fuente nullable varchar(16), sin atribuir fuentes a históricos. |
+
+Destino local acordado: PostgreSQL 18.6, horus_group, 127.0.0.1:5432, identidad física
+7701086120026667920 verificada durante la aplicación. Destino de pruebas: horus_l2_test,
+127.0.0.1:55433, identidad 7702263743609677164. Las pruebas reversibles utilizaron fixtures
+sintéticos, transacciones exteriores y comparación de esquema, secuencias y datos preexistentes.
+No se ejecutaron D9, db:wipe ni migrate:fresh durante esta consolidación.
+
+El respaldo privado previo a 000033/000034 conserva su ubicación y SHA-256 en el acta de aplicación
+incluida más abajo. Se comprobó su decodificación con pg_restore sin ejecutar SQL; **no se ensayó
+una restauración real**. down() elimina contenido editorial o metadatos incorporados después:
+tener ese método no garantiza recuperar datos. Cualquier recuperación persistente requiere
+destino, respaldo y autorización específicos; no se propone rollback automático.
+
+### Evidencia de validación acumulada
+
+Todas las ejecuciones siguientes son **resultados anteriores a este corte documental**. No se
+suman como una única suite: incluyen entornos y selecciones diferentes, con posibles solapamientos.
+
+| Evidencia | Resultado registrado | Alcance y referencia |
+| --- | --- | --- |
+| Fase 4 inicial | 113 pruebas / 404 aserciones | Guardas con dobles y predicado en SQLite; no era ejecución PostgreSQL. docs/consolidacion-fase-4-postgresql.md. |
+| Integridad PostgreSQL controlada | 8 pruebas / 105 aserciones | Bloqueo real 55P03, 403 del coordinador, integridad académica, reclamaciones/notificaciones y preservación del estado previo. Acta inferior. |
+| DDL 000033/000034 aislado | 2 pruebas / 45 aserciones | up/down, CHECK, metadatos y registros sintéticos de migrations revertidos; comprobaciones posteriores coincidentes. Acta inferior. |
+| Regresión SQLite de consolidación | 3 pruebas / 31 aserciones | Instalador explícito en memoria, sin reconstrucción global ni migraciones excluidas. Acta inferior. |
+| Integración real de AI con fixtures | 16 comprobaciones | Laravel en SQLite, publicaciones sintéticas, worker, firma, FastAPI/MiniLM, recomendaciones, retirada y privacidad. No demuestra publicaciones reales. |
+| OperacionHorusTest | 11 pruebas / 42 aserciones | Aislamiento de PHPUnit frente a los flags del entorno local; HTTP simulado y sin migraciones. |
+| LocalCatalogRenewalTest | 3 pruebas / 11 aserciones | Timeout real de control, supervivencia de proceso sano, ausencia de reintento inmediato y tolerancia al fallo del registro. |
+| Chat y navegador locales | Verificación aprobada | Laravel/PostgreSQL → FastAPI real; fuente advisor, cero HTTP para entrada privada, auditoría redactada, contingencia y Edge móvil 390x844/Escape. Acta inferior. |
+| Dependencias | 59 paquetes interpretados por pip | Versiones/hashes y dependencias principales presentes; no equivale a instalación limpia en otro equipo. |
+| Calidad acotada | Sintaxis, Pint, Ruff y diff aprobados en sus ajustes | Sin reformateo global. PHPStan y compilación no se repitieron por cambios de documentación o creación de commits. |
+
+Los resultados generales anteriores —por ejemplo, fase E con 3.401 pruebas PHP aprobadas/una
+omitida y 234 Python— permanecen en PROJECT_CONTEXT.md como evidencia histórica. No certifican
+el árbol actual con cambios concurrentes. No se declara aprobada una suite PostgreSQL completa.
+
+### Operación local y corrección final
+
+Aplicación: **http://127.0.0.1:18080**. FastAPI escucha en 127.0.0.1:18081; MiniLM funciona en CPU
+con modelo local. El gestor scripts/horus-local.php supervisa API, web y worker y renueva únicamente
+el catálogo cada 120 segundos. No instala servicios de Windows ni arranque automático al reiniciar.
+Los secretos, entornos, logs y respaldos permanecen fuera de Git. No se activaron correos reales,
+OpenAI ni acceso público a Internet.
+
+Después del primer arranque se detectó que un error de control de renovación podía cerrar los
+procesos sanos. Se corrigió y probó sin ampliar timeouts ni desactivar caducidad. Con autorización
+específica se liberó por propietario el único lock abandonado, tras verificar ausencia de procesos,
+identidad y pertenencia temporal. La recuperación y renovación posterior quedaron comprobadas;
+el estado operativo se consultó nuevamente para este informe. El detalle se conserva al final.
+
+El catálogo exportable sigue vacío. El funcionamiento del asistente institucional está comprobado,
+pero las tarjetas con oferta real requieren fichas publicadas y elegibles por decisión editorial.
+La aceptación independiente de privacidad sigue pendiente y no se sustituyó por fixtures ni por
+las pruebas locales; no se accedió a los seis archivos restringidos.
+
+Para los compañeros, desde chatbot-python:
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe scripts\download_model.py
+```
+
+La descarga del modelo solo es necesaria si falta localmente. Paquetes y descarga inicial requieren
+Internet. La configuración de secretos y el arranque son pasos distintos; consultar README.md del
+componente y docs/horus-ai-operacion.md. No copiar perfiles privados del equipo de entrega a Git.
+
+### Git y responsables
+
+El bloque original de 15 commits/199 rutas está detallado en la tabla histórica y en
+entrega-consolidacion-commits.json. Sus dos continuaciones autorizadas son:
+
+| Commit | Contenido | Archivos |
+| --- | --- | ---: |
+| 79b7370 | Cierre documental del bloque original | 3 |
+| add5779 | Aislar fallos de renovación del supervisor | 5 |
+| e5dfe12 | Facilitar instalación de dependencias del chatbot | 1 |
+
+79b7370 ya forma parte de los primeros 15; no es un commit adicional al total de 17.
+El JSON conserva su corte histórico; este informe registra las continuaciones posteriores.
+Se usaron rutas explícitas, comparación de blobs y diff del índice antes de cada commit.
+DB_PASSWORD está vacío en la versión vigente de .env.example; ello **no borra valores del historial
+ni equivale a rotación de credenciales**. Revisar ese riesgo antes de autorizar sincronización o
+ampliar acceso. No se reescribió historia ni se incorporaron entornos reales o respaldos.
+
+| Responsable | Responsabilidad inicial y continuación de entrega |
+| --- | --- |
+| Carlos Manuel Castope Izquierdo | Administración, reclamaciones, procesos internos, aprobaciones y notificaciones; verificar su entorno y aceptar los flujos de su área. |
+| Cristopher Pulache Minchan | Académica y comercial: cursos, servicios, cotizaciones, convocatorias y preinscripciones; verificar su entorno y coordinar la publicación editorial autorizada. |
+| Propietario | Coordinación, integración, supervisión y autorización de sincronización; resolver aceptación y prioridades con ambos compañeros. |
+
+Esta distribución fue aprobada como propuesta inicial ajustable. No se enviaron comunicaciones ni
+se presume aceptación formal de tareas adicionales.
+
+### Pendientes concretos de entrega
+
+1. Revisar e incorporar esta actualización documental cuando se autorice su commit; el commit
+   anterior no autoriza automáticamente commits nuevos ni push.
+2. Antes de sincronizar, verificar el remoto en solo lectura y resolver el riesgo de credenciales
+   históricas; pedir autorización expresa de push. No forzar ni reescribir la historia por defecto.
+3. Instalar el componente en los equipos de los compañeros y comprobar pip check, modelo local,
+   configuración privada y readiness. La interpretación local del archivo no prueba esos equipos.
+4. Mantener 000022 suspendida. No repetir 000023 ni revertir registros existentes.
+5. Acordar publicaciones reales y aceptación independiente de privacidad antes de exposición
+   pública. La activación local no autoriza despliegue ni configuración de VPS.
+6. Ensayar restauración en destino aislado solo con autorización y formalizar recepción de entrega.
+   El caso de último administrador con degradación de la cuenta preexistente sigue pendiente;
+   no se modificó esa cuenta para obtener un resultado verde.
+
+No se declara cierre total, sincronización ni ausencia universal de errores. Las comprobaciones
+aprobadas se conservan cerradas dentro de sus alcances; los puntos anteriores son límites de
+entrega concretos y no una propuesta de nueva auditoría general.
+
+## Actas históricas de ejecución
+
+Lo que sigue conserva la secuencia de decisiones, resultados y autorizaciones. Frases como
+«sin commits», «AI apagado» o «migraciones pendientes» describen su etapa original; no sustituyen
+el corte vigente anterior.
+
 Entorno local operativo. 000033/000034 aplicadas y verificadas en horus_group; Horus AI activado
 localmente, con procesos y renovación comprobados. Commits locales autorizados y consolidados;
 push pendiente. 000022 permanece suspendida por ratificación del propietario.

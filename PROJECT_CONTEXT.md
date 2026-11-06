@@ -1,5 +1,34 @@
 # Horus-System — Contexto técnico del proyecto
 
+> **Estado vigente — 05/11/2026, 18:17 (America/Lima).** Informe único actualizado:
+> [entrega técnica](docs/entrega-consolidacion.md). Rama anderson, HEAD
+> e5dfe127deee74292beadff60349117f1b3fab41: **17 commits nuevos y 202 rutas consolidadas** desde
+> 7914438d59b77b6a5e09a15d371e635cca2d894d; los 24 commits anteriores siguen preservados.
+> Índice vacío al comenzar esta actualización y dos stashes intactos. Referencia local
+> origin/anderson: 41 delante/0 detrás; no se volvió a consultar el servidor remoto. Sin push.
+>
+> **Comprobación local nueva:** status --probe --queue devolvió enabled=true, ready=true,
+> errors=[], MiniLM y catálogo cargados, versión coincidente, autenticación correcta, worker vivo,
+> cero pendientes y cero trabajos fallidos del catálogo. inspect confirmó **0 fichas exportables**
+> y únicamente 000022 pendiente/suspendida. No se ejecutaron migraciones ni suites en esta actualización.
+> 000033/000034 están aplicadas desde la ejecución autorizada anterior (batch 6; 31 registradas);
+> 000023 preexistente se conservó sin ejecutar ni revertir. La consulta actual de pendientes no
+> sustituye las comprobaciones físicas efectuadas durante aquella aplicación.
+>
+> Aplicación local: http://127.0.0.1:18080; FastAPI: 127.0.0.1:18081. Gestor propio con renovación
+> cada 120 s, sin servicio de Windows ni arranque automático. Corrección del supervisor incorporada
+> en add5779 (regresión anterior: 3 pruebas/11 aserciones). requirements.txt incorporado en e5dfe12:
+> reutiliza 59 paquetes fijados con hashes, incluido PyTorch CPU; modelo MiniLM por separado.
+> No se ha probado una instalación limpia en los equipos de los compañeros.
+>
+> **Pendientes de entrega:** commit de esta actualización documental si se autoriza, revisión del
+> riesgo de credenciales históricas y autorización de push, publicación editorial real, aceptación
+> independiente de privacidad, restauración ensayada en destino aislado y recepción de los compañeros.
+> DB_PASSWORD vacío en el ejemplo vigente no elimina su historial ni demuestra rotación.
+> No hay autorización de despliegue/VPS. No se declara suite PostgreSQL completa ni cierre total.
+> Cambios concurrentes ajenos preservados; esta actualización toca solo contexto e informe y queda
+> sin commit. Los apartados conservados debajo registran **etapas históricas**, con sus propios límites.
+
 > **Fase E — 04/11/2026: preparación operativa implementada y probada aisladamente; sin producción ni activación pública.** Configuración opt-in, preflight CLI, supervisión del worker, renovación del catálogo y launcher con logs redactados. PHP: 3,401 aprobadas/una omitida; Python: 234; frontend: 52. Plantillas de despliegue/rollback preparadas, no instaladas ni ejecutadas. Guía: docs/horus-ai-operacion.md; cierre y limitaciones en el anexo E final.
 
 > **D6 — 04/11/2026: APROBADA dentro del alcance local probado, sin activación pública.** Widget Blade/JS real en Edge → Laravel → HTTP real → FastAPI/MiniLM/RAG → referencias validadas → tarjetas de curso y servicio. 43 comprobaciones de navegador y 28 del arnés; caché, retirada y contingencias verificadas. Corpus público autorizado: 210 bloqueados sin HTTP adicional ni originales conservados. Regresión focalizada: 379 pruebas PHP y 52 frontend aprobadas. Servicios cerrados y SQLite temporal eliminada; únicamente se actualiza este contexto en el repositorio. Detalles y limitaciones en el anexo D6 final; los resultados aislados anteriores de D permanecen como antecedentes históricos.
@@ -42,10 +71,10 @@
 
 | Control de actualización | Estado examinado |
 | --- | --- |
-| Última actualización | 4 de noviembre de 2026, fecha de Lima; preparación operativa E y validación aislada (anexo final) |
+| Última actualización | 5 de noviembre de 2026, 18:17, Lima; informe consolidado vigente y comprobación local de estado, sin nuevas suites |
 | Rama / HEAD de partida de la consolidaci?n | `anderson` / `306b168e8d8bbfec23301d7c050c7f7c9ae11d2f` (inspección PostgreSQL posterior a la publicación) |
-| Último avance Horus AI documentado | E: configuración opt-in, preflight, heartbeat/renovación y despliegue/rollback preparados; sin servicios operativos ni activación pública |
-| Publicación web / catálogo del chatbot PHP / Advisor | Predeterminados apagados, en configuraciones separadas |
+| Último avance Horus AI documentado | Activación local autorizada, supervisor recuperado, regresión 3/11, dependencias incorporadas y readiness comprobada; sin despliegue público |
+| Publicación web / catálogo del chatbot PHP / Advisor | Predeterminados separados conservados; Advisor habilitado únicamente en el entorno local autorizado. Cero fichas editoriales exportables; sin publicación automática |
 | Resend / verificación de correo | Envío de matrícula apagado por defecto; verificación `false` y transporte `null` |
 | PostgreSQL S7 / migraciones reales | S7 sigue Running/Manual en loopback 55432, aparcado y sin credenciales; la guarda de pruebas lo rechaza y solo acepta `127.0.0.1:55433` (PG-TEST-02a); clúster 55433 creado en PG-TEST-02b; las 26 migraciones aplicadas solo en `horus_l2_test` (PG-TEST-05B-1), sin pruebas con escrituras. Sin SQL, migraciones ni reparación de credenciales en S7 ni en bases reales el 29/10 |
 | Última validación Horus AI documentada | E: 3401 PHP aprobadas/una omitida, 234 Python, 52 frontend; PHPStan/Ruff/Pint aprobados. Pruebas aisladas; infraestructura productiva no ejecutada |
