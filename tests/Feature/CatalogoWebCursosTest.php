@@ -29,10 +29,12 @@ class CatalogoWebCursosTest extends TestCase
         parent::setUp();
         $this->assertIsolatedTestDatabase();
         $this->travelTo(Carbon::parse('2026-10-29 12:00:00', 'America/Lima'));
+        // Los estados apagado/encendido se prueban de forma explícita; el predeterminado activo tiene cobertura propia.
+        config(['catalogo-publico.enabled' => false]);
         Http::preventStrayRequests();
     }
 
-    public function test_original_public_route_and_safe_default_are_preserved(): void
+    public function test_original_public_route_and_disabled_mode_are_preserved(): void
     {
         $this->assertFalse(config('catalogo-publico.enabled'));
         $this->assertSame(url('/educacion/cursos'), route('educacion.cursos'));
@@ -53,6 +55,76 @@ class CatalogoWebCursosTest extends TestCase
         $this->get(route('educacion.cursos'))->assertOk()->assertSee('MODALIDADES DE CURSOS')
             ->assertDontSee('CURSOS PUBLICADOS');
         $this->assertSame([], DB::getQueryLog());
+    }
+
+    public function test_each_modality_links_to_its_filtered_catalog(): void
+    {
+        $respuesta = $this->get(route('educacion.cursos'))->assertOk();
+
+        foreach (['presencial', 'semipresencial', 'virtual'] as $modalidad) {
+            $respuesta->assertSee('href="'.route('educacion.cursos', ['modalidad' => $modalidad]).'#catalogo-cursos"', false);
+        }
+    }
+
+    public static function modalidades(): iterable
+    {
+        foreach (['presencial', 'semipresencial', 'virtual'] as $modalidad) {
+            yield $modalidad => [$modalidad];
+        }
+    }
+
+    #[DataProvider('modalidades')]
+    public function test_modality_button_shows_only_matching_public_courses(string $modalidad): void
+    {
+        [$autor] = $this->ficha(['titulo' => 'Curso seleccionado', 'modalidad' => $modalidad]);
+        $this->ficha(['titulo' => 'Curso de otra modalidad', 'modalidad' => $modalidad === 'virtual' ? 'presencial' : 'virtual'], $autor);
+        $this->ficha(['titulo' => 'Curso sin publicar', 'modalidad' => $modalidad, 'publicada' => false], $autor);
+        config(['catalogo-publico.enabled' => true]);
+
+        $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()
+            ->assertSee('Curso seleccionado')->assertDontSee('Curso de otra modalidad')->assertDontSee('Curso sin publicar')
+            ->assertSee('1 fichas vigentes. Mostrando 1–1')->assertSee('Ver todas las modalidades');
+        $this->get(route('educacion.cursos'))->assertOk()
+            ->assertSee('Curso seleccionado')->assertSee('Curso de otra modalidad');
+        $this->assertDatabaseCount('matriculas', 0);
+        Http::assertNothingSent();
+    }
+
+    public function test_selected_modality_without_courses_has_an_empty_state(): void
+    {
+        $this->ficha(['modalidad' => 'virtual']);
+        config(['catalogo-publico.enabled' => true]);
+
+        $this->get(route('educacion.cursos', ['modalidad' => 'presencial']))->assertOk()
+            ->assertSee('CURSOS: PRESENCIAL')->assertSee('No hay cursos publicados vigentes para esta modalidad.')
+            ->assertDontSee('Redes autorizadas')->assertSee(route('contactos'));
+    }
+
+    public function test_modality_button_preserves_disabled_catalog_without_reading_editorial_data(): void
+    {
+        Schema::drop('curso_publicaciones');
+        $this->mock(CatalogoPublicoCursos::class)->shouldNotReceive('paraWeb');
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->get(route('educacion.cursos', ['modalidad' => 'virtual']))->assertOk()
+            ->assertSee('id="catalogo-cursos"', false)->assertSee('CURSOS: VIRTUAL')
+            ->assertSee('El listado de cursos aún no está disponible en la web.')->assertSee(route('contactos'));
+
+        $this->assertFalse(config('catalogo-publico.enabled'));
+        $this->assertSame([], DB::getQueryLog());
+        Http::assertNothingSent();
+    }
+
+    public function test_invalid_modality_filters_are_ignored_without_reflecting_input(): void
+    {
+        $this->ficha();
+        config(['catalogo-publico.enabled' => true]);
+
+        foreach (['<script>filtro-invalido</script>', ['virtual']] as $modalidad) {
+            $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()
+                ->assertSee('CURSOS PUBLICADOS')->assertSee('Redes autorizadas')->assertDontSee('filtro-invalido');
+        }
     }
 
     public function test_enabled_renders_only_public_fields_and_existing_contact_action_without_writes(): void

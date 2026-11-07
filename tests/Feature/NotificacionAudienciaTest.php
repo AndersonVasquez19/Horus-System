@@ -267,7 +267,7 @@ class NotificacionAudienciaTest extends TestCase
 
         $filas = NotificacionInterna::query()->orderBy('id')->get(['titulo', 'user_id', 'audiencia'])->toArray();
         $this->assertSame([
-            ['titulo' => 'Nuevo proceso asignado', 'user_id' => $admin->id, 'audiencia' => 'personal'],
+            ['titulo' => 'Revisión de matrículas', 'user_id' => $admin->id, 'audiencia' => 'personal'],
             ['titulo' => 'Revisión de cupos', 'user_id' => $coordinador->id, 'audiencia' => 'personal'],
             ['titulo' => 'Cierre mensual', 'user_id' => null, 'audiencia' => 'general'],
         ], $filas);

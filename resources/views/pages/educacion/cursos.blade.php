@@ -7,6 +7,10 @@
 @endpush
 
 @section('content')
+@php
+    $modalidades = ['presencial' => 'Presencial', 'semipresencial' => 'Semipresencial', 'virtual' => 'Virtual', 'hibrido' => 'Híbrida'];
+    $modalidadSeleccionada = $modalidadSeleccionada ?? null;
+@endphp
 <div class="legacy-showcase">
 <section class="carta-cursos">
         <div class="intro-cursos">
@@ -56,7 +60,7 @@
                 <p>Elige la modalidad que mejor se adapte a tu estilo de vida.</p>
             </div>
             <div class="carta-grid">
-                <div class="carta-card">
+                <div class="carta-card carta-modalidad">
                     <div class="carta-badge">Tradicional</div>
                     <div class="carta-icon">
                         <i class="fas fa-chalkboard-teacher"></i>
@@ -70,9 +74,10 @@
                         <span><i class="fas fa-check"></i> Práctica inmediata.</span>
                         <span><i class="fas fa-check"></i> Networking presencial.</span>
                     </div>
+                    <a href="{{ route('educacion.cursos', ['modalidad' => 'presencial']) }}#catalogo-cursos" class="carta-ver-cursos" aria-label="Ver cursos presenciales">Ver cursos <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
 
-                <div class="carta-card destacada">
+                <div class="carta-card carta-modalidad destacada">
                     <div class="carta-badge popular">Más Popular</div>
                     <div class="carta-icon">
                         <i class="fas fa-laptop-house"></i>
@@ -88,9 +93,10 @@
                         <span><i class="fas fa-check"></i> Clases grabadas.</span>
                         <span><i class="fas fa-check"></i> Horarios flexibles.</span>
                     </div>
+                    <a href="{{ route('educacion.cursos', ['modalidad' => 'semipresencial']) }}#catalogo-cursos" class="carta-ver-cursos" aria-label="Ver cursos semipresenciales">Ver cursos <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
 
-                <div class="carta-card">
+                <div class="carta-card carta-modalidad">
                     <div class="carta-badge">100% Online</div>
                     <div class="carta-icon">
                         <i class="fas fa-laptop"></i>
@@ -104,21 +110,27 @@
                         <span><i class="fas fa-check"></i> Clases grabadas.</span>
                         <span><i class="fas fa-check"></i> Aprende a tu ritmo.</span>
                     </div>
+                    <a href="{{ route('educacion.cursos', ['modalidad' => 'virtual']) }}#catalogo-cursos" class="carta-ver-cursos" aria-label="Ver cursos virtuales">Ver cursos <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
             </div>
         </div>
     </section>
-    @if($catalogoHabilitado ?? false)
+    @if(($catalogoHabilitado ?? false) || $modalidadSeleccionada !== null)
     <section class="cartas-section" aria-labelledby="catalogo-cursos-titulo" id="catalogo-cursos">
         <div class="container">
             <div class="seccion-header">
-                <h2 id="catalogo-cursos-titulo">CURSOS PUBLICADOS</h2>
-                @if($catalogoFallo)
+                <h2 id="catalogo-cursos-titulo">{{ $modalidadSeleccionada !== null ? 'CURSOS: '.mb_strtoupper($modalidades[$modalidadSeleccionada]) : 'CURSOS PUBLICADOS' }}</h2>
+                @if(!($catalogoHabilitado ?? false))
+                    <p role="status">El listado de cursos aún no está disponible en la web. Consulta la disponibilidad de esta modalidad en <a href="{{ route('contactos') }}" class="underline">Contacto</a>.</p>
+                @elseif($catalogoFallo)
                     <p role="status">No podemos mostrar los cursos publicados en este momento. Puedes consultarnos en <a href="{{ route('contactos') }}" class="underline">Contacto</a>.</p>
                 @elseif(empty($cursosPublicos))
-                    <p>No hay fichas de cursos publicadas vigentes. Puedes consultarnos en <a href="{{ route('contactos') }}" class="underline">Contacto</a>.</p>
+                    <p>{{ $modalidadSeleccionada !== null ? 'No hay cursos publicados vigentes para esta modalidad.' : 'No hay fichas de cursos publicadas vigentes.' }} Puedes consultarnos en <a href="{{ route('contactos') }}" class="underline">Contacto</a>.</p>
                 @else
                     <p>{{ $totalCursosPublicos }} fichas vigentes. Mostrando 1–{{ count($cursosPublicos) }}, ordenadas por título.</p>
+                @endif
+                @if($modalidadSeleccionada !== null && ($catalogoHabilitado ?? false))
+                    <p><a href="{{ route('educacion.cursos') }}#catalogo-cursos" class="underline">Ver todas las modalidades</a></p>
                 @endif
             </div>
             @if(!empty($cursosPublicos))
@@ -128,7 +140,7 @@
                     <h3>{{ $ficha['titulo'] }}</h3>
                     <p>{{ $ficha['resumen'] }}</p>
                     <div class="carta-features">
-                        <span>Modalidad: {{ ['presencial' => 'Presencial', 'semipresencial' => 'Semipresencial', 'virtual' => 'Virtual', 'hibrido' => 'Híbrida'][$ficha['modalidad']] }}</span>
+                        <span>Modalidad: {{ $modalidades[$ficha['modalidad']] }}</span>
                         @if(filled($ficha['horario']))
                             <span>Horario: {{ $ficha['horario'] }}</span>
                         @endif

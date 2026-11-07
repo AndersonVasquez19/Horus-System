@@ -126,6 +126,7 @@ def info(
             "busqueda_semantica" if engine.mode == "hybrid" else "busqueda_lexica",
         ],
         search_mode=engine.mode,
+        selection_model=engine.gemini.model if engine.gemini is not None else None,
         catalog_version=engine.kb.catalog.catalog.catalog_version if engine.kb.catalog else None,
         limits={
             "max_message_chars": settings.max_message_chars,

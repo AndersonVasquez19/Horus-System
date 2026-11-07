@@ -80,7 +80,7 @@
     {
       "query": "¿Tienen capacitaciones relacionadas con análisis de datos?",
       "reply": {
-        "answer": "Analisis de datos con Python: Aprende analisis de datos con Python. Modalidad publicada: virtual. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "answer": "Analisis de datos con Python: Aprende analisis de datos con Python.",
         "intent": "course_recommendation",
         "match_level": "alta",
         "needs_clarification": false,
@@ -131,7 +131,7 @@
     {
       "query": "Hola buenas tardes, quisiera saber si ustedes tienen algun curso o capacitacion que me sirva para aprender a manejar hojas de calculo porque en mi trabajo me lo piden",
       "reply": {
-        "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas. Modalidad publicada: presencial. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas.",
         "intent": "course_recommendation",
         "match_level": "alta",
         "needs_clarification": false,
@@ -268,7 +268,7 @@
     {
       "query": "Quiero aprender Excel y también necesito cableado para mi oficina",
       "reply": {
-        "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas. Modalidad publicada: presencial. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas.",
         "intent": "course_recommendation",
         "match_level": "alta",
         "needs_clarification": true,
@@ -343,7 +343,7 @@
     {
       "query": "Necesito cableado estructurado y mantenimiento de computadoras",
       "reply": {
-        "answer": "Cableado estructurado: Instalacion de cableado estructurado para oficinas. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "answer": "Cableado estructurado: Instalacion de cableado estructurado para oficinas.",
         "intent": "service_recommendation",
         "match_level": "alta",
         "needs_clarification": true,
@@ -436,7 +436,10 @@
           ],
           "level": null,
           "modality": null,
-          "focus_ids": [],
+          "focus_ids": [
+            "cat_curso_datos",
+            "cat_curso_prog"
+          ],
           "topic_changed": false,
           "referential": false
         }
@@ -476,7 +479,7 @@
     {
       "query": "¿Hacen mantenimiento de computadoras?",
       "reply": {
-        "answer": "Soporte y mantenimiento: Mantenimiento preventivo y correctivo de computadoras. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-05).",
+        "answer": "Soporte y mantenimiento: Mantenimiento preventivo y correctivo de computadoras.",
         "intent": "service_info",
         "match_level": "alta",
         "needs_clarification": false,

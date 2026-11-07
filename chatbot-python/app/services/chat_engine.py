@@ -34,6 +34,7 @@ from app.schemas.chat import (
 )
 from app.schemas.knowledge import KnowledgeRecord
 from app.services.catalog_documents import PublicFragment
+from app.services.gemini import GeminiSelector
 from app.services.knowledge import KnowledgeBase
 from app.services.lexical_search import LexicalIndex
 from app.services.query_plan import QUERY_WORDS, plan_query
@@ -118,8 +119,10 @@ def _retrieval_level(score: float) -> MatchLevel:
 
 
 class AdvisorEngine:
-    def __init__(self, kb: KnowledgeBase, semantic: SemanticIndex | None = None) -> None:
+    def __init__(self, kb: KnowledgeBase, semantic: SemanticIndex | None = None,
+                 gemini: GeminiSelector | None = None) -> None:
         self.kb = kb
+        self.gemini = gemini
         rules = kb.intents
         self.lexical = LexicalIndex(kb.search_records, frozenset(rules.low_weight_tokens))
         self.semantic = semantic
@@ -385,6 +388,7 @@ class AdvisorEngine:
             match_level="baja",
             needs_clarification=True,
             clarification_question=question,
+            context=ConversationContext(turns_considered=0, focus_ids=[r.id for r in options[:2]]),
         )
 
     # ------------------------------------------------------------------ atributos y seguimiento
@@ -477,7 +481,7 @@ class AdvisorEngine:
         if hits and hits[0].record.status != "verified" and hits[0].score >= CLARIFY_THRESHOLD:
             return None  # la mejor coincidencia es una duda no confirmada: prevalece la abstención
         for h in hits[:3]:
-            if h.record.status != "verified" or h.score < CLARIFY_THRESHOLD:
+            if h.record.status != "verified" or h.score < ANSWER_THRESHOLD:
                 continue
             for attr in u.attributes:
                 if (
@@ -486,7 +490,7 @@ class AdvisorEngine:
                     and evidence_sentence(h.record, terms[attr])
                 ):
                     return self._reply(
-                        answer=h.record.answer,
+                        answer=evidence_sentence(h.record, terms[attr]) or h.record.answer,
                         intent=CATEGORY_INTENTS[h.record.category],
                         match_level=_retrieval_level(h.score),
                         sources=[self._source(h.record)],
@@ -619,7 +623,53 @@ class AdvisorEngine:
 
     # ------------------------------------------------------------------ API pública
     def chat(self, message: str, history: list[HistoryItem] | None = None) -> AdvisorReply:
-        return self._respond(message, history or [], depth=0)
+        reply = self._respond(message, history or [], depth=0)
+        institutional = len(reply.sources) == 1 and (record := self.kb.get(reply.sources[0].id)) is not None and record.general_information and record.kind == "info"
+        if self.gemini is None or reply.abstained or reply.recommendations or institutional or any(s.id == "convenios_resumen" for s in reply.sources):
+            return self._requested_detail(message, reply)
+        if self._safety(message) is not None or self._rules(message) is not None:
+            return self._requested_detail(message, reply)
+        understanding = understand(self.corrected(message), self.kb)
+        if understanding.attributes or understanding.quote or understanding.referential or history:
+            return self._requested_detail(message, reply)
+        hits = self.retrieve(message, limit=12)
+        records = [h.record for h in hits if h.record.status == "verified" and h.score >= CLARIFY_THRESHOLD]
+        rid = self.gemini.select(message, records)
+        record = next((r for r in records if r.id == rid), None)
+        if record is None:
+            return self._requested_detail(message, reply)
+        return self._requested_detail(message, self._reply(
+            answer=record.answer,
+            intent=CATEGORY_INTENTS[record.category],
+            match_level="media",
+            sources=[self._source(record)],
+            context=reply.context,
+        ))
+
+    def _requested_detail(self, message: str, reply: AdvisorReply) -> AdvisorReply:
+        """Responde con el fragmento necesario; amplía a petición explícita desde la misma fuente."""
+        if reply.abstained or reply.needs_clarification or len(reply.sources) != 1:
+            return reply
+        record = self.kb.get(reply.sources[0].id)
+        if record is None or record.status != "verified" or not record.detail_answer:
+            return reply
+        if any(contains_phrase(normalize(message), cue) for cue in (
+            "detalles", "explicame", "que incluye", "en que consiste", "informacion detallada", "informacion completa",
+        )):
+            document = self.kb.documents_by_source.get(record.id)
+            if document is not None and document.fragments:
+                if reply.answer in {f.answer for f in document.fragments}:
+                    return reply
+                return reply.model_copy(update={"answer": document.fragments[0].answer})
+            return reply.model_copy(update={"answer": record.detail_answer})
+        if reply.answer != record.answer or record.stable_id is not None:
+            return reply
+        specific = set(content_tokens(message)) - set(content_tokens(record.title + " " + record.answer))
+        sentences = [s.strip() for s in re.split(r"(?<=[.;])\s+", record.detail_answer) if 10 <= len(s.strip()) <= 600]
+        best = max(sentences, key=lambda s: len(specific & set(content_tokens(s))), default="")
+        if best and specific & set(content_tokens(best)):
+            return reply.model_copy(update={"answer": best})
+        return reply
 
     def _respond(self, message: str, history: list[HistoryItem], depth: int) -> AdvisorReply:
         early = self._safety(message) or self._rules(message)
@@ -646,7 +696,7 @@ class AdvisorEngine:
                 topics=sorted(profile.topics),
                 level=None if profile.level == "desconocido" else profile.level,
                 modality=None if profile.modality == "cualquiera" else profile.modality,
-                focus_ids=[r.id for r in focus],
+                focus_ids=(reply.context.focus_ids if reply.needs_clarification and reply.context else [r.id for r in focus]),
                 topic_changed=u.topic_change,
                 referential=u.referential,
             )
@@ -672,6 +722,22 @@ class AdvisorEngine:
         hits = self.retrieve(topic if planned_search and topic else message)
         terms = set(content_tokens(corrected))
 
+        if terms & {"convenio", "convenios", "alianza", "alianzas"}:
+            generic = {"convenio", "convenios", "alianza", "alianzas", "institucion", "instituciones",
+                "colegio", "colegios", "profesionales", "horus", "group", "tienen", "tiene", "cuentan",
+                "trabajan", "cuales", "cuantos", "actualmente", "lista", "listado", "son", "hay", "estrategicos",
+                "interinstitucionales", "informacion", "saber"}
+            listing = self.kb.get("convenios_resumen")
+            if listing is not None and listing.status == "verified" and not terms - generic:
+                return self._reply(answer=listing.answer, intent="agreement_info", match_level="alta",
+                    sources=[self._source(listing)])
+
+        if hits and hits[0].record.status == "verified" and hits[0].record.public_card is not None:
+            record = hits[0].record
+            if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen"}:
+                return self._reply(answer=f"{record.title}: Vigencia publicada hasta el {record.public_card.vigencia}.",
+                    intent="agreement_info", match_level="alta", sources=[self._source(record)])
+
         # 2. Solicitudes comerciales.
         if u.private_quote:
             return self._private_quote()
@@ -692,6 +758,14 @@ class AdvisorEngine:
                 return reply
 
         # 5. Recomendación o búsqueda.
+        information = self._institutional_information(hits, plan.goal if plan else "unknown")
+        if information is not None and not u.attributes and not (plan and (plan.enrollment or plan.browse or plan.ambiguous)):
+            return information
+        if (u.attributes and set(u.attributes) != {"audiencia"} and hits
+            and hits[0].record.stable_id is not None and hits[0].record.status == "verified"
+            and hits[0].score >= ANSWER_THRESHOLD and not (plan and plan.browse)
+            and (len(hits) == 1 or hits[0].score - hits[1].score >= AMBIGUITY_MARGIN)):
+            return self._followup([hits[0].record], u)
         if plan is not None:
             if plan.enrollment:
                 contact = self.kb.get(self.kb.intents.human_handoff.record_id)
@@ -717,8 +791,12 @@ class AdvisorEngine:
                     return self._clarify_goal()
                 if unpublished:
                     return self._unpublished_topic(plan.goal, corrected)
-                current.goal = plan.goal if plan.goal != "unknown" else current.goal
+                current.goal = plan.goal
                 relevant = hits if planned_search else self.retrieve(topic or plan.subject)
+                if (plan.goal == "learn" and any(h.record.general_information and h.score >= ANSWER_THRESHOLD for h in relevant)
+                    and not any(h.record.source.kind == "catalogo_laravel" and h.record.kind == "course"
+                        and h.record.status == "verified" and h.score >= ANSWER_THRESHOLD for h in relevant)):
+                    return self._unpublished_topic("learn", corrected)
                 return (self._multi_recommend(corrected) or self._catalog_recommend(relevant, current)
                         or self._clarify(relevant))
 
@@ -748,6 +826,23 @@ class AdvisorEngine:
         if focus and u.referential and (reply.needs_clarification or reply.intent == "out_of_scope"):
             return self._focus_reference(focus)  # "¿y eso qué incluye?"
         return reply
+
+    def _institutional_information(self, hits: list[Hit], goal: str) -> AdvisorReply | None:
+        """Explicación pública sin anunciar ofertas, disponibilidad ni recomendaciones retiradas."""
+        if goal == "learn" or self.kb.catalog is None:
+            return None
+        if any(h.record.source.kind == "catalogo_laravel" and h.record.status == "verified"
+            and h.score >= ANSWER_THRESHOLD for h in hits):
+            return None
+        candidates = [h for h in hits if h.record.general_information and h.record.kind == "info"
+            and h.record.status == "verified" and h.score >= ANSWER_THRESHOLD]
+        if not candidates:
+            return None
+        first = candidates[0]
+        if len(candidates) > 1 and first.score - candidates[1].score < AMBIGUITY_MARGIN:
+            return None
+        return self._reply(answer=first.record.answer, intent="service_info", match_level=_retrieval_level(first.score),
+            sources=[self._source(first.record)])
 
     def recommend(self, request: RecommendRequest) -> AdvisorReply:
         text = " ".join([*request.interests, request.goal or ""]).strip()

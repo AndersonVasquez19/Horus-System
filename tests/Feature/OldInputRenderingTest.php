@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Models\AprobacionInterna;
 use App\Models\Curso;
 use App\Models\Estudiante;
-use App\Models\ProcesoInterno;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -42,14 +41,6 @@ class OldInputRenderingTest extends TestCase
         }
     }
 
-    /** @return iterable<string, array{string}> */
-    public static function procesoFields(): iterable
-    {
-        foreach (['titulo', 'descripcion', 'responsable_id', 'estado', 'prioridad', 'fecha_vencimiento', 'observaciones'] as $f) {
-            yield $f => [$f];
-        }
-    }
-
     #[DataProvider('estudianteFields')]
     public function test_estudiante_forms_survive_array_input(string $campo): void
     {
@@ -68,22 +59,6 @@ class OldInputRenderingTest extends TestCase
 
         $this->assertSurvives('post', route('admin.cursos.store'), route('admin.cursos.create'), $this->cursoData(), $campo);
         $this->assertSurvives('put', route('admin.cursos.update', $existente), route('admin.cursos.edit', $existente), $this->cursoData(), $campo);
-    }
-
-    #[DataProvider('procesoFields')]
-    public function test_proceso_forms_survive_array_input(string $campo): void
-    {
-        $admin = $this->adminUser();
-        $existente = ProcesoInterno::create(['titulo' => 'Proceso ficticio', 'estado' => 'pendiente', 'prioridad' => 'media']);
-        $this->actingAs($admin);
-
-        $datos = $this->procesoData($admin);
-        $this->assertSurvives('post', route('admin.procesos.store'), route('admin.procesos.create'), $datos, $campo);
-        $this->assertSurvives('put', route('admin.procesos.update', $existente), route('admin.procesos.edit', $existente), $datos, $campo);
-
-        // Ningún array se convirtió en un valor válido: el proceso existente sigue intacto.
-        $this->assertSame(1, ProcesoInterno::count());
-        $this->assertNull($existente->fresh()->responsable_id);
     }
 
     /** @return iterable<string, array{string}> */
@@ -216,27 +191,6 @@ class OldInputRenderingTest extends TestCase
             ->assertSee('value="ana@example.invalid"', false);
     }
 
-    /** Un id válido sigue seleccionado; un array con ids existentes no. */
-    public function test_proceso_responsable_is_reselected_only_for_a_scalar_id(): void
-    {
-        $admin = $this->adminUser();
-        $this->actingAs($admin);
-
-        $this->from(route('admin.procesos.create'))
-            ->post(route('admin.procesos.store'), $this->procesoData($admin, ['responsable_id' => (string) $admin->id, 'estado' => 'x']))
-            ->assertSessionHasErrors('estado');
-        $this->get(route('admin.procesos.create'))
-            ->assertSee('<option value="'.$admin->id.'" selected>', false);
-
-        $this->from(route('admin.procesos.create'))
-            ->post(route('admin.procesos.store'), $this->procesoData($admin, ['responsable_id' => [(string) $admin->id]]))
-            ->assertSessionHasErrors('responsable_id');
-        $this->get(route('admin.procesos.create'))
-            ->assertOk()
-            ->assertDontSee('<option value="'.$admin->id.'" selected>', false);
-        $this->assertSame(0, ProcesoInterno::count());
-    }
-
     /**
      * `exists` acepta un array de ids existentes: sin la regla `integer`, solicitante_id[]=<id> pasaba la
      * validación y el intento de guardar el array terminaba en error 500.
@@ -302,14 +256,6 @@ class OldInputRenderingTest extends TestCase
             'codigo' => 'CUR-NEW', 'nombre' => 'Curso ficticio', 'descripcion' => 'Descripción.', 'categoria' => 'tecnologia',
             'duracion_horas' => 20, 'precio' => 150, 'modalidad' => 'virtual', 'horario' => 'Lunes', 'cupos_maximos' => 5,
             'estado' => 'activo',
-        ], $extra);
-    }
-
-    private function procesoData(User $responsable, array $extra = []): array
-    {
-        return array_replace([
-            'titulo' => 'Proceso nuevo', 'descripcion' => 'Detalle', 'responsable_id' => (string) $responsable->id,
-            'estado' => 'pendiente', 'prioridad' => 'media', 'fecha_vencimiento' => '2026-12-31', 'observaciones' => 'Notas',
         ], $extra);
     }
 }

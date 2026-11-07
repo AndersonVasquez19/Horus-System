@@ -53,9 +53,9 @@ $app->loadEnvironmentFrom('.env.example');
 $app->make(Kernel::class)->bootstrap();
 $app->make(Vite::class)->useHotFile($root.'/tests/Support/.catalogo-fixture-no-hot');
 if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatabaseName() !== ':memory:'
-    || config('catalogo-publico.enabled') || config('horus-advisor.enabled') || config('chatbot.public_catalog_enabled')
+    || config('catalogo-publico.enabled') !== true || config('horus-advisor.enabled') || config('chatbot.public_catalog_enabled')
     || config('registro-verificacion.enabled') || config('matricula-mail.enabled')) {
-    throw new RuntimeException('Fixture requires in-memory SQLite and disabled public/AI flags.');
+    throw new RuntimeException('Fixture requires in-memory SQLite, the enabled web catalog default and disabled AI/mail flags.');
 }
 Http::preventStrayRequests();
 Carbon::setTestNow(Carbon::parse((string) getenv('HORUS_CATALOGO_FIXTURE_TIME')));
@@ -72,13 +72,14 @@ if ($caso === 'on') {
     (new RolesAndPermissionsSeeder)->run();
     $autor = User::factory()->create();
     $autor->assignRole('admin');
+    $modalidades = ['presencial', 'semipresencial', 'virtual'];
     foreach (['Redes de laboratorio', 'Programación de ejemplo', str_repeat('Título', 18)] as $indice => $titulo) {
         $curso = Curso::create(['codigo' => 'FICTICIO-'.$indice, 'nombre' => 'Interno ficticio', 'descripcion' => 'Privado ficticio',
-            'categoria' => 'Interno', 'duracion_horas' => 10, 'precio' => 150, 'modalidad' => 'virtual', 'horario' => 'Interno',
+            'categoria' => 'Interno', 'duracion_horas' => 10, 'precio' => 150, 'modalidad' => $modalidades[$indice], 'horario' => 'Interno',
             'cupos_maximos' => 10, 'cupos_disponibles' => 10, 'estado' => 'activo']);
         CursoPublicacion::create(['curso_id' => $curso->id, 'titulo' => $titulo,
             'resumen' => $indice === 2 ? str_repeat('Contenido', 50) : 'Ficha editorial ficticia para comprobar la presentación pública.',
-            'modalidad' => 'virtual', 'horario' => $indice === 0 ? 'Horario publicado de ejemplo' : null,
+            'modalidad' => $modalidades[$indice], 'horario' => $indice === 0 ? 'Horario publicado de ejemplo' : null,
             'inscripcion' => $indice === 0 ? 'Consulta las condiciones de este curso.' : null,
             'vigente_desde' => now('America/Lima')->toDateString(), 'vigente_hasta' => now('America/Lima')->addDay()->toDateString(),
             'publicada' => true, 'autorizado_por' => $autor->id, 'autorizado_at' => now()]);

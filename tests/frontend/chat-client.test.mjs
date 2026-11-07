@@ -90,3 +90,51 @@ test('storage denial still allows an in-memory session', () => {
   assert.ok(chat.sessionId);
   assert.equal(chat.endpoint, '/chat/mensaje');
 });
+
+test('solicitar cotización muestra el servicio y WhatsApp sin enviar ni borrar el borrador', () => {
+  const chat = client();
+  const initialDraft = chat.draft;
+  let focused = false;
+  chat.$refs.question = { focus: () => { focused = true; } };
+  globalThis.fetch = () => { throw new Error('El botón no debe enviar mensajes'); };
+
+  chat.solicitarCotizacion('Mantenimiento preventivo');
+
+  assert.equal(chat.draft, initialDraft);
+  assert.equal(chat.sending, false);
+  assert.ok(chat.messages.at(-1).text.includes('Mantenimiento preventivo'));
+  assert.deepEqual(chat.messages.at(-1).links, [{
+    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+    label: 'Solicitar cotización por WhatsApp', whatsapp: true,
+  }]);
+  assert.equal(focused, true);
+  assert.equal(chat.$refs.messages.scrollTop, chat.$refs.messages.scrollHeight);
+});
+
+test('solicitar cotización evita duplicados seguidos y conserva el límite del historial', () => {
+  const chat = client();
+  chat.messages = Array.from({ length: 80 }, () => ({ role: 'bot', text: 'anterior' }));
+  chat.solicitarCotizacion('Configuración e instalación');
+  chat.solicitarCotizacion('Configuración e instalación');
+  assert.equal(chat.messages.length, 40);
+  assert.equal(chat.messages.filter(message => message.text.includes('Configuración e instalación')).length, 1);
+
+  chat.solicitarCotizacion('Asesoría y capacitación');
+  assert.equal(chat.messages.length, 40);
+  assert.ok(chat.messages.at(-1).text.includes('Asesoría y capacitación'));
+});
+
+test('cotización ignora servicios inválidos y conserva una petición en curso', () => {
+  const chat = client();
+  const original = structuredClone(chat.messages);
+  for (const service of [undefined, null, {}, '', '   ', 'a'.repeat(121)]) {
+    chat.solicitarCotizacion(service);
+  }
+  assert.deepEqual(chat.messages, original);
+
+  chat.sending = true;
+  chat.$refs.question = { focus: () => { throw new Error('El campo está deshabilitado'); } };
+  chat.solicitarCotizacion('Mantenimiento preventivo');
+  assert.equal(chat.sending, true);
+  assert.equal(chat.draft, '¿Qué cursos ofrecen?');
+});

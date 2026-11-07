@@ -1,0 +1,107 @@
+/* Dise?o original del registro, separado del acceso administrativo. */
+.registration-scene { @apply relative flex min-h-screen flex-col items-center justify-center overflow-x-hidden bg-[#071727] px-4 py-10 font-sans text-ink sm:px-8; background-image: radial-gradient(ellipse at 16% 10%, rgba(201,169,97,.22), transparent 35%), radial-gradient(ellipse at 90% 90%, rgba(37,99,168,.3), transparent 36%), linear-gradient(135deg,#071727,#0A2540 55%,#102D49); }
+.registration-decoration { @apply pointer-events-none absolute inset-0 overflow-hidden; }
+.registration-orbit { @apply pointer-events-none absolute rounded-full border border-gold/10; }
+.registration-orbit--one { @apply -left-32 -top-40 h-[420px] w-[420px]; }
+.registration-orbit--two { @apply -bottom-52 -right-24 h-[520px] w-[520px] border-white/5; }
+.registration-card { @apply relative z-[1] grid w-full max-w-[1000px] overflow-hidden rounded-[28px] border border-white/40 bg-white shadow-[0_35px_100px_rgba(0,0,0,.42)] lg:min-h-[620px] lg:grid-cols-[.94fr_1.06fr]; animation: registration-arrive .7s cubic-bezier(.2,.75,.25,1) both; }
+.registration-art { @apply relative hidden min-h-[620px] overflow-hidden bg-[#0A2540] lg:block; isolation: isolate; background: radial-gradient(ellipse at 85% 65%, rgba(26, 128, 139, 0.18), transparent 65%), radial-gradient(ellipse at 0% 0%, rgba(201, 169, 97, 0.12), transparent 55%), linear-gradient(155deg, #12364e, #0a2540 58%, #071d30); }
+.registration-art-watermark { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.registration-art-watermark > img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  max-width: none;
+  height: auto;
+  opacity: 0.18;
+  transform: translate(-40%, -15%) rotate(-8deg);
+  filter: drop-shadow(0 0 32px rgba(51, 185, 183, 0.16));
+  animation: registration-logo-float 12s ease-in-out infinite;
+}
+.registration-art-halo {
+  position: absolute;
+  top: 35%;
+  left: 12%;
+  width: 120%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(201, 169, 97, 0.13);
+  border-radius: 50%;
+  animation: registration-halo-turn 40s linear infinite;
+}
+.registration-art-halo::before { position: absolute; inset: 30px; border: 1px dashed rgba(111, 201, 202, 0.14); border-radius: 50%; content: ''; }
+.registration-art-halo::after { position: absolute; top: 15%; left: 15%; width: 6px; height: 6px; border-radius: 50%; background: #d7bb7b; box-shadow: 0 0 16px rgba(215, 187, 123, 0.4); content: ''; }
+.registration-art-content { @apply relative flex min-h-[620px] flex-col justify-between p-9 text-white xl:p-11; }
+.registration-brand { @apply inline-flex w-fit items-center gap-3 text-sm font-bold tracking-[.18em] text-white; }
+.registration-brand-logo { @apply h-12 w-12 object-contain; }
+.registration-brand small { @apply mt-1 block text-[8px] font-medium tracking-[.2em] text-white/65; }
+.registration-art-message { @apply max-w-sm pb-3; }
+.registration-eyebrow { @apply block text-[10px] font-bold tracking-[.23em] text-gold-dark; }
+.registration-art-message .registration-eyebrow { @apply text-gold-light; }
+.registration-art-message h1 { @apply mt-5 text-5xl font-bold leading-[1.02] tracking-tight text-white xl:text-[3.5rem]; }
+.registration-art-message h1 span { @apply text-gold-light; }
+.registration-art-message p { @apply mt-5 max-w-xs text-sm leading-6 text-white/75; }
+.registration-art-footer { @apply flex items-center gap-2 text-[10px] font-medium tracking-wide text-white/70; }
+.registration-live-dot { @apply h-2 w-2 rounded-full bg-gold shadow-[0_0_12px_rgba(201,169,97,.85)]; }
+.registration-footer-line { @apply mx-1 h-px w-8 bg-white/30; }
+.registration-form-side { @apply flex items-center bg-white px-6 py-9 sm:px-10 lg:px-12 xl:px-16; }
+.registration-form-inner { @apply mx-auto w-full max-w-[390px]; }
+.registration-mobile-brand { @apply mb-7 flex items-center gap-2 text-xs font-bold tracking-[.2em] text-ink lg:hidden; }
+.registration-mobile-brand img { @apply h-10 w-10 rounded-full border border-gold/30 bg-white object-contain p-0.5 shadow-sm; }
+.registration-heading { @apply mb-7; }
+.registration-heading h2 { @apply mt-2 text-3xl font-bold tracking-tight text-ink sm:text-[2.1rem]; }
+.registration-heading p { @apply mt-2 text-sm leading-6 text-slate-500; }
+.registration-notice { @apply mb-5 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm leading-5; }
+.registration-notice--success { @apply border-emerald-200 bg-emerald-50 text-emerald-800; }
+.registration-notice--error { @apply border-red-200 bg-red-50 text-red-800; }
+.registration-notice > i { @apply mt-0.5 shrink-0; }
+.registration-notice ul { @apply list-inside list-disc space-y-1; }
+.registration-form { @apply space-y-3.5; }
+.registration-label { @apply block text-xs font-semibold text-slate-700; }
+.registration-label-row { @apply flex items-center justify-between; }
+.registration-label-row a { @apply text-xs font-semibold text-gold-dark transition hover:text-ink; }
+.registration-input-wrap { @apply relative; }
+.registration-input-wrap > i { @apply pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition; }
+.registration-input-wrap input { @apply w-full rounded-xl border border-slate-200 bg-[#F9FAFC] py-3 pl-10 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-gold focus:bg-white focus:ring-4 focus:ring-gold/10; }
+.registration-input-wrap:focus-within > i { @apply text-gold-dark; }
+.registration-hint { @apply -mt-2 text-[10px] leading-4 text-slate-500; }
+.registration-consent { @apply flex cursor-pointer items-start gap-2 pt-1 text-xs leading-5 text-slate-600; }
+.registration-consent input { @apply mt-1 h-4 w-4 shrink-0 accent-[#C9A961] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
+.registration-consent a { @apply font-semibold text-gold-dark underline decoration-gold/40 underline-offset-2 hover:text-ink; }
+.registration-submit { @apply mt-2 flex w-full items-center justify-between rounded-xl bg-[#0A2540] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0A2540]/15 transition duration-300 hover:-translate-y-0.5 hover:bg-[#153A59] hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
+.registration-submit i { @apply flex h-7 w-7 items-center justify-center rounded-full bg-gold text-xs text-ink transition; }
+.registration-submit:hover i { @apply translate-x-1; }
+.registration-switch { @apply mt-6 text-center text-xs text-slate-500; }
+.registration-switch a { @apply ml-1 font-bold text-ink transition hover:text-gold-dark; }
+.registration-switch a i { @apply ml-0.5 text-[9px] text-gold-dark; }
+.registration-back { @apply mx-auto mt-5 flex w-fit items-center gap-2 text-xs font-medium text-slate-500 transition hover:text-ink; }
+.registration-security { @apply mt-7 flex items-center justify-center gap-2 border-t border-slate-100 pt-4 text-[10px] text-slate-400; }
+.registration-security i { @apply text-gold-dark; }
+.registration-security b { @apply px-0.5 text-gold; }
+.registration-copyright { @apply absolute bottom-2 left-0 right-0 text-center text-[10px] tracking-wide text-white/45; }
+
+
+@keyframes registration-arrive { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes registration-logo-float {
+  0%, 100% { opacity: 0.18; transform: translate(-40%, -15%) rotate(-8deg) scale(1); }
+  50% { opacity: 0.24; transform: translate(-43%, -20%) rotate(-4deg) scale(1.035); }
+}
+@keyframes registration-halo-turn {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registration-art-watermark > img { animation: none; opacity: 0.18; }
+  .registration-art-halo { animation: none; }
+}
+
+@media (max-width: 1023px) {
+  .registration-card { @apply max-w-[520px] rounded-3xl; }
+}
+
+@media (max-width: 480px) {
+  .registration-scene { @apply px-3 py-5; }
+  .registration-form-side { @apply px-5 py-7; }
+  .registration-copyright { @apply relative bottom-auto mt-3; }
+}
+

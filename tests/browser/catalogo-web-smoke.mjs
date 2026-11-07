@@ -52,7 +52,7 @@ async function waitFor(fn, timeout = 20000) {
 let socket;
 let debugEvaluate;
 let debugScreenshot;
-const report = { sqlite: ':memory: per request', widths: [], responses: [], externalBlocked: [], errors: [] };
+const report = { sqlite: ':memory: per request', widths: [], modalities: [], responses: [], externalBlocked: [], errors: [] };
 try {
   await waitFor(async () => (await localRequest(`${base}/educacion/cursos`)).headers['x-horus-fixture'] === 'sqlite-memory-catalogo');
   await waitFor(async () => (await localRequest(`http://127.0.0.1:${debugPort}/json/version`)).status === 200);
@@ -163,10 +163,31 @@ try {
       delete current.staticMarkup;
       report.widths.push({ width, state, ...current });
     }
+    await command('Network.setExtraHTTPHeaders', { headers: { 'X-Horus-Fixture-Catalog': 'on' } });
+    for (const [modality, label, title] of [
+      ['presencial', 'Presencial', 'Redes de laboratorio'],
+      ['semipresencial', 'Semipresencial', 'Programación de ejemplo'],
+      ['virtual', 'Virtual', 'Título'.repeat(18)],
+    ]) {
+      await navigate('/educacion/cursos', '.legacy-showcase');
+      await evaluate(`document.querySelector('.carta-ver-cursos[href*="modalidad=${modality}"]').click()`);
+      await waitFor(() => evaluate(`new URL(location.href).searchParams.get('modalidad') === ${JSON.stringify(modality)} && document.readyState === 'complete' && document.querySelectorAll('#catalogo-cursos article').length === 1`));
+      const filtered = await evaluate(`(() => {
+        const card = document.querySelector('#catalogo-cursos article');
+        return { title: card.querySelector('h3').textContent, text: card.innerText,
+          noPageOverflow: document.documentElement.scrollWidth <= innerWidth,
+          contained: card.scrollWidth <= card.clientWidth };
+      })()`);
+      if (filtered.title !== title || !filtered.text.includes('Modalidad: ' + label) || !filtered.noPageOverflow || !filtered.contained) {
+        throw new Error('Modality filter failed: ' + modality + ': ' + JSON.stringify(filtered));
+      }
+      await screenshot('modalidad-' + modality + '-' + width);
+      report.modalities.push({ width, modality, ...filtered });
+    }
   }
   if (report.errors.length || report.externalBlocked.length) throw new Error('Unexpected browser errors or external requests');
   await writeFile(join(evidence, 'report.json'), JSON.stringify(report, null, 2));
-  process.stdout.write(JSON.stringify({ evidence, checks: report.widths.length, errors: report.errors, externalBlocked: report.externalBlocked }) + '\n');
+  process.stdout.write(JSON.stringify({ evidence, checks: report.widths.length, modalityChecks: report.modalities.length, errors: report.errors, externalBlocked: report.externalBlocked }) + '\n');
 } catch (error) {
   report.failure = error.message;
   if (debugEvaluate) report.page = await debugEvaluate('({ url: location.href, text: document.body.innerText.slice(0, 1800) })').catch(() => null);

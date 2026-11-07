@@ -153,6 +153,41 @@ try {
       if (current.staticMarkup !== staticMarkup || JSON.stringify(current.staticLayout) !== JSON.stringify(staticLayout)) throw new Error('Static sections changed at ' + width + '/' + state);
       if (!current.noPageOverflow || !current.images || !current.links || !current.contained) throw new Error('Layout failed at ' + width + '/' + state + ': ' + JSON.stringify(current));
       if ((state === 'on' && current.count !== 3) || (state !== 'on' && current.count !== 0) || (state.startsWith('off') && current.catalog) || (state === 'empty' && !current.empty) || (state === 'missing' && !current.unavailable)) throw new Error('Catalog state failed: ' + state);
+      if (state === 'off') {
+        await evaluate(`(() => {
+          window.__quoteFetches = 0;
+          window.__quoteOriginalFetch = window.fetch;
+          window.fetch = (...args) => { window.__quoteFetches++; return window.__quoteOriginalFetch(...args); };
+          const input = document.getElementById('mensaje-chat');
+          input.value = 'Consulta en preparación';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`);
+        current.quotes = [];
+        for (let index = 0; index < 3; index++) {
+          const target = await evaluate(`(() => {
+            const button = document.querySelectorAll('.carta-solicitar-cotizacion')[${index}];
+            button.scrollIntoView({block: 'center'});
+            button.focus();
+            const bounds = button.getBoundingClientRect();
+            const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+            const features = button.closest('.carta-servicio').querySelector('ul').getBoundingClientRect();
+            return { service: button.dataset.servicio, height: bounds.height, gap: bounds.top - features.bottom, clickable: button === hit || button.contains(hit) };
+          })()`);
+          if (!target.clickable || target.height < 44 || target.gap < 20) throw new Error('Quote button inaccessible: ' + JSON.stringify(target));
+          await evaluate(`document.querySelectorAll('.carta-solicitar-cotizacion')[${index}].click()`);
+          await waitFor(() => evaluate(`document.getElementById('horus-chat-panel').getBoundingClientRect().width > 0 && document.querySelector('.hc-log').textContent.includes(${JSON.stringify(target.service)}) && document.activeElement.id === 'mensaje-chat'`));
+          const quote = await evaluate(`(() => {
+            const link = [...document.querySelectorAll('.hc-action')].at(-1);
+            return { url: link?.getAttribute('href'), draft: document.getElementById('mensaje-chat').value, calls: window.__quoteFetches, contained: document.getElementById('horus-chat-panel').getBoundingClientRect().width <= innerWidth };
+          })()`);
+          if (quote.url !== 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n' || quote.draft !== 'Consulta en preparación' || quote.calls !== 0 || !quote.contained) throw new Error('Quote chat failed: ' + JSON.stringify(quote));
+          if (index === 1) await evaluate(`document.querySelector('[aria-label="Cerrar chat"]').click()`);
+          else await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+          await waitFor(() => evaluate(`getComputedStyle(document.getElementById('horus-chat-panel')).display === 'none' && document.activeElement === document.querySelectorAll('.carta-solicitar-cotizacion')[${index}]`));
+          current.quotes.push({ ...target, ...quote, focusReturned: true });
+        }
+        await evaluate(`window.fetch = window.__quoteOriginalFetch; scrollTo(0, 0)`);
+      }
       if (state === 'on') {
         const focus = await evaluate(`(() => { const a = document.querySelector('#catalogo-servicios a'); a.scrollIntoView({block:'center'}); a.focus(); const b = a.getBoundingClientRect(); const hit = document.elementFromPoint(b.x + b.width/2, b.y + b.height/2); return { focused: document.activeElement === a, clickable: hit === a || a.contains(hit), height: b.height }; })()`);
         if (!focus.focused || !focus.clickable || focus.height < 44) throw new Error('Contact action inaccessible: ' + JSON.stringify(focus));

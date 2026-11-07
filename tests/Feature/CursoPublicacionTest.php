@@ -31,6 +31,8 @@ class CursoPublicacionTest extends TestCase
         parent::setUp();
         $this->assertIsolatedTestDatabase();
         $this->travelTo(Carbon::parse('2026-10-28 12:00:00', 'America/Lima'));
+        // Este contrato histórico aísla la publicación editorial de su visualización web.
+        config(['catalogo-publico.enabled' => false]);
         // La integración dinámica se prueba de forma explícita; queda apagada por defecto.
         config(['matricula-mail.enabled' => false, 'services.openai.api_key' => 'fake-test-key', 'chatbot.public_catalog_enabled' => true]);
         Http::preventStrayRequests();

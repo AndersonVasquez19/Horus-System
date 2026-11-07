@@ -164,7 +164,7 @@ class ServicioTecnologicoTest extends TestCase
         foreach ($queries as $query) {
             $this->assertMatchesRegularExpression('/^select/i', $query['query']);
         }
-        $this->assertFalse(config('catalogo-publico.enabled'));
+        $this->assertTrue(config('catalogo-publico.enabled'));
         $this->assertFalse(config('chatbot.public_catalog_enabled'));
     }
 

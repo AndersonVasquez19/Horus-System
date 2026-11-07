@@ -220,6 +220,50 @@
     transform: scaleX(1);
 }
 
+.carta-card.carta-modalidad {
+    display: flex;
+    flex-direction: column;
+}
+
+.carta-modalidad .carta-icon {
+    flex-shrink: 0;
+}
+
+.carta-modalidad .carta-features {
+    margin-bottom: 28px;
+}
+
+.carta-ver-cursos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 48px;
+    margin-top: auto;
+    padding: 12px 24px;
+    border: 2px solid var(--primary-dark);
+    border-radius: 12px;
+    background: var(--primary-dark);
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.carta-ver-cursos:hover {
+    background: var(--accent-gold);
+    color: var(--primary-dark);
+}
+
+.carta-ver-cursos:focus-visible {
+    outline: 3px solid var(--accent-gold);
+    outline-offset: 4px;
+}
+
+#catalogo-cursos {
+    scroll-margin-top: 120px;
+}
+
 .carta-badge {
     position: absolute;
     top: 20px;

@@ -51,7 +51,14 @@ def block_external_network() -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def _no_external_keys(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("OPENAI_API_KEY", "RESEND_API_KEY", "HORUS_AI_SERVICE_TOKEN", "HORUS_AI_SEMANTIC_ENABLED"):
+    for name in (
+        "OPENAI_API_KEY",
+        "RESEND_API_KEY",
+        "HORUS_AI_SERVICE_TOKEN",
+        "HORUS_AI_SEMANTIC_ENABLED",
+        "GEMINI_API_KEY",
+        "GEMINI_MODEL",
+    ):
         monkeypatch.delenv(name, raising=False)
     get_settings.cache_clear()
 

@@ -60,6 +60,7 @@
     data-endpoint="{{ $endpoint }}"
     data-csrf-token="{{ csrf_token() }}"
     class="hc-conversation"
+    @horus-cotizacion.window="solicitarCotizacion($event.detail?.servicio)"
 >
     <div x-ref="messages" @scroll.passive="trackScroll" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Horus" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
         <template x-for="(message, index) in messages" :key="index">

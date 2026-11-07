@@ -173,7 +173,7 @@
     {
         "q":  "¿Cuál es el horario de atención?",
         "r":  {
-                  "answer":  "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+                  "answer":  "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
                   "intent":  "contact_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -212,7 +212,7 @@
     {
         "q":  "¿Tienen capacitaciones para empresas?",
         "r":  {
-                  "answer":  "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+                  "answer":  "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado.",
                   "intent":  "training_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -251,7 +251,7 @@
     {
         "q":  "¿Qué modalidades tienen?",
         "r":  {
-                  "answer":  "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+                  "answer":  "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse en su ficha publicada o con un asesor.",
                   "intent":  "training_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -329,7 +329,7 @@
     {
         "q":  "¿Ofrecen soporte y mantenimiento?",
         "r":  {
-                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "answer":  "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
                   "intent":  "service_info",
                   "match_level":  "media",
                   "needs_clarification":  false,
@@ -597,7 +597,7 @@
     {
         "q":  "¿Tienen convenios?",
         "r":  {
-                  "answer":  "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+                  "answer":  "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
                   "intent":  "agreement_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -749,7 +749,7 @@
     {
         "q":  "¿Cuál es su política de devolución?",
         "r":  {
-                  "answer":  "Según /politicas-devolucion, en talleres, cursos, capacitaciones y diplomados la devolución del monto pagado procede solo en los casos que lo ameriten, por ejemplo casos fortuitos o de fuerza mayor, actividades con características distintas a las ofrecidas o incumplimiento en los días de capacitación. Las solicitudes se atienden por correo en horusgroupcajamarca@gmail.com. Revisa la política completa para tu caso.",
+                  "answer":  "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
                   "intent":  "policy",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -823,7 +823,7 @@
     {
         "q":  "¿Qué es Horus Group?",
         "r":  {
-                  "answer":  "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+                  "answer":  "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
                   "intent":  "company_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -862,7 +862,7 @@
     {
         "q":  "¿Cuál es su misión y visión?",
         "r":  {
-                  "answer":  "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+                  "answer":  "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
                   "intent":  "company_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -936,7 +936,7 @@
     {
         "q":  "¿Tienen convenio con el Colegio de Enfermeros?",
         "r":  {
-                  "answer":  "Por convenio con el Colegio de Enfermeros de Cajamarca - CR XIII (vigente hasta el 18 de julio de 2027) y con el Colegio de Enfermeros del Perú - CR II La Libertad (vigente hasta el 4 de junio de 2029), Horus Group realiza talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Según la web, los certificados del convenio de Cajamarca llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+                  "answer":  "Convenio con Colegio de Enfermeros de Cajamarca - CR XIII para talleres, charlas, cursos y diplomados en Enfermería.",
                   "intent":  "agreement_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -952,7 +952,7 @@
                   "sources":  [
                                   {
                                       "id":  "convenio_enfermeria",
-                                      "title":  "Formación en Enfermería por convenio",
+                                      "title":  "Colegio de Enfermeros de Cajamarca - CR XIII",
                                       "url_path":  "/#convenios"
                                   }
                               ],
@@ -975,7 +975,7 @@
     {
         "q":  "Mantenimiento de computadoras",
         "r":  {
-                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "answer":  "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
                   "intent":  "service_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -1102,7 +1102,7 @@
     {
         "q":  "¿Configuran la red wifi?",
         "r":  {
-                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "answer":  "Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores.",
                   "intent":  "service_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -1142,7 +1142,7 @@
     {
         "q":  "¿Quiénes son?",
         "r":  {
-                  "answer":  "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+                  "answer":  "Más información en /quienes-somos.",
                   "intent":  "company_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -1181,7 +1181,7 @@
     {
         "q":  "Soporte técnico",
         "r":  {
-                  "answer":  "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+                  "answer":  "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
                   "intent":  "service_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,

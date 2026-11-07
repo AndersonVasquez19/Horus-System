@@ -72,7 +72,7 @@ def understand(text: str, kb: KnowledgeBase) -> Understanding:
 def evidence_sentence(record: KnowledgeRecord, terms: list[str]) -> str | None:
     """Primera frase del registro verificado que contiene alguno de los términos (extracción literal)."""
     norm_terms = [normalize(t) for t in terms if normalize(t)]
-    for text in (record.answer, record.description):
+    for text in (record.answer, record.detail_answer or "", record.description):
         for sentence in re.split(r"(?<=[.;])\s+", text):
             sentence = sentence.strip()
             folded = strip_accents(sentence.lower())  # misma longitud que el original

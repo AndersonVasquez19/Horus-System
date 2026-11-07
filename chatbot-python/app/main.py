@@ -21,6 +21,7 @@ from app import __version__
 from app.api.routes import api, public
 from app.core.config import Settings, get_settings
 from app.services.chat_engine import AdvisorEngine
+from app.services.gemini import GeminiSelector
 from app.services.knowledge import KnowledgeBase, KnowledgeError
 from app.services.semantic_search import SemanticIndex
 from app.services.vector_cache import PassageVectorCache, model_fingerprint
@@ -126,7 +127,7 @@ def build_engine(settings: Settings) -> tuple[AdvisorEngine | None, SemanticInde
             settings.semantic_query_prefix,
             settings.semantic_passage_prefix,
         )
-    return AdvisorEngine(kb, semantic), semantic, catalog_status
+    return AdvisorEngine(kb, semantic, GeminiSelector.from_settings(settings)), semantic, catalog_status
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -147,7 +148,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.slots = asyncio.Semaphore(settings.max_concurrent_requests)
         if not settings.service_token_configured:
             logger.warning("HORUS_AI_SERVICE_TOKEN no configurado (>=32 caracteres): /api/v1 responderá 503.")
-        yield
+        try:
+            yield
+        finally:
+            if engine is not None and engine.gemini is not None:
+                engine.gemini.close()
 
     app = FastAPI(
         title="Horus AI Advisor",

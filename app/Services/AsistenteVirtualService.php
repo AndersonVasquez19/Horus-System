@@ -64,21 +64,45 @@ class AsistenteVirtualService
             return $this->reply('Tu consulta anterior sigue en proceso. Espera un momento antes de volver a enviarla.', null, 'ocupado');
         }
         try {
+            $focoKey = 'chat:focus:'.hash_hmac('sha256', $session.'|'.$version, (string) config('app.key'));
+            $focoGuardado = Cache::get($focoKey);
+            $foco = [];
+            if (is_array($focoGuardado) && is_array($focoGuardado['ids'] ?? null)
+                && array_is_list($focoGuardado['ids']) && count($focoGuardado['ids']) <= 2
+                && is_string($focoGuardado['mac'] ?? null)
+                && hash_equals(hash_hmac('sha256', $focoKey.serialize($focoGuardado['ids']), (string) config('app.key')), $focoGuardado['mac'])) {
+                $foco = array_values(array_filter($focoGuardado['ids'], 'is_string'));
+            }
+            $consulta = $foco === [] ? $mensaje : $this->advisor->resolverSeguimiento($mensaje, $foco);
+            if ($consulta !== $mensaje) {
+                $key = 'chat:reply:'.hash_hmac('sha256', $session.'|'.$consulta.'|'.$version, (string) config('app.key'));
+            }
             $cached = Cache::get($key);
             if (is_array($cached) && isset($cached['reply'], $cached['mac']) && is_array($cached['reply'])
                 && is_string($cached['mac'])
                 && hash_equals(hash_hmac('sha256', $key.serialize($cached['reply']), (string) config('app.key')), $cached['mac'])
                 && $this->advisor->respuestaCacheValida($cached['reply'])) {
+                $focoCache = $cached['focus'] ?? [];
+                if (is_array($focoCache) && array_is_list($focoCache) && count($focoCache) <= 2
+                    && is_string($cached['focus_mac'] ?? null)
+                    && hash_equals(hash_hmac('sha256', $key.serialize($focoCache), (string) config('app.key')), $cached['focus_mac'])) {
+                    $this->guardarFoco($focoKey, array_values(array_filter($focoCache, 'is_string')));
+                } else {
+                    Cache::forget($focoKey);
+                }
                 $this->metric('duplicate');
 
                 return $cached['reply'];
             }
-            $result = $this->advisor->orientar($mensaje) ?? $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
+            $result = $this->advisor->orientar($consulta) ?? $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
+            $nuevoFoco = $result['fuente'] === 'advisor' ? $this->advisor->focoConversacional() : [];
+            $this->guardarFoco($focoKey, $nuevoFoco);
             if ($result['fuente'] === 'respaldo') {
                 $motivo = $this->advisor->motivoContingencia();
                 Log::info('chatbot.contingencia', ['motivo' => $motivo ?? 'no_disponible']);
             }
-            Cache::put($key, ['reply' => $result,
+            Cache::put($key, ['reply' => $result, 'focus' => $nuevoFoco,
+                'focus_mac' => hash_hmac('sha256', $key.serialize($nuevoFoco), (string) config('app.key')),
                 'mac' => hash_hmac('sha256', $key.serialize($result), (string) config('app.key'))], (int) config('chatbot.duplicate_seconds', 60));
             $registro = [
                 'session_id' => $session,
@@ -94,6 +118,18 @@ class AsistenteVirtualService
         } finally {
             $lock->release();
         }
+    }
+
+    /** @param list<string> $ids */
+    private function guardarFoco(string $key, array $ids): void
+    {
+        if ($ids === []) {
+            Cache::forget($key);
+
+            return;
+        }
+        Cache::put($key, ['ids' => $ids,
+            'mac' => hash_hmac('sha256', $key.serialize($ids), (string) config('app.key'))], 300);
     }
 
     /** Diagnóstico histórico; no participa en procesarMensaje ni en rutas del chat. */

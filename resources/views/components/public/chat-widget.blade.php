@@ -1,12 +1,13 @@
 <div
-    x-data="{ abierto: false }"
-    @keydown.escape.window="if (abierto) { abierto = false; $nextTick(() => $refs.launcher.focus()) }"
+    x-data="{ abierto: false, origen: null }"
+    @horus-cotizacion.window="abierto = true; origen = $event.detail?.origen || $refs.launcher"
+    @keydown.escape.window="if (abierto) { abierto = false; $nextTick(() => (origen || $refs.launcher).focus()) }"
     class="horus-chat-widget"
 >
     <button
         x-ref="launcher"
         type="button"
-        @click="abierto = true; $nextTick(() => $refs.closeButton.focus())"
+        @click="abierto = true; origen = $refs.launcher; $nextTick(() => $refs.closeButton.focus())"
         :aria-expanded="abierto.toString()"
         aria-label="Abrir chat con el asistente Horus"
         aria-haspopup="dialog"
@@ -44,7 +45,7 @@
                     <h2 id="hc-title">Asistente Horus</h2>
                     <p>Cursos, tecnología y orientación</p>
                 </div>
-                <button x-ref="closeButton" type="button" @click="abierto = false; $nextTick(() => $refs.launcher.focus())" class="hc-close" aria-label="Cerrar chat">
+                <button x-ref="closeButton" type="button" @click="abierto = false; $nextTick(() => (origen || $refs.launcher).focus())" class="hc-close" aria-label="Cerrar chat">
                     <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 </button>
             </header>

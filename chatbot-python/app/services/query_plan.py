@@ -92,6 +92,7 @@ QUERY_WORDS = (
     | _BROAD_LEARNING
     | _BROAD_SERVICE
     | {
+        "realizan",
         "matricularme",
         "inscribirme",
         "inscribo",

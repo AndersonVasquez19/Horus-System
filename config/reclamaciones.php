@@ -1,11 +1,9 @@
 <?php
 
 return [
-    // Libro de Reclamaciones (Sprint 20, Fase 2). Apagado por defecto y sin lectura de entorno:
-    // la activación real exige decisiones del propietario y revisión legal (PROJECT_CONTEXT, Fase 1.2 §10).
-    // Con false no se procesa ni se guarda ninguna reclamación pública. Aunque se ponga en true,
-    // el módulo sigue inactivo mientras el correo no esté configurado de verdad (ver App\Support\Reclamaciones).
-    'enabled' => false,
+    // Activación explícita por instalación, autorizada por el propietario. Apagado por defecto.
+    // El módulo sigue inactivo sin correo configurado (ver App\Support\Reclamaciones).
+    'enabled' => (bool) env('RECLAMACIONES_ENABLED', false),
 
     // Encabezado de la hoja (Anexo I). Los aporta el propietario; no se inventan valores (decisión A1).
     'proveedor' => [
@@ -28,12 +26,12 @@ return [
 
     'correo' => [
         // Envío por la cola de Laravel. Apagado: las filas de reclamacion_envios quedan pendientes y no se despacha nada.
-        'enabled' => false,
+        'enabled' => (bool) env('RECLAMACIONES_CORREO_ENABLED', false),
         'max_intentos' => 4,
         'retroceso_segundos' => [60, 300, 900],
         // Un envío «procesando» más antiguo que esto se considera abandonado y puede reservarse de nuevo.
         'reserva_minutos' => 10,
-        'cola' => 'default',
+        'cola' => env('RECLAMACIONES_CORREO_COLA', 'default'),
     ],
 
     'antispam' => [

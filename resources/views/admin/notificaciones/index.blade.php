@@ -40,7 +40,7 @@
                                 </button>
                             </form>
                         @endif
-                        @if ($notificacion->vinculo)
+                        @if ($notificacion->vinculo && ! \Illuminate\Support\Str::is(['/admin/procesos', '/admin/procesos/*'], (string) parse_url($notificacion->vinculo, PHP_URL_PATH)))
                             <a href="{{ $notificacion->vinculo }}" class="admin-btn-outline min-h-9 px-3.5 py-1.5 text-xs">
                                 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                                 Ver

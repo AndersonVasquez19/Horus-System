@@ -167,6 +167,7 @@ class InfoResponse(BaseModel):
     search_mode: Literal["lexical", "hybrid"]
     limits: dict[str, float]
     generative_model: Literal["none"] = "none"
+    selection_model: str | None = None
     catalog_version: str | None = None
 
 

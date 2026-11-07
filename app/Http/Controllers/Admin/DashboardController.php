@@ -9,7 +9,6 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\NotificacionInterna;
-use App\Models\ProcesoInterno;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -98,7 +97,6 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $procesosPendientes = ProcesoInterno::query()->where('estado', 'pendiente')->count();
         $aprobacionesPendientes = AprobacionInterna::query()->where('estado', 'pendiente')->count();
         $usuarioActual = auth()->user();
         // Mismo criterio de visibilidad que la bandeja: personales propias y generales explícitas.
@@ -121,7 +119,6 @@ class DashboardController extends Controller
             'ingresosMes' => $ingresosMes,
             'usuariosActivos' => User::query()->count(),
             'rolesActivos' => Role::query()->count(),
-            'procesosPendientes' => $procesosPendientes,
             'aprobacionesPendientes' => $aprobacionesPendientes,
             'notificacionesPendientes' => $notificacionesPendientes,
             'miRol' => ucfirst(str_replace('-', ' ', $rolActual)),

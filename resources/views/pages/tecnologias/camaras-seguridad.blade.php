@@ -4,6 +4,7 @@
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('assets/css/tecnologias/camaras-seguridad.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/tecnologias/cotizaciones.css') }}">
 @endpush
 
 @section('content')
@@ -37,6 +38,7 @@
                 </div>
                 <h3>CÁMARAS IP</h3>
                 <p>Garantizamos la seguridad de sus espacios con tecnología de última generación.</p>
+                <x-public.solicitar-cotizacion servicio="CÁMARAS IP" />
             </article>
 
             <article class="carta">
@@ -49,6 +51,7 @@
                 <h3>CÁMARAS ANALÓGICAS</h3>
                 <p>Es la solución ideal para quienes buscan un sistema de vigilancia estable, económico y de larga
                     duración.</p>
+                <x-public.solicitar-cotizacion servicio="CÁMARAS ANALÓGICAS" />
             </article>
 
             <article class="carta">
@@ -61,6 +64,7 @@
                 <h3>CÁMARAS FULL HD</h3>
                 <p>Si lo que buscas es que la imagen no se "pixele" al hacer zoom, la tecnología Full HD es la opción
                     indispensable.</p>
+                <x-public.solicitar-cotizacion servicio="CÁMARAS FULL HD" />
             </article>
 
             <article class="carta">
@@ -73,6 +77,7 @@
                 <h3>CÁMARAS DOMO</h3>
                 <p>Si necesitas vigilar interiores (oficinas, tiendas o casas) de forma elegante y resistente, la Cámara
                     Domo es la elección profesional.</p>
+                <x-public.solicitar-cotizacion servicio="CÁMARAS DOMO" />
             </article>
 
             <article class="carta">
@@ -85,6 +90,7 @@
                 <h3>CÁMARAS DE 360°</h3>
                 <p>Si quieres ver todo el lugar al mismo tiempo con un diseño discreto en el techo, la Cámara de 360° es
                     la opción más eficiente.</p>
+                <x-public.solicitar-cotizacion servicio="CÁMARAS DE 360°" />
             </article>
 
             <article class="carta">
@@ -97,6 +103,7 @@
                 <h3>CÁMARAS FIJAS (TUBO O BALA)</h3>
                 <p>Si necesitas que la gente sepa que la estás vigilando y quieres proteger exteriores o pasillos
                     largos, la Cámara de Bala es la mejor herramienta.</p>
+                <x-public.solicitar-cotizacion servicio="CÁMARAS FIJAS (TUBO O BALA)" />
             </article>
 
             <article class="carta">
@@ -109,6 +116,7 @@
                 <h3>Sensores de Movimiento</h3>
                 <p>Añaden una capa de inteligencia a su sistema de seguridad, permitiendo que la tecnología actúe por
                     usted.</p>
+                <x-public.solicitar-cotizacion servicio="Sensores de Movimiento" />
             </article>
 
             <article class="carta">
@@ -120,6 +128,7 @@
                 </div>
                 <h3>Alarma vía Email</h3>
                 <p>Transforme su sistema de vigilancia en un centro de respuesta rápida.</p>
+                <x-public.solicitar-cotizacion servicio="Alarma vía Email" />
             </article>
 
             <article class="carta">
@@ -131,6 +140,7 @@
                 </div>
                 <h3>Visión Nocturna</h3>
                 <p>Garantiza que la oscuridad no sea un obstáculo para la seguridad de sus espacios.</p>
+                <x-public.solicitar-cotizacion servicio="Visión Nocturna" />
             </article>
 
             <article class="carta">
@@ -142,6 +152,7 @@
                 </div>
                 <h3>Visualización desde tu Computadora o Celular</h3>
                 <p>Manténgase conectado con lo que más le importa a través de sus dispositivos personales.</p>
+                <x-public.solicitar-cotizacion servicio="Visualización desde tu Computadora o Celular" />
             </article>
         </div>
     </section>

@@ -1,6 +1,6 @@
 # Horus Group SRL
 
-Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio está hecha con **Laravel 12**, Blade, Alpine.js, Tailwind CSS y Vite. Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, procesos internos, reportes y un asistente virtual.
+Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio está hecha con **Laravel 12**, Blade, Alpine.js, Tailwind CSS y Vite. Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, aprobaciones, reportes y un asistente virtual. La sección Procesos fue retirada del panel; se conserva su histórico sin borrar datos ([alcance](docs/retiro-procesos.md)).
 
 > **Identifica la aplicación antes de trabajar.** Laravel ocupa la raíz de este repositorio. El sitio público son las vistas Blade; el sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git. El chatbot descrito aquí está en las páginas Blade servidas por Laravel.
 
@@ -125,7 +125,7 @@ php artisan horus:promover-admin --email=tu@correo.com --base=NOMBRE_DE_TU_BASE
 
 El comando solo promueve una cuenta que ya existe; no crea cuentas, no ejecuta seeders ni migraciones y no tiene ruta HTTP. Se niega a ejecutarse fuera de `local`/`development` (en `testing` solo con SQLite en memoria), si el host de la base no es de esta máquina o si `--base` no coincide con la base conectada. Si falta algún rol base, lo informa y termina sin cambiar nada. Repetirlo no duplica la asignación. Cada promoción queda en auditoría como `admin_role_granted_local`.
 
-Los datos de ejemplo (cursos, estudiantes, matrículas, procesos y aprobaciones) están separados en `DemoDataSeeder`, no crean usuarios y se niegan a ejecutarse con `APP_ENV=production`. Úsalos **solo en una base local desechable**:
+Los datos de ejemplo (cursos, estudiantes, matrículas, notificaciones y aprobaciones) están separados en `DemoDataSeeder`, no crean usuarios y se niegan a ejecutarse con `APP_ENV=production`. Úsalos **solo en una base local desechable**:
 
 ```powershell
 php artisan db:seed --class=DemoDataSeeder
@@ -139,10 +139,16 @@ Para tareas parciales, inspecciona el seeder correspondiente antes de ejecutarlo
 
 - **Público:** `/`, páginas de tecnologías, educación, mercado, galería, contacto y textos legales definidos en `routes/web.php`; `/register`, `/login` y recuperación de contraseña.
 - **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo. El rol `admin` no se puede renombrar ni eliminar ni perder sus permisos críticos, y no se puede eliminar ni quitar el rol al último administrador (ni a uno mismo). La exportación CSV de matrículas (`matriculas.exportar`) y su eliminación (`matriculas.eliminar`) son permisos propios, solo de `admin` por defecto.
-- **Gestión:** estudiantes, cursos y matrículas; usuarios/roles; procesos y aprobaciones; notificaciones; configuración; auditoría; reportes CSV, Excel y PDF. Consulta las rutas y permisos reales antes de cambiar una operación.
+- **Gestión:** estudiantes, cursos y matrículas; usuarios/roles; aprobaciones; notificaciones; configuración; auditoría; reportes CSV, Excel y PDF. Consulta las rutas y permisos reales antes de cambiar una operación.
 - **Exportación de datos (`admin/respaldo`):** genera un ZIP de CSV con nueve tablas seleccionadas; requiere extensión ZIP y el permiso `respaldo.exportar`. Es una **exportación administrativa minimizada, no un respaldo**: omite contraseñas, tokens y claves, enmascara secretos, no se puede usar para restaurar y no se conserva ninguna copia en el servidor (queda un registro en auditoría). La copia integral de PostgreSQL (`pg_dump`) y la política de retención son responsabilidad del servidor; véase [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md).
 - **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login web usa sesión y CSRF.
 - **Correo:** el restablecimiento de contraseña depende del transporte configurado. Con `MAIL_MAILER=log` el mensaje queda en los registros locales y no llega a una bandeja externa.
+
+### Publicar cursos por modalidad
+
+En **Panel → Cursos → Nuevo curso**, selecciona Presencial, Virtual o Semipresencial y guarda el curso. Desde su detalle, **Publicación web** abre la ficha editorial (requiere `cursos.publicar`). Escribe los textos públicos, confirma la modalidad y vigencia, marca la autorización y pulsa **Publicar ficha revisada**.
+
+El catálogo web está habilitado en **Educación → Cursos**. Cada botón **Ver cursos** filtra las fichas vigentes de su modalidad. Crear un curso no publica sus datos administrativos. Despublicar, desactivar o eliminar el curso, o vencer la vigencia, lo retira del catálogo. Se conserva Híbrido para los registros existentes, sin reclasificarlos. Detalle y validación: [`docs/cursos-publicacion-modalidades.md`](docs/cursos-publicacion-modalidades.md).
 
 ### Reportes de matrículas
 

@@ -127,6 +127,21 @@ export function chatClient() {
       const log = this.$refs.messages;
       if (this.sending && log.scrollTop + log.clientHeight < log.scrollHeight - 60) this.followResponse = false;
     },
+    solicitarCotizacion(servicio) {
+      if (typeof servicio !== 'string' || !servicio.trim() || servicio.length > 120) return;
+      const text = `Para solicitar una cotización de ${servicio.trim()}, continúa por WhatsApp con un asesor. Allí podrás detallar lo que necesitas y consultar las condiciones del servicio.`;
+      if (this.messages.at(-1)?.text !== text) {
+        this.messages = this.messages.slice(-39);
+        this.messages.push({
+          role: 'bot', text,
+          links: safeChatLinks('https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n'),
+        });
+      }
+      this.$nextTick(() => {
+        this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
+        if (!this.sending) this.$refs.question?.focus();
+      });
+    },
     async sendMessage() {
       const message = this.draft.trim();
       if (!message || this.sending) {

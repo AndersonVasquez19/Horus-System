@@ -163,6 +163,7 @@ class Sprint17PublicacionTest extends TestCase
 
     public function test_public_read_contract_is_disabled_and_does_not_query_editorial_tables(): void
     {
+        config(['catalogo-publico.enabled' => false]);
         $this->publicar();
         $queries = [];
         DB::listen(function (QueryExecuted $query) use (&$queries): void {
