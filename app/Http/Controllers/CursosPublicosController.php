@@ -6,14 +6,18 @@ namespace App\Http\Controllers;
 
 use App\Services\CatalogoPublicoCursos;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class CursosPublicosController extends Controller
 {
-    public function __invoke(CatalogoPublicoCursos $catalogo): Response
+    public function __invoke(Request $request, CatalogoPublicoCursos $catalogo): Response
     {
+        $modalidad = $request->query('modalidad');
+        $modalidad = is_string($modalidad) && in_array($modalidad, ['presencial', 'semipresencial', 'virtual', 'hibrido'], true)
+            ? $modalidad : null;
         $habilitado = (bool) config('catalogo-publico.enabled', false);
         $cursos = [];
         $fallo = false;
@@ -36,6 +40,9 @@ class CursosPublicosController extends Controller
 
                             continue;
                         }
+                        if ($modalidad !== null && $ficha['modalidad'] !== $modalidad) {
+                            continue;
+                        }
                         $total++;
                         if (count($cursos) < 50) {
                             $cursos[] = $ficha;
@@ -53,6 +60,7 @@ class CursosPublicosController extends Controller
         return response()->view('pages.educacion.cursos', [
             'catalogoHabilitado' => $habilitado, 'catalogoFallo' => $fallo,
             'cursosPublicos' => $cursos, 'totalCursosPublicos' => $total,
+            'modalidadSeleccionada' => $modalidad,
         ])
             ->header('Cache-Control', 'no-store, private');
     }

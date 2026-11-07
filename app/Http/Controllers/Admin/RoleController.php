@@ -17,6 +17,9 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller implements HasMiddleware
 {
+    /** Permisos históricos que ya no corresponden a módulos disponibles. */
+    private const PERMISOS_RETIRADOS = ['procesos.ver', 'procesos.gestionar'];
+
     public function __construct(private readonly AdminProtection $adminProtection) {}
 
     /**
@@ -37,8 +40,8 @@ class RoleController extends Controller implements HasMiddleware
     public function index(): View
     {
         return view('admin.roles.index', [
-            'roles' => Role::with('permissions')->orderBy('name')->get(),
-            'permisos' => Permission::orderBy('name')->get(),
+            'roles' => Role::with(['permissions' => fn ($query) => $query->whereNotIn('name', self::PERMISOS_RETIRADOS)])->orderBy('name')->get(),
+            'permisos' => Permission::whereNotIn('name', self::PERMISOS_RETIRADOS)->orderBy('name')->get(),
         ]);
     }
 

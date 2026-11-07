@@ -1,0 +1,192 @@
+[
+  {
+    "query": "Que convenios tienen",
+    "reply": {
+      "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+      "intent": "agreement_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "convenios_resumen",
+          "title": "Convenios institucionales",
+          "url_path": "/#convenios"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Vigencia del convenio con CORLAD",
+    "reply": {
+      "answer": "Colegio Regional de Licenciados en Administración de Cajamarca: Vigencia publicada hasta el 17 de febrero del 2027.",
+      "intent": "agreement_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "convenio_administracion",
+          "title": "Colegio Regional de Licenciados en Administración de Cajamarca",
+          "url_path": "/#convenios"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Que convenio tienen con Enfermeros de La Libertad",
+    "reply": {
+      "answer": "Convenio con Colegio de Enfermeros del Perú - CR II La Libertad para talleres, charlas, cursos y diplomados en Enfermería.",
+      "intent": "agreement_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "convenio_enfermeria_libertad",
+          "title": "Colegio de Enfermeros del Perú - CR II La Libertad",
+          "url_path": "/#convenios"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Dame detalles del soporte y mantenimiento",
+    "reply": {
+      "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+      "intent": "service_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_soporte",
+          "title": "Soporte y mantenimiento de equipos",
+          "url_path": "/tecnologias/soporte-mantenimiento"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "mantenimiento"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "En cuanto tiempo responden una consulta de asesoria",
+    "reply": {
+      "answer": "Según /educacion/asesoramiento, ante una consulta el equipo brinda orientación en un plazo máximo de 48 horas hábiles.",
+      "intent": "advisory_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "asesoramiento_general",
+          "title": "Asesoramiento: cómo funciona",
+          "url_path": "/educacion/asesoramiento"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Sus camaras tienen vision nocturna",
+    "reply": {
+      "answer": "La web presenta cámaras IP, analógicas, Full HD, domo, de 360° y fijas tipo bala, con funciones como sensores de movimiento, alarma vía email, visión nocturna y visualización desde tu computadora o celular.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  }
+]

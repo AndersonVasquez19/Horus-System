@@ -25,7 +25,7 @@
             @endif
             <div class="carta-grid">
                 @foreach($c['tarjetas'] as $tarjeta)
-                <div class="carta-card">
+                <div class="carta-card carta-servicio">
                     @if($tarjeta['icono'])
                     <div class="carta-icon">
                         <i class="{{ $tarjeta['icono'] }}"></i>
@@ -43,6 +43,7 @@
                         @endforeach
                     </ul>
                     @endif
+                    <x-public.solicitar-cotizacion :servicio="$tarjeta['titulo']" />
                 </div>
                 @endforeach
             </div>

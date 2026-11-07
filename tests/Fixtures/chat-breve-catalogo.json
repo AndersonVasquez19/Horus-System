@@ -1,0 +1,208 @@
+{
+  "items": [
+    {
+      "stable_id": "curso:datos",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Analisis de datos con Python",
+      "summary": "Aprende analisis de datos con Python.",
+      "details": "Practica limpieza de datos y construccion de graficos con Python.",
+      "keywords": [
+        "analisis de datos",
+        "Python"
+      ],
+      "modalities": [
+        "virtual"
+      ],
+      "duration_text": "24 horas",
+      "schedule_text": "Martes de 19 a 21 horas",
+      "requirements": [
+        "Conocimientos basicos de computacion"
+      ],
+      "updated_at": "2026-11-06T10:00:00-05:00"
+    }
+  ],
+  "cases": [
+    {
+      "query": "Quiero aprender analisis de datos",
+      "reply": {
+        "answer": "Analisis de datos con Python: Aprende analisis de datos con Python.",
+        "intent": "course_recommendation",
+        "match_level": "alta",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "kind": "course",
+            "reason": "El contenido publicado trata tu consulta: «Aprende analisis de datos con Python.».",
+            "evidence": [
+              "cat_curso_datos"
+            ],
+            "match_level": "alta",
+            "url_path": null,
+            "evidence_text": "Aprende analisis de datos con Python.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          }
+        ],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Cual es la modalidad del curso de analisis de datos",
+      "reply": {
+        "answer": "«Analisis de datos con Python»: modalidad publicada: virtual.",
+        "intent": "followup_attribute",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cursos"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Cual es el horario del curso de analisis de datos",
+      "reply": {
+        "answer": "«Analisis de datos con Python»: horario publicado: Martes de 19 a 21 horas.",
+        "intent": "training_info",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cursos"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Cuanto dura el curso de analisis de datos",
+      "reply": {
+        "answer": "«Analisis de datos con Python»: duración publicada: 24 horas.",
+        "intent": "training_info",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cursos"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    },
+    {
+      "query": "Dame detalles del curso de analisis de datos",
+      "reply": {
+        "answer": "Analisis de datos con Python: Practica limpieza de datos y construccion de graficos con Python. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-06).",
+        "intent": "training_info",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_datos",
+            "title": "Analisis de datos con Python",
+            "url_path": null
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "cursos"
+          ],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        }
+      }
+    }
+  ]
+}

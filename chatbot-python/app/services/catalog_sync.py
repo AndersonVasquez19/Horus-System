@@ -90,7 +90,7 @@ def build_catalog_candidate(
             raise CatalogSyncRejected("La versión no avanza respecto del catálogo activo.", 409)
 
     replacement_semantic = semantic.rebuilt(candidate_kb.search_records) if semantic is not None else None
-    candidate_engine = AdvisorEngine(candidate_kb, replacement_semantic)
+    candidate_engine = AdvisorEngine(candidate_kb, replacement_semantic, engine.gemini)
     if catalog.expires_at <= datetime.now(UTC):
         raise CatalogSyncRejected("El snapshot caducó durante la construcción del índice.")
     return candidate_engine, replacement_semantic, catalog.catalog_version, catalog.generated_at

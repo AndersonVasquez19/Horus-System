@@ -14,6 +14,56 @@ use Throwable;
 /** @phpstan-type ReferenciaRecomendada array{id: string, title: string, url_path: string|null} */
 class HorusAdvisorClient
 {
+    /** @var list<string> Identificadores públicos validados; nunca texto de una conversación. */
+    private array $focoConversacional = [];
+
+    /** @return list<string> */
+    public function focoConversacional(): array
+    {
+        return $this->focoConversacional;
+    }
+
+    /** @param list<string> $foco */
+    public function resolverSeguimiento(string $mensaje, array $foco): string
+    {
+        $normalizado = trim(preg_replace('/[¿?¡!.,;:]+/u', ' ', $this->normalizar($mensaje)) ?? '');
+        $normalizado = preg_replace('/\s+/u', ' ', $normalizado) ?? '';
+        $afirmacion = in_array($normalizado, ['si', 'si por favor', 'claro', 'correcto', 'exacto', 'eso', 'esa', 'ese'], true);
+        $referencia = preg_match('/\A(?:y )?(?:mas detalles|dame detalles|que incluye|que tipos(?: hay| tienen)?|cuanto cuesta|cuanto dura|(?:la |el )?(?:precio|modalidad|horario|duracion|requisitos)|es virtual|es presencial)\z/u', $normalizado) === 1;
+        $opcion = match ($normalizado) {
+            'la primera', 'primera opcion' => 0,
+            'la segunda', 'segunda opcion' => 1,
+            default => null,
+        };
+        if ((! $afirmacion && ! $referencia && $opcion === null) || count($foco) > 2 || $foco === []) {
+            return $mensaje;
+        }
+        if (count($foco) !== 1 && $opcion === null) {
+            return $mensaje;
+        }
+        $id = $foco[$opcion ?? 0] ?? null;
+        if (! is_string($id)) {
+            return $mensaje;
+        }
+        $titulo = $this->tituloDeFoco($id);
+        if ($titulo === null) {
+            return $mensaje;
+        }
+
+        return $afirmacion || $opcion !== null ? 'Información sobre '.$titulo : $mensaje.' de '.$titulo;
+    }
+
+    private function tituloDeFoco(string $id): ?string
+    {
+        if (str_starts_with($id, 'cat_')) {
+            $fuentes = app(FuentesCatalogoAdvisor::class)->actuales();
+
+            return $fuentes[$id]['title'] ?? null;
+        }
+
+        return self::conocimiento()['porId'][$id]['title'] ?? null;
+    }
+
     private ?string $motivoContingencia = null;
 
     /** @var array<string, array{title: string, url_path: string|null, answer: string, fragments?: list<string>}> */
@@ -104,6 +154,7 @@ class HorusAdvisorClient
     /** @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null */
     public function orientar(string $mensajeOIntent, ?string $mensaje = null): ?array
     {
+        $this->focoConversacional = [];
         $mensajeLimpio = trim($mensaje ?? $mensajeOIntent);
         $this->motivoContingencia = null;
         if (! config('horus-advisor.enabled')) {
@@ -153,6 +204,17 @@ class HorusAdvisorClient
             return null;
         }
         $this->motivoContingencia = null;
+
+        $foco = ($reply['needs_clarification'] ?? false)
+            ? ($reply['context']['focus_ids'] ?? []) : array_column($reply['sources'], 'id');
+        if (is_array($foco) && array_is_list($foco) && count($foco) <= 2) {
+            foreach ($foco as $id) {
+                if (is_string($id) && (str_starts_with($id, 'cat_')
+                    ? isset($this->fuentesCatalogo[$id]) : isset(self::conocimiento()['porId'][$id]))) {
+                    $this->focoConversacional[] = $id;
+                }
+            }
+        }
 
         $respuestaTexto = $reply['answer'];
         if (($reply['needs_clarification'] ?? false) && is_string($reply['clarification_question'] ?? null) && trim($reply['clarification_question']) !== '') {
@@ -324,6 +386,10 @@ class HorusAdvisorClient
         // Procedencia: el texto exacto de un registro verificado, citado con su id y
         // ruta, es contenido institucional local; cualquier alteración lo invalida.
         $answerVerificado = $this->esTextoVerificado($reply);
+        if (! $answerVerificado && is_string($reply['answer'] ?? null)
+            && isset(self::conocimiento()['porTexto'][$reply['answer']])) {
+            return false;
+        }
         $evidencia = $this->textoDeFuentes($reply);
         foreach (['answer', 'clarification_question'] as $campo) {
             if (! is_string($reply[$campo] ?? null)) {
@@ -625,7 +691,7 @@ class HorusAdvisorClient
     /**
      * Conocimiento institucional local, cacheado por proceso e invalidado al cambiar el archivo.
      *
-     * @return array{porTexto: array<string, list<array{id: string, url_path: string|null}>>, porId: array<string, array{texto: string, url_path: string|null}>, entidades: list<string>}
+     * @return array{porTexto: array<string, list<array{id: string, url_path: string|null}>>, porId: array<string, array{title: string, texto: string, url_path: string|null}>, entidades: list<string>}
      */
     private static function conocimiento(): array
     {
@@ -649,9 +715,30 @@ class HorusAdvisorClient
                 continue;
             }
             $url = is_string($record['source']['url_path'] ?? null) ? $record['source']['url_path'] : null;
-            $datos['porTexto'][$record['answer']][] = ['id' => $record['id'], 'url_path' => $url];
-            $texto = implode("\n", array_filter([$record['title'] ?? null, $record['description'] ?? null, $record['answer']], 'is_string'));
-            $datos['porId'][$record['id']] = ['texto' => $texto, 'url_path' => $url];
+            $respuestas = [$record['answer']];
+            if (is_string($record['general_information'] ?? null)) {
+                $respuestas[] = $record['general_information'];
+            }
+            if ($record['id'] === 'convenios_resumen') {
+                $respuestas[] = app(ConveniosPublicos::class)->listado();
+            }
+            if (is_string($record['detail_answer'] ?? null)) {
+                $respuestas[] = $record['detail_answer'];
+                foreach (preg_split('/(?<=[.;])\s+/u', $record['detail_answer']) ?: [] as $frase) {
+                    $frase = trim($frase);
+                    if (mb_strlen($frase) >= 10 && mb_strlen($frase) <= 600) {
+                        $respuestas[] = $frase;
+                    }
+                }
+            }
+            if (isset($record['public_card']['vigencia']) && is_string($record['title'] ?? null)) {
+                $respuestas[] = $record['title'].': Vigencia publicada hasta el '.$record['public_card']['vigencia'].'.';
+            }
+            foreach ($respuestas as $respuesta) {
+                $datos['porTexto'][$respuesta][] = ['id' => $record['id'], 'url_path' => $url];
+            }
+            $texto = implode("\n", array_filter([$record['title'] ?? null, $record['description'] ?? null, ...$respuestas], 'is_string'));
+            $datos['porId'][$record['id']] = ['title' => (string) ($record['title'] ?? ''), 'texto' => $texto, 'url_path' => $url];
             preg_match_all('/\b[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{1,25}(?:(?:\s+(?:de|del|la|las|los|y|san|santa))?[\s\-]+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{1,25})+\b/u', $texto, $coincidencias);
             array_push($entidades, ...$coincidencias[0]);
         }

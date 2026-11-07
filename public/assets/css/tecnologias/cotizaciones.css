@@ -1,0 +1,53 @@
+.carta-solicitar-cotizacion {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 48px;
+    margin-top: auto;
+    padding: 12px 20px;
+    border: 2px solid var(--primary-dark);
+    border-radius: 12px;
+    background: var(--primary-dark);
+    color: white;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.carta-solicitar-cotizacion:hover {
+    background: var(--accent-gold);
+    color: var(--primary-dark);
+}
+
+.carta-solicitar-cotizacion:focus-visible {
+    outline: 3px solid var(--accent-gold);
+    outline-offset: 4px;
+}
+
+.carta .carta-solicitar-cotizacion i {
+    font-size: 1rem;
+    color: inherit;
+}
+
+.carta-body .carta-solicitar-cotizacion {
+    margin-top: 24px;
+}
+
+.carta-videovigilancia .carta {
+    display: flex;
+    flex-direction: column;
+}
+
+.carta-videovigilancia .carta-imagen,
+.carta-videovigilancia .carta-icon {
+    flex-shrink: 0;
+}
+
+.carta-videovigilancia .carta > p,
+.carta-videovigilancia .carta > ul {
+    margin-bottom: 24px;
+}

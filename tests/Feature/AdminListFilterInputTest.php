@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Models\AprobacionInterna;
 use App\Models\AuditLog;
 use App\Models\Curso;
-use App\Models\ProcesoInterno;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -32,7 +31,6 @@ class AdminListFilterInputTest extends TestCase
             'admin.cursos.index' => ['busqueda', 'estado', 'categoria'],
             'admin.matriculas.index' => ['busqueda', 'estado', 'curso_id'],
             'admin.matriculas.csv' => ['busqueda', 'estado', 'curso_id'],
-            'admin.procesos.index' => ['busqueda', 'estado'],
             'admin.aprobaciones.index' => ['busqueda', 'estado'],
             'admin.usuarios.index' => ['busqueda'],
             'admin.auditoria.index' => ['accion', 'modelo', 'usuario'],
@@ -76,34 +74,28 @@ class AdminListFilterInputTest extends TestCase
             ->assertSee('value="'.$curso->id.'" selected', false);
     }
 
-    public function test_process_and_approval_status_filters_still_work(): void
+    public function test_approval_status_filters_still_work(): void
     {
         $admin = $this->adminUser();
-        ProcesoInterno::create(['titulo' => 'Proceso pendiente ficticio', 'estado' => 'pendiente', 'prioridad' => 'media']);
-        ProcesoInterno::create(['titulo' => 'Proceso cancelado ficticio', 'estado' => 'cancelado', 'prioridad' => 'baja']);
         AprobacionInterna::create(['titulo' => 'Solicitud aprobada ficticia', 'tipo' => 'compra', 'estado' => 'aprobado']);
         AprobacionInterna::create(['titulo' => 'Solicitud rechazada ficticia', 'tipo' => 'compra', 'estado' => 'rechazado']);
 
-        $this->actingAs($admin)->get(route('admin.procesos.index', ['estado' => 'cancelado']))
-            ->assertOk()->assertSee('Proceso cancelado ficticio')->assertDontSee('Proceso pendiente ficticio');
-        $this->get(route('admin.aprobaciones.index', ['estado' => 'aprobado']))
+        $this->actingAs($admin)->get(route('admin.aprobaciones.index', ['estado' => 'aprobado']))
             ->assertOk()->assertSee('Solicitud aprobada ficticia')->assertDontSee('Solicitud rechazada ficticia');
 
         // Comportamiento actual conservado: un estado desconocido filtra por ese valor (lista vacía).
-        $this->get(route('admin.procesos.index', ['estado' => 'inexistente']))
-            ->assertOk()->assertDontSee('Proceso cancelado ficticio')->assertDontSee('Proceso pendiente ficticio');
+        $this->get(route('admin.aprobaciones.index', ['estado' => 'inexistente']))
+            ->assertOk()->assertDontSee('Solicitud aprobada ficticia')->assertDontSee('Solicitud rechazada ficticia');
     }
 
     public function test_text_searches_in_remaining_modules_ignore_ascii_case(): void
     {
         $admin = $this->adminUser();
         User::factory()->create(['name' => 'ROSA FICTICIA', 'email' => 'rosa.ficticia@example.invalid']);
-        ProcesoInterno::create(['titulo' => 'REVISION DE SILABOS', 'estado' => 'pendiente', 'prioridad' => 'media']);
         AprobacionInterna::create(['titulo' => 'COMPRA DE PROYECTOR', 'tipo' => 'compra', 'estado' => 'pendiente']);
         AuditLog::record('EXPORTACION_FICTICIA', null, null, [], $admin->id);
 
         $this->actingAs($admin)->get(route('admin.usuarios.index', ['busqueda' => 'rosa']))->assertOk()->assertSee('ROSA FICTICIA');
-        $this->get(route('admin.procesos.index', ['busqueda' => 'silabos']))->assertOk()->assertSee('REVISION DE SILABOS');
         $this->get(route('admin.aprobaciones.index', ['busqueda' => 'proyector']))->assertOk()->assertSee('COMPRA DE PROYECTOR');
         $this->get(route('admin.auditoria.index', ['accion' => 'exportacion']))->assertOk()->assertSee('EXPORTACION_FICTICIA');
     }

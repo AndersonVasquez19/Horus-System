@@ -6,7 +6,7 @@ import ipaddress
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -31,6 +31,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         # Variables ajenas (OPENAI_API_KEY, RESEND_API_KEY, DB_*) se ignoran: este servicio no las usa.
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
     app_name: str = "Horus AI Advisor"
@@ -39,6 +40,15 @@ class Settings(BaseSettings):
     allow_non_loopback: bool = False
 
     service_token: SecretStr | None = None
+
+    gemini_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("GEMINI_API_KEY", "gemini_api_key"), repr=False
+    )
+    gemini_model: str = Field(
+        default="gemini-3.1-flash-lite",
+        validation_alias=AliasChoices("GEMINI_MODEL", "gemini_model"),
+        pattern=r"^gemini-[a-z0-9][a-z0-9._-]{0,62}$",
+    )
 
     knowledge_path: Path = DATA_DIR / "knowledge.json"
     intents_path: Path = DATA_DIR / "intents.json"
@@ -73,7 +83,14 @@ class Settings(BaseSettings):
             None if isinstance(value, str) and not value.strip() else value
         )  # "HORUS_AI_CATALOG_PATH=" = sin catálogo
 
-    @field_validator("semantic_model_dir", "knowledge_path", "intents_path", "catalog_path", "semantic_cache_dir", mode="after")
+    @field_validator(
+        "semantic_model_dir",
+        "knowledge_path",
+        "intents_path",
+        "catalog_path",
+        "semantic_cache_dir",
+        mode="after",
+    )
     @classmethod
     def _resolve_relative(cls, value: Path | None) -> Path | None:
         if value is None:

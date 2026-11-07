@@ -153,7 +153,7 @@ def test_no_external_http_during_requests(client: TestClient, auth: dict[str, st
 
 
 def test_source_has_no_network_or_execution_primitives() -> None:
-    """El código de la app no importa clientes HTTP, OpenAI, subprocess ni evalúa código."""
+    """Solo el adaptador Gemini autorizado puede importar HTTPX; el resto permanece sin red."""
     forbidden_modules = {
         "openai",
         "resend",
@@ -180,8 +180,9 @@ def test_source_has_no_network_or_execution_primitives() -> None:
                 raise AssertionError(f"{path.name} usa {node.func.id}()")
             else:
                 continue
-            assert not names & forbidden_modules, (
-                f"{path.relative_to(PROJECT_ROOT)} importa {names & forbidden_modules}"
+            allowed = {"httpx"} if path == PROJECT_ROOT / "app/services/gemini.py" else set()
+            assert not names & (forbidden_modules - allowed), (
+                f"{path.relative_to(PROJECT_ROOT)} importa {names & (forbidden_modules - allowed)}"
             )
 
 

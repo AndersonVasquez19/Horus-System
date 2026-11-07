@@ -59,9 +59,20 @@ class FuentesCatalogoAdvisor
                 $partes[] = 'Fuente: catálogo publicado por Horus Group actualizado el '.substr($item['updated_at'], 0, 10).').';
                 $fuentes[$id] = ['title' => $item['title'], 'url_path' => $item['url_path'] ?? null,
                     'answer' => mb_substr(implode(' ', $partes), 0, 1500),
-                    'fragments' => array_map(static fn (string $texto): string => $item['title'].': '.$texto
+                    'fragments' => [$item['title'].': '.$item['summary'], ...array_map(static fn (string $texto): string => $item['title'].': '.$texto
                         .' Fuente: catálogo publicado por Horus Group actualizado el '.substr($item['updated_at'], 0, 10).').',
-                        FragmentosCatalogoAdvisor::textos(($item['details'] ?? '') ?: $item['summary']))];
+                        FragmentosCatalogoAdvisor::textos(($item['details'] ?? '') ?: $item['summary']))]];
+                foreach (['duration_text' => 'duración publicada', 'schedule_text' => 'horario publicado'] as $campo => $etiqueta) {
+                    if (! empty($item[$campo])) {
+                        $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: '.$etiqueta.': '.$item[$campo].'.';
+                    }
+                }
+                if (! empty($item['modalities'])) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: modalidad publicada: '.implode(', ', $item['modalities']).'.';
+                }
+                if (! empty($item['requirements'])) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: requisitos publicados: '.implode('; ', $item['requirements']).'.';
+                }
                 if ($item['type'] === 'curso') {
                     $cursos[] = $item['title'];
                 } else {

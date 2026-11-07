@@ -9,7 +9,7 @@ use RuntimeException;
 
 /**
  * Datos de ejemplo para bases locales desechables. No crea usuarios ni contraseñas.
- * Si existen cuentas con los correos de ejemplo, los procesos y aprobaciones se vinculan a ellas.
+ * Si existen cuentas con los correos de ejemplo, los avisos y aprobaciones se vinculan a ellas.
  */
 class DemoDataSeeder extends Seeder
 {

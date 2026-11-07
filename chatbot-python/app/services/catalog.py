@@ -165,7 +165,8 @@ def to_records(catalog: PublicCatalog, now: datetime) -> tuple[list[KnowledgeRec
                 kind=KIND[item.type],
                 title=item.title,
                 description=(item.summary + (" " + item.details if item.details else ""))[:1500],
-                answer=answer,
+                answer=f"{item.title}: {item.summary}" if status == "verified" else answer,
+                detail_answer=answer if status == "verified" else None,
                 status=status,
                 source=Source(
                     kind="catalogo_laravel",

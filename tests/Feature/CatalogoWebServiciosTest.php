@@ -64,10 +64,25 @@ class CatalogoWebServiciosTest extends TestCase
         DB::flushQueryLog();
         $respuesta = $this->get(route('tecnologias.soporte', ['servicios_pagina' => ['invalida']]));
         $respuesta->assertOk()->assertSee('MANTENIMIENTO PREVENTIVO')->assertDontSee('id="catalogo-servicios"', false);
+        foreach (['CONFIGURACIÓN E INSTALACIÓN', 'MANTENIMIENTO PREVENTIVO', 'ASESORÍA Y CAPACITACIÓN'] as $servicio) {
+            $respuesta->assertSee('aria-label="Solicitar cotización de '.$servicio.'"', false)
+                ->assertSee('data-servicio="'.$servicio.'"', false);
+        }
         $this->assertSame([], DB::getQueryLog());
         $this->assertStringContainsString('no-store', $respuesta->headers->get('Cache-Control'));
         $original = view('pages.tecnologias.soporte-mantenimiento')->render();
         $this->assertSame($original, $respuesta->getContent());
+        Http::assertNothingSent();
+    }
+
+    public function test_boton_de_cotizacion_escapa_el_titulo_editorial_sin_interpolarlo_en_javascript(): void
+    {
+        $titulo = 'Servicio "especial" <img src=x onerror=alert(1)> & prueba';
+        $html = view('components.public.solicitar-cotizacion', ['servicio' => $titulo])->render();
+
+        $this->assertStringContainsString('data-servicio="'.e($titulo).'"', $html);
+        $this->assertStringNotContainsString('<img', $html);
+        $this->assertStringContainsString('servicio: $el.dataset.servicio', $html);
         Http::assertNothingSent();
     }
 

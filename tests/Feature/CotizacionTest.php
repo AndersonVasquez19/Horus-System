@@ -405,7 +405,7 @@ class CotizacionTest extends TestCase
         $this->postJson('/api/cotizaciones', $this->datos())->assertNotFound();
         $this->deleteJson("/admin/cotizaciones/$uuid")->assertStatus(405);
         $this->getJson('/admin/cotizaciones/999999')->assertNotFound();
-        $this->assertFalse(config('catalogo-publico.enabled'));
+        $this->assertTrue(config('catalogo-publico.enabled'));
         $this->assertFalse(config('chatbot.public_catalog_enabled'));
         $this->assertFalse(config('horus-advisor.enabled'));
     }

@@ -46,6 +46,7 @@
                     @endforeach
                 </ul>
                 @endif
+                <x-public.solicitar-cotizacion :servicio="$tarjeta['titulo']" />
             </article>
             @endforeach
         </div>

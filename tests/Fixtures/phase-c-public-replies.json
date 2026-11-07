@@ -35,7 +35,7 @@
     {
       "query": "Me interesa estudiar Python",
       "reply": {
-        "answer": "Analisis de datos con Python: Aprende analisis de datos con Python. Modalidad publicada: virtual. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-04).",
+        "answer": "Analisis de datos con Python: Aprende analisis de datos con Python.",
         "intent": "course_recommendation",
         "match_level": "alta",
         "needs_clarification": false,
@@ -84,7 +84,7 @@
     {
       "query": "Necesito contratar redes empresariales",
       "reply": {
-        "answer": "Redes empresariales: Instalacion y mantenimiento de redes empresariales. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-04).",
+        "answer": "Redes empresariales: Instalacion y mantenimiento de redes empresariales.",
         "intent": "service_recommendation",
         "match_level": "alta",
         "needs_clarification": false,

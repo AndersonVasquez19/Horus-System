@@ -9,7 +9,7 @@ Guía técnica para asistentes de código que modifican **esta carpeta**. Define
 
 ## 1. Sistema y stack
 
-Sitio público y panel administrativo de Horus Group SRL (Cajamarca): estudiantes, cursos, matrículas, usuarios/roles, procesos internos, reportes, publicación editorial de cursos y asistente virtual.
+Sitio público y panel administrativo de Horus Group SRL (Cajamarca): estudiantes, cursos, matrículas, usuarios/roles, aprobaciones, reportes, publicación editorial de cursos y asistente virtual. Procesos fue retirado del panel sin eliminar su histórico (ver `docs/retiro-procesos.md`).
 
 | Capa | Tecnología |
 | --- | --- |
@@ -21,7 +21,7 @@ Sitio público y panel administrativo de Horus Group SRL (Cajamarca): estudiante
 ### Mapa de directorios
 
 - **Rutas:** `routes/web.php` (público, auth, `/admin`, chat), `routes/api.php` (`/api/auth/*`), `routes/console.php` (scheduler: `horus:matriculas-notificar` cada minuto). `bootstrap/app.php` registra alias de middleware (`role`, `permission`, `role_or_permission`, `jwt.auth`), salud en `/up` y las salvaguardas de pruebas.
-- **Controladores:** `app/Http/Controllers/{Admin,Api,Auth}`; el público `CursosPublicosController` existe pero **no está enrutado** (`/educacion/cursos` es una vista estática, ver §4). **Requests:** `app/Http/Requests/` (cursos, estudiantes, matrículas, reportes, publicación). **Middleware JWT:** `app/Http/Middleware/AuthenticateJwt.php`.
+- **Controladores:** `app/Http/Controllers/{Admin,Api,Auth}`; `CursosPublicosController` atiende `/educacion/cursos` y filtra fichas autorizadas por modalidad (ver §4). **Requests:** `app/Http/Requests/` (cursos, estudiantes, matrículas, reportes, publicación). **Middleware JWT:** `app/Http/Middleware/AuthenticateJwt.php`.
 - **Servicios** (`app/Services/`): `AdminProtection`, `AsistenteVirtualService`, `CatalogoPublicoCursos`, `JwtTokenService`, `MatriculaNotificationService`, `MatriculasExcelExport`.
 - **Soporte** (`app/Support/`): `ChatKnowledge`, `ChatIntentMatcher`, `ChatCursosPublicos`, `PasswordPolicy`, `SessionRevoker`, `SafeSpreadsheet`, `SpreadsheetCellCache`, `TemporaryExportFile`, `SensitiveData`, `OldInput`, `ListFilter`, `Email`.
 - **Pruebas aisladas PostgreSQL:** `app/Support/Testing/` y `config/pgsql-testing-database.php`. Forman parte del arranque (`bootstrap/app.php`); no las debilites.
@@ -91,7 +91,7 @@ Entorno Windows: PowerShell, rutas relativas a la raíz. Existe `composer.phar` 
 - `Curso` es información administrativa; **`estado=activo` no es autorización editorial**. La ficha pública vive aparte en `curso_publicaciones` (`CursoPublicacion`) y nunca se rellena ni se publica automáticamente desde datos administrativos.
 - Rutas: `GET|PUT|DELETE /admin/cursos/{curso}/publicacion`, con permiso `cursos.publicar`. Las escrituras son transaccionales, bloquean el curso y escriben auditoría (`curso_publicado`, `curso_despublicado`). La elegibilidad se relee tras la validación HTTP. La asignación de autor ocurre en el servidor desde la lista validada de `PublicarCursoRequest`.
 - `CatalogoPublicoCursos::vigentes()` es la única consulta pública: ficha autorizada, vigente (días completos en `America/Lima`) y curso activo no eliminado. Proyecta solo campos editoriales; nunca precio, cupos, matrículas, estudiantes ni metadatos de autorización.
-- **El catálogo dinámico del asistente está apagado por defecto** (`chatbot.public_catalog_enabled=false`) y la página pública sigue estática. No cambies ese valor ni enrutes `CursosPublicosController` para conseguir que algo pase; las pruebas pueden simular la activación con `config([...])`. Detalle y límites: `docs/sprint-09-publicacion-cursos.md` (sección «Estado posterior») y `docs/restauracion-web-publica.md`.
+- **El catálogo dinámico del asistente sigue apagado por defecto** (`chatbot.public_catalog_enabled=false`). El propietario autorizó el 06/11/2026 el catálogo de la web (`catalogo-publico.enabled=true`) en Educación → Cursos, con las modalidades presencial, virtual y semipresencial. Crear un curso no crea ni autoriza su ficha pública; se mantiene la revisión y el permiso `cursos.publicar`. `hibrido` conserva su compatibilidad sin reclasificar datos existentes. Las pruebas pueden simular el catálogo web apagado con `config([...])`. Alcance actual: `docs/cursos-publicacion-modalidades.md`; los sprints anteriores conservan su contexto histórico.
 
 ### Salidas de datos
 

@@ -56,6 +56,8 @@ def find_record_privacy_violations(
                 record.title,
                 record.description,
                 record.answer,
+                record.detail_answer or "",
+                record.general_information or "",
                 record.notes or "",
                 *record.requirements,
                 record.duration or "",
@@ -91,6 +93,13 @@ def load_knowledge_file(path: Path) -> KnowledgeFile:
     problems = find_privacy_violations(data)
     if problems:
         raise KnowledgeError("Posibles datos privados en el conocimiento: " + "; ".join(problems))
+    cards = [r for r in data.records if r.public_card is not None]
+    if cards:
+        if len({r.public_card.id for r in cards if r.public_card}) != len(cards):
+            raise KnowledgeError("El conocimiento repite identificadores de tarjetas de convenios.")
+        listing = next((r for r in data.records if r.id == "convenios_resumen"), None)
+        if listing is not None:
+            listing.answer = "Tenemos convenios con:\n" + "\n".join(f"- {r.title}" for r in cards)
     return data
 
 
@@ -191,6 +200,13 @@ class KnowledgeBase:
                 r for r in records
                 if r.kind not in managed_kinds and not set(r.superseded_by_catalog) & managed_types
             ]
+            # La oferta editorial se retira; la explicación institucional de la web sigue siendo información.
+            if "servicio" in managed_types:
+                records = [r for r in records if r.general_information is None]
+                records += [r.model_copy(update={"kind": "info", "recommendable": False,
+                    "answer": r.general_information, "requirements": [], "duration": None,
+                    "schedule": None, "public_price": None})
+                    for r in self.data.records if r.general_information and r.status == "verified"]
             clash = {r.id for r in records} & {r.id for r in self.catalog.records}
             if clash:
                 raise KnowledgeError(f"El catálogo repite identificadores del conocimiento: {sorted(clash)}")

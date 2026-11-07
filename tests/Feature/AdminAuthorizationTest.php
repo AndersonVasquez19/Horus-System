@@ -9,7 +9,6 @@ use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\ProcesoInterno;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,8 +56,6 @@ class AdminAuthorizationTest extends TestCase
             'usuarios.index' => ['admin.usuarios.index', ['admin']],
             'usuarios.create' => ['admin.usuarios.create', ['admin']],
             'roles.index' => ['admin.roles.index', ['admin']],
-            'procesos.index' => ['admin.procesos.index', ['admin', 'coordinador']],
-            'procesos.create' => ['admin.procesos.create', ['admin']],
             'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
             'notificaciones.index' => ['admin.notificaciones.index', self::ALL],
             'reportes.index' => ['admin.reportes.index', self::ALL],
@@ -219,10 +216,9 @@ class AdminAuthorizationTest extends TestCase
         // transacción envolvente de RefreshDatabase que la salvaguarda de snapshot rechaza en PostgreSQL.
     }
 
-    public function test_only_admin_manages_users_roles_settings_and_processes(): void
+    public function test_only_admin_manages_users_roles_and_settings(): void
     {
         $objetivo = User::factory()->create();
-        $proceso = ProcesoInterno::create(['titulo' => 'Proceso', 'estado' => 'pendiente', 'prioridad' => 'media']);
         $rol = Role::findByName('secretaria');
 
         foreach (['coordinador', 'secretaria'] as $role) {
@@ -235,25 +231,12 @@ class AdminAuthorizationTest extends TestCase
             $this->put(route('admin.roles.update', $rol), ['name' => 'renombrado'])->assertForbidden();
             $this->delete(route('admin.roles.destroy', $rol))->assertForbidden();
             $this->put(route('admin.configuracion.update'), ['settings' => ['moneda' => 'X']])->assertForbidden();
-            $this->post(route('admin.procesos.store'), [])->assertForbidden();
-            $this->get(route('admin.procesos.edit', $proceso))->assertForbidden();
-            $this->delete(route('admin.procesos.destroy', $proceso))->assertForbidden();
         }
 
         $this->assertModelExists($objetivo);
-        $this->assertModelExists($proceso);
         $this->assertDatabaseHas('roles', ['id' => $rol->id, 'name' => 'secretaria']);
         $this->assertDatabaseMissing('roles', ['name' => 'nuevo']);
         $this->assertDatabaseMissing('system_settings', ['key' => 'moneda', 'value' => 'X']);
-    }
-
-    public function test_process_detail_requires_process_permission(): void
-    {
-        $proceso = ProcesoInterno::create(['titulo' => 'Proceso', 'estado' => 'pendiente', 'prioridad' => 'media']);
-
-        $this->actingAs($this->staff('secretaria'))
-            ->get(route('admin.procesos.show', $proceso))
-            ->assertForbidden();
     }
 
     public function test_secretaria_cannot_manage_approvals_or_use_the_assistant(): void

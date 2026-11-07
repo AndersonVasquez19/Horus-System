@@ -15,6 +15,12 @@
                 <h1 class="admin-page-title">{{ $curso->nombre }}</h1>
             </div>
             <div class="flex flex-wrap gap-3">
+                @can('cursos.publicar')
+                    <a href="{{ route('admin.cursos.publicacion.edit', $curso) }}" class="admin-btn-outline">
+                        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+                        Publicación web
+                    </a>
+                @endcan
                 @can('matriculas.crear')
                     @if ($curso->estado === 'activo' && $curso->cupos_disponibles > 0)
                         <a href="{{ route('admin.matriculas.create', ['curso_id' => $curso->id]) }}" class="admin-btn-primary">

@@ -118,7 +118,7 @@
  {
   "q": "¿Qué convenios tienen?",
   "r": {
-   "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -149,7 +149,7 @@
  {
   "q": "¿Tienen convenio con el Colegio de Economistas?",
   "r": {
-   "answer": "Por convenio con el Colegio de Economistas de Cajamarca, vigente hasta el 6 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de la Ciencia Económica, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Economistas de Cajamarca para talleres, charlas, cursos y diplomados en Ciencia Económica.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -161,7 +161,7 @@
    "sources": [
     {
      "id": "convenio_economia",
-     "title": "Formación en Ciencia Económica por convenio",
+     "title": "Colegio de Economistas de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
@@ -180,9 +180,9 @@
  {
   "q": "¿Trabajan con el Colegio de Licenciados en Administración?",
   "r": {
-   "answer": "Por convenio con el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), vigente hasta el 17 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de las Ciencias Administrativas, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio Regional de Licenciados en Administración de Cajamarca para talleres, charlas, cursos y diplomados en Ciencias Administrativas.",
    "intent": "agreement_info",
-   "match_level": "media",
+   "match_level": "alta",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -192,7 +192,7 @@
    "sources": [
     {
      "id": "convenio_administracion",
-     "title": "Formación en Ciencias Administrativas por convenio",
+     "title": "Colegio Regional de Licenciados en Administración de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
@@ -240,7 +240,7 @@
  {
   "q": "¿Cuál es la visión de Horus?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -271,7 +271,7 @@
  {
   "q": "¿Cuál es la misión de la empresa?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -304,7 +304,7 @@
  {
   "q": "Hacen soporte técnico a domicilio",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
    "intent": "service_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -337,7 +337,7 @@
  {
   "q": "Mantenimiento preventivo de laptops",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -402,7 +402,7 @@
  {
   "q": "¿Tienen convenio con el Colegio de Enfermeros de La Libertad?",
   "r": {
-   "answer": "Por convenio con el Colegio de Enfermeros de Cajamarca - CR XIII (vigente hasta el 18 de julio de 2027) y con el Colegio de Enfermeros del Perú - CR II La Libertad (vigente hasta el 4 de junio de 2029), Horus Group realiza talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Según la web, los certificados del convenio de Cajamarca llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Enfermeros de Cajamarca - CR XIII para talleres, charlas, cursos y diplomados en Enfermería.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -414,7 +414,7 @@
    "sources": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "url_path": "/#convenios"
     }
    ],
@@ -687,7 +687,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -705,7 +705,7 @@
  {
   "q": "¿Qué convenios tienen?",
   "r": {
-   "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -721,7 +721,7 @@
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -736,7 +736,7 @@
  {
   "q": "¿Tienen convenio con el Colegio de Economistas?",
   "r": {
-   "answer": "Por convenio con el Colegio de Economistas de Cajamarca, vigente hasta el 6 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de la Ciencia Económica, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Economistas de Cajamarca para talleres, charlas, cursos y diplomados en Ciencia Económica.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -748,11 +748,11 @@
    "sources": [
     {
      "id": "convenio_economia",
-     "title": "Formación en Ciencia Económica por convenio",
+     "title": "Colegio de Economistas de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -767,9 +767,9 @@
  {
   "q": "¿Trabajan con el Colegio de Licenciados en Administración?",
   "r": {
-   "answer": "Por convenio con el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), vigente hasta el 17 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de las Ciencias Administrativas, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio Regional de Licenciados en Administración de Cajamarca para talleres, charlas, cursos y diplomados en Ciencias Administrativas.",
    "intent": "agreement_info",
-   "match_level": "media",
+   "match_level": "alta",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -779,11 +779,11 @@
    "sources": [
     {
      "id": "convenio_administracion",
-     "title": "Formación en Ciencias Administrativas por convenio",
+     "title": "Colegio Regional de Licenciados en Administración de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -827,7 +827,7 @@
  {
   "q": "¿Cuál es la visión de Horus?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -843,7 +843,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -858,7 +858,7 @@
  {
   "q": "¿Cuál es la misión de la empresa?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -874,7 +874,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -891,7 +891,7 @@
  {
   "q": "Hacen soporte técnico a domicilio",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
    "intent": "service_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -907,7 +907,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -924,7 +924,7 @@
  {
   "q": "Mantenimiento preventivo de laptops",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -940,7 +940,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -989,7 +989,7 @@
  {
   "q": "¿Tienen convenio con el Colegio de Enfermeros de La Libertad?",
   "r": {
-   "answer": "Por convenio con el Colegio de Enfermeros de Cajamarca - CR XIII (vigente hasta el 18 de julio de 2027) y con el Colegio de Enfermeros del Perú - CR II La Libertad (vigente hasta el 4 de junio de 2029), Horus Group realiza talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Según la web, los certificados del convenio de Cajamarca llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Enfermeros de Cajamarca - CR XIII para talleres, charlas, cursos y diplomados en Enfermería.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1001,11 +1001,11 @@
    "sources": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -1042,7 +1042,7 @@
      "url_path": "/tecnologias/camaras-seguridad"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -1098,7 +1098,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -1271,7 +1271,7 @@
  {
   "q": "Convenio con el Colegio de Economistas de Cajamarca",
   "r": {
-   "answer": "Por convenio con el Colegio de Economistas de Cajamarca, vigente hasta el 6 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de la Ciencia Económica, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Economistas de Cajamarca para talleres, charlas, cursos y diplomados en Ciencia Económica.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1283,7 +1283,7 @@
    "sources": [
     {
      "id": "convenio_economia",
-     "title": "Formación en Ciencia Económica por convenio",
+     "title": "Colegio de Economistas de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
@@ -1302,7 +1302,7 @@
  {
   "q": "¿Tienen convenio con CORLAD?",
   "r": {
-   "answer": "Por convenio con el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), vigente hasta el 17 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de las Ciencias Administrativas, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "La empresa Horus Group SRL firma convenio con el Colegio Regional de Licenciados en Administración de Cajamarca - CORLAD - a través de su representante el Decano Dr.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1314,7 +1314,7 @@
    "sources": [
     {
      "id": "convenio_administracion",
-     "title": "Formación en Ciencias Administrativas por convenio",
+     "title": "Colegio Regional de Licenciados en Administración de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
@@ -1475,7 +1475,7 @@
  {
   "q": "¿Cuál es el horario de atención?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1626,7 +1626,7 @@
  {
   "q": "¿Cuál es su política de devolución?",
   "r": {
-   "answer": "Según /politicas-devolucion, en talleres, cursos, capacitaciones y diplomados la devolución del monto pagado procede solo en los casos que lo ameriten, por ejemplo casos fortuitos o de fuerza mayor, actividades con características distintas a las ofrecidas o incumplimiento en los días de capacitación. Las solicitudes se atienden por correo en horusgroupcajamarca@gmail.com. Revisa la política completa para tu caso.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1657,7 +1657,7 @@
  {
   "q": "¿Qué es Horus Group?",
   "r": {
-   "answer": "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+   "answer": "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1688,7 +1688,7 @@
  {
   "q": "Cuéntame sobre la empresa",
   "r": {
-   "answer": "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+   "answer": "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1721,7 +1721,7 @@
  {
   "q": "¿A qué se dedica Horus?",
   "r": {
-   "answer": "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+   "answer": "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1752,7 +1752,7 @@
  {
   "q": "¿Cuál es la misión de Horus?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1783,7 +1783,7 @@
  {
   "q": "¿Qué visión tiene la empresa?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2004,7 +2004,7 @@
  {
   "q": "¿A qué hora atienden?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2035,7 +2035,7 @@
  {
   "q": "¿Abren los sábados?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00;",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2066,7 +2066,7 @@
  {
   "q": "¿Cuál es su horario?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2161,7 +2161,7 @@
  {
   "q": "¿Qué servicios ofrecen?",
   "r": {
-   "answer": "Los servicios tecnológicos publicados son: cámaras de seguridad y videovigilancia (/tecnologias/camaras-seguridad), cableado estructurado y redes LAN (/tecnologias/cableado-estructurado), y soporte y mantenimiento de equipos informáticos (/tecnologias/soporte-mantenimiento). Además hay cursos, capacitaciones y asesoramiento educativo, empresarial y legal.",
+   "answer": "Ofrecemos cámaras de seguridad, cableado estructurado y redes LAN, y soporte y mantenimiento de equipos informáticos.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2192,7 +2192,7 @@
  {
   "q": "¿Qué soluciones tecnológicas brindan?",
   "r": {
-   "answer": "Los servicios tecnológicos publicados son: cámaras de seguridad y videovigilancia (/tecnologias/camaras-seguridad), cableado estructurado y redes LAN (/tecnologias/cableado-estructurado), y soporte y mantenimiento de equipos informáticos (/tecnologias/soporte-mantenimiento). Además hay cursos, capacitaciones y asesoramiento educativo, empresarial y legal.",
+   "answer": "Ofrecemos cámaras de seguridad, cableado estructurado y redes LAN, y soporte y mantenimiento de equipos informáticos.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2279,7 +2279,7 @@
  {
   "q": "¿Ponen cámaras de vigilancia?",
   "r": {
-   "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones. La web presenta cámaras IP, analógicas, Full HD, domo, de 360° y fijas tipo bala, con funciones como sensores de movimiento, alarma vía email, visión nocturna y visualización desde tu computadora o celular. Detalle en /tecnologias/camaras-seguridad.",
+   "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2686,7 +2686,7 @@
  {
   "q": "Se calienta mi laptop",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2720,7 +2720,7 @@
  {
   "q": "Configuren las impresoras de la empresa",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores.",
    "intent": "service_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -2821,7 +2821,7 @@
  {
   "q": "¿Los cursos son virtuales?",
   "r": {
-   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+   "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse en su ficha publicada o con un asesor.",
    "intent": "training_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -2854,7 +2854,7 @@
  {
   "q": "¿Tienen clases online?",
   "r": {
-   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar).",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2887,7 +2887,7 @@
  {
   "q": "¿Cómo funciona lo semipresencial?",
   "r": {
-   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+   "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse en su ficha publicada o con un asesor.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3042,7 +3042,7 @@
  {
   "q": "¿Qué capacitaciones ofrecen?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Ofrecemos capacitaciones empresariales personalizadas, en modalidad presencial u online, con certificación incluida.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3075,7 +3075,7 @@
  {
   "q": "¿Ofrecen capacitación para empresas?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3108,7 +3108,7 @@
  {
   "q": "¿Qué capacitaciones tienen disponibles?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Ofrecemos capacitaciones empresariales personalizadas, en modalidad presencial u online, con certificación incluida.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3257,7 +3257,7 @@
  {
   "q": "¿Dan capacitaciones a instituciones?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3290,7 +3290,7 @@
  {
   "q": "¿Tienen clases personalizadas?",
   "r": {
-   "answer": "La formación personalizada consiste en capacitaciones personales y grupales adaptadas a tus necesidades educativas, profesionales y laborales, con atención individualizada, horarios flexibles, seguimiento continuo y certificación. Fuente: /educacion/capacitaciones. Los temas disponibles deben confirmarse con un asesor.",
+   "answer": "Ofrecemos capacitaciones personales y grupales adaptadas a tus necesidades educativas, profesionales y laborales.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3352,7 +3352,7 @@
  {
   "q": "¿Puedo certificar mi experiencia laboral?",
   "r": {
-   "answer": "Horus Group presenta certificaciones profesionales: actualización de conocimientos teóricos y experiencia laboral mediante exámenes de certificación en diferentes áreas profesionales y laborales. Las áreas concretas, requisitos y fechas deben confirmarse con un asesor. Fuente: /educacion/capacitaciones.",
+   "answer": "Horus Group presenta certificaciones profesionales: actualización de conocimientos teóricos y experiencia laboral mediante exámenes de certificación en diferentes áreas profesionales y laborales.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3385,7 +3385,7 @@
  {
   "q": "¿Tienen exámenes de certificación?",
   "r": {
-   "answer": "Horus Group presenta certificaciones profesionales: actualización de conocimientos teóricos y experiencia laboral mediante exámenes de certificación en diferentes áreas profesionales y laborales. Las áreas concretas, requisitos y fechas deben confirmarse con un asesor. Fuente: /educacion/capacitaciones.",
+   "answer": "Ofrecemos actualización profesional mediante exámenes de certificación.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3447,7 +3447,7 @@
  {
   "q": "¿Con qué instituciones tienen convenio?",
   "r": {
-   "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3478,7 +3478,7 @@
  {
   "q": "¿Sus certificados sirven para postular al Estado?",
   "r": {
-   "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+   "answer": "…marca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados.",
    "intent": "agreement_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -3509,7 +3509,7 @@
  {
   "q": "Soy enfermera, ¿qué cursos tienen para mí?",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Formación en Enfermería por convenio: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Colegio de Enfermeros de Cajamarca - CR XIII: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
    "intent": "course_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3518,7 +3518,7 @@
    "recommendations": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "kind": "agreement",
      "reason": "Coincide con tu interés en enfermería; está dirigida a personas.",
      "evidence": [
@@ -3546,7 +3546,7 @@
    "sources": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "url_path": "/#convenios"
     }
    ],
@@ -3568,7 +3568,7 @@
  {
   "q": "¿Hay diplomados de enfermería?",
   "r": {
-   "answer": "Por convenio con el Colegio de Enfermeros de Cajamarca - CR XIII (vigente hasta el 18 de julio de 2027) y con el Colegio de Enfermeros del Perú - CR II La Libertad (vigente hasta el 4 de junio de 2029), Horus Group realiza talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Según la web, los certificados del convenio de Cajamarca llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Enfermeros de Cajamarca - CR XIII para talleres, charlas, cursos y diplomados en Enfermería.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3580,7 +3580,7 @@
    "sources": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "url_path": "/#convenios"
     }
    ],
@@ -3602,7 +3602,7 @@
  {
   "q": "Soy administrador, ¿qué capacitaciones hay para mí?",
   "r": {
-   "answer": "Por convenio con el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), vigente hasta el 17 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de las Ciencias Administrativas, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio Regional de Licenciados en Administración de Cajamarca para talleres, charlas, cursos y diplomados en Ciencias Administrativas.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3614,7 +3614,7 @@
    "sources": [
     {
      "id": "convenio_administracion",
-     "title": "Formación en Ciencias Administrativas por convenio",
+     "title": "Colegio Regional de Licenciados en Administración de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
@@ -3636,7 +3636,7 @@
  {
   "q": "Soy economista, ¿tienen algo para mí?",
   "r": {
-   "answer": "Por convenio con el Colegio de Economistas de Cajamarca, vigente hasta el 6 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de la Ciencia Económica, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Economistas de Cajamarca para talleres, charlas, cursos y diplomados en Ciencia Económica.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3648,7 +3648,7 @@
    "sources": [
     {
      "id": "convenio_economia",
-     "title": "Formación en Ciencia Económica por convenio",
+     "title": "Colegio de Economistas de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
@@ -3696,7 +3696,7 @@
  {
   "q": "¿Qué tipo de asesoramiento brindan?",
   "r": {
-   "answer": "Horus Group brinda asesoramiento educativo, empresarial y legal con atención personalizada, en modalidad presencial u online. Según /educacion/asesoramiento, ante una consulta el equipo brinda orientación en un plazo máximo de 48 horas hábiles. Para solicitarlo, escribe al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Ofrecemos asesoramiento educativo, empresarial y legal, en modalidad presencial u online.",
    "intent": "advisory_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3727,7 +3727,7 @@
  {
   "q": "¿Cómo pido una asesoría?",
   "r": {
-   "answer": "Horus Group brinda asesoramiento educativo, empresarial y legal con atención personalizada, en modalidad presencial u online. Según /educacion/asesoramiento, ante una consulta el equipo brinda orientación en un plazo máximo de 48 horas hábiles. Para solicitarlo, escribe al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Ofrecemos asesoramiento educativo, empresarial y legal, en modalidad presencial u online.",
    "intent": "advisory_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4335,7 +4335,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Según /politicas-devolucion, en talleres, cursos, capacitaciones y diplomados la devolución del monto pagado procede solo en los casos que lo ameriten, por ejemplo casos fortuitos o de fuerza mayor, actividades con características distintas a las ofrecidas o incumplimiento en los días de capacitación. Las solicitudes se atienden por correo en horusgroupcajamarca@gmail.com. Revisa la política completa para tu caso.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4424,7 +4424,7 @@
  {
   "q": "¿Qué es Horus Group?",
   "r": {
-   "answer": "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+   "answer": "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4440,7 +4440,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4455,7 +4455,7 @@
  {
   "q": "Cuéntame sobre la empresa",
   "r": {
-   "answer": "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+   "answer": "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4471,7 +4471,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -4488,7 +4488,7 @@
  {
   "q": "¿A qué se dedica Horus?",
   "r": {
-   "answer": "Horus Group SRL es una empresa cajamarquina especializada en soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú. Trabaja en tres líneas: servicios tecnológicos (cámaras de seguridad, cableado estructurado y redes LAN, soporte y mantenimiento), educación (cursos y capacitaciones) y asesoramiento educativo, empresarial y legal. Más información en /quienes-somos.",
+   "answer": "Horus Group SRL es una empresa cajamarquina que ofrece servicios tecnológicos, cursos, capacitaciones y asesoramiento.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4504,7 +4504,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4519,7 +4519,7 @@
  {
   "q": "¿Cuál es la misión de Horus?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4535,7 +4535,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4550,7 +4550,7 @@
  {
   "q": "¿Qué visión tiene la empresa?",
   "r": {
-   "answer": "Misión: «Somos una empresa cajamarquina que busca el desarrollo y crecimiento de la comunidad a través de los diferentes servicios de tecnología y capacitaciones que brindamos, con calidad y vocación». Visión: lograr ser una empresa reconocida en la Región de Cajamarca, como líder en el desarrollo de competencias tecnológicas y capacitaciones de alto nivel. Fuente: /quienes-somos.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4566,7 +4566,7 @@
      "url_path": "/quienes-somos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -4771,7 +4771,7 @@
  {
   "q": "¿A qué hora atienden?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4787,7 +4787,7 @@
      "url_path": "/contactos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4802,7 +4802,7 @@
  {
   "q": "¿Abren los sábados?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00;",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4818,7 +4818,7 @@
      "url_path": "/contactos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4833,7 +4833,7 @@
  {
   "q": "¿Cuál es su horario?",
   "r": {
-   "answer": "El sitio muestra horarios distintos según la sección: /contactos indica lunes a viernes de 9:00 a 18:00 y sábados de 9:00 a 13:00; la página de inicio indica lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00, y sábado de 9:00 a 13:00; y las preguntas frecuentes mencionan atención de lunes a viernes de 8:00 a 18:00. Como no coinciden, confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4849,7 +4849,7 @@
      "url_path": "/contactos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4928,7 +4928,7 @@
  {
   "q": "¿Qué servicios ofrecen?",
   "r": {
-   "answer": "Los servicios tecnológicos publicados son: cámaras de seguridad y videovigilancia (/tecnologias/camaras-seguridad), cableado estructurado y redes LAN (/tecnologias/cableado-estructurado), y soporte y mantenimiento de equipos informáticos (/tecnologias/soporte-mantenimiento). Además hay cursos, capacitaciones y asesoramiento educativo, empresarial y legal.",
+   "answer": "Ofrecemos cámaras de seguridad, cableado estructurado y redes LAN, y soporte y mantenimiento de equipos informáticos.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4944,7 +4944,7 @@
      "url_path": "/"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -4959,7 +4959,7 @@
  {
   "q": "¿Qué soluciones tecnológicas brindan?",
   "r": {
-   "answer": "Los servicios tecnológicos publicados son: cámaras de seguridad y videovigilancia (/tecnologias/camaras-seguridad), cableado estructurado y redes LAN (/tecnologias/cableado-estructurado), y soporte y mantenimiento de equipos informáticos (/tecnologias/soporte-mantenimiento). Además hay cursos, capacitaciones y asesoramiento educativo, empresarial y legal.",
+   "answer": "Ofrecemos cámaras de seguridad, cableado estructurado y redes LAN, y soporte y mantenimiento de equipos informáticos.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4975,7 +4975,7 @@
      "url_path": "/"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -5029,7 +5029,7 @@
      "url_path": "/tecnologias/camaras-seguridad"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5046,7 +5046,7 @@
  {
   "q": "¿Ponen cámaras de vigilancia?",
   "r": {
-   "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones. La web presenta cámaras IP, analógicas, Full HD, domo, de 360° y fijas tipo bala, con funciones como sensores de movimiento, alarma vía email, visión nocturna y visualización desde tu computadora o celular. Detalle en /tecnologias/camaras-seguridad.",
+   "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5062,7 +5062,7 @@
      "url_path": "/tecnologias/camaras-seguridad"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5229,7 +5229,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5347,7 +5347,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5434,7 +5434,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5453,7 +5453,7 @@
  {
   "q": "Se calienta mi laptop",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Ofrecemos soporte y mantenimiento preventivo y correctivo de equipos informáticos, tanto de hardware como de software.",
    "intent": "service_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5469,7 +5469,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5487,9 +5487,9 @@
  {
   "q": "Configuren las impresoras de la empresa",
   "r": {
-   "answer": "Horus Group ofrece soporte y mantenimiento preventivo y correctivo de equipos informáticos (hardware y software de PC, sistemas y accesorios). Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores. Detalle en /tecnologias/soporte-mantenimiento.",
+   "answer": "Incluye limpieza interna y externa contra polvo y sobrecalentamiento, actualización del sistema operativo y del antivirus, verificación de copias de seguridad, configuración de correos corporativos, instalación de impresoras, optimización de la red Wi-Fi en oficinas y preparación de equipos para nuevos colaboradores.",
    "intent": "service_info",
-   "match_level": "alta",
+   "match_level": "media",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -5503,7 +5503,7 @@
      "url_path": "/tecnologias/soporte-mantenimiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5588,9 +5588,9 @@
  {
   "q": "¿Los cursos son virtuales?",
   "r": {
-   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+   "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse en su ficha publicada o con un asesor.",
    "intent": "training_info",
-   "match_level": "alta",
+   "match_level": "media",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -5604,7 +5604,7 @@
      "url_path": "/educacion/cursos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5621,7 +5621,7 @@
  {
   "q": "¿Tienen clases online?",
   "r": {
-   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar).",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5637,7 +5637,7 @@
      "url_path": "/educacion/cursos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5654,7 +5654,7 @@
  {
   "q": "¿Cómo funciona lo semipresencial?",
   "r": {
-   "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar). La modalidad de cada curso concreto debe confirmarse con un asesor. Fuente: /educacion/cursos.",
+   "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse en su ficha publicada o con un asesor.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5670,7 +5670,7 @@
      "url_path": "/educacion/cursos"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -5809,7 +5809,7 @@
  {
   "q": "¿Qué capacitaciones ofrecen?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Ofrecemos capacitaciones empresariales personalizadas, en modalidad presencial u online, con certificación incluida.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5825,7 +5825,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5842,7 +5842,7 @@
  {
   "q": "¿Ofrecen capacitación para empresas?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5858,7 +5858,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -5875,7 +5875,7 @@
  {
   "q": "¿Qué capacitaciones tienen disponibles?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Ofrecemos capacitaciones empresariales personalizadas, en modalidad presencial u online, con certificación incluida.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5891,7 +5891,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6006,7 +6006,7 @@
      "url_path": "/educacion/asesoramiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6024,7 +6024,7 @@
  {
   "q": "¿Dan capacitaciones a instituciones?",
   "r": {
-   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado. Según /educacion/capacitaciones son programas personalizados, en modalidad presencial u online, con certificación incluida. Los temas concretos se definen consultando con un asesor.",
+   "answer": "Las capacitaciones empresariales son programas diseñados para los colaboradores de tu empresa o institución, para mantenerlos al día en las competencias que exige el mercado.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6040,7 +6040,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6057,7 +6057,7 @@
  {
   "q": "¿Tienen clases personalizadas?",
   "r": {
-   "answer": "La formación personalizada consiste en capacitaciones personales y grupales adaptadas a tus necesidades educativas, profesionales y laborales, con atención individualizada, horarios flexibles, seguimiento continuo y certificación. Fuente: /educacion/capacitaciones. Los temas disponibles deben confirmarse con un asesor.",
+   "answer": "Ofrecemos capacitaciones personales y grupales adaptadas a tus necesidades educativas, profesionales y laborales.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6073,7 +6073,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6119,7 +6119,7 @@
  {
   "q": "¿Puedo certificar mi experiencia laboral?",
   "r": {
-   "answer": "Horus Group presenta certificaciones profesionales: actualización de conocimientos teóricos y experiencia laboral mediante exámenes de certificación en diferentes áreas profesionales y laborales. Las áreas concretas, requisitos y fechas deben confirmarse con un asesor. Fuente: /educacion/capacitaciones.",
+   "answer": "Horus Group presenta certificaciones profesionales: actualización de conocimientos teóricos y experiencia laboral mediante exámenes de certificación en diferentes áreas profesionales y laborales.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6135,7 +6135,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6152,7 +6152,7 @@
  {
   "q": "¿Tienen exámenes de certificación?",
   "r": {
-   "answer": "Horus Group presenta certificaciones profesionales: actualización de conocimientos teóricos y experiencia laboral mediante exámenes de certificación en diferentes áreas profesionales y laborales. Las áreas concretas, requisitos y fechas deben confirmarse con un asesor. Fuente: /educacion/capacitaciones.",
+   "answer": "Ofrecemos actualización profesional mediante exámenes de certificación.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6168,7 +6168,7 @@
      "url_path": "/educacion/capacitaciones"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6214,7 +6214,7 @@
  {
   "q": "¿Con qué instituciones tienen convenio?",
   "r": {
-   "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6230,7 +6230,7 @@
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -6245,9 +6245,9 @@
  {
   "q": "¿Sus certificados sirven para postular al Estado?",
   "r": {
-   "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos.",
+   "answer": "…marca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados.",
    "intent": "agreement_info",
-   "match_level": "alta",
+   "match_level": "media",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -6261,7 +6261,7 @@
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -6276,7 +6276,7 @@
  {
   "q": "Soy enfermera, ¿qué cursos tienen para mí?",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Formación en Enfermería por convenio: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Colegio de Enfermeros de Cajamarca - CR XIII: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
    "intent": "course_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6285,7 +6285,7 @@
    "recommendations": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "kind": "agreement",
      "reason": "Coincide con tu interés en enfermería; está dirigida a personas.",
      "evidence": [
@@ -6313,11 +6313,11 @@
    "sources": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6335,7 +6335,7 @@
  {
   "q": "¿Hay diplomados de enfermería?",
   "r": {
-   "answer": "Por convenio con el Colegio de Enfermeros de Cajamarca - CR XIII (vigente hasta el 18 de julio de 2027) y con el Colegio de Enfermeros del Perú - CR II La Libertad (vigente hasta el 4 de junio de 2029), Horus Group realiza talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Según la web, los certificados del convenio de Cajamarca llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Enfermeros de Cajamarca - CR XIII para talleres, charlas, cursos y diplomados en Enfermería.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6347,11 +6347,11 @@
    "sources": [
     {
      "id": "convenio_enfermeria",
-     "title": "Formación en Enfermería por convenio",
+     "title": "Colegio de Enfermeros de Cajamarca - CR XIII",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6369,7 +6369,7 @@
  {
   "q": "Soy administrador, ¿qué capacitaciones hay para mí?",
   "r": {
-   "answer": "Por convenio con el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), vigente hasta el 17 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de las Ciencias Administrativas, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio Regional de Licenciados en Administración de Cajamarca para talleres, charlas, cursos y diplomados en Ciencias Administrativas.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6381,11 +6381,11 @@
    "sources": [
     {
      "id": "convenio_administracion",
-     "title": "Formación en Ciencias Administrativas por convenio",
+     "title": "Colegio Regional de Licenciados en Administración de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6403,7 +6403,7 @@
  {
   "q": "Soy economista, ¿tienen algo para mí?",
   "r": {
-   "answer": "Por convenio con el Colegio de Economistas de Cajamarca, vigente hasta el 6 de febrero de 2027, Horus Group realiza talleres, charlas, cursos y diplomados en las ramas de la Ciencia Económica, con certificados firmados por el decano y válidos para postulaciones a entidades públicas y privadas según sus requisitos. Las actividades abiertas deben consultarse con un asesor.",
+   "answer": "Convenio con Colegio de Economistas de Cajamarca para talleres, charlas, cursos y diplomados en Ciencia Económica.",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6415,11 +6415,11 @@
    "sources": [
     {
      "id": "convenio_economia",
-     "title": "Formación en Ciencia Económica por convenio",
+     "title": "Colegio de Economistas de Cajamarca",
      "url_path": "/#convenios"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [
@@ -6463,7 +6463,7 @@
  {
   "q": "¿Qué tipo de asesoramiento brindan?",
   "r": {
-   "answer": "Horus Group brinda asesoramiento educativo, empresarial y legal con atención personalizada, en modalidad presencial u online. Según /educacion/asesoramiento, ante una consulta el equipo brinda orientación en un plazo máximo de 48 horas hábiles. Para solicitarlo, escribe al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Ofrecemos asesoramiento educativo, empresarial y legal, en modalidad presencial u online.",
    "intent": "advisory_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6479,7 +6479,7 @@
      "url_path": "/educacion/asesoramiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -6494,7 +6494,7 @@
  {
   "q": "¿Cómo pido una asesoría?",
   "r": {
-   "answer": "Horus Group brinda asesoramiento educativo, empresarial y legal con atención personalizada, en modalidad presencial u online. Según /educacion/asesoramiento, ante una consulta el equipo brinda orientación en un plazo máximo de 48 horas hábiles. Para solicitarlo, escribe al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Ofrecemos asesoramiento educativo, empresarial y legal, en modalidad presencial u online.",
    "intent": "advisory_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6510,7 +6510,7 @@
      "url_path": "/educacion/asesoramiento"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],
@@ -7102,7 +7102,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Según /politicas-devolucion, en talleres, cursos, capacitaciones y diplomados la devolución del monto pagado procede solo en los casos que lo ameriten, por ejemplo casos fortuitos o de fuerza mayor, actividades con características distintas a las ofrecidas o incumplimiento en los días de capacitación. Las solicitudes se atienden por correo en horusgroupcajamarca@gmail.com. Revisa la política completa para tu caso.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7118,7 +7118,7 @@
      "url_path": "/politicas-devolucion"
     }
    ],
-   "mode": "hybrid",
+   "mode": "lexical",
    "context": {
     "turns_considered": 0,
     "topics": [],

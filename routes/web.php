@@ -13,7 +13,6 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
-use App\Http\Controllers\Admin\ProcesoController;
 use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
@@ -138,7 +137,6 @@ Route::prefix('admin')
         // El nombre del parámetro debe coincidir con el argumento del controlador para que el binding resuelva el registro.
         Route::resource('usuarios', UserController::class)->parameters(['usuarios' => 'user']);
         Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::resource('procesos', ProcesoController::class);
         Route::resource('aprobaciones', AprobacionController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['aprobaciones' => 'aprobacion']);

@@ -4045,3 +4045,143 @@ autorizó incorporar el ajuste posterior en un commit adicional con cinco archiv
 helper, prueba, este contexto e informe único. El bloque resultante suma 16 commits nuevos;
 su último hash se consulta en Git. No hubo push. Se preservaron los dos stashes y cambios ajenos.
 El informe único docs/entrega-consolidacion.md registra recuperación y límites. 000022 suspendida.
+
+## Preparación de activación de Reclamaciones — 06/11/2026
+
+El propietario autorizó habilitar la recepción pública y configurar/activar su correo real.
+Se añaden `RECLAMACIONES_ENABLED` y `RECLAMACIONES_CORREO_ENABLED` en
+`config/reclamaciones.php`, ambas apagadas por defecto. PHPUnit las fuerza a false
+para que una activación local no alcance las pruebas; estas pueden simular la activación
+con `config([...])`. Se conserva la comprobación existente de correo configurado.
+
+**Activación pendiente:** la consulta de solo lectura a Resend rechazó la credencial local
+con HTTP 400, `validation_error`, «API key is invalid». No se enviaron correos ni se
+modificó `.env`. También faltan los cuatro campos del proveedor en ese entorno;
+se solicitaron al propietario, sin inventar datos ni copiar claves a documentación.
+
+Validación con PHP 8.4.27: configuración/formulario/correo simulado, **42 pruebas y
+337 aserciones aprobadas**; `npm test`, **37 aprobadas**. Selección completa con
+`--stop-on-failure`: **220 aprobadas, 3 fallos y 2790 pendientes**, detenida por los
+fixtures de privacidad ausentes (`desarrollo.txt`, `errores-compartibles.txt` y
+`forense-compartible.json`), también detectados antes de este cambio. No se rellenaron
+ni relajaron esos controles. Pint acotado y `git diff --check` aprobados.
+
+Sin consultas/escrituras PostgreSQL, migraciones, cambios visuales, worker nuevo,
+commits ni push. El botón existente seguirá deshabilitado hasta completar la
+configuración y activar explícitamente la recepción. La evidencia de SQLite y correo
+simulado no acredita entrega real ni funcionamiento del despliegue.
+
+Actualización posterior: el propietario proporcionó razón social y RUC; se guardaron
+únicamente `RECLAMACIONES_RAZON_SOCIAL` y `RECLAMACIONES_RUC` en `.env`,
+con comprobación de preservación de las demás variables. El RUC suministrado difiere
+del pie público: se informó sin modificar la web. Dirección y código del libro siguen
+pendientes, al igual que una credencial de correo válida y la activación efectiva.
+
+El propietario aportó después la dirección del establecimiento y aclaró que el libro
+no tiene código. Se guardó únicamente `RECLAMACIONES_DIRECCION` en `.env`,
+preservando las demás variables; el código queda vacío por esa indicación, sin asignar
+uno ficticio. La nueva consulta de solo lectura a Resend volvió a devolver HTTP 400,
+«API key is invalid». La recepción sigue apagada a la espera de una clave válida;
+no se enviaron correos ni se ejecutaron operaciones sobre la base de datos.
+
+Tras indicar el propietario que había actualizado la clave, Resend respondió 401
+`restricted_api_key` al listado de dominios, compatible con una clave de solo envío.
+Se hizo un único intento sintético a `delivered@resend.dev` (destinatario de pruebas
+documentado por Resend), con clave de idempotencia y sin datos personales ni acceso
+a la base. El proveedor rechazó el remitente con HTTP 403 por dominio no verificado;
+no aceptó el envío. Se comprobó que el remitente local pertenece a un proveedor de
+correo público. No se imprimieron ni modificaron credenciales o direcciones.
+
+Nuevo pendiente operativo: configurar un remitente de dominio propio verificado
+en Resend o elegir otro transporte adecuado al correo disponible. Recepción y envío
+siguen apagados; tampoco hay un trabajador PHP de cola activo en la inspección actual.
+No se arrancó uno ni se procesaron trabajos de bases reales.
+
+El propietario eligió Gmail. La dirección remitente tenía espacios en los extremos;
+tras retirarlos pasó la validación. Se prepararon en `.env` `MAIL_HOST=smtp.gmail.com`,
+`MAIL_PORT=587`, `MAIL_SCHEME=smtp` y `MAIL_USERNAME` con esa cuenta remitente,
+sin imprimirla. Se preservaron contraseña, transporte activo, claves de Resend e
+interruptores de recepción/envío. Falta que el propietario genere una contraseña de
+aplicación de Google y la guarde directamente en `MAIL_PASSWORD`; después se
+verificará SMTP antes de cambiar el transporte activo. Sin autenticación ni envío
+SMTP, consultas a bases o nuevos procesos de cola en esta etapa.
+
+El propietario aclaró que la cuenta personal es únicamente para pruebas. Se comprobó
+que usuario y remitente coinciden, y se intentó autenticación SMTP con Google en
+`smtp.gmail.com:587`, STARTTLS obligatorio, sin destinatarios ni envío de mensajes.
+Google rechazó las credenciales (535). No se imprimieron direcciones, contraseñas
+ni respuestas SMTP completas. No se modificó `.env`, no se accedió a la base y no
+se activó la recepción pública; el transporte de la aplicación sigue siendo Resend.
+Pendiente para la prueba con Gmail: contraseña de aplicación válida para la misma
+cuenta configurada, guardada directamente por el propietario en `MAIL_PASSWORD`.
+
+En la siguiente comprobación, `.env` no pudo analizarse porque `MAIL_PASSWORD`
+contenía espacios sin comillas. La excepción de Dotenv mostró el valor sensible en
+la salida de la herramienta. Se informó al propietario de que debe revocar esa
+contraseña de aplicación y generar otra; el valor no se copia a este documento.
+Se corrigió únicamente el formato de esa línea (sin espacios y entre comillas),
+y se verificó el análisis del archivo sin imprimir excepciones ni valores. No se
+intentó autenticar ni enviar con la credencial expuesta. La activación sigue pendiente
+de su sustitución. Las futuras lecturas deben capturar los errores de Dotenv antes
+de devolver salida para impedir que su diagnóstico incluya secretos.
+
+Tras sustituir el propietario la contraseña de aplicación, la autenticación SMTP
+con Gmail pasó con STARTTLS obligatorio, sin enviar mensajes ni acceder a bases.
+Se cambió únicamente `MAIL_MAILER=smtp` en `.env`, preservando las demás variables;
+la recepción y el envío público de Reclamaciones permanecen apagados por el alcance
+de pruebas con cuenta personal. No se almacenan direcciones ni claves en este contexto.
+
+Validación nueva tras ese cambio: **42 pruebas específicas / 337 aserciones aprobadas**
+en SQLite memoria y correo simulado. Smoke Edge del formulario aprobado en escritorio
+y móvil: modo consulta bloqueado, queja y reclamo con confirmación real del endpoint
+aislado, validación 422 y antispam. Usa las fixtures existentes, sin modificar código
+de frontend y sin correo real. No se repite la selección global bloqueada por fixtures
+de privacidad ausentes; sus limitaciones registradas arriba permanecen.
+
+Demo manual disponible en `http://127.0.0.1:8776/libro-reclamaciones`, mediante
+`tests/Support/reclamaciones-browser-router.php` con activación opt-in solo de ese
+proceso, SQLite `:memory:` reconstruida por petición y `Mail::fake()`. Verificación
+GET: 200, formulario/botón activos y token antispam presentes. Los registros no se
+conservan y no se envían copias reales; la autenticación Gmail y esta demo son
+comprobaciones distintas. Servidor PHP mantenido en una sesión controlada; no se
+instalaron servicios, no se ejecutó ningún worker ni se escribió en la base principal.
+
+## Activación de Reclamaciones en la aplicación principal — 06/11/2026
+
+Tras aclarar que esperaba ver los envíos en el panel, el propietario ordenó activar
+la recepción de la aplicación principal y su procesamiento de correo. Esta instrucción
+sustituye el alcance anterior de demo temporal; Gmail continúa siendo una cuenta
+personal destinada a estas pruebas locales.
+
+Preflight mediante PDO en transacción `READ ONLY`: destino configurado y efectivo
+`horus_group`, PostgreSQL `127.0.0.1:5432`; presentes las tablas de reclamaciones,
+historial, envíos, contadores, auditoría, notificaciones y cola. La cola dedicada no
+tenía trabajos previos. Autenticación SMTP Gmail con STARTTLS comprobada nuevamente,
+sin enviar un mensaje de prueba ni crear una reclamación ficticia en la base principal.
+
+Cambios: `config/reclamaciones.php` permite elegir la cola con
+`RECLAMACIONES_CORREO_COLA` (predeterminado `default`, sin cambiar el contrato previo).
+En `.env` se activaron únicamente `RECLAMACIONES_ENABLED=true`,
+`RECLAMACIONES_CORREO_ENABLED=true` y `RECLAMACIONES_CORREO_COLA=reclamaciones`,
+preservando las demás variables y credenciales. Se añadió regresión del despacho a
+la cola configurada en `EnvioReclamacionesTest`.
+
+Se inició un trabajador PHP controlado con `queue:work database --queue=reclamaciones
+--sleep=3 --timeout=30 --tries=4`. Procesará únicamente esa cola y las nuevas copias
+generadas por el flujo autorizado; no consume la cola `default` ni despacha pendientes
+históricos no encolados. Al verificar: trabajador PID 27816 activo y cero trabajos
+pendientes/fallidos en `reclamaciones`. Es un proceso local, no un servicio instalado.
+
+GET real `http://127.0.0.1:8000/libro-reclamaciones`: HTTP 200, formulario y botón
+activos, marca/token antispam presentes, aviso de copia por correo y sin modo consulta.
+El formulario usa la misma configuración/base que el panel; los nuevos registros
+podrán consultarse en `/admin/reclamaciones` con su permiso existente. La demo 8776
+se cerró; sus registros en memoria no se migraron ni pueden recuperarse.
+
+Validación nueva: **43 pruebas específicas / 340 aserciones** con SQLite memoria y
+correo simulado; **37 frontend**; Pint acotado y `git diff --check` aprobados. Selección
+global con `--stop-on-failure`: **220 aprobadas, 3 fallos y 2791 pendientes**, por los
+mismos tres fixtures de privacidad ausentes ya documentados, sin relajarlos. No se
+ejecutaron migraciones, seeders, pruebas con escrituras PostgreSQL, otros workers,
+commits ni push. El GET/cola reales acreditan activación y proceso vivo, no entrega
+de un correo a una bandeja ni aceptación funcional de un nuevo expediente real.

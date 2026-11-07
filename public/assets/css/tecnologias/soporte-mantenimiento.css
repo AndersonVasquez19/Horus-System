@@ -155,6 +155,19 @@
     border-color: var(--accent-gold);
 }
 
+.carta-card.carta-servicio {
+    display: flex;
+    flex-direction: column;
+}
+
+.carta-servicio .carta-icon {
+    flex-shrink: 0;
+}
+
+.carta-card.carta-servicio ul {
+    margin-bottom: 28px;
+}
+
 .carta-icon {
     width: 80px;
     height: 80px;

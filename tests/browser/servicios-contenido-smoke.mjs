@@ -128,6 +128,10 @@ try {
       imagenes: [...document.images].filter(i => propias.some(p => p.contains(i))).map(i => i.getAttribute('src')),
       imagenesCargadas: [...document.images].filter(i => propias.some(p => p.contains(i))).every(i => i.complete && i.naturalWidth > 0),
       cajas, tarjetas: tarjetas.length,
+      cotizaciones: tarjetas.every(t => {
+        const button = t.querySelector('.carta-solicitar-cotizacion');
+        return button && button.dataset.servicio === t.querySelector('h3').textContent.trim() && button.getBoundingClientRect().height >= 44;
+      }),
       sinDesbordePagina: document.documentElement.scrollWidth <= innerWidth,
       contenidas: tarjetas.every(t => t.getBoundingClientRect().right <= innerWidth + 1),
     };
@@ -140,6 +144,27 @@ try {
         await command('Network.setExtraHTTPHeaders', { headers: { 'X-Horus-Fixture-Content': caso } });
         await navigate(pagina.ruta);
         resultados[caso] = await medir(pagina.selector);
+        if (!resultados[caso].cotizaciones) throw new Error(`Cotización ausente o sin contexto en ${pagina.nombre}/${width}/${caso}`);
+        const servicio = await evaluate(`(() => {
+          window.__quoteRequests = 0;
+          window.fetch = () => { window.__quoteRequests++; throw new Error('Cotización no debe enviar mensajes automáticamente'); };
+          const button = document.querySelector('.carta-solicitar-cotizacion');
+          button.scrollIntoView({block: 'center'});
+          const bounds = button.getBoundingClientRect();
+          const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+          if (button !== hit && !button.contains(hit)) throw new Error('El botón está cubierto');
+          button.click();
+          return button.dataset.servicio;
+        })()`);
+        await waitFor(() => evaluate(`document.getElementById('horus-chat-panel').getBoundingClientRect().width > 0 && document.querySelector('.hc-log').textContent.includes(${JSON.stringify(servicio)}) && document.activeElement.id === 'mensaje-chat'`));
+        const cotizacion = await evaluate(`(() => {
+          const link = [...document.querySelectorAll('.hc-action')].at(-1);
+          return { whatsapp: link?.getAttribute('href') === 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n', requests: window.__quoteRequests };
+        })()`);
+        if (!cotizacion.whatsapp || cotizacion.requests !== 0) throw new Error('Derivación de cotización incorrecta');
+        await evaluate(`document.querySelector('[aria-label="Cerrar chat"]').click()`);
+        await waitFor(() => evaluate(`getComputedStyle(document.getElementById('horus-chat-panel')).display === 'none' && document.activeElement === document.querySelector('.carta-solicitar-cotizacion')`));
+        await evaluate('document.activeElement.blur(); scrollTo(0, 0)');
         await screenshot(`${pagina.nombre}-${caso}-${width}`);
       }
       const { off, on } = resultados;

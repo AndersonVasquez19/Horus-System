@@ -1,6 +1,6 @@
 <?php
 
 return [
-    // Preparación backend: no conecta rutas ni cambia la web actual.
-    'enabled' => false,
+    // Activación autorizada: solo muestra fichas revisadas, autorizadas y vigentes.
+    'enabled' => true,
 ];

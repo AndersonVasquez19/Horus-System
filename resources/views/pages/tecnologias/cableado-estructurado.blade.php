@@ -4,6 +4,7 @@
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('assets/css/tecnologias/cableado-estructurado.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/tecnologias/cotizaciones.css') }}">
 @endpush
 
 @section('content')
@@ -40,6 +41,7 @@
                     <div class="carta-divider"></div>
                     <p>Diseñada para comunicaciones telefónicas analógicas. No es apta para transmisión de datos modernos debido a sus limitadas capacidades de frecuencia.</p>
                     <div class="carta-spec"><i class="fas fa-bolt"></i> Velocidad máx: 512 kbit/s</div>
+                    <x-public.solicitar-cotizacion servicio="Categoría 1" />
                 </div>
             </article>
 
@@ -52,6 +54,7 @@
                     <div class="carta-divider"></div>
                     <p>Utilizada en redes Token Ring de primera generación. Soporta transmisión de voz y datos básicos en entornos de baja demanda.</p>
                     <div class="carta-spec"><i class="fas fa-bolt"></i> Velocidad máx: 4 Mbit/s</div>
+                    <x-public.solicitar-cotizacion servicio="Categoría 2" />
                 </div>
             </article>
 
@@ -64,6 +67,7 @@
                     <div class="carta-divider"></div>
                     <p>Estándar para redes Ethernet 10BaseT. Ampliamente utilizada en instalaciones de voz y datos en edificios de oficinas durante los años 90.</p>
                     <div class="carta-spec"><i class="fas fa-bolt"></i> Velocidad máx: 10 Mbit/s</div>
+                    <x-public.solicitar-cotizacion servicio="Categoría 3" />
                 </div>
             </article>
 
@@ -76,6 +80,7 @@
                     <div class="carta-divider"></div>
                     <p>Optimizada para redes Token Ring de alta velocidad. Ofrece mayor ancho de banda que su predecesora, con mejor rendimiento en entornos corporativos.</p>
                     <div class="carta-spec"><i class="fas fa-bolt"></i> Velocidad máx: 16 Mbit/s</div>
+                    <x-public.solicitar-cotizacion servicio="Categoría 4" />
                 </div>
             </article>
 
@@ -88,6 +93,7 @@
                     <div class="carta-divider"></div>
                     <p>Estándar para redes Fast Ethernet y Gigabit. Ideal para infraestructuras de red modernas que requieren alta velocidad y confiabilidad en la transmisión.</p>
                     <div class="carta-spec"><i class="fas fa-bolt"></i> Velocidad máx: 100 Mbit/s</div>
+                    <x-public.solicitar-cotizacion servicio="Categoría 5" />
                 </div>
             </article>
 
@@ -100,6 +106,7 @@
                     <div class="carta-divider"></div>
                     <p>Solución de alto rendimiento para centros de datos y redes empresariales. Soporta aplicaciones de video en alta definición y comunicaciones críticas.</p>
                     <div class="carta-spec"><i class="fas fa-bolt"></i> Velocidad máx: 10 Gbit/s</div>
+                    <x-public.solicitar-cotizacion servicio="Categoría 6" />
                 </div>
             </article>
         </div>

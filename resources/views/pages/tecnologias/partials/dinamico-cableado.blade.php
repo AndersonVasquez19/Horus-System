@@ -39,6 +39,7 @@
                     @foreach($tarjeta['caracteristicas'] as $especificacion)
                     <div class="carta-spec"><i class="{{ $tarjeta['icono'] ?? 'fas fa-bolt' }}"></i> {{ $especificacion }}</div>
                     @endforeach
+                    <x-public.solicitar-cotizacion :servicio="$tarjeta['titulo']" />
                 </div>
             </article>
             @endforeach

@@ -30,6 +30,7 @@
         <select id="modalidad" name="modalidad" required class="admin-select">
             <option value="">Selecciona una modalidad</option>
             <option value="presencial" @selected(old('modalidad', $curso->modalidad ?? '') === 'presencial')>Presencial</option>
+            <option value="semipresencial" @selected(old('modalidad', $curso->modalidad ?? '') === 'semipresencial')>Semipresencial</option>
             <option value="virtual" @selected(old('modalidad', $curso->modalidad ?? '') === 'virtual')>Virtual</option>
             <option value="hibrido" @selected(old('modalidad', $curso->modalidad ?? '') === 'hibrido')>Híbrido</option>
         </select>

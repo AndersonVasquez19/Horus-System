@@ -217,15 +217,7 @@
                     <p class="text-xs text-[#64748B]">Bandeja de atención y flujos internos pendientes</p>
                 </div>
 
-                <div class="grid gap-4 lg:grid-cols-3 xl:grid-cols-1">
-                    <x-admin.stat-card
-                        title="Procesos pendientes"
-                        :value="$procesosPendientes"
-                        icon="fa-diagram-project"
-                        description="Tareas operativas en curso"
-                        variant="blue"
-                        :href="route('admin.procesos.index')"
-                    />
+                <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-1">
                     <x-admin.stat-card
                         title="Aprobaciones pendientes"
                         :value="$aprobacionesPendientes"

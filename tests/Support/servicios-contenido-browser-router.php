@@ -57,9 +57,9 @@ $app->loadEnvironmentFrom('.env.example');
 $app->make(Kernel::class)->bootstrap();
 $app->make(Vite::class)->useHotFile($root.'/tests/Support/.servicios-contenido-fixture-no-hot');
 if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatabaseName() !== ':memory:'
-    || config('catalogo-publico.enabled') || config('horus-advisor.enabled') || config('chatbot.public_catalog_enabled')
+    || config('catalogo-publico.enabled') !== true || config('horus-advisor.enabled') || config('chatbot.public_catalog_enabled')
     || config('catalogo-servicios.enabled') || config('registro-verificacion.enabled') || config('matricula-mail.enabled')) {
-    throw new RuntimeException('Fixture requires in-memory SQLite and disabled public/AI flags.');
+    throw new RuntimeException('Fixture requires in-memory SQLite, the enabled course web catalog default and disabled service/AI/mail flags.');
 }
 Http::preventStrayRequests();
 Carbon::setTestNow(Carbon::parse((string) getenv('HORUS_SERVICIOS_CONTENIDO_FIXTURE_TIME')));

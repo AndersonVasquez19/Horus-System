@@ -80,6 +80,19 @@ class Source(BaseModel):
     checked_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
+class PublicAgreementCard(BaseModel):
+    """Presentación del convenio; nombre y descripción proceden del mismo registro del asistente."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    id: str = Field(pattern=r"^[a-z0-9-]{3,40}$")
+    siglas: str = Field(min_length=2, max_length=40)
+    vigencia: str = Field(min_length=3, max_length=60)
+    imagen: str | None = Field(default=None, pattern=r"^assets/images/[a-z0-9/.-]+$")
+    posicion: str | None = Field(default=None, max_length=40)
+    logo: str = Field(pattern=r"^assets/images/[a-z0-9/.-]+$")
+
+
 class KnowledgeRecord(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -89,6 +102,9 @@ class KnowledgeRecord(BaseModel):
     title: str = Field(min_length=3, max_length=120)
     description: str = Field(min_length=10, max_length=1500)
     answer: str = Field(min_length=10, max_length=1500, description="Texto que el motor puede mostrar.")
+    detail_answer: str | None = Field(default=None, min_length=10, max_length=1500)
+    general_information: str | None = Field(default=None, min_length=10, max_length=600)
+    public_card: PublicAgreementCard | None = None
     status: Status
     source: Source
     keywords: list[str] = Field(min_length=1)
@@ -116,6 +132,8 @@ class KnowledgeRecord(BaseModel):
 
     @model_validator(mode="after")
     def _consistency(self) -> KnowledgeRecord:
+        if self.public_card is not None and (self.category != "convenio" or self.kind != "agreement"):
+            raise ValueError("Solo un convenio puede aportar una tarjeta pública.")
         if self.recommendable and self.status != "verified":
             raise ValueError(f"{self.id}: solo un registro verificado puede ser recomendable.")
         if self.recommendable and not self.topics:

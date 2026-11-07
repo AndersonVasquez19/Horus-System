@@ -92,6 +92,15 @@ class EnvioReclamacionesTest extends TestCase
         $this->assertStringNotContainsString('example.test', serialize(new EnviarReclamacionCorreo($envio->id)));
     }
 
+    public function test_envio_se_despacha_en_la_cola_configurada(): void
+    {
+        config(['reclamaciones.correo.cola' => 'reclamaciones-prueba']);
+
+        $this->altaConEnvio();
+
+        Queue::assertPushedOn('reclamaciones-prueba', EnviarReclamacionCorreo::class);
+    }
+
     public function test_envio_correcto_guarda_la_evidencia_del_contenido_exacto(): void
     {
         [$r, $envio] = $this->altaConEnvio();

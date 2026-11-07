@@ -5,6 +5,8 @@
 
 Motor conversacional principal de **Horus Group SRL**, escrito en Python con FastAPI. Laravel conserva la fachada y sus controles de privacidad, validación y contingencia institucional. Python no se conecta a PostgreSQL ni llama a OpenAI. El servicio permanece desactivado por defecto en Laravel; el endpoint es `POST /api/v1/chat` y el modelo local es `paraphrase-multilingual-MiniLM-L12-v2`.
 
+Gemini es una integración opcional para seleccionar fuentes públicas verificadas con `GEMINI_API_KEY`; no genera texto libre para visitantes ni recibe el mensaje original. Configuración, límites y validación: [integración Gemini](../docs/chatbot-gemini.md).
+
 Qué hace:
 
 - Responde preguntas sobre la empresa, sus servicios, la formación, el asesoramiento, los convenios, las FAQ y los canales de contacto, **solo con información pública verificada**.
