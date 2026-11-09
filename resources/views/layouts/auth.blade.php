@@ -8,13 +8,17 @@
     <title>@yield('title') | Horus Group</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="auth-scene">
+<body class="auth-scene @yield('scene-class')">
     <div class="auth-orbit auth-orbit--one" aria-hidden="true"></div>
     <div class="auth-orbit auth-orbit--two" aria-hidden="true"></div>
     <main class="auth-card">
         <aside class="auth-art">
-            <img src="{{ asset('assets/images/index/carrusel/Car4.jpg') }}" alt="" class="auth-art-photo">
-            <div class="auth-art-overlay"></div>
+            @hasSection('art-background')
+                @yield('art-background')
+            @else
+                <img src="{{ asset('assets/images/index/carrusel/Car4.jpg') }}" alt="" class="auth-art-photo">
+                <div class="auth-art-overlay"></div>
+            @endif
             <div class="auth-art-content">
                 <a href="{{ route('home') }}" class="auth-brand" aria-label="Volver a Horus Group">
                     <img src="{{ asset('assets/images/index/logos/logo-horus.png') }}" alt="" class="auth-brand-logo">

@@ -2,6 +2,14 @@
 @extends('layouts.auth')
 
 @section('title', 'Iniciar sesión')
+@section('scene-class', 'auth-scene--login')
+
+@section('art-background')
+    <div class="auth-login-watermark" aria-hidden="true">
+        <span class="auth-login-halo"></span>
+        <img src="{{ asset('assets/images/index/logos/logo-horus.png') }}" alt="" width="588" height="425" decoding="async">
+    </div>
+@endsection
 
 @section('form-content')
     <div class="auth-mobile-brand">
