@@ -19,7 +19,7 @@ class AsistenteVirtualService
     /** Aclaración ante un dato personal: genérica a propósito (nunca repite ni resume lo detectado). */
     public const RESPUESTA_PRIVACIDAD = 'Parece que incluiste un nombre o dato personal. Por seguridad, evita compartir información personal. Si deseas consultar sobre un curso o servicio, puedes reformular tu pregunta sin esos datos.';
 
-    public const RESPUESTA_FALLBACK = 'No tengo un dato confirmado para esa consulta. Puedo orientarte sobre cursos, matrículas y servicios de Horus. También puedes consultar /contactos o llamar al +51 927 582 305.';
+    public const RESPUESTA_FALLBACK = 'No tengo un dato confirmado para esa consulta. Puedo orientarte sobre cursos, matrículas y servicios de Horus. También puedes consultar /contactos o llamar al +51 972 021 374.';
 
     public function __construct(
         private ?FiltroPrivacidadChat $privacidad = null,

@@ -61,7 +61,7 @@
  {
   "q": "Necesito instalar wifi en mi oficina",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en red Wi-Fi; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en red Wi-Fi; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -213,7 +213,7 @@
  {
   "q": "Convenio con instituto ISAM",
   "r": {
-   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 927 582 305.",
+   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 972 021 374.",
    "intent": "unverified_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -433,7 +433,7 @@
  {
   "q": "Quiero cotizar cámaras de seguridad",
   "r": {
-   "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas.\nPara solicitar una cotización de «Cámaras de seguridad y videovigilancia» (/tecnologias/camaras-seguridad), te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.\nSugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group): tipo de espacio (hogar, tienda, oficina, institución); cantidad aproximada de zonas a vigilar; si es interior, exterior o ambos; dirección o zona en Cajamarca.",
+   "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas.\nPara solicitar una cotización de «Cámaras de seguridad y videovigilancia» (/tecnologias/camaras-seguridad), te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.\nSugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group): tipo de espacio (hogar, tienda, oficina, institución); cantidad aproximada de zonas a vigilar; si es interior, exterior o ambos; dirección o zona en Cajamarca.",
    "intent": "quote_request",
    "match_level": "media",
    "needs_clarification": false,
@@ -472,7 +472,7 @@
  {
   "q": "¿Qué cursos de Excel tienen?",
   "r": {
-   "answer": "No encuentro en la información publicada un curso o capacitación específica de ofimática; la web no publica todavía la lista de cursos vigentes.\n1. Formación personalizada: alternativa a confirmar con un asesor.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "No encuentro en la información publicada un curso o capacitación específica de ofimática; la web no publica todavía la lista de cursos vigentes.\n1. Formación personalizada: alternativa a confirmar con un asesor.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "course_recommendation",
    "match_level": "baja",
    "needs_clarification": false,
@@ -648,7 +648,7 @@
  {
   "q": "Necesito instalar wifi en mi oficina",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en red Wi-Fi; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en red Wi-Fi; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -800,7 +800,7 @@
  {
   "q": "Convenio con instituto ISAM",
   "r": {
-   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 927 582 305.",
+   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 972 021 374.",
    "intent": "unverified_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1020,7 +1020,7 @@
  {
   "q": "Quiero cotizar cámaras de seguridad",
   "r": {
-   "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas.\nPara solicitar una cotización de «Cámaras de seguridad y videovigilancia» (/tecnologias/camaras-seguridad), te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.\nSugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group): tipo de espacio (hogar, tienda, oficina, institución); cantidad aproximada de zonas a vigilar; si es interior, exterior o ambos; dirección o zona en Cajamarca.",
+   "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas.\nPara solicitar una cotización de «Cámaras de seguridad y videovigilancia» (/tecnologias/camaras-seguridad), te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.\nSugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group): tipo de espacio (hogar, tienda, oficina, institución); cantidad aproximada de zonas a vigilar; si es interior, exterior o ambos; dirección o zona en Cajamarca.",
    "intent": "quote_request",
    "match_level": "media",
    "needs_clarification": false,
@@ -1059,7 +1059,7 @@
  {
   "q": "¿Qué cursos de Excel tienen?",
   "r": {
-   "answer": "No encuentro en la información publicada un curso o capacitación específica de ofimática; la web no publica todavía la lista de cursos vigentes.\n1. Formación personalizada: alternativa a confirmar con un asesor.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "No encuentro en la información publicada un curso o capacitación específica de ofimática; la web no publica todavía la lista de cursos vigentes.\n1. Formación personalizada: alternativa a confirmar con un asesor.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "course_recommendation",
    "match_level": "baja",
    "needs_clarification": false,
@@ -1240,7 +1240,7 @@
  {
   "q": "Compré un producto y mi pedido no llega",
   "r": {
-   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 927 582 305. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
+   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1333,7 +1333,7 @@
  {
   "q": "¿Hay cupos disponibles?",
   "r": {
-   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 927 582 305.",
+   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 972 021 374.",
    "intent": "unavailable_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -1360,7 +1360,7 @@
  {
   "q": "¿Quedan vacantes para el curso?",
   "r": {
-   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 927 582 305.",
+   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 972 021 374.",
    "intent": "unavailable_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -1389,7 +1389,7 @@
  {
   "q": "¿Cuántos cupos hay?",
   "r": {
-   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 927 582 305.",
+   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 972 021 374.",
    "intent": "unavailable_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -1416,7 +1416,7 @@
  {
   "q": "¿Cuánto cuesta el curso de Excel?",
   "r": {
-   "answer": "La web no publica precios de cursos, capacitaciones ni servicios, así que no puedo darte un monto. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+   "answer": "La web no publica precios de cursos, capacitaciones ni servicios, así que no puedo darte un monto. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
    "intent": "unavailable_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -1446,7 +1446,7 @@
  {
   "q": "¿Cuándo inicia el próximo curso?",
   "r": {
-   "answer": "La web no publica un calendario vigente con fechas de inicio, horarios de clase ni duración de los cursos. Para confirmarlo, indica el curso que te interesa y consulta al +51 927 582 305.",
+   "answer": "La web no publica un calendario vigente con fechas de inicio, horarios de clase ni duración de los cursos. Para confirmarlo, indica el curso que te interesa y consulta al +51 972 021 374.",
    "intent": "unavailable_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -1475,7 +1475,7 @@
  {
   "q": "¿Cuál es el horario de atención?",
   "r": {
-   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 972 021 374 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1537,7 +1537,7 @@
  {
   "q": "¿Qué requisitos piden para matricularme?",
   "r": {
-   "answer": "Un asesor de Horus Group te atenderá por WhatsApp para coordinar tu matrícula. Por ese medio podrás indicar el curso de tu interés, proporcionar tus datos de inscripción y enviar tu comprobante de pago de forma segura. Consulta tu matrícula por WhatsApp: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula.",
+   "answer": "Un asesor de Horus Group te atenderá por WhatsApp para coordinar tu matrícula. Por ese medio podrás indicar el curso de tu interés, proporcionar tus datos de inscripción y enviar tu comprobante de pago de forma segura. Consulta tu matrícula por WhatsApp: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula.",
    "intent": "unavailable_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -1849,7 +1849,7 @@
  {
   "q": "¿Cómo me comunico con ustedes?",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1880,7 +1880,7 @@
  {
   "q": "Pásame su número",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1911,7 +1911,7 @@
  {
   "q": "¿Tienen WhatsApp?",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1942,7 +1942,7 @@
  {
   "q": "¿Cómo puedo pedir más información?",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2004,7 +2004,7 @@
  {
   "q": "¿A qué hora atienden?",
   "r": {
-   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 972 021 374 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2066,7 +2066,7 @@
  {
   "q": "¿Cuál es su horario?",
   "r": {
-   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 972 021 374 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2223,7 +2223,7 @@
  {
   "q": "Quiero instalar cámaras en mi tienda",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2339,7 +2339,7 @@
  {
   "q": "Necesito cablear mi oficina",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en cableado de red; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en cableado de red; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2396,7 +2396,7 @@
  {
   "q": "Quiero instalar una red en mi negocio",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en redes; está dirigida a empresas.\n2. Soporte y mantenimiento de equipos: coincide con tu interés en redes; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en redes; está dirigida a empresas.\n2. Soporte y mantenimiento de equipos: coincide con tu interés en redes; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2513,7 +2513,7 @@
  {
   "q": "Mi computadora está muy lenta",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2598,7 +2598,7 @@
  {
   "q": "Necesito mantenimiento para las PCs de la oficina",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2918,7 +2918,7 @@
  {
   "q": "¿Dan certificado al terminar?",
   "r": {
-   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 927 582 305. Fuente: /educacion/cursos.",
+   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 972 021 374. Fuente: /educacion/cursos.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2951,7 +2951,7 @@
  {
   "q": "¿El certificado es digital?",
   "r": {
-   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 927 582 305. Fuente: /educacion/cursos.",
+   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 972 021 374. Fuente: /educacion/cursos.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2984,7 +2984,7 @@
  {
   "q": "¿Qué cursos tienen ahora?",
   "r": {
-   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 927 582 305 o en horusgroupcajamarca@gmail.com.",
+   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
    "intent": "unavailable_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3013,7 +3013,7 @@
  {
   "q": "Pásame la lista de cursos",
   "r": {
-   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 927 582 305 o en horusgroupcajamarca@gmail.com.",
+   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
    "intent": "unavailable_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3141,7 +3141,7 @@
  {
   "q": "Quiero capacitar a los trabajadores de mi empresa",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Capacitaciones empresariales: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n3. Asesoramiento empresarial: coincide con tu interés en empresas; no cubre capacitación; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Capacitaciones empresariales: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n3. Asesoramiento empresarial: coincide con tu interés en empresas; no cubre capacitación; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3418,7 +3418,7 @@
  {
   "q": "¿El certificado tiene validez internacional?",
   "r": {
-   "answer": "La web menciona reconocimiento internacional y validez permanente para las certificaciones profesionales, pero no indica la entidad que lo respalda, así que no puedo confirmarlo. Consúltalo con un asesor al +51 927 582 305.",
+   "answer": "La web menciona reconocimiento internacional y validez permanente para las certificaciones profesionales, pero no indica la entidad que lo respalda, así que no puedo confirmarlo. Consúltalo con un asesor al +51 972 021 374.",
    "intent": "unverified_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3509,7 +3509,7 @@
  {
   "q": "Soy enfermera, ¿qué cursos tienen para mí?",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Colegio de Enfermeros de Cajamarca - CR XIII: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Colegio de Enfermeros de Cajamarca - CR XIII: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "course_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3669,7 +3669,7 @@
  {
   "q": "¿Qué convenio tienen con ISAM?",
   "r": {
-   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 927 582 305.",
+   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 972 021 374.",
    "intent": "unverified_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3758,7 +3758,7 @@
  {
   "q": "Necesito ayuda con mi tesis",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento educativo (tesis): coincide con tu interés en tesis.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento educativo (tesis): coincide con tu interés en tesis.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3847,7 +3847,7 @@
  {
   "q": "Quiero mejorar las finanzas de mi negocio",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en finanzas; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en finanzas; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3905,7 +3905,7 @@
  {
   "q": "Necesito asesoría para liderar a mi equipo",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en liderazgo; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en liderazgo; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3963,7 +3963,7 @@
  {
   "q": "Necesito un abogado",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento legal: coincide con tu interés en asesoría legal.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento legal: coincide con tu interés en asesoría legal.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4052,7 +4052,7 @@
  {
   "q": "Se me perdió el certificado",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 927 582 305). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4085,7 +4085,7 @@
  {
   "q": "¿Cómo saco un duplicado de mi diploma?",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 927 582 305). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "media",
    "needs_clarification": false,
@@ -4116,7 +4116,7 @@
  {
   "q": "¿Cuándo doy el examen del curso grabado?",
   "r": {
-   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 927 582 305. Fuente: /preguntas-frecuentes.",
+   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 972 021 374. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4180,7 +4180,7 @@
  {
   "q": "Compré algo y todavía no llega",
   "r": {
-   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 927 582 305. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
+   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
    "intent": "faq",
    "match_level": "media",
    "needs_clarification": false,
@@ -4304,7 +4304,7 @@
  {
   "q": "¿Puedo agendar una reunión virtual?",
   "r": {
-   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 927 582 305 o agendar una reunión virtual con un asesor. Fuente: /preguntas-frecuentes.",
+   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4616,7 +4616,7 @@
  {
   "q": "¿Cómo me comunico con ustedes?",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4647,7 +4647,7 @@
  {
   "q": "Pásame su número",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4678,7 +4678,7 @@
  {
   "q": "¿Tienen WhatsApp?",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4709,7 +4709,7 @@
  {
   "q": "¿Cómo puedo pedir más información?",
   "r": {
-   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4771,7 +4771,7 @@
  {
   "q": "¿A qué hora atienden?",
   "r": {
-   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 972 021 374 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4833,7 +4833,7 @@
  {
   "q": "¿Cuál es su horario?",
   "r": {
-   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 927 582 305 antes de acudir.",
+   "answer": "El sitio publica horarios de atención distintos. Confirma el horario al +51 972 021 374 antes de acudir.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4990,7 +4990,7 @@
  {
   "q": "Quiero instalar cámaras en mi tienda",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5106,7 +5106,7 @@
  {
   "q": "Necesito cablear mi oficina",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en cableado de red; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en cableado de red; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5163,7 +5163,7 @@
  {
   "q": "Quiero instalar una red en mi negocio",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en redes; está dirigida a empresas.\n2. Soporte y mantenimiento de equipos: coincide con tu interés en redes; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cableado estructurado y redes LAN: coincide con tu interés en redes; está dirigida a empresas.\n2. Soporte y mantenimiento de equipos: coincide con tu interés en redes; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5280,7 +5280,7 @@
  {
   "q": "Mi computadora está muy lenta",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5365,7 +5365,7 @@
  {
   "q": "Necesito mantenimiento para las PCs de la oficina",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Soporte y mantenimiento de equipos: coincide con tu interés en computadoras y equipos, mantenimiento; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en computadoras y equipos; no cubre mantenimiento; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5685,7 +5685,7 @@
  {
   "q": "¿Dan certificado al terminar?",
   "r": {
-   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 927 582 305. Fuente: /educacion/cursos.",
+   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 972 021 374. Fuente: /educacion/cursos.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5718,7 +5718,7 @@
  {
   "q": "¿El certificado es digital?",
   "r": {
-   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 927 582 305. Fuente: /educacion/cursos.",
+   "answer": "La página de cursos presenta cursos con certificados físicos y digitales, con enfoque teórico-práctico. Los requisitos y la entrega del certificado de un programa específico deben confirmarse con un asesor al +51 972 021 374. Fuente: /educacion/cursos.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5751,7 +5751,7 @@
  {
   "q": "¿Qué cursos tienen ahora?",
   "r": {
-   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 927 582 305 o en horusgroupcajamarca@gmail.com.",
+   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
    "intent": "unavailable_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5780,7 +5780,7 @@
  {
   "q": "Pásame la lista de cursos",
   "r": {
-   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 927 582 305 o en horusgroupcajamarca@gmail.com.",
+   "answer": "La web pública no publica todavía la lista de cursos vigentes con sus nombres y temarios, así que no puedo confirmarte qué cursos están abiertos. Un asesor puede indicarte la oferta actual al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
    "intent": "unavailable_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5908,7 +5908,7 @@
  {
   "q": "Quiero capacitar a los trabajadores de mi empresa",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Capacitaciones empresariales: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n3. Asesoramiento empresarial: coincide con tu interés en empresas; no cubre capacitación; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Capacitaciones empresariales: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n2. Asesoría y capacitación tecnológica para equipos: coincide con tu interés en capacitación, empresas; está dirigida a empresas.\n3. Asesoramiento empresarial: coincide con tu interés en empresas; no cubre capacitación; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6185,7 +6185,7 @@
  {
   "q": "¿El certificado tiene validez internacional?",
   "r": {
-   "answer": "La web menciona reconocimiento internacional y validez permanente para las certificaciones profesionales, pero no indica la entidad que lo respalda, así que no puedo confirmarlo. Consúltalo con un asesor al +51 927 582 305.",
+   "answer": "La web menciona reconocimiento internacional y validez permanente para las certificaciones profesionales, pero no indica la entidad que lo respalda, así que no puedo confirmarlo. Consúltalo con un asesor al +51 972 021 374.",
    "intent": "unverified_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6276,7 +6276,7 @@
  {
   "q": "Soy enfermera, ¿qué cursos tienen para mí?",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Colegio de Enfermeros de Cajamarca - CR XIII: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Colegio de Enfermeros de Cajamarca - CR XIII: coincide con tu interés en enfermería; está dirigida a personas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "course_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6436,7 +6436,7 @@
  {
   "q": "¿Qué convenio tienen con ISAM?",
   "r": {
-   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 927 582 305.",
+   "answer": "La web menciona un convenio con el Instituto de Educación Superior ISAM, pero su descripción está pendiente de confirmación por la empresa, así que no puedo darte detalles. Consulta con un asesor al +51 972 021 374.",
    "intent": "unverified_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6525,7 +6525,7 @@
  {
   "q": "Necesito ayuda con mi tesis",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento educativo (tesis): coincide con tu interés en tesis.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento educativo (tesis): coincide con tu interés en tesis.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6614,7 +6614,7 @@
  {
   "q": "Quiero mejorar las finanzas de mi negocio",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en finanzas; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en finanzas; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6672,7 +6672,7 @@
  {
   "q": "Necesito asesoría para liderar a mi equipo",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en liderazgo; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento empresarial: coincide con tu interés en liderazgo; está dirigida a empresas.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6730,7 +6730,7 @@
  {
   "q": "Necesito un abogado",
   "r": {
-   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento legal: coincide con tu interés en asesoría legal.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+   "answer": "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Asesoramiento legal: coincide con tu interés en asesoría legal.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
    "intent": "service_recommendation",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6819,7 +6819,7 @@
  {
   "q": "Se me perdió el certificado",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 927 582 305). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6852,7 +6852,7 @@
  {
   "q": "¿Cómo saco un duplicado de mi diploma?",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 927 582 305). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6883,7 +6883,7 @@
  {
   "q": "¿Cuándo doy el examen del curso grabado?",
   "r": {
-   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 927 582 305. Fuente: /preguntas-frecuentes.",
+   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 972 021 374. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6947,7 +6947,7 @@
  {
   "q": "Compré algo y todavía no llega",
   "r": {
-   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 927 582 305. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
+   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7071,7 +7071,7 @@
  {
   "q": "¿Puedo agendar una reunión virtual?",
   "r": {
-   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 927 582 305 o agendar una reunión virtual con un asesor. Fuente: /preguntas-frecuentes.",
+   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor. Fuente: /preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,

@@ -11,7 +11,7 @@ Este mensaje confirma el registro de tu matrícula. No constituye una confirmaci
 Próximos pasos
 Comunícate con nuestro equipo para confirmar los requisitos, la modalidad, el horario y las indicaciones de acceso que correspondan a tu curso.
 
-Teléfono o WhatsApp: +51 927 582 305
+Teléfono o WhatsApp: +51 972 021 374
 Correo: horusgroupcajamarca@gmail.com
 
 Si no reconoces esta matrícula, comunícate con nuestro equipo por los canales indicados.

@@ -14,7 +14,7 @@
       'logo' => asset('assets/images/index/logos/logo-horus.png'),
       'image' => asset('assets/images/index/hero/hero-tecnologia.jpg'),
       'description' => 'Soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú.',
-      'telephone' => '+51927582305',
+      'telephone' => '+51972021374',
       'areaServed' => ['@type' => 'City', 'name' => 'Cajamarca'],
       'hasOfferCatalog' => [
         '@type' => 'OfferCatalog',

@@ -1,15 +1,15 @@
 {
   "version": "FICTICIO-PRUEBAS",
   "description": "DATOS FICTICIOS SOLO PARA PRUEBAS AUTOMATIZADAS. Estos cursos NO existen en Horus Group SRL y nunca deben copiarse a data/knowledge.json.",
-  "public_contact": {"phone": "+51 927 582 305", "email": "horusgroupcajamarca@gmail.com", "contact_page": "/contactos"},
+  "public_contact": {"phone": "+51 972 021 374", "email": "horusgroupcajamarca@gmail.com", "contact_page": "/contactos"},
   "records": [
     {
       "id": "contacto_canales",
       "category": "contacto",
       "kind": "info",
       "title": "Canales de contacto",
-      "description": "Teléfono y WhatsApp +51 927 582 305 y correo horusgroupcajamarca@gmail.com.",
-      "answer": "Puedes comunicarte al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+      "description": "Teléfono y WhatsApp +51 972 021 374 y correo horusgroupcajamarca@gmail.com.",
+      "answer": "Puedes comunicarte al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
       "status": "verified",
       "source": {"kind": "prueba_ficticia", "url_path": "/contactos", "file": "tests/fixtures/catalogo_ficticio.json", "checked_on": "2026-10-28"},
       "keywords": ["contacto", "telefono"]

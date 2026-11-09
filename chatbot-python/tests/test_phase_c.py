@@ -124,7 +124,7 @@ def test_service_intent_keeps_learning_and_hiring_separate(query):
     reply = make_engine().chat(query)
     assert reply.intent == "service_recommendation"
     assert reply.recommendations[0].id == "cat_servicio_redes"
-    assert "https://wa.me/51927582305" in reply.recommendations[0].next_step
+    assert "https://wa.me/51972021374" in reply.recommendations[0].next_step
 
 
 @pytest.mark.parametrize(
@@ -152,7 +152,7 @@ def test_uncertainty_requests_a_simple_clarification(query):
 def test_enrollment_uses_official_whatsapp_without_collecting_personal_data(query):
     reply = make_engine().chat(query)
     assert reply.intent == "enrollment_request"
-    assert "https://wa.me/51927582305" in reply.answer
+    assert "https://wa.me/51972021374" in reply.answer
     assert "DNI" not in reply.answer and "tu nombre" not in reply.answer
 
 

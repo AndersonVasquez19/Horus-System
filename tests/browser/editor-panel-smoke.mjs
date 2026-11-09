@@ -140,13 +140,22 @@ try {
     await waitFor(() => evaluate('location.pathname.endsWith("/1/publicacion") && !!document.querySelector("#titulo") && document.readyState === "complete"'));
     await evaluate('document.fonts.ready');
     const editor = await evaluate(`(() => {
-      const controls = [...document.querySelectorAll('textarea, select, input[type=date]')];
+      const controls = [...document.querySelectorAll('textarea, select, input[type=date], input[type=text]')].filter(el => el.closest('form[action$="/publicacion"]'));
       const revisions = [...document.querySelectorAll('[name=_revision]')].map(el => el.value);
-      return { noPageOverflow: document.documentElement.scrollWidth <= innerWidth, labeled: controls.every(el => !!document.querySelector('label[for="' + el.id + '"]')), revisionsMatch: revisions.length === 2 && revisions[0] === revisions[1] && /^"[a-f0-9]{64}"$/.test(revisions[0]), consent: document.querySelector('[name=confirmacion_publica]').required && !document.querySelector('[name=confirmacion_publica]').checked, fieldWidth: document.querySelector('#titulo').getBoundingClientRect().width };
+      return { noPageOverflow: document.documentElement.scrollWidth <= innerWidth, labeled: controls.every(el => !!document.querySelector('label[for="' + el.id + '"]')), revisionsMatch: revisions.length === 2 && revisions[0] === revisions[1] && /^"[a-f0-9]{64}"$/.test(revisions[0]), consent: document.querySelector('[name=confirmacion_publica]').required && !document.querySelector('[name=confirmacion_publica]').checked, fieldWidth: document.querySelector('#titulo').getBoundingClientRect().width, mainFields: controls.filter(el => !el.closest('details')).length, collapsedOptions: document.querySelectorAll('details:not([open])').length };
     })()`);
-    if (!editor.noPageOverflow || !editor.labeled || !editor.revisionsMatch || !editor.consent) throw new Error(`Editor layout failed at ${width}: ${JSON.stringify(editor)}`);
+    if (!editor.noPageOverflow || !editor.labeled || !editor.revisionsMatch || !editor.consent || editor.mainFields !== 3 || editor.collapsedOptions !== 2) throw new Error(`Editor layout failed at ${width}: ${JSON.stringify(editor)}`);
     await screenshot(`editor-${width}`);
-    report.widths.push({ width, list, editor });
+    const options = await evaluate(`(() => {
+      const details = document.querySelector('#detalles-publicacion');
+      const dates = document.querySelector('#fechas-publicacion');
+      details.querySelector('summary').click(); dates.querySelector('summary').click();
+      const result = { opened: details.open && dates.open, datesRequired: document.querySelector('#vigente_desde').required && document.querySelector('#vigente_hasta').required, noOverflow: document.documentElement.scrollWidth <= innerWidth };
+      details.querySelector('summary').click(); dates.querySelector('summary').click();
+      return result;
+    })()`);
+    if (!options.opened || !options.datesRequired || !options.noOverflow) throw new Error(`Publication options failed at ${width}: ${JSON.stringify(options)}`);
+    report.widths.push({ width, list, editor, options });
   }
   await evaluate(`document.querySelector('#titulo').value = 'Guardado desde navegador'; document.querySelector('[name=confirmacion_publica]').click(); document.querySelector('form[action$="/publicacion"]').requestSubmit();`);
   await waitFor(() => report.responses.some(r => r.status === 302 && r.title === 'Guardado desde navegador' && r.published === '1'));

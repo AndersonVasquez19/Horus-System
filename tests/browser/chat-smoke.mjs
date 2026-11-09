@@ -3,7 +3,13 @@ import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
 
+// --history: solo http://127.0.0.1:8765/ con horus-ai-browser-router.php,
+// SQLite :memory:, sesión/caché/correo array y cola sync; respuestas simuladas en Edge.
 const baseUrl = process.env.CHAT_SMOKE_URL || 'http://127.0.0.1:8765/';
+const historyOnly = process.argv.includes('--history');
+if (historyOnly && baseUrl !== 'http://127.0.0.1:8765/') {
+  throw new Error('History smoke requires the isolated fixture at http://127.0.0.1:8765/.');
+}
 const edgePath = process.env.EDGE_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const port = 19322;
 const profile = await mkdtemp(join(tmpdir(), 'horus-chat-smoke-'));
@@ -78,6 +84,89 @@ try {
   };
 
   await command('Runtime.enable');
+  if (historyOnly) {
+    await command('Page.enable');
+    // Se instala antes de cada navegación: ninguna consulta alcanza un proveedor real.
+    await command('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.__chatRequests = 0;
+      window.__chatDocument = crypto.randomUUID();
+      window.__chatTokenMatches = false;
+      const original = window.fetch;
+      window.fetch = (url, options) => {
+        if (String(url).endsWith('/chat/mensaje')) {
+          window.__chatRequests++;
+          window.__chatTokenMatches = options.headers['X-CSRF-TOKEN'] === document.querySelector('[x-data="chatClient"]').dataset.csrfToken;
+          return Promise.resolve(new Response(JSON.stringify({
+            respuesta: 'Respuesta ficticia para probar navegación. Consulta /educacion/cursos',
+            fuente: 'advisor', tarjetas: [{ id: 'servicio:fixture', tipo: 'servicio', titulo: 'Servicio de prueba',
+              descripcion: 'Contenido ficticio del smoke.', url: '/tecnologias/soporte-mantenimiento', imagen: null }]
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        }
+        return original(url, options);
+      };
+    ` });
+    const ready = async (path) => waitFor(() => evaluate(`location.pathname === ${JSON.stringify(path)}
+      && document.readyState === 'complete' && !!window.Alpine
+      && !!document.querySelector('[x-data="chatClient"]')?._x_dataStack`));
+    const reloadPage = async () => {
+      const previous = await evaluate('window.__chatDocument');
+      await command('Page.reload');
+      await waitFor(() => evaluate(`!!window.__chatDocument && window.__chatDocument !== ${JSON.stringify(previous)}`));
+      await ready('/educacion/cursos');
+    };
+    const snapshot = () => evaluate(`({
+      texts: [...document.querySelectorAll('.hc-message > p')].map(el => el.textContent),
+      links: [...document.querySelectorAll('.hc-action')].map(el => el.getAttribute('href')),
+      cards: [...document.querySelectorAll('.hc-card h3')].map(el => el.textContent),
+      session: sessionStorage.getItem('horus-chat-session:' + document.querySelector('[x-data="chatClient"]').dataset.endpoint),
+      requests: window.__chatRequests,
+      sending: document.querySelector('#mensaje-chat').disabled
+    })`);
+    await command('Page.navigate', { url: baseUrl });
+    await ready('/');
+    await evaluate(`(async () => {
+      document.querySelector('.hc-launcher').click();
+      const input = document.querySelector('#mensaje-chat');
+      input.value = 'Consulta ficticia de cursos';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(resolve => setTimeout(resolve, 50));
+      input.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    })()`);
+    await waitFor(() => evaluate(`document.querySelectorAll('.hc-message').length === 3 && !document.querySelector('#mensaje-chat').disabled`));
+    const initial = await snapshot();
+    if (initial.requests !== 1 || !initial.session || initial.texts.length !== 3 || initial.cards[0] !== 'Servicio de prueba'
+        || !await evaluate('window.__chatTokenMatches')) throw new Error('Initial fixture conversation failed: ' + JSON.stringify({
+          requests: initial.requests, messages: initial.texts.length, cards: initial.cards,
+          tokenMatches: await evaluate('window.__chatTokenMatches'),
+        }));
+    await evaluate(`document.querySelector('.hc-action[href="/educacion/cursos"]').click()`);
+    await ready('/educacion/cursos');
+    await evaluate(`document.querySelector('.hc-launcher').click()`);
+    const cursos = await snapshot();
+    await reloadPage();
+    await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await evaluate(`document.querySelector('.hc-launcher').click()`);
+    const reload = await snapshot();
+    for (const state of [cursos, reload]) {
+      if (JSON.stringify(state.texts) !== JSON.stringify(initial.texts)
+          || JSON.stringify(state.links) !== JSON.stringify(initial.links)
+          || JSON.stringify(state.cards) !== JSON.stringify(initial.cards)
+          || state.session !== initial.session || state.requests !== 0 || state.sending) {
+        throw new Error('Navigation or reload lost the fixture conversation.');
+      }
+    }
+    await evaluate(`document.querySelector('.hc-close').click(); document.querySelector('.hc-launcher').click()`);
+    if (JSON.stringify((await snapshot()).texts) !== JSON.stringify(initial.texts)) throw new Error('Closing the widget lost history.');
+    // Caducidad sin esperar 30 minutos ni cambiar los tiempos de espera del smoke.
+    await evaluate(`const key = 'horus-chat-history:' + document.querySelector('[x-data="chatClient"]').dataset.endpoint;
+      const saved = JSON.parse(sessionStorage.getItem(key));
+      saved.savedAt = Date.now() - 30 * 60 * 1000; sessionStorage.setItem(key, JSON.stringify(saved));`);
+    await reloadPage();
+    if ((await snapshot()).texts.length !== 1 || !await evaluate(`sessionStorage.getItem('horus-chat-history:' + document.querySelector('[x-data="chatClient"]').dataset.endpoint) === null`)) {
+      throw new Error('Expired history was restored.');
+    }
+    process.stdout.write('Edge history smoke passed: Inicio → Cursos, reload, desktop/mobile, messages, links, cards, session, no repeated requests, close/reopen and expiry.\n');
+  } else {
   try {
     await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.getAttribute("aria-expanded") === "false"'));
   } catch (error) {
@@ -176,6 +265,7 @@ try {
     await writeFile(join(process.env.CHAT_SMOKE_ARTIFACT_DIR, 'chat-mobile.png'), Buffer.from(screenshot.data, 'base64'));
   }
   process.stdout.write(`Edge chat smoke passed: local reply, fallback, mobile 390x844, safe links, Enter, Escape, focus and simulated 429 with draft preserved.\n`);
+  }
 } finally {
   await cleanup();
 }

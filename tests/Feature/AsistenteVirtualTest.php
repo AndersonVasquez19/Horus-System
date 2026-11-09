@@ -35,6 +35,7 @@ class AsistenteVirtualTest extends TestCase
 
         $this->assertNull($precio['intent']);
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $precio['respuesta']);
+        $this->assertStringContainsString('+51 972 021 374', $precio['respuesta']);
         $this->assertNull($evaluacion['intent']);
         $this->assertNull($cableado['intent']);
         $this->assertDatabaseHas('chat_logs', ['intent_detectado' => null, 'mensaje_usuario' => '[contenido omitido por privacidad]']);
@@ -145,6 +146,7 @@ class AsistenteVirtualTest extends TestCase
         $original = collect(ChatKnowledge::intents())->firstWhere('nombre', 'consulta_horarios');
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         $this->assertStringContainsString('/contactos', $original['respuesta']);
+        $this->assertStringContainsString('+51 972 021 374', $original['respuesta']);
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         Http::assertNothingSent();
     }

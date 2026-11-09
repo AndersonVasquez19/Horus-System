@@ -1,3 +1,4 @@
+@use('App\Support\OldInput')
 @extends('admin.layouts.app')
 
 @section('title', 'Aprobaciones internas')
@@ -29,7 +30,7 @@
             @can('aprobaciones.gestionar')
                 <button
                     type="button"
-                    @click="formOpen = ! formOpen; if (formOpen) $nextTick(() => { $refs.formNueva.scrollIntoView({ behavior: 'smooth', block: 'start' }); $refs.tituloNueva.focus({ preventScroll: true }); })"
+                    @click="formOpen = true"
                     :aria-expanded="formOpen.toString()"
                     aria-controls="form-nueva-aprobacion"
                     class="admin-btn-primary w-full justify-center sm:w-auto"
@@ -100,7 +101,12 @@
 
         {{-- Registro de solicitud (plegable) --}}
         @can('aprobaciones.gestionar')
-            <section id="form-nueva-aprobacion" x-ref="formNueva" x-show="formOpen" x-cloak x-transition.opacity class="admin-card scroll-mt-24">
+            <x-admin.form-modal id="form-nueva-aprobacion" title="Nueva solicitud" state="formOpen" on-close="formOpen = false">
+                @if ($formularioConErrores)
+                    <ul role="alert" class="admin-error mb-4 list-inside list-disc">
+                        @foreach ($errors->all() as $mensaje)<li>{{ $mensaje }}</li>@endforeach
+                    </ul>
+                @endif
                 <div class="flex flex-col gap-3 border-b border-[#E2E8F0] pb-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="text-lg font-bold text-[#172B3A]">Registrar nueva solicitud</h2>
@@ -155,7 +161,7 @@
                         </button>
                     </div>
                 </form>
-            </section>
+            </x-admin.form-modal>
         @endcan
 
         {{-- Listado --}}
@@ -166,7 +172,7 @@
                     $historial = $historiales->get($aprobacion->id, collect());
                     $esPropia = $aprobacion->esSolicitante($usuario);
                 @endphp
-                <article class="admin-card transition duration-150 hover:border-[#176B9A]/40" x-data="{ showHistory: false, panel: null }">
+                <article class="admin-card transition duration-150 hover:border-[#176B9A]/40" x-data="{ showHistory: false, panel: @js($errors->any() && old('_modal') === 'rechazar-'.$aprobacion->id ? 'rechazar' : ($errors->any() && old('_modal') === 'reabrir-'.$aprobacion->id ? 'reabrir' : null)) }">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
@@ -344,28 +350,36 @@
 
                             {{-- Motivo obligatorio para rechazar --}}
                             @if ($aprobacion->estado === 'pendiente' && ! $esPropia && $aprobacion->puedeResolver($usuario))
-                                <form x-show="panel === 'rechazar'" x-cloak action="{{ route('admin.aprobaciones.rechazar', $aprobacion) }}" method="POST" class="mt-3 rounded-xl border border-red-200 bg-red-50/50 p-3" onsubmit="return confirm('¿Confirmas el rechazo de esta solicitud?');">
-                                    @csrf
-                                    <label for="motivo-rechazo-{{ $aprobacion->id }}" class="admin-label">Motivo del rechazo <span class="text-red-600">*</span></label>
-                                    <textarea id="motivo-rechazo-{{ $aprobacion->id }}" name="motivo" rows="2" required minlength="3" maxlength="1000" class="admin-textarea" placeholder="Explica por qué se rechaza; el solicitante lo verá."></textarea>
-                                    <div class="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                        <button type="button" @click="panel = null" class="admin-btn-outline min-h-9 justify-center px-3.5 py-1.5 text-xs">Cancelar</button>
-                                        <button type="submit" class="admin-btn-danger min-h-9 justify-center px-3.5 py-1.5 text-xs">Confirmar rechazo</button>
-                                    </div>
-                                </form>
+                                <x-admin.form-modal id="rechazar-{{ $aprobacion->id }}" title="Rechazar solicitud" state="panel === 'rechazar'" on-close="panel = null">
+                                    <form action="{{ route('admin.aprobaciones.rechazar', $aprobacion) }}" method="POST" onsubmit="return confirm('¿Confirmas el rechazo de esta solicitud?');">
+                                        @csrf
+                                        <input type="hidden" name="_modal" value="rechazar-{{ $aprobacion->id }}">
+                                        <label for="motivo-rechazo-{{ $aprobacion->id }}" class="admin-label">Motivo del rechazo <span class="text-red-600">*</span></label>
+                                        <textarea id="motivo-rechazo-{{ $aprobacion->id }}" name="motivo" rows="2" required minlength="3" maxlength="1000" class="admin-textarea" placeholder="Explica por qué se rechaza; el solicitante lo verá.">{{ old('_modal') === 'rechazar-'.$aprobacion->id ? OldInput::value('motivo') : '' }}</textarea>
+                                        @if (old('_modal') === 'rechazar-'.$aprobacion->id) @error('motivo')<p class="admin-error" role="alert">{{ $message }}</p>@enderror @endif
+                                        <div class="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                            <button type="button" @click="panel = null" class="admin-btn-outline min-h-9 justify-center px-3.5 py-1.5 text-xs">Cancelar</button>
+                                            <button type="submit" class="admin-btn-danger min-h-9 justify-center px-3.5 py-1.5 text-xs">Confirmar rechazo</button>
+                                        </div>
+                                    </form>
+                                </x-admin.form-modal>
                             @endif
 
                             {{-- Motivo obligatorio para reabrir --}}
                             @if ($aprobacion->estado !== 'pendiente' && $aprobacion->puedeReabrir($usuario))
-                                <form x-show="panel === 'reabrir'" x-cloak action="{{ route('admin.aprobaciones.reabrir', $aprobacion) }}" method="POST" class="mt-3 rounded-xl border border-[#176B9A]/25 bg-[#F4F7FB] p-3" onsubmit="return confirm('¿Confirmas la reapertura? La decisión anterior se conservará en el historial.');">
-                                    @csrf
-                                    <label for="motivo-reapertura-{{ $aprobacion->id }}" class="admin-label">Motivo de la reapertura <span class="text-red-600">*</span></label>
-                                    <textarea id="motivo-reapertura-{{ $aprobacion->id }}" name="motivo" rows="2" required minlength="3" maxlength="1000" class="admin-textarea" placeholder="Indica por qué debe evaluarse de nuevo."></textarea>
-                                    <div class="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                        <button type="button" @click="panel = null" class="admin-btn-outline min-h-9 justify-center px-3.5 py-1.5 text-xs">Cancelar</button>
-                                        <button type="submit" class="admin-btn-primary min-h-9 justify-center px-3.5 py-1.5 text-xs">Confirmar reapertura</button>
-                                    </div>
-                                </form>
+                                <x-admin.form-modal id="reabrir-{{ $aprobacion->id }}" title="Reabrir solicitud" state="panel === 'reabrir'" on-close="panel = null">
+                                    <form action="{{ route('admin.aprobaciones.reabrir', $aprobacion) }}" method="POST" onsubmit="return confirm('¿Confirmas la reapertura? La decisión anterior se conservará en el historial.');">
+                                        @csrf
+                                        <input type="hidden" name="_modal" value="reabrir-{{ $aprobacion->id }}">
+                                        <label for="motivo-reapertura-{{ $aprobacion->id }}" class="admin-label">Motivo de la reapertura <span class="text-red-600">*</span></label>
+                                        <textarea id="motivo-reapertura-{{ $aprobacion->id }}" name="motivo" rows="2" required minlength="3" maxlength="1000" class="admin-textarea" placeholder="Indica por qué debe evaluarse de nuevo.">{{ old('_modal') === 'reabrir-'.$aprobacion->id ? OldInput::value('motivo') : '' }}</textarea>
+                                        @if (old('_modal') === 'reabrir-'.$aprobacion->id) @error('motivo')<p class="admin-error" role="alert">{{ $message }}</p>@enderror @endif
+                                        <div class="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                            <button type="button" @click="panel = null" class="admin-btn-outline min-h-9 justify-center px-3.5 py-1.5 text-xs">Cancelar</button>
+                                            <button type="submit" class="admin-btn-primary min-h-9 justify-center px-3.5 py-1.5 text-xs">Confirmar reapertura</button>
+                                        </div>
+                                    </form>
+                                </x-admin.form-modal>
                             @endif
                         </div>
                     @endcan

@@ -278,6 +278,41 @@ img {
 }
 
 /* ===== Sistema de diseño administrativo Horus ===== */
+.admin-form-modal {
+  width: min(56rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--admin-border);
+  border-radius: 1.25rem;
+  background: white;
+  color: var(--admin-text);
+  box-shadow: 0 24px 80px rgba(10, 37, 64, .25);
+}
+
+.admin-form-modal::backdrop {
+  background: rgba(10, 37, 64, .6);
+  backdrop-filter: blur(3px);
+}
+
+.admin-modal-open { overflow: hidden; }
+.admin-modal-heading {
+  @apply sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#E2E8F0] bg-white px-5 py-3 sm:px-7;
+}
+.admin-modal-body { @apply min-w-0 p-5 sm:p-7; }
+.admin-modal-body > .admin-card,
+.admin-modal-body > div > .admin-card {
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .admin-form-modal { width: calc(100% - 1rem); max-height: calc(100dvh - 1rem); border-radius: 1rem; }
+}
+
 .admin-card {
   @apply rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_2px_12px_rgba(10,37,64,0.04)] sm:p-6;
 }

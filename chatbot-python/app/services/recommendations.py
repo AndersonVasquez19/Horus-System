@@ -45,7 +45,7 @@ TOPIC_LABELS = {
     "empresas": "empresas",
 }
 
-CONTACT_LINE = "Para confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com."
+CONTACT_LINE = "Para confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com."
 
 
 @dataclass

@@ -1,3 +1,5 @@
+import { sincronizarModal } from './admin-modals.mjs';
+
 const camposEditoriales = ['titulo', 'resumen', 'descripcion', 'categoria', 'vigente_desde', 'vigente_hasta', 'titulo_tarjetas', 'imagen_principal_alt'];
 const camposTarjeta = ['titulo', 'descripcion', 'caracteristicas', 'icono', 'variante_imagen', 'imagen_alt', 'orden'];
 const copiar = (origen, campos) => Object.fromEntries(campos.map(campo => [campo, origen?.[campo] ?? '']));
@@ -159,13 +161,16 @@ function conectar(root) {
   const mostrar = (selector, visible) => { const el = q(selector); if (el) el.hidden = !visible; };
   const formularios = [...root.querySelectorAll('[data-form]')];
   function render(estado) {
+    const avisos = estado.abierto ? q('[data-editor] .admin-modal-body') : root;
+    avisos.prepend(q('[data-mensaje]'), q('[data-errores]'));
     root.setAttribute('aria-busy', String(estado.ocupado));
     q('[data-mensaje]').textContent = estado.mensaje;
     mostrar('[data-listado-pendiente]', estado.listadoPendiente);
     const errores = q('[data-errores]');
     errores.replaceChildren(...estado.errores.map(texto => { const p = document.createElement('p'); p.textContent = texto; return p; }));
     errores.hidden = !estado.errores.length;
-    mostrar('[data-editor]', estado.abierto);
+    q('[data-editor]').dataset.modalBusy = String(estado.ocupado);
+    sincronizarModal(q('[data-editor]'), estado.abierto);
     const existente = !!estado.detalle;
     mostrar('[data-detalle]', existente); mostrar('[data-ficha]', existente);
     q('#servicio-titulo').textContent = existente ? 'Revisar servicio' : 'Nuevo servicio';
@@ -247,6 +252,7 @@ function conectar(root) {
     }
   }
   const panel = panelServicios({ endpoint: root.dataset.endpoint, csrf: document.querySelector('meta[name=csrf-token]').content, cambio: render });
+  q('[data-editor]').addEventListener('close', () => { if (!q('[data-editor]').open) panel.estado.abierto = false; });
   const enfocar = () => q('[data-errores]').hidden ? q('#servicio-titulo').focus() : q('[data-errores]').focus();
   const abandonar = () => !panel.pendiente() || window.confirm('Hay cambios sin guardar. ¿Descartarlos para abrir otro servicio?');
   root.addEventListener('click', async event => {

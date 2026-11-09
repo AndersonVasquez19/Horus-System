@@ -161,7 +161,7 @@
             <p>Nuestro equipo está disponible para resolver cualquier consulta de forma personalizada. No dudes en
                 contactarnos.</p>
             <div class="faq-cta-buttons">
-                <a href="https://wa.me/51909999999" class="btn-gold" target="_blank">
+                <a href="https://wa.me/51972021374" class="btn-gold" target="_blank">
                     <i class="fab fa-whatsapp"></i>
                     Escribir por WhatsApp
                 </a>

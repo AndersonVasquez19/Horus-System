@@ -57,7 +57,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
           }
         ],
         "missing_data": [],
@@ -106,7 +106,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
           }
         ],
         "missing_data": [],
@@ -199,7 +199,7 @@
     {
       "query": "Quiero matricularme",
       "reply": {
-        "answer": "Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula. No compartas datos personales en este chat.",
+        "answer": "Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula. No compartas datos personales en este chat.",
         "intent": "enrollment_request",
         "match_level": "alta",
         "needs_clarification": false,

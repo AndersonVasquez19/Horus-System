@@ -1,5 +1,6 @@
 import { chatClient } from './chat-client.js';
 import Alpine from 'alpinejs';
+import { iniciarModales, sincronizarModal } from './admin-modals.mjs';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-400.css';
@@ -13,6 +14,7 @@ import '@fontsource/montserrat/latin-700.css';
 import '../css/chatbot.css';
 
 window.Alpine = Alpine;
+window.HorusModal = { sync: sincronizarModal };
 
 document.addEventListener('alpine:init', () => {
   Alpine.data('carousel', (total = 1, interval = 6000) => ({
@@ -182,3 +184,6 @@ document.addEventListener('alpine:init', () => {
 });
 
 Alpine.start();
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciarModales, { once: true });
+else iniciarModales();

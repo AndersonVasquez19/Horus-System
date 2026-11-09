@@ -8,7 +8,7 @@
     var wa = document.getElementById('enviarWhatsapp');
     var mail = document.getElementById('enviarCorreo');
     var CORREO = 'horusgroupcajamarca@gmail.com';
-    var WHATSAPP = '51927582305';
+    var WHATSAPP = '51972021374';
 
     function valor(id) {
         return document.getElementById(id).value.trim();

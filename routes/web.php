@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServicioTecnologicoController;
+use App\Http\Controllers\Admin\SolicitudMatriculaController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\LibroReclamacionesController;
 use App\Http\Controllers\PaginaTecnologicaController;
 use App\Http\Controllers\ServiciosPublicosController;
 use App\Http\Controllers\SolicitudCotizacionPublicaController;
+use App\Http\Controllers\SolicitudMatriculaPublicaController;
 use App\Http\Middleware\RecepcionCotizacionesHabilitada;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
@@ -41,6 +43,8 @@ Route::get('/tecnologias/soporte-mantenimiento', ServiciosPublicosController::cl
 Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
 Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
+Route::get('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'create'])->name('matricula-publica.create');
+Route::post('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'store'])->middleware('throttle:5,10')->name('matricula-publica.store');
 Route::view('/galeria', 'pages.galeria')->name('galeria');
 Route::view('/contactos', 'pages.contactos')->name('contactos');
 Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name('legales.devolucion');
@@ -129,6 +133,9 @@ Route::prefix('admin')
         Route::get('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
             ->name('matriculas.csv');
         Route::resource('matriculas', MatriculaController::class);
+        Route::get('solicitudes-matricula', [SolicitudMatriculaController::class, 'index'])->name('solicitudes-matricula.index');
+        Route::patch('solicitudes-matricula/{solicitud:identificador}', [SolicitudMatriculaController::class, 'update'])
+            ->whereUuid('solicitud')->name('solicitudes-matricula.update');
         Route::patch('matriculas/{matricula}/anular', [MatriculaController::class, 'anular'])
             ->name('matriculas.anular');
         Route::patch('matriculas/{matricula}/restaurar', [MatriculaController::class, 'restaurar'])

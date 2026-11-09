@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from app.services.chat_engine import AdvisorEngine
 
-WHATSAPP_QUOTE_URL = "https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
+WHATSAPP_QUOTE_URL = "https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
 WHATSAPP_MATRICULA_URL = (
-    "https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula"
+    "https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula"
 )
 
 

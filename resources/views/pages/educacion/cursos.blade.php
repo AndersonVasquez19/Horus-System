@@ -1,6 +1,7 @@
 ﻿@extends('layouts.app')
 
 @section('title', 'Cursos')
+@inject('solicitudesMatricula', 'App\Services\GestionSolicitudesMatricula')
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('assets/css/educacion/cursos.css') }}">
@@ -148,6 +149,7 @@
                             <span>Información de inscripción: {{ $ficha['inscripcion'] }}</span>
                         @endif
                         <a href="{{ route('contactos') }}" class="inline-flex min-h-11 items-center underline" aria-label="{{ 'Consultar sobre '.$ficha['titulo'] }}">Consultar curso</a>
+                        <a href="{{ route('matricula-publica.create', ['curso' => $solicitudesMatricula->referencia($ficha)]) }}" class="admin-btn-primary mt-3" aria-label="{{ 'Solicitar matrícula para '.$ficha['titulo'] }}">Solicitar matrícula</a>
                     </div>
                 </article>
                 @endforeach
