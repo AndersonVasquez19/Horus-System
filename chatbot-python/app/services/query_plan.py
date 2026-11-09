@@ -25,6 +25,8 @@ LEARNING = (
     "busco un curso",
     "algun cursito de",
     "un curso de",
+    "curso de",
+    "cursos de",
     "curso sobre",
     "capacitacion sobre",
     "capacitacion en",
@@ -117,7 +119,7 @@ def plan_query(text: str) -> QueryPlan:
     hire = any(contains_phrase(normalized, p) for p in HIRING)
     # Una mención aislada («mi poema dice curso») no constituye una solicitud.
     request = bool(
-        re.search(r"^(que|cual|cuales|tienen|ofrecen|hay|cursos?$|capacitaciones?$|servicios?$)", normalized)
+        re.search(r"^(que|cual|cuales|tienen|ofrecen|hay|(?:(?:el|la|los|las)\s+)?(?:cursos?$|capacitaciones?$|servicios?$))", normalized)
     )
     words = set(normalized.split())
     learn = learn or (request and bool(words & _BROAD_LEARNING))
