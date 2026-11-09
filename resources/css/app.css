@@ -458,6 +458,73 @@ img {
 
 @keyframes auth-arrive { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
+/* Fondo exclusivo del login: identidad Horus sin texto detrás del formulario. */
+.auth-scene--login {
+  isolation: isolate;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 100svh;
+  background-image:
+    radial-gradient(ellipse at 12% 8%, rgba(201, 169, 97, 0.14), transparent 42%),
+    radial-gradient(ellipse at 88% 82%, rgba(33, 126, 145, 0.22), transparent 48%),
+    linear-gradient(135deg, #071727, #0c2942 58%, #102f49);
+}
+
+.auth-scene--login .auth-orbit {
+  position: fixed;
+  z-index: -1;
+  width: min(54vw, 680px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.auth-scene--login .auth-orbit--one { top: -25vw; left: -12vw; border-color: rgba(201, 169, 97, 0.14); }
+.auth-scene--login .auth-orbit--two { right: -18vw; bottom: -22vw; border-color: rgba(112, 191, 204, 0.12); }
+.auth-scene--login .auth-card { flex-shrink: 0; border-color: rgba(201, 169, 97, 0.24); }
+.auth-scene--login .auth-brand-logo { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+.auth-scene--login .auth-art {
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 95% 70%, rgba(35, 143, 151, 0.24), transparent 62%),
+    radial-gradient(ellipse at 0% 0%, rgba(201, 169, 97, 0.13), transparent 52%),
+    linear-gradient(155deg, #153b52, #0a2540 58%, #071d30);
+}
+
+.auth-login-watermark { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.auth-login-watermark > img {
+  position: absolute;
+  right: -24%;
+  bottom: 3%;
+  width: 115%;
+  max-width: none;
+  height: auto;
+  opacity: 0.1;
+  transform: rotate(-12deg);
+  filter: grayscale(1) drop-shadow(0 0 32px rgba(87, 185, 191, 0.15));
+}
+
+.auth-login-halo {
+  position: absolute;
+  top: 38%;
+  left: 18%;
+  width: 120%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(201, 169, 97, 0.18);
+  border-radius: 50%;
+  transform: rotate(-25deg);
+}
+
+.auth-login-halo::before { position: absolute; inset: 28px; border: 1px solid rgba(115, 199, 201, 0.1); border-radius: 50%; content: ''; }
+.auth-login-halo::after { position: absolute; top: 14%; left: 14%; width: 6px; height: 6px; border-radius: 50%; background: #d7bb7b; box-shadow: 0 0 20px rgba(215, 187, 123, 0.5); content: ''; }
+.auth-scene--login .auth-art-message { position: relative; }
+.auth-scene--login .auth-art-message::before { display: block; width: 42px; height: 2px; margin-bottom: 24px; background: linear-gradient(90deg, #d7bb7b, rgba(215, 187, 123, 0.15)); content: ''; }
+.auth-scene--login .auth-copyright { position: relative; inset: auto; margin: 0; padding-inline: 12px; color: #9cb4c5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-scene--login .auth-card { animation: none; }
+}
+
 @media (max-width: 1023px) {
   .auth-card { @apply max-w-[520px] rounded-3xl; }
 }
