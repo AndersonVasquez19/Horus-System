@@ -82,7 +82,10 @@ class FuentesCatalogoAdvisor
             if ($cursos !== []) {
                 $titulos = implode('; ', array_slice($cursos, 0, 15));
                 $fuentes['cat_listado_formacion'] = ['title' => 'Cursos y capacitaciones vigentes', 'url_path' => '/educacion/cursos',
-                    'answer' => mb_substr('Según el catálogo publicado por Horus Group, están vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos publicados.', 0, 1500)];
+                    'answer' => mb_substr('Según el catálogo publicado por Horus Group, están vigentes: '.$titulos.'. Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados.', 0, 1500),
+                    'fragments' => [
+                        mb_substr('Según el catálogo publicado por Horus Group, están vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos publicados.', 0, 1500),
+                    ]];
             }
             if ($servicios !== []) {
                 $titulos = implode('; ', array_slice($servicios, 0, 15));

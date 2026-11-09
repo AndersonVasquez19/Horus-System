@@ -183,7 +183,7 @@
     {
       "query": "¿Qué capacitaciones tienen para empresas?",
       "reply": {
-        "answer": "Según el catálogo publicado por Horus Group, están vigentes: Analisis de datos con Python; Excel empresarial; Programacion con Python. Pregúntame por cualquiera para ver su modalidad o requisitos publicados.",
+        "answer": "Según el catálogo publicado por Horus Group, están vigentes: Analisis de datos con Python; Excel empresarial; Programacion con Python. Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,

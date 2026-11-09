@@ -221,7 +221,11 @@ def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord], *, s
         description=f"{'Servicios tecnológicos' if service else 'Cursos y capacitaciones'} vigentes según el catálogo publicado: {titles}.",
         answer=(
             f"Según el catálogo publicado por Horus Group, están vigentes: "
-            f"{titles}. " + ("Pregúntame por cualquiera para ver su contenido publicado." if service else "Pregúntame por cualquiera para ver su modalidad o requisitos publicados.")
+            f"{titles}. " + (
+                "Pregúntame por cualquiera para ver su contenido publicado."
+                if service
+                else "Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados."
+            )
         )[:1500],
         status="verified",
         source=Source(
