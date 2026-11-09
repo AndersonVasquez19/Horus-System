@@ -180,7 +180,7 @@ try {
             const link = [...document.querySelectorAll('.hc-action')].at(-1);
             return { url: link?.getAttribute('href'), draft: document.getElementById('mensaje-chat').value, calls: window.__quoteFetches, contained: document.getElementById('horus-chat-panel').getBoundingClientRect().width <= innerWidth };
           })()`);
-          if (quote.url !== 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n' || quote.draft !== 'Consulta en preparación' || quote.calls !== 0 || !quote.contained) throw new Error('Quote chat failed: ' + JSON.stringify(quote));
+          if (quote.url !== 'https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n' || quote.draft !== 'Consulta en preparación' || quote.calls !== 0 || !quote.contained) throw new Error('Quote chat failed: ' + JSON.stringify(quote));
           if (index === 1) await evaluate(`document.querySelector('[aria-label="Cerrar chat"]').click()`);
           else await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
           await waitFor(() => evaluate(`getComputedStyle(document.getElementById('horus-chat-panel')).display === 'none' && document.activeElement === document.querySelectorAll('.carta-solicitar-cotizacion')[${index}]`));

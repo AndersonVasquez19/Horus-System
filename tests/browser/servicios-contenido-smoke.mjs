@@ -159,7 +159,7 @@ try {
         await waitFor(() => evaluate(`document.getElementById('horus-chat-panel').getBoundingClientRect().width > 0 && document.querySelector('.hc-log').textContent.includes(${JSON.stringify(servicio)}) && document.activeElement.id === 'mensaje-chat'`));
         const cotizacion = await evaluate(`(() => {
           const link = [...document.querySelectorAll('.hc-action')].at(-1);
-          return { whatsapp: link?.getAttribute('href') === 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n', requests: window.__quoteRequests };
+          return { whatsapp: link?.getAttribute('href') === 'https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n', requests: window.__quoteRequests };
         })()`);
         if (!cotizacion.whatsapp || cotizacion.requests !== 0) throw new Error('Derivación de cotización incorrecta');
         await evaluate(`document.querySelector('[aria-label="Cerrar chat"]').click()`);

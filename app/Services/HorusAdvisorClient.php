@@ -132,10 +132,10 @@ class HorusAdvisorClient
     ];
 
     public const CANALES_OFICIALES_PUBLICOS = [
-        'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
-        'https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
-        'https://wa.me/51927582305',
-        '+51 927 582 305',
+        'https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+        'https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
+        'https://wa.me/51972021374',
+        '+51 972 021 374',
         'horusgroupcajamarca@gmail.com',
         '20611010977',
     ];

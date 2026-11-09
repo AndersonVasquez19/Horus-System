@@ -90,11 +90,11 @@ QUOTE_INTRO = (
     "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta "
     "cotizaciones emitidas."
 )
-WHATSAPP_QUOTE_URL = "https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
+WHATSAPP_QUOTE_URL = "https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
 WHATSAPP_MATRICULA_URL = (
-    "https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula"
+    "https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula"
 )
-CONTACT_CHANNELS = "+51 927 582 305 (teléfono o WhatsApp) o horusgroupcajamarca@gmail.com"
+CONTACT_CHANNELS = "+51 972 021 374 (teléfono o WhatsApp) o horusgroupcajamarca@gmail.com"
 
 
 @dataclass(frozen=True)

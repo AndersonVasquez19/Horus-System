@@ -12,7 +12,7 @@
 
 @section('content')
 @php
-  $telefono = '+51 927 582 305';
+  $telefono = '+51 972 021 374';
   $correo = 'horusgroupcajamarca@gmail.com';
   $mapaUrl = 'https://www.google.com/maps/search/?api=1&query='.rawurlencode('Jr. José Gálvez 322 Cajamarca');
 @endphp
@@ -24,11 +24,11 @@
       <p>Estamos aquí para ayudarte. Envíanos tu consulta y te responderemos a la brevedad.</p>
     </div>
     <div class="ct-quick">
-      <a class="ct-q ct-q-main" href="https://wa.me/51927582305" target="_blank" rel="noopener noreferrer">
+      <a class="ct-q ct-q-main" href="https://wa.me/51972021374" target="_blank" rel="noopener noreferrer">
         <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-        <span>Escribir por WhatsApp<small>927 582 305</small></span>
+        <span>Escribir por WhatsApp<small>972 021 374</small></span>
       </a>
-      <a class="ct-q" href="tel:+51927582305">
+      <a class="ct-q" href="tel:+51972021374">
         <i class="fa-solid fa-phone" aria-hidden="true"></i>
         <span>Llamar ahora<small>Lunes a sábado</small></span>
       </a>
@@ -105,7 +105,7 @@
             <textarea id="mensaje" name="mensaje" rows="5" placeholder="Cuéntanos qué necesitas"></textarea>
           </div>
           <div class="ct-send">
-            <a class="ct-btn ct-btn-wa" id="enviarWhatsapp" href="https://wa.me/51927582305" target="_blank" rel="noopener noreferrer">
+            <a class="ct-btn ct-btn-wa" id="enviarWhatsapp" href="https://wa.me/51972021374" target="_blank" rel="noopener noreferrer">
               <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Enviar por WhatsApp
             </a>
             <a class="ct-btn ct-btn-mail" id="enviarCorreo" href="mailto:{{ $correo }}">

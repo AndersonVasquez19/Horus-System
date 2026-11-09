@@ -33,7 +33,7 @@ _PRIVATE_MARKERS = re.compile(
     r"sk-[A-Za-z0-9]{8,}|re_[A-Za-z0-9]{8,}|cotizaci[oó]n\s*(n[°º.o]|#|nro)\s*\d|cliente:|estudiante:)",
     re.IGNORECASE,
 )
-DEFAULT_PUBLIC_CONTACT = {"phone": "+51 927 582 305", "email": "horusgroupcajamarca@gmail.com"}
+DEFAULT_PUBLIC_CONTACT = {"phone": "+51 972 021 374", "email": "horusgroupcajamarca@gmail.com"}
 # Identificadores numéricos públicos admitidos (RUC de la empresa, publicado en el pie de página).
 _ALLOWED_NUMBERS = {"20611010977"}
 

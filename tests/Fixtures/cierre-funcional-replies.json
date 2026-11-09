@@ -102,7 +102,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
           }
         ],
         "missing_data": [],
@@ -153,7 +153,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
           }
         ],
         "missing_data": [],
@@ -290,7 +290,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
           },
           {
             "id": "cat_servicio_cableado",
@@ -307,7 +307,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
           }
         ],
         "missing_data": [],
@@ -365,7 +365,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
           },
           {
             "id": "cat_servicio_mant",
@@ -382,7 +382,7 @@
             "limitations": [],
             "needs_clarification": false,
             "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
+            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
           }
         ],
         "missing_data": [],
@@ -448,7 +448,7 @@
     {
       "query": "¿Dónde puedo encontrar más información?",
       "reply": {
-        "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 927 582 305, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+        "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
         "intent": "contact_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -513,7 +513,7 @@
     {
       "query": "¿Cómo puedo matricularme?",
       "reply": {
-        "answer": "Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula. No compartas datos personales en este chat.",
+        "answer": "Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula. No compartas datos personales en este chat.",
         "intent": "enrollment_request",
         "match_level": "alta",
         "needs_clarification": false,
@@ -544,7 +544,7 @@
     {
       "query": "Quiero solicitar una cotización",
       "reply": {
-        "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+        "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
         "intent": "quote_request",
         "match_level": "baja",
         "needs_clarification": true,

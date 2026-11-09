@@ -1,4 +1,6 @@
-<section data-editor hidden class="min-w-0 space-y-5 admin-card sm:p-8" aria-labelledby="cotizacion-titulo">
+<dialog data-editor data-admin-modal class="admin-form-modal" aria-labelledby="cotizacion-titulo">
+    <div class="admin-modal-heading"><p class="admin-eyebrow">Gestión de cotizaciones</p><button type="button" data-admin-modal-close class="admin-icon-btn" aria-label="Cerrar formulario"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+    <div class="admin-modal-body min-w-0 space-y-5">
     <div>
         <h2 id="cotizacion-titulo" tabindex="-1" class="text-xl font-bold tracking-tight text-[#172B3A]">Solicitud</h2>
         <p class="mt-1 text-sm text-[#64748B]">Borradores solo en memoria de esta página. No incluyas secretos ni documentos sensibles.</p>
@@ -37,4 +39,5 @@
         </div>
     @endcan
     <section data-historial hidden class="space-y-3 border-t border-[#E2E8F0] pt-5" aria-label="Historial privado"><h3 class="text-base font-bold text-[#172B3A]">Historial privado</h3><div data-eventos class="space-y-3 text-sm text-[#172B3A]"></div><p data-rango-historial class="text-sm text-[#64748B]"></p><div class="flex flex-wrap gap-3"><button type="button" data-accion="historial-anterior" class="admin-btn-outline">Historial anterior</button><button type="button" data-accion="historial-siguiente" class="admin-btn-outline">Historial siguiente</button></div></section>
-</section>
+    </div>
+</dialog>

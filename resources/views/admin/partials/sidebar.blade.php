@@ -90,6 +90,14 @@
             </a>
         @endcan
 
+        @can('solicitudes-matricula.ver')
+            <a href="{{ route('admin.solicitudes-matricula.index') }}" title="Solicitudes de matrícula" @if(request()->routeIs('admin.solicitudes-matricula.*')) aria-current="page" @endif @class([
+                'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#19A7A1]',
+                'bg-[#176B9A] font-semibold text-white' => request()->routeIs('admin.solicitudes-matricula.*'),
+                'text-slate-300 hover:bg-[#176B9A]/25 hover:text-white' => ! request()->routeIs('admin.solicitudes-matricula.*'),
+            ])><i class="fa-solid fa-file-pen w-5 shrink-0 text-center" aria-hidden="true"></i><span class="truncate md:hidden xl:inline">Solicitudes de matrícula</span></a>
+        @endcan
+
         <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 md:hidden xl:block">Comercial y atención</p>
 
         @can('servicios.ver')

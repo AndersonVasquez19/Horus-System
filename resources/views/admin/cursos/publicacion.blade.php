@@ -1,16 +1,44 @@
 @extends('admin.layouts.app')
 @use('App\Support\OldInput')
-@section('title', 'Publicación del curso')
+@section('title', 'Publicar curso en la web')
 @section('breadcrumb', 'Cursos / Publicación')
 @section('content')
 <section class="mx-auto max-w-3xl space-y-6 admin-card sm:p-8">
+    @php
+        $hoy = now('America/Lima')->startOfDay();
+        $desde = OldInput::value('vigente_desde', $publicacion?->vigente_desde?->format('Y-m-d') ?? $hoy->toDateString());
+        $hasta = OldInput::value('vigente_hasta', $publicacion?->vigente_hasta?->format('Y-m-d') ?? $hoy->copy()->addDays(30)->toDateString());
+        $noDisponible = $curso->trashed() || $curso->estado !== 'activo';
+        $programada = $publicacion && $publicacion->vigente_desde->toDateString() > $hoy->toDateString();
+        $vencida = $publicacion && $publicacion->vigente_hasta->toDateString() < $hoy->toDateString();
+        $abrirFechas = $programada || $vencida || $errors->hasAny(['vigente_desde', 'vigente_hasta']);
+        $abrirDetalles = $errors->hasAny(['horario', 'inscripcion']);
+    @endphp
     <div>
-        <p class="admin-eyebrow">Publicación editorial</p>
-        <h1 class="admin-page-title">Ficha pública del curso</h1>
-        <p class="mt-2 text-sm leading-6 text-[#64748B]">Curso administrativo: {{ $curso->codigo }}. Escribe y revisa únicamente información autorizada para el público. No incluyas datos personales, matrículas, precios ni cupos. Los datos administrativos no se copian a esta ficha.</p>
+        <p class="admin-eyebrow">Curso {{ $curso->codigo }}</p>
+        <h1 class="admin-page-title">Publicar curso en la web</h1>
+        <p class="mt-2 text-sm leading-6 text-[#64748B]">Revisa el título, el resumen y la modalidad que verá el visitante. Escribe solo información pública, sin datos personales, precios ni cupos.</p>
     </div>
-    <p class="rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] px-4 py-3 text-sm font-semibold text-[#172B3A]">{{ $publicacion?->publicada ? 'Ficha autorizada: solo será visible mientras el curso esté activo, no eliminado y dentro de su vigencia.' : 'Ficha sin publicación autorizada.' }}</p>
-    @if ($curso->trashed() || $curso->estado !== 'activo')
+    <div role="status" class="rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] px-4 py-3 text-sm text-[#172B3A]">
+        @if (! $publicacion?->publicada)
+            <p class="font-semibold">Este curso aún no tiene una publicación autorizada.</p>
+            @if ($programada || $vencida)
+                <p class="mt-1">Las fechas guardadas están {{ $vencida ? 'vencidas' : 'programadas para el futuro' }}. Revísalas antes de publicar.</p>
+            @endif
+        @elseif ($noDisponible)
+            <p class="font-semibold">La ficha está autorizada, pero el curso está inactivo o eliminado y no se muestra en la web.</p>
+        @elseif ($vencida)
+            <p class="font-semibold">Publicación vencida: dejó de mostrarse después del {{ $publicacion->vigente_hasta->format('d/m/Y') }}.</p>
+            <p class="mt-1">Revisa las fechas antes de volver a publicar.</p>
+        @elseif ($programada)
+            <p class="font-semibold">Publicación programada: se mostrará desde el {{ $publicacion->vigente_desde->format('d/m/Y') }}.</p>
+            <p class="mt-1">Para mostrarla hoy, cambia la fecha de inicio a {{ $hoy->format('d/m/Y') }} y vuelve a publicar.</p>
+        @else
+            <p class="font-semibold">Ficha autorizada y vigente hasta el {{ $publicacion->vigente_hasta->format('d/m/Y') }}.</p>
+        @endif
+        <p class="mt-1">Las fichas vigentes aparecen en <a href="{{ route('educacion.cursos') }}#catalogo-cursos" class="font-semibold underline">Educación → Cursos</a>, mientras el curso esté activo y su autorización siga siendo válida.</p>
+    </div>
+    @if ($noDisponible)
         <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">El curso no está disponible para publicación. Puedes retirar su ficha existente.</p>
     @endif
     @if ($errors->any())
@@ -26,13 +54,14 @@
         @csrf
         @method('PUT')
         <input type="hidden" name="_revision" value="{{ OldInput::value('_revision', $revision) }}">
-        @foreach (['titulo' => ['Título público', 120, true], 'resumen' => ['Resumen público', 500, true], 'horario' => ['Horario oficial del curso (opcional)', 200, false], 'inscripcion' => ['Información pública de inscripción (opcional)', 400, false]] as $field => [$label, $max, $required])
-            <div>
-                <label for="{{ $field }}" class="admin-label">{{ $label }}</label>
-                <textarea id="{{ $field }}" name="{{ $field }}" maxlength="{{ $max }}" rows="{{ $field === 'resumen' ? 4 : 2 }}" @required($required) class="admin-textarea">{{ OldInput::value($field, $publicacion?->$field ?? '') }}</textarea>
-            </div>
-        @endforeach
-        <p class="text-sm text-[#64748B]">Deja horario e inscripción vacíos si no hay información oficial. La web y el asistente indicarán que no está publicada.</p>
+        <div>
+            <label for="titulo" class="admin-label">Título público</label>
+            <input id="titulo" name="titulo" type="text" maxlength="120" required value="{{ OldInput::value('titulo', $publicacion?->titulo ?? '') }}" class="admin-input">
+        </div>
+        <div>
+            <label for="resumen" class="admin-label">Resumen público</label>
+            <textarea id="resumen" name="resumen" maxlength="500" rows="3" required class="admin-textarea">{{ OldInput::value('resumen', $publicacion?->resumen ?? '') }}</textarea>
+        </div>
         <div>
             <label for="modalidad" class="admin-label">Modalidad pública</label>
             <select id="modalidad" name="modalidad" required class="admin-select">
@@ -42,20 +71,41 @@
                 @endforeach
             </select>
         </div>
-        <fieldset class="grid gap-4 sm:grid-cols-2">
-            <legend class="mb-2 text-sm font-semibold text-[#172B3A]">Vigencia de la información (hora de Lima, días completos)</legend>
-            @foreach (['vigente_desde' => 'Desde', 'vigente_hasta' => 'Hasta, inclusive'] as $field => $label)
+        <details id="detalles-publicacion" class="rounded-xl border border-[#E2E8F0] px-4 py-2" @if ($abrirDetalles) open @endif>
+            <summary class="min-h-11 cursor-pointer content-center text-sm font-semibold text-[#172B3A]">Añadir horario o información de inscripción (opcional)</summary>
+            <div class="space-y-4 pb-2 pt-3">
+                <p class="text-sm text-[#64748B]">Completa estos campos solo si tienes información oficial. Puedes dejarlos vacíos.</p>
+                @foreach (['horario' => ['Horario del curso', 200], 'inscripcion' => ['Información de inscripción', 400]] as $field => [$label, $max])
                 <div>
                     <label for="{{ $field }}" class="admin-label">{{ $label }}</label>
-                    <input id="{{ $field }}" name="{{ $field }}" type="date" required value="{{ OldInput::value($field, $publicacion?->$field?->format('Y-m-d') ?? '') }}" class="admin-input">
+                    <textarea id="{{ $field }}" name="{{ $field }}" maxlength="{{ $max }}" rows="2" class="admin-textarea">{{ OldInput::value($field, $publicacion?->$field ?? '') }}</textarea>
                 </div>
-            @endforeach
-        </fieldset>
+                @endforeach
+            </div>
+        </details>
+        @if (! $publicacion)
+            <p class="text-sm text-[#64748B]">Para una publicación nueva se sugieren hoy y 30 días de vigencia. Puedes ajustar las fechas a continuación.</p>
+        @endif
+        <details id="fechas-publicacion" class="rounded-xl border border-[#E2E8F0] px-4 py-2" @if ($abrirFechas) open @endif>
+            <summary class="min-h-11 cursor-pointer content-center text-sm font-semibold text-[#172B3A]">Revisar o cambiar fechas de publicación</summary>
+            <div class="space-y-4 pb-2 pt-3">
+                <p class="text-sm text-[#64748B]">Estas fechas controlan cuándo se muestra el curso en la web; no son las fechas de las clases. Se cuentan días completos, en hora de Lima.</p>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach (['vigente_desde' => ['Mostrar desde', $desde], 'vigente_hasta' => ['Mostrar hasta, inclusive', $hasta]] as $field => [$label, $value])
+                    <div>
+                        <label for="{{ $field }}" class="admin-label">{{ $label }}</label>
+                        <input id="{{ $field }}" name="{{ $field }}" type="date" required value="{{ $value }}" class="admin-input">
+                    </div>
+                    @endforeach
+                </div>
+                <p class="text-sm text-[#64748B]">Si eliges un inicio futuro, el curso permanecerá oculto hasta ese día. Puedes despublicarlo antes del vencimiento.</p>
+            </div>
+        </details>
         <label class="flex min-h-11 items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] p-3.5 text-sm text-[#172B3A]">
             <input type="checkbox" name="confirmacion_publica" value="1" required class="mt-0.5 h-5 w-5 shrink-0 rounded border-[#CBD5E1] text-[#176B9A] focus:ring-[#176B9A]/30">
-            <span>Confirmo que revisé esta información y autorizo su publicación en la web y el chatbot durante la vigencia indicada.</span>
+            <span>Revisé esta información y autorizo su publicación durante las fechas indicadas.</span>
         </label>
-        <button type="submit" @disabled($curso->trashed() || $curso->estado !== 'activo') class="admin-btn-primary">Publicar ficha revisada</button>
+        <button type="submit" @disabled($noDisponible) class="admin-btn-primary">{{ $publicacion?->publicada ? 'Guardar publicación' : 'Publicar curso' }}</button>
     </form>
     @if ($publicacion?->publicada)
         <form method="POST" action="{{ route('admin.cursos.publicacion.destroy', $curso) }}">

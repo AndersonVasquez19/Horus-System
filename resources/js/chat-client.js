@@ -5,18 +5,18 @@ const chatPaths = [
 ];
 const ALLOWED_WHATSAPP_LINKS = [
   {
-    prefix: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
-    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+    prefix: 'https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
+    url: 'https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n',
     label: 'Solicitar cotización por WhatsApp',
   },
   {
-    prefix: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
-    url: 'https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
+    prefix: 'https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
+    url: 'https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula',
     label: 'Consultar matrícula por WhatsApp',
   },
   {
-    prefix: 'https://wa.me/51927582305',
-    url: 'https://wa.me/51927582305',
+    prefix: 'https://wa.me/51972021374',
+    url: 'https://wa.me/51972021374',
     label: 'Contactar por WhatsApp',
   },
 ];
@@ -45,6 +45,13 @@ export function safeChatLinks(text) {
       });
       break;
     }
+  }
+
+  // El teléfono institucional también se presenta como texto, sin URL de WhatsApp.
+  if (!links.some((link) => link.whatsapp)
+      && /(?:^|[^\d+])\+51[\s-]*972[\s-]*021[\s-]*374(?!\d)/.test(text)) {
+    const { url, label } = ALLOWED_WHATSAPP_LINKS.at(-1);
+    links.push({ url, label, whatsapp: true });
   }
 
   return links;
@@ -97,6 +104,32 @@ export function safeChatCards(data) {
   return cards;
 }
 
+const HISTORIAL_MAX_MENSAJES = 41;
+const HISTORIAL_DURACION_MS = 30 * 60 * 1000;
+const HISTORIAL_MAX_CARACTERES = 300000;
+
+// El almacenamiento de la pestaña tampoco es una fuente confiable de URLs.
+function mensajesDelHistorial(messages) {
+  if (!Array.isArray(messages) || !messages.length) throw new Error('Historial inválido');
+  return messages.slice(-HISTORIAL_MAX_MENSAJES).map((message) => {
+    if (!message || !['user', 'bot'].includes(message.role)
+        || typeof message.text !== 'string' || !message.text.trim() || message.text.length > 4000) {
+      throw new Error('Mensaje inválido');
+    }
+    const limpio = { role: message.role, text: message.text };
+    if (message.role === 'bot') {
+      const links = safeChatLinks(message.text);
+      for (const link of Array.isArray(message.links) ? message.links.slice(0, 20) : []) {
+        const seguro = safeChatLinks(link?.url).find((item) => item.url === link.url);
+        if (seguro && !links.some((item) => item.url === seguro.url)) links.push(seguro);
+      }
+      if (message.links !== undefined || links.length) limpio.links = links;
+      if (message.cards !== undefined) limpio.cards = safeChatCards({ fuente: 'advisor', tarjetas: message.cards });
+    }
+    return limpio;
+  });
+}
+
 export function chatClient() {
   return {
     endpoint: '',
@@ -122,6 +155,40 @@ export function chatClient() {
           || `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         try { sessionStorage.setItem(sessionKey, this.sessionId); } catch { /* Keep the in-memory ID. */ }
       }
+      this.restaurarHistorial();
+    },
+    restaurarHistorial() {
+      const key = `horus-chat-history:${this.endpoint}`;
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (raw === null) return;
+        if (raw.length > HISTORIAL_MAX_CARACTERES) throw new Error('Historial demasiado largo');
+        const historial = JSON.parse(raw);
+        const edad = Date.now() - historial?.savedAt;
+        if (historial?.version !== 1 || historial.sessionId !== this.sessionId
+            || !Number.isSafeInteger(historial.savedAt) || edad < 0 || edad >= HISTORIAL_DURACION_MS) {
+          throw new Error('Historial vencido o de otra sesión');
+        }
+        this.messages = mensajesDelHistorial(historial.messages);
+        this.$nextTick(() => {
+          this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
+        });
+      } catch {
+        try { sessionStorage.removeItem(key); } catch { /* Storage may be disabled. */ }
+      }
+    },
+    guardarHistorial() {
+      if (!this.sessionId || !this.endpoint) return;
+      const key = `horus-chat-history:${this.endpoint}`;
+      try {
+        // Solo historial visible, en esta pestaña: sin borrador, CSRF ni credenciales.
+        const raw = JSON.stringify({ version: 1, sessionId: this.sessionId, savedAt: Date.now(),
+          messages: mensajesDelHistorial(this.messages) });
+        if (raw.length > HISTORIAL_MAX_CARACTERES) throw new Error('Historial demasiado largo');
+        sessionStorage.setItem(key, raw);
+      } catch {
+        try { sessionStorage.removeItem(key); } catch { /* Keep the in-memory conversation. */ }
+      }
     },
     trackScroll() {
       const log = this.$refs.messages;
@@ -134,8 +201,9 @@ export function chatClient() {
         this.messages = this.messages.slice(-39);
         this.messages.push({
           role: 'bot', text,
-          links: safeChatLinks('https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n'),
+          links: safeChatLinks('https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n'),
         });
+        this.guardarHistorial();
       }
       this.$nextTick(() => {
         this.$refs.messages.scrollTop = this.$refs.messages.scrollHeight;
@@ -151,6 +219,7 @@ export function chatClient() {
       this.followResponse = true;
       this.messages = this.messages.slice(-39);
       this.messages.push({ role: 'user', text: message });
+      this.guardarHistorial();
       this.draft = '';
       this.sending = true;
       const startedAt = Date.now();
@@ -198,6 +267,7 @@ export function chatClient() {
         });
       } finally {
         clearTimeout(timeout);
+        this.guardarHistorial();
         const espera = Math.max(0, 500 - (Date.now() - startedAt));
         if (espera > 0) {
           await new Promise((resolve) => setTimeout(resolve, espera));

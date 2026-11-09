@@ -56,7 +56,9 @@ class PublicContentTest extends TestCase
     {
         $response = $this->get('/contactos')->assertOk();
 
-        $response->assertSee('https://wa.me/51927582305', false)
+        $response->assertSee('https://wa.me/51972021374', false)
+            ->assertSee('+51 972 021 374', false)
+            ->assertSee('tel:+51972021374', false)
             ->assertSee('Enviar por WhatsApp', false)
             ->assertSee('Enviar por correo', false)
             ->assertSee('Lunes - Viernes: 9:00 AM - 6:00 PM', false)
@@ -68,7 +70,6 @@ class PublicContentTest extends TestCase
 
         $this->assertSame(1, substr_count($response->getContent(), '<h1'));
     }
-
 
     public function test_team_section_no_longer_lists_humberto_camacho(): void
     {

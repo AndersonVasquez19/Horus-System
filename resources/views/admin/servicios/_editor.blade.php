@@ -1,4 +1,6 @@
-<section data-editor hidden aria-labelledby="servicio-titulo" class="space-y-6 admin-card sm:p-8">
+<dialog data-editor data-admin-modal aria-labelledby="servicio-titulo" class="admin-form-modal">
+    <div class="admin-modal-heading"><p class="admin-eyebrow">Gestión de servicios</p><button type="button" data-admin-modal-close class="admin-icon-btn" aria-label="Cerrar formulario"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+    <div class="admin-modal-body space-y-6">
     <h2 id="servicio-titulo" tabindex="-1" class="text-2xl font-bold tracking-tight text-[#172B3A]">Revisar servicio</h2>
     <dl data-detalle class="grid gap-3 rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] p-4 break-words text-sm sm:grid-cols-2">
         @foreach (['codigo' => 'Código', 'nombre' => 'Nombre administrativo', 'estado' => 'Estado administrativo', 'estado_editorial' => 'Estado editorial', 'identificador_publico' => 'Identificador estable'] as $campo => $label)
@@ -127,4 +129,5 @@
         </form>
         <button type="button" data-accion="retirar" hidden class="admin-btn-danger">Retirar publicación</button>
     @endcan
-</section>
+    </div>
+</dialog>

@@ -1,3 +1,5 @@
+import { sincronizarModal } from './admin-modals.mjs';
+
 const campos = ['contacto_nombre', 'contacto_email', 'contacto_telefono', 'necesidad_cliente', 'servicio_uuid'];
 const vacio = () => Object.fromEntries(campos.map(c => [c, '']));
 const copiar = s => Object.fromEntries(campos.map(c => [c, s?.[c] ?? '']));
@@ -157,10 +159,14 @@ function conectar(root) {
   const mostrar = (s, visible) => { const el = q(s); if (el) el.hidden = !visible; };
   const permisos = { crear: root.dataset.crear === '1', editar: root.dataset.editar === '1', gestionar: root.dataset.gestionar === '1' };
   function render(e) {
+    const avisos = e.abierto ? q('[data-editor] .admin-modal-body') : root;
+    avisos.prepend(q('[data-mensaje]'), q('[data-errores]'));
     root.setAttribute('aria-busy', String(e.ocupado));
     q('[data-mensaje]').textContent = e.mensaje;
     q('[data-errores]').replaceChildren(...e.errores.map(t => { const p = document.createElement('p'); p.textContent = t; return p; }));
-    mostrar('[data-errores]', !!e.errores.length); mostrar('[data-editor]', e.abierto); mostrar('[data-detalle]', !!e.detalle);
+    mostrar('[data-errores]', !!e.errores.length); mostrar('[data-detalle]', !!e.detalle);
+    q('[data-editor]').dataset.modalBusy = String(e.ocupado);
+    sincronizarModal(q('[data-editor]'), e.abierto);
     mostrar('[data-listado-pendiente]', e.listadoPendiente); mostrar('[data-gestion]', !!e.detalle);
     q('#cotizacion-titulo').textContent = e.detalle ? 'Detalle de solicitud' : 'Nueva solicitud';
     for (const el of root.querySelectorAll('[data-dato]')) {
@@ -201,6 +207,7 @@ function conectar(root) {
     q('[data-accion="historial-siguiente"]').disabled = e.ocupado || !h || h.current_page >= h.last_page;
   }
   const panel = panelCotizaciones({ endpoint: root.dataset.endpoint, csrf: document.querySelector('meta[name=csrf-token]').content, permisos, cambio: render });
+  q('[data-editor]').addEventListener('close', () => { if (!q('[data-editor]').open) panel.estado.abierto = false; });
   const foco = () => (q('[data-errores]').hidden ? q('#cotizacion-titulo') : q('[data-errores]')).focus();
   const abandonar = () => !panel.pendiente() || window.confirm('Hay borradores sin guardar. ¿Descartarlos para continuar?');
   root.addEventListener('click', async event => {

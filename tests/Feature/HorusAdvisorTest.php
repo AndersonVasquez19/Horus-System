@@ -143,7 +143,7 @@ class HorusAdvisorTest extends TestCase
     public function test_greetings_farewells_and_capabilities_are_accepted_without_sources(string $mensaje, string $intent, string $textoEsperado): void
     {
         $reply = [
-            'answer' => $textoEsperado.' Puedes consultar al +51 927 582 305.',
+            'answer' => $textoEsperado.' Puedes consultar al +51 972 021 374.',
             'intent' => $intent,
             'mode' => 'lexical',
             'match_level' => 'alta',
@@ -161,7 +161,7 @@ class HorusAdvisorTest extends TestCase
     public function test_clarifications_validate_clarification_question_and_append_to_answer(): void
     {
         $reply = [
-            'answer' => 'Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.',
+            'answer' => 'Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.',
             'intent' => 'quote_request',
             'mode' => 'lexical',
             'match_level' => 'baja',
@@ -175,7 +175,7 @@ class HorusAdvisorTest extends TestCase
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('¿Cómo puedo solicitar una cotización?', 'sess-cotiza', 'public:browser');
         $this->assertSame('advisor', $answer['fuente']);
         $this->assertStringContainsString('¿Para qué servicio o capacitación necesitas la cotización?', $answer['respuesta']);
-        $this->assertStringContainsString('https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n', $answer['respuesta']);
+        $this->assertStringContainsString('https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n', $answer['respuesta']);
         $this->assertStringNotContainsString('@', $answer['respuesta']);
     }
 
@@ -208,7 +208,7 @@ class HorusAdvisorTest extends TestCase
     public function test_honest_abstentions_are_accepted_as_valid_advisor_answers(): void
     {
         $reply = [
-            'answer' => 'Un asesor de Horus Group te atenderá por WhatsApp para coordinar tu matrícula. Por ese medio podrás indicar el curso de tu interés, proporcionar tus datos de inscripción y enviar tu comprobante de pago de forma segura. Consulta tu matrícula por WhatsApp: https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula.',
+            'answer' => 'Un asesor de Horus Group te atenderá por WhatsApp para coordinar tu matrícula. Por ese medio podrás indicar el curso de tu interés, proporcionar tus datos de inscripción y enviar tu comprobante de pago de forma segura. Consulta tu matrícula por WhatsApp: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula.',
             'intent' => 'unavailable_info',
             'mode' => 'lexical',
             'match_level' => 'alta',
@@ -221,7 +221,7 @@ class HorusAdvisorTest extends TestCase
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('¿Cómo puedo matricularme?', 'sess-abstencion', 'public:browser');
         $this->assertSame('advisor', $answer['fuente']);
         $this->assertSame($reply['answer'], $answer['respuesta']);
-        $this->assertStringContainsString('https://wa.me/51927582305?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula', $answer['respuesta']);
+        $this->assertStringContainsString('https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula', $answer['respuesta']);
         $this->assertStringNotContainsString('@', $answer['respuesta']);
     }
 
@@ -229,7 +229,7 @@ class HorusAdvisorTest extends TestCase
     {
         $client = app(HorusAdvisorClient::class);
         $replyValid = $this->reply();
-        $replyValid['answer'] = 'Para cotizaciones, continúa por WhatsApp con un asesor: https://wa.me/51927582305?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.';
+        $replyValid['answer'] = 'Para cotizaciones, continúa por WhatsApp con un asesor: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.';
         Http::fake(['*/ready' => Http::response($this->ready()), '*/api/v1/chat' => Http::response($replyValid)]);
         $this->assertNotNull($client->orientar('¿Cómo puedo solicitar una cotización?'));
 
@@ -238,9 +238,9 @@ class HorusAdvisorTest extends TestCase
             'https://wa.me/51999999999',
             'https://wa.me/51987654321?text=Hola',
             'https://phishing.example.com/whatsapp',
-            'https://wa.me/51927582305?text=Envia%20tu%20DNI',
-            'https://wa.me/51927582305/../evil',
-            'https://wa.me/51927582305.evil.example',
+            'https://wa.me/51972021374?text=Envia%20tu%20DNI',
+            'https://wa.me/51972021374/../evil',
+            'https://wa.me/51972021374.evil.example',
             'evil.example/pago',
             'www.evil.example',
             '//evil.example/x',
@@ -498,7 +498,7 @@ class HorusAdvisorTest extends TestCase
     public function test_advisor_accepts_response_with_verified_official_horus_contact_channels(): void
     {
         $reply = [
-            'answer' => "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 927 582 305 o a horusgroupcajamarca@gmail.com.",
+            'answer' => "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
             'intent' => 'service_recommendation',
             'mode' => 'lexical',
             'match_level' => 'alta',
@@ -530,9 +530,9 @@ class HorusAdvisorTest extends TestCase
     {
         $client = app(HorusAdvisorClient::class);
         foreach ([
-            'Consulta al +51 927 582 305 o al 987 654 321.',
+            'Consulta al +51 972 021 374 o al 987 654 321.',
             'Escribe a horusgroupcajamarca@gmail.com o a visitante@correo.pe.',
-            'Contacto +51 927 582 305 para el DNI 45879632.',
+            'Contacto +51 972 021 374 para el DNI 45879632.',
         ] as $contaminatedAnswer) {
             $reply = $this->reply();
             $reply['answer'] = $contaminatedAnswer;
@@ -545,7 +545,7 @@ class HorusAdvisorTest extends TestCase
         Http::swap(new Factory);
         $this->fake();
         $in1 = app(AsistenteVirtualService::class)->procesarMensaje('Oriéntame, mi correo es horusgroupcajamarca@gmail.com', 's1', 'public:b1');
-        $in2 = app(AsistenteVirtualService::class)->procesarMensaje('Oriéntame, llámame al +51 927 582 305', 's2', 'public:b2');
+        $in2 = app(AsistenteVirtualService::class)->procesarMensaje('Oriéntame, llámame al +51 972 021 374', 's2', 'public:b2');
         $this->assertSame('respaldo', $in1['fuente']);
         $this->assertSame('respaldo', $in2['fuente']);
         Http::assertNothingSent();

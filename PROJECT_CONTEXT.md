@@ -4156,3 +4156,21 @@ mismos tres fixtures de privacidad ausentes ya documentados, sin relajarlos. No 
 ejecutaron migraciones, seeders, pruebas con escrituras PostgreSQL, otros workers,
 commits ni push. El GET/cola reales acreditan activación y proceso vivo, no entrega
 de un correo a una bandeja ni aceptación funcional de un nuevo expediente real.
+
+## Formulario de publicación de cursos simplificado — 07/11/2026
+
+Por solicitud expresa del propietario se simplifica únicamente el formulario de
+publicación: título, resumen y modalidad visibles; horario/inscripción y fechas
+en desplegables nativos. Las fichas nuevas proponen hoy en Lima y un vencimiento
+30 días después, editable antes de confirmar. Las fichas existentes conservan
+fechas y contenido; se explican programación y vencimiento y se abren las fechas
+cuando necesitan revisión. No hay publicación automática, cambios de esquema ni
+escrituras en bases reales. Los permisos, la confirmación, las fechas obligatorias
+y la revisión de concurrencia se mantienen. Alcance y evidencia:
+[formulario sencillo](docs/cursos-formulario-sencillo.md).
+
+Validación: 123 pruebas PHP relacionadas aprobadas (1078 aserciones), 50 frontend,
+build y smoke Edge en 390/768/1440 px aprobados; Pint propio y diff limpios.
+Suite general: 3028 aprobadas, 5 fallos, 1 riesgosa y 1 omitida por los fixtures
+de privacidad ausentes ya documentados; el último caso nuevo se valida en el
+bloque acotado posterior. No se atribuye evidencia sobre PostgreSQL o despliegue.
