@@ -26,6 +26,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MatriculaController extends Controller implements HasMiddleware
 {
+    /** Columnas que usa el selector de estudiantes de `_form` (incluye deleted_at para trashed()). */
+    private const COLUMNAS_SELECTOR_ESTUDIANTE = ['id', 'dni', 'nombres', 'apellidos', 'deleted_at'];
+
+    /** Columnas que usa el selector de cursos de `_form` (incluye deleted_at para trashed()). */
+    private const COLUMNAS_SELECTOR_CURSO = ['id', 'codigo', 'nombre', 'cupos_disponibles', 'deleted_at'];
+
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
@@ -68,16 +74,17 @@ class MatriculaController extends Controller implements HasMiddleware
     public function create(Request $request): View
     {
         return view('admin.matriculas.create', [
+            // Solo las columnas que pinta el selector (`_form`): sin correo, teléfono ni descripciones.
             'estudiantes' => Estudiante::query()
                 ->where('estado', 'activo')
                 ->orderBy('apellidos')
                 ->orderBy('nombres')
-                ->get(),
+                ->get(self::COLUMNAS_SELECTOR_ESTUDIANTE),
             'cursos' => Curso::query()
                 ->where('estado', 'activo')
                 ->where('cupos_disponibles', '>', 0)
                 ->orderBy('nombre')
-                ->get(),
+                ->get(self::COLUMNAS_SELECTOR_CURSO),
             // Solo preselecciona opciones de las listas disponibles; no altera datos ni validaciones.
             'estudianteSeleccionado' => ListFilter::text($request, 'estudiante_id'),
             'cursoSeleccionado' => ListFilter::text($request, 'curso_id'),
@@ -155,10 +162,10 @@ class MatriculaController extends Controller implements HasMiddleware
             'estudiantes' => Estudiante::query()
                 ->orderBy('apellidos')
                 ->orderBy('nombres')
-                ->get(),
+                ->get(self::COLUMNAS_SELECTOR_ESTUDIANTE),
             'cursos' => Curso::query()
                 ->orderBy('nombre')
-                ->get(),
+                ->get(self::COLUMNAS_SELECTOR_CURSO),
         ]);
     }
 
