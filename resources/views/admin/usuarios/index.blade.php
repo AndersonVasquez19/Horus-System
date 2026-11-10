@@ -67,7 +67,7 @@
 
                                         @can('usuarios.eliminar')
                                             @if (auth()->id() !== $usuario->id)
-                                                <form action="{{ route('admin.usuarios.destroy', $usuario) }}" method="POST" onsubmit="return confirm('¿Deseas eliminar este usuario?');">
+                                                <form action="{{ route('admin.usuarios.destroy', $usuario) }}" method="POST" data-confirm="¿Deseas eliminar este usuario?">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="admin-btn-danger min-h-9 px-3.5 py-1.5 text-xs">

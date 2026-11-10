@@ -64,7 +64,7 @@
                         <button type="button" data-admin-modal-open="editar-rol-{{ $rol->id }}" class="admin-btn-outline">Editar rol y permisos</button>
 
                         @if ($rol->name !== 'admin')
-                            <form action="{{ route('admin.roles.destroy', $rol) }}" method="POST" onsubmit="return confirm('¿Deseas eliminar este rol?');">
+                            <form action="{{ route('admin.roles.destroy', $rol) }}" method="POST" data-confirm="¿Deseas eliminar este rol?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="admin-btn-danger min-h-9 px-3.5 py-1.5 text-xs">

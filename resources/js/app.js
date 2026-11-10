@@ -1,6 +1,7 @@
 import { chatClient } from './chat-client.js';
 import Alpine from 'alpinejs';
 import { iniciarModales, sincronizarModal } from './admin-modals.mjs';
+import { iniciarConfirmaciones } from './confirm-forms.mjs';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-400.css';
@@ -184,6 +185,8 @@ document.addEventListener('alpine:init', () => {
 });
 
 Alpine.start();
+
+iniciarConfirmaciones();
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciarModales, { once: true });
 else iniciarModales();

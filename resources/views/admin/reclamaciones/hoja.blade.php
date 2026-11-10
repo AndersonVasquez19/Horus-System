@@ -52,7 +52,7 @@
 <body>
     <nav class="barra" aria-label="Acciones de la hoja">
         <a href="{{ route('admin.reclamaciones.show', $reclamacion) }}">&larr; Volver al detalle</a>
-        <button type="button" onclick="window.print()">Imprimir</button>
+        <button type="button" data-imprimir>Imprimir</button>
     </nav>
 
     <main class="hoja">
@@ -77,5 +77,6 @@
             Impreso desde el panel administrativo el {{ now('America/Lima')->format('d/m/Y H:i') }} (Lima). Documento con datos personales: uso exclusivo para la atención de la reclamación.
         </footer>
     </main>
+    <script src="{{ asset('assets/js/hoja-imprimir.js') }}" defer></script>
 </body>
 </html>

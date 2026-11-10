@@ -301,7 +301,7 @@
                                             Tu solicitud espera la decisión de {{ $rolAutorizado !== null ? $etiquetasRol[$rolAutorizado] : 'la autoridad competente' }}.
                                         </span>
                                     @elseif ($aprobacion->puedeResolver($usuario))
-                                        <form action="{{ route('admin.aprobaciones.aprobar', $aprobacion) }}" method="POST" onsubmit="return confirm('¿Confirmas que deseas aprobar esta solicitud? La decisión quedará registrada.');">
+                                        <form action="{{ route('admin.aprobaciones.aprobar', $aprobacion) }}" method="POST" data-confirm="¿Confirmas que deseas aprobar esta solicitud? La decisión quedará registrada.">
                                             @csrf
                                             <button type="submit" class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">
                                                 <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -325,7 +325,7 @@
                                     @endif
 
                                     @if ($esPropia || $usuario?->hasRole('admin'))
-                                        <form action="{{ route('admin.aprobaciones.destroy', $aprobacion) }}" method="POST" class="sm:ml-auto" onsubmit="return confirm('¿Deseas eliminar esta solicitud pendiente? Quedará constancia en la auditoría.');">
+                                        <form action="{{ route('admin.aprobaciones.destroy', $aprobacion) }}" method="POST" class="sm:ml-auto" data-confirm="¿Deseas eliminar esta solicitud pendiente? Quedará constancia en la auditoría.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="admin-btn-outline min-h-9 px-3.5 py-1.5 text-xs">
@@ -351,7 +351,7 @@
                             {{-- Motivo obligatorio para rechazar --}}
                             @if ($aprobacion->estado === 'pendiente' && ! $esPropia && $aprobacion->puedeResolver($usuario))
                                 <x-admin.form-modal id="rechazar-{{ $aprobacion->id }}" title="Rechazar solicitud" state="panel === 'rechazar'" on-close="panel = null">
-                                    <form action="{{ route('admin.aprobaciones.rechazar', $aprobacion) }}" method="POST" onsubmit="return confirm('¿Confirmas el rechazo de esta solicitud?');">
+                                    <form action="{{ route('admin.aprobaciones.rechazar', $aprobacion) }}" method="POST" data-confirm="¿Confirmas el rechazo de esta solicitud?">
                                         @csrf
                                         <input type="hidden" name="_modal" value="rechazar-{{ $aprobacion->id }}">
                                         <label for="motivo-rechazo-{{ $aprobacion->id }}" class="admin-label">Motivo del rechazo <span class="text-red-600">*</span></label>
@@ -368,7 +368,7 @@
                             {{-- Motivo obligatorio para reabrir --}}
                             @if ($aprobacion->estado !== 'pendiente' && $aprobacion->puedeReabrir($usuario))
                                 <x-admin.form-modal id="reabrir-{{ $aprobacion->id }}" title="Reabrir solicitud" state="panel === 'reabrir'" on-close="panel = null">
-                                    <form action="{{ route('admin.aprobaciones.reabrir', $aprobacion) }}" method="POST" onsubmit="return confirm('¿Confirmas la reapertura? La decisión anterior se conservará en el historial.');">
+                                    <form action="{{ route('admin.aprobaciones.reabrir', $aprobacion) }}" method="POST" data-confirm="¿Confirmas la reapertura? La decisión anterior se conservará en el historial.">
                                         @csrf
                                         <input type="hidden" name="_modal" value="reabrir-{{ $aprobacion->id }}">
                                         <label for="motivo-reapertura-{{ $aprobacion->id }}" class="admin-label">Motivo de la reapertura <span class="text-red-600">*</span></label>

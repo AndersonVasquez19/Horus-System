@@ -82,7 +82,7 @@
         </div>
 
         <div class="grid-equipo">
-            <div class="card-equipo" onclick="toggleCard(this)">
+            <div class="card-equipo">
                 <img src="{{ asset('assets/images/somos/marco2.jpeg') }}" alt="Marco Alvarez">
                 <h3>MARCO ALVAREZ</h3>
                 <span class="cargo">GERENTE GENERAL</span>
@@ -95,7 +95,7 @@
                 </div>
             </div>
 
-            <div class="card-equipo" onclick="toggleCard(this)">
+            <div class="card-equipo">
                 <img src="{{ asset('assets/images/somos/monica.jpeg') }}" alt="Mónica Monzón">
                 <h3>MÓNICA MONZÓN</h3>
                 <span class="cargo">COORDINADORA INSTITUCIONAL</span>
@@ -110,7 +110,7 @@
 
         </div>
         <div class="grid-fila2">
-            <div class="card-equipo" onclick="toggleCard(this)">
+            <div class="card-equipo">
                 <img src="{{ asset('assets/images/somos/Persona4.jpeg') }}" alt="Karen Távara">
                 <h3>KAREN TÁVARA</h3>
                 <span class="cargo">ASESORA LEGAL</span>
@@ -123,7 +123,7 @@
                 </div>
             </div>
 
-            <div class="card-equipo" onclick="toggleCard(this)">
+            <div class="card-equipo">
                 <img src="{{ asset('assets/images/somos/milagros.jpeg') }}" alt="Milagros Villegas">
                 <h3>MILAGROS VILLEGAS</h3>
                 <span class="cargo">SECRETARIA</span>

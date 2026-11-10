@@ -13,6 +13,12 @@ function escribir() {
 
 window.addEventListener("load", escribir);
 
+// Escuchador delegado: reemplaza el onclick en línea de cada tarjeta (compatible con CSP sin 'unsafe-inline').
+document.addEventListener("click", (evento) => {
+    const card = evento.target.closest(".card-equipo");
+    if (card) toggleCard(card);
+});
+
 function toggleCard(card) {
 
     let cards = document.querySelectorAll(".card-equipo");
