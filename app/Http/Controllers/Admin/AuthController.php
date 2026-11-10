@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\VerificacionRegistroService;
 use App\Support\CredentialTiming;
@@ -89,17 +90,28 @@ class AuthController extends Controller
 
         // El proveedor de Eloquent no hace trabajo de hash si el correo no existe: igualarlo para no revelar
         // por latencia qué cuentas están registradas.
-        if (! User::query()->where('email', $credentials['email'])->exists()) {
+        $cuentaExiste = User::query()->where('email', $credentials['email'])->exists();
+        if (! $cuentaExiste) {
             CredentialTiming::check($credentials['password'], null);
         }
 
         if (! Auth::attemptWhen($credentials, fn (User $user): bool => ! VerificacionRegistroService::enabled() || $user->hasVerifiedEmail())) {
+            // Sin correo en claro ni contraseña: solo una huella con la clave de la aplicación (permite
+            // correlacionar intentos contra una misma cuenta sin guardar el dato personal). El throttle `login`
+            // acota el volumen de estos registros.
+            AuditLog::record('login_failed', User::class, null, [
+                'cuenta_existente' => $cuentaExiste,
+                'huella_correo' => substr(hash_hmac('sha256', $credentials['email'], (string) config('app.key')), 0, 16),
+            ], null);
+
             return back()
                 ->withErrors(['email' => 'Las credenciales ingresadas no son válidas.'])
                 ->onlyInput('email');
         }
 
         $request->session()->regenerate();
+        $personal = $request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES);
+        AuditLog::record('login', User::class, $request->user()->getKey(), ['personal_panel' => $personal]);
         if (VerificacionRegistroService::enabled()) {
             $request->session()->put(['auth.verification_user' => $request->user()->getKey(),
                 'auth.verification_version' => (int) $request->user()->jwt_version]);
@@ -117,6 +129,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
+        AuditLog::record('logout', User::class, $request->user()->getKey());
         $request->user()->increment('jwt_version');
         Auth::logout();
         $request->session()->invalidate();

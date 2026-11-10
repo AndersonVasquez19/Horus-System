@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use App\Support\SessionRevoker;
@@ -68,6 +69,9 @@ class ResetPasswordController extends Controller
 
                 $user->save();
                 SessionRevoker::revokeSessions($user);
+
+                // Actor explícito: en el reset no hay sesión autenticada. Sin la contraseña ni el token.
+                AuditLog::record('password_reset', $user::class, $user->getKey(), [], (int) $user->getKey());
 
                 event(new PasswordReset($user));
             },
