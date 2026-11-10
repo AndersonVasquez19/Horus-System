@@ -887,3 +887,5 @@ Suma de las etapas 1 a 7: 509 entradas (116 + 48 + 147 + 28 + 55 + 60 + 55). Que
 #### Autorizaciones necesarias
 
 (a) Preparar la cápsula de la etapa 3 (trabajo offline). (b) Preflight operativo de solo lectura. (c) Ejecución de la etapa 3, incluida la reconstrucción destructiva de `horus_l2_test` (`migrate:fresh`). Cada una es independiente; la aprobación de la etapa 2 no autoriza ninguna.
+
+> **Nota 10/11/2026:** la migración `2026_11_10_000039_add_check_estados_academicos` (CHECK de estados, solo PostgreSQL) no está en la matriz original. Su prueba `tests/PostgresIntegrity/EstadosCheckPostgresTest.php` está escrita y **sin ejecutar**; pendiente de incluirla en una futura ejecución autorizada del perfil aislado.

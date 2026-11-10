@@ -82,13 +82,13 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 ## 5. Pendientes
 
-Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13); retirada de permisos sin uso (sección 14); migraciones suspendidas apartadas (sección 15).
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13); retirada de permisos sin uso (sección 14); migraciones suspendidas apartadas (sección 15); `CHECK` de estados preparado, sin aplicar (sección 16).
 
 **Requieren decisión funcional**
 
 - Pagos/cuotas de matrícula, importación masiva, respaldo real de PostgreSQL (`pg_dump` programado y retención).
 - Permisos sin uso: `seguimientos.*` y `asistente.entrenar` se retiraron (sección 14). `reclamaciones.gestionar|responder` **no son huérfanos** (los exige `GestionReclamaciones`; el panel de reclamaciones es de solo lectura por diseño) y `procesos_internos` se conserva a propósito (`docs/retiro-procesos.md`).
-- `cascadeOnDelete` en `matriculas` frente a `restrictOnDelete` en el resto; estados sin `CHECK`; `json` frente a `jsonb`.
+- `cascadeOnDelete` en `matriculas` frente a `restrictOnDelete` en el resto; `json` frente a `jsonb`.
 
 **Despliegue (no se tocó `.env.example`)**
 
@@ -225,3 +225,12 @@ Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. An
 - **Riesgo no medible desde aquí:** si alguna se aplicó en otro entorno, su fila queda en `migrations` sin archivo; `migrate` lo tolera, `migrate:rollback` de ese lote fallaría.
 - **Coherencia de pagos (`monto_pagado` ↔ estado): suspendida por decisión del propietario.** Sin cambios.
 - Nada se escribió en PostgreSQL.
+
+## 16. CHECK de estados del núcleo académico (10/11/2026, preparado y sin aplicar)
+
+- **Migración nueva** `2026_11_10_000039_add_check_estados_academicos.php`, solo PostgreSQL (en SQLite es un no-op: allí rigen los `FormRequest`). Añade `matriculas_estado_valido` {pendiente, pagada, anulada}, `cursos_estado_valido` {activo, inactivo, archivado}, `cursos_modalidad_valida` y `curso_publicaciones_modalidad_valida` {presencial, semipresencial, virtual, hibrido}, y `estudiantes_estado_valido` {activo, inactivo}. Los conjuntos salen de los `FormRequest` vigentes.
+- **Preflight integrado:** cuenta filas fuera del conjunto (incluidas las eliminadas lógicamente) y se detiene con tabla, columna, conteo e ids, sin datos personales. Es idempotente y tiene `down()`.
+- **Verificación de datos reales (solo lectura, `horus_group`):** `estudiantes.estado` = {activo}; `cursos.estado` = {activo}; `cursos.modalidad` = {hibrido, presencial, virtual}; `matriculas.estado` = {pagada, pendiente}; `curso_publicaciones` vacía. Todo cumple los conjuntos.
+- **No está aplicada** en `horus_group` ni en otra base y es hoy la única migración pendiente. Aplicarla es DDL real sobre cuatro tablas (`ACCESS EXCLUSIVE` breve): requiere autorización expresa, copia reciente y `--path`. Tablas fuera de alcance: `aprobaciones_internas`, `notificaciones_internas.tipo`, `matricula_notifications.status` y `procesos_internos`.
+- **Pruebas:** `CheckEstadosAcademicosMigracionTest` (SQLite) fija que los conjuntos del `CHECK` coinciden con las reglas `Rule::in` de los `FormRequest`, que el SQL generado es el esperado y que `up()`/`down()` no hacen nada en SQLite. `tests/PostgresIntegrity/EstadosCheckPostgresTest.php` (rechazo `23514`, valores válidos y preflight) está escrita pero **no se ejecutó**: exige el perfil PostgreSQL aislado con consentimiento destructivo.
+- Siguen abiertos: `cascadeOnDelete` en `matriculas` frente a `restrictOnDelete`, y `json` frente a `jsonb`.
