@@ -1,13 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdatePerfilRequest;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\VerificacionRegistroService;
-use App\Support\Email;
-use App\Support\PasswordPolicy;
 use App\Support\SesionesActivas;
 use App\Support\SessionRevoker;
 use Illuminate\Http\RedirectResponse;
@@ -36,29 +37,12 @@ class PerfilController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdatePerfilRequest $request): RedirectResponse
     {
-        Email::normalizeRequest($request);
-
         /** @var User $actual */
         $actual = $request->user();
-
-        $cambiaCorreo = $request->has('email') && (string) $request->input('email') !== $actual->email;
         $cambiaClave = $request->filled('password');
-
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Email::uniqueRule($actual->id)],
-            'password' => ['nullable', 'string', 'confirmed', PasswordPolicy::rule()],
-            // Solo se pide (y se comprueba contra la contraseña guardada) al cambiar credenciales.
-            'current_password' => $cambiaCorreo || $cambiaClave ? ['required', 'string', 'current_password'] : ['nullable'],
-        ], [
-            'name.required' => 'El nombre es obligatorio.',
-            'email.required' => 'El correo es obligatorio.',
-            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-            'current_password.required' => 'Escribe tu contraseña actual para cambiar el correo o la contraseña.',
-            'current_password.current_password' => 'La contraseña actual no es correcta.',
-        ] + PasswordPolicy::messages());
+        $data = $request->validated();
 
         $cambios = DB::transaction(function () use ($request, $actual, $data, $cambiaClave): array {
             $user = User::query()->whereKey($actual->getKey())->lockForUpdate()->firstOrFail();

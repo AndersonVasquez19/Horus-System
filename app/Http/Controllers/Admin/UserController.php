@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AdminProtection;
 use App\Services\VerificacionRegistroService;
 use App\Support\BusquedaLike;
-use App\Support\Email;
 use App\Support\ListFilter;
-use App\Support\PasswordPolicy;
 use App\Support\SessionRevoker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,22 +74,9 @@ class UserController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreUserRequest $request): RedirectResponse
     {
-        Email::normalizeRequest($request);
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Email::uniqueRule()],
-            'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['string', 'exists:roles,name'],
-        ], [
-            'name.required' => 'El nombre es obligatorio.',
-            'email.required' => 'El correo es obligatorio.',
-            'password.required' => 'La contraseña es obligatoria.',
-            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-        ] + PasswordPolicy::messages());
-
+        $data = $request->validated();
         $actor = $request->user();
 
         /** @var list<string> $roles */
@@ -136,21 +123,9 @@ class UserController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        Email::normalizeRequest($request);
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Email::uniqueRule($user->id)],
-            'password' => ['nullable', 'string', 'confirmed', PasswordPolicy::rule()],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['string', 'exists:roles,name'],
-        ], [
-            'name.required' => 'El nombre es obligatorio.',
-            'email.required' => 'El correo es obligatorio.',
-            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-        ] + PasswordPolicy::messages());
-
+        $data = $request->validated();
         $actor = $request->user();
         $solicitaRoles = $request->has('roles');
 
@@ -215,14 +190,18 @@ class UserController extends Controller implements HasMiddleware
                 $this->adminProtection->forgetPermissionCacheAfterCommit();
             }
 
-            AuditLog::record('user_updated', User::class, $user->id, [
-                'before' => $previous,
-                'after' => [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'roles' => $user->roles->pluck('name')->all(),
-                ],
-            ], $actor->id);
+            $after = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->roles->pluck('name')->all(),
+            ];
+
+            if ($after !== $previous || $passwordChanged) {
+                AuditLog::record('user_updated', User::class, $user->id, [
+                    'before' => $previous,
+                    'after' => $after,
+                ], $actor->id);
+            }
         });
 
         return redirect()->route('admin.usuarios.index')->with('success', 'Los datos del usuario se actualizaron correctamente.');

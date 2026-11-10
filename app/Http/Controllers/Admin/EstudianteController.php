@@ -50,8 +50,8 @@ class EstudianteController extends Controller implements HasMiddleware
             BusquedaLike::contiene($query, ['dni', 'nombres', 'apellidos'], $busqueda);
         }
 
-        $estado = $request->input('estado');
-        if (in_array($estado, ['activo', 'inactivo'], true)) {
+        $estado = ListFilter::in($request, 'estado', ['activo', 'inactivo']);
+        if ($estado !== '') {
             $query->where('estado', $estado);
         }
 
@@ -76,7 +76,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function store(StoreEstudianteRequest $request): RedirectResponse
     {
-        $actor = $this->actorId($request);
+        $actor = AuditoriaAcademica::actorDe($request);
 
         // La auditoría es la última escritura de la transacción: si falla, el alta se revierte (fail-closed).
         DB::transaction(function () use ($request, $actor): void {
@@ -106,7 +106,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function update(UpdateEstudianteRequest $request, Estudiante $estudiante): RedirectResponse
     {
-        $actor = $this->actorId($request);
+        $actor = AuditoriaAcademica::actorDe($request);
 
         DB::transaction(function () use ($request, $estudiante, $actor): void {
             // Se relee la fila bajo bloqueo para que «antes» sea el valor real y no el del enlace de ruta.
@@ -125,7 +125,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function destroy(Request $request, Estudiante $estudiante): RedirectResponse|JsonResponse
     {
-        $actor = $this->actorId($request);
+        $actor = AuditoriaAcademica::actorDe($request);
         $vigentes = 0;
 
         DB::transaction(function () use ($estudiante, $actor, &$vigentes): void {
@@ -163,7 +163,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function restaurar(Request $request, string $estudiante): RedirectResponse
     {
-        $actor = $this->actorId($request);
+        $actor = AuditoriaAcademica::actorDe($request);
 
         DB::transaction(function () use ($estudiante, $actor): void {
             $bloqueado = Estudiante::withTrashed()->lockForUpdate()->findOrFail($estudiante);
@@ -181,14 +181,5 @@ class EstudianteController extends Controller implements HasMiddleware
         return redirect()
             ->route('admin.estudiantes.index', ['eliminados' => 1])
             ->with('success', 'El estudiante se restauró correctamente.');
-    }
-
-    /** Identificador explícito del usuario autenticado; la auditoría no depende del fallback de auth(). */
-    private function actorId(Request $request): int
-    {
-        $id = $request->user()?->getAuthIdentifier();
-        abort_unless(is_int($id) || (is_string($id) && ctype_digit($id)), 403);
-
-        return (int) $id;
     }
 }

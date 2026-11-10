@@ -51,13 +51,13 @@ class CursoController extends Controller implements HasMiddleware
             BusquedaLike::contiene($query, ['codigo', 'nombre'], $busqueda);
         }
 
-        $categoria = $request->input('categoria');
-        if (in_array($categoria, ['tecnologia', 'educacion', 'salud', 'gestion', 'otros'], true)) {
+        $categoria = ListFilter::in($request, 'categoria', ['tecnologia', 'educacion', 'salud', 'gestion', 'otros']);
+        if ($categoria !== '') {
             $query->where('categoria', $categoria);
         }
 
-        $estado = $request->input('estado');
-        if (in_array($estado, ['activo', 'inactivo', 'archivado'], true)) {
+        $estado = ListFilter::in($request, 'estado', ['activo', 'inactivo', 'archivado']);
+        if ($estado !== '') {
             $query->where('estado', $estado);
         }
 

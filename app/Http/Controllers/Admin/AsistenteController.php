@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
+use App\Support\ListFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -34,8 +35,8 @@ class AsistenteController extends Controller implements HasMiddleware
             ->orderByDesc('prioridad')
             ->get();
 
-        $intencion = $request->input('intent');
-        $intentValido = $intents->contains('nombre', $intencion) ? $intencion : null;
+        $intencion = ListFilter::text($request, 'intent');
+        $intentValido = $intencion !== '' && $intents->contains('nombre', $intencion) ? $intencion : null;
 
         $logs = ChatLog::query()
             ->when($intentValido, fn ($query) => $query->where('intent_detectado', $intentValido))

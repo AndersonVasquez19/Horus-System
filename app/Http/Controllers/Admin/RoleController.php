@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreRoleRequest;
+use App\Http\Requests\UpdateRoleRequest;
 use App\Models\AuditLog;
 use App\Services\AdminProtection;
 use Illuminate\Http\RedirectResponse;
@@ -56,14 +58,9 @@ class RoleController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreRoleRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ]);
-
+        $data = $request->validated();
         $actor = $request->user();
 
         /** @var list<string> $permissions */
@@ -88,14 +85,9 @@ class RoleController extends Controller implements HasMiddleware
         return redirect()->route('admin.roles.index')->with('success', 'El rol se creó correctamente.');
     }
 
-    public function update(Request $request, Role $role): RedirectResponse
+    public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name,'.$role->id],
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ]);
-
+        $data = $request->validated();
         $actor = $request->user();
 
         /** @var list<string> $permissions */
@@ -121,13 +113,17 @@ class RoleController extends Controller implements HasMiddleware
             $role->syncPermissions($permissions);
             $this->adminProtection->forgetPermissionCacheAfterCommit();
 
-            AuditLog::record('role_updated', Role::class, $role->id, [
-                'before' => $before,
-                'after' => [
-                    'name' => $role->name,
-                    'permissions' => $role->permissions->pluck('name')->all(),
-                ],
-            ], $alcance['actor']->id);
+            $after = [
+                'name' => $role->name,
+                'permissions' => $role->permissions->pluck('name')->all(),
+            ];
+
+            if ($after !== $before) {
+                AuditLog::record('role_updated', Role::class, $role->id, [
+                    'before' => $before,
+                    'after' => $after,
+                ], $alcance['actor']->id);
+            }
         });
 
         return redirect()->route('admin.roles.index')->with('success', 'El rol se actualizó correctamente.');

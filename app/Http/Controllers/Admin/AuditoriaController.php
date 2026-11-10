@@ -38,7 +38,7 @@ class AuditoriaController extends Controller implements HasMiddleware
     public function index(Request $request): View
     {
         $filtros = $this->filtros($request);
-        $query = AuditLog::query()->with('user');
+        $query = AuditLog::query()->with('user:id,name,email');
         $this->aplicarFiltros($query, $filtros);
 
         $registros = $query

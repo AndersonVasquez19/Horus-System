@@ -93,7 +93,7 @@ class DashboardController extends Controller
         // La actividad de auditoría solo se muestra a quien tiene permiso para consultarla.
         $auditoriasRecientes = auth()->user()->can('auditoria.ver')
             ? AuditLog::query()
-                ->with('user')
+                ->with('user:id,name,email')
                 ->latest('created_at')
                 ->limit(5)
                 ->get()
