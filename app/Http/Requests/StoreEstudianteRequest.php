@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\HoraLocal;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
@@ -23,7 +24,7 @@ class StoreEstudianteRequest extends FormRequest
             'apellidos' => ['required', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:150', Rule::unique('estudiantes', 'email')],
             'telefono' => ['nullable', 'string', 'max:20'],
-            'fecha_nacimiento' => ['nullable', 'date', 'before_or_equal:today'],
+            'fecha_nacimiento' => ['nullable', 'date', 'before_or_equal:'.HoraLocal::hoy()],
             'direccion' => ['nullable', 'string', 'max:255'],
             'estado' => ['required', Rule::in(['activo', 'inactivo'])],
         ];
