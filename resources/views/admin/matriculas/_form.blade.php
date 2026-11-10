@@ -48,7 +48,9 @@
         <select id="estado" name="estado" required class="admin-select">
             <option value="pendiente" @selected(old('estado', $matricula->estado ?? 'pendiente') === 'pendiente')>Pendiente</option>
             <option value="pagada" @selected(old('estado', $matricula->estado ?? 'pendiente') === 'pagada')>Pagada</option>
-            <option value="anulada" @selected(old('estado', $matricula->estado ?? 'pendiente') === 'anulada')>Anulada</option>
+            @if ((isset($matricula) && $matricula->estado === 'anulada') || auth()->user()?->can('matriculas.anular'))
+                <option value="anulada" @selected(old('estado', $matricula->estado ?? 'pendiente') === 'anulada')>Anulada</option>
+            @endif
         </select>
         @error('estado')<p class="admin-error">{{ $message }}</p>@enderror
     </div>

@@ -20,16 +20,25 @@
             @endcan
         </section>
 
+        <x-admin.error-summary />
+
         <section class="admin-card">
             <form method="GET" action="{{ route('admin.usuarios.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div class="flex-1">
                     <label for="busqueda" class="admin-label">Buscar por nombre o correo</label>
                     <input id="busqueda" name="busqueda" type="search" value="{{ $busqueda }}" placeholder="Ej. admin@horusgroup.com" class="admin-input" />
                 </div>
-                <button type="submit" class="admin-btn-secondary">
-                    <i class="fa-solid fa-magnifying-glass text-xs text-[#19A7A1]" aria-hidden="true"></i>
-                    Buscar
-                </button>
+                <div class="flex flex-wrap gap-2">
+                    <button type="submit" class="admin-btn-secondary">
+                        <i class="fa-solid fa-magnifying-glass text-xs text-[#19A7A1]" aria-hidden="true"></i>
+                        Buscar
+                    </button>
+                    @if ($busqueda !== '')
+                        <a href="{{ route('admin.usuarios.index') }}" class="admin-btn-outline">
+                            Limpiar
+                        </a>
+                    @endif
+                </div>
             </form>
         </section>
 

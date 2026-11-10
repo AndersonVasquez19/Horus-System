@@ -46,7 +46,7 @@
                 <tbody>
                 @forelse ($solicitudes as $solicitud)
                     <tr><td class="max-w-xs break-words"><span class="block font-semibold text-[#172B3A]">{{ $solicitud->codigo }}</span><span class="mt-0.5 block text-xs text-[#64748B]">{{ $solicitud->recibida_at->timezone('America/Lima')->format('d/m/Y H:i') }} Lima</span></td>
-                        <td class="font-medium text-[#172B3A]">{{ $solicitud->estado === 'recibida' ? 'Recibida' : 'En revisión' }}</td>
+                        <td class="font-medium text-[#172B3A]"><x-admin.badge-estado :estado="$solicitud->estado" /></td>
                         <td class="max-w-xs break-words">{{ $solicitud->servicio_nombre_historico ?? 'Sin asociación' }}</td>
                         <td>{{ $solicitud->responsable_id ? 'ID '.$solicitud->responsable_id : 'Sin asignar' }}</td>
                         <td><button type="button" data-abrir="{{ $solicitud->identificador }}" class="admin-btn-outline px-3.5 py-2 text-xs" aria-label="Consultar {{ $solicitud->codigo }}">Consultar</button></td></tr>

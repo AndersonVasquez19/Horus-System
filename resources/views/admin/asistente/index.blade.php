@@ -37,7 +37,6 @@
                         <thead>
                             <tr>
                                 <th scope="col">Intención</th>
-                                <th scope="col">Fuente</th>
                                 <th scope="col">Prioridad</th>
                                 <th scope="col">Activa</th>
                             </tr>
@@ -83,6 +82,11 @@
                         <i class="fa-solid fa-filter text-xs text-[#19A7A1]" aria-hidden="true"></i>
                         Filtrar
                     </button>
+                    @if ($intentSeleccionado !== '')
+                        <a href="{{ route('admin.asistente.index') }}" class="admin-btn-outline">
+                            Limpiar
+                        </a>
+                    @endif
                 </form>
             </div>
 
@@ -99,6 +103,7 @@
                                 <th scope="col">Mensaje</th>
                                 <th scope="col">Respuesta</th>
                                 <th scope="col">Intención</th>
+                                <th scope="col">Fuente</th>
                             </tr>
                         </thead>
                         <tbody>

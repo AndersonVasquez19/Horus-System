@@ -15,20 +15,24 @@
                 <p class="admin-page-subtitle">Registrada el {{ $matricula->fecha_matricula->format('d/m/Y') }}</p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('admin.matriculas.edit', $matricula) }}" class="admin-btn-outline">
-                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                    Editar
-                </a>
-                @if ($matricula->estado !== 'anulada')
-                    <button
-                        type="button"
-                        @click="$dispatch('open-confirm-modal', { title: 'Anular matrícula', message: 'Al anular esta matrícula se liberará un cupo del curso.', action: '{{ route('admin.matriculas.anular', $matricula) }}', method: 'PATCH', confirmText: 'Sí, anular' })"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-                    >
-                        <i class="fa-solid fa-ban" aria-hidden="true"></i>
-                        Anular
-                    </button>
-                @endif
+                @can('matriculas.editar')
+                    <a href="{{ route('admin.matriculas.edit', $matricula) }}" class="admin-btn-outline">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                        Editar
+                    </a>
+                @endcan
+                @can('matriculas.anular')
+                    @if ($matricula->estado !== 'anulada')
+                        <button
+                            type="button"
+                            @click="$dispatch('open-confirm-modal', { title: 'Anular matrícula', message: 'Al anular esta matrícula se liberará un cupo del curso.', action: '{{ route('admin.matriculas.anular', $matricula) }}', method: 'PATCH', confirmText: 'Sí, anular' })"
+                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+                        >
+                            <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                            Anular
+                        </button>
+                    @endif
+                @endcan
             </div>
         </section>
 

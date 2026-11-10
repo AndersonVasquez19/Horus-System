@@ -29,18 +29,22 @@
                         </a>
                     @endif
                 @endcan
-                <a href="{{ route('admin.cursos.edit', $curso) }}" class="admin-btn-outline">
-                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                    Editar
-                </a>
-                <button
-                    type="button"
-                    @click="$dispatch('open-confirm-modal', { title: 'Desactivar curso', message: 'El curso se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.cursos.destroy', $curso) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
-                    class="admin-btn-danger"
-                >
-                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                    Desactivar
-                </button>
+                @can('cursos.editar')
+                    <a href="{{ route('admin.cursos.edit', $curso) }}" class="admin-btn-outline">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                        Editar
+                    </a>
+                @endcan
+                @can('cursos.eliminar')
+                    <button
+                        type="button"
+                        @click="$dispatch('open-confirm-modal', { title: 'Desactivar curso', message: 'El curso se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.cursos.destroy', $curso) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
+                        class="admin-btn-danger"
+                    >
+                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                        Desactivar
+                    </button>
+                @endcan
             </div>
         </section>
 

@@ -44,13 +44,29 @@
                                 @foreach ($resultados[$key] as $item)
                                     <li class="rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm font-medium text-[#172B3A]">
                                         @if ($key === 'estudiantes')
-                                            {{ $item->nombres }} {{ $item->apellidos }} <span class="text-xs font-normal text-[#64748B]">· DNI: {{ $item->dni }}</span>
+                                            <a href="{{ route('admin.estudiantes.show', $item) }}" class="hover:text-[#176B9A] hover:underline">
+                                                {{ $item->nombres }} {{ $item->apellidos }}
+                                            </a>
+                                            <span class="text-xs font-normal text-[#64748B]">· DNI: {{ $item->dni }}</span>
                                         @elseif ($key === 'cursos')
-                                            {{ $item->nombre }} <span class="text-xs font-semibold text-[#176B9A]">· Código: {{ $item->codigo }}</span>
+                                            <a href="{{ route('admin.cursos.show', $item) }}" class="hover:text-[#176B9A] hover:underline">
+                                                {{ $item->nombre }}
+                                            </a>
+                                            <span class="text-xs font-semibold text-[#176B9A]">· Código: {{ $item->codigo }}</span>
                                         @elseif ($key === 'matriculas')
-                                            Matrícula #{{ $item->id }} <span class="text-xs font-normal text-[#64748B]">· {{ $item->estudiante?->nombres }} {{ $item->estudiante?->apellidos }}</span>
+                                            <a href="{{ route('admin.matriculas.show', $item) }}" class="hover:text-[#176B9A] hover:underline">
+                                                Matrícula #{{ $item->id }}
+                                            </a>
+                                            <span class="text-xs font-normal text-[#64748B]">· {{ $item->estudiante?->nombres }} {{ $item->estudiante?->apellidos }}</span>
                                         @else
-                                            {{ $item->name }} <span class="text-xs font-normal text-[#64748B]">· {{ $item->email }}</span>
+                                            @can('usuarios.editar')
+                                                <a href="{{ route('admin.usuarios.edit', $item) }}" class="hover:text-[#176B9A] hover:underline">
+                                                    {{ $item->name }}
+                                                </a>
+                                            @else
+                                                {{ $item->name }}
+                                            @endcan
+                                            <span class="text-xs font-normal text-[#64748B]">· {{ $item->email }}</span>
                                         @endif
                                     </li>
                                 @endforeach

@@ -23,18 +23,22 @@
                         </a>
                     @endif
                 @endcan
-                <a href="{{ route('admin.estudiantes.edit', $estudiante) }}" class="admin-btn-outline">
-                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                    Editar
-                </a>
-                <button
-                    type="button"
-                    @click="$dispatch('open-confirm-modal', { title: 'Desactivar estudiante', message: 'El registro se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.estudiantes.destroy', $estudiante) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
-                    class="admin-btn-danger"
-                >
-                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                    Desactivar
-                </button>
+                @can('estudiantes.editar')
+                    <a href="{{ route('admin.estudiantes.edit', $estudiante) }}" class="admin-btn-outline">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                        Editar
+                    </a>
+                @endcan
+                @can('estudiantes.eliminar')
+                    <button
+                        type="button"
+                        @click="$dispatch('open-confirm-modal', { title: 'Desactivar estudiante', message: 'El registro se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.estudiantes.destroy', $estudiante) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
+                        class="admin-btn-danger"
+                    >
+                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                        Desactivar
+                    </button>
+                @endcan
             </div>
         </section>
 

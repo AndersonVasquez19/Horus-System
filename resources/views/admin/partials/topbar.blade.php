@@ -133,11 +133,15 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2.5 rounded-full border border-[#E2E8F0] bg-[#F4F7FB] py-1 pl-1 pr-3">
+        <a
+            href="{{ route('admin.perfil.edit') }}"
+            title="Mi perfil"
+            class="flex items-center gap-2.5 rounded-full border border-[#E2E8F0] bg-[#F4F7FB] py-1 pl-1 pr-3 transition hover:border-[#176B9A]/40 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A]"
+        >
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-xs font-bold text-white ring-2 ring-[#19A7A1]/40">
                 {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}
             </span>
             <span class="hidden max-w-36 truncate text-xs font-semibold text-[#172B3A] sm:block">{{ auth()->user()->name }}</span>
-        </div>
+        </a>
     </div>
 </header>

@@ -47,3 +47,25 @@ test('un formulario sin data-confirm no pregunta ni se bloquea', () => {
   assert.deepEqual(preguntas, []);
   assert.equal(evento.prevenido, false);
 });
+
+test('impide el doble envío consecutivo en formularios POST y deshabilita el botón', () => {
+  const { enviar } = entorno(true);
+  const boton = { disabled: false, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } };
+  const formPost = {
+    tagName: 'FORM',
+    method: 'POST',
+    dataset: {},
+    attrs: {},
+    setAttribute(k, v) { this.attrs[k] = v; },
+    querySelector() { return boton; },
+    closest() { return null; },
+  };
+  const primerEnvio = enviar(formPost);
+  assert.equal(primerEnvio.prevenido, false);
+  assert.equal(formPost.dataset.enviando, '1');
+  assert.equal(formPost.attrs['aria-busy'], 'true');
+  assert.equal(boton.disabled, true);
+
+  const segundoEnvio = enviar(formPost);
+  assert.equal(segundoEnvio.prevenido, true);
+});

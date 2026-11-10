@@ -11,13 +11,17 @@
                 <h1 class="admin-page-title">Estudiantes</h1>
                 <p class="admin-page-subtitle">Consulta y administra los registros de estudiantes.</p>
             </div>
-            @unless ($eliminados)
-                <a href="{{ route('admin.estudiantes.create') }}" class="admin-btn-primary">
-                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                    Nuevo estudiante
-                </a>
-            @endunless
+            @can('estudiantes.crear')
+                @unless ($eliminados)
+                    <a href="{{ route('admin.estudiantes.create') }}" class="admin-btn-primary">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                        Nuevo estudiante
+                    </a>
+                @endunless
+            @endcan
         </section>
+
+        <x-admin.error-summary />
 
         <section class="admin-card-flush">
             <div class="border-b border-[#E2E8F0] p-4 sm:p-5">
@@ -64,8 +68,8 @@
                     <x-admin.empty-state
                         :title="$eliminados ? 'No hay estudiantes eliminados' : 'No hay estudiantes registrados'"
                         :message="$eliminados ? 'Los estudiantes eliminados aparecerán aquí para que puedas restaurarlos.' : 'Registra el primer estudiante para comenzar a gestionar la información académica.'"
-                        :action-url="$eliminados ? null : route('admin.estudiantes.create')"
-                        :action-text="$eliminados ? null : 'Crear el primero'"
+                        :action-url="$eliminados || ! auth()->user()?->can('estudiantes.crear') ? null : route('admin.estudiantes.create')"
+                        :action-text="$eliminados || ! auth()->user()?->can('estudiantes.crear') ? null : 'Crear el primero'"
                         icon="fa-user-graduate"
                     />
                 </div>
@@ -97,7 +101,7 @@
                                     </td>
                                     <td>
                                         @if ($estudiante->trashed())
-                                            <span class="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminado</span>
+                                            <x-admin.badge-estado estado="eliminado" />
                                         @else
                                             <x-admin.badge-estado :estado="$estudiante->estado" />
                                         @endif
@@ -105,29 +109,35 @@
                                     <td>
                                         <div class="flex items-center justify-end gap-1">
                                             @if ($estudiante->trashed())
-                                                <form method="POST" action="{{ route('admin.estudiantes.restaurar', $estudiante->id) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit" title="Restaurar estudiante" aria-label="Restaurar estudiante" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
-                                                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-                                                    </button>
-                                                </form>
+                                                @can('estudiantes.restaurar')
+                                                    <form method="POST" action="{{ route('admin.estudiantes.restaurar', $estudiante->id) }}">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" title="Restaurar estudiante" aria-label="Restaurar estudiante {{ $estudiante->nombres }} {{ $estudiante->apellidos }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
+                                                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                                                        </button>
+                                                    </form>
+                                                @endcan
                                             @else
-                                                <a href="{{ route('admin.estudiantes.show', $estudiante) }}" title="Ver estudiante" aria-label="Ver estudiante" class="admin-action-btn">
+                                                <a href="{{ route('admin.estudiantes.show', $estudiante) }}" title="Ver estudiante" aria-label="Ver estudiante {{ $estudiante->nombres }} {{ $estudiante->apellidos }}" class="admin-action-btn">
                                                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                                 </a>
-                                                <a href="{{ route('admin.estudiantes.edit', $estudiante) }}" title="Editar estudiante" aria-label="Editar estudiante" class="admin-action-btn">
-                                                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                                                </a>
-                                                <button
-                                                    type="button"
-                                                    title="Desactivar estudiante"
-                                                    aria-label="Desactivar estudiante"
-                                                    @click="$dispatch('open-confirm-modal', { title: 'Desactivar estudiante', message: 'El registro se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.estudiantes.destroy', $estudiante) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
-                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
-                                                >
-                                                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                                                </button>
+                                                @can('estudiantes.editar')
+                                                    <a href="{{ route('admin.estudiantes.edit', $estudiante) }}" title="Editar estudiante" aria-label="Editar estudiante {{ $estudiante->nombres }} {{ $estudiante->apellidos }}" class="admin-action-btn">
+                                                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                                                    </a>
+                                                @endcan
+                                                @can('estudiantes.eliminar')
+                                                    <button
+                                                        type="button"
+                                                        title="Desactivar estudiante"
+                                                        aria-label="Desactivar estudiante {{ $estudiante->nombres }} {{ $estudiante->apellidos }}"
+                                                        @click="$dispatch('open-confirm-modal', { title: 'Desactivar estudiante', message: 'El registro se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.estudiantes.destroy', $estudiante) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
+                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                                                    >
+                                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                                    </button>
+                                                @endcan
                                             @endif
                                         </div>
                                     </td>

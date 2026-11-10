@@ -142,22 +142,26 @@
                         href="/admin/reportes"
                     />
                 @endif
-                <x-admin.stat-card
-                    title="Usuarios"
-                    :value="$usuariosActivos"
-                    icon="fa-user-shield"
-                    description="Cuentas administrativas registradas"
-                    variant="sky"
-                    href="/admin/usuarios"
-                />
-                <x-admin.stat-card
-                    title="Roles"
-                    :value="$rolesActivos"
-                    icon="fa-user-tag"
-                    description="Perfiles de autorización activos"
-                    variant="blue"
-                    href="/admin/roles"
-                />
+                @can('usuarios.ver')
+                    <x-admin.stat-card
+                        title="Usuarios"
+                        :value="$usuariosActivos"
+                        icon="fa-user-shield"
+                        description="Cuentas administrativas registradas"
+                        variant="sky"
+                        href="/admin/usuarios"
+                    />
+                @endcan
+                @can('roles.ver')
+                    <x-admin.stat-card
+                        title="Roles"
+                        :value="$rolesActivos"
+                        icon="fa-user-tag"
+                        description="Perfiles de autorización activos"
+                        variant="blue"
+                        href="/admin/roles"
+                    />
+                @endcan
             </div>
         </section>
 
@@ -365,10 +369,12 @@
                             <span>Bitácora de auditoría</span>
                         </a>
                     @endcan
-                    <a href="/admin/configuracion" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#176B9A] transition hover:text-[#0A2540] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A]">
-                        <span>Configuración</span>
-                        <i class="fa-solid fa-arrow-right text-[10px] text-[#19A7A1]" aria-hidden="true"></i>
-                    </a>
+                    @can('configuracion.ver')
+                        <a href="/admin/configuracion" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#176B9A] transition hover:text-[#0A2540] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A]">
+                            <span>Configuración</span>
+                            <i class="fa-solid fa-arrow-right text-[10px] text-[#19A7A1]" aria-hidden="true"></i>
+                        </a>
+                    @endcan
                 </div>
             </div>
 

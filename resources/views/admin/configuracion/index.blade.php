@@ -74,12 +74,14 @@
                 Las claves de servicios externos (correo, IA) no se editan aquí: se configuran en el servidor mediante variables de entorno.
             </p>
 
-            <div class="mt-6 flex justify-end border-t border-[#E2E8F0] pt-5">
-                <button type="submit" class="admin-btn-primary">
-                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-                    Guardar configuración
-                </button>
-            </div>
+            @can('configuracion.editar')
+                <div class="mt-6 flex justify-end border-t border-[#E2E8F0] pt-5">
+                    <button type="submit" class="admin-btn-primary">
+                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                        Guardar configuración
+                    </button>
+                </div>
+            @endcan
         </form>
     </div>
 @endsection

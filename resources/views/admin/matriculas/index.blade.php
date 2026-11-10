@@ -27,14 +27,18 @@
                         </button>
                     </form>
                 @endcan
-                @unless ($eliminados)
-                    <a href="{{ route('admin.matriculas.create') }}" class="admin-btn-primary">
-                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                        Nueva matrícula
-                    </a>
-                @endunless
+                @can('matriculas.crear')
+                    @unless ($eliminados)
+                        <a href="{{ route('admin.matriculas.create') }}" class="admin-btn-primary">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            Nueva matrícula
+                        </a>
+                    @endunless
+                @endcan
             </div>
         </section>
+
+        <x-admin.error-summary />
 
         <section class="admin-card-flush">
             <div class="border-b border-[#E2E8F0] p-4 sm:p-5">
@@ -95,8 +99,8 @@
                     <x-admin.empty-state
                         :title="$eliminados ? 'No hay matrículas eliminadas' : 'No hay matrículas registradas'"
                         :message="$eliminados ? 'Las matrículas eliminadas aparecerán aquí para que puedas restaurarlas.' : 'Las matrículas registradas aparecerán en esta lista.'"
-                        :action-url="$eliminados ? null : route('admin.matriculas.create')"
-                        :action-text="$eliminados ? null : 'Crear una matrícula'"
+                        :action-url="$eliminados || ! auth()->user()?->can('matriculas.crear') ? null : route('admin.matriculas.create')"
+                        :action-text="$eliminados || ! auth()->user()?->can('matriculas.crear') ? null : 'Crear una matrícula'"
                         icon="fa-clipboard-list"
                     />
                 </div>
@@ -127,7 +131,7 @@
                                     <td class="whitespace-nowrap">{{ $matricula->fecha_matricula->format('d/m/Y') }}</td>
                                     <td>
                                         @if ($matricula->trashed())
-                                            <span class="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminada</span>
+                                            <x-admin.badge-estado estado="eliminada" />
                                         @else
                                             <x-admin.badge-estado :estado="$matricula->estado" />
                                         @endif
@@ -138,36 +142,42 @@
                                     <td>
                                         <div class="flex items-center justify-end gap-1">
                                             @if ($matricula->trashed())
-                                                <form method="POST" action="{{ route('admin.matriculas.restaurar', $matricula->id) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit" title="Restaurar matrícula" aria-label="Restaurar matrícula" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
-                                                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-                                                    </button>
-                                                </form>
+                                                @can('matriculas.restaurar')
+                                                    <form method="POST" action="{{ route('admin.matriculas.restaurar', $matricula->id) }}">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" title="Restaurar matrícula" aria-label="Restaurar matrícula #{{ $matricula->id }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
+                                                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                                                        </button>
+                                                    </form>
+                                                @endcan
                                             @else
-                                                <a href="{{ route('admin.matriculas.show', $matricula) }}" title="Ver matrícula" aria-label="Ver matrícula" class="admin-action-btn">
+                                                <a href="{{ route('admin.matriculas.show', $matricula) }}" title="Ver matrícula" aria-label="Ver matrícula #{{ $matricula->id }}" class="admin-action-btn">
                                                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                                 </a>
-                                                <a href="{{ route('admin.matriculas.edit', $matricula) }}" title="Editar matrícula" aria-label="Editar matrícula" class="admin-action-btn">
-                                                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                                                </a>
-                                                @if ($matricula->estado !== 'anulada')
-                                                    <button
-                                                        type="button"
-                                                        title="Anular matrícula"
-                                                        aria-label="Anular matrícula"
-                                                        @click="$dispatch('open-confirm-modal', { title: 'Anular matrícula', message: 'Al anular esta matrícula se liberará un cupo del curso.', action: '{{ route('admin.matriculas.anular', $matricula) }}', method: 'PATCH', confirmText: 'Sí, anular' })"
-                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-700 transition hover:bg-amber-50"
-                                                    >
-                                                        <i class="fa-solid fa-ban" aria-hidden="true"></i>
-                                                    </button>
-                                                @endif
+                                                @can('matriculas.editar')
+                                                    <a href="{{ route('admin.matriculas.edit', $matricula) }}" title="Editar matrícula" aria-label="Editar matrícula #{{ $matricula->id }}" class="admin-action-btn">
+                                                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                                                    </a>
+                                                @endcan
+                                                @can('matriculas.anular')
+                                                    @if ($matricula->estado !== 'anulada')
+                                                        <button
+                                                            type="button"
+                                                            title="Anular matrícula"
+                                                            aria-label="Anular matrícula #{{ $matricula->id }}"
+                                                            @click="$dispatch('open-confirm-modal', { title: 'Anular matrícula', message: 'Al anular esta matrícula se liberará un cupo del curso.', action: '{{ route('admin.matriculas.anular', $matricula) }}', method: 'PATCH', confirmText: 'Sí, anular' })"
+                                                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-700 transition hover:bg-amber-50"
+                                                        >
+                                                            <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                                                        </button>
+                                                    @endif
+                                                @endcan
                                                 @can('matriculas.eliminar')
                                                     <button
                                                         type="button"
                                                         title="Eliminar matrícula"
-                                                        aria-label="Eliminar matrícula"
+                                                        aria-label="Eliminar matrícula #{{ $matricula->id }}"
                                                         @click="$dispatch('open-confirm-modal', { title: 'Eliminar matrícula', message: 'El registro se ocultará de la lista principal. Si estaba activa, su cupo será liberado.', action: '{{ route('admin.matriculas.destroy', $matricula) }}', method: 'DELETE', confirmText: 'Sí, eliminar' })"
                                                         class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
                                                     >

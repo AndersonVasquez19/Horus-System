@@ -34,7 +34,7 @@
                         <tr>
                             <td><span class="block max-w-xs break-all text-xs">{{ $solicitud->identificador }}</span><span class="text-xs">{{ $solicitud->created_at->timezone('America/Lima')->format('d/m/Y H:i') }}</span></td>
                             <td class="font-semibold">{{ $solicitud->curso_titulo }}<span class="block text-xs font-normal">{{ ucfirst($solicitud->modalidad) }}</span></td>
-                            <td>{{ SolicitudMatricula::ESTADOS[$solicitud->estado] }}</td>
+                            <td><x-admin.badge-estado :estado="$solicitud->estado" /></td>
                             <td><button type="button" data-admin-modal-open="solicitud-{{ $solicitud->identificador }}" class="admin-btn-outline">Revisar solicitud</button></td>
                         </tr>
                     @empty

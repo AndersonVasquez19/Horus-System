@@ -11,13 +11,17 @@
                 <h1 class="admin-page-title">Cursos</h1>
                 <p class="admin-page-subtitle">Administra la oferta de cursos, modalidades y cupos disponibles.</p>
             </div>
-            @unless ($eliminados)
-                <a href="{{ route('admin.cursos.create') }}" class="admin-btn-primary">
-                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                    Nuevo curso
-                </a>
-            @endunless
+            @can('cursos.crear')
+                @unless ($eliminados)
+                    <a href="{{ route('admin.cursos.create') }}" class="admin-btn-primary">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                        Nuevo curso
+                    </a>
+                @endunless
+            @endcan
         </section>
+
+        <x-admin.error-summary />
 
         <section class="admin-card-flush">
             <div class="border-b border-[#E2E8F0] p-4 sm:p-5">
@@ -76,8 +80,8 @@
                     <x-admin.empty-state
                         :title="$eliminados ? 'No hay cursos eliminados' : 'No hay cursos registrados'"
                         :message="$eliminados ? 'Los cursos eliminados aparecerán aquí para que puedas restaurarlos.' : 'Registra el primer curso para comenzar a administrar la oferta académica.'"
-                        :action-url="$eliminados ? null : route('admin.cursos.create')"
-                        :action-text="$eliminados ? null : 'Crear el primero'"
+                        :action-url="$eliminados || ! auth()->user()?->can('cursos.crear') ? null : route('admin.cursos.create')"
+                        :action-text="$eliminados || ! auth()->user()?->can('cursos.crear') ? null : 'Crear el primero'"
                         icon="fa-book-open"
                     />
                 </div>
@@ -108,7 +112,7 @@
                                     <td class="whitespace-nowrap">{{ $curso->cupos_disponibles }} / {{ $curso->cupos_maximos }}</td>
                                     <td>
                                         @if ($curso->trashed())
-                                            <span class="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">Eliminado</span>
+                                            <x-admin.badge-estado estado="eliminado" />
                                         @else
                                             <x-admin.badge-estado :estado="$curso->estado" />
                                         @endif
@@ -116,29 +120,35 @@
                                     <td>
                                         <div class="flex items-center justify-end gap-1">
                                             @if ($curso->trashed())
-                                                <form method="POST" action="{{ route('admin.cursos.restaurar', $curso->id) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit" title="Restaurar curso" aria-label="Restaurar curso" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
-                                                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-                                                    </button>
-                                                </form>
+                                                @can('cursos.restaurar')
+                                                    <form method="POST" action="{{ route('admin.cursos.restaurar', $curso->id) }}">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" title="Restaurar curso" aria-label="Restaurar curso {{ $curso->codigo }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition hover:bg-emerald-50">
+                                                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                                                        </button>
+                                                    </form>
+                                                @endcan
                                             @else
-                                                <a href="{{ route('admin.cursos.show', $curso) }}" title="Ver curso" aria-label="Ver curso" class="admin-action-btn">
+                                                <a href="{{ route('admin.cursos.show', $curso) }}" title="Ver curso" aria-label="Ver curso {{ $curso->codigo }}" class="admin-action-btn">
                                                     <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                                 </a>
-                                                <a href="{{ route('admin.cursos.edit', $curso) }}" title="Editar curso" aria-label="Editar curso" class="admin-action-btn">
-                                                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                                                </a>
-                                                <button
-                                                    type="button"
-                                                    title="Desactivar curso"
-                                                    aria-label="Desactivar curso"
-                                                    @click="$dispatch('open-confirm-modal', { title: 'Desactivar curso', message: 'El curso se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.cursos.destroy', $curso) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
-                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
-                                                >
-                                                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                                                </button>
+                                                @can('cursos.editar')
+                                                    <a href="{{ route('admin.cursos.edit', $curso) }}" title="Editar curso" aria-label="Editar curso {{ $curso->codigo }}" class="admin-action-btn">
+                                                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                                                    </a>
+                                                @endcan
+                                                @can('cursos.eliminar')
+                                                    <button
+                                                        type="button"
+                                                        title="Desactivar curso"
+                                                        aria-label="Desactivar curso {{ $curso->codigo }}"
+                                                        @click="$dispatch('open-confirm-modal', { title: 'Desactivar curso', message: 'El curso se ocultará de la lista principal. Puedes restaurarlo más adelante.', action: '{{ route('admin.cursos.destroy', $curso) }}', method: 'DELETE', confirmText: 'Sí, desactivar' })"
+                                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                                                    >
+                                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                                    </button>
+                                                @endcan
                                             @endif
                                             @can('cursos.publicar')
                                                 <a href="{{ route('admin.cursos.publicacion.edit', $curso) }}" title="Publicación del curso" aria-label="Publicación del curso {{ $curso->codigo }}" class="admin-action-btn">

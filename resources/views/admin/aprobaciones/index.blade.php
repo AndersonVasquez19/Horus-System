@@ -42,19 +42,9 @@
             @endcan
         </section>
 
-        {{-- Errores de validación (el layout solo muestra avisos de sesión) --}}
-        @if ($errors->any())
-            <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
-                <p class="flex items-center gap-2 font-semibold">
-                    <i class="fa-solid fa-circle-exclamation text-red-600" aria-hidden="true"></i>
-                    No se pudo completar la operación:
-                </p>
-                <ul class="mt-2 list-disc space-y-0.5 pl-6 text-xs leading-5">
-                    @foreach ($errors->all() as $mensaje)
-                        <li>{{ $mensaje }}</li>
-                    @endforeach
-                </ul>
-            </div>
+        {{-- Errores de validación generales (cuando no pertenecen a un modal abierto) --}}
+        @if ($errors->any() && ! $formularioConErrores && ! old('_modal'))
+            <x-admin.error-summary />
         @endif
 
         {{-- Filtros --}}

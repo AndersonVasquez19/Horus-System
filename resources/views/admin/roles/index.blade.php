@@ -12,9 +12,16 @@
                 <h1 class="admin-page-title">Roles y permisos</h1>
                 <p class="admin-page-subtitle">Define perfiles de acceso y asigna permisos por módulo.</p>
             </div>
-            <button type="button" data-admin-modal-open="crear-rol" class="admin-btn-primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Crear nuevo rol</button>
+            @can('roles.crear')
+                <button type="button" data-admin-modal-open="crear-rol" class="admin-btn-primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Crear nuevo rol</button>
+            @endcan
         </div>
 
+        @if ($errors->any() && ! old('_modal'))
+            <x-admin.error-summary />
+        @endif
+
+        @can('roles.crear')
         <x-admin.form-modal id="crear-rol" title="Crear nuevo rol" :auto-open="$errors->any() && old('_modal') === 'crear-rol'">
             @if ($errors->any() && old('_modal') === 'crear-rol')
                 <ul role="alert" class="admin-error mb-4 list-inside list-disc">
@@ -52,6 +59,7 @@
                 </div>
             </form>
         </x-admin.form-modal>
+        @endcan
 
         <section class="space-y-4">
             @foreach ($roles as $rol)
@@ -61,20 +69,27 @@
                             <h2 class="text-lg font-bold text-[#172B3A]">{{ $rol->name }}</h2>
                             <p class="text-sm text-[#64748B]">{{ $rol->permissions->count() }} permisos asignados</p>
                         </div>
-                        <button type="button" data-admin-modal-open="editar-rol-{{ $rol->id }}" class="admin-btn-outline">Editar rol y permisos</button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            @can('roles.editar')
+                                <button type="button" data-admin-modal-open="editar-rol-{{ $rol->id }}" class="admin-btn-outline">Editar rol y permisos</button>
+                            @endcan
 
-                        @if ($rol->name !== 'admin')
-                            <form action="{{ route('admin.roles.destroy', $rol) }}" method="POST" data-confirm="¿Deseas eliminar este rol?">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="admin-btn-danger min-h-9 px-3.5 py-1.5 text-xs">
-                                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                                    Eliminar
-                                </button>
-                            </form>
-                        @endif
+                            @can('roles.eliminar')
+                                @if (! in_array($rol->name, \App\Services\AdminProtection::ROLES_BASE, true))
+                                    <form action="{{ route('admin.roles.destroy', $rol) }}" method="POST" data-confirm="¿Deseas eliminar este rol?">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="admin-btn-danger min-h-9 px-3.5 py-1.5 text-xs">
+                                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                @endif
+                            @endcan
+                        </div>
                     </div>
 
+                    @can('roles.editar')
                     <x-admin.form-modal id="editar-rol-{{ $rol->id }}" :title="'Editar rol: '.$rol->name" :auto-open="$errors->any() && old('_modal') === 'editar-rol-'.$rol->id">
                         @if ($errors->any() && old('_modal') === 'editar-rol-'.$rol->id)
                             <ul role="alert" class="admin-error mb-4 list-inside list-disc">
@@ -111,6 +126,7 @@
                             </div>
                         </form>
                     </x-admin.form-modal>
+                    @endcan
                 </div>
             @endforeach
         </section>

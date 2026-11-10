@@ -26,7 +26,7 @@
             <div class="min-w-[220px]">
                 <label for="filtro-estado" class="admin-label">Estado administrativo</label>
                 <select id="filtro-estado" name="estado" class="admin-select">
-                    <option value="" disabled @selected($estado === '')>Selecciona un estado</option>
+                    <option value="" @selected($estado === '')>Selecciona un estado</option>
                     @foreach (['activo' => 'Activo', 'inactivo' => 'Inactivo', 'archivado' => 'Archivado'] as $valor => $texto)
                         <option value="{{ $valor }}" @selected($estado === $valor)>{{ $texto }}</option>
                     @endforeach
