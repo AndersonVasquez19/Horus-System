@@ -58,7 +58,8 @@ class StoreMatriculaRequest extends FormRequest
                     $validator->errors()->add('estudiante_id', 'El estudiante ya está matriculado en este curso.');
                 }
 
-                if (Curso::query()->findOrFail($cursoId)->cupos_disponibles <= 0) {
+                $curso = Curso::query()->find($cursoId);
+                if ($curso === null || $curso->cupos_disponibles <= 0) {
                     $validator->errors()->add('curso_id', 'El curso no tiene cupos disponibles.');
                 }
             },

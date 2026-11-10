@@ -32,6 +32,7 @@ use App\Http\Controllers\PaginaTecnologicaController;
 use App\Http\Controllers\ServiciosPublicosController;
 use App\Http\Controllers\SolicitudCotizacionPublicaController;
 use App\Http\Controllers\SolicitudMatriculaPublicaController;
+use App\Http\Middleware\NoStoreAdminResponse;
 use App\Http\Middleware\RecepcionCotizacionesHabilitada;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
@@ -61,7 +62,9 @@ Route::post('/libro-reclamaciones', [LibroReclamacionesController::class, 'store
 
 Route::middleware(RecepcionCotizacionesHabilitada::class)->group(function () {
     Route::get('/solicitar-cotizacion', [SolicitudCotizacionPublicaController::class, 'show'])->name('cotizacion-publica.show');
-    Route::post('/solicitudes-cotizacion', [SolicitudCotizacionPublicaController::class, 'store'])->name('cotizacion-publica.store');
+    Route::post('/solicitudes-cotizacion', [SolicitudCotizacionPublicaController::class, 'store'])
+        ->middleware('throttle:cotizacion-publica')
+        ->name('cotizacion-publica.store');
 });
 
 Route::middleware('guest')->group(function () {
@@ -85,7 +88,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'role:admin|coordinador|secretaria'])
+    ->middleware(['auth', 'role:admin|coordinador|secretaria', NoStoreAdminResponse::class])
     ->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('buscar', [BusquedaController::class, 'index'])->name('busqueda.index');
@@ -131,10 +134,20 @@ Route::prefix('admin')
         Route::post('servicios/{servicio}/publicacion/autorizar', [ServicioTecnologicoController::class, 'autorizar'])->name('servicios.publicacion.autorizar');
         Route::delete('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'retirar'])->name('servicios.publicacion.retirar');
         // Contenido de la ficha: imagen principal y tarjetas (multipart, mismo If-Match; permiso servicios.editar).
-        Route::post('servicios/{servicio}/publicacion/imagen', [ServicioTecnologicoController::class, 'imagenPrincipal'])->name('servicios.publicacion.imagen');
-        Route::post('servicios/{servicio}/elementos', [ServicioTecnologicoController::class, 'elementoStore'])->name('servicios.elementos.store');
-        Route::post('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoUpdate'])->whereNumber('elemento')->name('servicios.elementos.update');
-        Route::delete('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoDestroy'])->whereNumber('elemento')->name('servicios.elementos.destroy');
+        Route::post('servicios/{servicio}/publicacion/imagen', [ServicioTecnologicoController::class, 'imagenPrincipal'])
+            ->middleware('throttle:admin-write')
+            ->name('servicios.publicacion.imagen');
+        Route::post('servicios/{servicio}/elementos', [ServicioTecnologicoController::class, 'elementoStore'])
+            ->middleware('throttle:admin-write')
+            ->name('servicios.elementos.store');
+        Route::post('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoUpdate'])
+            ->whereNumber('elemento')
+            ->middleware('throttle:admin-write')
+            ->name('servicios.elementos.update');
+        Route::delete('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoDestroy'])
+            ->whereNumber('elemento')
+            ->middleware('throttle:admin-write')
+            ->name('servicios.elementos.destroy');
         Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
         Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
         Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');

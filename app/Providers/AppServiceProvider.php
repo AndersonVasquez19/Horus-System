@@ -36,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Identificadores numéricos del panel: un valor no numérico responde 404 en lugar de llegar a la
         // consulta (PostgreSQL lo rechaza con SQLSTATE 22P02 y la petición terminaría en 500).
-        foreach (['aprobacion', 'curso', 'estudiante', 'matricula', 'notificacion', 'role', 'user'] as $parametro) {
+        foreach (['aprobacion', 'curso', 'estudiante', 'matricula', 'notificacion', 'role', 'servicio', 'user'] as $parametro) {
             Route::pattern($parametro, '[0-9]+');
         }
 
@@ -49,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('verification-resend', fn (Request $request) => Limit::perMinute(5)->by('verification-resend:'.$request->ip()));
         RateLimiter::for('password-recovery', fn (Request $request) => Limit::perMinute(5)->by('password-recovery:'.$request->ip()));
         RateLimiter::for('matricula-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('matricula-publica:'.$request->ip()));
+        RateLimiter::for('cotizacion-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('cotizacion-publica:'.$request->ip()));
         // Perfil propio: la contraseña actual se comprueba en cada intento, así que se limita por usuario
         // para que una sesión robada no sirva para adivinarla.
         RateLimiter::for('perfil', fn (Request $request) => Limit::perMinute(5)->by('perfil:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
@@ -60,6 +61,10 @@ class AppServiceProvider extends ServiceProvider
         // Selectores de matrícula: una consulta por pausa al teclear; se limita por usuario sin estorbar el uso normal.
         RateLimiter::for('admin-opciones', fn (Request $request) => Limit::perMinute(120)->by(
             'admin-opciones:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
+        // Escrituras y subidas de archivos del panel: acota ráfagas automatizadas sin afectar la operación humana.
+        RateLimiter::for('admin-write', fn (Request $request) => Limit::perMinute(120)->by(
+            'admin-write:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
         RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
