@@ -11,6 +11,7 @@ use App\Models\Curso;
 use App\Support\AuditoriaAcademica;
 use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -150,11 +151,12 @@ class CursoController extends Controller implements HasMiddleware
             ->with('success', 'Los datos del curso se actualizaron correctamente.');
     }
 
-    public function destroy(Request $request, Curso $curso): RedirectResponse
+    public function destroy(Request $request, Curso $curso): RedirectResponse|JsonResponse
     {
         $actor = AuditoriaAcademica::actorDe($request);
+        $vigentes = 0;
 
-        DB::transaction(function () use ($curso, $actor): void {
+        DB::transaction(function () use ($curso, $actor, &$vigentes): void {
             // Sin withTrashed(): si otra petición ya lo archivó, no hay operación efectiva ni auditoría.
             $bloqueado = Curso::query()->lockForUpdate()->find($curso->getKey());
 
@@ -162,10 +164,25 @@ class CursoController extends Controller implements HasMiddleware
                 return;
             }
 
+            // Con matrículas vigentes (pendiente/pagada) el curso conservaría cupos ocupados por alumnos que
+            // siguen inscritos: hay que anularlas antes. Se evalúa bajo el bloqueo del curso.
+            $vigentes = $bloqueado->matriculas()->whereIn('estado', ['pendiente', 'pagada'])->count();
+            if ($vigentes > 0) {
+                return;
+            }
+
             $bloqueado->delete();
 
             AuditoriaAcademica::registrarOperacion('curso_archivado', $bloqueado, 'archivado_logico', $actor);
         });
+
+        if ($vigentes > 0) {
+            $mensaje = 'No se puede archivar el curso: tiene '.$vigentes.' matrícula(s) vigente(s). Anúlalas primero para liberar sus cupos.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $mensaje], 422)
+                : redirect()->route('admin.cursos.show', $curso)->with('error', $mensaje);
+        }
 
         return redirect()
             ->route('admin.cursos.index')

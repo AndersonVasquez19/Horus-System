@@ -11,6 +11,7 @@ use App\Models\Estudiante;
 use App\Support\AuditoriaAcademica;
 use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -126,11 +127,12 @@ class EstudianteController extends Controller implements HasMiddleware
             ->with('success', 'Los datos del estudiante se actualizaron correctamente.');
     }
 
-    public function destroy(Request $request, Estudiante $estudiante): RedirectResponse
+    public function destroy(Request $request, Estudiante $estudiante): RedirectResponse|JsonResponse
     {
         $actor = $this->actorId($request);
+        $vigentes = 0;
 
-        DB::transaction(function () use ($estudiante, $actor): void {
+        DB::transaction(function () use ($estudiante, $actor, &$vigentes): void {
             // Sin SoftDeletes::withTrashed(): si otra petición ya lo eliminó, no hay operación efectiva ni auditoría.
             $bloqueado = Estudiante::query()->lockForUpdate()->find($estudiante->getKey());
 
@@ -138,10 +140,25 @@ class EstudianteController extends Controller implements HasMiddleware
                 return;
             }
 
+            // Con matrículas vigentes (pendiente/pagada) el estudiante seguiría ocupando cupos de sus cursos:
+            // hay que anularlas antes. Se evalúa bajo el bloqueo del estudiante.
+            $vigentes = $bloqueado->matriculas()->whereIn('estado', ['pendiente', 'pagada'])->count();
+            if ($vigentes > 0) {
+                return;
+            }
+
             $bloqueado->delete();
 
             AuditoriaAcademica::registrarOperacion('estudiante_eliminado', $bloqueado, 'eliminacion_logica', $actor);
         });
+
+        if ($vigentes > 0) {
+            $mensaje = 'No se puede desactivar al estudiante: tiene '.$vigentes.' matrícula(s) vigente(s). Anúlalas primero para liberar sus cupos.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $mensaje], 422)
+                : redirect()->route('admin.estudiantes.show', $estudiante)->with('error', $mensaje);
+        }
 
         return redirect()
             ->route('admin.estudiantes.index')
