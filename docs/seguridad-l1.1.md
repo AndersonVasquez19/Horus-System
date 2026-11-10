@@ -162,3 +162,77 @@ Las pruebas PHP usan SQLite en memoria y **no** demuestran el comportamiento de 
 4. Decidir qué hacer con los archivos heredados de `storage/app/private/exports/` y `storage/app/exports/`.
 5. Ejecutar las pruebas de la sección 7.
 6. Mantener `APP_DEBUG=false`, `.env` fuera del repositorio y, si hay `config:cache`, recompilarlo tras los cambios de entorno.
+7. Configurar en el entorno de producción `SESSION_SECURE_COOKIE=true`, `TRUSTED_PROXIES` (IPs del balanceador, separadas por comas) y un `JWT_SECRET` propio de al menos 32 bytes (sección 9).
+
+## 9. Endurecimiento de autenticación (web y API/JWT)
+
+Auditoría de login, registro, logout, restablecimiento de contraseña, JWT y limitadores. Evidencia: pruebas PHPUnit en SQLite en memoria (`tests/Feature/AuthHardeningSprint22Test.php` y las existentes de Sprint 12–14) y PHPStan; **no** miden latencias reales de hash, PostgreSQL ni correo real.
+
+| Cambio | Detalle |
+| --- | --- |
+| Limitadores con nombre | `register`, `password-recovery`, `verification-resend`, `matricula-publica` y `chat` (`AppServiceProvider`). Antes, `throttle:N,M` firmaba solo por dominio e IP y todas esas rutas compartían un único contador. Mismos límites que antes; registro web y API siguen compartiendo cupo. |
+| Proxies de confianza | `TRUSTED_PROXIES` (lista separada por comas, o `*`) activa `trustProxies`. Vacío conserva el comportamiento anterior. Sin esto, detrás de un balanceador todos los limitadores por IP compartirían un cubo. |
+| Tiempo de login | `CredentialTiming` hace siempre una única comprobación de hash, exista o no la cuenta (web y API), para no revelar correos por latencia. |
+| Restablecimiento | El error es el mismo para correo inexistente, token inválido o limitación. «Olvidé mi contraseña» responde igual ante cualquier fallo del proveedor de correo. La página del token se sirve con `Cache-Control: no-store, private` y `Referrer-Policy: no-referrer`. |
+| Secreto JWT | Sin `JWT_SECRET`, la clave se deriva de `APP_KEY` con HMAC (etiqueta `horus-jwt-v1`) en lugar de usarla en crudo. **Efecto al desplegar sin `JWT_SECRET`:** los JWT vigentes dejan de validar (TTL por defecto 15 min). |
+| Límites JWT | TTL entre 60 y 86400 s; tolerancia de reloj entre 0 y 60 s, restaurada tras cada decodificación (`JWT::$leeway` es estático). |
+| Middleware JWT | Los errores de token siguen dando 401; un fallo interno (secreto inválido, base de datos) también, pero ahora se registra con `report()`. |
+| Cambio de correo | Revoca siempre los JWT (antes solo con la verificación de registro activa), sin sumar dos veces si la misma operación ya cambió la contraseña. |
+| Edición de usuarios | Panel y consola dejan el correo de las cuentas que crean como verificado; quien cambia su propia clave con la verificación activa conserva su sesión. Ambos efectos solo importan si esa verificación se activa. |
+| Contraseñas | Máximo 72 caracteres (bcrypt trunca más allá y no avisa). |
+| Cabeceras | `SecurityHeaders`: `X-Content-Type-Options`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy` y, en HTTPS, `Strict-Transport-Security`. |
+| Content-Security-Policy | `config/csp.php`, variable `CSP_MODE`. **Por defecto `report-only`**: cabecera `Content-Security-Policy-Report-Only`, el navegador avisa en la consola de lo que bloquearía y **no bloquea nada**. `enforce` envía `Content-Security-Policy` y **sí bloquea**. `off`, o cualquier valor desconocido o mal escrito (incluidos `Enforce`/`ENFORCE`), no envía nada: un error al escribirlo nunca bloquea. Solo en respuestas HTML. Fuera de producción añade el origen de Vite leído de `public/hot`. Una cabecera CSP que ya traiga la respuesta no se sobrescribe. |
+
+### CSP: estado y pasos
+
+La política actual permite `'self'`, `'unsafe-eval'` en scripts (Alpine.js evalúa expresiones), `'unsafe-inline'` en estilos (atributos `style=""`), imágenes y fuentes locales o `data:`, y `https://www.google.com` solo para los iframes de Google Maps (Contactos y bloque de ubicación). **Recorrido en navegador (solo reporte).** Páginas públicas, login, registro y recuperación revisadas con la cabecera activa; el panel `/admin` solo por análisis estático de las vistas (no se inició sesión). Una limitación a tener en cuenta: la consola capturada por la herramienta de automatización **no muestra los avisos de CSP**, así que el contraste se hizo listando recursos cargados, manejadores y scripts en línea, y confirmando con una infracción provocada que la política sí se evalúa. Resultado:
+
+- Sin orígenes externos salvo Google Maps (permitido). Sin scripts en línea ejecutables, sin enlaces `javascript:` ni CDN.
+- **Manejadores `on*=` en línea (bloquearían con la política aplicada, porque no se permite `'unsafe-inline'` en scripts):**
+  - `pages/quienes-somos.blade.php`: 4 × `onclick="toggleCard(this)"`.
+  - `admin/aprobaciones/index.blade.php`: 4 × `onsubmit="return confirm(...)"`; `admin/usuarios/index.blade.php` y `admin/roles/index.blade.php`: 1 cada uno (confirmar eliminación).
+  - `admin/reclamaciones/hoja.blade.php`: `onclick="window.print()"`.
+- **Riesgo si se bloqueara sin corregir:** los formularios con `onsubmit="return confirm(...)"` se enviarían **sin pedir confirmación** (aprobar, rechazar, reabrir o eliminar), porque el manejador no se ejecutaría.
+- **Corregido (manejadores en línea retirados):**
+  - Confirmaciones: `<form data-confirm="...">` más un único escuchador delegado en `resources/js/confirm-forms.mjs`, iniciado desde `app.js` (prueba: `tests/frontend/confirm-forms.test.mjs`). Cubre también formularios insertados después, como los de los modales del panel.
+  - Imprimir: `data-imprimir` y `public/assets/js/hoja-imprimir.js` (la hoja es una página independiente, sin Vite).
+  - Tarjetas de Quiénes somos: escuchador delegado en `public/assets/js/quienes-somos.js`.
+  - Quedan sin revisar en navegador las pantallas del panel que requieren sesión.
+
+**Activación del bloqueo (`CSP_MODE=enforce`) — procedimiento:**
+
+1. Primero en local. Recorrer panel y sitio público, **incluidos el chat enviando un mensaje, el botón Imprimir de la hoja de reclamación y los modales**, con la consola filtrada por `Content Security Policy` y **Preserve log** activado. En Edge/Chrome el aviso dice «violates the following Content Security Policy directive» y no lleva el texto `[Report Only]`: no filtrar por ese texto.
+2. Prueba de control: `new Image().src = 'https://example.com/prueba.png'` debe aparecer como violación (con `enforce`, además se bloquea).
+3. Si algo falla: volver a `report-only` (o `off`) y avisar con la directiva y el recurso.
+4. Solo después, producción. Con `config:cache`, ejecutar `php artisan config:clear` tras cambiar el valor.
+
+Reversa inmediata: `CSP_MODE=report-only` (o `off`).
+
+**Vite en desarrollo y CSP.** `vite.config.js` fija `server.host = '127.0.0.1'` para que `public/hot` contenga `http://127.0.0.1:5173`, una fuente válida de CSP que se añade con su origen exacto. Una dirección IPv6 entre corchetes (`http://[::1]:5173`, el valor por defecto de Vite) **no** es una fuente válida: el navegador la descarta y, con `enforce`, bloquea el CSS y el JS de Vite (la página se ve sin estilos). Como red de seguridad, `SecurityHeaders` permite el esquema completo (`http:`/`ws:`) solo si `public/hot` aún trae una IPv6 literal, y solo fuera de producción; **en ese caso la política de desarrollo es más permisiva y no detecta recursos externos**, así que para validar el bloqueo hay que reiniciar `npm run dev` y comprobar que `public/hot` empieza por `http://127.0.0.1`. Tras cambiar `vite.config.js` hay que reiniciar `npm run dev`.
+
+Estado de la revisión previa: panel recorrido con el reporte limpio (el único aviso fue la prueba de control). Quedan sin cubrir en navegador el chat público enviando un mensaje, el botón Imprimir y los modales no abiertos.
+
+Para endurecer más: recorrer el sitio público y el panel con la consola abierta, corregir o permitir lo legítimo, y solo con el reporte limpio añadir un modo bloqueante. Retirar `'unsafe-eval'` exige migrar a `@alpinejs/csp`; retirar `'unsafe-inline'` de estilos exige quitar los `style=""`.
+
+### Perfil propio (`/admin/perfil`)
+
+`PerfilController` (rutas `admin.perfil.edit` y `admin.perfil.update`, disponible para `admin|coordinador|secretaria` sin permiso adicional). El usuario se toma siempre de la sesión: la petición no puede apuntar a otra cuenta ni tocar roles o `jwt_version`.
+
+- Nombre: se cambia sin más. **Correo o contraseña**: exigen la contraseña actual (regla `current_password`).
+- Cambiar la contraseña revoca los JWT, cierra las demás sesiones y renueva el identificador de la sesión actual, que se conserva. Cambiar el correo revoca los JWT.
+- Limitador `perfil`: 5 intentos por minuto y por usuario, para que una sesión robada no sirva para adivinar la contraseña actual.
+- Auditoría `perfil_actualizado`: solo qué campos cambiaron y si se modificó la clave (`clave_modificada`); nunca contraseñas ni hashes.
+- Enlace «Mi perfil» en el menú lateral del panel.
+
+### Contratos que se conservan
+
+- El restablecimiento de contraseña **no** verifica el correo (prueba de Sprint 14).
+- Cerrar sesión en la web o en la API sube `jwt_version` y revoca los JWT de **todos** los dispositivos del usuario. Es el diseño actual (el `jti` se emite pero no se almacena); una revocación por dispositivo exigiría persistirlo.
+
+### Riesgos abiertos
+
+- **Enumeración de correos en el registro** (web y API): con la verificación de registro apagada, un correo existente devuelve «Ya existe una cuenta con este correo.» (límite de 5 por minuto y por IP). Una respuesta neutra depende de poder confirmar el correo por email, así que queda ligada a la verificación de registro, **suspendida por ahora**.
+- Con la verificación apagada, la API emite un JWT al registrarse sin comprobar el correo.
+- El límite de login por correo permite que quien conozca un correo mantenga lleno su cupo y bloquee al titular.
+- El cambio de contraseña de **terceros** desde `admin/usuarios` sigue sin pedir una reautenticación (lo decide quien tiene `usuarios.editar`).
+- El login API responde 422 (no 401) ante credenciales inválidas; se conserva por compatibilidad de contrato.
