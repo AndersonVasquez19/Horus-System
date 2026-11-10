@@ -98,7 +98,7 @@ Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del in
 **Despliegue (no se tocó `.env.example`)**
 
 - Producción: `APP_DEBUG=false`, `SESSION_SECURE_COOKIE=true` (o `TRUSTED_PROXIES` correcto), CSP en modo `enforce`, `JWT_SECRET` definido, `LOG_STACK=daily`.
-- No hay integración continua: conviene ejecutar `php artisan test`, `vendor/bin/phpstan analyse` y `npm test` en cada cambio.
+- Integración continua y guía: ver la sección 11 (`.github/workflows/ci.yml` y `docs/guia-despliegue.md`). Ambas están sin probar en un entorno real hasta el primer push y el primer despliegue.
 
 ## 6. Aplicar en PostgreSQL (cuando se autorice)
 
@@ -182,3 +182,14 @@ Aprobado por el propietario, incluidas las tres pantallas con botón de exportac
 Pruebas: `ExportacionesPostTest`, `BusquedaLikeEscapeTest` y `EstudianteFechaNacimientoLimaTest`. Las demás pruebas de exportación cambiaron de `get` a `post` sin debilitar aserciones; `AdminAuthorizationTest` ya no incluye las dos exportaciones en la matriz de páginas GET (su matriz está en `ExportacionesPostTest`), y la prueba de filtros con forma de array de `AdminListFilterInputTest` ya no cubre `matriculas.csv` (lo cubre `AuditoriaExportacionMatriculasTest`).
 
 **Límites.** Solo SQLite en memoria. La concurrencia y el comportamiento real de `ILIKE ... ESCAPE` en PostgreSQL no se midieron. No se probó la descarga real en un navegador.
+
+## 11. Integración continua y guía de despliegue (10/11/2026)
+
+**CI.** `.github/workflows/ci.yml` (GitHub Actions; se dispara en pull requests y en push a `main` y `anderson`, permisos de solo lectura y sin secretos):
+- Job PHP (8.4): `composer install`, `.env` temporal con `key:generate` en el runner efímero, `php artisan test --compact` y `vendor/bin/phpstan analyse`.
+- Job frontend (Node 24): `npm ci`, `npm test` y `npm run build`.
+- Pint solo se ejecuta, de forma informativa, sobre los `.php` que cambia el pull request: el estilo global tiene deuda preexistente.
+- No ejecuta los smokes de navegador ni el perfil PostgreSQL aislado. Con SQLite en memoria **no prueba PostgreSQL ni concurrencia**.
+- Los mismos comandos pasan en local (suite, PHPStan, `npm test`, build) y el YAML se validó como sintaxis; **el workflow no se ha ejecutado en GitHub** hasta el primer push.
+
+**Guía.** `docs/guia-despliegue.md`: requisitos, variables por nombre, orden de despliegue con migraciones siempre con `--path` (000022 suspendida), procesos permanentes (scheduler y worker), verificación y reversa. `route:cache`, `view:cache` y `schedule:list` se comprobaron en local y los cachés generados se limpiaron. No se probó en un servidor.

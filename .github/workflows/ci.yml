@@ -1,0 +1,91 @@
+# Integración continua de Horus Group (Laravel 12).
+#
+# Alcance: lo que se puede comprobar sin servicios externos. La suite usa SQLite en memoria (phpunit.xml), así que
+# NO prueba PostgreSQL, concurrencia, correo real ni Horus AI; eso exige los perfiles y autorizaciones que
+# describen CLAUDE.md y docs/postgresql-*. No se ejecutan los smokes de navegador (requieren Edge) ni el perfil
+# PostgreSQL aislado. El workflow no usa secretos.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, anderson]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php:
+    name: PHP (pruebas y análisis estático)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, bcmath, zip, gd, pdo_sqlite, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Caché de Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Instalar dependencias
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # Solo en este runner efímero: las pruebas necesitan APP_KEY. No se aplica a instalaciones existentes.
+      - name: Preparar entorno de pruebas
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Pruebas PHP
+        run: php artisan test --compact
+
+      - name: Análisis estático (PHPStan nivel 6)
+        run: vendor/bin/phpstan analyse --no-progress
+
+      # Informativo: el estilo global tiene deuda preexistente (formato y finales de línea), por eso no bloquea.
+      # Solo revisa los archivos PHP que cambia el pull request.
+      - name: Estilo de los archivos cambiados (informativo)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mapfile -t archivos < <(git diff --name-only --diff-filter=AM "$BASE_SHA"...HEAD -- '*.php')
+          if [ "${#archivos[@]}" -gt 0 ]; then
+            vendor/bin/pint --test "${archivos[@]}"
+          fi
+
+  frontend:
+    name: Frontend (pruebas y compilación)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Pruebas de JavaScript
+        run: npm test
+
+      - name: Compilar recursos
+        run: npm run build

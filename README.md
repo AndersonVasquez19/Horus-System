@@ -207,6 +207,6 @@ node tests/browser/chat-smoke.mjs
 
 ## Seguridad y alcance
 
-Este repositorio no incluye en esta guía una receta verificada de despliegue, monitorización ni restauración integral. Antes de publicar, configura secretos y remitente fuera del repositorio, desactiva depuración, revisa permisos y destinos de datos, prepara copias verificables y comprueba el recorrido con los servicios reales del entorno. Las pruebas locales y el build son comprobaciones de desarrollo, no una certificación de producción.
+Este repositorio no incluye una receta verificada de despliegue, monitorización ni restauración integral. Existe una guía de preparación, **no probada en un servidor real**, en [`docs/guia-despliegue.md`](docs/guia-despliegue.md), y una integración continua básica en `.github/workflows/ci.yml` (SQLite en memoria: no prueba PostgreSQL). Antes de publicar, configura secretos y remitente fuera del repositorio, desactiva depuración, revisa permisos y destinos de datos, prepara copias verificables y comprueba el recorrido con los servicios reales del entorno. Las pruebas locales y el build son comprobaciones de desarrollo, no una certificación de producción.
 
 Las instrucciones para asistentes que editan este proyecto están en [`CLAUDE.md`](CLAUDE.md).
