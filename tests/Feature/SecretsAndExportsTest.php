@@ -169,7 +169,7 @@ class SecretsAndExportsTest extends TestCase
             ->assertDontSee(self::LEGACY_SECRET)
             ->assertSee(SensitiveData::MASK);
 
-        $respuesta = $this->get(route('admin.auditoria.exportar'))->assertOk();
+        $respuesta = $this->post(route('admin.auditoria.exportar'))->assertOk();
         $json = $respuesta->streamedContent();
 
         $this->assertStringNotContainsString(self::LEGACY_SECRET, $json);
@@ -186,7 +186,7 @@ class SecretsAndExportsTest extends TestCase
     {
         $admin = $this->staff('admin');
 
-        $this->actingAs($admin)->get(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
 
         $this->assertSame([], Storage::disk('local')->allFiles());
         $log = AuditLog::where('action', 'audit_exported')->firstOrFail();
@@ -206,7 +206,7 @@ class SecretsAndExportsTest extends TestCase
         $this->insertHistoricalAuditRow();
         DB::table('password_reset_tokens')->insert(['email' => $admin->email, 'token' => 'TOKEN_RESET_PRUEBA', 'created_at' => now()]);
 
-        $archivos = $this->downloadZip($this->actingAs($admin)->get(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
 
         $this->assertEqualsCanonicalizing(
             ['users', 'estudiantes', 'cursos', 'matriculas', 'procesos_internos', 'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas'],
@@ -231,7 +231,7 @@ class SecretsAndExportsTest extends TestCase
 
     public function test_zip_export_is_not_presented_as_a_restorable_backup(): void
     {
-        $archivos = $this->downloadZip($this->actingAs($this->staff('admin'))->get(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($this->staff('admin'))->post(route('admin.respaldo.exportar')));
         $manifiesto = json_decode($archivos['manifest.json'], true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame('exportacion_administrativa', $manifiesto['tipo']);
@@ -248,7 +248,7 @@ class SecretsAndExportsTest extends TestCase
     public function test_zip_export_leaves_no_copy_and_deletes_its_temporary_file(): void
     {
         $admin = $this->staff('admin');
-        $respuesta = $this->actingAs($admin)->get(route('admin.respaldo.exportar'))->assertOk()->assertDownload();
+        $respuesta = $this->actingAs($admin)->post(route('admin.respaldo.exportar'))->assertOk()->assertDownload();
         $temporal = $respuesta->baseResponse->getFile()->getPathname();
         $this->assertFileExists($temporal);
 
@@ -261,7 +261,7 @@ class SecretsAndExportsTest extends TestCase
     public function test_zip_export_is_audited_with_the_acting_user(): void
     {
         $admin = $this->staff('admin');
-        $this->downloadZip($this->actingAs($admin)->get(route('admin.respaldo.exportar')));
+        $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
 
         $log = AuditLog::where('action', 'data_export_generated')->firstOrFail();
         $this->assertSame($admin->id, $log->user_id);
@@ -274,7 +274,7 @@ class SecretsAndExportsTest extends TestCase
         $admin = $this->staff('admin');
         User::factory()->create(['name' => '=HYPERLINK("http://malo.example","clic")', 'email' => 'formula@example.com']);
 
-        $archivos = $this->downloadZip($this->actingAs($admin)->get(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
 
         $this->assertStringContainsString("'=HYPERLINK", $archivos['users.csv']);
         $this->assertStringNotContainsString(',"=HYPERLINK', $archivos['users.csv']);
@@ -380,8 +380,8 @@ class SecretsAndExportsTest extends TestCase
     public function test_export_routes_keep_their_permission_requirements(): void
     {
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->get(route('admin.respaldo.exportar'))->assertForbidden();
-            $this->get(route('admin.auditoria.exportar'))->assertForbidden();
+            $this->actingAs($this->staff($rol))->post(route('admin.respaldo.exportar'))->assertForbidden();
+            $this->post(route('admin.auditoria.exportar'))->assertForbidden();
         }
 
         $this->assertSame(0, AuditLog::whereIn('action', ['data_export_generated', 'audit_exported'])->count());
@@ -414,7 +414,7 @@ class SecretsAndExportsTest extends TestCase
         ]);
         $admin = $this->staff('admin');
 
-        $csv = $this->actingAs($admin)->get(route('admin.matriculas.csv', ['estado' => 'pagada']))->assertOk()->streamedContent();
+        $csv = $this->actingAs($admin)->post(route('admin.matriculas.csv', ['estado' => 'pagada']))->assertOk()->streamedContent();
 
         $this->assertStringContainsString("'=cmd|calc", $csv);
         $this->assertStringContainsString("'@Maria Perez", $csv);
@@ -440,7 +440,7 @@ class SecretsAndExportsTest extends TestCase
 
         $this->actingAs($admin)
             ->from(route('admin.respaldo.index'))
-            ->get(route('admin.respaldo.exportar'))
+            ->post(route('admin.respaldo.exportar'))
             ->assertRedirect(route('admin.respaldo.index'))
             ->assertSessionHas('error')
             ->assertHeaderMissing('Content-Disposition');

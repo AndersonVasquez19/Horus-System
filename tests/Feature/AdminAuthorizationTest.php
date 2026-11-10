@@ -36,7 +36,8 @@ class AdminAuthorizationTest extends TestCase
     }
 
     /**
-     * Páginas GET del panel y roles que pueden abrirlas según RolesAndPermissionsSeeder.
+     * Páginas GET del panel y roles que pueden abrirlas según RolesAndPermissionsSeeder. Las exportaciones
+     * (POST) tienen su matriz en ExportacionesPostTest.
      *
      * @return array<string, array{0: string, 1: list<string>}>
      */
@@ -51,8 +52,6 @@ class AdminAuthorizationTest extends TestCase
             'cursos.create' => ['admin.cursos.create', ['admin', 'coordinador']],
             'matriculas.index' => ['admin.matriculas.index', self::ALL],
             'matriculas.create' => ['admin.matriculas.create', self::ALL],
-            // L1.1: la exportación CSV tiene permiso propio (matriculas.exportar), solo admin.
-            'matriculas.csv' => ['admin.matriculas.csv', ['admin']],
             'usuarios.index' => ['admin.usuarios.index', ['admin']],
             'usuarios.create' => ['admin.usuarios.create', ['admin']],
             'roles.index' => ['admin.roles.index', ['admin']],
@@ -61,7 +60,6 @@ class AdminAuthorizationTest extends TestCase
             'reportes.index' => ['admin.reportes.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
             'auditoria.index' => ['admin.auditoria.index', ['admin']],
-            'auditoria.exportar' => ['admin.auditoria.exportar', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
             'asistente.index' => ['admin.asistente.index', ['admin', 'coordinador']],
         ];
@@ -104,7 +102,7 @@ class AdminAuthorizationTest extends TestCase
 
         $this->delete(route('admin.estudiantes.destroy', $estudiante))->assertRedirect(route('login'));
         $this->post(route('admin.reportes.exportar.excel'))->assertRedirect(route('login'));
-        $this->get(route('admin.respaldo.exportar'))->assertRedirect(route('login'));
+        $this->post(route('admin.respaldo.exportar'))->assertRedirect(route('login'));
         $this->post(route('admin.usuarios.store'), [])->assertRedirect(route('login'));
 
         $this->assertNotSoftDeleted($estudiante);
@@ -208,8 +206,8 @@ class AdminAuthorizationTest extends TestCase
         }
 
         foreach (['coordinador', 'secretaria'] as $role) {
-            $this->actingAs($this->staff($role))->get(route('admin.respaldo.exportar'))->assertForbidden();
-            $this->get(route('admin.auditoria.exportar'))->assertForbidden();
+            $this->actingAs($this->staff($role))->post(route('admin.respaldo.exportar'))->assertForbidden();
+            $this->post(route('admin.auditoria.exportar'))->assertForbidden();
         }
 
         // La descarga permitida (200) del coordinador se comprueba en ReportExcelExportTest, sin la

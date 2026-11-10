@@ -46,7 +46,7 @@ class ExportacionesPanelRobustezTest extends TestCase
             DB::table('audit_logs')->insert($bloque);
         }
 
-        $json = $this->actingAs($admin)->get(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $json = $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
 
         $datos = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         $this->assertIsArray($datos);
@@ -64,7 +64,7 @@ class ExportacionesPanelRobustezTest extends TestCase
 
     public function test_la_exportacion_de_auditoria_vacia_sigue_siendo_json_valido(): void
     {
-        $json = $this->actingAs($this->adminUser())->get(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $json = $this->actingAs($this->adminUser())->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
 
         $this->assertSame([], json_decode($json, true, flags: JSON_THROW_ON_ERROR));
     }
@@ -85,7 +85,7 @@ class ExportacionesPanelRobustezTest extends TestCase
         $admin = $this->adminUser();
         $antes = glob(sys_get_temp_dir().DIRECTORY_SEPARATOR.'horus_csv_*') ?: [];
 
-        $respuesta = $this->actingAs($admin)->get(route('admin.respaldo.exportar'))->assertOk();
+        $respuesta = $this->actingAs($admin)->post(route('admin.respaldo.exportar'))->assertOk();
 
         $zip = new \ZipArchive;
         $this->assertTrue($zip->open($respuesta->baseResponse->getFile()->getPathname()) === true);
@@ -105,11 +105,11 @@ class ExportacionesPanelRobustezTest extends TestCase
         $admin = $this->adminUser();
 
         for ($i = 0; $i < 6; $i++) {
-            $this->actingAs($admin)->get(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+            $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
         }
 
-        $this->actingAs($admin)->get(route('admin.auditoria.exportar'))->assertTooManyRequests();
+        $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertTooManyRequests();
         // Otra exportación del mismo usuario comparte el cupo.
-        $this->actingAs($admin)->get(route('admin.matriculas.csv'))->assertTooManyRequests();
+        $this->actingAs($admin)->post(route('admin.matriculas.csv'))->assertTooManyRequests();
     }
 }

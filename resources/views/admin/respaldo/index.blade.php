@@ -13,10 +13,14 @@
             </div>
 
             @can('respaldo.exportar')
-                <a href="{{ route('admin.respaldo.exportar') }}" class="admin-btn-primary">
-                    <i class="fa-solid fa-download" aria-hidden="true"></i>
-                    Exportar datos (ZIP)
-                </a>
+                {{-- La exportación audita: va por POST (con CSRF), nunca por un enlace GET. --}}
+                <form method="POST" action="{{ route('admin.respaldo.exportar') }}">
+                    @csrf
+                    <button type="submit" class="admin-btn-primary">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                        Exportar datos (ZIP)
+                    </button>
+                </form>
             @endcan
         </section>
 

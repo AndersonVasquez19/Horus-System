@@ -30,7 +30,6 @@ class AdminListFilterInputTest extends TestCase
             'admin.estudiantes.index' => ['busqueda', 'estado'],
             'admin.cursos.index' => ['busqueda', 'estado', 'categoria'],
             'admin.matriculas.index' => ['busqueda', 'estado', 'curso_id'],
-            'admin.matriculas.csv' => ['busqueda', 'estado', 'curso_id'],
             'admin.aprobaciones.index' => ['busqueda', 'estado'],
             'admin.usuarios.index' => ['busqueda'],
             'admin.auditoria.index' => ['accion', 'modelo', 'usuario'],

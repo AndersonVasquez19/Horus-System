@@ -88,10 +88,11 @@ class AuditoriaFiltrosTest extends TestCase
         $this->assertStringContainsString('name="hasta" type="date" value="2026-11-04"', $html);
         // 04:30 UTC del día 5 = 23:30 del día 4 en Lima.
         $this->assertStringContainsString('04/11/2026 23:30:00', $html);
-        $this->assertStringContainsString(
-            e(route('admin.auditoria.exportar', ['accion' => 'noche', 'desde' => '2026-11-04', 'hasta' => '2026-11-04'])),
-            $html,
-        );
+        // La exportación va por POST: formulario con CSRF y los filtros vigentes como campos ocultos.
+        $this->assertStringContainsString('action="'.e(route('admin.auditoria.exportar')).'"', $html);
+        foreach (['accion' => 'noche', 'desde' => '2026-11-04', 'hasta' => '2026-11-04'] as $nombre => $valor) {
+            $this->assertStringContainsString('<input type="hidden" name="'.$nombre.'" value="'.$valor.'">', $html);
+        }
         $this->assertStringContainsString('Exportar JSON (filtros actuales)', $html);
     }
 
@@ -101,7 +102,7 @@ class AuditoriaFiltrosTest extends TestCase
         $admin = $this->adminUser();
 
         $json = $this->actingAs($admin)
-            ->get(route('admin.auditoria.exportar', ['desde' => '2026-11-03', 'hasta' => '2026-11-04', 'usuario' => 'ana@example.test']))
+            ->post(route('admin.auditoria.exportar', ['desde' => '2026-11-03', 'hasta' => '2026-11-04', 'usuario' => 'ana@example.test']))
             ->assertOk()
             ->streamedContent();
 
@@ -109,7 +110,7 @@ class AuditoriaFiltrosTest extends TestCase
         $this->assertSame([], json_decode($json, true, flags: JSON_THROW_ON_ERROR));
 
         $json = $this->actingAs($admin)
-            ->get(route('admin.auditoria.exportar', ['desde' => '2026-11-03', 'hasta' => '2026-11-04']))
+            ->post(route('admin.auditoria.exportar', ['desde' => '2026-11-03', 'hasta' => '2026-11-04']))
             ->assertOk()
             ->streamedContent();
         $acciones = array_column(json_decode($json, true, flags: JSON_THROW_ON_ERROR), 'accion');

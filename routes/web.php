@@ -141,7 +141,7 @@ Route::prefix('admin')
         Route::patch('cursos/{curso}/restaurar', [CursoController::class, 'restaurar'])
             ->name('cursos.restaurar');
 
-        Route::get('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
+        Route::post('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
             ->middleware('throttle:admin-export')
             ->name('matriculas.csv');
         Route::resource('matriculas', MatriculaController::class);
@@ -172,9 +172,9 @@ Route::prefix('admin')
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
         Route::get('auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
-        Route::get('auditoria/exportar', [AuditoriaController::class, 'exportar'])->middleware('throttle:admin-export')->name('auditoria.exportar');
+        Route::post('auditoria/exportar', [AuditoriaController::class, 'exportar'])->middleware('throttle:admin-export')->name('auditoria.exportar');
         Route::get('respaldo', [RespaldoController::class, 'index'])->name('respaldo.index');
-        Route::get('respaldo/exportar', [RespaldoController::class, 'exportar'])->middleware('throttle:admin-export')->name('respaldo.exportar');
+        Route::post('respaldo/exportar', [RespaldoController::class, 'exportar'])->middleware('throttle:admin-export')->name('respaldo.exportar');
         Route::get('asistente', [AsistenteController::class, 'index'])->name('asistente.index');
         Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:chat')->name('asistente.mensaje');
     });

@@ -23,10 +23,17 @@
             </div>
 
             @can('auditoria.exportar')
-                <a href="{{ route('admin.auditoria.exportar', $filtrosActivos) }}" class="admin-btn-primary">
-                    <i class="fa-solid fa-file-export" aria-hidden="true"></i>
-                    {{ $filtrosActivos === [] ? 'Exportar JSON' : 'Exportar JSON (filtros actuales)' }}
-                </a>
+                {{-- La exportación audita: va por POST (con CSRF), nunca por un enlace GET. --}}
+                <form method="POST" action="{{ route('admin.auditoria.exportar') }}">
+                    @csrf
+                    @foreach ($filtrosActivos as $nombreFiltro => $valorFiltro)
+                        <input type="hidden" name="{{ $nombreFiltro }}" value="{{ $valorFiltro }}">
+                    @endforeach
+                    <button type="submit" class="admin-btn-primary">
+                        <i class="fa-solid fa-file-export" aria-hidden="true"></i>
+                        {{ $filtrosActivos === [] ? 'Exportar JSON' : 'Exportar JSON (filtros actuales)' }}
+                    </button>
+                </form>
             @endcan
         </section>
 

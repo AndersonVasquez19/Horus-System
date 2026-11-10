@@ -178,7 +178,7 @@ class AdminMatriculaTest extends TestCase
         $this->makeEnrollment($estudianteTres, $otroCurso, ['estado' => 'pagada', 'monto_pagado' => 150]);
 
         $response = $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.csv', ['estado' => 'pagada', 'curso_id' => $curso->id]));
+            ->post(route('admin.matriculas.csv', ['estado' => 'pagada', 'curso_id' => $curso->id]));
 
         $response->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');

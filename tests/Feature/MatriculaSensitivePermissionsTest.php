@@ -67,10 +67,10 @@ class MatriculaSensitivePermissionsTest extends TestCase
     public function test_csv_export_is_allowed_only_to_admin_among_the_base_roles(): void
     {
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->get(route('admin.matriculas.csv'))->assertForbidden();
+            $this->actingAs($this->staff($rol))->post(route('admin.matriculas.csv'))->assertForbidden();
         }
 
-        $this->actingAs($this->staff('admin'))->get(route('admin.matriculas.csv'))->assertOk();
+        $this->actingAs($this->staff('admin'))->post(route('admin.matriculas.csv'))->assertOk();
     }
 
     public function test_reading_enrollments_does_not_allow_exporting_them(): void
@@ -79,18 +79,18 @@ class MatriculaSensitivePermissionsTest extends TestCase
         $this->assertTrue($lector->can('matriculas.ver'));
 
         $this->actingAs($lector)->get(route('admin.matriculas.index'))->assertOk();
-        $this->get(route('admin.matriculas.csv'))->assertForbidden();
+        $this->post(route('admin.matriculas.csv'))->assertForbidden();
     }
 
     public function test_exporting_requires_the_export_permission_and_nothing_else_grants_it(): void
     {
         $exportador = $this->staff('secretaria', ['matriculas.exportar']);
 
-        $this->actingAs($exportador)->get(route('admin.matriculas.csv'))->assertOk();
+        $this->actingAs($exportador)->post(route('admin.matriculas.csv'))->assertOk();
 
         // Ni anular ni eliminar ni editar conceden exportar.
         $otro = $this->staff('coordinador', ['matriculas.anular', 'matriculas.eliminar']);
-        $this->actingAs($otro)->get(route('admin.matriculas.csv'))->assertForbidden();
+        $this->actingAs($otro)->post(route('admin.matriculas.csv'))->assertForbidden();
     }
 
     // ---- Eliminación ------------------------------------------------------------------------
@@ -137,7 +137,7 @@ class MatriculaSensitivePermissionsTest extends TestCase
     {
         $matricula = $this->makeEnrollment('70000103');
 
-        $this->get(route('admin.matriculas.csv'))->assertRedirect(route('login'));
+        $this->post(route('admin.matriculas.csv'))->assertRedirect(route('login'));
         $this->delete(route('admin.matriculas.destroy', $matricula))->assertRedirect(route('login'));
         $this->assertNotSoftDeleted($matricula);
     }

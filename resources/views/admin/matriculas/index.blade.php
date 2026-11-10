@@ -13,10 +13,19 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 @can('matriculas.exportar')
-                    <a href="{{ route('admin.matriculas.csv', request()->query()) }}" class="admin-btn-outline">
-                        <i class="fa-solid fa-file-csv text-[#19A7A1]" aria-hidden="true"></i>
-                        Exportar CSV
-                    </a>
+                    {{-- La exportación audita: va por POST (con CSRF), nunca por un enlace GET. Solo se reenvían los filtros conocidos y en forma de texto. --}}
+                    <form method="POST" action="{{ route('admin.matriculas.csv') }}">
+                        @csrf
+                        @foreach (['busqueda', 'estado', 'curso_id', 'eliminados'] as $filtroExportar)
+                            @if (is_string(request()->query($filtroExportar)) && request()->query($filtroExportar) !== '')
+                                <input type="hidden" name="{{ $filtroExportar }}" value="{{ request()->query($filtroExportar) }}">
+                            @endif
+                        @endforeach
+                        <button type="submit" class="admin-btn-outline">
+                            <i class="fa-solid fa-file-csv text-[#19A7A1]" aria-hidden="true"></i>
+                            Exportar CSV
+                        </button>
+                    </form>
                 @endcan
                 @unless ($eliminados)
                     <a href="{{ route('admin.matriculas.create') }}" class="admin-btn-primary">
