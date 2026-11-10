@@ -8,9 +8,9 @@ use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\NotificacionInterna;
 use App\Models\User;
 use App\Support\HoraLocal;
+use App\Support\NotificacionesPendientes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
@@ -101,9 +101,10 @@ class DashboardController extends Controller
 
         $aprobacionesPendientes = AprobacionInterna::query()->where('estado', 'pendiente')->count();
         $usuarioActual = auth()->user();
-        // Mismo criterio de visibilidad que la bandeja: personales propias y generales explícitas.
+        // Mismo criterio que la bandeja y la campana (visibles y no leídas por este usuario); una sola consulta
+        // por petición, compartida con la barra superior.
         $notificacionesPendientes = $usuarioActual instanceof User
-            ? NotificacionInterna::query()->visiblePara($usuarioActual)->where('leida', false)->count()
+            ? NotificacionesPendientes::para($usuarioActual)
             : 0;
 
         $rolActual = auth()->user()->getRoleNames()->first() ?? 'sin-rol';

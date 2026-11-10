@@ -246,7 +246,8 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
             ->patch(route('admin.notificaciones.leida', $general))
             ->assertRedirect();
 
-        $this->assertTrue($general->fresh()->leida);
+        $this->assertTrue($general->fresh()->estaLeidaPara($this->usuarioB));
+        $this->assertFalse($general->fresh()->estaLeidaPara($this->usuarioA));
     }
 
     public function test_explicit_general_notification_survives_deleting_an_unrelated_user(): void
@@ -283,10 +284,10 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
     }
 
     /**
-     * Comportamiento actual (pendiente de negocio, ver AdminNotificacionTest): una general leída por un
-     * usuario queda leída para todos. B sigue viendo la misma notificación, ya marcada como leída.
+     * Decisión del propietario (10/11/2026): la lectura de una general es por usuario. Que A la marque no
+     * cambia lo que ve B: sigue viéndola, sin leer y contada como pendiente.
      */
-    public function test_general_notification_read_state_remains_shared_between_users(): void
+    public function test_general_notification_read_state_is_per_user(): void
     {
         $general = $this->general('Aviso general compartido');
 
@@ -294,12 +295,15 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
             ->patch(route('admin.notificaciones.leida', $general))
             ->assertRedirect();
 
+        $this->bandeja($this->usuarioA)
+            ->assertViewHas('pendientes', 0);
+
         $this->bandeja($this->usuarioB)
             ->assertSee('Aviso general compartido')
             ->assertViewHas('notificaciones', function ($p) use ($general): bool {
-                return $this->ids($p) === [$general->id] && $p->first()->leida === true;
+                return $this->ids($p) === [$general->id] && $p->first()->estaLeidaPara($this->usuarioB) === false;
             })
-            ->assertViewHas('pendientes', 0);
+            ->assertViewHas('pendientes', 1);
     }
 
     // --- Utilidades ------------------------------------------------------------------------

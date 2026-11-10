@@ -38,6 +38,98 @@
             {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}
         </span>
 
+        @php
+            $pendientesCampana = \App\Support\NotificacionesPendientes::para(auth()->user());
+            $contadorCampana = $pendientesCampana > 99 ? '99+' : (string) $pendientesCampana;
+            $etiquetaCampana = match (true) {
+                $pendientesCampana === 0 => 'Notificaciones, ninguna sin leer',
+                $pendientesCampana === 1 => 'Notificaciones, 1 sin leer',
+                default => "Notificaciones, {$pendientesCampana} sin leer",
+            };
+        @endphp
+        <div
+            class="relative"
+            x-data="campanaNotificaciones"
+            data-pendientes="{{ $pendientesCampana }}"
+            data-url-recientes="{{ route('admin.notificaciones.recientes') }}"
+            data-url-leidas="{{ route('admin.notificaciones.leidas') }}"
+            @keydown.escape.stop="cerrar(true)"
+            @click.outside="cerrar(false)"
+        >
+            {{-- Sin JavaScript es un enlace a la bandeja; con Alpine abre el desplegable. --}}
+            <a
+                href="{{ route('admin.notificaciones.index') }}"
+                x-ref="boton"
+                data-campana-boton
+                :role="'button'"
+                aria-haspopup="true"
+                aria-expanded="false"
+                :aria-expanded="abierto.toString()"
+                aria-controls="campana-panel"
+                aria-label="{{ $etiquetaCampana }}"
+                :aria-label="etiqueta"
+                @click.prevent="alternar()"
+                @keydown.space.prevent="alternar()"
+                class="admin-icon-btn relative"
+            >
+                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                <span
+                    data-campana-contador
+                    x-show="pendientes > 0"
+                    x-text="contador"
+                    aria-hidden="true"
+                    @if ($pendientesCampana === 0) style="display: none" @endif
+                    class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white"
+                >{{ $contadorCampana }}</span>
+            </a>
+
+            <div
+                id="campana-panel"
+                x-cloak
+                x-show="abierto"
+                x-transition.opacity
+                role="region"
+                aria-label="Notificaciones recientes"
+                class="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white text-left shadow-xl"
+            >
+                <div class="flex items-center justify-between gap-3 border-b border-[#E2E8F0] px-4 py-3">
+                    <p class="text-sm font-bold text-[#172B3A]">Notificaciones</p>
+                    <button
+                        type="button"
+                        x-show="pendientes > 0"
+                        @click="marcarTodas()"
+                        :disabled="ocupado"
+                        :aria-busy="ocupado.toString()"
+                        class="text-xs font-semibold text-[#176B9A] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B9A] disabled:opacity-60"
+                    >Marcar todas como leídas</button>
+                </div>
+
+                <p class="sr-only" role="status" x-text="anuncio"></p>
+
+                <div class="max-h-96 overflow-y-auto">
+                    <p x-show="cargando" class="px-4 py-6 text-center text-sm text-[#64748B]">Cargando…</p>
+                    <p x-show="error" x-text="error" role="alert" class="px-4 py-4 text-sm text-red-700"></p>
+                    <p x-show="cargado && !cargando && !error && items.length === 0" class="px-4 py-6 text-center text-sm text-[#64748B]">No tienes notificaciones sin leer.</p>
+                    <ul x-show="items.length > 0" class="divide-y divide-[#E2E8F0]">
+                        <template x-for="item in items" :key="item.id">
+                            <li class="space-y-1 px-4 py-3">
+                                <p class="text-sm font-semibold text-[#172B3A]" x-text="item.titulo"></p>
+                                <p class="text-xs leading-5 text-[#64748B]" x-text="item.mensaje"></p>
+                                <div class="flex items-center justify-between gap-3">
+                                    <p class="text-[11px] font-medium text-[#64748B]" x-text="item.fecha"></p>
+                                    <a x-show="item.vinculo" :href="item.vinculo" class="text-xs font-semibold text-[#176B9A] hover:underline">Ver</a>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+                <div class="border-t border-[#E2E8F0] px-4 py-3 text-center">
+                    <a href="{{ route('admin.notificaciones.index') }}" class="text-xs font-semibold text-[#176B9A] hover:underline">Ver todas las notificaciones</a>
+                </div>
+            </div>
+        </div>
+
         <div class="flex items-center gap-2.5 rounded-full border border-[#E2E8F0] bg-[#F4F7FB] py-1 pl-1 pr-3">
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-xs font-bold text-white ring-2 ring-[#19A7A1]/40">
                 {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}

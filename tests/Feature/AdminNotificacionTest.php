@@ -18,9 +18,9 @@ use Tests\TestCase;
  * solo NO implica general: también lo tienen las personales huérfanas y las indeterminadas, que no se
  * muestran a nadie (ver NotificacionPrivacidadUsuarioEliminadoTest y NotificacionAudienciaTest).
  *
- * PENDIENTE DE NEGOCIO: el estado "leída" se guarda en la propia notificación. Una notificación
- * general marcada como leída por un usuario queda leída para todos (lo fija
- * NotificacionPrivacidadUsuarioEliminadoTest); cambiarlo a un estado por usuario requiere decisión específica.
+ * Lectura (decisión del propietario, 10/11/2026): una personal guarda "leída" en su fila; una general se
+ * marca por usuario en notificacion_lecturas y queda leída solo para quien la marca
+ * (NotificacionLecturaPorUsuarioTest).
  */
 class AdminNotificacionTest extends TestCase
 {
@@ -67,8 +67,13 @@ class AdminNotificacionTest extends TestCase
                 ->assertRedirect(route('admin.notificaciones.index'))
                 ->assertSessionHas('success');
 
-            $this->assertTrue($notificacion->fresh()->leida);
+            $this->assertTrue($notificacion->fresh()->estaLeidaPara($this->yo));
         }
+
+        // La personal se marca en su fila; la general, solo para quien la marcó.
+        $this->assertTrue($propia->fresh()->leida);
+        $this->assertFalse($general->fresh()->leida);
+        $this->assertFalse($general->fresh()->estaLeidaPara($this->otro));
     }
 
     public function test_user_cannot_mark_another_users_notification_as_read(): void

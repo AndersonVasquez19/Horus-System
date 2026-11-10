@@ -163,6 +163,8 @@ Route::prefix('admin')
         Route::post('aprobaciones/{aprobacion}/rechazar', [AprobacionController::class, 'rechazar'])->name('aprobaciones.rechazar');
         Route::post('aprobaciones/{aprobacion}/reabrir', [AprobacionController::class, 'reabrir'])->name('aprobaciones.reabrir');
         Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+        Route::get('notificaciones/recientes', [NotificacionController::class, 'recientes'])->name('notificaciones.recientes');
+        Route::patch('notificaciones/leidas', [NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
         Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
         Route::get('reportes', [ReportController::class, 'index'])->name('reportes.index');
         Route::post('reportes/exportar/excel', [ReportController::class, 'exportarExcel'])->middleware('throttle:admin-export')->name('reportes.exportar.excel');

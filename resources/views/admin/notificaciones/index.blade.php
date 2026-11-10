@@ -11,26 +11,42 @@
                 <h1 class="admin-page-title">Notificaciones internas</h1>
                 <p class="admin-page-subtitle">Consulta los avisos operativos y confirma su lectura.</p>
             </div>
-            <span class="inline-flex items-center gap-2 rounded-full border border-[#19A7A1]/30 bg-[#19A7A1]/10 px-3.5 py-1.5 text-xs font-semibold text-[#0F766E]">
-                <span class="h-2 w-2 rounded-full bg-[#19A7A1]" aria-hidden="true"></span>
-                {{ $pendientes }} pendientes
-            </span>
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="inline-flex items-center gap-2 rounded-full border border-[#19A7A1]/30 bg-[#19A7A1]/10 px-3.5 py-1.5 text-xs font-semibold text-[#0F766E]">
+                    <span class="h-2 w-2 rounded-full bg-[#19A7A1]" aria-hidden="true"></span>
+                    {{ $pendientes }} pendientes
+                </span>
+                @if ($pendientes > 0)
+                    <form action="{{ route('admin.notificaciones.leidas') }}" method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="admin-btn-outline min-h-9 px-3.5 py-1.5 text-xs">
+                            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+                            Marcar todas como leídas
+                        </button>
+                    </form>
+                @endif
+            </div>
         </section>
 
         <section class="space-y-3 admin-card">
             @forelse ($notificaciones as $notificacion)
-                <div class="flex flex-col gap-3 rounded-xl border {{ $notificacion->leida ? 'border-[#E2E8F0] bg-white' : 'border-[#287FB5]/30 bg-[#F4F7FB]' }} p-4 transition sm:flex-row sm:items-start sm:justify-between">
+                @php($leida = $notificacion->estaLeidaPara($usuario))
+                @php($vinculo = $notificacion->vinculoSeguro())
+                <div class="flex flex-col gap-3 rounded-xl border {{ $leida ? 'border-[#E2E8F0] bg-white' : 'border-[#287FB5]/30 bg-[#F4F7FB]' }} p-4 transition sm:flex-row sm:items-start sm:justify-between">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2.5">
-                            <span class="inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $notificacion->leida ? 'bg-slate-300' : match($notificacion->tipo) { 'success' => 'bg-emerald-500', 'warning' => 'bg-amber-500', 'danger' => 'bg-red-500', default => 'bg-[#19A7A1]' } }}"></span>
-                            <h2 class="text-base font-bold text-[#172B3A]">{{ $notificacion->titulo }}</h2>
+                            <span class="inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $leida ? 'bg-slate-300' : match($notificacion->tipo) { 'success' => 'bg-emerald-500', 'warning' => 'bg-amber-500', 'danger' => 'bg-red-500', default => 'bg-[#19A7A1]' } }}" aria-hidden="true"></span>
+                            <h2 class="text-base font-bold text-[#172B3A]">
+                                @unless ($leida)<span class="sr-only">Sin leer: </span>@endunless{{ $notificacion->titulo }}
+                            </h2>
                         </div>
                         <p class="text-sm leading-6 text-[#64748B]">{{ $notificacion->mensaje }}</p>
                         <p class="text-xs font-medium text-[#64748B]">{{ \App\Support\HoraLocal::formato($notificacion->created_at) }}</p>
                     </div>
 
                     <div class="flex shrink-0 flex-wrap gap-2">
-                        @if (! $notificacion->leida)
+                        @if (! $leida)
                             <form action="{{ route('admin.notificaciones.leida', $notificacion) }}" method="POST">
                                 @csrf
                                 @method('PATCH')
@@ -40,8 +56,8 @@
                                 </button>
                             </form>
                         @endif
-                        @if ($notificacion->vinculo && ! \Illuminate\Support\Str::is(['/admin/procesos', '/admin/procesos/*'], (string) parse_url($notificacion->vinculo, PHP_URL_PATH)))
-                            <a href="{{ $notificacion->vinculo }}" class="admin-btn-outline min-h-9 px-3.5 py-1.5 text-xs">
+                        @if ($vinculo)
+                            <a href="{{ $vinculo }}" class="admin-btn-outline min-h-9 px-3.5 py-1.5 text-xs">
                                 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                                 Ver
                             </a>
