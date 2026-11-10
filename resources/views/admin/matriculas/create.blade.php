@@ -26,14 +26,14 @@
                 </div>
             @endif
 
-            @if ($estudiantes->isEmpty() || $cursos->isEmpty())
+            @if (! $hayEstudiantes || ! $hayCursos)
                 <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
-                    @if ($estudiantes->isEmpty())
+                    @unless ($hayEstudiantes)
                         No hay estudiantes activos disponibles. Registra o activa un estudiante antes de continuar.
-                    @endif
-                    @if ($cursos->isEmpty())
+                    @endunless
+                    @unless ($hayCursos)
                         No hay cursos activos con cupos disponibles para esta matrícula.
-                    @endif
+                    @endunless
                 </div>
             @endif
 
@@ -44,7 +44,7 @@
                     <a href="{{ route('admin.matriculas.index') }}" class="admin-btn-outline">
                         Cancelar
                     </a>
-                    <button type="submit" @disabled($estudiantes->isEmpty() || $cursos->isEmpty()) class="admin-btn-primary">
+                    <button type="submit" @disabled(! $hayEstudiantes || ! $hayCursos) class="admin-btn-primary">
                         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                         Guardar matrícula
                     </button>

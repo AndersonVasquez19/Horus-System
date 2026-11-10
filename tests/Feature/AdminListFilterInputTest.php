@@ -65,12 +65,14 @@ class AdminListFilterInputTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.matriculas.index', ['curso_id' => [(string) $curso->id]]))
             ->assertOk()
-            ->assertSee('Curso ficticio de filtros');
+            // Un filtro con forma de array se trata como vacío: no preselecciona ningún curso.
+            ->assertSee('<input type="hidden" name="curso_id" value=""', false)
+            ->assertDontSee('Curso ficticio de filtros');
 
-        // El filtro válido se conserva: la opción queda seleccionada.
+        // El filtro válido se conserva: el curso elegido llega como valor y etiqueta iniciales del selector.
         $this->get(route('admin.matriculas.index', ['curso_id' => (string) $curso->id]))
             ->assertOk()
-            ->assertSee('value="'.$curso->id.'" selected', false);
+            ->assertSee('<input type="hidden" name="curso_id" value="'.$curso->id.'"', false);
     }
 
     public function test_approval_status_filters_still_work(): void

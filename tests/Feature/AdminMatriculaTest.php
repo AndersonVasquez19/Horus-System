@@ -271,8 +271,8 @@ class AdminMatriculaTest extends TestCase
 
         $this->get(route('admin.matriculas.create'))
             ->assertOk()
-            ->assertDontSee('<option value="'.$curso->id.'" selected>', false)
-            ->assertSee('<option value="'.$estudiante->id.'" selected>', false);
+            ->assertDontSee('name="curso_id" value="'.$curso->id.'"', false)
+            ->assertSee('name="estudiante_id" value="'.$estudiante->id.'"', false);
 
         $this->from(route('admin.matriculas.create'))
             ->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso, [
@@ -282,8 +282,8 @@ class AdminMatriculaTest extends TestCase
 
         $this->get(route('admin.matriculas.create'))
             ->assertOk()
-            ->assertDontSee('<option value="'.$estudiante->id.'" selected>', false)
-            ->assertSee('<option value="'.$curso->id.'" selected>', false);
+            ->assertDontSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
+            ->assertSee('name="curso_id" value="'.$curso->id.'"', false);
     }
 
     public function test_valid_old_input_is_still_redisplayed_after_a_validation_error(): void
@@ -304,8 +304,8 @@ class AdminMatriculaTest extends TestCase
 
         $this->get(route('admin.matriculas.create'))
             ->assertOk()
-            ->assertSee('<option value="'.$estudiante->id.'" selected>', false)
-            ->assertSee('<option value="'.$curso->id.'" selected>', false)
+            ->assertSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
+            ->assertSee('name="curso_id" value="'.$curso->id.'"', false)
             ->assertSee('value="2026-03-15"', false)
             ->assertSee('value="12.50"', false)
             ->assertSee('Observación conservada');
@@ -332,7 +332,7 @@ class AdminMatriculaTest extends TestCase
 
         $this->get(route('admin.matriculas.edit', $matricula))
             ->assertOk()
-            ->assertDontSee('<option value="'.$curso->id.'" selected>', false);
+            ->assertDontSee('name="curso_id" value="'.$curso->id.'"', false);
 
         $this->assertSame('pendiente', $matricula->fresh()->estado);
     }

@@ -7,31 +7,33 @@
 
         return is_scalar($valor) ? (string) $valor : '';
     };
+    // Un formulario con $matricula es una edición; sin ella, una alta. Define las opciones que ofrece el selector.
+    $contexto = isset($matricula) ? 'editar' : 'crear';
 @endphp
 <div class="grid gap-5 md:grid-cols-2">
     <div>
         <label for="estudiante_id" class="admin-label">Estudiante <span class="text-red-600">*</span></label>
-        <select id="estudiante_id" name="estudiante_id" required class="admin-select">
-            <option value="">Selecciona un estudiante</option>
-            @foreach ($estudiantes as $estudiante)
-                <option value="{{ $estudiante->id }}" @selected($valorPrevio('estudiante_id', $matricula->estudiante_id ?? $estudianteSeleccionado ?? '') === (string) $estudiante->id)>
-                    {{ $estudiante->dni }} · {{ $estudiante->nombres }} {{ $estudiante->apellidos }}{{ $estudiante->trashed() ? ' (eliminado)' : '' }}
-                </option>
-            @endforeach
-        </select>
+        @include('admin.matriculas._selector', [
+            'nombre' => 'estudiante_id',
+            'url' => route('admin.matriculas.opciones.estudiantes'),
+            'contexto' => $contexto,
+            'inicial' => \App\Support\OpcionesMatricula::estudiante($valorPrevio('estudiante_id', $matricula->estudiante_id ?? $estudianteSeleccionado ?? ''), $contexto, isset($matricula) ? (int) $matricula->estudiante_id : null),
+            'placeholder' => 'Busca por DNI, nombre o apellido',
+            'requerido' => true,
+        ])
         @error('estudiante_id')<p class="admin-error">{{ $message }}</p>@enderror
     </div>
 
     <div>
         <label for="curso_id" class="admin-label">Curso <span class="text-red-600">*</span></label>
-        <select id="curso_id" name="curso_id" required class="admin-select">
-            <option value="">Selecciona un curso</option>
-            @foreach ($cursos as $curso)
-                <option value="{{ $curso->id }}" @selected($valorPrevio('curso_id', $matricula->curso_id ?? $cursoSeleccionado ?? '') === (string) $curso->id)>
-                    {{ $curso->codigo }} · {{ $curso->nombre }} ({{ $curso->cupos_disponibles }} cupos){{ $curso->trashed() ? ' (eliminado)' : '' }}
-                </option>
-            @endforeach
-        </select>
+        @include('admin.matriculas._selector', [
+            'nombre' => 'curso_id',
+            'url' => route('admin.matriculas.opciones.cursos'),
+            'contexto' => $contexto,
+            'inicial' => \App\Support\OpcionesMatricula::curso($valorPrevio('curso_id', $matricula->curso_id ?? $cursoSeleccionado ?? ''), $contexto, isset($matricula) ? (int) $matricula->curso_id : null),
+            'placeholder' => 'Busca por código o nombre',
+            'requerido' => true,
+        ])
         @error('curso_id')<p class="admin-error">{{ $message }}</p>@enderror
     </div>
 

@@ -84,10 +84,9 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 **Requieren aprobación de vistas**
 
-- Búsqueda asíncrona/paginada en los selectores de matrícula para volúmenes grandes.
 - Mensajes de validación por defecto en inglés: requieren `APP_LOCALE=es` y archivos `lang/es` (cambio de entorno, no autorizado aquí).
 
-Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10).
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12).
 
 **Requieren decisión funcional**
 
@@ -193,3 +192,15 @@ Pruebas: `ExportacionesPostTest`, `BusquedaLikeEscapeTest` y `EstudianteFechaNac
 - Los mismos comandos pasan en local (suite, PHPStan, `npm test`, build) y el YAML se validó como sintaxis; **el workflow no se ha ejecutado en GitHub** hasta el primer push.
 
 **Guía.** `docs/guia-despliegue.md`: requisitos, variables por nombre, orden de despliegue con migraciones siempre con `--path` (000022 suspendida), procesos permanentes (scheduler y worker), verificación y reversa. `route:cache`, `view:cache` y `schedule:list` se comprobaron en local y los cachés generados se limpiaron. No se probó en un servidor.
+
+## 12. Selectores de matrícula con búsqueda en el servidor (10/11/2026)
+
+Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. Antes, crear y editar una matrícula cargaban **todos** los estudiantes y cursos en dos `<select>`, y el listado cargaba todos los cursos para su filtro: la página crecía sin límite.
+
+- **Opciones JSON** (`MatriculaController::opcionesEstudiantes` y `opcionesCursos`): `GET /admin/matriculas/opciones/estudiantes` y `/cursos`, parámetros `q` y `contexto` (`crear`, `editar`, `filtro`; el filtro solo aplica a cursos). Máximo 20 resultados ordenados, búsqueda con `BusquedaLike`, solo `id`, `texto` y `eliminado` (la misma etiqueta de antes; sin correo, teléfono ni descripciones).
+- **Permisos:** el middleware admite `matriculas.ver|crear|editar` y cada contexto exige el suyo (crear → `matriculas.crear`, editar → `matriculas.editar`, filtro → `matriculas.ver`). Limitador `admin-opciones`: 120 por minuto por usuario.
+- **Elegibilidad sin cambios** (`App\Support\OpcionesMatricula`): alta → estudiantes activos y cursos activos con cupos; edición → cualquier registro no eliminado, más el estudiante y el curso actuales de la matrícula aunque estén eliminados; filtro → cursos incluso eliminados. La validación de escritura (`StoreMatriculaRequest`, `UpdateMatriculaRequest` y la relectura bajo bloqueo) sigue siendo la autoridad: el selector solo propone.
+- **Vista:** `matriculas/_selector.blade.php` (combobox con `role="combobox"`, `aria-controls`, `aria-activedescendant`, región `aria-live`) y `resources/js/selector-asincrono.mjs` (pausa de 250 ms, cancelación con `AbortController`, teclado: flechas, Inicio, Fin, Enter, Escape y Tab). El valor viaja en un `<input type="hidden">` con el nombre original (`estudiante_id`, `curso_id`); el valor y la etiqueta iniciales (valor previo, preselección o registro actual) se resuelven en el servidor. Escape cierra solo la lista, no el diálogo del formulario. El filtro del listado usa el mismo componente.
+- **Límite:** sin JavaScript no se puede elegir estudiante ni curso; el panel ya depende de JavaScript para modales y menú.
+- **Pruebas:** `MatriculaOpcionesTest`, `tests/frontend/selector-asincrono.test.mjs` y, en el smoke de navegador `formularios-modal-smoke.mjs`, un recorrido con teclado (el router del fixture admite ahora las dos rutas de opciones). Cambiaron las pruebas que leían las etiquetas `<option>` (`AdminMatriculaContextTest`, `AdminMatriculaTest`, `AdminListFilterInputTest`, `BackendPerformanceTest`, `SelectorMatriculaColumnasTest`); la regresión de `old()` y de las preselecciones sigue cubierta con el valor oculto.
+

@@ -158,6 +158,32 @@ try {
       check(await evaluate(`(() => { const modal = document.querySelector('dialog[open]'); return [...modal.querySelectorAll('label[for]')].every(label => label.control && modal.contains(label.control)); })()`), 'Label outside modal: ' + module + action);
     }
   }
+  // Selectores de matrícula con búsqueda en el servidor: teclado, valor oculto y Escape sin cerrar el diálogo.
+  await navigate('/admin/matriculas/create', '#estudiante_id'); await waitFor(modalOpen);
+  // Sin foco real del documento, el navegador sin ventana no emite eventos focus/blur.
+  await command('Emulation.setFocusEmulationEnabled', { enabled: true });
+  const tecla = async (key, code, windowsVirtualKeyCode) => {
+    await command('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode });
+    await command('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode });
+  };
+  for (const [campo, etiqueta] of [['estudiante_id', '70123456 · Estudiante Ficticio'], ['curso_id', 'FIXTURE · Curso ficticio (19 cupos)']]) {
+    await evaluate(`(() => { const campo = document.querySelector('#${campo}'); campo.blur(); campo.focus(); })()`);
+    await waitFor(() => evaluate(`document.querySelectorAll('#${campo}-lista [role=option]').length === 1`));
+    check(await evaluate(`document.querySelector('#${campo}').getAttribute('aria-expanded') === 'true'`), 'Combobox no abre: ' + campo);
+    await tecla('ArrowDown', 'ArrowDown', 40);
+    check(await evaluate(`document.querySelector('#${campo}').getAttribute('aria-activedescendant') === '${campo}-opcion-0'`), 'Combobox sin opción activa: ' + campo);
+    await tecla('Enter', 'Enter', 13);
+    check(await evaluate(`document.querySelector('input[type=hidden][name=${campo}]').value === '1' && document.querySelector('#${campo}').value === ${JSON.stringify(etiqueta)}`), 'Combobox no eligió: ' + campo);
+    check(await modalOpen(), 'Enter del combobox cerró o envió el diálogo: ' + campo);
+  }
+  await evaluate(`(() => { const campo = document.querySelector('#estudiante_id'); campo.blur(); campo.focus(); })()`);
+  await waitFor(() => evaluate(`document.querySelector('#estudiante_id').getAttribute('aria-expanded') === 'true'`));
+  await tecla('Escape', 'Escape', 27);
+  check(await evaluate(`document.querySelector('#estudiante_id').getAttribute('aria-expanded') === 'false'`), 'Escape no cerró la lista');
+  check(await modalOpen(), 'Escape del combobox cerró el diálogo del formulario');
+  await evaluate(`(() => { const campo = document.querySelector('#estudiante_id'); campo.value = 'sin-coincidencias'; campo.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await waitFor(() => evaluate(`document.querySelectorAll('#estudiante_id-lista [role=option]').length === 0 && /Sin resultados/.test(document.body.innerText)`));
+  check(await evaluate(`document.querySelector('input[type=hidden][name=estudiante_id]').value === '1'`), 'Escribir sin elegir no debe cambiar el valor');
   await navigate('/admin/cursos/1/publicacion', '#titulo'); await waitFor(modalOpen);
   check(await evaluate('document.querySelector("[name=confirmacion_publica]").required && !document.querySelector("[name=confirmacion_publica]").checked'), 'Editorial consent changed');
   await navigate('/admin/configuracion', '#settings_nombre_empresa'); await waitFor(modalOpen);

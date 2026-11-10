@@ -31,8 +31,8 @@ class AdminMatriculaContextTest extends TestCase
         $this->get(route('admin.matriculas.create', [
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
         ]))->assertOk()
-            ->assertSee('<option value="'.$estudiante->id.'" selected>', false)
-            ->assertSee('<option value="'.$curso->id.'" selected>', false);
+            ->assertSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
+            ->assertSee('name="curso_id" value="'.$curso->id.'"', false);
 
         $this->assertDatabaseCount('matriculas', 0);
         $this->assertSame(2, $curso->fresh()->cupos_disponibles);
@@ -66,8 +66,8 @@ class AdminMatriculaContextTest extends TestCase
         $response = $this->actingAs($this->adminUser())
             ->get(route('admin.matriculas.create', ['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id]))
             ->assertOk();
-        $this->assertMatchesRegularExpression('/<select id="estudiante_id"[^>]*>\s*<option[^>]*>[^<]*<\/option>\s*<option value="'.$estudiante->id.'" selected>/', $response->getContent());
-        $this->assertMatchesRegularExpression('/<select id="curso_id"[^>]*>\s*<option[^>]*>[^<]*<\/option>\s*<option value="'.$curso->id.'" selected>/', $response->getContent());
+        $this->assertStringContainsString('<input type="hidden" name="estudiante_id" value="'.$estudiante->id.'"', $response->getContent());
+        $this->assertStringContainsString('<input type="hidden" name="curso_id" value="'.$curso->id.'"', $response->getContent());
         $this->assertDatabaseCount('matriculas', 0);
         $this->assertSame(2, $curso->fresh()->cupos_disponibles);
     }
@@ -101,8 +101,8 @@ class AdminMatriculaContextTest extends TestCase
         $this->actingAs($this->adminUser())
             ->get(route('admin.matriculas.create', ['estudiante_id' => $id, 'curso_id' => $id]))
             ->assertOk()
-            ->assertDontSee('<option value="'.$estudiante->id.'" selected>', false)
-            ->assertDontSee('<option value="'.$curso->id.'" selected>', false);
+            ->assertDontSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
+            ->assertDontSee('name="curso_id" value="'.$curso->id.'"', false);
         $this->assertDatabaseCount('matriculas', 0);
     }
 
@@ -135,7 +135,7 @@ class AdminMatriculaContextTest extends TestCase
         ])->assertRedirect($url)->assertSessionHasErrors('estado');
 
         $this->get($url)->assertOk()
-            ->assertSee('<option value="'.$otro->id.'" selected>', false)
+            ->assertSee('name="estudiante_id" value="'.$otro->id.'"', false)
             ->assertSee('Conservar borrador');
         $this->assertDatabaseCount('matriculas', 0);
     }

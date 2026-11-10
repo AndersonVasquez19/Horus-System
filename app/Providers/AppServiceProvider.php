@@ -57,6 +57,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('admin-export', fn (Request $request) => Limit::perMinute(6)->by(
             'admin-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
+        // Selectores de matrícula: una consulta por pausa al teclear; se limita por usuario sin estorbar el uso normal.
+        RateLimiter::for('admin-opciones', fn (Request $request) => Limit::perMinute(120)->by(
+            'admin-opciones:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
         RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
         ));

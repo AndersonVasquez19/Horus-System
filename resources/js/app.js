@@ -6,6 +6,7 @@ import { adminShell } from './admin-shell.mjs';
 import { avisoPanel } from './admin-avisos.mjs';
 import { confirmModal } from './confirm-modal.mjs';
 import { campanaNotificaciones } from './campana-notificaciones.mjs';
+import { selectorAsincrono } from './selector-asincrono.mjs';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-400.css';
@@ -192,6 +193,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('avisoPanel', () => avisoPanel());
   Alpine.data('confirmModal', () => confirmModal());
   Alpine.data('campanaNotificaciones', () => campanaNotificaciones());
+  Alpine.data('selectorAsincrono', () => selectorAsincrono());
 });
 
 Alpine.start();

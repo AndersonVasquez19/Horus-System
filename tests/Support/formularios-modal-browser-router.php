@@ -35,7 +35,7 @@ $asset = realpath($root.'/public'.rawurldecode(is_string($path) ? $path : '/'));
 if ($asset !== false && str_starts_with($asset, realpath($root.'/public').DIRECTORY_SEPARATOR) && is_file($asset)) {
     return false;
 }
-if (! is_string($path) || ! preg_match('#\A/admin(?:/(?:estudiantes|cursos|matriculas|usuarios)(?:/create|/[1-9][0-9]*(?:/edit|/publicacion)?)?|/roles(?:/[1-9][0-9]*)?|/aprobaciones|/configuracion|/servicios|/cotizaciones)?\z#D', $path)) {
+if (! is_string($path) || ! preg_match('#\A/admin(?:/matriculas/opciones/(?:estudiantes|cursos)|/(?:estudiantes|cursos|matriculas|usuarios)(?:/create|/[1-9][0-9]*(?:/edit|/publicacion)?)?|/roles(?:/[1-9][0-9]*)?|/aprobaciones|/configuracion|/servicios|/cotizaciones)?\z#D', $path)) {
     http_response_code(404);
     exit;
 }

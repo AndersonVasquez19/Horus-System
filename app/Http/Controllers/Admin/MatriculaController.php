@@ -13,8 +13,10 @@ use App\Models\Matricula;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
+use App\Support\OpcionesMatricula;
 use App\Support\SensitiveData;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -27,12 +29,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MatriculaController extends Controller implements HasMiddleware
 {
-    /** Columnas que usa el selector de estudiantes de `_form` (incluye deleted_at para trashed()). */
-    private const COLUMNAS_SELECTOR_ESTUDIANTE = ['id', 'dni', 'nombres', 'apellidos', 'deleted_at'];
-
-    /** Columnas que usa el selector de cursos de `_form` (incluye deleted_at para trashed()). */
-    private const COLUMNAS_SELECTOR_CURSO = ['id', 'codigo', 'nombre', 'cupos_disponibles', 'deleted_at'];
-
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
@@ -48,6 +44,8 @@ class MatriculaController extends Controller implements HasMiddleware
             new Middleware('permission:matriculas.eliminar', only: ['destroy']),
             new Middleware('permission:matriculas.restaurar', only: ['restaurar']),
             new Middleware('permission:matriculas.exportar', only: ['exportarCsv']),
+            // Opciones de los selectores: cualquiera de los tres permisos entra; cada contexto exige el suyo (ver `opciones()`).
+            new Middleware('permission:matriculas.ver|matriculas.crear|matriculas.editar', only: ['opcionesEstudiantes', 'opcionesCursos']),
         ];
     }
 
@@ -64,7 +62,8 @@ class MatriculaController extends Controller implements HasMiddleware
 
         return view('admin.matriculas.index', [
             'matriculas' => $matriculas,
-            'cursos' => Curso::withTrashed()->orderBy('nombre')->get(['id', 'codigo', 'nombre', 'deleted_at']),
+            // El filtro de curso busca en el servidor (selector asíncrono): solo se resuelve el curso elegido.
+            'cursoFiltro' => OpcionesMatricula::curso($cursoId, OpcionesMatricula::FILTRO),
             'estado' => $request->input('estado'),
             'cursoId' => $cursoId !== '' ? $cursoId : null,
             'busqueda' => ListFilter::text($request, 'busqueda'),
@@ -75,18 +74,10 @@ class MatriculaController extends Controller implements HasMiddleware
     public function create(Request $request): View
     {
         return view('admin.matriculas.create', [
-            // Solo las columnas que pinta el selector (`_form`): sin correo, teléfono ni descripciones.
-            'estudiantes' => Estudiante::query()
-                ->where('estado', 'activo')
-                ->orderBy('apellidos')
-                ->orderBy('nombres')
-                ->get(self::COLUMNAS_SELECTOR_ESTUDIANTE),
-            'cursos' => Curso::query()
-                ->where('estado', 'activo')
-                ->where('cupos_disponibles', '>', 0)
-                ->orderBy('nombre')
-                ->get(self::COLUMNAS_SELECTOR_CURSO),
-            // Solo preselecciona opciones de las listas disponibles; no altera datos ni validaciones.
+            // Los selectores buscan en el servidor (opcionesEstudiantes/opcionesCursos); solo se preselecciona, si
+            // procede, un estudiante o curso elegible. No altera datos ni validaciones.
+            'hayEstudiantes' => Estudiante::query()->where('estado', 'activo')->exists(),
+            'hayCursos' => Curso::query()->where('estado', 'activo')->where('cupos_disponibles', '>', 0)->exists(),
             'estudianteSeleccionado' => ListFilter::text($request, 'estudiante_id'),
             'cursoSeleccionado' => ListFilter::text($request, 'curso_id'),
         ]);
@@ -160,13 +151,26 @@ class MatriculaController extends Controller implements HasMiddleware
 
         return view('admin.matriculas.edit', [
             'matricula' => $matricula,
-            'estudiantes' => Estudiante::query()
-                ->orderBy('apellidos')
-                ->orderBy('nombres')
-                ->get(self::COLUMNAS_SELECTOR_ESTUDIANTE),
-            'cursos' => Curso::query()
-                ->orderBy('nombre')
-                ->get(self::COLUMNAS_SELECTOR_CURSO),
+        ]);
+    }
+
+    /** Opciones del selector de estudiantes (JSON): `q` y `contexto` (`crear` o `editar`). */
+    public function opcionesEstudiantes(Request $request): JsonResponse
+    {
+        $contexto = $this->contextoDeOpciones($request, [OpcionesMatricula::CREAR, OpcionesMatricula::EDITAR]);
+
+        return response()->json([
+            'opciones' => OpcionesMatricula::estudiantes($contexto, ListFilter::text($request, 'q')),
+        ]);
+    }
+
+    /** Opciones del selector de cursos (JSON): `q` y `contexto` (`crear`, `editar` o `filtro`). */
+    public function opcionesCursos(Request $request): JsonResponse
+    {
+        $contexto = $this->contextoDeOpciones($request, OpcionesMatricula::CONTEXTOS);
+
+        return response()->json([
+            'opciones' => OpcionesMatricula::cursos($contexto, ListFilter::text($request, 'q')),
         ]);
     }
 
@@ -445,6 +449,27 @@ class MatriculaController extends Controller implements HasMiddleware
         }
 
         return $datos;
+    }
+
+    /**
+     * Valida el contexto del selector y exige el permiso de esa pantalla: crear → `matriculas.crear`, editar →
+     * `matriculas.editar`, filtro → `matriculas.ver`.
+     *
+     * @param  list<string>  $permitidos
+     */
+    private function contextoDeOpciones(Request $request, array $permitidos): string
+    {
+        $contexto = $request->query('contexto');
+        abort_unless(is_string($contexto) && in_array($contexto, $permitidos, true), 422, 'Contexto no válido.');
+
+        $permiso = match ($contexto) {
+            OpcionesMatricula::CREAR => 'matriculas.crear',
+            OpcionesMatricula::EDITAR => 'matriculas.editar',
+            default => 'matriculas.ver',
+        };
+        abort_unless($request->user()?->can($permiso) === true, 403);
+
+        return $contexto;
     }
 
     /** @return Builder<Matricula> */

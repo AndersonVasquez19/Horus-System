@@ -67,14 +67,16 @@
                     </label>
                     <label class="block">
                         <span class="sr-only">Filtrar por curso</span>
-                        <select name="curso_id" class="admin-select">
-                            <option value="">Todos los cursos</option>
-                            @foreach ($cursos as $curso)
-                                <option value="{{ $curso->id }}" @selected((string) $cursoId === (string) $curso->id)>
-                                    {{ $curso->codigo }} · {{ $curso->nombre }}{{ $curso->trashed() ? ' (eliminado)' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
+                        @include('admin.matriculas._selector', [
+                            'nombre' => 'curso_id',
+                            'idCampo' => 'filtro_curso_id',
+                            'url' => route('admin.matriculas.opciones.cursos'),
+                            'contexto' => 'filtro',
+                            'inicial' => $cursoFiltro,
+                            'placeholder' => 'Todos los cursos',
+                            'requerido' => false,
+                            'etiquetaAccesible' => 'Filtrar por curso',
+                        ])
                     </label>
                     <button type="submit" class="admin-btn-secondary">
                         <i class="fa-solid fa-filter text-xs text-[#19A7A1]" aria-hidden="true"></i>

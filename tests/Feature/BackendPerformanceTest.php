@@ -91,24 +91,29 @@ class BackendPerformanceTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_enrollment_selector_loads_only_required_fields_including_deleted_courses(): void
+    public function test_enrollment_course_filter_resolves_only_the_selected_course_including_deleted_ones(): void
     {
         $active = $this->course();
         $deleted = $this->course('ELIMINADO');
         $deleted->delete();
         $row = $this->enrollment($active);
-        $response = $this->actingAs($this->adminUser())->get(route('admin.matriculas.index', [
+        $admin = $this->adminUser();
+
+        $response = $this->actingAs($admin)->get(route('admin.matriculas.index', [
             'curso_id' => (string) $active->id, 'busqueda' => 'PRUEBA', 'estado' => 'pendiente',
         ]))->assertOk();
-        $courses = $response->viewData('cursos');
-        $this->assertSame([$active->id, $deleted->id], $courses->pluck('id')->all());
-        foreach ($courses as $course) {
-            $this->assertEqualsCanonicalizing(['id', 'codigo', 'nombre', 'deleted_at'], array_keys($course->getAttributes()));
-        }
-        $this->assertTrue($courses->last()->trashed());
+        // La página ya no lleva la lista completa de cursos: solo el curso elegido, como opción inicial.
+        $response->assertViewMissing('cursos');
+        $this->assertSame($active->id, $response->viewData('cursoFiltro')['id']);
         $this->assertSame([$row->id], $response->viewData('matriculas')->pluck('id')->all());
         $this->assertSame(15, $response->viewData('matriculas')->perPage());
-        $response->assertSee('value="'.$active->id.'" selected', false);
+        $response->assertSee('<input type="hidden" name="curso_id" value="'.$active->id.'"', false);
+        $response->assertDontSee('value="'.$deleted->id.'"', false);
+
+        // Un curso eliminado sigue siendo filtrable y se indica en la etiqueta.
+        $filtrado = $this->get(route('admin.matriculas.index', ['curso_id' => (string) $deleted->id]))->assertOk();
+        $this->assertTrue($filtrado->viewData('cursoFiltro')['eliminado']);
+        $filtrado->assertSee('(eliminado)', false);
         Http::assertNothingSent();
     }
 

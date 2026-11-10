@@ -144,6 +144,13 @@ Route::prefix('admin')
         Route::post('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
             ->middleware('throttle:admin-export')
             ->name('matriculas.csv');
+        // Opciones de los selectores de estudiante y curso (búsqueda en el servidor); antes del resource.
+        Route::get('matriculas/opciones/estudiantes', [MatriculaController::class, 'opcionesEstudiantes'])
+            ->middleware('throttle:admin-opciones')
+            ->name('matriculas.opciones.estudiantes');
+        Route::get('matriculas/opciones/cursos', [MatriculaController::class, 'opcionesCursos'])
+            ->middleware('throttle:admin-opciones')
+            ->name('matriculas.opciones.cursos');
         Route::resource('matriculas', MatriculaController::class);
         Route::get('solicitudes-matricula', [SolicitudMatriculaController::class, 'index'])->name('solicitudes-matricula.index');
         Route::patch('solicitudes-matricula/{solicitud:identificador}', [SolicitudMatriculaController::class, 'update'])
