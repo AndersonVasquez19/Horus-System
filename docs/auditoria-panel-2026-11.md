@@ -86,10 +86,11 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 - Pasar a POST las exportaciones que hoy son GET con efecto lateral (auditoría, respaldo, CSV de matrículas): cambia botones y enlaces.
 - Búsqueda asíncrona/paginada en los selectores de matrícula para volúmenes grandes.
-- Mostrar en hora de Lima las demás pantallas que hoy imprimen UTC (notificaciones, matrículas, asistente, respaldo) y el «mes» del inicio, que se calcula en UTC.
-- Configuración sin efecto: los valores de `SystemSetting` (empresa, teléfono, moneda…) no se usan en ninguna vista y la pantalla no muestra errores de validación.
 - Accesibilidad: sidebar móvil sin `inert`, modal sin trampa de foco, toast de error que se cierra solo, sin enlace «saltar al contenido», doble `<h1>` en formularios.
-- Páginas de error propias (403/404/419/429/500) en español; campana de notificaciones con contador.
+- Campana de notificaciones con contador y «marcar todas».
+- Mensajes de validación por defecto en inglés: requieren `APP_LOCALE=es` y archivos `lang/es` (cambio de entorno, no autorizado aquí).
+
+Resueltos después (ver sección 8): hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias.
 
 **Requieren decisión funcional**
 
@@ -111,3 +112,25 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 ## 7. Pruebas añadidas
 
 `ExportacionesPanelRobustezTest`, `AuditoriaAccesosTest`, `ArchivadoConMatriculasVigentesTest`, `LimitesTextoLargoTest`, `ProteccionRolesBaseTest`, `IndicesConsultasPanelMigracionTest`, `SelectorMatriculaColumnasTest`, `SesionesActivasTest`, `AuditoriaFiltrosTest` (todas en `tests/Feature`).
+
+## 8. Pulido del panel (10/11/2026)
+
+Aprobado por el propietario, incluidas las pantallas implicadas.
+
+**Hora de Lima.** `app/Support/HoraLocal.php` (`ZONA`, `ahora()`, `hoy()`, `formato()`) centraliza la presentación; `config/app.php` sigue en UTC a propósito (filtros `->utc()`, JSON de cotizaciones, scheduler y guardas PostgreSQL dependen de ello).
+- Pantallas que pasaron de UTC a Lima: inicio («Actualizado al» y auditoría reciente), detalle de matrícula, aprobaciones (creada, actualizada, historial), asistente, notificaciones, estudiantes eliminados y archivos heredados de respaldo. La fecha propuesta al crear una matrícula y la fecha del PDF de reportes también son de Lima.
+- El «mes actual» y los últimos 6 meses del inicio se calculan desde la hora de Lima.
+- Sin cambio: reclamaciones y cotizaciones (ya en Lima con su propia configuración) y columnas `date`.
+- Fuera de alcance: `before_or_equal:today` de la fecha de nacimiento (se evalúa en UTC) y la exportación JSON de auditoría, que conserva `fecha` en UTC para no cambiar su formato.
+
+**Configuración efectiva.** `app/Support/ConfiguracionSistema.php` lee los 5 ajustes en una sola consulta por petición (memoria en el `Request`, sin caché entre peticiones; vacío = predeterminado).
+- El nombre de la empresa se usa en el título del panel, la barra superior, el menú lateral, el inicio, la pantalla de Configuración y los PDF administrativos (título, encabezado y pie).
+- La moneda se usa en todos los importes del panel y del PDF de reportes, y en las etiquetas «Precio» y «Monto pagado».
+- Predeterminados corregidos a los datos publicados en el sitio (teléfono, correo y dirección de Cajamarca) en el controlador y el seeder. El seeder usa `firstOrCreate`: **en bases existentes conviene revisar Configuración**, que puede conservar los datos de ejemplo anteriores (`+51 987 654 321`, `contacto@horusgroup.com`, `Lima, Perú`).
+- La pantalla muestra un resumen de errores y el error de cada campo.
+- `settings_updated` registra `antes`/`despues` solo de las claves que cambiaron y no se registra si no hubo cambios (mensaje «No hubo cambios»).
+- No se cablean: sitio público, correos, asistente ni el Libro de Reclamaciones (monto legal en `S/`).
+
+**Páginas de error.** `resources/views/errors/` con 403, 404, 419, 429, 500 y 503 en español sobre una plantilla autónoma: sin Vite, scripts, rutas con nombre ni base de datos, y sin mostrar nunca el mensaje técnico de la excepción. El enlace vuelve al panel si el error ocurrió bajo `/admin` y a la página principal en otro caso. Las verá también el visitante del sitio. Las respuestas JSON no cambian.
+
+Pruebas: `Unit/HoraLocalTest`, `HoraLocalPanelTest`, `ConfiguracionEfectivaTest`, `PaginasErrorTest`; se actualizó la aserción de `SecretsAndExportsTest` al nuevo formato de `settings_updated`.
