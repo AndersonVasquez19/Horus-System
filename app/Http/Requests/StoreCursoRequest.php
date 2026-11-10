@@ -20,7 +20,7 @@ class StoreCursoRequest extends FormRequest
         return [
             'codigo' => ['required', 'string', 'max:20', Rule::unique('cursos', 'codigo')],
             'nombre' => ['required', 'string', 'max:150'],
-            'descripcion' => ['required', 'string'],
+            'descripcion' => ['required', 'string', 'max:5000'],
             'categoria' => ['required', Rule::in(['tecnologia', 'educacion', 'salud', 'gestion', 'otros'])],
             'duracion_horas' => ['required', 'integer', 'min:1', 'max:2147483647'],
             'precio' => ['required', 'numeric', 'min:0', 'max:99999999.99'],

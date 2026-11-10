@@ -33,7 +33,7 @@ class UpdateMatriculaRequest extends FormRequest
             'fecha_matricula' => ['required', 'date'],
             'estado' => ['required', Rule::in(['pendiente', 'pagada', 'anulada'])],
             'monto_pagado' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
-            'observaciones' => ['nullable', 'string'],
+            'observaciones' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
