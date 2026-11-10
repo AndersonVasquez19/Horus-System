@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>@yield('title', 'Documento Institucional &middot; Horus Group SRL')</title>
+    <title>
+        @hasSection('title')
+            @yield('title')
+        @else
+            Documento Institucional &middot; {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}
+        @endif
+    </title>
     <style>
         /* ==========================================================================
            Configuración de Página y Márgenes (DomPDF)

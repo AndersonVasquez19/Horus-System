@@ -52,7 +52,7 @@
     </div>
 
     <div>
-        <label for="monto_pagado" class="admin-label">Monto pagado (S/)</label>
+        <label for="monto_pagado" class="admin-label">Monto pagado ({{ \App\Support\ConfiguracionSistema::moneda() }})</label>
         <input id="monto_pagado" name="monto_pagado" type="number" min="0" step="0.01" value="{{ $valorPrevio('monto_pagado', $matricula->monto_pagado ?? '') }}" class="admin-input" placeholder="0.00">
         @error('monto_pagado')<p class="admin-error">{{ $message }}</p>@enderror
     </div>

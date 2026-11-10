@@ -66,7 +66,7 @@
             <x-admin.stat-card title="Estudiantes registrados" :value="$resumen['estudiantes']" icon="fa-user-graduate" variant="blue" />
             <x-admin.stat-card title="Cursos registrados" :value="$resumen['cursos']" icon="fa-book-open" variant="teal" />
             <x-admin.stat-card title="Matrículas coincidentes" :value="$resumen['matriculas']" icon="fa-clipboard-check" variant="sky" />
-            <x-admin.stat-card title="Ingresos coincidentes" :value="'S/ '.number_format((float) $resumen['ingresos'], 2, '.', ',')" icon="fa-sack-dollar" variant="navy" />
+            <x-admin.stat-card title="Ingresos coincidentes" :value="\App\Support\ConfiguracionSistema::monto($resumen['ingresos'])" icon="fa-sack-dollar" variant="navy" />
         </section>
         <p class="text-sm text-[#64748B]">Estudiantes y cursos muestran totales generales sin eliminados. Matrículas e ingresos respetan los filtros; los ingresos suman el monto pagado de matrículas con estado pagada.</p>
 
@@ -118,7 +118,7 @@
                                 <td>{{ $matricula->curso?->nombre }}</td>
                                 <td class="whitespace-nowrap">{{ $matricula->fecha_matricula?->format('d/m/Y') }}</td>
                                 <td><x-admin.badge-estado :estado="$matricula->estado" /></td>
-                                <td class="whitespace-nowrap font-semibold text-[#172B3A]">{{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}</td>
+                                <td class="whitespace-nowrap font-semibold text-[#172B3A]">{{ $matricula->monto_pagado !== null ? \App\Support\ConfiguracionSistema::monto($matricula->monto_pagado) : '—' }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="6" class="p-6 text-center text-[#64748B]">No hay matrículas que coincidan con los filtros.</td></tr>

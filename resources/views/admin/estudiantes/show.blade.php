@@ -103,7 +103,7 @@
                                     <td class="font-medium text-[#172B3A]">{{ $matricula->curso?->nombre ?? 'Curso eliminado' }}</td>
                                     <td class="whitespace-nowrap">{{ $matricula->fecha_matricula->format('d/m/Y') }}</td>
                                     <td><x-admin.badge-estado :estado="$matricula->estado" /></td>
-                                    <td class="font-semibold text-[#172B3A]">{{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}</td>
+                                    <td class="font-semibold text-[#172B3A]">{{ $matricula->monto_pagado !== null ? \App\Support\ConfiguracionSistema::monto($matricula->monto_pagado) : '—' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

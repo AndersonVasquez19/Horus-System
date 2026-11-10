@@ -122,7 +122,7 @@
                                         @endif
                                     </td>
                                     <td class="whitespace-nowrap font-semibold text-[#172B3A]">
-                                        {{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}
+                                        {{ $matricula->monto_pagado !== null ? \App\Support\ConfiguracionSistema::monto($matricula->monto_pagado) : '—' }}
                                     </td>
                                     <td>
                                         <div class="flex items-center justify-end gap-1">

@@ -5,9 +5,9 @@
 
 <div class="header-container">
     @if ($logoData)
-        <img src="{{ $logoData }}" class="header-logo" alt="Horus Group SRL">
+        <img src="{{ $logoData }}" class="header-logo" alt="{{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}">
     @endif
-    <div class="header-institution">HORUS GROUP SRL</div>
+    <div class="header-institution">{{ mb_strtoupper(\App\Support\ConfiguracionSistema::nombreEmpresa()) }}</div>
     <div class="header-title">{{ $titulo ?? 'Reporte Administrativo' }}</div>
     @if (!empty($subtitulo))
         <div class="header-subtitle">{{ $subtitulo }}</div>

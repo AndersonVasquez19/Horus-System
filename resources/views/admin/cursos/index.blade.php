@@ -104,7 +104,7 @@
                                     </td>
                                     <td class="capitalize">{{ str_replace('_', ' ', $curso->categoria) }}</td>
                                     <td class="capitalize">{{ $curso->modalidad }}</td>
-                                    <td class="whitespace-nowrap font-semibold text-[#172B3A]">S/ {{ number_format((float) $curso->precio, 2, '.', ',') }}</td>
+                                    <td class="whitespace-nowrap font-semibold text-[#172B3A]">{{ \App\Support\ConfiguracionSistema::monto($curso->precio) }}</td>
                                     <td class="whitespace-nowrap">{{ $curso->cupos_disponibles }} / {{ $curso->cupos_maximos }}</td>
                                     <td>
                                         @if ($curso->trashed())

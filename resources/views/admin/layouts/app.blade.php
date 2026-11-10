@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/png" href="{{ asset('assets/images/index/logos/logo-horus.png') }}">
-    <title>@yield('title', 'Panel de Control') | Horus Group SRL</title>
+    <title>@yield('title', 'Panel de Control') | {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <noscript><style>
         dialog[data-admin-modal] { display: block; position: static; max-height: none; margin: 1rem auto; }

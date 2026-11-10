@@ -48,7 +48,7 @@
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Monto pagado</dt>
-                    <dd class="mt-1 font-semibold text-[#172B3A]">{{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : 'No registrado' }}</dd>
+                    <dd class="mt-1 font-semibold text-[#172B3A]">{{ $matricula->monto_pagado !== null ? \App\Support\ConfiguracionSistema::monto($matricula->monto_pagado) : 'No registrado' }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Fecha de registro</dt>

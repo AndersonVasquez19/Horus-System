@@ -10,7 +10,7 @@
             class="h-9 w-auto max-w-[44px] shrink-0 object-contain drop-shadow-[0_2px_8px_rgba(25,167,161,0.3)]"
         >
         <span class="min-w-0 md:hidden xl:block">
-            <span class="block truncate text-sm font-bold tracking-tight text-white">Horus Group</span>
+            <span class="block truncate text-sm font-bold tracking-tight text-white">{{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}</span>
             <span class="block text-[11px] font-medium text-[#19A7A1]">Panel Corporativo</span>
         </span>
     </a>

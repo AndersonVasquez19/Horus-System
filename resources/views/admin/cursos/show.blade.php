@@ -45,7 +45,7 @@
         </section>
 
         <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-admin.stat-card title="Precio" :value="'S/ '.number_format((float) $curso->precio, 2, '.', ',')" icon="fa-tag" variant="blue" />
+            <x-admin.stat-card title="Precio" :value="\App\Support\ConfiguracionSistema::monto($curso->precio)" icon="fa-tag" variant="blue" />
             <x-admin.stat-card title="Duración" :value="$curso->duracion_horas.' horas'" icon="fa-clock" variant="teal" />
             <x-admin.stat-card title="Cupos disponibles" :value="$curso->cupos_disponibles.' / '.$curso->cupos_maximos" icon="fa-users" variant="sky" />
             <x-admin.stat-card title="Estudiantes matriculados" :value="$curso->estudiantes->count()" icon="fa-user-graduate" variant="navy" />

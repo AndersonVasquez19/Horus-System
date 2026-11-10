@@ -2,7 +2,7 @@
     <table class="footer-table">
         <tr>
             <td class="text-left" style="width: 45%;">
-                <strong style="color: #0A2540;">HORUS GROUP SRL</strong> &bull; Sistema de Gestión
+                <strong style="color: #0A2540;">{{ mb_strtoupper(\App\Support\ConfiguracionSistema::nombreEmpresa()) }}</strong> &bull; Sistema de Gestión
             </td>
             <td class="text-center" style="width: 30%;">
                 {{ $documentoIdentificador ?? 'Documento Oficial' }}

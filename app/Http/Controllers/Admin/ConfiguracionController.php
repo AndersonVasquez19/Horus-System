@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
+use App\Support\ConfiguracionSistema;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -17,20 +18,12 @@ use Illuminate\View\View;
 class ConfiguracionController extends Controller implements HasMiddleware
 {
     /**
-     * Ajustes editables desde el panel y su valor por defecto.
+     * Ajustes editables desde el panel y su valor por defecto ({@see ConfiguracionSistema::PREDETERMINADOS}).
      *
      * Los secretos (p. ej. la clave de Resend) NO se gestionan aquí: el transporte de correo
      * lee `RESEND_API_KEY` desde el entorno (config/services.php), nunca desde la base de datos.
-     *
-     * @var array<string, string>
      */
-    private const SETTINGS = [
-        'nombre_empresa' => 'Horus Group SRL',
-        'telefono' => '+51 987 654 321',
-        'correo_contacto' => 'contacto@horusgroup.com',
-        'direccion' => 'Lima, Perú',
-        'moneda' => 'S/',
-    ];
+    private const SETTINGS = ConfiguracionSistema::PREDETERMINADOS;
 
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
@@ -67,10 +60,19 @@ class ConfiguracionController extends Controller implements HasMiddleware
             'settings.moneda' => ['nullable', 'string', 'max:20'],
         ]);
 
-        DB::transaction(function () use ($data): void {
-            $changes = [];
+        $huboCambios = DB::transaction(function () use ($data): bool {
+            $antes = [];
+            $despues = [];
             foreach ($data['settings'] ?? [] as $key => $value) {
                 if (! array_key_exists($key, self::SETTINGS)) {
+                    continue;
+                }
+
+                // Se compara el valor efectivo (vacío = predeterminado): guardar lo mismo no es un cambio.
+                $anterior = SystemSetting::value($key, self::SETTINGS[$key]);
+                $anteriorEfectivo = is_string($anterior) && trim($anterior) !== '' ? $anterior : self::SETTINGS[$key];
+                $nuevoEfectivo = is_string($value) && trim($value) !== '' ? $value : self::SETTINGS[$key];
+                if ($nuevoEfectivo === $anteriorEfectivo) {
                     continue;
                 }
 
@@ -78,12 +80,24 @@ class ConfiguracionController extends Controller implements HasMiddleware
                     ['key' => $key],
                     ['value' => $value, 'description' => 'Configuración del sistema'],
                 );
-                $changes[$key] = $value;
+                $antes[$key] = $anteriorEfectivo;
+                $despues[$key] = $value;
             }
 
-            AuditLog::record('settings_updated', 'SystemSetting', null, $changes);
+            if ($despues === []) {
+                return false;
+            }
+
+            AuditLog::record('settings_updated', 'SystemSetting', null, ['antes' => $antes, 'despues' => $despues]);
+
+            return true;
         });
 
-        return redirect()->route('admin.configuracion.index')->with('success', 'La configuración del sistema se guardó correctamente.');
+        ConfiguracionSistema::olvidar();
+
+        return redirect()->route('admin.configuracion.index')->with(
+            'success',
+            $huboCambios ? 'La configuración del sistema se guardó correctamente.' : 'No hubo cambios en la configuración.',
+        );
     }
 }

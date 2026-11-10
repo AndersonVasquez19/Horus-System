@@ -50,7 +50,7 @@
     </div>
 
     <div>
-        <label for="precio" class="admin-label">Precio (S/) <span class="text-red-600">*</span></label>
+        <label for="precio" class="admin-label">Precio ({{ \App\Support\ConfiguracionSistema::moneda() }}) <span class="text-red-600">*</span></label>
         <input id="precio" name="precio" type="number" min="0" step="0.01" value="{{ OldInput::value('precio', $curso->precio ?? '') }}" required class="admin-input" placeholder="350.00">
         @error('precio')<p class="admin-error">{{ $message }}</p>@enderror
     </div>

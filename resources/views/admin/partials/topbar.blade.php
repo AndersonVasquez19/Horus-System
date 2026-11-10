@@ -35,7 +35,7 @@
 
         <span class="hidden items-center gap-1.5 rounded-full border border-[#176B9A]/20 bg-[#176B9A]/10 px-3 py-1.5 text-xs font-semibold text-[#176B9A] sm:inline-flex">
             <i class="fa-solid fa-building-shield text-[11px] text-[#19A7A1]" aria-hidden="true"></i>
-            Horus Group SRL
+            {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}
         </span>
 
         <div class="flex items-center gap-2.5 rounded-full border border-[#E2E8F0] bg-[#F4F7FB] py-1 pl-1 pr-3">

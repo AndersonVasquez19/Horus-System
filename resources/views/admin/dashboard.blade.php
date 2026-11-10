@@ -20,7 +20,7 @@
                     <div class="flex flex-wrap items-center gap-2.5">
                         <span class="inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
                             <span class="h-2 w-2 rounded-full bg-[#19A7A1]" aria-hidden="true"></span>
-                            Horus Group SRL
+                            {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}
                         </span>
                         <span class="inline-flex items-center gap-1.5 rounded-lg border border-[#176B9A]/20 bg-[#176B9A]/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#176B9A]">
                             Panel ejecutivo
@@ -135,7 +135,7 @@
                 @if (! is_null($ingresosMes))
                     <x-admin.stat-card
                         title="Ingresos del mes"
-                        :value="'S/ '.number_format((float) $ingresosMes, 2, '.', ',')"
+                        :value="\App\Support\ConfiguracionSistema::monto($ingresosMes)"
                         icon="fa-sack-dollar"
                         description="Recaudación de matrículas pagadas"
                         variant="teal"

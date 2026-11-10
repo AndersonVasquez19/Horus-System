@@ -95,7 +95,8 @@ class SecretsAndExportsTest extends TestCase
         $this->assertNoSecretInDatabase($nuevo);
 
         $log = AuditLog::where('action', 'settings_updated')->firstOrFail();
-        $this->assertSame(['moneda' => 'USD'], $log->changes);
+        // Solo la clave permitida y modificada, con su valor anterior (predeterminado) y el nuevo.
+        $this->assertSame(['antes' => ['moneda' => 'S/'], 'despues' => ['moneda' => 'USD']], $log->changes);
     }
 
     public function test_an_existing_legacy_resend_row_is_left_untouched_by_the_panel(): void

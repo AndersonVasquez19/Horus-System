@@ -1,6 +1,8 @@
 @extends('pdf.layout')
 
-@section('title', 'Reporte de Matrículas &middot; Horus Group SRL')
+@section('title')
+    Reporte de Matrículas &middot; {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}
+@endsection
 
 @section('content')
     @php
@@ -94,7 +96,7 @@
                         @include('pdf.badge-estado', ['estado' => $matricula->estado])
                     </td>
                     <td class="text-right font-semibold">
-                        {{ $matricula->monto_pagado !== null ? 'S/ '.number_format((float) $matricula->monto_pagado, 2, '.', ',') : '—' }}
+                        {{ $matricula->monto_pagado !== null ? \App\Support\ConfiguracionSistema::monto($matricula->monto_pagado) : '—' }}
                     </td>
                 </tr>
             @empty
