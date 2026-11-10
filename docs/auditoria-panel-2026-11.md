@@ -82,11 +82,7 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 ## 5. Pendientes
 
-**Requieren aprobación de vistas**
-
-- Mensajes de validación por defecto en inglés: requieren `APP_LOCALE=es` y archivos `lang/es` (cambio de entorno, no autorizado aquí).
-
-Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12).
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13).
 
 **Requieren decisión funcional**
 
@@ -102,6 +98,8 @@ Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del in
 ## 6. Aplicar en PostgreSQL (cuando se autorice)
 
 **Aplicadas el 10/11/2026** en la base local `horus_group` (127.0.0.1:5432, entorno `local`), con autorización expresa del propietario y solo para estas dos: `000037` (índices) y `000038` (`notificacion_lecturas`), cada una con `--path`. Verificado después: los 12 índices y la tabla (0 filas) existen. Siguen pendientes y **no** se aplicaron: `000022` (suspendida), `000035` y `000036` (solicitudes de matrícula). Otros entornos (producción) requieren su propia aplicación.
+
+**Solicitudes de matrícula (000035 y 000036): decisión del propietario del 10/11/2026, no aplicarlas.** El código existe en el repositorio (`SolicitudMatriculaController`, `SolicitudMatriculaPublicaController`, `GestionSolicitudesMatricula`, vistas y rutas, commit `0190498`) pero queda **inactivo** mientras no se apliquen sus migraciones: el formulario público `/solicitar-matricula` responde 503 (comprueba `Schema::hasTable('solicitudes_matricula')`), `/admin/solicitudes-matricula` responde 403 porque los permisos `solicitudes-matricula.ver|gestionar` no existen en `horus_group`, y el enlace del menú lateral permanece oculto. La `000036` es la única que concede permisos. No hay que ejecutar `migrate` sin `--path`; `000022` sigue suspendida.
 
 - La migración de índices no se ha ejecutado en PostgreSQL. `CREATE INDEX` no concurrente bloquea escrituras de cada tabla mientras se construye: aplicarla en una ventana de poco uso.
 - Mientras la migración `000022` siga suspendida, no ejecutar `migrate` sin `--path` (`docs/sprint-15-preparacion-integracion.md` §8.4). Ejemplo: `php artisan migrate --path=database/migrations/2026_11_10_000037_add_indices_consultas_panel.php`.
@@ -204,3 +202,9 @@ Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. An
 - **Límite:** sin JavaScript no se puede elegir estudiante ni curso; el panel ya depende de JavaScript para modales y menú.
 - **Pruebas:** `MatriculaOpcionesTest`, `tests/frontend/selector-asincrono.test.mjs` y, en el smoke de navegador `formularios-modal-smoke.mjs`, un recorrido con teclado (el router del fixture admite ahora las dos rutas de opciones). Cambiaron las pruebas que leían las etiquetas `<option>` (`AdminMatriculaContextTest`, `AdminMatriculaTest`, `AdminListFilterInputTest`, `BackendPerformanceTest`, `SelectorMatriculaColumnasTest`); la regresión de `old()` y de las preselecciones sigue cubierta con el valor oculto.
 
+## 13. Mensajes de validación en español (10/11/2026)
+
+- Se añadió `lang/es/{validation,auth,passwords,pagination}.php` con las claves de Laravel 12 y un mapa `attributes` para los campos más visibles (DNI, correo electrónico, fecha de nacimiento…).
+- `config/app.php` usa `es` como valor por defecto de `APP_LOCALE`. **`.env` y `.env.example` no se tocaron:** `.env.example` sigue con `APP_LOCALE=en`, y un `.env` que lo defina prevalece sobre el valor por defecto. Para ver los mensajes en español en un entorno concreto hay que poner `APP_LOCALE=es` (y `APP_FALLBACK_LOCALE=en` puede quedarse).
+- `phpunit.xml` fija `APP_LOCALE=es`, así las pruebas son deterministas en local y en CI. Suite completa sin cambios en las demás pruebas.
+- `tests/Feature/MensajesValidacionEspanolTest.php` comprueba el idioma, textos con atributos legibles y que no falte ninguna clave de validación de Laravel.
