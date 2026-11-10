@@ -6,10 +6,13 @@
 # PostgreSQL aislado. El workflow no usa secretos.
 name: CI
 
+# SUSPENDIDO (10/11/2026, decisión del propietario): solo se ejecuta a mano desde la pestaña Actions
+# («Run workflow»). Para reactivarlo, restaura los disparadores pull_request y push:
+#   pull_request:
+#   push:
+#     branches: [main, anderson]
 on:
-  pull_request:
-  push:
-    branches: [main, anderson]
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -182,7 +182,7 @@ Pruebas: `ExportacionesPostTest`, `BusquedaLikeEscapeTest` y `EstudianteFechaNac
 
 ## 11. Integración continua y guía de despliegue (10/11/2026)
 
-**CI.** `.github/workflows/ci.yml` (GitHub Actions; se dispara en pull requests y en push a `main` y `anderson`, permisos de solo lectura y sin secretos):
+**CI (suspendido el 10/11/2026 por decisión del propietario: solo `workflow_dispatch`, ejecución manual; los disparadores originales están comentados en el archivo).** `.github/workflows/ci.yml` (GitHub Actions; diseñado para pull requests y push a `main` y `anderson`, permisos de solo lectura y sin secretos):
 - Job PHP (8.4): `composer install`, compilación de recursos (`npm ci` y `npm run build`: sin `public/build/manifest.json` fallan las ~370 pruebas que renderizan vistas; el primer run en GitHub falló por eso), `.env` temporal con `key:generate` en el runner efímero, `php artisan test --compact` y `vendor/bin/phpstan analyse`.
 - Job frontend (Node 24): `npm ci`, `npm test` y `npm run build`.
 - Pint solo se ejecuta, de forma informativa, sobre los `.php` que cambia el pull request: el estilo global tiene deuda preexistente.
