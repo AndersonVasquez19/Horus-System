@@ -17,8 +17,19 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller implements HasMiddleware
 {
-    /** Permisos históricos que ya no corresponden a módulos disponibles. */
-    private const PERMISOS_RETIRADOS = ['procesos.ver', 'procesos.gestionar'];
+    /**
+     * Permisos históricos que ya no corresponden a módulos disponibles o que ninguna ruta comprueba
+     * (`seguimientos.*`, `asistente.entrenar`). Solo se ocultan: no se borran filas.
+     */
+    private const PERMISOS_RETIRADOS = [
+        'procesos.ver',
+        'procesos.gestionar',
+        'seguimientos.ver',
+        'seguimientos.crear',
+        'seguimientos.editar',
+        'seguimientos.eliminar',
+        'asistente.entrenar',
+    ];
 
     public function __construct(private readonly AdminProtection $adminProtection) {}
 

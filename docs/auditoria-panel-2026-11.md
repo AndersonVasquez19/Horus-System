@@ -82,12 +82,12 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 ## 5. Pendientes
 
-Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13).
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13); retirada de permisos sin uso (sección 14).
 
 **Requieren decisión funcional**
 
 - Pagos/cuotas de matrícula, importación masiva, respaldo real de PostgreSQL (`pg_dump` programado y retención).
-- Permisos huérfanos (`seguimientos.*`, `asistente.entrenar`, `reclamaciones.gestionar|responder` sin rutas) y la tabla `procesos_internos` sin pantalla.
+- Permisos sin uso: `seguimientos.*` y `asistente.entrenar` se retiraron (sección 14). `reclamaciones.gestionar|responder` **no son huérfanos** (los exige `GestionReclamaciones`; el panel de reclamaciones es de solo lectura por diseño) y `procesos_internos` se conserva a propósito (`docs/retiro-procesos.md`).
 - `cascadeOnDelete` en `matriculas` frente a `restrictOnDelete` en el resto; estados sin `CHECK`; `json` frente a `jsonb`.
 
 **Despliegue (no se tocó `.env.example`)**
@@ -208,3 +208,10 @@ Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. An
 - `config/app.php` usa `es` como valor por defecto de `APP_LOCALE`. **`.env` y `.env.example` no se tocaron:** `.env.example` sigue con `APP_LOCALE=en`, y un `.env` que lo defina prevalece sobre el valor por defecto. Para ver los mensajes en español en un entorno concreto hay que poner `APP_LOCALE=es` (y `APP_FALLBACK_LOCALE=en` puede quedarse).
 - `phpunit.xml` fija `APP_LOCALE=es`, así las pruebas son deterministas en local y en CI. Suite completa sin cambios en las demás pruebas.
 - `tests/Feature/MensajesValidacionEspanolTest.php` comprueba el idioma, textos con atributos legibles y que no falte ninguna clave de validación de Laravel.
+
+## 14. Permisos sin uso retirados (10/11/2026)
+
+- `seguimientos.ver|crear|editar|eliminar` y `asistente.entrenar` no los comprobaba ninguna ruta, controlador, vista ni prueba (el seguimiento de cotizaciones usa `cotizaciones.gestionar`). Decisión del propietario: **retirar sin borrar**, como `procesos.*`.
+- `RolesAndPermissionsSeeder` ya no los crea ni los concede (`PERMISSIONS`, coordinador, secretaria), y `RoleController::PERMISOS_RETIRADOS` los oculta en la pantalla de Roles.
+- **En bases existentes las filas siguen en `permissions` y `role_has_permissions`**: solo dejan de verse. No hay migración ni escritura en PostgreSQL; borrarlas exigiría una migración y autorización aparte. Al guardar un rol desde la pantalla se desasocian de ese rol (inocuo: nada los consulta).
+- `PermisosRetiradosTest` cubre instalación nueva, ocultación sin borrado y que tenerlos o no no cambia el acceso.
