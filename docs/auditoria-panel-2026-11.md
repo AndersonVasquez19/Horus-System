@@ -185,11 +185,11 @@ Pruebas: `ExportacionesPostTest`, `BusquedaLikeEscapeTest` y `EstudianteFechaNac
 ## 11. Integración continua y guía de despliegue (10/11/2026)
 
 **CI.** `.github/workflows/ci.yml` (GitHub Actions; se dispara en pull requests y en push a `main` y `anderson`, permisos de solo lectura y sin secretos):
-- Job PHP (8.4): `composer install`, `.env` temporal con `key:generate` en el runner efímero, `php artisan test --compact` y `vendor/bin/phpstan analyse`.
+- Job PHP (8.4): `composer install`, compilación de recursos (`npm ci` y `npm run build`: sin `public/build/manifest.json` fallan las ~370 pruebas que renderizan vistas; el primer run en GitHub falló por eso), `.env` temporal con `key:generate` en el runner efímero, `php artisan test --compact` y `vendor/bin/phpstan analyse`.
 - Job frontend (Node 24): `npm ci`, `npm test` y `npm run build`.
 - Pint solo se ejecuta, de forma informativa, sobre los `.php` que cambia el pull request: el estilo global tiene deuda preexistente.
 - No ejecuta los smokes de navegador ni el perfil PostgreSQL aislado. Con SQLite en memoria **no prueba PostgreSQL ni concurrencia**.
-- Los mismos comandos pasan en local (suite, PHPStan, `npm test`, build) y el YAML se validó como sintaxis; **el workflow no se ha ejecutado en GitHub** hasta el primer push.
+- Los mismos comandos pasan en local (suite, PHPStan, `npm test`, build) y el YAML se validó como sintaxis; **el primer run en GitHub (10/11/2026) falló** por el manifest de Vite ausente en el job PHP; se corrigió compilando los recursos antes de las pruebas y subiendo las acciones a `checkout@v7`, `cache@v6` y `setup-node@v7`. Falta un run verde que lo confirme (pueden aparecer diferencias Linux/Windows aún no vistas).
 
 **Guía.** `docs/guia-despliegue.md`: requisitos, variables por nombre, orden de despliegue con migraciones siempre con `--path` (000022 suspendida), procesos permanentes (scheduler y worker), verificación y reversa. `route:cache`, `view:cache` y `schedule:list` se comprobaron en local y los cachés generados se limpiaron. No se probó en un servidor.
 
