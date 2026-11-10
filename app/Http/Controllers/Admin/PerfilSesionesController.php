@@ -76,16 +76,19 @@ class PerfilSesionesController extends Controller
 
         /** @var User $user */
         $user = $request->user();
+        $sesionActual = $request->session()->getId();
 
-        if (! SesionesActivas::cerrarUna($user, $request->session()->getId(), $identificador)) {
-            abort(404, 'La sesión no existe o ya se cerró.');
-        }
+        DB::transaction(function () use ($user, $sesionActual, $identificador): void {
+            if (! SesionesActivas::cerrarUna($user, $sesionActual, $identificador)) {
+                abort(404, 'La sesión no existe o ya se cerró.');
+            }
 
-        AuditLog::record('sesiones_cerradas', User::class, $user->id, [
-            'alcance' => 'una',
-            'sesiones' => 1,
-            'tokens_api_revocados' => false,
-        ], $user->id);
+            AuditLog::record('sesiones_cerradas', User::class, $user->id, [
+                'alcance' => 'una',
+                'sesiones' => 1,
+                'tokens_api_revocados' => false,
+            ], $user->id);
+        });
 
         return $this->responder($request, 'La sesión se cerró.', ['cerradas' => 1]);
     }

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateConfiguracionRequest;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Support\ConfiguracionSistema;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
@@ -40,27 +40,22 @@ class ConfiguracionController extends Controller implements HasMiddleware
 
     public function index(): View
     {
-        $settings = [];
-        foreach (self::SETTINGS as $key => $default) {
-            $settings[$key] = SystemSetting::value($key, $default);
-        }
-
-        return view('admin.configuracion.index', ['settings' => $settings]);
+        return view('admin.configuracion.index', [
+            'settings' => ConfiguracionSistema::todos(),
+        ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateConfiguracionRequest $request): RedirectResponse
     {
-        // Solo se validan (y por tanto solo se persisten) las claves permitidas; cualquier otra,
-        // incluida la antigua `api_resend`, se ignora.
-        $data = $request->validate([
-            'settings.nombre_empresa' => ['nullable', 'string', 'max:255'],
-            'settings.telefono' => ['nullable', 'string', 'max:255'],
-            'settings.correo_contacto' => ['nullable', 'email', 'max:255'],
-            'settings.direccion' => ['nullable', 'string', 'max:255'],
-            'settings.moneda' => ['nullable', 'string', 'max:20'],
-        ]);
+        $data = $request->validated();
 
         $huboCambios = DB::transaction(function () use ($data): bool {
+            $existentes = SystemSetting::query()
+                ->whereIn('key', array_keys(self::SETTINGS))
+                ->orderBy('key')
+                ->lockForUpdate()
+                ->pluck('value', 'key');
+
             $antes = [];
             $despues = [];
             foreach ($data['settings'] ?? [] as $key => $value) {
@@ -68,8 +63,8 @@ class ConfiguracionController extends Controller implements HasMiddleware
                     continue;
                 }
 
-                // Se compara el valor efectivo (vacío = predeterminado): guardar lo mismo no es un cambio.
-                $anterior = SystemSetting::value($key, self::SETTINGS[$key]);
+                // Se compara el valor efectivo (vacío = predeterminado) bajo bloqueo: guardar lo mismo no es un cambio.
+                $anterior = $existentes->get($key);
                 $anteriorEfectivo = is_string($anterior) && trim($anterior) !== '' ? $anterior : self::SETTINGS[$key];
                 $nuevoEfectivo = is_string($value) && trim($value) !== '' ? $value : self::SETTINGS[$key];
                 if ($nuevoEfectivo === $anteriorEfectivo) {

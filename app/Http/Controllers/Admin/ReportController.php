@@ -75,6 +75,7 @@ class ReportController extends Controller implements HasMiddleware
             'xlsx',
             'report_excel_exported',
             fn (string $file) => app(MatriculasExcelExport::class)->write($this->filteredQuery($request), $file),
+            $this->filtrosAuditados($request),
         );
     }
 
@@ -96,6 +97,7 @@ class ReportController extends Controller implements HasMiddleware
             'pdf',
             'report_pdf_exported',
             fn (string $file) => $pdf->save($file),
+            $this->filtrosAuditados($request, (int) $matriculas->currentPage()),
         );
     }
 
@@ -154,8 +156,9 @@ class ReportController extends Controller implements HasMiddleware
      * de propagar el error; en el camino feliz lo elimina deleteFileAfterSend().
      *
      * @param  callable(string): mixed  $write
+     * @param  array<string, mixed>  $filtros
      */
-    private function downloadTemporaryExport(string $extension, string $auditAction, callable $write): BinaryFileResponse
+    private function downloadTemporaryExport(string $extension, string $auditAction, callable $write, array $filtros = []): BinaryFileResponse
     {
         $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.'.$extension;
         $disk = Storage::disk('local');
@@ -174,7 +177,7 @@ class ReportController extends Controller implements HasMiddleware
                 throw new RuntimeException('No se pudo completar el archivo de exportación.');
             }
 
-            AuditLog::record($auditAction, Matricula::class, null, ['filename' => $filename]);
+            AuditLog::record($auditAction, Matricula::class, null, ['filename' => $filename, 'filtros' => $filtros]);
 
             return response()->download($temporary, $filename)->deleteFileAfterSend(true);
         } catch (Throwable $error) {
@@ -184,5 +187,27 @@ class ReportController extends Controller implements HasMiddleware
 
             throw $error;
         }
+    }
+
+    /**
+     * Resumen acotado de los filtros usados en la exportación (el texto libre de búsqueda no se guarda).
+     *
+     * @return array{estado: string|null, curso_id: int|null, eliminados: bool, con_busqueda: bool, lote?: int}
+     */
+    private function filtrosAuditados(ReportMatriculasRequest $request, ?int $lote = null): array
+    {
+        $filtros = $request->filters();
+        $resumen = [
+            'estado' => isset($filtros['estado']) ? (string) $filtros['estado'] : null,
+            'curso_id' => isset($filtros['curso_id']) ? (int) $filtros['curso_id'] : null,
+            'eliminados' => $request->boolean('eliminados'),
+            'con_busqueda' => isset($filtros['busqueda']) && (string) $filtros['busqueda'] !== '',
+        ];
+
+        if ($lote !== null) {
+            $resumen['lote'] = $lote;
+        }
+
+        return $resumen;
     }
 }

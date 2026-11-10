@@ -43,18 +43,23 @@ class CursoPublicacionController extends Controller implements HasMiddleware
         DB::transaction(function () use ($curso, $datos, $request): void {
             $curso = Curso::withTrashed()->lockForUpdate()->findOrFail($curso->id);
             $autor = $this->autorizarActual($request);
-            $publicacion = CursoPublicacion::firstOrNew(['curso_id' => $curso->id]);
-            $this->comprobarRevision($request, $curso, $publicacion->exists ? $publicacion : null);
+            $existente = CursoPublicacion::where('curso_id', $curso->id)->lockForUpdate()->first();
+            $this->comprobarRevision($request, $curso, $existente);
             if ($curso->trashed() || $curso->estado !== 'activo') {
                 throw ValidationException::withMessages(['titulo' => 'Solo puedes publicar un curso activo y no eliminado.']);
             }
+            $publicacion = $existente ?? new CursoPublicacion(['curso_id' => $curso->id]);
             $publicacion->fill([...$datos, 'publicada' => true, 'autorizado_por' => $autor->id]);
             // La misma autorización y contenido no renuevan fechas ni duplican auditoría.
             if ($publicacion->exists && ! $publicacion->isDirty()) {
                 return;
             }
             $publicacion->fill(['autorizado_at' => now()])->save();
-            AuditLog::record('curso_publicado', Curso::class, $curso->id);
+            AuditLog::record('curso_publicado', Curso::class, $curso->id, [
+                'modalidad' => $publicacion->modalidad,
+                'vigente_desde' => (string) $publicacion->vigente_desde,
+                'vigente_hasta' => (string) $publicacion->vigente_hasta,
+            ], $autor->id);
         });
 
         return redirect()->route('admin.cursos.publicacion.edit', $curso)->with('success', 'La ficha pública fue autorizada. Su visibilidad depende de la vigencia indicada y del estado del curso.');
@@ -64,14 +69,14 @@ class CursoPublicacionController extends Controller implements HasMiddleware
     {
         DB::transaction(function () use ($curso, $request): void {
             $curso = Curso::withTrashed()->lockForUpdate()->findOrFail($curso->id);
-            $this->autorizarActual($request);
-            $publicacion = CursoPublicacion::where('curso_id', $curso->id)->first();
+            $autor = $this->autorizarActual($request);
+            $publicacion = CursoPublicacion::where('curso_id', $curso->id)->lockForUpdate()->first();
             $this->comprobarRevision($request, $curso, $publicacion);
             if ($publicacion === null || ! $publicacion->publicada) {
                 return;
             }
             $publicacion->update(['publicada' => false]);
-            AuditLog::record('curso_despublicado', Curso::class, $curso->id);
+            AuditLog::record('curso_despublicado', Curso::class, $curso->id, ['publicada' => false], $autor->id);
         });
 
         return redirect()->route('admin.cursos.publicacion.edit', $curso)->with('success', 'La ficha dejó de estar publicada.');

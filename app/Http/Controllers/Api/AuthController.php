@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\JwtTokenService;
 use App\Services\VerificacionRegistroService;
 use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,8 +64,19 @@ class AuthController extends Controller
         $verificada = ! VerificacionRegistroService::enabled() || $user?->hasVerifiedEmail() === true;
 
         if (! $valid || ! $user || ! $verificada) {
+            AuditLog::record('login_failed', User::class, null, [
+                'canal' => 'api',
+                'cuenta_existente' => $user !== null,
+                'huella_correo' => substr(hash_hmac('sha256', $data['email'], (string) config('app.key')), 0, 16),
+            ], null);
+
             return response()->json(['message' => 'Las credenciales no son válidas.'], 422);
         }
+
+        AuditLog::record('login', User::class, $user->getKey(), [
+            'canal' => 'api',
+            'personal_panel' => $user->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES),
+        ], $user->getKey());
 
         return response()->json([
             'user' => $this->userPayload($user),
@@ -78,7 +91,11 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->attributes->get('jwt_user')->increment('jwt_version');
+        /** @var User $user */
+        $user = $request->attributes->get('jwt_user');
+        $user->increment('jwt_version');
+
+        AuditLog::record('logout', User::class, $user->getKey(), ['canal' => 'api'], $user->getKey());
 
         return response()->json(['message' => 'Sesión JWT cerrada.']);
     }
