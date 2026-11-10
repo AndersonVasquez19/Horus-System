@@ -86,11 +86,9 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 - Pasar a POST las exportaciones que hoy son GET con efecto lateral (auditoría, respaldo, CSV de matrículas): cambia botones y enlaces.
 - Búsqueda asíncrona/paginada en los selectores de matrícula para volúmenes grandes.
-- Accesibilidad: sidebar móvil sin `inert`, modal sin trampa de foco, toast de error que se cierra solo, sin enlace «saltar al contenido», doble `<h1>` en formularios.
-- Campana de notificaciones con contador y «marcar todas».
 - Mensajes de validación por defecto en inglés: requieren `APP_LOCALE=es` y archivos `lang/es` (cambio de entorno, no autorizado aquí).
 
-Resueltos después (ver sección 8): hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias.
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9).
 
 **Requieren decisión funcional**
 
@@ -105,9 +103,12 @@ Resueltos después (ver sección 8): hora de Lima en el resto de pantallas y en 
 
 ## 6. Aplicar en PostgreSQL (cuando se autorice)
 
+**Aplicadas el 10/11/2026** en la base local `horus_group` (127.0.0.1:5432, entorno `local`), con autorización expresa del propietario y solo para estas dos: `000037` (índices) y `000038` (`notificacion_lecturas`), cada una con `--path`. Verificado después: los 12 índices y la tabla (0 filas) existen. Siguen pendientes y **no** se aplicaron: `000022` (suspendida), `000035` y `000036` (solicitudes de matrícula). Otros entornos (producción) requieren su propia aplicación.
+
 - La migración de índices no se ha ejecutado en PostgreSQL. `CREATE INDEX` no concurrente bloquea escrituras de cada tabla mientras se construye: aplicarla en una ventana de poco uso.
 - Mientras la migración `000022` siga suspendida, no ejecutar `migrate` sin `--path` (`docs/sprint-15-preparacion-integracion.md` §8.4). Ejemplo: `php artisan migrate --path=database/migrations/2026_11_10_000037_add_indices_consultas_panel.php`.
 - Tras aplicarla, conviene contrastar planes (`EXPLAIN`) del listado de auditoría y del contador de notificaciones.
+- Lectura por usuario de notificaciones generales (sección 9): `php artisan migrate --path=database/migrations/2026_11_10_000038_create_notificacion_lecturas_table.php`. Solo crea la tabla `notificacion_lecturas`; no toca filas existentes. Sin ella, la bandeja, la campana y el inicio fallan al contar no leídas, así que debe aplicarse junto con el despliegue del código.
 
 ## 7. Pruebas añadidas
 
@@ -134,3 +135,31 @@ Aprobado por el propietario, incluidas las pantallas implicadas.
 **Páginas de error.** `resources/views/errors/` con 403, 404, 419, 429, 500 y 503 en español sobre una plantilla autónoma: sin Vite, scripts, rutas con nombre ni base de datos, y sin mostrar nunca el mensaje técnico de la excepción. El enlace vuelve al panel si el error ocurrió bajo `/admin` y a la página principal en otro caso. Las verá también el visitante del sitio. Las respuestas JSON no cambian.
 
 Pruebas: `Unit/HoraLocalTest`, `HoraLocalPanelTest`, `ConfiguracionEfectivaTest`, `PaginasErrorTest`; se actualizó la aserción de `SecretsAndExportsTest` al nuevo formato de `settings_updated`.
+
+## 9. Accesibilidad y campana de notificaciones (10/11/2026)
+
+Aprobado por el propietario, incluidas las pantallas implicadas, con dos decisiones: lectura **por usuario** de las notificaciones generales y campana con **desplegable**.
+
+**Lectura por usuario.** Antes, marcar una general como leída la dejaba leída para todo el personal.
+- Migración `2026_11_10_000038`: tabla `notificacion_lecturas` (`notificacion_id`, `user_id`, `leida_at`; única por par; borrado en cascada con la notificación o el usuario).
+- Personales: siguen usando `leida` en su fila. Generales: cada usuario registra su propia lectura; `leida` de la fila no cambia.
+- Una general con `leida=true` anterior al cambio se sigue considerando leída para todos (no se reabren avisos antiguos).
+- `NotificacionInterna`: `noLeidasPara()`, `estaLeidaPara()`, `marcarLeidaPara()` y `vinculoSeguro()` (solo rutas internas y nunca `/admin/procesos*`; un vínculo absoluto ya no se ofrece). El conteo lo centraliza `App\Support\NotificacionesPendientes`, una consulta por petición compartida por la campana y el inicio.
+
+**Campana.** En la barra superior, con contador (hasta «99+») y etiqueta accesible «Notificaciones, N sin leer».
+- Al abrirla carga `GET /admin/notificaciones/recientes` (JSON: pendientes y las 5 últimas no leídas con título, mensaje recortado, tipo, fecha en Lima y vínculo seguro). Nada se consulta hasta abrirla.
+- «Marcar todas como leídas»: `PATCH /admin/notificaciones/leidas` (JSON o redirección con mensaje), también en la bandeja. Solo afecta a las notificaciones visibles del usuario.
+- Escape o clic fuera la cierran; Escape devuelve el foco al botón. Sin JavaScript el botón es un enlace a la bandeja.
+- Mismo control de acceso que la bandeja (sesión y rol del panel).
+
+**Accesibilidad del layout.**
+- Enlace «Saltar al contenido principal» como primer elemento enfocable; `<main>` recibe el foco.
+- Menú lateral: `id`, `aria-controls` y etiqueta Abrir/Cerrar en la hamburguesa; cerrado en móvil queda `inert`; al abrir el foco pasa al primer enlace y al cerrar vuelve al botón.
+- Confirmación de borrado: `<dialog>` nativo con `showModal()` (foco atrapado, fondo inerte, Escape), `aria-describedby` y devolución del foco al control que la abrió. El evento `open-confirm-modal` no cambia.
+- Avisos: los de éxito se cierran a los 6 s con pausa por puntero o foco; los de error permanecen hasta cerrarlos. La región viva recibe el texto tras iniciar Alpine para anunciarse.
+- Un solo `<h1>` por página: en las 10 vistas de formulario el título interno pasó a `<h2 id="admin-form-title">`, que rotula el `<dialog>` (`aria-labelledby`).
+- Lógica en módulos (`admin-shell.mjs`, `admin-avisos.mjs`, `confirm-modal.mjs`, `campana-notificaciones.mjs`) registrados en `app.js`, compatible con la CSP (sin scripts en línea). Sin dependencias nuevas.
+
+**Límites.** Solo SQLite en memoria y pruebas unitarias de JavaScript; la migración `000038` no se ha aplicado en PostgreSQL (ver sección 6). Lectores de pantalla reales no se probaron.
+
+Pruebas: `NotificacionLecturaPorUsuarioTest`, `AccesibilidadPanelTest`, `tests/frontend/admin-accesibilidad.test.mjs` y `campana-notificaciones.test.mjs`. Cambiaron a propósito, por la decisión de lectura por usuario, `AdminNotificacionTest` (marcar una general) y `NotificacionPrivacidadUsuarioEliminadoTest` (la lectura compartida pasa a ser por usuario).
