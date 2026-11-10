@@ -104,7 +104,7 @@
                         <tbody>
                             @foreach ($logs as $log)
                                 <tr>
-                                    <td class="whitespace-nowrap">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                                    <td class="whitespace-nowrap">{{ \App\Support\HoraLocal::formato($log->created_at) }}</td>
                                     <td class="max-w-xs whitespace-pre-line font-medium text-[#172B3A]">{{ $log->mensaje_usuario }}</td>
                                     <td class="max-w-md whitespace-pre-line">{{ $log->respuesta_bot }}</td>
                                     <td>

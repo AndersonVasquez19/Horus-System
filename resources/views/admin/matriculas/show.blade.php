@@ -52,7 +52,7 @@
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Fecha de registro</dt>
-                    <dd class="mt-1 font-medium text-[#172B3A]">{{ $matricula->created_at->format('d/m/Y H:i') }}</dd>
+                    <dd class="mt-1 font-medium text-[#172B3A]">{{ \App\Support\HoraLocal::formato($matricula->created_at) }}</dd>
                 </div>
                 <div class="sm:col-span-2">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Observaciones</dt>

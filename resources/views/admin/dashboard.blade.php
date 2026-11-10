@@ -102,7 +102,7 @@
                 </div>
                 <span class="inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white px-3 py-1 text-xs font-medium text-[#64748B] shadow-sm">
                     <span class="h-2 w-2 rounded-full bg-[#19A7A1]" aria-hidden="true"></span>
-                    Actualizado al {{ now()->format('d/m/Y') }}
+                    Actualizado al {{ \App\Support\HoraLocal::ahora()->format('d/m/Y') }}
                 </span>
             </div>
 
@@ -387,7 +387,7 @@
                                     </span>
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-[#172B3A]">{{ $audit->action }}</p>
-                                        <p class="text-xs text-[#64748B]">{{ $audit->user?->name ?? 'Sistema' }} · {{ $audit->created_at?->format('d/m/Y H:i') }}</p>
+                                        <p class="text-xs text-[#64748B]">{{ $audit->user?->name ?? 'Sistema' }} · {{ \App\Support\HoraLocal::formato($audit->created_at) }}</p>
                                     </div>
                                 </div>
                                 <span class="inline-flex items-center rounded-full border border-[#176B9A]/20 bg-[#176B9A]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#176B9A]">

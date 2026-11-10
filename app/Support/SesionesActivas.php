@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
  */
 final class SesionesActivas
 {
-    public const ZONA = 'America/Lima';
+    public const ZONA = HoraLocal::ZONA;
 
     public static function disponible(): bool
     {

@@ -26,7 +26,7 @@
                             <h2 class="text-base font-bold text-[#172B3A]">{{ $notificacion->titulo }}</h2>
                         </div>
                         <p class="text-sm leading-6 text-[#64748B]">{{ $notificacion->mensaje }}</p>
-                        <p class="text-xs font-medium text-[#64748B]">{{ $notificacion->created_at->format('d/m/Y H:i') }}</p>
+                        <p class="text-xs font-medium text-[#64748B]">{{ \App\Support\HoraLocal::formato($notificacion->created_at) }}</p>
                     </div>
 
                     <div class="flex shrink-0 flex-wrap gap-2">

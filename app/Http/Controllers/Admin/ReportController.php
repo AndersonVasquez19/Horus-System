@@ -11,6 +11,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Services\MatriculasExcelExport;
+use App\Support\HoraLocal;
 use App\Support\TemporaryExportFile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -82,7 +83,7 @@ class ReportController extends Controller implements HasMiddleware
 
         $pdf = Pdf::loadView('admin.reportes.pdf', [
             'matriculas' => $matriculas,
-            'fecha' => now()->format('d/m/Y'),
+            'fecha' => HoraLocal::ahora()->format('d/m/Y'),
             'filtros' => $request->filters(),
             'limitePdf' => self::PDF_BATCH_SIZE,
             'cursoFiltro' => $request->filled('curso_id')

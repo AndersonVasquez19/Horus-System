@@ -10,6 +10,7 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\NotificacionInterna;
 use App\Models\User;
+use App\Support\HoraLocal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
@@ -18,8 +19,9 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
-        $inicioMes = now()->startOfMonth();
-        $finMes = now()->endOfMonth();
+        // El «mes actual» es el de Lima: en UTC, desde las 19:00 del último día ya sería el mes siguiente.
+        $inicioMes = HoraLocal::ahora()->startOfMonth();
+        $finMes = HoraLocal::ahora()->endOfMonth();
 
         // V-03: los ingresos del mes son exclusivos de Gerencia (rol `admin`). Para los demás roles el
         // agregado financiero ni se calcula ni se envía a la vista (`ingresosMes` = null); solo se cuentan

@@ -88,7 +88,7 @@
                                     <td>
                                         <span class="block font-semibold text-[#172B3A]">{{ $estudiante->nombres }} {{ $estudiante->apellidos }}</span>
                                         @if ($estudiante->trashed())
-                                            <span class="mt-0.5 block text-xs text-[#64748B]">Eliminado {{ $estudiante->deleted_at->format('d/m/Y') }}</span>
+                                            <span class="mt-0.5 block text-xs text-[#64748B]">Eliminado {{ \App\Support\HoraLocal::formato($estudiante->deleted_at, 'd/m/Y') }}</span>
                                         @endif
                                     </td>
                                     <td>

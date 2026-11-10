@@ -60,7 +60,7 @@
                                 <tr>
                                     <td class="font-medium text-[#172B3A]">{{ $archivo['nombre'] }}</td>
                                     <td>{{ number_format($archivo['size'] / 1024, 2) }} KB</td>
-                                    <td>{{ \Carbon\Carbon::createFromTimestamp($archivo['fecha'])->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</td>
+                                    <td>{{ \App\Support\HoraLocal::formato(\Carbon\Carbon::createFromTimestamp($archivo['fecha']), 'd/m/Y H:i:s') }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

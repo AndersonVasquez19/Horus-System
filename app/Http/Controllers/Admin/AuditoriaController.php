@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ class AuditoriaController extends Controller implements HasMiddleware
     }
 
     /** Días completos de los filtros de fecha: los registros se guardan en UTC y el personal trabaja en Lima. */
-    private const ZONA = 'America/Lima';
+    private const ZONA = HoraLocal::ZONA;
 
     public function index(Request $request): View
     {

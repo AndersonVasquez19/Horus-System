@@ -37,7 +37,7 @@
 
     <div>
         <label for="fecha_matricula" class="admin-label">Fecha de matrícula <span class="text-red-600">*</span></label>
-        <input id="fecha_matricula" name="fecha_matricula" type="date" value="{{ $valorPrevio('fecha_matricula', isset($matricula) ? $matricula->fecha_matricula->format('Y-m-d') : today()->format('Y-m-d')) }}" required class="admin-input">
+        <input id="fecha_matricula" name="fecha_matricula" type="date" value="{{ $valorPrevio('fecha_matricula', isset($matricula) ? $matricula->fecha_matricula->format('Y-m-d') : \App\Support\HoraLocal::hoy()) }}" required class="admin-input">
         @error('fecha_matricula')<p class="admin-error">{{ $message }}</p>@enderror
     </div>
 

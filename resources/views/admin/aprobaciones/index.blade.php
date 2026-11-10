@@ -191,7 +191,7 @@
                                 @endif
                                 <span class="text-xs text-[#64748B]">
                                     <i class="fa-regular fa-clock mr-1" aria-hidden="true"></i>
-                                    Creada el {{ $aprobacion->created_at?->format('d/m/Y H:i') }}
+                                    Creada el {{ \App\Support\HoraLocal::formato($aprobacion->created_at) }}
                                 </span>
                             </div>
                             <h2 class="mt-2 break-words text-lg font-bold text-[#172B3A]">{{ $aprobacion->titulo }}</h2>
@@ -244,7 +244,7 @@
                         </div>
                         <div>
                             <dt class="text-xs font-semibold uppercase tracking-wide text-[#64748B]">Última actualización</dt>
-                            <dd class="mt-0.5 text-xs text-[#64748B]">{{ $aprobacion->updated_at?->format('d/m/Y H:i') }}</dd>
+                            <dd class="mt-0.5 text-xs text-[#64748B]">{{ \App\Support\HoraLocal::formato($aprobacion->updated_at) }}</dd>
                         </div>
                     </dl>
 
@@ -282,7 +282,7 @@
                                                     <p class="mt-0.5 break-words text-[#64748B]">Comentario: «{{ $cambios['comentario'] }}»</p>
                                                 @endif
                                             </div>
-                                            <span class="whitespace-nowrap text-[11px] text-[#94A3B8]">{{ $evento->created_at?->format('d/m/Y H:i:s') }}</span>
+                                            <span class="whitespace-nowrap text-[11px] text-[#94A3B8]">{{ \App\Support\HoraLocal::formato($evento->created_at, 'd/m/Y H:i:s') }}</span>
                                         </li>
                                     @endforeach
                                 </ul>
