@@ -484,11 +484,26 @@ class AdminProtection
         return $role->name === self::ROLE && $role->guard_name === self::GUARD;
     }
 
+    /** Roles base con acceso al panel además de `admin`: no se renombran ni eliminan (sí se editan sus permisos). */
+    public const ROLES_BASE = ['coordinador', 'secretaria'];
+
+    public function isBaseRole(Role $role): bool
+    {
+        return $role->guard_name === self::GUARD && in_array($role->name, self::ROLES_BASE, true);
+    }
+
     public function assertRoleCanBeRenamed(Role $role, string $newName): void
     {
         if ($this->isAdminRole($role) && $newName !== self::ROLE) {
             throw ValidationException::withMessages([
                 'name' => 'El rol principal "admin" no se puede renombrar.',
+            ]);
+        }
+
+        // El acceso al panel y el seeder dependen de estos nombres: renombrarlos dejaría a sus usuarios sin acceso.
+        if ($this->isBaseRole($role) && $newName !== $role->name) {
+            throw ValidationException::withMessages([
+                'name' => 'El rol base "'.$role->name.'" no se puede renombrar.',
             ]);
         }
     }
@@ -498,6 +513,12 @@ class AdminProtection
         if ($this->isAdminRole($role)) {
             throw ValidationException::withMessages([
                 'rol' => 'No se puede eliminar el rol principal de administración.',
+            ]);
+        }
+
+        if ($this->isBaseRole($role)) {
+            throw ValidationException::withMessages([
+                'rol' => 'No se puede eliminar el rol base "'.$role->name.'".',
             ]);
         }
     }
