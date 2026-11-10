@@ -84,11 +84,10 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 **Requieren aprobación de vistas**
 
-- Pasar a POST las exportaciones que hoy son GET con efecto lateral (auditoría, respaldo, CSV de matrículas): cambia botones y enlaces.
 - Búsqueda asíncrona/paginada en los selectores de matrícula para volúmenes grandes.
 - Mensajes de validación por defecto en inglés: requieren `APP_LOCALE=es` y archivos `lang/es` (cambio de entorno, no autorizado aquí).
 
-Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9).
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10).
 
 **Requieren decisión funcional**
 
@@ -122,7 +121,7 @@ Aprobado por el propietario, incluidas las pantallas implicadas.
 - Pantallas que pasaron de UTC a Lima: inicio («Actualizado al» y auditoría reciente), detalle de matrícula, aprobaciones (creada, actualizada, historial), asistente, notificaciones, estudiantes eliminados y archivos heredados de respaldo. La fecha propuesta al crear una matrícula y la fecha del PDF de reportes también son de Lima.
 - El «mes actual» y los últimos 6 meses del inicio se calculan desde la hora de Lima.
 - Sin cambio: reclamaciones y cotizaciones (ya en Lima con su propia configuración) y columnas `date`.
-- Fuera de alcance: `before_or_equal:today` de la fecha de nacimiento (se evalúa en UTC) y la exportación JSON de auditoría, que conserva `fecha` en UTC para no cambiar su formato.
+- Fuera de alcance: la exportación JSON de auditoría, que conserva `fecha` en UTC para no cambiar su formato. (`before_or_equal:today` de la fecha de nacimiento se corrigió después, sección 10.)
 
 **Configuración efectiva.** `app/Support/ConfiguracionSistema.php` lee los 5 ajustes en una sola consulta por petición (memoria en el `Request`, sin caché entre peticiones; vacío = predeterminado).
 - El nombre de la empresa se usa en el título del panel, la barra superior, el menú lateral, el inicio, la pantalla de Configuración y los PDF administrativos (título, encabezado y pie).
@@ -163,3 +162,23 @@ Aprobado por el propietario, incluidas las pantallas implicadas, con dos decisio
 **Límites.** Solo SQLite en memoria y pruebas unitarias de JavaScript; la migración `000038` no se ha aplicado en PostgreSQL (ver sección 6). Lectores de pantalla reales no se probaron.
 
 Pruebas: `NotificacionLecturaPorUsuarioTest`, `AccesibilidadPanelTest`, `tests/frontend/admin-accesibilidad.test.mjs` y `campana-notificaciones.test.mjs`. Cambiaron a propósito, por la decisión de lectura por usuario, `AdminNotificacionTest` (marcar una general) y `NotificacionPrivacidadUsuarioEliminadoTest` (la lectura compartida pasa a ser por usuario).
+
+## 10. Exportaciones por POST, escape de LIKE y fecha de nacimiento (10/11/2026)
+
+Aprobado por el propietario, incluidas las tres pantallas con botón de exportación.
+
+**Exportaciones por POST.** Tres exportaciones escribían auditoría (`audit_exported`, `data_export_generated` y la exportación de matrículas) pero se disparaban con `GET`, que un prefetch, un enlace ajeno o un favorito pueden activar sin que nadie lo pida.
+- `POST /admin/matriculas/exportar/csv` (`matriculas.csv`), `POST /admin/auditoria/exportar` (`auditoria.exportar`) y `POST /admin/respaldo/exportar` (`respaldo.exportar`). Mismos nombres, permisos y `throttle:admin-export`; un `GET` a esas URLs responde 405 y no deja registro de auditoría. Los controladores no cambiaron.
+- Los botones son formularios con `@csrf`. Los filtros viajan como campos ocultos: en matrículas solo `busqueda`, `estado`, `curso_id` y `eliminados`, y solo si son texto (un filtro con forma de array no se reenvía); en auditoría, los filtros vigentes ya saneados.
+- Sin enlaces externos conocidos a estas URLs. Un favorito o script antiguo con `GET` dejará de funcionar.
+
+**Escape de `LIKE`.** `whereLike('col', "%{$q}%")` dejaba que un `%` o un `_` escrito en el buscador actuara como comodín (buscar `%` devolvía todo el listado).
+- Nuevo `App\Support\BusquedaLike` (`termino()`, `contiene()`): escapa `!`, `%` y `_`, declara `ESCAPE '!'` y mantiene la búsqueda insensible a mayúsculas (`ILIKE` en PostgreSQL, `LIKE` en SQLite). Las columnas son fijas del código y pasan por la gramática; el texto va siempre como parámetro. El `id` de matrícula se compara como `CAST(id AS TEXT)`.
+- Aplicado en estudiantes, cursos, usuarios, matrículas, aprobaciones, búsqueda global, reportes (filtro de matrículas) y filtros de auditoría (acción, modelo y usuario). `ReclamacionController` ya escapaba con el mismo criterio y no se tocó.
+- La sintaxis PostgreSQL se fija compilando la consulta sin conexión; no se ejecutó contra PostgreSQL.
+
+**Fecha de nacimiento.** `before_or_equal:today` se evaluaba en UTC: desde las 19:00 de Lima aceptaba la fecha de mañana. Ahora usa `HoraLocal::hoy()` en alta y edición de estudiantes. `fecha_matricula` no tiene tope superior y no se cambió.
+
+Pruebas: `ExportacionesPostTest`, `BusquedaLikeEscapeTest` y `EstudianteFechaNacimientoLimaTest`. Las demás pruebas de exportación cambiaron de `get` a `post` sin debilitar aserciones; `AdminAuthorizationTest` ya no incluye las dos exportaciones en la matriz de páginas GET (su matriz está en `ExportacionesPostTest`), y la prueba de filtros con forma de array de `AdminListFilterInputTest` ya no cubre `matriculas.csv` (lo cubre `AuditoriaExportacionMatriculasTest`).
+
+**Límites.** Solo SQLite en memoria. La concurrencia y el comportamiento real de `ILIKE ... ESCAPE` en PostgreSQL no se midieron. No se probó la descarga real en un navegador.
