@@ -10,7 +10,7 @@
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 Volver al detalle
             </a>
-            <h1 class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Editar estudiante</h1>
+            <h2 id="admin-form-title" class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Editar estudiante</h2>
             <p class="admin-page-subtitle">Actualiza la información de {{ $estudiante->nombres }} {{ $estudiante->apellidos }}.</p>
         </section>
 

@@ -8,7 +8,7 @@
     <div class="mx-auto max-w-4xl space-y-6">
         <div>
             <p class="admin-eyebrow">Sistema</p>
-            <h1 class="admin-page-title">Configuración general</h1>
+            <h2 id="admin-form-title" class="admin-page-title">Configuración general</h2>
             <p class="admin-page-subtitle">Parámetros institucionales básicos de {{ \App\Support\ConfiguracionSistema::nombreEmpresa() }}. El nombre y la moneda se usan en el panel y en los reportes PDF.</p>
         </div>
 

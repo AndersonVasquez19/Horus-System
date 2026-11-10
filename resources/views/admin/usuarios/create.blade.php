@@ -9,7 +9,7 @@
         <div class="admin-page-header">
             <div>
                 <p class="admin-eyebrow">Registro</p>
-                <h1 class="admin-page-title">Nuevo usuario</h1>
+                <h2 id="admin-form-title" class="admin-page-title">Nuevo usuario</h2>
             </div>
             <a href="{{ route('admin.usuarios.index') }}" class="admin-btn-outline">
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>

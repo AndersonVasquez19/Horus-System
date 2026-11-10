@@ -2,6 +2,9 @@ import { chatClient } from './chat-client.js';
 import Alpine from 'alpinejs';
 import { iniciarModales, sincronizarModal } from './admin-modals.mjs';
 import { iniciarConfirmaciones } from './confirm-forms.mjs';
+import { adminShell } from './admin-shell.mjs';
+import { avisoPanel } from './admin-avisos.mjs';
+import { confirmModal } from './confirm-modal.mjs';
 import { campanaNotificaciones } from './campana-notificaciones.mjs';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '@fontsource/poppins/latin-300.css';
@@ -185,6 +188,9 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('chatClient', chatClient);
 
   // Panel administrativo.
+  Alpine.data('adminShell', () => adminShell());
+  Alpine.data('avisoPanel', () => avisoPanel());
+  Alpine.data('confirmModal', () => confirmModal());
   Alpine.data('campanaNotificaciones', () => campanaNotificaciones());
 });
 

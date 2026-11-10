@@ -1,4 +1,7 @@
 <aside
+    id="admin-sidebar"
+    x-ref="sidebar"
+    :inert="menuInerte"
     class="fixed inset-y-0 left-0 z-40 flex w-[260px] -translate-x-full flex-col border-r border-white/10 bg-[#0A2540] text-slate-300 shadow-xl shadow-[#0A2540]/20 transition-transform duration-200 md:w-[72px] md:translate-x-0 xl:w-[260px]"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     aria-label="Navegación administrativa"

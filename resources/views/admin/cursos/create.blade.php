@@ -10,7 +10,7 @@
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 Volver a cursos
             </a>
-            <h1 class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nuevo curso</h1>
+            <h2 id="admin-form-title" class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nuevo curso</h2>
             <p class="admin-page-subtitle">Completa la información para registrar un curso.</p>
         </section>
 

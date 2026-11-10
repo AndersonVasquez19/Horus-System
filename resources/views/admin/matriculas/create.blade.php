@@ -10,7 +10,7 @@
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 Volver a matrículas
             </a>
-            <h1 class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nueva matrícula</h1>
+            <h2 id="admin-form-title" class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nueva matrícula</h2>
             <p class="admin-page-subtitle">Selecciona al estudiante y el curso para registrar la matrícula.</p>
         </section>
 

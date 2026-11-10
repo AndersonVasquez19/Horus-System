@@ -13,16 +13,17 @@
     </style></noscript>
 </head>
 <body class="admin-surface min-h-screen overflow-x-hidden font-sans text-[#172B3A] antialiased">
+    <a href="#admin-main-content" data-saltar-contenido class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-[#0A2540] focus:shadow-xl focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#19A7A1]">Saltar al contenido principal</a>
     <div
-        x-data="{ sidebarOpen: false }"
-        @keydown.escape.window="sidebarOpen = false"
+        x-data="adminShell"
+        @keydown.escape.window="cerrarMenu()"
         class="min-h-screen"
     >
         <div
             x-cloak
             x-show="sidebarOpen"
             x-transition.opacity
-            @click="sidebarOpen = false"
+            @click="cerrarMenu()"
             class="fixed inset-0 z-30 bg-[#0A2540]/60 backdrop-blur-[2px] md:hidden"
             aria-hidden="true"
         ></div>
@@ -31,7 +32,7 @@
 
         <div class="flex min-h-screen min-w-0 flex-col md:pl-[72px] xl:pl-[260px]">
             @include('admin.partials.topbar')
-            <main id="admin-main-content" class="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            <main id="admin-main-content" tabindex="-1" class="focus:outline-none mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 @php
                     $rutaFormulario = request()->routeIs(
                         'admin.estudiantes.create', 'admin.estudiantes.edit',
@@ -49,7 +50,7 @@
                         <h1 class="admin-page-title">@yield('title')</h1>
                         <a href="{{ $volverFormulario }}" class="admin-btn-outline">Volver al panel</a>
                     </div>
-                    <dialog data-admin-modal data-admin-page-form data-auto-open data-return-url="{{ $volverFormulario }}" aria-label="@yield('title')" class="admin-form-modal">
+                    <dialog data-admin-modal data-admin-page-form data-auto-open data-return-url="{{ $volverFormulario }}" aria-labelledby="admin-form-title" class="admin-form-modal">
                         <div class="admin-modal-heading">
                             <p class="admin-eyebrow">Formulario de gestión</p>
                             <button type="button" data-admin-modal-close class="admin-icon-btn" aria-label="Cerrar formulario">

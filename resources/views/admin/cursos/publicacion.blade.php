@@ -16,7 +16,7 @@
     @endphp
     <div>
         <p class="admin-eyebrow">Curso {{ $curso->codigo }}</p>
-        <h1 class="admin-page-title">Publicar curso en la web</h1>
+        <h2 id="admin-form-title" class="admin-page-title">Publicar curso en la web</h2>
         <p class="mt-2 text-sm leading-6 text-[#64748B]">Revisa el título, el resumen y la modalidad que verá el visitante. Escribe solo información pública, sin datos personales, precios ni cupos.</p>
     </div>
     <div role="status" class="rounded-xl border border-[#E2E8F0] bg-[#F4F7FB] px-4 py-3 text-sm text-[#172B3A]">

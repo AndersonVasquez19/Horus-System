@@ -2,11 +2,14 @@
     <div class="flex min-w-0 items-center gap-3">
         <button
             type="button"
-            @click="sidebarOpen = !sidebarOpen"
+            x-ref="botonMenu"
+            @click="alternarMenu()"
+            aria-controls="admin-sidebar"
             aria-expanded="false"
             :aria-expanded="sidebarOpen.toString()"
             class="admin-icon-btn md:hidden"
             aria-label="Abrir menú de navegación"
+            :aria-label="sidebarOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'"
         >
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>

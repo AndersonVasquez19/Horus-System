@@ -10,7 +10,7 @@
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 Volver a estudiantes
             </a>
-            <h1 class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nuevo estudiante</h1>
+            <h2 id="admin-form-title" class="mt-3 text-2xl font-bold tracking-tight text-[#172B3A]">Nuevo estudiante</h2>
             <p class="admin-page-subtitle">Completa los datos para registrar a un estudiante.</p>
         </section>
 
