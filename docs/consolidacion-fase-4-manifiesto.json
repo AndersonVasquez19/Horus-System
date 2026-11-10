@@ -226,7 +226,7 @@
       "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
     },
     {
-      "file": "database/migrations/2026_10_28_000022_create_registros_pendientes_table.php",
+      "file": "database/migraciones-suspendidas/2026_10_28_000022_create_registros_pendientes_table.php",
       "sha256": "ed2b564c187531269cad4ee7f165476d0195fcb448b22cc3ab79645c0d1095bd",
       "status": "excluida",
       "reason": "Suspendida; verificacion de correo no autorizada.",

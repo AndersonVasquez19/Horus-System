@@ -368,7 +368,7 @@ Estado operativo conocido: las seis filas distintas de `000022` se ensayaron en 
 | [000023](database/migrations/2026_10_28_000023_hold_matricula_notifications_backlog.php) | Pasa avisos previos `pending` sin intentos a `held`; depende de **000020** | No libera avisos ni reenvía; `down()` no revierte la retención |
 | [000024](database/migrations/2026_10_28_000024_add_aprobaciones_respaldo_permissions.php) | Cuatro permisos de Aprobaciones/Respaldo; depende de Spatie | Aditiva y conserva asignaciones. Ver/gestionar según rol; exportar respaldo solo admin |
 
-No ejecutar `migrate` general: arrastraría `000022`. Un plan futuro debe revisar destinos y dependencias, backup, ventana y autorizaciones por separado. No se incluye aquí una receta ejecutable. Documentación: [preparación y ensayo](docs/sprint-15-preparacion-integracion.md), [integridad](docs/postgresql-l2.2-c-integridad.md).
+**Actualización 10/11/2026:** `000022`, `000035` y `000036` están apartadas en `database/migraciones-suspendidas/` (`docs/auditoria-panel-2026-11.md` §15) y `migrate` ya no las arrastra. Histórico: no ejecutar `migrate` general: arrastraría `000022`. Un plan futuro debe revisar destinos y dependencias, backup, ventana y autorizaciones por separado. No se incluye aquí una receta ejecutable. Documentación: [preparación y ensayo](docs/sprint-15-preparacion-integracion.md), [integridad](docs/postgresql-l2.2-c-integridad.md).
 
 Consecuencia funcional documentada cuando falta `000020`: el alta de matrícula puede fallar y revertirse al capturar el aviso, aunque el transporte esté apagado. Cuando faltan permisos de `000024`, Aprobaciones/Respaldo pueden responder 403. No resolverlo relajando permisos ni activando servicios; verificar el esquema solo cuando se autorice.
 
@@ -1477,7 +1477,7 @@ Auditoría y planificación **solo de lectura**. No se modificó código, migrac
 
 ### 1. Estado global
 - **Backend académico y comercial:** sólido en transacciones, bloqueo y permisos (confirmado por las rondas previas). Brecha principal: **sin auditoría en matrículas, procesos, aprobaciones ni acceso** (R-01, M-04).
-- **PostgreSQL de desarrollo:** 28 migraciones aplicadas, 000022 pendiente a propósito. **No ejecutar `php artisan migrate` sin `--path`.** Respaldo previo fuera del repo (SHA-256 en la sección de aplicación).
+- **PostgreSQL de desarrollo:** 28 migraciones aplicadas, 000022 pendiente a propósito. **No ejecutar `php artisan migrate` sin `--path` (histórico; desde el 10/11/2026 000022 está apartada, ver auditoría §15).** Respaldo previo fuera del repo (SHA-256 en la sección de aplicación).
 - **Libro de Reclamaciones:** backend completo, apagado (`enabled=false`), sin ruta, sin panel, sin job programado. La página pública sigue simulando el envío (`data-endpoint=""`, número `SIM-…`): **N-50 vigente (C)**.
 - **Riesgo de proceso:** el trabajo de los sprints 19–20 (cotizaciones, reclamaciones, ~70 archivos sin seguimiento, 30 modificados) **no está en ningún commit**; solo existe en el árbol de trabajo (R-10).
 

@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * Solo añade índices: no cambia datos ni restricciones. Se omite cualquiera que ya exista. En PostgreSQL
  * `CREATE INDEX` (no concurrente) bloquea escrituras de la tabla mientras se construye: aplicar en una ventana
- * de mantenimiento y con `--path` mientras la migración 000022 siga suspendida. Probada solo en SQLite en memoria.
+ * de mantenimiento y, por prudencia, con `--path` (la 000022 está apartada en database/migraciones-suspendidas/). Probada solo en SQLite en memoria.
  */
 return new class extends Migration
 {

@@ -58,6 +58,8 @@ if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatab
 }
 Http::preventStrayRequests();
 Artisan::call('migrate', ['--force' => true]);
+// La tabla de solicitudes está apartada en database/migraciones-suspendidas/; solo se instala en esta SQLite :memory:.
+(require database_path('migraciones-suspendidas/2026_11_09_000035_create_solicitudes_matricula_table.php'))->up();
 (new RolesAndPermissionsSeeder)->run();
 $admin = User::factory()->create(['name' => 'Administrador ficticio']);
 $admin->assignRole('admin');

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Schema;
  * para todos (semántica anterior), para no reabrir avisos antiguos.
  *
  * Solo crea una tabla nueva: no altera filas ni restricciones existentes. Probada solo en SQLite en memoria;
- * en PostgreSQL aplicar con `--path` mientras la migración 000022 siga suspendida.
+ * en PostgreSQL aplicar, por prudencia, con `--path` (la 000022 está apartada en database/migraciones-suspendidas/).
  */
 return new class extends Migration
 {

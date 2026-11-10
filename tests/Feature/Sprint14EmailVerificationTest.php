@@ -22,16 +22,21 @@ use Illuminate\Support\Facades\Password;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Symfony\Component\Mailer\Exception\TransportException;
+use Tests\Support\InstalaMigracionesSuspendidas;
 use Tests\TestCase;
 
 class Sprint14EmailVerificationTest extends TestCase
 {
+    use InstalaMigracionesSuspendidas;
     use RefreshDatabase;
+
+    private const MIGRACION = '2026_10_28_000022_create_registros_pendientes_table';
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
+        $this->instalarMigracionesSuspendidas([self::MIGRACION]);
         config(['registro-verificacion.enabled' => true, 'registro-verificacion.mailer' => 'array',
             'jwt.secret' => str_repeat('x', 64), 'jwt.issuer' => 'https://horus.example']);
         Mail::fake();
@@ -297,7 +302,7 @@ class Sprint14EmailVerificationTest extends TestCase
         $user = $this->adminUser();
         $before = $user->refresh()->getRawOriginal();
         $roles = $user->getRoleNames()->all();
-        $migration = require database_path('migrations/2026_10_28_000022_create_registros_pendientes_table.php');
+        $migration = $this->cargarMigracionSuspendida(self::MIGRACION);
         $migration->down();
         $migration->up();
         $this->assertDatabaseCount('registros_pendientes', 0);

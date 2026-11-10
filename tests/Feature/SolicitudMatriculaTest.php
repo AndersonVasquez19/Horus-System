@@ -22,10 +22,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\InstalaMigracionesSuspendidas;
 use Tests\TestCase;
 
 class SolicitudMatriculaTest extends TestCase
 {
+    use InstalaMigracionesSuspendidas;
     use RefreshDatabase;
 
     private User $admin;
@@ -38,6 +40,7 @@ class SolicitudMatriculaTest extends TestCase
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
+        $this->instalarMigracionesSuspendidas(['2026_11_09_000035_create_solicitudes_matricula_table']);
         Http::preventStrayRequests();
         Mail::fake();
         config(['catalogo-publico.enabled' => true]);
@@ -269,7 +272,7 @@ class SolicitudMatriculaTest extends TestCase
         $coordinador = Role::findByName('coordinador');
         $coordinador->givePermissionTo('cursos.publicar');
         $antes = $coordinador->permissions()->pluck('name')->sort()->values()->all();
-        $migracion = require database_path('migrations/2026_11_09_000036_add_solicitudes_matricula_permissions.php');
+        $migracion = $this->cargarMigracionSuspendida('2026_11_09_000036_add_solicitudes_matricula_permissions');
         $migracion->up();
         $migracion->up();
         app(PermissionRegistrar::class)->forgetCachedPermissions();

@@ -46,16 +46,14 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 3. Actualizar el código (`git pull` o el artefacto que se use).
 4. `composer install --no-dev --optimize-autoloader --no-interaction`.
 5. `npm ci && npm run build`. `public/build` es un artefacto generado y no se versiona.
-6. **Migraciones, siempre con `--path`.** No ejecutes `php artisan migrate` sin argumentos: aplicaría también `2026_10_28_000022` (verificación de registro), suspendida. Aplica una a una, en orden, las que muestre `migrate:status` como pendientes, con `php artisan migrate --force --path=database/migrations/<archivo>.php`. Recientes y su efecto:
+6. **Migraciones, con `--path` por prudencia.** Desde el 10/11/2026 `2026_10_28_000022` (verificación de registro), `000035` y `000036` (solicitudes de matrícula) están apartadas en `database/migraciones-suspendidas/` y `migrate` no las ve, así que `php artisan migrate` plano ya no las arrastra; aun así, en una base real aplica una a una, en orden, las que muestre `migrate:status` como pendientes, con `php artisan migrate --force --path=database/migrations/<archivo>.php`. Recientes y su efecto:
 
    | Migración | Efecto |
    | --- | --- |
-   | `2026_11_09_000035` | Crea `solicitudes_matricula` |
-   | `2026_11_09_000036` | Crea dos permisos de solicitudes y los concede solo a `admin` (no resincroniza otros roles) |
    | `2026_11_10_000037` | Índices de consultas del panel |
    | `2026_11_10_000038` | Crea `notificacion_lecturas` (lectura por usuario de las generales) |
 
-   Las migraciones de permisos o integridad (`000012`, `000013`, `000021`, `000036`) se aplican con revisión previa y copia reciente. Tras ellas: `php artisan permission:cache-reset`.
+   Las migraciones de permisos o integridad (`000012`, `000013`, `000021`) se aplican con revisión previa y copia reciente. Tras ellas: `php artisan permission:cache-reset`.
 7. `php artisan config:cache && php artisan route:cache && php artisan view:cache` (las tres funcionan con las rutas y vistas actuales).
 8. `php artisan queue:restart` (reinicia los workers con el código nuevo).
 9. `php artisan up`.
@@ -72,7 +70,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 1. `GET /up` responde 200.
 2. Inicio de sesión del panel, listado de matrículas y la campana de notificaciones.
 3. Una exportación desde su botón (son `POST` con CSRF) y comprobar que queda el registro de auditoría correspondiente.
-4. `php artisan migrate:status` sin pendientes salvo `000022`.
+4. `php artisan migrate:status` sin pendientes. Las apartadas (`000022`, `000035`, `000036`) no aparecen y no se aplican sin autorización expresa.
 5. `php artisan schedule:list` muestra las tareas esperadas.
 6. Revisar `storage/logs` en busca de errores nuevos.
 

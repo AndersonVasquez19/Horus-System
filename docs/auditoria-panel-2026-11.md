@@ -82,7 +82,7 @@ Este documento registra qué se revisó en `/admin`, qué se corrigió, qué se 
 
 ## 5. Pendientes
 
-Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13); retirada de permisos sin uso (sección 14).
+Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del inicio, configuración efectiva y páginas de error propias (sección 8); accesibilidad del layout y campana de notificaciones (sección 9); exportaciones por POST, escape de `LIKE` y fecha de nacimiento en hora de Lima (sección 10); selectores de matrícula con búsqueda en el servidor (sección 12); mensajes de validación en español (sección 13); retirada de permisos sin uso (sección 14); migraciones suspendidas apartadas (sección 15).
 
 **Requieren decisión funcional**
 
@@ -97,7 +97,7 @@ Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del in
 
 ## 6. Aplicar en PostgreSQL (cuando se autorice)
 
-**Aplicadas el 10/11/2026** en la base local `horus_group` (127.0.0.1:5432, entorno `local`), con autorización expresa del propietario y solo para estas dos: `000037` (índices) y `000038` (`notificacion_lecturas`), cada una con `--path`. Verificado después: los 12 índices y la tabla (0 filas) existen. Siguen pendientes y **no** se aplicaron: `000022` (suspendida), `000035` y `000036` (solicitudes de matrícula). Otros entornos (producción) requieren su propia aplicación.
+**Aplicadas el 10/11/2026** en la base local `horus_group` (127.0.0.1:5432, entorno `local`), con autorización expresa del propietario y solo para estas dos: `000037` (índices) y `000038` (`notificacion_lecturas`), cada una con `--path`. Verificado después: los 12 índices y la tabla (0 filas) existen. `000022`, `000035` y `000036` **no** se aplicaron y desde el 10/11/2026 están apartadas (sección 15). Otros entornos (producción) requieren su propia aplicación.
 
 **Solicitudes de matrícula (000035 y 000036): decisión del propietario del 10/11/2026, no aplicarlas.** El código existe en el repositorio (`SolicitudMatriculaController`, `SolicitudMatriculaPublicaController`, `GestionSolicitudesMatricula`, vistas y rutas, commit `0190498`) pero queda **inactivo** mientras no se apliquen sus migraciones: el formulario público `/solicitar-matricula` responde 503 (comprueba `Schema::hasTable('solicitudes_matricula')`), `/admin/solicitudes-matricula` responde 403 porque los permisos `solicitudes-matricula.ver|gestionar` no existen en `horus_group`, y el enlace del menú lateral permanece oculto. La `000036` es la única que concede permisos. No hay que ejecutar `migrate` sin `--path`; `000022` sigue suspendida.
 
@@ -215,3 +215,13 @@ Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. An
 - `RolesAndPermissionsSeeder` ya no los crea ni los concede (`PERMISSIONS`, coordinador, secretaria), y `RoleController::PERMISOS_RETIRADOS` los oculta en la pantalla de Roles.
 - **En bases existentes las filas siguen en `permissions` y `role_has_permissions`**: solo dejan de verse. No hay migración ni escritura en PostgreSQL; borrarlas exigiría una migración y autorización aparte. Al guardar un rol desde la pantalla se desasocian de ese rol (inocuo: nada los consulta).
 - `PermisosRetiradosTest` cubre instalación nueva, ocultación sin borrado y que tenerlos o no no cambia el acceso.
+
+## 15. Migraciones suspendidas apartadas (10/11/2026)
+
+- **Decisión del propietario:** quitar las 3 migraciones pendientes de `horus_group` sin eliminarlas. Se movieron con `git mv` (mismo contenido y SHA-256) a `database/migraciones-suspendidas/`: `000022` (`registros_pendientes`, verificación de correo apagada), `000035` (`solicitudes_matricula`) y `000036` (permisos `solicitudes-matricula.*`). Laravel solo escanea `database/migrations`, así que `php artisan migrate:status --pending` dice «No pending migrations» y `migrate` plano ya no arrastra la `000022`.
+- El **código de ambas funciones sigue en el repositorio, inactivo**: verificación apagada (`config/registro-verificacion.php`), formulario público 503, panel de solicitudes 403, enlace del menú oculto. `README.md` de la carpeta explica cómo reactivarlas (`git mv` de vuelta y autorización expresa; la `000036` pide copia reciente).
+- **Pruebas:** `InstalaMigracionesSuspendidas` (tests/Support) ejecuta esos archivos solo en SQLite `:memory:` para `SolicitudMatriculaTest`, `Sprint14EmailVerificationTest` y el router del smoke de solicitudes. El manifiesto de Fase 4 apunta a la nueva ruta de la `000022` (el hash no cambia; los instaladores ya la saltan por regex).
+- `SOLICITUDES_MATRICULA_PERMISSIONS` sigue dentro de `RolesAndPermissionsSeeder::PERMISSIONS` (sin cambio en instalaciones nuevas); decidir su destino cuando se reactive el módulo.
+- **Riesgo no medible desde aquí:** si alguna se aplicó en otro entorno, su fila queda en `migrations` sin archivo; `migrate` lo tolera, `migrate:rollback` de ese lote fallaría.
+- **Coherencia de pagos (`monto_pagado` ↔ estado): suspendida por decisión del propietario.** Sin cambios.
+- Nada se escribió en PostgreSQL.

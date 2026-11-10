@@ -52,9 +52,11 @@ datos se rechaza. Los campos administrativos no se toman del visitante.
 
 ## Migraciones y activación local autorizada — 09/11/2026
 
-1. `database/migrations/2026_11_09_000035_create_solicitudes_matricula_table.php`
+> **10/11/2026:** por decisión del propietario las dos migraciones están **apartadas** en `database/migraciones-suspendidas/` y no se aplicaron en `horus_group`. La función queda inactiva (formulario público 503, panel 403). Para reactivarla: `git mv` de vuelta a `database/migrations/` y autorización expresa para aplicarlas.
+
+1. `database/migraciones-suspendidas/2026_11_09_000035_create_solicitudes_matricula_table.php`
    crea la tabla independiente y el índice único de recepción.
-2. `database/migrations/2026_11_09_000036_add_solicitudes_matricula_permissions.php`
+2. `database/migraciones-suspendidas/2026_11_09_000036_add_solicitudes_matricula_permissions.php`
    crea dos permisos y los concede a admin sin resincronizar los demás roles.
    La constante correspondiente también se incorpora a `RolesAndPermissionsSeeder`.
 

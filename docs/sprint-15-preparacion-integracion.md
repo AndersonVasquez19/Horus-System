@@ -93,7 +93,7 @@ Cada bloque requiere autorización expresa del propietario que nombre el destino
 ### B. Migraciones
 
 1. Activar modo mantenimiento (`php artisan down`) y detener workers y scheduler.
-2. **No ejecutar `php artisan migrate` sin argumentos**: aplicaría también `000022`, suspendida. Usar la lista explícita del §8.4, que deja `000022` pendiente. En PostgreSQL cada migración corre en su transacción.
+2. **No ejecutar `php artisan migrate` sin argumentos**: aplicaría también `000022`, suspendida (*desde el 10/11/2026 está apartada en `database/migraciones-suspendidas/`; ver `docs/auditoria-panel-2026-11.md` §15*). Usar la lista explícita del §8.4, que deja `000022` pendiente. En PostgreSQL cada migración corre en su transacción.
 3. Comprobar después: `migrate:status` sin pendientes; existe `matriculas_vigente_unica` y los tres `CHECK`; existen las tres tablas; `admin` tiene `matriculas.exportar`, `matriculas.eliminar` y `cursos.publicar`; `php artisan permission:cache-reset`.
 4. Desplegar el código (si no estaba ya) y `php artisan config:cache`. Salir de mantenimiento.
 5. Prueba funcional mínima: crear una matrícula de prueba autorizada y comprobar que se crea una fila `held` (`captured_while_disabled`) en `matricula_notifications` sin que nada se envíe (`horus:matriculas-notificar --status`). Comprobar acceso de `admin` a Aprobaciones y Respaldo.
