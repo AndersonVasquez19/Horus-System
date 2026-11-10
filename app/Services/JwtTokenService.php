@@ -9,9 +9,14 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Carbon;
 use RuntimeException;
+use UnexpectedValueException;
 
 class JwtTokenService
 {
+    private const MAX_TTL = 86400;
+
+    private const MAX_LEEWAY = 60;
+
     /** @return array{access_token: string, token_type: string, expires_in: int} */
     public function issue(User $user): array
     {
@@ -20,7 +25,7 @@ class JwtTokenService
         }
 
         $now = Carbon::now()->timestamp;
-        $expiresAt = $now + max(60, (int) config('jwt.ttl', 900));
+        $expiresAt = $now + min(self::MAX_TTL, max(60, (int) config('jwt.ttl', 900)));
         $token = JWT::encode([
             'iss' => $this->issuer(),
             'aud' => $this->issuer(),
@@ -37,11 +42,18 @@ class JwtTokenService
 
     public function decode(string $token): object
     {
-        JWT::$leeway = max(0, (int) config('jwt.leeway', 0));
-        $claims = JWT::decode($token, new Key($this->secret(), 'HS256'));
+        // `JWT::$leeway` es estático y global: acotarlo y restaurarlo para no alterar otros usos de la librería.
+        $anterior = JWT::$leeway;
+        JWT::$leeway = min(self::MAX_LEEWAY, max(0, (int) config('jwt.leeway', 0)));
+
+        try {
+            $claims = JWT::decode($token, new Key($this->secret(), 'HS256'));
+        } finally {
+            JWT::$leeway = $anterior;
+        }
 
         if (($claims->iss ?? null) !== $this->issuer() || ($claims->aud ?? null) !== $this->issuer()) {
-            throw new RuntimeException('Invalid token issuer or audience.');
+            throw new UnexpectedValueException('Invalid token issuer or audience.');
         }
 
         return $claims;

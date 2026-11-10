@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\VerificacionRegistroService;
+use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -85,6 +86,12 @@ class AuthController extends Controller
                 'password.required' => 'La contraseña es obligatoria.',
             ],
         );
+
+        // El proveedor de Eloquent no hace trabajo de hash si el correo no existe: igualarlo para no revelar
+        // por latencia qué cuentas están registradas.
+        if (! User::query()->where('email', $credentials['email'])->exists()) {
+            CredentialTiming::check($credentials['password'], null);
+        }
 
         if (! Auth::attemptWhen($credentials, fn (User $user): bool => ! VerificacionRegistroService::enabled() || $user->hasVerifiedEmail())) {
             return back()

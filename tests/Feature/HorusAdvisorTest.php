@@ -445,7 +445,11 @@ class HorusAdvisorTest extends TestCase
         $this->postJson('/chat/mensaje', ['mensaje' => 'Orientame sobre cursos', 'session_id' => 'test'])
             ->assertOk()->assertExactJson(['respuesta' => $this->reply()['answer'], 'intent' => null, 'fuente' => 'advisor']);
         $route = app('router')->getRoutes()->getByName('chat.mensaje');
-        $this->assertContains('throttle:30,1', $route->gatherMiddleware());
+        // El límite sigue siendo 30/min, ahora con limitador propio para no compartir contador con otras rutas.
+        $this->assertContains('throttle:chat', $route->gatherMiddleware());
+        $limite = \Illuminate\Support\Facades\RateLimiter::limiter('chat')(request());
+        $this->assertSame(30, $limite->maxAttempts);
+        $this->assertSame(60, $limite->decaySeconds);
     }
 
     public function test_dry_validation_requires_valid_signature_and_never_reports_loaded(): void

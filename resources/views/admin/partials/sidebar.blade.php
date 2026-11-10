@@ -340,6 +340,14 @@
             <i class="fa-solid fa-arrow-up-right-from-square w-5 shrink-0 text-center text-slate-400 transition-colors group-hover:text-[#19A7A1]" aria-hidden="true"></i>
             <span class="truncate md:hidden xl:inline">Ver sitio público</span>
         </a>
+        <a href="{{ route('admin.perfil.edit') }}" title="Mi perfil" @if(request()->is('admin/perfil*')) aria-current="page" @endif @class([
+            'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#19A7A1]',
+            'bg-gradient-to-r from-[#176B9A] to-[#287FB5] font-semibold text-white' => request()->is('admin/perfil*'),
+            'text-slate-300 hover:bg-[#176B9A]/25 hover:text-white' => ! request()->is('admin/perfil*'),
+        ])>
+            <i class="fa-solid fa-user w-5 shrink-0 text-center text-slate-400 transition-colors group-hover:text-[#19A7A1]" aria-hidden="true"></i>
+            <span class="truncate md:hidden xl:inline">Mi perfil</span>
+        </a>
         <form method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit" title="Cerrar sesión" class="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-300 transition hover:bg-[#176B9A]/25 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#19A7A1]">

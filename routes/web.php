@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
+use App\Http\Controllers\Admin\PerfilController;
 use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
@@ -44,7 +45,7 @@ Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('
 Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
 Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
 Route::get('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'create'])->name('matricula-publica.create');
-Route::post('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'store'])->middleware('throttle:5,10')->name('matricula-publica.store');
+Route::post('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'store'])->middleware('throttle:matricula-publica')->name('matricula-publica.store');
 Route::view('/galeria', 'pages.galeria')->name('galeria');
 Route::view('/contactos', 'pages.contactos')->name('contactos');
 Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name('legales.devolucion');
@@ -64,17 +65,17 @@ Route::middleware(RecepcionCotizacionesHabilitada::class)->group(function () {
 
 Route::middleware('guest')->group(function () {
     Route::post('/email-verification/resend', [VerificacionRegistroController::class, 'reenviar'])
-        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:5,1'])->name('verification.resend');
+        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-resend'])->name('verification.resend');
     Route::post('/email-verification/confirm', [VerificacionRegistroController::class, 'confirmar'])
         ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-confirm'])->name('verification.confirm');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register')->name('register.post');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
     Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
-    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:5,1')->name('password.email');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:password-recovery')->name('password.email');
     Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
-    Route::post('/reset-password', [ResetPasswordController::class, 'store'])->middleware('throttle:5,1')->name('password.store');
+    Route::post('/reset-password', [ResetPasswordController::class, 'store'])->middleware('throttle:password-recovery')->name('password.store');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -87,6 +88,10 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('buscar', [BusquedaController::class, 'index'])->name('busqueda.index');
+
+        // Perfil propio: el usuario sale de la sesión; cambiar correo o clave exige la contraseña actual.
+        Route::get('perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
+        Route::put('perfil', [PerfilController::class, 'update'])->middleware('throttle:perfil')->name('perfil.update');
 
         Route::resource('estudiantes', EstudianteController::class);
         Route::patch('estudiantes/{estudiante}/restaurar', [EstudianteController::class, 'restaurar'])
@@ -162,11 +167,11 @@ Route::prefix('admin')
         Route::get('respaldo', [RespaldoController::class, 'index'])->name('respaldo.index');
         Route::get('respaldo/exportar', [RespaldoController::class, 'exportar'])->name('respaldo.exportar');
         Route::get('asistente', [AsistenteController::class, 'index'])->name('asistente.index');
-        Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:30,1')->name('asistente.mensaje');
+        Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:chat')->name('asistente.mensaje');
     });
 
 Route::post('/chat/mensaje', [ChatWidgetController::class, 'mensajePublico'])
-    ->middleware('throttle:30,1')
+    ->middleware('throttle:chat')
     ->name('chat.mensaje');
 
 Route::redirect('/home', '/');

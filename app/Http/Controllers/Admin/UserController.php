@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AdminProtection;
+use App\Services\VerificacionRegistroService;
 use App\Support\Email;
 use App\Support\ListFilter;
 use App\Support\PasswordPolicy;
@@ -108,6 +109,9 @@ class UserController extends Controller implements HasMiddleware
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
             ]);
+            // Cuenta creada por un administrador: el correo queda dado por válido para que pueda entrar aunque
+            // la verificación de registro esté activa (no es asignable en masa).
+            $usuario->forceFill(['email_verified_at' => now()])->save();
 
             if ($roles !== []) {
                 $usuario->syncRoles($roles);
@@ -200,6 +204,12 @@ class UserController extends Controller implements HasMiddleware
             if ($passwordChanged) {
                 // Quien cambia su propia clave conserva la sesión actual; las demás se cierran.
                 SessionRevoker::revokeSessions($user, $user->is($actor) ? $request->session()->getId() : null);
+
+                // Con la verificación activa la sesión se compara con `jwt_version`: sin actualizarla, quien cambia
+                // su propia clave quedaría expulsado en la siguiente petición pese a conservar la sesión.
+                if ($user->is($actor) && VerificacionRegistroService::enabled()) {
+                    $request->session()->put('auth.verification_version', (int) $user->jwt_version);
+                }
             }
 
             if ($cambiaRoles) {

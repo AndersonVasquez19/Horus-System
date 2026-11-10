@@ -6,13 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\JwtTokenService;
 use App\Services\VerificacionRegistroService;
+use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -57,22 +57,12 @@ class AuthController extends Controller
 
         $user = User::query()->where('email', $data['email'])->first();
 
-        if (VerificacionRegistroService::enabled()) {
-            // Siempre generar y comprobar un hash, también para cuentas ausentes o sin verificar.
-            $dummyHash = Hash::make(Str::random(32));
-            $valid = Hash::check($data['password'], $user->password ?? $dummyHash);
-            if (! $valid || ! $user || ! $user->hasVerifiedEmail()) {
-                return response()->json(['message' => 'Las credenciales no son válidas.'], 422);
-            }
-        } else {
-            if (! $user) {
-                // Gasta el mismo tiempo de hash que un usuario real para no revelar por latencia si el correo existe.
-                Hash::check($data['password'], Hash::make(Str::random(32)));
-            }
+        // Una única comprobación de hash, exista o no la cuenta, para no revelarlo por latencia.
+        $valid = CredentialTiming::check($data['password'], $user?->password);
+        $verificada = ! VerificacionRegistroService::enabled() || $user?->hasVerifiedEmail() === true;
 
-            if (! $user || ! Hash::check($data['password'], $user->password)) {
-                return response()->json(['message' => 'Las credenciales no son válidas.'], 422);
-            }
+        if (! $valid || ! $user || ! $verificada) {
+            return response()->json(['message' => 'Las credenciales no son válidas.'], 422);
         }
 
         return response()->json([

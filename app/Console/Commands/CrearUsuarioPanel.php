@@ -73,6 +73,8 @@ class CrearUsuarioPanel extends Command
 
         DB::transaction(function () use ($name, $email, $password, $rol): void {
             $user = User::create(['name' => $name, 'email' => $email, 'password' => $password]);
+            // Alta por consola: correo dado por válido para poder entrar con la verificación de registro activa.
+            $user->forceFill(['email_verified_at' => now()])->save();
             $user->assignRole($rol);
         });
 

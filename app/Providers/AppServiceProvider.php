@@ -35,6 +35,20 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('verification-confirm', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
 
+        // `throttle:N,M` numérico firma solo por dominio|IP: todas las rutas así declaradas comparten un único
+        // contador. Los limitadores con nombre separan el cupo de cada superficie conservando los mismos límites.
+        // Registro web y API comparten cupo a propósito (Sprint 13).
+        RateLimiter::for('register', fn (Request $request) => Limit::perMinute(5)->by('register:'.$request->ip()));
+        RateLimiter::for('verification-resend', fn (Request $request) => Limit::perMinute(5)->by('verification-resend:'.$request->ip()));
+        RateLimiter::for('password-recovery', fn (Request $request) => Limit::perMinute(5)->by('password-recovery:'.$request->ip()));
+        RateLimiter::for('matricula-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('matricula-publica:'.$request->ip()));
+        // Perfil propio: la contraseña actual se comprueba en cada intento, así que se limita por usuario
+        // para que una sesión robada no sirva para adivinarla.
+        RateLimiter::for('perfil', fn (Request $request) => Limit::perMinute(5)->by('perfil:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
+            $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
+        ));
+
         // Login web y API: límite por IP y también por correo, para frenar ataques distribuidos
         // contra una misma cuenta sin que un solo correo bloquee a todos los demás.
         RateLimiter::for('login', fn (Request $request) => [

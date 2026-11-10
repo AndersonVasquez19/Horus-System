@@ -20,10 +20,19 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function booted(): void
     {
         static::updating(function (self $user): void {
-            if (VerificacionRegistroService::enabled() && $user->isDirty('email')) {
-                $user->email_verified_at = null;
+            if (! $user->isDirty('email')) {
+                return;
+            }
+
+            // Cambiar el correo siempre revoca los JWT vigentes, esté o no activa la verificación de registro.
+            // Si la misma operación ya subió la versión (p. ej. cambio simultáneo de contraseña), no se suma otra vez.
+            if (! $user->isDirty('jwt_version')) {
                 $user->jwt_version = (int) $user->jwt_version + 1;
-                $user->setRememberToken(Str::random(60));
+            }
+            $user->setRememberToken(Str::random(60));
+
+            if (VerificacionRegistroService::enabled()) {
+                $user->email_verified_at = null;
             }
         });
     }

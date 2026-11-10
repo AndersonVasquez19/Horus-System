@@ -3,27 +3,30 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Services\VerificacionRegistroService;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use App\Support\SessionRevoker;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
 
 class ResetPasswordController extends Controller
 {
-    public function create(string $token): View
+    public function create(string $token): Response
     {
-        return view('auth.reset-password', [
+        // El token viaja en la URL: ni se envía como Referer ni se guarda en cachés compartidas o del navegador.
+        return response()->view('auth.reset-password', [
             'token' => $token,
             'email' => request('email'),
+        ])->withHeaders([
+            'Referrer-Policy' => 'no-referrer',
+            'Cache-Control' => 'no-store, private',
         ]);
     }
 
@@ -57,6 +60,7 @@ class ResetPasswordController extends Controller
             ],
             function ($user, string $password) {
                 // jwt_version + 1 revoca los JWT emitidos antes del cambio; SessionRevoker cierra las sesiones web.
+                // El reset NO verifica el correo (Sprint 14: no debe saltarse la verificación de registro).
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'jwt_version' => (int) $user->jwt_version + 1,
@@ -73,8 +77,7 @@ class ResetPasswordController extends Controller
             return redirect()->route('login')->with('success', 'Contraseña actualizada correctamente.');
         }
 
-        $publicStatus = VerificacionRegistroService::enabled() ? Password::INVALID_TOKEN : $status;
-
-        return back()->withErrors(['email' => __($publicStatus)])->onlyInput('email');
+        // Mensaje único para correo inexistente, token inválido o limitación: no revelar qué cuentas existen.
+        return back()->withErrors(['email' => __(Password::INVALID_TOKEN)])->onlyInput('email');
     }
 }

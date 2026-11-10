@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Throwable;
 
 class ForgotPasswordController extends Controller
 {
@@ -30,9 +31,12 @@ class ForgotPasswordController extends Controller
 
         try {
             Password::sendResetLink($request->only('email'));
-        } catch (TransportExceptionInterface) {
-            // No exponer ni registrar el destinatario, token o detalle del proveedor.
-            Log::warning('auth.password_reset', ['outcome' => 'delivery_unavailable']);
+        } catch (Throwable $error) {
+            // Cualquier fallo del proveedor de correo debe verse igual que el éxito: de lo contrario solo las cuentas
+            // existentes devolverían 500. No exponer ni registrar el destinatario, token o detalle del proveedor.
+            Log::warning('auth.password_reset', [
+                'outcome' => $error instanceof TransportExceptionInterface ? 'delivery_unavailable' : 'delivery_failed',
+            ]);
         }
 
         // También el throttle del broker depende de que exista la cuenta: no revelar ese estado.

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateJwt;
 use App\Http\Middleware\DescartarSesionSinVerificar;
+use App\Http\Middleware\SecurityHeaders;
 use App\Models\User;
 use App\Support\Testing\TestDatabaseSafety;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -23,6 +24,14 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Detrás de un balanceador, sin proxies de confianza `$request->ip()` sería la IP del proxy y todos los
+        // limitadores por IP compartirían un único cubo. Vacío (valor por defecto) conserva el comportamiento actual.
+        $proxies = array_values(array_filter(array_map('trim', explode(',', (string) Env::get('TRUSTED_PROXIES', '')))));
+        if ($proxies !== []) {
+            $middleware->trustProxies(at: $proxies === ['*'] ? '*' : $proxies);
+        }
+
+        $middleware->append(SecurityHeaders::class);
         $middleware->web(append: [DescartarSesionSinVerificar::class]);
         // Usuario ya autenticado en /login o /register: el personal vuelve al panel, no a la portada pública.
         $middleware->redirectUsersTo(fn (Request $request): string => $request->user() instanceof User

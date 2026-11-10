@@ -14,7 +14,8 @@ final class PasswordPolicy
 {
     public static function rule(): Password
     {
-        return Password::min(10)->letters()->mixedCase()->numbers();
+        // bcrypt solo considera los primeros 72 bytes: más allá de eso la contraseña se truncaría sin avisar.
+        return Password::min(10)->max(72)->letters()->mixedCase()->numbers();
     }
 
     /** @return array<string, string> */
@@ -23,6 +24,7 @@ final class PasswordPolicy
         return [
             'password.confirmed' => 'Las contraseñas no coinciden.',
             'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
+            'password.max' => 'La contraseña no puede superar los 72 caracteres.',
             'password.letters' => 'La contraseña debe incluir letras.',
             'password.mixed' => 'Combina mayúsculas y minúsculas en tu contraseña.',
             'password.numbers' => 'La contraseña debe incluir al menos un número.',
