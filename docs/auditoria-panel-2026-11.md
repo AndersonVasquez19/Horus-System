@@ -88,7 +88,7 @@ Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del in
 
 - Pagos/cuotas de matrícula, importación masiva, respaldo real de PostgreSQL (`pg_dump` programado y retención).
 - Permisos sin uso: `seguimientos.*` y `asistente.entrenar` se retiraron (sección 14). `reclamaciones.gestionar|responder` **no son huérfanos** (los exige `GestionReclamaciones`; el panel de reclamaciones es de solo lectura por diseño) y `procesos_internos` se conserva a propósito (`docs/retiro-procesos.md`).
-- `cascadeOnDelete` en `matriculas` frente a `restrictOnDelete` en el resto; `json` frente a `jsonb`.
+- `cascadeOnDelete` en `matriculas`: migración 000040 preparada, sin aplicar (§17). `json` frente a `jsonb`: abierto.
 
 **Despliegue (no se tocó `.env.example`)**
 
@@ -233,4 +233,13 @@ Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. An
 - **Verificación de datos reales (solo lectura, `horus_group`):** `estudiantes.estado` = {activo}; `cursos.estado` = {activo}; `cursos.modalidad` = {hibrido, presencial, virtual}; `matriculas.estado` = {pagada, pendiente}; `curso_publicaciones` vacía. Todo cumple los conjuntos.
 - **Aplicada el 10/11/2026** en la base local `horus_group` (pgsql 127.0.0.1:5432, entorno `local`) con autorización expresa del propietario, con `php artisan migrate --force --path=…000039…` (107 ms). No se hizo una copia nueva antes (tablas pequeñas, DDL transaccional, `down()` disponible). Verificado después en solo lectura: las 5 restricciones existen y están validadas, y `migrate:status` no tiene pendientes. **Otros entornos (producción) requieren su propia aplicación**, con copia reciente y `--path`: es DDL real sobre cuatro tablas (`ACCESS EXCLUSIVE` breve). Tablas fuera de alcance: `aprobaciones_internas`, `notificaciones_internas.tipo`, `matricula_notifications.status` y `procesos_internos`.
 - **Pruebas:** `CheckEstadosAcademicosMigracionTest` (SQLite) fija que los conjuntos del `CHECK` coinciden con las reglas `Rule::in` de los `FormRequest`, que el SQL generado es el esperado y que `up()`/`down()` no hacen nada en SQLite. `tests/PostgresIntegrity/EstadosCheckPostgresTest.php` (rechazo `23514`, valores válidos y preflight) está escrita pero **no se ejecutó**: exige el perfil PostgreSQL aislado con consentimiento destructivo.
-- Siguen abiertos: `cascadeOnDelete` en `matriculas` frente a `restrictOnDelete`, y `json` frente a `jsonb`.
+- Sigue abierto: `json` frente a `jsonb`. Lo de `cascadeOnDelete` está en §17.
+
+## 17. `matriculas`: de CASCADE a RESTRICT (10/11/2026, preparada, NO aplicada)
+
+- **Hallazgo (solo lectura, `horus_group`):** `matriculas_estudiante_id_foreign` y `matriculas_curso_id_foreign` son `ON DELETE CASCADE`; `curso_publicaciones.curso_id` ya es `RESTRICT`. La aplicación solo borra lógicamente (`SoftDeletes`, sin `forceDelete` en `app/`), así que el riesgo es un `DELETE` físico fuera de ella (SQL, script, consola), que borraría en silencio las matrículas (historial de pagos) de un estudiante o curso. 15 matrículas, ninguna eliminada.
+- **Migración nueva** `2026_11_10_000040_restrict_on_delete_matriculas.php`, solo PostgreSQL (no-op en SQLite): recrea ambas claves con el mismo nombre en una sola sentencia (`DROP` + `ADD CONSTRAINT … ON DELETE RESTRICT`), idempotente (omite la que ya es `RESTRICT`), sin tocar datos, con `down()` que restaura `CASCADE`.
+- **Decisión del propietario:** `matricula_notifications.matricula_id` **se queda en `CASCADE`** (el aviso forma parte de la matrícula).
+- **Efecto:** sin cambio en la aplicación. Un `DELETE` físico de un estudiante o curso con matrículas pasa a fallar con error de clave foránea (`23503`); un borrado físico legítimo debe borrar antes las matrículas. Bloqueo breve en `matriculas` y la tabla padre al aplicar.
+- **Pruebas:** `RestrictOnDeleteMatriculasMigracionTest` (SQLite; SQL esperado, no-op, no toca `matricula_notifications`). `tests/PostgresIntegrity/RestrictOnDeleteMatriculasPostgresTest.php` (rechazo `23503` y `CASCADE` conservado) escrita y **no ejecutada**.
+- **Estado:** no aplicada en ninguna base; requiere autorización expresa (copia reciente y `--path`).

@@ -53,6 +53,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
    | `2026_11_10_000037` | Índices de consultas del panel |
    | `2026_11_10_000038` | Crea `notificacion_lecturas` (lectura por usuario de las generales) |
    | `2026_11_10_000039` | **Solo PostgreSQL.** `CHECK` de `estado`/`modalidad` en `estudiantes`, `cursos`, `matriculas` y `curso_publicaciones`. Comprueba antes los datos y se detiene si alguno queda fuera del conjunto. Toma `ACCESS EXCLUSIVE` mientras valida cada tabla: ventana de poco uso y copia reciente. `down()` borra las restricciones |
+   | `2026_11_10_000040` | **Solo PostgreSQL. Preparada, sin aplicar.** Pasa `matriculas.estudiante_id` y `curso_id` de `ON DELETE CASCADE` a `RESTRICT` (no toca datos; `matricula_notifications` sigue en `CASCADE`). Bloqueo breve en `matriculas` y la tabla padre: copia reciente y `--path`. `down()` restaura `CASCADE` |
 
    Las migraciones de permisos o integridad (`000012`, `000013`, `000021`) se aplican con revisión previa y copia reciente. Tras ellas: `php artisan permission:cache-reset`.
 7. `php artisan config:cache && php artisan route:cache && php artisan view:cache` (las tres funcionan con las rutas y vistas actuales).
