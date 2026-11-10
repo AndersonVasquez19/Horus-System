@@ -4,24 +4,34 @@
 @section('breadcrumb', 'Auditoría')
 
 @section('content')
+    @php
+        // Filtros vigentes (ya saneados en el controlador): el listado y la exportación usan los mismos.
+        $filtrosActivos = array_filter([
+            'accion' => $accion ?? '',
+            'modelo' => $modelo ?? '',
+            'usuario' => $usuario ?? '',
+            'desde' => $desde ?? '',
+            'hasta' => $hasta ?? '',
+        ], static fn (string $valor): bool => $valor !== '');
+    @endphp
     <div class="space-y-6">
         <section class="admin-page-header">
             <div>
                 <p class="admin-eyebrow">Seguridad</p>
                 <h1 class="admin-page-title">Auditoría del sistema</h1>
-                <p class="admin-page-subtitle">Registro trazable de acciones administrativas y cambios sobre entidades.</p>
+                <p class="admin-page-subtitle">Registro trazable de acciones administrativas y cambios sobre entidades. Fechas en hora de Lima.</p>
             </div>
 
             @can('auditoria.exportar')
-                <a href="{{ route('admin.auditoria.exportar') }}" class="admin-btn-primary">
+                <a href="{{ route('admin.auditoria.exportar', $filtrosActivos) }}" class="admin-btn-primary">
                     <i class="fa-solid fa-file-export" aria-hidden="true"></i>
-                    Exportar JSON
+                    {{ $filtrosActivos === [] ? 'Exportar JSON' : 'Exportar JSON (filtros actuales)' }}
                 </a>
             @endcan
         </section>
 
         <section class="admin-card">
-            <form method="GET" action="{{ route('admin.auditoria.index') }}" class="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+            <form method="GET" action="{{ route('admin.auditoria.index') }}" class="grid gap-3 md:grid-cols-3 xl:grid-cols-6 md:items-end">
                 <div>
                     <label for="accion" class="admin-label">Acción</label>
                     <input id="accion" name="accion" type="text" value="{{ $accion ?? '' }}" placeholder="Ej. login" class="admin-input" />
@@ -34,10 +44,23 @@
                     <label for="usuario" class="admin-label">Usuario</label>
                     <input id="usuario" name="usuario" type="text" value="{{ $usuario ?? '' }}" placeholder="Nombre o correo" class="admin-input" />
                 </div>
-                <button type="submit" class="admin-btn-secondary">
-                    <i class="fa-solid fa-magnifying-glass text-xs text-[#19A7A1]" aria-hidden="true"></i>
-                    Filtrar
-                </button>
+                <div>
+                    <label for="desde" class="admin-label">Desde</label>
+                    <input id="desde" name="desde" type="date" value="{{ $desde ?? '' }}" class="admin-input" />
+                </div>
+                <div>
+                    <label for="hasta" class="admin-label">Hasta</label>
+                    <input id="hasta" name="hasta" type="date" value="{{ $hasta ?? '' }}" class="admin-input" />
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="submit" class="admin-btn-secondary">
+                        <i class="fa-solid fa-magnifying-glass text-xs text-[#19A7A1]" aria-hidden="true"></i>
+                        Filtrar
+                    </button>
+                    @if ($filtrosActivos !== [])
+                        <a href="{{ route('admin.auditoria.index') }}" class="text-sm font-medium text-[#176B9A] underline-offset-2 hover:underline">Limpiar</a>
+                    @endif
+                </div>
             </form>
         </section>
 
@@ -58,7 +81,7 @@
                     <tbody>
                         @forelse ($registros as $registro)
                             <tr>
-                                <td class="whitespace-nowrap">{{ $registro->created_at->format('d/m/Y H:i:s') }}</td>
+                                <td class="whitespace-nowrap">{{ $registro->created_at->copy()->timezone('America/Lima')->format('d/m/Y H:i:s') }}</td>
                                 <td>
                                     <div class="font-semibold text-[#172B3A]">{{ $registro->user?->name ?? 'Sistema' }}</div>
                                     <div class="text-xs text-[#64748B]">{{ $registro->user?->email ?? 'N/A' }}</div>
