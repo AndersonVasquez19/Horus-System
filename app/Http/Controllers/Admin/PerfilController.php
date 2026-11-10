@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\VerificacionRegistroService;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
+use App\Support\SesionesActivas;
 use App\Support\SessionRevoker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +26,14 @@ class PerfilController extends Controller
 {
     public function edit(Request $request): View
     {
-        return view('admin.perfil.edit', ['usuario' => $request->user()]);
+        /** @var User $usuario */
+        $usuario = $request->user();
+
+        return view('admin.perfil.edit', [
+            'usuario' => $usuario,
+            'sesionesDisponibles' => SesionesActivas::disponible(),
+            'sesiones' => SesionesActivas::listar($usuario, $request->session()->getId()),
+        ]);
     }
 
     public function update(Request $request): RedirectResponse

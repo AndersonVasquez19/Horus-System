@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\PerfilController;
+use App\Http\Controllers\Admin\PerfilSesionesController;
 use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
@@ -92,6 +93,11 @@ Route::prefix('admin')
         // Perfil propio: el usuario sale de la sesión; cambiar correo o clave exige la contraseña actual.
         Route::get('perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
         Route::put('perfil', [PerfilController::class, 'update'])->middleware('throttle:perfil')->name('perfil.update');
+        Route::get('perfil/sesiones', [PerfilSesionesController::class, 'index'])->name('perfil.sesiones.index');
+        Route::delete('perfil/sesiones', [PerfilSesionesController::class, 'destroyOtras'])
+            ->middleware('throttle:perfil')->name('perfil.sesiones.destroy-otras');
+        Route::delete('perfil/sesiones/{identificador}', [PerfilSesionesController::class, 'destroy'])
+            ->where('identificador', '[a-f0-9]{32}')->middleware('throttle:perfil')->name('perfil.sesiones.destroy');
 
         Route::resource('estudiantes', EstudianteController::class);
         Route::patch('estudiantes/{estudiante}/restaurar', [EstudianteController::class, 'restaurar'])
