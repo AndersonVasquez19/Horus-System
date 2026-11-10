@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AprobacionInterna;
 use App\Models\User;
 use App\Services\GestionAprobaciones;
+use App\Support\BusquedaLike;
 use App\Support\ListFilter;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -55,13 +56,7 @@ class AprobacionController extends Controller implements HasMiddleware
 
         $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
-            $query->where(function ($q) use ($busqueda): void {
-                $q->whereLike('titulo', "%{$busqueda}%")
-                    ->orWhereLike('tipo', "%{$busqueda}%")
-                    ->orWhereLike('descripcion', "%{$busqueda}%")
-                    ->orWhereLike('comentario', "%{$busqueda}%")
-                    ->orWhereLike('referencia', "%{$busqueda}%");
-            });
+            BusquedaLike::contiene($query, ['titulo', 'tipo', 'descripcion', 'comentario', 'referencia'], $busqueda);
         }
 
         $aprobaciones = $query

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\BusquedaLike;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use Illuminate\Database\Eloquent\Builder;
@@ -153,19 +154,13 @@ class AuditoriaController extends Controller implements HasMiddleware
      */
     private function aplicarFiltros(Builder $query, array $filtros): void
     {
-        if ($filtros['accion'] !== '') {
-            $query->whereLike('action', '%'.$filtros['accion'].'%');
-        }
-
-        if ($filtros['modelo'] !== '') {
-            $query->whereLike('model_type', '%'.$filtros['modelo'].'%');
-        }
+        BusquedaLike::contiene($query, ['action'], $filtros['accion']);
+        BusquedaLike::contiene($query, ['model_type'], $filtros['modelo']);
 
         if ($filtros['usuario'] !== '') {
             $usuario = $filtros['usuario'];
             $query->whereHas('user', function (Builder $q) use ($usuario): void {
-                $q->whereLike('name', "%{$usuario}%")
-                    ->orWhereLike('email', "%{$usuario}%");
+                BusquedaLike::contiene($q, ['name', 'email'], $usuario);
             });
         }
 

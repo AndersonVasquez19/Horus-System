@@ -11,6 +11,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Services\MatriculasExcelExport;
+use App\Support\BusquedaLike;
 use App\Support\HoraLocal;
 use App\Support\TemporaryExportFile;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -117,13 +118,12 @@ class ReportController extends Controller implements HasMiddleware
             $query->where('curso_id', $filtros['curso_id']);
         }
         if (isset($filtros['busqueda'])) {
-            $busqueda = '%'.$filtros['busqueda'].'%';
+            $busqueda = (string) $filtros['busqueda'];
             $query->where(function (Builder $query) use ($busqueda): void {
                 $query->whereHas('estudiante', function (Builder $estudiante) use ($busqueda): void {
-                    $estudiante->whereLike('dni', $busqueda)
-                        ->orWhereLike('nombres', $busqueda)->orWhereLike('apellidos', $busqueda);
+                    BusquedaLike::contiene($estudiante, ['dni', 'nombres', 'apellidos'], $busqueda);
                 })->orWhereHas('curso', function (Builder $curso) use ($busqueda): void {
-                    $curso->whereLike('codigo', $busqueda)->orWhereLike('nombre', $busqueda);
+                    BusquedaLike::contiene($curso, ['codigo', 'nombre'], $busqueda);
                 });
             });
         }

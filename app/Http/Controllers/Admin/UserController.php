@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AdminProtection;
 use App\Services\VerificacionRegistroService;
+use App\Support\BusquedaLike;
 use App\Support\Email;
 use App\Support\ListFilter;
 use App\Support\PasswordPolicy;
@@ -46,10 +47,7 @@ class UserController extends Controller implements HasMiddleware
 
         $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
-            $query->where(function ($query) use ($busqueda): void {
-                $query->whereLike('name', "%{$busqueda}%")
-                    ->orWhereLike('email', "%{$busqueda}%");
-            });
+            BusquedaLike::contiene($query, ['name', 'email'], $busqueda);
         }
 
         $usuarios = $query

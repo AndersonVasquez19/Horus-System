@@ -9,8 +9,8 @@ use App\Http\Requests\StoreEstudianteRequest;
 use App\Http\Requests\UpdateEstudianteRequest;
 use App\Models\Estudiante;
 use App\Support\AuditoriaAcademica;
+use App\Support\BusquedaLike;
 use App\Support\ListFilter;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,11 +47,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
         $busqueda = ListFilter::text($request, 'busqueda');
         if ($busqueda !== '') {
-            $query->where(function (Builder $query) use ($busqueda): void {
-                $query->whereLike('dni', "%{$busqueda}%")
-                    ->orWhereLike('nombres', "%{$busqueda}%")
-                    ->orWhereLike('apellidos', "%{$busqueda}%");
-            });
+            BusquedaLike::contiene($query, ['dni', 'nombres', 'apellidos'], $busqueda);
         }
 
         $estado = $request->input('estado');
