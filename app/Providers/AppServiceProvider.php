@@ -11,6 +11,7 @@ use App\Support\Email;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,6 +34,12 @@ class AppServiceProvider extends ServiceProvider
         ServicioTecnologico::observe(PublicacionCatalogoAdvisorObserver::class);
         ServicioPublicacion::observe(PublicacionCatalogoAdvisorObserver::class);
 
+        // Identificadores numéricos del panel: un valor no numérico responde 404 en lugar de llegar a la
+        // consulta (PostgreSQL lo rechaza con SQLSTATE 22P02 y la petición terminaría en 500).
+        foreach (['aprobacion', 'curso', 'estudiante', 'matricula', 'notificacion', 'role', 'user'] as $parametro) {
+            Route::pattern($parametro, '[0-9]+');
+        }
+
         RateLimiter::for('verification-confirm', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
 
         // `throttle:N,M` numérico firma solo por dominio|IP: todas las rutas así declaradas comparten un único
@@ -45,6 +52,11 @@ class AppServiceProvider extends ServiceProvider
         // Perfil propio: la contraseña actual se comprueba en cada intento, así que se limita por usuario
         // para que una sesión robada no sirva para adivinarla.
         RateLimiter::for('perfil', fn (Request $request) => Limit::perMinute(5)->by('perfil:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        // Exportaciones del panel (CSV, Excel, PDF, auditoría, respaldo): costosas y, en varias, con efecto lateral
+        // en la auditoría. Se limitan por usuario autenticado y comparten un único cupo.
+        RateLimiter::for('admin-export', fn (Request $request) => Limit::perMinute(6)->by(
+            'admin-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
         RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
         ));

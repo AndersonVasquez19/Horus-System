@@ -136,6 +136,7 @@ Route::prefix('admin')
             ->name('cursos.restaurar');
 
         Route::get('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
+            ->middleware('throttle:admin-export')
             ->name('matriculas.csv');
         Route::resource('matriculas', MatriculaController::class);
         Route::get('solicitudes-matricula', [SolicitudMatriculaController::class, 'index'])->name('solicitudes-matricula.index');
@@ -158,14 +159,14 @@ Route::prefix('admin')
         Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
         Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
         Route::get('reportes', [ReportController::class, 'index'])->name('reportes.index');
-        Route::post('reportes/exportar/excel', [ReportController::class, 'exportarExcel'])->name('reportes.exportar.excel');
-        Route::post('reportes/exportar/pdf', [ReportController::class, 'exportarPdf'])->name('reportes.exportar.pdf');
+        Route::post('reportes/exportar/excel', [ReportController::class, 'exportarExcel'])->middleware('throttle:admin-export')->name('reportes.exportar.excel');
+        Route::post('reportes/exportar/pdf', [ReportController::class, 'exportarPdf'])->middleware('throttle:admin-export')->name('reportes.exportar.pdf');
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
         Route::get('auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
-        Route::get('auditoria/exportar', [AuditoriaController::class, 'exportar'])->name('auditoria.exportar');
+        Route::get('auditoria/exportar', [AuditoriaController::class, 'exportar'])->middleware('throttle:admin-export')->name('auditoria.exportar');
         Route::get('respaldo', [RespaldoController::class, 'index'])->name('respaldo.index');
-        Route::get('respaldo/exportar', [RespaldoController::class, 'exportar'])->name('respaldo.exportar');
+        Route::get('respaldo/exportar', [RespaldoController::class, 'exportar'])->middleware('throttle:admin-export')->name('respaldo.exportar');
         Route::get('asistente', [AsistenteController::class, 'index'])->name('asistente.index');
         Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:chat')->name('asistente.mensaje');
     });

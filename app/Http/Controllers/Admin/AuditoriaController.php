@@ -69,29 +69,46 @@ class AuditoriaController extends Controller implements HasMiddleware
      */
     public function exportar(): StreamedResponse
     {
-        $registros = AuditLog::query()->with('user')->latest('created_at')->get()->map(function (AuditLog $log): array {
-            return [
-                'id' => $log->id,
-                'usuario' => $log->user->name ?? 'Sistema',
-                'correo' => $log->user->email ?? 'N/A',
-                'accion' => $log->action,
-                'modelo' => $log->model_type,
-                'modelo_id' => $log->model_id,
-                'ip' => $log->ip_address,
-                'cambios' => json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
-                'fecha' => $log->created_at->format('Y-m-d H:i:s'),
-            ];
-        })->toArray();
-
         $archivo = 'auditoria_'.now()->format('Ymd_His').'.json';
+
+        // Tope superior fijado antes de auditar: el id máximo acota lo que se exporta aunque entren
+        // registros nuevos (incluido el propio `audit_exported`) mientras se transmite.
+        $maxId = (int) AuditLog::query()->max('id');
+        $total = AuditLog::query()->where('id', '<=', $maxId)->count();
 
         AuditLog::record('audit_exported', AuditLog::class, null, [
             'filename' => $archivo,
-            'records' => count($registros),
+            'records' => $total,
         ]);
 
-        return response()->streamDownload(function () use ($registros): void {
-            echo json_encode($registros, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        return response()->streamDownload(function () use ($maxId): void {
+            // Se mantiene el formato histórico (arreglo JSON, más reciente primero) pero se emite por
+            // bloques con cursor, sin cargar la tabla completa en memoria.
+            echo "[\n";
+            $primero = true;
+
+            AuditLog::query()
+                ->with('user')
+                ->where('id', '<=', $maxId)
+                ->lazyByIdDesc(500)
+                ->each(function (AuditLog $log) use (&$primero): void {
+                    $fila = json_encode([
+                        'id' => $log->id,
+                        'usuario' => $log->user->name ?? 'Sistema',
+                        'correo' => $log->user->email ?? 'N/A',
+                        'accion' => $log->action,
+                        'modelo' => $log->model_type,
+                        'modelo_id' => $log->model_id,
+                        'ip' => $log->ip_address,
+                        'cambios' => json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
+                        'fecha' => $log->created_at->format('Y-m-d H:i:s'),
+                    ], JSON_UNESCAPED_UNICODE);
+
+                    echo ($primero ? '' : ",\n").$fila;
+                    $primero = false;
+                });
+
+            echo "\n]";
         }, $archivo, [
             'Content-Type' => 'application/json',
         ]);

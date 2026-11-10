@@ -157,6 +157,9 @@ class RespaldoController extends Controller implements HasMiddleware
         }
 
         $abierto = true;
+        // ZipArchive lee los archivos añadidos con addFile() al cerrar: cada CSV temporal debe existir hasta
+        // entonces y se elimina siempre después (éxito o fallo).
+        $temporales = [];
 
         try {
             $incluidas = [];
@@ -176,7 +179,11 @@ class RespaldoController extends Controller implements HasMiddleware
                     }
                 }
 
-                $this->addEntry($zip, $table.'.csv', $this->tableToCsv($table, $columns));
+                $csv = $this->tableToCsvFile($table, $columns);
+                $temporales[] = $csv;
+                if (! $zip->addFile($csv, $table.'.csv')) {
+                    throw new RuntimeException("No se pudo añadir {$table}.csv al archivo ZIP.");
+                }
                 $incluidas[$table] = $columns;
             }
 
@@ -204,6 +211,10 @@ class RespaldoController extends Controller implements HasMiddleware
                 $zip->unchangeAll();
                 @$zip->close();
             }
+
+            foreach ($temporales as $temporal) {
+                @unlink($temporal);
+            }
         }
     }
 
@@ -217,22 +228,39 @@ class RespaldoController extends Controller implements HasMiddleware
     /**
      * @param  list<string>  $columns
      */
-    private function tableToCsv(string $table, array $columns): string
+    private function tableToCsvFile(string $table, array $columns): string
     {
-        $handle = fopen('php://temp', 'r+');
-        fputcsv($handle, $columns);
-
-        if ($columns !== []) {
-            foreach (DB::table($table)->select($columns)->cursor() as $row) {
-                fputcsv($handle, $this->csvRow($table, $columns, $row));
-            }
+        $ruta = tempnam(sys_get_temp_dir(), 'horus_csv_');
+        if ($ruta === false) {
+            throw new RuntimeException('No se pudo crear el archivo temporal del CSV de '.$table.'.');
         }
 
-        rewind($handle);
-        $contents = (string) stream_get_contents($handle);
-        fclose($handle);
+        $handle = fopen($ruta, 'w');
+        if ($handle === false) {
+            @unlink($ruta);
+            throw new RuntimeException('No se pudo abrir el archivo temporal del CSV de '.$table.'.');
+        }
 
-        return $contents;
+        try {
+            fputcsv($handle, $columns);
+
+            if ($columns !== []) {
+                foreach (DB::table($table)->select($columns)->cursor() as $row) {
+                    fputcsv($handle, $this->csvRow($table, $columns, $row));
+                }
+            }
+        } catch (Throwable $e) {
+            fclose($handle);
+            @unlink($ruta);
+            throw $e;
+        }
+
+        if (! fclose($handle)) {
+            @unlink($ruta);
+            throw new RuntimeException('No se pudo finalizar el CSV temporal de '.$table.'.');
+        }
+
+        return $ruta;
     }
 
     /**
