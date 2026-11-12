@@ -28,8 +28,15 @@ class SolicitudMatriculaController extends Controller implements HasMiddleware
 
     public function index(Request $request): Response
     {
-        $filtros = $request->validate(['estado' => ['nullable', Rule::in(array_keys(SolicitudMatricula::ESTADOS))], 'page' => ['nullable', 'integer', 'min:1', 'max:1000000']]);
+        $filtros = $request->validate(['estado' => ['nullable', Rule::in(array_keys(SolicitudMatricula::ESTADOS))],
+            // Búsqueda por código de seguimiento (SM-XXXXXXXX): los datos personales están cifrados y no se buscan.
+            'codigo' => ['nullable', 'string', 'regex:/\A(SM-)?[A-Fa-f0-9]{4,8}\z/D'], 'page' => ['nullable', 'integer', 'min:1', 'max:1000000']]);
         $solicitudes = SolicitudMatricula::query()->when($filtros['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
+            ->when($filtros['codigo'] ?? null, function ($query, $codigo): void {
+                // Prefijo hexadecimal del identificador como rango (validado por regex: sin comodines); «g» sigue a «f».
+                $prefijo = strtolower(preg_replace('/\ASM-/i', '', $codigo));
+                $query->where('identificador', '>=', $prefijo)->where('identificador', '<', $prefijo.'g');
+            })
             ->orderByDesc('id')->paginate(15)->withQueryString();
 
         return response()->view('admin.solicitudes-matricula.index', compact('solicitudes', 'filtros'))

@@ -22,6 +22,13 @@ return new class extends Migration
             $table->text('email');
             $table->text('telefono');
             $table->text('mensaje')->nullable();
+            // Participante menor de edad: datos del representante, cifrados por el modelo (nunca a auditoría).
+            $table->boolean('es_menor')->default(false);
+            $table->text('representante_nombre')->nullable();
+            $table->text('representante_email')->nullable();
+            $table->text('representante_telefono')->nullable();
+            // HMAC de curso + correo + nombre: evita duplicar una solicitud abierta de la misma persona para el mismo curso.
+            $table->char('huella_duplicado', 64)->nullable()->index();
             $table->timestamp('consentimiento_at');
             $table->string('estado', 20)->default('pendiente')->index();
             $table->unsignedInteger('revision')->default(1);

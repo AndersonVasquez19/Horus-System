@@ -230,13 +230,15 @@ class SolicitudMatriculaTest extends TestCase
         $this->assertSame('atendida', $solicitud->fresh()->estado);
         $this->assertSame(3, $solicitud->fresh()->revision);
         $this->assertSame($this->admin->id, $solicitud->fresh()->revisado_por);
-        $this->assertDatabaseCount('audit_logs', 2);
+        // Una constancia de recepción (sin actor ni IP) más las dos revisiones.
+        $this->assertDatabaseCount('audit_logs', 3);
+        $this->assertSame(1, AuditLog::query()->where('action', 'solicitud_matricula_recibida')->whereNull('user_id')->whereNull('ip_address')->count());
         $auditoria = AuditLog::all()->toJson();
         foreach ([$solicitud->email, $solicitud->nombres, $solicitud->telefono, 'Nota privada de revisión'] as $privado) {
             $this->assertStringNotContainsString($privado, $auditoria);
         }
         $this->patchJson($url, ['estado' => 'en_revision', 'revision' => 3])->assertUnprocessable();
-        $this->assertDatabaseCount('audit_logs', 2);
+        $this->assertDatabaseCount('audit_logs', 3);
         $this->assertDatabaseCount('matriculas', 0);
         $this->assertSame(10, $this->curso->fresh()->cupos_disponibles);
         Mail::assertNothingSent();

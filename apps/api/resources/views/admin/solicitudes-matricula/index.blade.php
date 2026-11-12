@@ -23,6 +23,7 @@
     <section class="admin-card-flush">
         <form method="GET" action="{{ route('admin.solicitudes-matricula.index') }}" class="flex flex-wrap items-end gap-3 border-b border-[#E2E8F0] p-5">
             <div><label for="estado-solicitud" class="admin-label">Estado</label><select id="estado-solicitud" name="estado" class="admin-select"><option value="">Todos</option>@foreach (SolicitudMatricula::ESTADOS as $valor => $etiqueta)<option value="{{ $valor }}" @selected(($filtros['estado'] ?? '') === $valor)>{{ $etiqueta }}</option>@endforeach</select></div>
+            <div><label for="codigo-solicitud" class="admin-label">Código de seguimiento</label><input id="codigo-solicitud" name="codigo" value="{{ $filtros['codigo'] ?? '' }}" maxlength="11" placeholder="SM-1A2B3C4D" class="admin-input"></div>
             <button type="submit" class="admin-btn-secondary">Filtrar</button>
             <a href="{{ route('admin.solicitudes-matricula.index') }}" class="admin-btn-outline">Limpiar</a>
         </form>
@@ -32,7 +33,7 @@
                 <tbody>
                     @forelse ($solicitudes as $solicitud)
                         <tr>
-                            <td><span class="block max-w-xs break-all text-xs">{{ $solicitud->identificador }}</span><span class="text-xs">{{ $solicitud->created_at->timezone('America/Lima')->format('d/m/Y H:i') }}</span></td>
+                            <td><span class="block text-sm font-semibold">{{ $solicitud->codigoSeguimiento() }}</span><span class="block max-w-xs break-all text-xs">{{ $solicitud->identificador }}</span><span class="text-xs">{{ $solicitud->created_at->timezone('America/Lima')->format('d/m/Y H:i') }}</span></td>
                             <td class="font-semibold">{{ $solicitud->curso_titulo }}<span class="block text-xs font-normal">{{ ucfirst($solicitud->modalidad) }}</span></td>
                             <td><x-admin.badge-estado :estado="$solicitud->estado" /></td>
                             <td><button type="button" data-admin-modal-open="solicitud-{{ $solicitud->identificador }}" class="admin-btn-outline">Revisar solicitud</button></td>
@@ -54,6 +55,12 @@
                     @foreach (['nombres' => 'Nombres', 'apellidos' => 'Apellidos', 'email' => 'Correo electrónico', 'telefono' => 'Teléfono'] as $campo => $etiqueta)
                         <div class="min-w-0"><dt class="font-semibold">{{ $etiqueta }}</dt><dd class="mt-1 break-words">{{ $solicitud->$campo }}</dd></div>
                     @endforeach
+                    @if ($solicitud->es_menor)
+                        <div class="sm:col-span-2"><p class="font-semibold">Participante menor de edad: contactar al representante</p></div>
+                        @foreach (['representante_nombre' => 'Representante', 'representante_email' => 'Correo del representante', 'representante_telefono' => 'Teléfono del representante'] as $campo => $etiqueta)
+                            <div class="min-w-0"><dt class="font-semibold">{{ $etiqueta }}</dt><dd class="mt-1 break-words">{{ $solicitud->$campo }}</dd></div>
+                        @endforeach
+                    @endif
                     <div class="sm:col-span-2"><dt class="font-semibold">Consulta adicional</dt><dd class="mt-1 whitespace-pre-wrap break-words">{{ $solicitud->mensaje ?: 'Sin consulta adicional.' }}</dd></div>
                 </dl>
                 <p class="admin-help">Consentimiento para atender la solicitud: {{ $solicitud->consentimiento_at->timezone('America/Lima')->format('d/m/Y H:i') }} (Lima).</p>

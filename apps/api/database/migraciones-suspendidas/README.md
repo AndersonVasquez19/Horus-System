@@ -18,3 +18,5 @@ Mientras estén aquí, el código de esas funciones permanece **inactivo**: la v
 3. Quitar el uso del trait en la prueba correspondiente y actualizar la documentación.
 
 **Entornos donde ya se aplicó alguna.** Su fila quedaría en `migrations` sin archivo; `migrate` lo tolera, pero un `migrate:rollback` de ese lote fallaría.
+
+**Nota (12/11/2026, Fase 2c.2).** La 000035 (sin aplicar en ningún entorno) se amplió con `es_menor`, los datos cifrados del representante y `huella_duplicado` para que la solicitud pública de Next.js admita menores y no duplique solicitudes abiertas. El BFF (`/api/public/v1/matriculas*`) sigue inactivo (formulario `habilitado:false`, POST 503) hasta que se active esta migración.

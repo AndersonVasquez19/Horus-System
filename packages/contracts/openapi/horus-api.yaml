@@ -353,6 +353,87 @@ paths:
         "404": {description: Libro apagado o sin token de servicio configurado.}
         "422": {$ref: "#/components/responses/ValidacionLaravel"}
         "429": {description: "Límite de envíos o de intentos (cabecera `Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
+  /api/public/v1/matriculas/formulario:
+    get:
+      tags: [bff-publico]
+      summary: Cursos que aceptan solicitud de matrícula y marca de un solo uso del formulario
+      description: |
+        Solo información editorial de las fichas públicas vigentes (nunca precio, cupos ni datos administrativos).
+        `valor` es una referencia opaca que `POST /matriculas` vuelve a resolver contra el catálogo. Apagado
+        (`catalogo-publico.enabled` o sin la tabla de solicitudes, cuya migración está apartada) devuelve
+        `habilitado: false`, sin marca ni cursos. `X-Horus-Visitante` agrupa el límite `matriculas-bff-formulario`.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      responses:
+        "200":
+          description: Estado del formulario.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/FormularioMatricula"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "429": {description: Límite `matriculas-bff-formulario` o `publico-web`.}
+  /api/public/v1/matriculas:
+    post:
+      tags: [bff-publico]
+      summary: Registra una solicitud de matrícula (un contacto para el personal; no es una matrícula)
+      description: |
+        Nunca crea estudiante ni matrícula, no confirma nada, no reserva ni consume cupo y no revela si la persona ya es
+        estudiante. Laravel vuelve a comprobar que el curso siga publicado. Reglas de `StoreSolicitudMatriculaRequest`
+        (las mismas del formulario Blade) más participante menor de edad con representante. Idempotente por `marca`;
+        no duplica una solicitud abierta de la misma persona y curso (200, `repetida: true`). No existe ruta pública para
+        consultar solicitudes. Límites tras validar: 5 por 10 min y 15 por día por visitante y 5 por día por correo; un
+        reenvío o un rechazo del servicio devuelve su cupo. Sin la migración de solicitudes (apartada): 503.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [curso, nombres, apellidos, email, telefono, consentimiento, marca]
+              properties:
+                curso: {type: string, pattern: "^[a-f0-9]{64}$", description: Referencia `valor` de `/matriculas/formulario`.}
+                nombres: {type: string, minLength: 2, maxLength: 120}
+                apellidos: {type: string, minLength: 2, maxLength: 120}
+                email: {type: string, format: email, maxLength: 254}
+                telefono: {type: string, maxLength: 30}
+                mensaje: {type: string, maxLength: 1000}
+                es_menor: {type: boolean}
+                representante_nombre: {type: string, maxLength: 120, description: Obligatorio si `es_menor`.}
+                representante_email: {type: string, format: email, maxLength: 254}
+                representante_telefono: {type: string, maxLength: 30}
+                consentimiento: {type: boolean, description: Debe ser verdadero.}
+                marca: {type: string, description: Marca de `/matriculas/formulario` (entre 2 s y 2 h de antigüedad; un solo uso por solicitud).}
+                sitio_web: {type: string, maxLength: 0, description: Señuelo anti-bots; debe ir vacío.}
+      responses:
+        "200":
+          description: Repetición del mismo formulario o solicitud abierta existente de la misma persona y curso.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionMatricula"}
+        "201":
+          description: Solicitud registrada.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionMatricula"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: "Límite de envíos o de intentos (`Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
+        "503": {description: Recepción no disponible (catálogo apagado o migración de solicitudes sin aplicar).}
   /health:
     get:
       tags: [horus-ai]
@@ -555,6 +636,34 @@ components:
         fecha_limite: {type: string, format: date}
         repetida: {type: boolean}
         correo_activo: {type: boolean}
+    FormularioMatricula:
+      type: object
+      required: [habilitado, marca, cursos]
+      properties:
+        habilitado: {type: boolean}
+        marca: {type: string, nullable: true}
+        cursos:
+          type: array
+          items:
+            type: object
+            required: [valor, titulo, resumen, modalidad, horario, inscripcion, vigente_hasta]
+            properties:
+              valor: {type: string, pattern: "^[a-f0-9]{64}$"}
+              titulo: {type: string}
+              resumen: {type: string}
+              modalidad: {type: string}
+              horario: {type: string, nullable: true}
+              inscripcion: {type: string, nullable: true}
+              vigente_hasta: {type: string, format: date}
+    ConfirmacionMatricula:
+      type: object
+      description: Sin datos personales. No indica matrícula ni cupo.
+      required: [codigo, curso, modalidad, repetida]
+      properties:
+        codigo: {type: string, example: SM-1A2B3C4D}
+        curso: {type: string}
+        modalidad: {type: string}
+        repetida: {type: boolean}
     RespuestaChat:
       type: object
       required: [respuesta, fuente]

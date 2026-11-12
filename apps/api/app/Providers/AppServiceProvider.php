@@ -95,5 +95,8 @@ class AppServiceProvider extends ServiceProvider
         // después de validar, para que equivocarse al rellenar el formulario no bloquee al consumidor.
         RateLimiter::for('reclamaciones-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('reclamaciones-bff-intentos:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('reclamaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('reclamaciones-bff-formulario:'.ChatPublicoController::visitante($request)));
+        // Fase 2c.2 (BFF): solicitud de matrícula. Topes amplios por visitante (HMAC del BFF); los estrictos los aplica el controlador tras validar.
+        RateLimiter::for('matriculas-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('matriculas-bff-intentos:'.ChatPublicoController::visitante($request)));
+        RateLimiter::for('matriculas-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('matriculas-bff-formulario:'.ChatPublicoController::visitante($request)));
     }
 }
