@@ -3,8 +3,10 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Publico\CatalogoPublicoController;
 use App\Http\Controllers\Api\Publico\ChatPublicoController;
+use App\Http\Controllers\Api\Publico\ReclamacionesPublicoController;
 use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Middleware\AutenticarServicioWeb;
+use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
@@ -28,4 +30,9 @@ Route::prefix('public/v1')->name('api.publico.')->middleware([AutenticarServicio
     Route::get('/paginas/{pagina}', [CatalogoPublicoController::class, 'pagina'])->where('pagina', '[a-z-]{1,40}')->name('paginas');
     // Fase 2b: chat de Horus AI; límite propio por visitante además del global del BFF.
     Route::post('/chat', [ChatPublicoController::class, 'mensaje'])->middleware('throttle:chat-bff')->name('chat');
+    // Fase 2c.1: Libro de Reclamaciones (solo envío; no hay consulta pública). Apagado, el POST responde 404 antes de leer el cuerpo.
+    Route::get('/reclamaciones/formulario', [ReclamacionesPublicoController::class, 'formulario'])
+        ->middleware('throttle:reclamaciones-bff-formulario')->name('reclamaciones.formulario');
+    Route::post('/reclamaciones', [ReclamacionesPublicoController::class, 'store'])
+        ->middleware([RecepcionReclamacionesHabilitada::class, 'throttle:reclamaciones-bff-intentos'])->name('reclamaciones.store');
 });

@@ -89,5 +89,11 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay((int) config('reclamaciones.antispam.limite_ip_dia', 10))->by('reclamaciones-ipdia:'.$request->ip()),
             Limit::perDay((int) config('reclamaciones.antispam.limite_correo_dia', 3))->by('reclamaciones-correo:'.hash('sha256', Email::normalize($request->input('email')))),
         ]);
+        // Fase 2c.1 (BFF): todas las peticiones llegan desde el servidor de Next, así que se agrupa por el visitante que
+        // este calcula (HMAC, nunca la IP). Aquí solo hay topes amplios contra ráfagas, incluidas las inválidas; los
+        // límites estrictos de envío (3/10 min, 10/día por visitante y 3/día por correo) los aplica el controlador
+        // después de validar, para que equivocarse al rellenar el formulario no bloquee al consumidor.
+        RateLimiter::for('reclamaciones-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('reclamaciones-bff-intentos:'.ChatPublicoController::visitante($request)));
+        RateLimiter::for('reclamaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('reclamaciones-bff-formulario:'.ChatPublicoController::visitante($request)));
     }
 }

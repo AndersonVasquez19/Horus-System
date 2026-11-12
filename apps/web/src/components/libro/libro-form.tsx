@@ -1,488 +1,504 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useForm, useWatch, type FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FileText, AlertCircle, CheckCircle2, Printer, ShieldCheck } from 'lucide-react';
+import { FileText, AlertCircle, CheckCircle2, Printer, Info, Loader2 } from 'lucide-react';
 import { CONTACT_INFO } from '@/data/contactos';
 
-const reclamacionSchema = z.object({
-  tipo: z.enum(['RECLAMO', 'QUEJA']),
-  tipoDocumento: z.enum(['DNI', 'CE', 'PASAPORTE', 'RUC']),
-  numeroDocumento: z.string().min(8, 'Ingresa un número de documento válido').max(20),
-  nombres: z.string().min(2, 'Ingresa tus nombres completos'),
-  apellidos: z.string().min(2, 'Ingresa tus apellidos completos'),
-  telefono: z.string().min(7, 'Ingresa un teléfono o celular de contacto'),
-  email: z.string().email('Ingresa un correo electrónico válido'),
-  domicilio: z.string().min(5, 'Ingresa tu dirección o domicilio'),
-  esMenor: z.boolean().default(false),
-  nombreApoderado: z.string().optional(),
-  dniApoderado: z.string().optional(),
-  bienContratado: z.enum(['PRODUCTO', 'SERVICIO']),
-  montoReclamado: z.string().optional(),
-  descripcionBien: z.string().min(5, 'Describe brevemente el producto o servicio contratado'),
-  detalle: z.string().min(15, 'Explica con detalle el motivo de tu reclamo o queja'),
-  pedido: z.string().min(10, 'Indica qué solución o pedido solicitas'),
-  declaroVeracidad: z.boolean().refine((val) => val === true, {
-    message: 'Debes declarar que los datos consignados son verdaderos.',
-  }),
-});
+/**
+ * Libro de Reclamaciones virtual. Las reglas AUTORITATIVAS (formato del documento, plazos, límites, numeración,
+ * registro y auditoría) viven en Laravel; este esquema solo adelanta los mismos controles para avisar antes de enviar.
+ * El número de registro y la fecha límite son los que devuelve el servidor: nunca se calculan ni inventan aquí.
+ */
 
-type ReclamacionFormData = z.infer<typeof reclamacionSchema>;
+const SIN_ETIQUETAS = /^[^<>]*$/;
+const TELEFONO = /^[+0-9() .-]{5,30}$/;
+const MONTO = /^\d{1,10}([.,]\d{1,2})?$/;
+
+const FORMATO_DOCUMENTO: Record<string, [RegExp, string]> = {
+  dni: [/^\d{8}$/, 'El DNI tiene 8 dígitos.'],
+  ruc: [/^\d{11}$/, 'El RUC tiene 11 dígitos.'],
+  ce: [/^[A-Za-z0-9]{9,12}$/, 'El carné de extranjería tiene entre 9 y 12 caracteres.'],
+  pasaporte: [/^[A-Za-z0-9]{6,12}$/, 'El pasaporte tiene entre 6 y 12 caracteres.'],
+};
+
+const texto = (min: number, max: number, vacio: string) =>
+  z.string().trim().min(min, vacio).max(max, `Máximo ${max} caracteres.`).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.');
+
+const esquema = z
+  .object({
+    tipo: z.enum(['reclamo', 'queja']),
+    tipo_documento: z.enum(['dni', 'ce', 'pasaporte', 'ruc']),
+    numero_documento: z.string().trim().min(1, 'Ingresa tu número de documento.').max(20),
+    nombres: texto(2, 120, 'Ingresa tus nombres.'),
+    apellidos: texto(2, 120, 'Ingresa tus apellidos.'),
+    telefono: z.string().trim().regex(TELEFONO, 'Ingresa un teléfono válido (solo números, +, espacios o guiones).'),
+    email: z.string().trim().email('Ingresa un correo electrónico válido.').max(254),
+    domicilio: texto(5, 255, 'Ingresa tu domicilio o dirección.'),
+    es_menor: z.boolean(),
+    representante_nombre: z.string().trim().max(120).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
+    representante_domicilio: z.string().trim().max(255).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
+    representante_telefono: z.string().trim().optional(),
+    representante_email: z.string().trim().optional(),
+    bien_tipo: z.enum(['producto', 'servicio']).optional(),
+    bien_descripcion: z.string().trim().max(500, 'Máximo 500 caracteres.').regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
+    monto_bien: z.string().trim().optional(),
+    monto_no_aplica: z.boolean(),
+    detalle: texto(10, 3000, 'Explica con detalle lo ocurrido (mínimo 10 caracteres).'),
+    pedido: texto(5, 1500, 'Indica qué solución solicitas (mínimo 5 caracteres).'),
+    acepta_privacidad: z.boolean().refine((v) => v, 'Debes aceptar la declaración para enviar la hoja.'),
+  })
+  .superRefine((d, ctx) => {
+    const [patron, mensaje] = FORMATO_DOCUMENTO[d.tipo_documento];
+    if (!patron.test(d.numero_documento.replace(/\s+/g, ''))) ctx.addIssue({ code: 'custom', path: ['numero_documento'], message: mensaje });
+    if (d.es_menor) {
+      if (!d.representante_nombre) ctx.addIssue({ code: 'custom', path: ['representante_nombre'], message: 'Ingresa el nombre del padre, madre o representante.' });
+      if (!d.representante_domicilio) ctx.addIssue({ code: 'custom', path: ['representante_domicilio'], message: 'Ingresa el domicilio del representante.' });
+      if (!d.representante_telefono || !TELEFONO.test(d.representante_telefono)) ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: 'Ingresa un teléfono válido del representante.' });
+      if (!d.representante_email || !z.string().email().safeParse(d.representante_email).success) ctx.addIssue({ code: 'custom', path: ['representante_email'], message: 'Ingresa un correo válido del representante.' });
+    }
+    if (d.tipo === 'reclamo') {
+      if (!d.bien_tipo) ctx.addIssue({ code: 'custom', path: ['bien_tipo'], message: 'Indica si es un producto o un servicio.' });
+      if (!d.bien_descripcion) ctx.addIssue({ code: 'custom', path: ['bien_descripcion'], message: 'Describe el producto o servicio.' });
+      if (!d.monto_no_aplica && !MONTO.test(d.monto_bien ?? '')) ctx.addIssue({ code: 'custom', path: ['monto_bien'], message: 'Indica el monto (hasta dos decimales) o marca «No aplica».' });
+    }
+  });
+
+type Datos = z.infer<typeof esquema>;
+type Campo = FieldPath<Datos>;
+
+const CAMPOS_CONOCIDOS = new Set<string>([
+  'tipo', 'tipo_documento', 'numero_documento', 'nombres', 'apellidos', 'telefono', 'email', 'domicilio', 'es_menor',
+  'representante_nombre', 'representante_domicilio', 'representante_telefono', 'representante_email',
+  'bien_tipo', 'bien_descripcion', 'monto_bien', 'monto_no_aplica', 'detalle', 'pedido', 'acepta_privacidad',
+]);
+
+type Credenciales =
+  | { estado: 'cargando' }
+  | { estado: 'error' }
+  | { estado: 'deshabilitado' }
+  | { estado: 'listo'; marca: string; token: string; correoActivo: boolean; plazo: number; honeypot: string };
+
+interface Confirmacion {
+  numero: string;
+  tipo: 'reclamo' | 'queja';
+  fechaLimite: string;
+  repetida: boolean;
+  correoActivo: boolean;
+  plazo: number;
+  datos: Pick<Datos, 'nombres' | 'apellidos' | 'tipo_documento' | 'numero_documento' | 'email' | 'telefono'>;
+}
+
+const input =
+  'w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white placeholder:text-stone-500 focus:border-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 aria-[invalid=true]:border-red-400';
+const area = 'w-full rounded-xl border border-white/10 bg-[#071321] p-4 text-sm text-white placeholder:text-stone-500 focus:border-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 aria-[invalid=true]:border-red-400';
+
+function fechaLarga(iso: string): string {
+  const [a, m, d] = iso.split('-').map(Number);
+  return new Date(a, m - 1, d).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function Seccion({ numero, titulo, children }: { numero: number; titulo: string; children: ReactNode }) {
+  return (
+    <fieldset className="min-w-0">
+      <legend className="mb-4 flex items-center gap-2 text-base font-bold uppercase tracking-wider text-gold">
+        <span className="h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
+        {numero}. {titulo}
+      </legend>
+      {children}
+    </fieldset>
+  );
+}
+
+/** Pide al BFF el estado del libro y las credenciales de un solo uso (marca firmada y token de envío). */
+async function pedirCredenciales(): Promise<Credenciales> {
+  try {
+    const r = await fetch('/api/reclamaciones', { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
+    if (!r.ok) return { estado: 'error' };
+    const f = await r.json();
+    if (f?.habilitado === true && typeof f.marca === 'string' && typeof f.token_envio === 'string') {
+      return { estado: 'listo', marca: f.marca, token: f.token_envio, correoActivo: f.correo_activo === true, plazo: Number(f.plazo_dias_habiles) || 15, honeypot: String(f.honeypot ?? 'sitio_web') };
+    }
+    return { estado: 'deshabilitado' };
+  } catch {
+    return { estado: 'error' };
+  }
+}
 
 export function LibroForm() {
-  const [tipoSeleccionado, setTipoSeleccionado] = useState<'RECLAMO' | 'QUEJA'>('RECLAMO');
-  const [esMenor, setEsMenor] = useState(false);
-  const [ticketEnviado, setTicketEnviado] = useState<{
-    codigo: string;
-    fecha: string;
-    fechaLimite: string;
-    datos: ReclamacionFormData;
-  } | null>(null);
+  const [credenciales, setCredenciales] = useState<Credenciales>({ estado: 'cargando' });
+  const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null);
+  const [aviso, setAviso] = useState<{ tipo: 'error' | 'info'; texto: string } | null>(null);
+  const [trampa, setTrampa] = useState('');
+  const enviando = useRef(false);
+  const avisoRef = useRef<HTMLDivElement>(null);
+  const confirmacionRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
     handleSubmit,
+    control,
     setValue,
+    setError,
+    reset,
     formState: { errors, isSubmitting },
-  } = useForm<ReclamacionFormData>({
-    resolver: zodResolver(reclamacionSchema),
-    defaultValues: {
-      tipo: 'RECLAMO',
-      tipoDocumento: 'DNI',
-      bienContratado: 'SERVICIO',
-      esMenor: false,
-    },
+  } = useForm<Datos>({
+    resolver: zodResolver(esquema),
+    defaultValues: { tipo: 'reclamo', tipo_documento: 'dni', es_menor: false, monto_no_aplica: false, bien_tipo: 'servicio', acepta_privacidad: false },
   });
 
-  const handleTipoChange = (nuevoTipo: 'RECLAMO' | 'QUEJA') => {
-    setTipoSeleccionado(nuevoTipo);
-    setValue('tipo', nuevoTipo);
+  const tipo = useWatch({ control, name: 'tipo' });
+  const esMenor = useWatch({ control, name: 'es_menor' });
+  const montoNoAplica = useWatch({ control, name: 'monto_no_aplica' });
+  const esReclamo = tipo === 'reclamo';
+  const nombreTipo = esReclamo ? 'reclamo' : 'queja';
+
+  const cargarCredenciales = useCallback(async () => setCredenciales(await pedirCredenciales()), []);
+
+  useEffect(() => {
+    let vigente = true;
+    void pedirCredenciales().then((c) => {
+      if (vigente) setCredenciales(c);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  const mostrarAviso = (tipoAviso: 'error' | 'info', texto: string) => {
+    setAviso({ tipo: tipoAviso, texto });
+    requestAnimationFrame(() => avisoRef.current?.focus());
   };
 
-  const onSubmit = (data: ReclamacionFormData) => {
-    // Generate correlation ID
-    const prefijo = data.tipo === 'RECLAMO' ? 'REC' : 'QJA';
-    const aleatorio = Math.floor(10000 + Math.random() * 90000);
-    const anio = new Date().getFullYear();
-    const codigo = `${prefijo}-${anio}-${aleatorio}`;
+  const onSubmit = async (d: Datos) => {
+    if (enviando.current || credenciales.estado !== 'listo') return;
+    enviando.current = true;
+    setAviso(null);
+    const cuerpo: Record<string, unknown> = {
+      tipo: d.tipo, tipo_documento: d.tipo_documento, numero_documento: d.numero_documento.replace(/\s+/g, ''),
+      nombres: d.nombres, apellidos: d.apellidos, telefono: d.telefono, email: d.email, domicilio: d.domicilio,
+      es_menor: d.es_menor, detalle: d.detalle, pedido: d.pedido, acepta_privacidad: d.acepta_privacidad,
+      marca: credenciales.marca, token_envio: credenciales.token, [credenciales.honeypot]: trampa,
+    };
+    if (d.es_menor) {
+      Object.assign(cuerpo, {
+        representante_nombre: d.representante_nombre, representante_domicilio: d.representante_domicilio,
+        representante_telefono: d.representante_telefono, representante_email: d.representante_email,
+      });
+    }
+    if (d.tipo === 'reclamo') {
+      Object.assign(cuerpo, { bien_tipo: d.bien_tipo, bien_descripcion: d.bien_descripcion, monto_no_aplica: d.monto_no_aplica });
+      if (!d.monto_no_aplica) cuerpo.monto_bien = (d.monto_bien ?? '').replace(',', '.');
+    }
 
-    const fechaHoy = new Date().toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    try {
+      const r = await fetch('/api/reclamaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(cuerpo),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(25_000),
+      });
+      const cuerpoRespuesta = await r.json().catch(() => null);
 
-    // 15 dias habiles segun Ley 29571
-    const fechaLimite = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    setTicketEnviado({
-      codigo,
-      fecha: fechaHoy,
-      fechaLimite,
-      datos: data,
-    });
+      if (r.ok && typeof cuerpoRespuesta?.numero === 'string') {
+        setConfirmacion({
+          numero: cuerpoRespuesta.numero, tipo: cuerpoRespuesta.tipo, fechaLimite: cuerpoRespuesta.fecha_limite,
+          repetida: cuerpoRespuesta.repetida === true, correoActivo: cuerpoRespuesta.correo_activo === true, plazo: credenciales.plazo,
+          datos: { nombres: d.nombres, apellidos: d.apellidos, tipo_documento: d.tipo_documento, numero_documento: d.numero_documento, email: d.email, telefono: d.telefono },
+        });
+        requestAnimationFrame(() => confirmacionRef.current?.focus());
+        return;
+      }
+      if (r.status === 422) {
+        const porCampo: Record<string, string[]> = cuerpoRespuesta?.errors ?? {};
+        let renovar = false;
+        for (const [campo, mensajes] of Object.entries(porCampo)) {
+          if (campo === 'marca' || campo === credenciales.honeypot) renovar = true;
+          else if (CAMPOS_CONOCIDOS.has(campo)) setError(campo as Campo, { type: 'server', message: mensajes[0] });
+        }
+        if (renovar) {
+          await cargarCredenciales();
+          mostrarAviso('error', 'El formulario caducó o se envió demasiado rápido. Tus datos siguen aquí: espera unos segundos y vuelve a enviar.');
+        } else {
+          mostrarAviso('error', 'Revisa los campos marcados. Tus datos no se han perdido.');
+        }
+        return;
+      }
+      if (r.status === 429) {
+        const minutos = Math.max(1, Math.ceil(Number(r.headers.get('retry-after') ?? '600') / 60));
+        mostrarAviso('error', `Se alcanzó el límite de envíos. Podrás volver a intentarlo en unos ${minutos} minuto(s). Tus datos siguen en el formulario.`);
+        return;
+      }
+      mostrarAviso('error', 'No pudimos registrar tu hoja en este momento. Tus datos siguen aquí; puedes volver a intentarlo o escribirnos por WhatsApp.');
+    } catch {
+      // Sin respuesta (red o tiempo agotado): el mismo token hace que un reintento no cree una hoja duplicada.
+      mostrarAviso('error', 'No pudimos conectar con el servidor. Tus datos siguen aquí; puedes reintentar sin riesgo de duplicar tu hoja.');
+    } finally {
+      enviando.current = false;
+    }
   };
 
-  if (ticketEnviado) {
+  const nueva = () => {
+    setConfirmacion(null);
+    setAviso(null);
+    reset();
+    setCredenciales({ estado: 'cargando' });
+    void cargarCredenciales();
+  };
+
+  if (confirmacion) {
+    const c = confirmacion;
     return (
-      <div className="rounded-3xl border border-emerald-500/30 bg-[#0A1929]/90 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl text-stone-200 animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex items-center gap-4 border-b border-white/10 pb-6 mb-6">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 className="h-8 w-8" />
+      <div ref={confirmacionRef} tabIndex={-1} role="status" className="rounded-3xl border border-emerald-500/30 bg-[#0A1929]/90 p-6 text-stone-200 shadow-2xl outline-none backdrop-blur-2xl sm:p-10">
+        <div className="mb-6 flex items-center gap-4 border-b border-white/10 pb-6">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+            <CheckCircle2 className="h-8 w-8" aria-hidden="true" />
           </div>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              Hoja de Reclamación Registrada
+              {c.repetida ? 'Esta hoja ya estaba registrada' : c.tipo === 'reclamo' ? 'Reclamo registrado' : 'Queja registrada'}
             </span>
             <h3 className="text-2xl font-extrabold text-white">
-              Código de Registro: <span className="text-gold">{ticketEnviado.codigo}</span>
+              Número de registro: <span className="text-gold">{c.numero}</span>
             </h3>
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 text-sm">
+        <div className="grid gap-6 text-sm sm:grid-cols-2">
           <div className="space-y-2">
-            <p className="text-stone-400 text-xs uppercase font-semibold">Consumidor</p>
-            <p className="font-bold text-white">
-              {ticketEnviado.datos.nombres} {ticketEnviado.datos.apellidos}
-            </p>
-            <p className="text-stone-300">
-              {ticketEnviado.datos.tipoDocumento}: {ticketEnviado.datos.numeroDocumento}
-            </p>
-            <p className="text-stone-300">Correo: {ticketEnviado.datos.email}</p>
-            <p className="text-stone-300">Teléfono: {ticketEnviado.datos.telefono}</p>
+            <p className="text-xs font-semibold uppercase text-stone-400">Consumidor</p>
+            <p className="font-bold text-white">{c.datos.nombres} {c.datos.apellidos}</p>
+            <p className="text-stone-300">{c.datos.tipo_documento.toUpperCase()}: {c.datos.numero_documento}</p>
+            <p className="text-stone-300">Correo: {c.datos.email}</p>
+            <p className="text-stone-300">Teléfono: {c.datos.telefono}</p>
           </div>
-
           <div className="space-y-2">
-            <p className="text-stone-400 text-xs uppercase font-semibold">Detalles del Caso</p>
-            <p className="font-bold text-white">Tipo: {ticketEnviado.datos.tipo}</p>
-            <p className="text-stone-300">Bien: {ticketEnviado.datos.bienContratado}</p>
-            <p className="text-stone-300">Fecha de registro: {ticketEnviado.fecha}</p>
-            <p className="text-gold font-semibold">
-              Plazo máximo de respuesta: {ticketEnviado.fechaLimite} (15 días hábiles)
-            </p>
+            <p className="text-xs font-semibold uppercase text-stone-400">Registro</p>
+            <p className="font-bold text-white">Tipo: {c.tipo === 'reclamo' ? 'Reclamo' : 'Queja'}</p>
+            <p className="font-semibold text-gold">Fecha límite de respuesta: {fechaLarga(c.fechaLimite)} ({c.plazo} días hábiles)</p>
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-stone-300">
-          <p>
-            Hemos registrado tu hoja en nuestro Libro de Reclamaciones conforme al Código de Protección y Defensa del Consumidor (Ley N° 29571). Nuestro equipo legal y de atención al cliente se pondrá en contacto contigo a través del correo consignado.
-          </p>
+        <div className="mt-6 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-stone-300">
+          <p className="font-semibold text-white">¿Qué sucede ahora?</p>
+          <p>Conserva este número para cualquier consulta sobre tu registro. Horus Group SRL responderá por escrito al correo que indicaste.</p>
+          <p>{c.correoActivo ? 'Te enviaremos una copia de tu hoja al correo consignado. Si no la ves, revisa la carpeta de correo no deseado.' : 'Por ahora no enviamos la copia automática por correo: imprime esta hoja o guarda el número de registro.'}</p>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-white/10">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-2.5 text-xs font-semibold text-white hover:bg-white/20 transition-all"
-          >
-            <Printer className="h-4 w-4 text-gold" />
-            <span>Imprimir Hoja de Reclamación</span>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
+          <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-gold/60 focus-visible:outline-none">
+            <Printer className="h-4 w-4 text-gold" aria-hidden="true" />
+            <span>Imprimir hoja</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setTicketEnviado(null)}
-            className="rounded-full bg-gold px-6 py-2.5 text-xs font-bold text-ink-dark shadow-gold hover:brightness-110"
-          >
-            Registrar otra consulta
+          <button type="button" onClick={nueva} className="rounded-full bg-gold px-6 py-2.5 text-xs font-bold text-ink-dark shadow-gold hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none">
+            Registrar otra hoja
           </button>
         </div>
       </div>
     );
   }
 
+  const listo = credenciales.estado === 'listo';
+  const err = (c: Campo) => errors[c]?.message as string | undefined;
+  const ariaCampo = (c: Campo) => ({ 'aria-invalid': err(c) ? true : undefined, 'aria-describedby': err(c) ? `${c}-error` : undefined });
+  const mensajeError = (c: Campo) => (err(c) ? <p id={`${c}-error`} className="mt-1 text-xs text-red-400">{err(c)}</p> : null);
+
   return (
     <div className="space-y-10">
-      {/* Selector: ¿Reclamo o Queja? */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div
-          onClick={() => handleTipoChange('RECLAMO')}
-          className={`cursor-pointer rounded-3xl border p-6 transition-all shadow-xl ${
-            tipoSeleccionado === 'RECLAMO'
-              ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
-              : 'border-white/10 bg-[#0A1929]/70 hover:border-white/30'
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gold/20 text-gold">
-              <FileText className="h-5 w-5" />
+      <fieldset className="grid gap-4 sm:grid-cols-2">
+        <legend className="sr-only">Tipo de registro</legend>
+        {(
+          [
+            { valor: 'reclamo', titulo: 'RECLAMO', Icono: FileText, texto: <>Disconformidad relacionada con los <strong>productos o servicios</strong> adquiridos. Implica una insatisfacción directa con lo recibido o contratado.</> },
+            { valor: 'queja', titulo: 'QUEJA', Icono: AlertCircle, texto: <>Malestar o descontento respecto a la <strong>atención al público</strong> recibida, sin relación directa con el producto o servicio contratado.</> },
+          ] as const
+        ).map(({ valor, titulo, Icono, texto: descripcion }) => (
+          <label key={valor} className="cursor-pointer rounded-3xl border border-white/10 bg-[#0A1929]/70 p-6 shadow-xl transition-all hover:border-white/30 has-[:checked]:border-gold has-[:checked]:bg-gold/10 has-[:checked]:ring-2 has-[:checked]:ring-gold/30 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-gold">
+            <input type="radio" value={valor} {...register('tipo')} className="sr-only" />
+            <span className="mb-3 flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gold/20 text-gold"><Icono className="h-5 w-5" aria-hidden="true" /></span>
+              <span className="text-lg font-bold text-white">{titulo}</span>
             </span>
-            <h3 className="text-lg font-bold text-white">RECLAMO</h3>
-          </div>
-          <p className="text-xs text-stone-300 leading-relaxed">
-            Disconformidad relacionada con los <strong>productos o servicios</strong> adquiridos. Implica una insatisfacción directa con lo recibido o contratado.
+            <span className="block text-xs leading-relaxed text-stone-300">{descripcion}</span>
+          </label>
+        ))}
+      </fieldset>
+
+      {credenciales.estado === 'deshabilitado' && (
+        <div role="note" className="flex items-start gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm text-stone-200">
+          <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-gold" aria-hidden="true" />
+          <p>
+            El registro en línea todavía no está habilitado. Puedes revisar el formulario; mientras tanto comunícate con nosotros por{' '}
+            <a href={CONTACT_INFO.socials.whatsapp} className="font-semibold text-gold underline" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            , al correo {CONTACT_INFO.email} o en {CONTACT_INFO.address}.
           </p>
         </div>
-
-        <div
-          onClick={() => handleTipoChange('QUEJA')}
-          className={`cursor-pointer rounded-3xl border p-6 transition-all shadow-xl ${
-            tipoSeleccionado === 'QUEJA'
-              ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
-              : 'border-white/10 bg-[#0A1929]/70 hover:border-white/30'
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gold/20 text-gold">
-              <AlertCircle className="h-5 w-5" />
-            </span>
-            <h3 className="text-lg font-bold text-white">QUEJA</h3>
-          </div>
-          <p className="text-xs text-stone-300 leading-relaxed">
-            Malestar o descontento respecto a la <strong>atención al público</strong> recibida, sin tener relación directa con el producto o servicio contratado.
-          </p>
+      )}
+      {credenciales.estado === 'error' && (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-stone-200">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-400" aria-hidden="true" />
+          <p className="flex-1">No pudimos preparar el formulario. Inténtalo de nuevo o escríbenos por <a href={CONTACT_INFO.socials.whatsapp} className="font-semibold text-gold underline" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
+          <button type="button" onClick={() => { setCredenciales({ estado: 'cargando' }); void cargarCredenciales(); }} className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/10">Reintentar</button>
         </div>
-      </div>
+      )}
 
-      {/* Main Form */}
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="rounded-3xl border border-white/10 bg-[#0A1929]/80 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl space-y-8"
-      >
-        <input type="hidden" {...register('tipo')} value={tipoSeleccionado} />
+      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate aria-busy={isSubmitting} className="space-y-8 rounded-3xl border border-white/10 bg-[#0A1929]/80 p-6 shadow-2xl backdrop-blur-2xl sm:p-10">
+        {/* Señuelo anti-bots: invisible y fuera del orden de tabulación; una persona nunca lo rellena. */}
+        <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+          <label>No rellenar<input type="text" tabIndex={-1} autoComplete="off" value={trampa} onChange={(e) => setTrampa(e.target.value)} /></label>
+        </div>
 
-        {/* Section 1: Identificación del Consumidor */}
-        <div>
-          <h4 className="text-base font-bold text-gold uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-gold"></span>
-            1. Identificación del Consumidor Reclamante
-          </h4>
+        {aviso && (
+          <div ref={avisoRef} tabIndex={-1} role="alert" className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-stone-100 outline-none">{aviso.texto}</div>
+        )}
 
+        <Seccion numero={1} titulo="Identificación del consumidor reclamante">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Tipo de Documento *
-              </label>
-              <select
-                {...register('tipoDocumento')}
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              >
-                <option value="DNI">DNI</option>
-                <option value="CE">Carné de Extranjería (CE)</option>
-                <option value="PASAPORTE">Pasaporte</option>
-                <option value="RUC">RUC</option>
+              <label htmlFor="tipo_documento" className="mb-1 block text-xs font-semibold text-stone-300">Tipo de documento *</label>
+              <select id="tipo_documento" {...register('tipo_documento')} className={input}>
+                <option value="dni">DNI</option>
+                <option value="ce">Carné de extranjería (CE)</option>
+                <option value="pasaporte">Pasaporte</option>
+                <option value="ruc">RUC</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Número de Documento *
-              </label>
-              <input
-                type="text"
-                {...register('numeroDocumento')}
-                placeholder="Ej. 74859612"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.numeroDocumento && (
-                <p className="mt-1 text-xs text-red-400">{errors.numeroDocumento.message}</p>
-              )}
+              <label htmlFor="numero_documento" className="mb-1 block text-xs font-semibold text-stone-300">Número de documento *</label>
+              <input id="numero_documento" type="text" inputMode="text" autoComplete="off" maxLength={20} {...register('numero_documento')} {...ariaCampo('numero_documento')} className={input} />
+              {mensajeError('numero_documento')}
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Teléfono / Celular *
-              </label>
-              <input
-                type="tel"
-                {...register('telefono')}
-                placeholder="Ej. 972021374"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.telefono && (
-                <p className="mt-1 text-xs text-red-400">{errors.telefono.message}</p>
-              )}
+              <label htmlFor="telefono" className="mb-1 block text-xs font-semibold text-stone-300">Teléfono / celular *</label>
+              <input id="telefono" type="tel" autoComplete="tel" maxLength={30} {...register('telefono')} {...ariaCampo('telefono')} className={input} />
+              {mensajeError('telefono')}
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Nombres Completos *
-              </label>
-              <input
-                type="text"
-                {...register('nombres')}
-                placeholder="Tus nombres"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.nombres && (
-                <p className="mt-1 text-xs text-red-400">{errors.nombres.message}</p>
-              )}
+              <label htmlFor="nombres" className="mb-1 block text-xs font-semibold text-stone-300">Nombres *</label>
+              <input id="nombres" type="text" autoComplete="given-name" maxLength={120} {...register('nombres')} {...ariaCampo('nombres')} className={input} />
+              {mensajeError('nombres')}
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Apellidos Completos *
-              </label>
-              <input
-                type="text"
-                {...register('apellidos')}
-                placeholder="Tus apellidos"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.apellidos && (
-                <p className="mt-1 text-xs text-red-400">{errors.apellidos.message}</p>
-              )}
+              <label htmlFor="apellidos" className="mb-1 block text-xs font-semibold text-stone-300">Apellidos *</label>
+              <input id="apellidos" type="text" autoComplete="family-name" maxLength={120} {...register('apellidos')} {...ariaCampo('apellidos')} className={input} />
+              {mensajeError('apellidos')}
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Correo Electrónico *
-              </label>
-              <input
-                type="email"
-                {...register('email')}
-                placeholder="correo@ejemplo.com"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>
-              )}
+              <label htmlFor="email" className="mb-1 block text-xs font-semibold text-stone-300">Correo electrónico *</label>
+              <input id="email" type="email" autoComplete="email" maxLength={254} {...register('email')} {...ariaCampo('email')} className={input} />
+              {mensajeError('email')}
             </div>
-
             <div className="sm:col-span-2 lg:col-span-3">
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Domicilio / Dirección *
-              </label>
-              <input
-                type="text"
-                {...register('domicilio')}
-                placeholder="Dirección completa, distrito, ciudad"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.domicilio && (
-                <p className="mt-1 text-xs text-red-400">{errors.domicilio.message}</p>
-              )}
+              <label htmlFor="domicilio" className="mb-1 block text-xs font-semibold text-stone-300">Domicilio / dirección *</label>
+              <input id="domicilio" type="text" autoComplete="street-address" maxLength={255} placeholder="Calle, número, distrito, ciudad" {...register('domicilio')} {...ariaCampo('domicilio')} className={input} />
+              {mensajeError('domicilio')}
             </div>
           </div>
 
-          {/* Menor de edad Checkbox */}
-          <div className="mt-4 pt-3 border-t border-white/5">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-stone-300">
-              <input
-                type="checkbox"
-                checked={esMenor}
-                onChange={(e) => {
-                  setEsMenor(e.target.checked);
-                  setValue('esMenor', e.target.checked);
-                }}
-                className="h-4 w-4 rounded border-white/20 bg-[#071321] text-gold focus:ring-gold"
-              />
-              <span>El reclamante es menor de edad (se requiere consignar datos del padre, madre o apoderado)</span>
+          <div className="mt-4 border-t border-white/5 pt-3">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-stone-300">
+              <input type="checkbox" {...register('es_menor')} className="h-4 w-4 rounded border-white/20 bg-[#071321] accent-[#d4af37]" />
+              <span>El reclamante es menor de edad (se consignan los datos del padre, madre o representante).</span>
             </label>
-
             {esMenor && (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 rounded-2xl border border-white/10 bg-white/5 p-4 animate-in fade-in duration-200">
+              <div className="mt-4 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    Nombre del Padre / Madre / Apoderado *
-                  </label>
-                  <input
-                    type="text"
-                    {...register('nombreApoderado')}
-                    placeholder="Nombres y apellidos del apoderado"
-                    className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2 text-sm text-white focus:border-gold focus:outline-none"
-                  />
+                  <label htmlFor="representante_nombre" className="mb-1 block text-xs font-semibold text-stone-300">Nombre del padre, madre o representante *</label>
+                  <input id="representante_nombre" type="text" maxLength={120} {...register('representante_nombre')} {...ariaCampo('representante_nombre')} className={input} />
+                  {mensajeError('representante_nombre')}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    DNI del Apoderado *
-                  </label>
-                  <input
-                    type="text"
-                    {...register('dniApoderado')}
-                    placeholder="DNI del apoderado"
-                    className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2 text-sm text-white focus:border-gold focus:outline-none"
-                  />
+                  <label htmlFor="representante_telefono" className="mb-1 block text-xs font-semibold text-stone-300">Teléfono del representante *</label>
+                  <input id="representante_telefono" type="tel" maxLength={30} {...register('representante_telefono')} {...ariaCampo('representante_telefono')} className={input} />
+                  {mensajeError('representante_telefono')}
+                </div>
+                <div>
+                  <label htmlFor="representante_email" className="mb-1 block text-xs font-semibold text-stone-300">Correo del representante *</label>
+                  <input id="representante_email" type="email" maxLength={254} {...register('representante_email')} {...ariaCampo('representante_email')} className={input} />
+                  {mensajeError('representante_email')}
+                </div>
+                <div>
+                  <label htmlFor="representante_domicilio" className="mb-1 block text-xs font-semibold text-stone-300">Domicilio del representante *</label>
+                  <input id="representante_domicilio" type="text" maxLength={255} {...register('representante_domicilio')} {...ariaCampo('representante_domicilio')} className={input} />
+                  {mensajeError('representante_domicilio')}
                 </div>
               </div>
             )}
           </div>
-        </div>
+        </Seccion>
 
-        {/* Section 2: Identificación del Bien Contratado */}
-        <div>
-          <h4 className="text-base font-bold text-gold uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-gold"></span>
-            2. Identificación del Bien Contratado
-          </h4>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Tipo de Bien *
-              </label>
-              <select
-                {...register('bienContratado')}
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              >
-                <option value="SERVICIO">Servicio (Cursos, Soporte, Cableado, Cámaras)</option>
-                <option value="PRODUCTO">Producto (Equipos, Materiales)</option>
-              </select>
+        {esReclamo && (
+          <Seccion numero={2} titulo="Identificación del bien contratado">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="bien_tipo" className="mb-1 block text-xs font-semibold text-stone-300">Tipo de bien *</label>
+                <select id="bien_tipo" {...register('bien_tipo')} {...ariaCampo('bien_tipo')} className={input}>
+                  <option value="servicio">Servicio (cursos, soporte, cableado, cámaras)</option>
+                  <option value="producto">Producto (equipos, materiales)</option>
+                </select>
+                {mensajeError('bien_tipo')}
+              </div>
+              <div>
+                <label htmlFor="monto_bien" className="mb-1 block text-xs font-semibold text-stone-300">Monto reclamado (S/) *</label>
+                <input id="monto_bien" type="text" inputMode="decimal" autoComplete="off" maxLength={13} placeholder="Ej. 150.00" disabled={montoNoAplica} {...register('monto_bien')} {...ariaCampo('monto_bien')} className={`${input} disabled:opacity-40`} />
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-stone-300">
+                  <input type="checkbox" {...register('monto_no_aplica', { onChange: (e) => { if (e.target.checked) setValue('monto_bien', ''); } })} className="h-4 w-4 rounded border-white/20 bg-[#071321] accent-[#d4af37]" />
+                  <span>No aplica</span>
+                </label>
+                {mensajeError('monto_bien')}
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="bien_descripcion" className="mb-1 block text-xs font-semibold text-stone-300">Descripción del producto o servicio *</label>
+                <input id="bien_descripcion" type="text" maxLength={500} placeholder="Ej. Curso de instalación de cámaras de seguridad" {...register('bien_descripcion')} {...ariaCampo('bien_descripcion')} className={input} />
+                {mensajeError('bien_descripcion')}
+              </div>
             </div>
+          </Seccion>
+        )}
 
-            <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Monto Reclamado (Opcional)
-              </label>
-              <input
-                type="text"
-                {...register('montoReclamado')}
-                placeholder="Ej. S/ 250.00"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Descripción del Producto o Servicio *
-              </label>
-              <input
-                type="text"
-                {...register('descripcionBien')}
-                placeholder="Ej. Curso de Instalación de Cámaras de Seguridad / Mantenimiento de laptop"
-                className="w-full rounded-xl border border-white/10 bg-[#071321] px-4 py-2.5 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.descripcionBien && (
-                <p className="mt-1 text-xs text-red-400">{errors.descripcionBien.message}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Detalle de la Reclamación y Pedido */}
-        <div>
-          <h4 className="text-base font-bold text-gold uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-gold"></span>
-            3. Detalle de la Reclamación y Pedido del Consumidor
-          </h4>
-
+        <Seccion numero={esReclamo ? 3 : 2} titulo="Detalle y pedido del consumidor">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Detalle del {tipoSeleccionado} *
-              </label>
-              <textarea
-                rows={4}
-                {...register('detalle')}
-                placeholder={`Describe claramente los hechos ocurridos que motivan tu ${tipoSeleccionado.toLowerCase()}...`}
-                className="w-full rounded-xl border border-white/10 bg-[#071321] p-4 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.detalle && (
-                <p className="mt-1 text-xs text-red-400">{errors.detalle.message}</p>
-              )}
+              <label htmlFor="detalle" className="mb-1 block text-xs font-semibold text-stone-300">Detalle del {nombreTipo} *</label>
+              <textarea id="detalle" rows={5} maxLength={3000} placeholder={`Describe claramente los hechos que motivan tu ${nombreTipo}. Evita incluir datos sensibles (contraseñas, números de tarjeta, datos de salud).`} {...register('detalle')} {...ariaCampo('detalle')} className={area} />
+              {mensajeError('detalle')}
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1">
-                Pedido Concreto *
-              </label>
-              <textarea
-                rows={2}
-                {...register('pedido')}
-                placeholder="Indica qué solución o resultado esperas de parte de Horus Group SRL..."
-                className="w-full rounded-xl border border-white/10 bg-[#071321] p-4 text-sm text-white focus:border-gold focus:outline-none"
-              />
-              {errors.pedido && (
-                <p className="mt-1 text-xs text-red-400">{errors.pedido.message}</p>
-              )}
+              <label htmlFor="pedido" className="mb-1 block text-xs font-semibold text-stone-300">Pedido concreto *</label>
+              <textarea id="pedido" rows={3} maxLength={1500} placeholder="Indica qué solución o resultado esperas de parte de Horus Group SRL." {...register('pedido')} {...ariaCampo('pedido')} className={area} />
+              {mensajeError('pedido')}
             </div>
           </div>
-        </div>
+        </Seccion>
 
-        {/* Declaration and Submit */}
-        <div className="space-y-4 pt-4 border-t border-white/10">
-          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-stone-300">
-            <input
-              type="checkbox"
-              {...register('declaroVeracidad')}
-              className="mt-0.5 h-4 w-4 rounded border-white/20 bg-[#071321] text-gold focus:ring-gold flex-shrink-0"
-            />
-            <span>
-              Declaro ser el titular del servicio/producto (o apoderado) y que los datos consignados en esta hoja de reclamación son verídicos, conforme a la Ley N° 29571.
-            </span>
+        <div className="space-y-4 border-t border-white/10 pt-4">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-stone-300">
+            <p className="mb-1 font-semibold text-white">Tratamiento de tus datos personales</p>
+            <p>
+              Horus Group SRL usará los datos de esta hoja únicamente para registrar, atender, responder y conservar tu {nombreTipo} y para cumplir las obligaciones del Libro de Reclamaciones; no se usarán para publicidad. Más información en la{' '}
+              <a href="/legales/politicas-privacidad" target="_blank" rel="noopener noreferrer" className="font-semibold text-gold underline">Política de Privacidad</a>.
+            </p>
+          </div>
+          <label className="flex cursor-pointer items-start gap-2.5 text-xs text-stone-300">
+            <input type="checkbox" {...register('acepta_privacidad')} {...ariaCampo('acepta_privacidad')} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-white/20 bg-[#071321] accent-[#d4af37]" />
+            <span>Declaro que la información proporcionada es verídica y acepto que Horus Group SRL procese mis datos personales conforme a su Política de Privacidad para gestionar este {nombreTipo}.</span>
           </label>
-          {errors.declaroVeracidad && (
-            <p className="text-xs text-red-400">{errors.declaroVeracidad.message}</p>
-          )}
+          {mensajeError('acepta_privacidad')}
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
             <span className="text-xs text-stone-400">
-              Plazo de respuesta: <strong>15 días hábiles</strong>.
+              Plazo de respuesta: <strong>{listo ? credenciales.plazo : 15} días hábiles</strong>.
             </span>
-
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="rounded-full bg-gradient-to-r from-gold to-gold-dark px-8 py-3.5 text-sm font-bold text-ink-dark shadow-gold hover:brightness-110 transition-all hover:scale-105 disabled:opacity-50"
+              disabled={isSubmitting || !listo}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold to-gold-dark px-8 py-3.5 text-sm font-bold text-ink-dark shadow-gold transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? 'Registrando hoja...' : 'Enviar Hoja de Reclamación'}
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {isSubmitting ? 'Registrando hoja…' : credenciales.estado === 'cargando' ? 'Preparando formulario…' : credenciales.estado === 'deshabilitado' ? 'Envío en línea no disponible' : `Enviar ${nombreTipo}`}
             </button>
           </div>
         </div>

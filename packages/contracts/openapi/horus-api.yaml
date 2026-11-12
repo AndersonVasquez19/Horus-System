@@ -261,6 +261,98 @@ paths:
         "422": {$ref: "#/components/responses/ValidacionLaravel"}
         "429": {description: Límite `chat-bff` o `publico-web`.}
         "503": {$ref: "#/components/responses/ErrorBff"}
+  /api/public/v1/reclamaciones/formulario:
+    get:
+      tags: [bff-publico]
+      summary: Estado del Libro de Reclamaciones y credenciales de un solo uso del formulario
+      description: |
+        Entrega la marca de tiempo firmada y el token de envío (UUID) que exige el alta. Con el libro apagado
+        (`RECLAMACIONES_ENABLED` o sin correo real) devuelve `habilitado: false` y no emite marca ni token.
+        `X-Horus-Visitante` (HMAC de 64 hex que calcula el BFF; nunca la IP) agrupa el límite
+        `reclamaciones-bff-formulario` (30 por minuto).
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      responses:
+        "200":
+          description: Estado del libro.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/FormularioReclamacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "429": {description: Límite `reclamaciones-bff-formulario` o `publico-web`.}
+  /api/public/v1/reclamaciones:
+    post:
+      tags: [bff-publico]
+      summary: Registra una hoja del Libro de Reclamaciones (reclamo o queja)
+      description: |
+        Solo envío: no existe ninguna ruta pública para consultar reclamaciones. Reutiliza `GestionReclamaciones`
+        (numeración correlativa, plazo, idempotencia por `token_envio`, historial, copia por correo en bandeja y
+        auditoría sin IP). Las reglas de campos son las del alta Blade (`StoreReclamacionRequest`) más
+        `acepta_privacidad`. La reclamación queda `abierta`, sin responsable y sin clasificar por dominio; ni este
+        endpoint ni Horus AI asignan, cierran o modifican reclamaciones. Libro apagado: 404 antes de leer el cuerpo.
+        Límites tras validar: 3 por 10 min y 10 por día por visitante y 3 por día por correo; un reenvío del mismo
+        token (200) devuelve su cupo. `reclamaciones-bff-intentos` (20 por 10 min por visitante) acota los inválidos.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, tipo_documento, numero_documento, nombres, apellidos, telefono, email, domicilio, detalle, pedido, marca, token_envio, acepta_privacidad]
+              properties:
+                tipo: {type: string, enum: [reclamo, queja]}
+                tipo_documento: {type: string, enum: [dni, ce, pasaporte, ruc]}
+                numero_documento: {type: string, maxLength: 20}
+                nombres: {type: string, minLength: 2, maxLength: 120}
+                apellidos: {type: string, minLength: 2, maxLength: 120}
+                telefono: {type: string, maxLength: 30}
+                email: {type: string, format: email, maxLength: 254}
+                domicilio: {type: string, minLength: 5, maxLength: 255}
+                es_menor: {type: boolean}
+                representante_nombre: {type: string, maxLength: 120, description: Obligatorio si `es_menor`.}
+                representante_domicilio: {type: string, maxLength: 255}
+                representante_telefono: {type: string, maxLength: 30}
+                representante_email: {type: string, format: email, maxLength: 254}
+                bien_tipo: {type: string, enum: [producto, servicio], description: Obligatorio en reclamos.}
+                bien_descripcion: {type: string, maxLength: 500, description: Obligatorio en reclamos.}
+                monto_bien: {type: string, description: "Hasta dos decimales; obligatorio en reclamos salvo `monto_no_aplica`."}
+                monto_no_aplica: {type: boolean}
+                detalle: {type: string, minLength: 10, maxLength: 3000}
+                pedido: {type: string, minLength: 5, maxLength: 1500}
+                acepta_privacidad: {type: boolean, description: Debe ser verdadero.}
+                marca: {type: string, description: Marca firmada de `/reclamaciones/formulario` (entre 5 s y 2 h de antigüedad).}
+                token_envio: {type: string, format: uuid}
+                sitio_web: {type: string, maxLength: 0, description: Señuelo anti-bots; debe ir vacío (el nombre lo informa `/formulario`).}
+      responses:
+        "200":
+          description: Reenvío del mismo `token_envio`; devuelve la hoja ya registrada.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionReclamacion"}
+        "201":
+          description: Hoja registrada.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionReclamacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Libro apagado o sin token de servicio configurado.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: "Límite de envíos o de intentos (cabecera `Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
   /health:
     get:
       tags: [horus-ai]
@@ -443,6 +535,26 @@ components:
         url: {type: string, description: "Ruta del sitio anterior (lista blanca); el consumidor la traduce a su propia ruta."}
         accion: {type: string}
         procedencia: {type: object, additionalProperties: true}
+    FormularioReclamacion:
+      type: object
+      required: [habilitado, marca, token_envio, correo_activo, plazo_dias_habiles, honeypot]
+      properties:
+        habilitado: {type: boolean}
+        marca: {type: string, nullable: true}
+        token_envio: {type: string, format: uuid, nullable: true}
+        correo_activo: {type: boolean, description: Si la copia automática por correo está activa.}
+        plazo_dias_habiles: {type: integer, example: 15}
+        honeypot: {type: string, example: sitio_web}
+    ConfirmacionReclamacion:
+      type: object
+      description: Sin datos personales; solo lo necesario para que el consumidor conserve su registro.
+      required: [numero, tipo, fecha_limite, repetida, correo_activo]
+      properties:
+        numero: {type: string, example: 000000001-2026}
+        tipo: {type: string, enum: [reclamo, queja]}
+        fecha_limite: {type: string, format: date}
+        repetida: {type: boolean}
+        correo_activo: {type: boolean}
     RespuestaChat:
       type: object
       required: [respuesta, fuente]

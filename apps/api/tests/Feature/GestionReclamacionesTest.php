@@ -115,6 +115,11 @@ class GestionReclamacionesTest extends TestCase
     {
         $rutas = [];
         foreach (app('router')->getRoutes()->getRoutes() as $ruta) {
+            // Fase 2c.1: el BFF de Next tiene su propio alta (`api/public/v1/reclamaciones*`, solo con token de servicio,
+            // sin sesión de navegador). Su contrato y que no exista consulta pública se prueban en ApiPublicaReclamacionesTest.
+            if (str_starts_with($ruta->uri(), 'api/public/v1/')) {
+                continue;
+            }
             if (str_contains($ruta->uri(), 'reclamacion') || str_contains($ruta->uri(), 'libro-reclamaciones')) {
                 $rutas[$ruta->getName()] = $ruta;
             }
