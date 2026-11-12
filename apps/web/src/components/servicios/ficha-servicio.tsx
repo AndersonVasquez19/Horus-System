@@ -26,7 +26,7 @@ type Datos = Record<(typeof CAMPOS)[number], string>;
 /**
  * Ficha pública del servicio: borrador editorial, autorización y retiro, siempre con la revisión vigente (`_revision`).
  * Publicar exige un servicio activo con ficha (lo comprueba Laravel). La imagen principal y las tarjetas se gestionan
- * todavía en el módulo Blade (`/admin/servicios/{id}`): el BFF solo reenvía JSON.
+ * en `ImagenesFichaServicio` (multipart por el BFF).
  */
 export function FichaServicioPanel({ servicio }: { servicio: ServicioDetalle }) {
   const puedeEditar = usePuede('servicios.editar');

@@ -6,6 +6,7 @@ import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
 import { AccionesServicio } from '@/components/servicios/acciones-servicio';
+import { ImagenesFichaServicio } from '@/components/servicios/imagenes-ficha-servicio';
 import { FichaServicioPanel } from '@/components/servicios/ficha-servicio';
 import type { ServicioDetalle } from '@/features/servicios/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
@@ -73,8 +74,9 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           />
         </Seccion>
 
-        <div className="xl:col-span-2">
+        <div className="space-y-6 xl:col-span-2">
           <FichaServicioPanel servicio={servicio} />
+          <ImagenesFichaServicio servicio={servicio} />
         </div>
       </div>
     </>

@@ -20,7 +20,17 @@ export interface Operacion {
   consulta?: readonly string[];
   /** La respuesta es un archivo con alguno de estos tipos MIME. */
   archivo?: readonly string[];
+  /** El archivo se muestra en la página (vista previa) en lugar de descargarse. */
+  enLinea?: boolean;
+  /**
+   * Cuerpo `multipart/form-data`: campos de texto que se reenvían. El único archivo admitido es `imagen` (una sola
+   * imagen JPEG, PNG o WebP de hasta `MAX_IMAGEN` bytes); cualquier otro campo o archivo se descarta.
+   */
+  multipart?: readonly string[];
 }
+
+/** Tamaño máximo de la imagen de la ficha (igual que `ImagenesServicios::MAX_KB` en Laravel: 3 MB). */
+export const MAX_IMAGEN = 3 * 1024 * 1024;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
@@ -32,6 +42,9 @@ const FILTROS_REPORTE = ['busqueda', 'estado', 'eliminados', 'lote'] as const;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const CAMPOS_SERVICIO = ['codigo', 'nombre', 'categoria', 'estado', '_revision'] as const;
 const CAMPOS_FICHA_SERVICIO = ['titulo', 'resumen', 'descripcion', 'categoria', 'vigente_desde', 'vigente_hasta', 'titulo_tarjetas', 'imagen_principal_alt', '_revision'] as const;
+const CAMPOS_IMAGEN = ['imagen_principal_alt', '_revision'] as const;
+const CAMPOS_TARJETA = ['titulo', 'descripcion', 'caracteristicas', 'variante_imagen', 'imagen_alt', 'activo', 'orden', 'quitar_imagen', '_revision'] as const;
+const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_email', 'contacto_telefono', 'servicio_uuid', '_revision', '_clave'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
@@ -64,6 +77,15 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: new RegExp(`^servicios/servicios/${ID}/publicacion$`), campos: CAMPOS_FICHA_SERVICIO },
   { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/publicacion/autorizar$`), campos: ['confirmacion_publica', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/publicacion/retirar$`), campos: ['_revision'] },
+
+  // Imagen principal y tarjetas de la ficha (multipart con una sola imagen; revisión en `_revision`)
+  { metodo: 'GET', patron: new RegExp(`^servicios/servicios/${ID}/imagen$`), archivo: IMAGENES, enLinea: true },
+  { metodo: 'GET', patron: new RegExp(`^servicios/servicios/${ID}/elementos/${ID}/imagen$`), archivo: IMAGENES, enLinea: true },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/imagen$`), multipart: CAMPOS_IMAGEN },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/imagen/quitar$`), campos: ['_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/elementos$`), multipart: CAMPOS_TARJETA },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/elementos/${ID}$`), multipart: CAMPOS_TARJETA },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/elementos/${ID}/eliminar$`), campos: ['_revision'] },
 
   // Cotizaciones (identificador = UUID; la revisión en `_revision` y la idempotencia en `_clave`)
   { metodo: 'GET', patron: /^servicios\/cotizaciones\/opciones\/(responsables|servicios)$/ },

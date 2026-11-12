@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { aplicarCookieSesion, borrarCookieSesion, errorJson, jsonSinCache, leerMutacion, origenPermitido } from '@/lib/panel/bff';
+import { aplicarCookieSesion, borrarCookieSesion, errorJson, jsonSinCache, leerMultipart, leerMutacion, origenPermitido } from '@/lib/panel/bff';
 import { COOKIE_SESION, descargarDeLaravel, llamarLaravel } from '@/lib/panel/laravel';
 import { buscarOperacion, consultaPermitida, cuerpoPermitido, type Metodo } from '@/lib/panel/operaciones-panel';
 import { ipDelCliente } from '@/lib/panel/red';
@@ -9,7 +9,8 @@ import { ipDelCliente } from '@/lib/panel/red';
  *
  * Capas, en orden:
  *  1. La operación debe estar en la lista cerrada (`operaciones-panel.ts`); si no, 404.
- *  2. Mismo origen (todas) y JSON con tamaño acotado (mutaciones): `leerMutacion`.
+ *  2. Mismo origen (todas) y JSON con tamaño acotado (mutaciones): `leerMutacion`; o, en las operaciones
+ *     multipart (imagen de la ficha), cuerpo acotado con una sola imagen de tipo real válido: `leerMultipart`.
  *  3. Cookie de sesión de Laravel presente; sin ella, 401 sin llamar a Laravel.
  *  4. Laravel valida el token CSRF que envía el navegador (`X-CSRF-TOKEN`, de la sesión ya validada), la sesión,
  *     el permiso de entrada al panel, el permiso de la acción y las reglas de negocio.
@@ -25,8 +26,13 @@ async function atender(request: NextRequest, metodo: Metodo, { params }: Context
   if (operacion === null) return errorJson(404, { message: 'El recurso solicitado no existe.', code: 'no_encontrado' });
 
   let cuerpo: Record<string, unknown> = {};
+  let formulario: FormData | undefined;
   if (metodo === 'GET') {
     if (!origenPermitido(request)) return errorJson(403, { message: 'Solicitud no permitida.', code: 'origen_no_permitido' });
+  } else if (operacion.multipart) {
+    const leido = await leerMultipart(request, operacion);
+    if (leido instanceof NextResponse) return leido;
+    formulario = leido;
   } else {
     const leido = await leerMutacion(request);
     if (leido instanceof NextResponse) return leido;
@@ -39,7 +45,8 @@ async function atender(request: NextRequest, metodo: Metodo, { params }: Context
   const destino = `${ruta}${consultaPermitida(operacion, request.nextUrl.searchParams)}`;
   const opciones = {
     metodo,
-    cuerpo: cuerpoPermitido(operacion, cuerpo),
+    cuerpo: formulario ? undefined : cuerpoPermitido(operacion, cuerpo),
+    formulario,
     cookieSesion,
     csrf: metodo === 'GET' ? null : request.headers.get('x-csrf-token')?.slice(0, 200) ?? null,
     ipCliente: ipDelCliente(request.headers),
@@ -52,8 +59,8 @@ async function atender(request: NextRequest, metodo: Metodo, { params }: Context
     const respuesta = new NextResponse(archivo.contenido, {
       status: 200,
       headers: {
-        'Content-Type': `${archivo.tipo}; charset=UTF-8`,
-        'Content-Disposition': `attachment; filename="${archivo.nombre}"`,
+        'Content-Type': operacion.enLinea ? archivo.tipo : `${archivo.tipo}; charset=UTF-8`,
+        'Content-Disposition': operacion.enLinea ? 'inline' : `attachment; filename="${archivo.nombre}"`,
         'Cache-Control': 'no-store, private',
         'X-Content-Type-Options': 'nosniff',
       },

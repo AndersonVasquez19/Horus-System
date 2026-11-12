@@ -2,6 +2,7 @@ import 'server-only';
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { COOKIE_SESION, type CookieSesionLaravel, type ErrorApi } from './laravel';
+import { MAX_IMAGEN, type Operacion } from './operaciones-panel';
 
 /**
  * Utilidades de los route handlers de `/api/bff/*`.
@@ -67,6 +68,103 @@ export async function leerMutacion(request: NextRequest): Promise<Record<string,
     // cae al error común
   }
   return errorJson(400, { message: 'La solicitud no es válida.', code: 'solicitud_invalida' });
+}
+
+const MAX_TEXTO = 4000;
+/** Imagen + campos de texto + márgenes de la codificación multipart. */
+const MAX_MULTIPART = MAX_IMAGEN + 64 * 1024;
+
+/** Tipo real de la imagen por sus primeros bytes (JPEG, PNG o WebP); `null` si no es ninguno. */
+export function tipoDeImagen(bytes: Uint8Array): { tipo: string; extension: string } | null {
+  const empieza = (...firma: number[]) => firma.every((valor, indice) => bytes[indice] === valor);
+  if (empieza(0xff, 0xd8, 0xff)) return { tipo: 'image/jpeg', extension: 'jpg' };
+  if (empieza(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return { tipo: 'image/png', extension: 'png' };
+  if (empieza(0x52, 0x49, 0x46, 0x46) && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return { tipo: 'image/webp', extension: 'webp' };
+  return null;
+}
+
+/** Lee el cuerpo con un tope duro de bytes, sin fiarse de `Content-Length`. `null` = se excedió el tope. */
+async function leerAcotado(request: NextRequest, maximo: number): Promise<Uint8Array | null> {
+  const lector = request.body?.getReader();
+  if (!lector) return new Uint8Array();
+  const trozos: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await lector.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maximo) {
+      await lector.cancel();
+      return null;
+    }
+    trozos.push(value);
+  }
+  const unido = new Uint8Array(total);
+  let posicion = 0;
+  for (const trozo of trozos) {
+    unido.set(trozo, posicion);
+    posicion += trozo.byteLength;
+  }
+  return unido;
+}
+
+/**
+ * Valida y reconstruye un `multipart/form-data` para Laravel. El navegador solo puede enviar mismo origen, el tipo
+ * multipart, un cuerpo de tamaño acotado, los campos de texto declarados por la operación y, como mucho, una imagen
+ * llamada `imagen` cuyo contenido real (firma de bytes) sea JPEG, PNG o WebP. La imagen se reenvía con un nombre
+ * fijo: el nombre original del cliente nunca llega a Laravel. Laravel sigue siendo la autoridad (tipo, dimensiones,
+ * tamaño, permisos y revisión); esta capa evita transportar lo que no puede ser válido.
+ */
+export async function leerMultipart(request: NextRequest, operacion: Operacion): Promise<FormData | NextResponse> {
+  if (!origenPermitido(request)) {
+    return errorJson(403, { message: 'Solicitud no permitida.', code: 'origen_no_permitido' });
+  }
+  const tipoContenido = request.headers.get('content-type') ?? '';
+  if (!tipoContenido.toLowerCase().startsWith('multipart/form-data')) {
+    return errorJson(415, { message: 'Tipo de contenido no admitido.', code: 'tipo_no_admitido' });
+  }
+  const longitud = Number(request.headers.get('content-length'));
+  if (!Number.isFinite(longitud) || longitud <= 0) {
+    return errorJson(411, { message: 'Indica el tamaño del contenido.', code: 'longitud_requerida' });
+  }
+  const demasiado = () => errorJson(413, { message: 'La imagen supera el tamaño máximo de 3 MB.', code: 'contenido_demasiado_grande' });
+  if (longitud > MAX_MULTIPART) return demasiado();
+
+  const bytes = await leerAcotado(request, MAX_MULTIPART);
+  if (bytes === null) return demasiado();
+
+  let entrada: FormData;
+  try {
+    entrada = await new Response(bytes as BodyInit, { headers: { 'content-type': tipoContenido } }).formData();
+  } catch {
+    return errorJson(400, { message: 'La solicitud no es válida.', code: 'solicitud_invalida' });
+  }
+
+  const salida = new FormData();
+  for (const nombre of operacion.multipart ?? []) {
+    const valor = entrada.get(nombre);
+    if (typeof valor === 'string') salida.append(nombre, valor.slice(0, MAX_TEXTO));
+  }
+
+  const archivos = entrada.getAll('imagen');
+  if (archivos.length > 1) {
+    return errorJson(422, { message: 'Envía una sola imagen.', code: 'validacion', errors: { imagen: ['Envía una sola imagen.'] } });
+  }
+  if (archivos.length === 1) {
+    const archivo = archivos[0];
+    if (typeof archivo === 'string') {
+      return errorJson(422, { message: 'La imagen no es válida.', code: 'validacion', errors: { imagen: ['El archivo de imagen no es válido.'] } });
+    }
+    if (archivo.size > MAX_IMAGEN) {
+      return errorJson(413, { message: 'La imagen supera el tamaño máximo de 3 MB.', code: 'contenido_demasiado_grande', errors: { imagen: ['La imagen no puede superar los 3 MB.'] } });
+    }
+    const detectado = tipoDeImagen(new Uint8Array(await archivo.slice(0, 16).arrayBuffer()));
+    if (detectado === null) {
+      return errorJson(415, { message: 'Formato de imagen no permitido.', code: 'tipo_no_admitido', errors: { imagen: ['Solo se admiten imágenes JPG, PNG o WebP.'] } });
+    }
+    salida.append('imagen', new Blob([await archivo.arrayBuffer()], { type: detectado.tipo }), `imagen.${detectado.extension}`);
+  }
+  return salida;
 }
 
 /** Solo campos de texto esperados: el BFF no reenvía nada que no conozca. */

@@ -29,10 +29,11 @@ export function BotonCerrarSesion({ className = '' }: BotonCerrarSesionProps) {
       onClick={salir}
       disabled={saliendo}
       aria-busy={saliendo || undefined}
-      className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium outline-offset-2 focus-visible:outline-2 disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium outline-offset-2 focus-visible:outline-2 disabled:opacity-60 ${className}`}
     >
       <LogOut className="h-4 w-4" aria-hidden="true" />
-      {saliendo ? 'Cerrando…' : 'Cerrar sesión'}
+      {/* Con muy poco ancho solo se ve el icono; el texto sigue disponible para lectores de pantalla. */}
+      <span className="sr-only min-[400px]:not-sr-only">{saliendo ? 'Cerrando…' : 'Cerrar sesión'}</span>
     </button>
   );
 }

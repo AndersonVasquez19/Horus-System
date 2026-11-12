@@ -38,6 +38,8 @@ export type RespuestaLaravel<T> =
 export interface OpcionesLlamada {
   metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   cuerpo?: unknown;
+  /** Cuerpo multipart ya validado por el BFF (excluye `cuerpo`). */
+  formulario?: FormData;
   cookieSesion?: string | null;
   csrf?: string | null;
   ipCliente?: string | null;
@@ -97,7 +99,8 @@ async function peticion(ruta: string, opciones: OpcionesLlamada, timeout: number
     Accept: 'application/json',
     'X-Horus-Web-Token': cfg.token,
   };
-  if (opciones.cuerpo !== undefined) cabeceras['Content-Type'] = 'application/json';
+  // Con `formulario`, fetch fija el Content-Type multipart con su límite (boundary).
+  if (opciones.cuerpo !== undefined && opciones.formulario === undefined) cabeceras['Content-Type'] = 'application/json';
   if (opciones.cookieSesion) cabeceras.Cookie = `${COOKIE_SESION}=${opciones.cookieSesion}`;
   if (opciones.csrf) cabeceras['X-CSRF-TOKEN'] = opciones.csrf;
   if (opciones.ipCliente) cabeceras['X-Horus-Client-Ip'] = opciones.ipCliente;
@@ -106,7 +109,7 @@ async function peticion(ruta: string, opciones: OpcionesLlamada, timeout: number
     return await fetch(`${cfg.base}/api/panel/v1/${rutaSegura(ruta)}`, {
       method: opciones.metodo ?? 'GET',
       headers: cabeceras,
-      body: opciones.cuerpo === undefined ? undefined : JSON.stringify(opciones.cuerpo),
+      body: opciones.formulario ?? (opciones.cuerpo === undefined ? undefined : JSON.stringify(opciones.cuerpo)),
       cache: 'no-store',
       redirect: 'manual',
       signal: AbortSignal.timeout(timeout),
@@ -148,7 +151,7 @@ export async function descargarDeLaravel(ruta: string, tiposPermitidos: readonly
 }
 
 export async function llamarLaravel<T>(ruta: string, opciones: OpcionesLlamada = {}): Promise<RespuestaLaravel<T>> {
-  const respuesta = await peticion(ruta, opciones, TIMEOUT_MS);
+  const respuesta = await peticion(ruta, opciones, opciones.formulario ? 30_000 : TIMEOUT_MS);
   if (respuesta === null) return { ok: false, estado: 503, error: NO_DISPONIBLE, cookie: null };
 
   const cookie = leerCookieSesion(respuesta);

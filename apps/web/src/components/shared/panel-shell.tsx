@@ -153,10 +153,12 @@ function Franja({ tono, titulo, acciones, children }: { tono: TonoPanel; titulo:
   return (
     <>
       <div className={`${TONOS[tono].franja} flex items-center justify-between gap-3 px-4 py-3 text-white sm:px-6`}>
-        <p className="font-heading text-sm font-semibold tracking-wide">
-          Horus Group <span aria-hidden="true">·</span> {titulo}
+        {/* En pantallas muy estrechas se omite la marca para que el título y el botón de salida quepan en una línea. */}
+        <p className="min-w-0 truncate font-heading text-sm font-semibold tracking-wide">
+          <span className="hidden min-[420px]:inline">Horus Group <span aria-hidden="true">·</span> </span>
+          {titulo}
         </p>
-        {acciones ? <div className="flex items-center gap-1 sm:gap-2">{acciones}</div> : null}
+        {acciones ? <div className="flex shrink-0 items-center gap-1 sm:gap-2">{acciones}</div> : null}
       </div>
       {children}
     </>

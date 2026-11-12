@@ -42,6 +42,26 @@ export function useOperacionPanel() {
     [router, ruta],
   );
 
+  /** Envía un formulario multipart (imagen de la ficha) con las mismas garantías CSRF y de sesión. */
+  const subir = useCallback(
+    async <T,>(destino: string, formulario: FormData): Promise<ResultadoBff<T>> => {
+      const url = `/api/bff/panel/${destino}` as const;
+      const intentar = () => llamarBff<T>(url, { metodo: 'POST', formulario, csrf: csrf.current });
+
+      let resultado = await intentar();
+      if (!resultado.ok && resultado.estado === 419) {
+        const renovada = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/sesion');
+        if (renovada.ok) {
+          csrf.current = renovada.datos.data.csrf_token;
+          resultado = await intentar();
+        }
+      }
+      if (!resultado.ok && resultado.estado === 401) router.replace(urlLogin(ruta));
+      return resultado;
+    },
+    [router, ruta],
+  );
+
   /** Descarga un archivo generado por Laravel (POST con los filtros en la consulta). */
   const descargar = useCallback(
     async (destino: string): Promise<{ ok: true } | { ok: false; error: ErrorPanel }> => {
@@ -87,5 +107,5 @@ export function useOperacionPanel() {
     [router, ruta],
   );
 
-  return { ejecutar, descargar };
+  return { ejecutar, descargar, subir };
 }

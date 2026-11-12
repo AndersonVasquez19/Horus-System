@@ -37,6 +37,18 @@ export interface CotizacionResumen {
   proximo_seguimiento: string | null;
 }
 
+export interface ElementoFicha {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  caracteristicas: string[];
+  variante_imagen: string | null;
+  imagen_alt: string | null;
+  activo: boolean;
+  orden: number;
+  con_imagen: boolean;
+}
+
 export interface FichaServicio {
   estado: string;
   titulo: string;
@@ -49,6 +61,7 @@ export interface FichaServicio {
   imagen_principal_alt: string | null;
   con_imagen: boolean;
   tarjetas: number;
+  elementos: ElementoFicha[];
   autorizado_en: string | null;
 }
 

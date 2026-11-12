@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use finfo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -66,6 +67,28 @@ class ImagenesServicios
         }
 
         return $ruta;
+    }
+
+    /**
+     * Bytes y tipo real (por contenido, no por extensión) de una imagen ya guardada, para la vista previa del panel.
+     * Solo rutas válidas generadas por el servidor; cualquier otro tipo detectado se trata como inexistente.
+     *
+     * @return array{bytes: string, tipo: string}|null
+     */
+    public function contenido(?string $ruta): ?array
+    {
+        if (! self::rutaValida($ruta)) {
+            return null;
+        }
+        $bytes = str_starts_with((string) $ruta, 'assets/')
+            ? (is_file(public_path((string) $ruta)) ? file_get_contents(public_path((string) $ruta)) : false)
+            : (Storage::disk(self::DISCO)->exists((string) $ruta) ? Storage::disk(self::DISCO)->get((string) $ruta) : false);
+        if (! is_string($bytes) || $bytes === '') {
+            return null;
+        }
+        $tipo = (string) (new finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
+
+        return isset(self::EXTENSIONES[$tipo]) ? ['bytes' => $bytes, 'tipo' => $tipo] : null;
     }
 
     /** Borra solo cargas del panel que ya no referencia ninguna ficha ni tarjeta. */

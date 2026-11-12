@@ -4837,3 +4837,17 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 **Diseñado, no implementado (requiere autorización):** carga multipart de imágenes por BFF (tipo real por contenido, re-codificación, almacenamiento privado, nombres generados, reemplazo transaccional con limpieza posterior) y plan de validación en PostgreSQL (cupos, bloqueos, duplicados, revisión, idempotencia, índices) para el perfil aislado `phpunit.pgsql.xml`. Siguen en Blade la imagen principal y las tarjetas de la ficha de servicios.
 
 **Límites:** Next en modo desarrollo y SQLite desechable; PostgreSQL no validado; el fragmento `#token=` del restablecimiento no pudo ejercitarse en el formulario por limitación del navegador de pruebas (sí por HTTP).
+
+## Fase 5.1 (gestión multimedia, recuperación, producción y PostgreSQL) — 12/11/2026
+
+**Línea base:** HEAD `8f3419b`. Sin módulos nuevos ni migraciones; Horus AI, Blade, formularios públicos y autenticación sin cambios. Detalle en `docs/fase-5-1-multimedia-y-produccion.md`.
+
+**Imágenes de servicios desde Next.js:** subir, reemplazar y quitar la imagen principal, y crear, editar y eliminar tarjetas con imagen, con vista previa, validación previa, indicadores de carga y confirmaciones. Ruta: navegador → BFF (`leerMultipart`: mismo origen, solo multipart, cuerpo con tope duro de 3 MB, una sola imagen con firma real JPEG/PNG/WebP, nombre fijo) → Laravel (`ServicioContenidoController`, mismos Form Requests, `ImagenesServicios` y `GestionServiciosTecnologicos::contenido()`: tipo real, 3 MB, 100–8000 px, nombre `servicios/<uuid>.<ext>`, `If-Match`, ficha no publicada, limpieza de huérfanos tras el commit). La vista previa se sirve por rutas autenticadas (`GET …/imagen`, `…/elementos/{n}/imagen`) con `nosniff` y sin caché; el navegador nunca recibe rutas de almacenamiento. `ServiciosImagenesPanelTest` (7), prueba en navegador real con almacén temporal y matriz hostil contra el BFF (21 comprobaciones). No se re-codifican las imágenes (se conservan los EXIF). `horus-panel-api.yaml` 1.2.0 con 60 operaciones. Queda en Blade lo mismo que antes para otras pantallas, pero las imágenes de servicios ya no dependen de Blade.
+
+**Recuperación de contraseña:** comprobada en el navegador (solicitud uniforme, enlace con `#token`, clave débil, éxito, token ya usado). Defecto corregido: en `next dev` el efecto doble de React dejaba el formulario sin token.
+
+**Producción:** cabeceras de seguridad solo para el panel y el BFF (`frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`) y sin `X-Powered-By` (`next.config.ts`). Tabla de configuración necesaria (Next, Laravel, proxy, almacenamiento) en el documento de la fase. Pendiente: CSP completa con nonces. Nada se despliega.
+
+**Responsive:** 360, 390, 768 px y escritorio sin desbordamientos; encabezado móvil corregido (título en una línea; botón de salida solo con icono bajo 400 px).
+
+**PostgreSQL:** clúster aislado (55433) detenido, existente y sin tocar; 5432 y 55432 en ejecución y fuera de uso. Matriz de 12 verificaciones y plan exacto pendientes de autorización. Compatibilidad PostgreSQL no validada.

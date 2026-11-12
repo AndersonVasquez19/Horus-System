@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { KeyRound } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
@@ -33,11 +33,14 @@ export function FormularioRestablecer() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [listo, setListo] = useState<string | null>(null);
+  // `leerEnlace` borra el fragmento de la URL. En desarrollo React monta los efectos dos veces: la segunda lectura
+  // ya no encontraría el token, así que el resultado de la primera se conserva.
+  const leido = useRef<Enlace | null | undefined>(undefined);
 
   useEffect(() => {
     // El fragmento solo existe en el navegador: se lee una vez al montar.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnlace(leerEnlace());
+    if (leido.current === undefined) leido.current = leerEnlace();
+    setEnlace(leido.current);
   }, []);
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {

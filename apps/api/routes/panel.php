@@ -92,6 +92,10 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::get('resumen', Servicios\ResumenController::class)->name('resumen');
         Route::get('servicios', [Servicios\ServicioController::class, 'index'])->name('servicios.index');
         Route::get('servicios/{servicio}', [Servicios\ServicioController::class, 'show'])->whereNumber('servicio')->name('servicios.show');
+        Route::get('servicios/{servicio}/imagen', [Servicios\ServicioContenidoController::class, 'verImagenPrincipal'])
+            ->whereNumber('servicio')->middleware('throttle:admin-opciones')->name('servicios.imagen.ver');
+        Route::get('servicios/{servicio}/elementos/{elemento}/imagen', [Servicios\ServicioContenidoController::class, 'verImagenElemento'])
+            ->whereNumber(['servicio', 'elemento'])->middleware('throttle:admin-opciones')->name('servicios.elementos.imagen.ver');
         Route::get('cotizaciones', [Servicios\CotizacionController::class, 'index'])->name('cotizaciones.index');
         Route::get('cotizaciones/opciones/responsables', [Servicios\CotizacionController::class, 'opcionesResponsables'])
             ->middleware('throttle:admin-opciones')->name('cotizaciones.opciones.responsables');
@@ -106,6 +110,13 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('servicios/{servicio}/publicacion', [Servicios\ServicioController::class, 'preparar'])->whereNumber('servicio')->name('servicios.publicacion.preparar');
             Route::post('servicios/{servicio}/publicacion/autorizar', [Servicios\ServicioController::class, 'autorizar'])->whereNumber('servicio')->name('servicios.publicacion.autorizar');
             Route::post('servicios/{servicio}/publicacion/retirar', [Servicios\ServicioController::class, 'retirar'])->whereNumber('servicio')->name('servicios.publicacion.retirar');
+
+            // Imagen principal y tarjetas de la ficha (multipart; revisión en `_revision`).
+            Route::post('servicios/{servicio}/imagen', [Servicios\ServicioContenidoController::class, 'imagenPrincipal'])->whereNumber('servicio')->name('servicios.imagen.subir');
+            Route::post('servicios/{servicio}/imagen/quitar', [Servicios\ServicioContenidoController::class, 'quitarImagenPrincipal'])->whereNumber('servicio')->name('servicios.imagen.quitar');
+            Route::post('servicios/{servicio}/elementos', [Servicios\ServicioContenidoController::class, 'elementoStore'])->whereNumber('servicio')->name('servicios.elementos.store');
+            Route::post('servicios/{servicio}/elementos/{elemento}', [Servicios\ServicioContenidoController::class, 'elementoUpdate'])->whereNumber(['servicio', 'elemento'])->name('servicios.elementos.update');
+            Route::post('servicios/{servicio}/elementos/{elemento}/eliminar', [Servicios\ServicioContenidoController::class, 'elementoDestroy'])->whereNumber(['servicio', 'elemento'])->name('servicios.elementos.destroy');
 
             Route::post('cotizaciones', [Servicios\CotizacionController::class, 'store'])->name('cotizaciones.store');
             Route::put('cotizaciones/{identificador}', [Servicios\CotizacionController::class, 'update'])->name('cotizaciones.update');

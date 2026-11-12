@@ -12,11 +12,12 @@ const SIN_CONEXION: ErrorPanel = {
 
 export async function llamarBff<T>(
   ruta: `/api/bff/${string}`,
-  opciones: { metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; cuerpo?: unknown; csrf?: string } = {},
+  opciones: { metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; cuerpo?: unknown; formulario?: FormData; csrf?: string } = {},
 ): Promise<ResultadoBff<T>> {
-  const metodo = opciones.metodo ?? (opciones.cuerpo === undefined ? 'GET' : 'POST');
+  const metodo = opciones.metodo ?? (opciones.cuerpo === undefined && opciones.formulario === undefined ? 'GET' : 'POST');
   const cabeceras: Record<string, string> = { Accept: 'application/json' };
-  if (metodo !== 'GET') cabeceras['Content-Type'] = 'application/json';
+  // Con FormData el navegador fija el Content-Type multipart con su límite.
+  if (metodo !== 'GET' && opciones.formulario === undefined) cabeceras['Content-Type'] = 'application/json';
   if (opciones.csrf) cabeceras['X-CSRF-TOKEN'] = opciones.csrf;
 
   let respuesta: Response;
@@ -24,7 +25,7 @@ export async function llamarBff<T>(
     respuesta = await fetch(ruta, {
       method: metodo,
       headers: cabeceras,
-      body: metodo === 'GET' ? undefined : JSON.stringify(opciones.cuerpo ?? {}),
+      body: metodo === 'GET' ? undefined : (opciones.formulario ?? JSON.stringify(opciones.cuerpo ?? {})),
       credentials: 'same-origin',
       cache: 'no-store',
     });
