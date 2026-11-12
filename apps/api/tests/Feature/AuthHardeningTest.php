@@ -237,8 +237,8 @@ class AuthHardeningTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->get(route('home'))->assertOk()->assertSee('Cerrar sesión');
-        $this->get(route('home'))->assertOk();
+        $this->actingAs($user)->get('/tecnologias/camaras-seguridad')->assertOk()->assertSee('Cerrar sesión');
+        $this->get('/tecnologias/camaras-seguridad')->assertOk();
     }
 
     public function test_roleless_login_does_not_keep_the_intended_admin_url(): void

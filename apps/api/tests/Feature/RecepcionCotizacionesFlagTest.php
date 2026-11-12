@@ -147,7 +147,8 @@ class RecepcionCotizacionesFlagTest extends TestCase
 
     public function test_el_resto_del_sitio_y_la_api_privada_no_cambian(): void
     {
-        $this->get('/contactos')->assertOk();
+        config(['horus-web.url' => 'https://web.example.test']);
+        $this->get('/contactos')->assertRedirect('https://web.example.test/contactos');
         $this->assertSame(['GET', 'HEAD'], app('router')->getRoutes()->getByName('contactos')->methods());
         $this->getJson('/admin/cotizaciones')->assertUnauthorized();
         $this->assertCount(8, collect(app('router')->getRoutes()->getRoutes())

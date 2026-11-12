@@ -29,6 +29,7 @@ use App\Http\Controllers\ChatWidgetController;
 use App\Http\Controllers\CursosPublicosController;
 use App\Http\Controllers\LibroReclamacionesController;
 use App\Http\Controllers\PaginaTecnologicaController;
+use App\Http\Controllers\RedirigirAWebController;
 use App\Http\Controllers\ServiciosPublicosController;
 use App\Http\Controllers\SolicitudCotizacionPublicaController;
 use App\Http\Controllers\SolicitudMatriculaPublicaController;
@@ -38,22 +39,23 @@ use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'pages.home')->name('home');
-Route::view('/quienes-somos', 'pages.quienes-somos')->name('quienes-somos');
+// Páginas estáticas retiradas de Blade (Fase 1, 12/11/2026): las sirve apps/web; aquí solo redirigen.
+Route::get('/', RedirigirAWebController::class)->defaults('destino', '/')->name('home');
+Route::get('/quienes-somos', RedirigirAWebController::class)->defaults('destino', '/quienes-somos')->name('quienes-somos');
 Route::get('/tecnologias/cableado-estructurado', [PaginaTecnologicaController::class, 'cableado'])->name('tecnologias.cableado');
 Route::get('/tecnologias/camaras-seguridad', [PaginaTecnologicaController::class, 'camaras'])->name('tecnologias.camaras');
 Route::get('/tecnologias/soporte-mantenimiento', ServiciosPublicosController::class)->name('tecnologias.soporte');
-Route::view('/educacion/asesoramiento', 'pages.educacion.asesoramiento')->name('educacion.asesoramiento');
-Route::view('/educacion/capacitaciones', 'pages.educacion.capacitaciones')->name('educacion.capacitaciones');
+Route::get('/educacion/asesoramiento', RedirigirAWebController::class)->defaults('destino', '/educacion/asesoramiento')->name('educacion.asesoramiento');
+Route::get('/educacion/capacitaciones', RedirigirAWebController::class)->defaults('destino', '/educacion/capacitaciones')->name('educacion.capacitaciones');
 Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
 Route::get('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'create'])->name('matricula-publica.create');
 Route::post('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'store'])->middleware('throttle:matricula-publica')->name('matricula-publica.store');
-Route::view('/galeria', 'pages.galeria')->name('galeria');
-Route::view('/contactos', 'pages.contactos')->name('contactos');
-Route::view('/politicas-devolucion', 'pages.legales.politicas-devolucion')->name('legales.devolucion');
-Route::view('/politicas-privacidad', 'pages.legales.politicas-privacidad')->name('legales.privacidad');
-Route::view('/politicas-cookies', 'pages.legales.politicas-cookies')->name('legales.cookies');
-Route::view('/preguntas-frecuentes', 'pages.legales.preguntas-frecuentes')->name('legales.faq');
+Route::get('/galeria', RedirigirAWebController::class)->defaults('destino', '/galeria')->name('galeria');
+Route::get('/contactos', RedirigirAWebController::class)->defaults('destino', '/contactos')->name('contactos');
+Route::get('/politicas-devolucion', RedirigirAWebController::class)->defaults('destino', '/legales/politicas-devolucion')->name('legales.devolucion');
+Route::get('/politicas-privacidad', RedirigirAWebController::class)->defaults('destino', '/legales/politicas-privacidad')->name('legales.privacidad');
+Route::get('/politicas-cookies', RedirigirAWebController::class)->defaults('destino', '/legales/politicas-cookies')->name('legales.cookies');
+Route::get('/preguntas-frecuentes', RedirigirAWebController::class)->defaults('destino', '/legales/preguntas-frecuentes')->name('legales.faq');
 Route::get('/libro-reclamaciones', [LibroReclamacionesController::class, 'show'])->name('legales.reclamaciones');
 // Alta pública: la compuerta va antes del límite para que, apagado, responda 404 sin consumir cupo ni leer el cuerpo.
 Route::post('/libro-reclamaciones', [LibroReclamacionesController::class, 'store'])

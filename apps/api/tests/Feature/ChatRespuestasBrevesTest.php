@@ -11,7 +11,6 @@ use App\Services\HorusAdvisorClient;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Js;
 use Tests\TestCase;
 
 class ChatRespuestasBrevesTest extends TestCase
@@ -21,11 +20,6 @@ class ChatRespuestasBrevesTest extends TestCase
         $original = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/convenios-inicio-original.json'), true, 512, JSON_THROW_ON_ERROR);
         $tarjetas = app(ConveniosPublicos::class)->tarjetas();
         $this->assertEquals($original, $tarjetas);
-        $response = $this->get('/')->assertOk();
-        foreach ($tarjetas as $tarjeta) {
-            $response->assertSee($tarjeta['nombre']);
-        }
-        $response->assertSee(Js::from($tarjetas)->toHtml(), false);
     }
 
     public function test_las_respuestas_reales_de_python_atraviesan_la_validacion_de_laravel(): void

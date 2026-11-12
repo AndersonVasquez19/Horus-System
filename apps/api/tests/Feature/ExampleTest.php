@@ -10,19 +10,11 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_root_redirects_to_the_next_frontend(): void
     {
-        $response = $this->get('/');
+        config(['horus-web.url' => 'https://web.example.test']);
 
-        $response->assertStatus(200);
-    }
-
-    public function test_homepage_renders_content_without_a_blocking_loader(): void
-    {
-        $this->get('/')
-            ->assertOk()
-            ->assertSee('carousel-frame', false)
-            ->assertDontSee('class="loading-shell"', false);
+        $this->get('/')->assertRedirect('https://web.example.test/');
     }
 
     public function test_page_styles_and_secondary_images_are_loaded_by_section(): void
