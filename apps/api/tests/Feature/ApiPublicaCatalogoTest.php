@@ -109,7 +109,7 @@ class ApiPublicaCatalogoTest extends TestCase
     {
         $this->getJson('/api/auth/me')->assertUnauthorized();
         $this->get('/educacion/cursos')->assertOk();
-        $this->assertCount(3, collect(app('router')->getRoutes()->getRoutes())
+        $this->assertCount(4, collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'api/public/v1')));
     }
 

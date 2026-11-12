@@ -72,7 +72,7 @@ export interface CatalogoServicios {
 
 const TIMEOUT_MS = 5000;
 
-function configuracion(): { base: string; token: string } | null {
+export function configuracionApi(): { base: string; token: string } | null {
   const base = (process.env.HORUS_API_URL ?? '').replace(/\/+$/, '');
   const token = process.env.HORUS_WEB_SERVICE_TOKEN ?? '';
   if (!/^https?:\/\/[^\s/]+/i.test(base) || token.length < 32) return null;
@@ -83,7 +83,7 @@ export async function horusGet<T>(ruta: string): Promise<ResultadoApi<T>> {
   // Marca la ruta como dinámica aunque falte la configuración durante el build: si no, Next prerrenderizaría el
   // resultado «no_configurado» y no volvería a consultar Laravel en cada visita.
   await connection();
-  const cfg = configuracion();
+  const cfg = configuracionApi();
   if (cfg === null) return { ok: false, motivo: 'no_configurado' };
   try {
     const respuesta = await fetch(`${cfg.base}/api/public/v1${ruta}`, {

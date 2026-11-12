@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Publico\CatalogoPublicoController;
+use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Middleware\AutenticarServicioWeb;
 use App\Http\Middleware\VerificacionRegistroHabilitada;
@@ -25,4 +26,6 @@ Route::prefix('public/v1')->name('api.publico.')->middleware([AutenticarServicio
     Route::get('/cursos', [CatalogoPublicoController::class, 'cursos'])->name('cursos');
     Route::get('/servicios', [CatalogoPublicoController::class, 'servicios'])->name('servicios');
     Route::get('/paginas/{pagina}', [CatalogoPublicoController::class, 'pagina'])->where('pagina', '[a-z-]{1,40}')->name('paginas');
+    // Fase 2b: chat de Horus AI; límite propio por visitante además del global del BFF.
+    Route::post('/chat', [ChatPublicoController::class, 'mensaje'])->middleware('throttle:chat-bff')->name('chat');
 });

@@ -9,6 +9,7 @@ use App\Models\ServicioTecnologico;
 use App\Observers\PublicacionCatalogoAdvisorObserver;
 use App\Support\Email;
 use Illuminate\Cache\RateLimiting\Limit;
+use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -68,6 +69,8 @@ class AppServiceProvider extends ServiceProvider
         ));
         // BFF de apps/web: un solo cubo por servicio (el visitante final no llega a Laravel con su IP en las lecturas).
         RateLimiter::for('publico-web', fn (Request $request) => Limit::perMinute(300)->by('publico-web'));
+        // Chat del BFF: el visitante lo identifica el servidor de Next con un HMAC de su IP (opaco, sin IP en claro).
+        RateLimiter::for('chat-bff', fn (Request $request) => Limit::perMinute(20)->by('chat-bff:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
         ));

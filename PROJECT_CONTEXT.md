@@ -4486,3 +4486,55 @@ PostgreSQL ni con el navegador; la evidencia de contrato es de PHPUnit (SQLite e
 
 **Estado:** el paso 2A queda cerrado. Pendiente conocido: `packages/contracts/openapi/horus-api.yaml` no incluye todavía
 `/api/public/v1/*`. Siguiente paso, sin iniciar: 2B (chat).
+
+## Fase 2b: chat de Horus AI en la web de Next.js — 12/11/2026
+
+**Flujo (un solo chatbot, el existente):** navegador → `POST /api/chat` (route handler de `apps/web`, mismo origen) →
+`POST /api/public/v1/chat` de Laravel (token `X-Horus-Web-Token`) → `AsistenteVirtualService` (barrera de privacidad,
+deduplicación, contingencia institucional, registro solo de metadatos) → `HorusAdvisorClient` → Horus AI (FastAPI,
+`POST /api/v1/chat`). **Next nunca llama a Python:** Laravel conserva la barrera de privacidad y las operaciones sensibles. El
+widget visual que ya existía en `apps/web` (`ChatWidget`) se conectó a este flujo; su base de conocimiento estática local
+(`knowledge-base.ts`), que era un segundo chatbot, se eliminó.
+
+**Laravel:** `Api/Publico/ChatPublicoController` (nuevo), ruta `POST /api/public/v1/chat` con el limitador `chat-bff` (20
+por minuto por visitante) además de `publico-web`. Valida `mensaje` (1–2000) y `session_id` (`[A-Za-z0-9_-]{8,64}`); la
+respuesta se reduce a `respuesta`, `fuente` y, si existen, `tarjetas` (nunca la intención interna); un fallo técnico responde
+503 con un código fijo y sin registrar texto del visitante. `X-Horus-Visitante` (HMAC de 64 hex) agrupa el límite; si falta o
+está mal formado se usa un único cubo.
+
+**Next:** `src/app/api/chat/route.ts` exige mismo origen (`Origin` = host), `application/json`, cuerpo ≤ 8 KB, mensaje
+1–2000 y sesión válida, y aplica un límite en memoria de 20 por minuto por visitante (mejor esfuerzo; el autoritativo es el
+de Laravel). El identificador del visitante es un HMAC-SHA256 de su IP con el token de servicio: la IP en claro no sale de
+Next. Tiempo de espera hacia Laravel: 8 s (Laravel limita a Horus AI a 2,5 s sin reintentos). El navegador solo recibe
+códigos genéricos (`chat_no_disponible`, `mensaje_invalido`, `demasiadas_solicitudes`…). `src/lib/horus-chat.ts` reduce
+la respuesta de Laravel: texto acotado, tarjetas solo con rutas de la lista blanca de `src/lib/chat-rutas.ts` (que traduce
+las rutas del sitio anterior, p. ej. `/preguntas-frecuentes` → `/legales/preguntas-frecuentes`) e imágenes solo
+`/assets|/storage` de Laravel. En el widget: indicador de proceso, un reintento automático ante fallo de conexión o 5xx
+(Laravel deduplica el mismo mensaje), botón «Reintentar» y enlace de WhatsApp si el asistente no está disponible, aviso ante
+429 o mensaje inválido, historial de la pestaña (`sessionStorage`, 30 mensajes, reconstruido y revalidado al restaurar; las
+imágenes de tarjetas no se restauran) y `session_id` por pestaña. No se envía ninguna credencial al navegador.
+
+**Preparación para evolucionar:** el contrato ya separa `respuesta` (texto) de `tarjetas` (referencias verificadas del
+catálogo). Las futuras clasificaciones (dominio académico o tecnológico, reclamaciones, derivación) deben llegar como un campo
+nuevo y opcional de esa respuesta que Laravel valida, y **solo como sugerencia**: ninguna acción sobre matrículas,
+cotizaciones, reclamaciones u otros datos se ejecuta sin una persona y sin las reglas y permisos de Laravel. Nada de eso está
+implementado en 2b.
+
+**Contrato:** `packages/contracts/openapi/horus-api.yaml` documenta ahora `/api/public/v1/{cursos,servicios,paginas/{pagina},chat}`
+(esquemas, `X-Horus-Web-Token`, respuestas 401/404/422/429/503). `/api/auth/me` no se tocó.
+
+**Validación (12/11/2026).** Con transporte simulado (PHPUnit, SQLite en memoria): `ApiPublicaChatTest` (8 pruebas: token,
+contingencia sin Horus AI, dato personal que no llega a la IA, validación de mensaje y sesión, campos de presentación,
+503 genérico, límite por visitante, el chat Blade intacto) y las 11 anteriores de `ApiPublica*`; ESLint de lo tocado y
+`next build` sin errores nuevos (el único error de `chat-widget.tsx`, `setState` en un efecto, ya existía). Con un stub de
+Laravel en loopback y `next start`: respuesta correcta, mensaje vacío (422), demasiado largo (422), cuerpo enorme (413),
+JSON roto (400), sin origen o con origen ajeno (403), no JSON (415), GET (405), API caída (503), 429 con `Retry-After`,
+respuesta malformada (503), tiempo de espera (503 a los 8 s), token incorrecto o sin configurar (503), límite local (429 desde
+la solicitud 21), tarjeta con URL ajena descartada, ruta traducida, imagen reescrita a la base de Laravel y la intención
+interna sin salir; ningún secreto en respuestas, HTML ni log de Next. **Con Horus AI real** (FastAPI en loopback con un
+token efímero, ya detenido): `POST /api/v1/chat` responde 200 con token y 401 sin él, y el cliente Laravel con token
+incorrecto cae a contingencia; con el token correcto también cae a contingencia porque `GET /ready` informa `catalog: none`
+(sin catálogo firmado sincronizado desde la base de datos, que no se tocó). **Límites:** no se probó la cadena completa
+Next → Laravel → Python con catálogo sincronizado ni con PostgreSQL. El widget se probó en Chrome contra el stub (apertura,
+envío con Enter, respuesta, tarjeta con ruta traducida, enlaces de contacto y WhatsApp) solo en ancho de escritorio: el
+navegador no permitió estrechar la ventana, así que el comportamiento responsive no se verificó (el CSS del widget no cambió).

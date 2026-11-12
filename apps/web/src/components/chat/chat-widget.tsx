@@ -15,7 +15,123 @@ import {
   Check,
 } from 'lucide-react';
 import { RobotMascot } from './robot-mascot';
-import { findAnswer, ChatCard, ChatLink } from './knowledge-base';
+import { enlacesDeTexto, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
+
+type ChatLink = EnlaceChat;
+
+interface ChatCard {
+  id: string;
+  tipo: 'servicio' | 'curso';
+  titulo: string;
+  descripcion: string;
+  url: string;
+  imagen: string | null;
+  accion: string;
+}
+
+/** Respuestas del BFF (`/api/chat`): el navegador solo ve estos campos; nunca tokens ni errores internos. */
+interface RespuestaApi {
+  respuesta: string;
+  tarjetas?: ChatCard[];
+}
+
+const MAX_MENSAJE = 2000;
+const TIMEOUT_MS = 20_000;
+const ESPERA_REINTENTO_MS = 1200;
+const CONTACTO_WHATSAPP: ChatLink = { url: 'https://wa.me/51972021374', label: 'Contactar por WhatsApp', whatsapp: true };
+
+const MENSAJE_NO_DISPONIBLE =
+  'El asistente no está disponible en este momento. Puedes intentarlo de nuevo en unos minutos o escribirnos por WhatsApp.';
+const MENSAJE_DEMASIADAS =
+  'Estás enviando consultas muy seguido. Espera un momento antes de volver a escribir.';
+
+let contadorId = 0;
+
+/** Identificador local de mensaje (fuera del render para no mezclar efectos con la presentación). */
+function idMensaje(prefijo: string): string {
+  contadorId += 1;
+  return `${prefijo}-${Date.now()}-${contadorId}`;
+}
+
+function nuevoSessionId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
+
+/** Identificador de la conversación: vive solo en esta pestaña (sessionStorage) y se envía con cada consulta. */
+function obtenerSessionId(): string {
+  try {
+    const guardado = sessionStorage.getItem('horus_chat_session');
+    if (guardado && /^[A-Za-z0-9_-]{8,64}$/.test(guardado)) return guardado;
+    const nuevo = nuevoSessionId();
+    sessionStorage.setItem('horus_chat_session', nuevo);
+    return nuevo;
+  } catch {
+    return nuevoSessionId();
+  }
+}
+
+type ResultadoEnvio =
+  | { ok: true; data: RespuestaApi }
+  | { ok: false; motivo: 'demasiadas' | 'invalido' | 'no_disponible'; reintentable: boolean };
+
+async function consultar(mensaje: string, sessionId: string): Promise<ResultadoEnvio> {
+  const control = new AbortController();
+  const temporizador = setTimeout(() => control.abort(), TIMEOUT_MS);
+  try {
+    const respuesta = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ mensaje, session_id: sessionId }),
+      signal: control.signal,
+    });
+    if (respuesta.status === 429) return { ok: false, motivo: 'demasiadas', reintentable: false };
+    if (respuesta.status === 422 || respuesta.status === 413) return { ok: false, motivo: 'invalido', reintentable: false };
+    if (!respuesta.ok) return { ok: false, motivo: 'no_disponible', reintentable: respuesta.status >= 500 };
+    const data: unknown = await respuesta.json();
+    if (typeof data !== 'object' || data === null || typeof (data as RespuestaApi).respuesta !== 'string') {
+      return { ok: false, motivo: 'no_disponible', reintentable: false };
+    }
+    return { ok: true, data: data as RespuestaApi };
+  } catch {
+    return { ok: false, motivo: 'no_disponible', reintentable: true };
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
+/** Historial guardado en la pestaña: puede haber sido alterado, así que se reconstruye solo con campos seguros. */
+function restaurarMensajes(valor: unknown): Message[] {
+  if (!Array.isArray(valor)) return [];
+  const salida: Message[] = [];
+  for (const m of valor.slice(-30)) {
+    if (typeof m !== 'object' || m === null) continue;
+    const c = m as Record<string, unknown>;
+    if (typeof c.id !== 'string' || typeof c.text !== 'string' || (c.role !== 'user' && c.role !== 'bot')) continue;
+    const mensaje: Message = { id: c.id.slice(0, 64), role: c.role, text: c.text.slice(0, 6000) };
+    if (c.role === 'bot') {
+      const enlaces = enlacesDeTexto(mensaje.text);
+      if (enlaces.length > 0) mensaje.links = enlaces;
+      if (Array.isArray(c.cards)) {
+        const tarjetas: ChatCard[] = [];
+        for (const t of c.cards.slice(0, 5)) {
+          const x = (t ?? {}) as Record<string, unknown>;
+          const url = rutaNext(x.url);
+          if (url === null || typeof x.id !== 'string' || typeof x.titulo !== 'string' || typeof x.descripcion !== 'string' || typeof x.accion !== 'string') continue;
+          if (x.tipo !== 'curso' && x.tipo !== 'servicio') continue;
+          // La imagen no se restaura: solo se muestra la que acaba de validar el servidor.
+          tarjetas.push({ id: x.id, tipo: x.tipo, titulo: x.titulo.slice(0, 120), descripcion: x.descripcion.slice(0, 500), url, imagen: null, accion: x.accion.slice(0, 60) });
+        }
+        if (tarjetas.length > 0) mensaje.cards = tarjetas;
+      }
+    }
+    salida.push(mensaje);
+  }
+  return salida;
+}
 
 interface Message {
   id: string;
@@ -23,6 +139,8 @@ interface Message {
   text: string;
   cards?: ChatCard[];
   links?: ChatLink[];
+  /** Consulta que falló y que la persona puede reintentar. */
+  retry?: string;
 }
 
 const INITIAL_MESSAGE: Message = {
@@ -58,9 +176,9 @@ export function ChatWidget() {
     try {
       const stored = sessionStorage.getItem('horus_chat_history');
       if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
+        const restaurados = restaurarMensajes(JSON.parse(stored));
+        if (restaurados.length > 0) {
+          setMessages(restaurados);
         }
       }
     } catch {
@@ -72,7 +190,7 @@ export function ChatWidget() {
   useEffect(() => {
     try {
       if (messages.length > 1) {
-        sessionStorage.setItem('horus_chat_history', JSON.stringify(messages.slice(-30)));
+        sessionStorage.setItem('horus_chat_history', JSON.stringify(messages.filter((m) => !m.retry).slice(-30)));
       }
     } catch {
       // ignore storage errors
@@ -140,34 +258,56 @@ export function ChatWidget() {
     };
   }, [isOpen]);
 
+  const sessionIdRef = useRef<string | null>(null);
+
+  async function consultarConReintento(text: string): Promise<ResultadoEnvio> {
+    sessionIdRef.current ??= obtenerSessionId();
+    let resultado = await consultar(text, sessionIdRef.current);
+    // Un único reintento automático ante un fallo de conexión o del servidor; el servidor deduplica el mismo mensaje.
+    if (!resultado.ok && resultado.reintentable) {
+      await new Promise((r) => setTimeout(r, ESPERA_REINTENTO_MS));
+      resultado = await consultar(text, sessionIdRef.current);
+    }
+    return resultado;
+  }
+
+  const enviarConsulta = async (text: string) => {
+    setSending(true);
+    const resultado = await consultarConReintento(text);
+    let botMsg: Message;
+    if (resultado.ok) {
+      const enlaces = enlacesDeTexto(resultado.data.respuesta);
+      botMsg = {
+        id: idMensaje('bot'),
+        role: 'bot',
+        text: resultado.data.respuesta,
+        cards: resultado.data.tarjetas,
+        links: enlaces.length > 0 ? enlaces : undefined,
+      };
+    } else if (resultado.motivo === 'demasiadas') {
+      botMsg = { id: idMensaje('err'), role: 'bot', text: MENSAJE_DEMASIADAS };
+    } else if (resultado.motivo === 'invalido') {
+      botMsg = { id: idMensaje('err'), role: 'bot', text: 'No pude procesar ese mensaje. Revisa que no esté vacío ni supere los 2000 caracteres.' };
+    } else {
+      botMsg = { id: idMensaje('err'), role: 'bot', text: MENSAJE_NO_DISPONIBLE, links: [CONTACTO_WHATSAPP], retry: text };
+    }
+    setMessages((prev) => [...prev, botMsg]);
+    setSending(false);
+  };
+
   const handleSend = (textToSend?: string) => {
-    const text = (textToSend || draft).trim();
+    const text = (textToSend || draft).trim().slice(0, MAX_MENSAJE);
     if (!text || sending) return;
 
-    const userMsg: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      text,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { id: idMensaje('user'), role: 'user', text }]);
     setDraft('');
-    setSending(true);
+    void enviarConsulta(text);
+  };
 
-    // Simulate smart responder thinking delay
-    setTimeout(() => {
-      const answer = findAnswer(text);
-      const botMsg: Message = {
-        id: `bot-${Date.now()}`,
-        role: 'bot',
-        text: answer.text,
-        cards: answer.cards,
-        links: answer.links,
-      };
-
-      setMessages((prev) => [...prev, botMsg]);
-      setSending(false);
-    }, 600);
+  const handleRetry = (messageId: string, text: string) => {
+    if (sending) return;
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    void enviarConsulta(text);
   };
 
   const handleSuggestionClick = (query: string) => {
@@ -275,6 +415,7 @@ export function ChatWidget() {
                                   src={card.imagen}
                                   alt={card.titulo}
                                   fill
+                                  unoptimized
                                   sizes="(max-width: 480px) 100vw, 400px"
                                   className="object-cover"
                                 />
@@ -315,6 +456,19 @@ export function ChatWidget() {
                             </div>
                           </section>
                         ))}
+                      </div>
+                    )}
+
+                    {message.retry && (
+                      <div className="mt-2.5 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="hc-action"
+                          onClick={() => handleRetry(message.id, message.retry as string)}
+                          disabled={sending}
+                        >
+                          <span>Reintentar</span>
+                        </button>
                       </div>
                     )}
 
