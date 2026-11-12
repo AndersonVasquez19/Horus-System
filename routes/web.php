@@ -117,13 +117,18 @@ Route::prefix('admin')
         Route::post('cotizaciones/{cotizacion:identificador}/seguimientos', [CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento')->whereUuid('cotizacion');
         Route::get('cotizaciones/{cotizacion:identificador}/historial', [CotizacionController::class, 'historial'])->name('cotizaciones.historial')->whereUuid('cotizacion');
 
-        // Libro de Reclamaciones: consulta administrativa e impresión, solo lectura (Sprint 20, E3).
+        // Libro de Reclamaciones: consulta e impresión (E3) y gestión del caso (E4).
         Route::get('reclamaciones', [ReclamacionController::class, 'index'])->name('reclamaciones.index');
         Route::get('reclamaciones/{reclamacion:identificador}', [ReclamacionController::class, 'show'])
             ->name('reclamaciones.show')
             ->whereUuid('reclamacion');
         Route::get('reclamaciones/{reclamacion:identificador}/hoja', [ReclamacionController::class, 'hoja'])
             ->name('reclamaciones.hoja')
+            ->whereUuid('reclamacion');
+        // Gestión del caso (E4): una sola entrada; `operacion` elige la acción y su permiso (GestionarReclamacionRequest).
+        Route::post('reclamaciones/{reclamacion:identificador}/gestion', [ReclamacionController::class, 'gestionar'])
+            ->middleware('throttle:admin-write')
+            ->name('reclamaciones.gestionar')
             ->whereUuid('reclamacion');
 
         Route::resource('servicios', ServicioTecnologicoController::class)->only(['index', 'store', 'show'])->parameters(['servicios' => 'servicio']);

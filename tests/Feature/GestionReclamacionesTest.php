@@ -119,10 +119,17 @@ class GestionReclamacionesTest extends TestCase
                 $rutas[$ruta->getName()] = $ruta;
             }
         }
-        $this->assertSame(['legales.reclamaciones', 'legales.reclamaciones.store', 'admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'], array_keys($rutas));
+        $this->assertSame(['legales.reclamaciones', 'legales.reclamaciones.store', 'admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja', 'admin.reclamaciones.gestionar'], array_keys($rutas));
         foreach (['admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'] as $consulta) {
             $this->assertSame(['GET', 'HEAD'], $rutas[$consulta]->methods(), "E3 es solo de consulta: {$consulta}");
         }
+        // E4: la gestión es una única entrada POST del panel (sesión, rol de personal y límite de escrituras).
+        $gestion = $rutas['admin.reclamaciones.gestionar'];
+        $this->assertSame(['POST'], $gestion->methods());
+        $this->assertSame('admin/reclamaciones/{reclamacion}/gestion', $gestion->uri());
+        $this->assertContains('auth', $gestion->gatherMiddleware());
+        $this->assertContains('role:admin|coordinador|secretaria', $gestion->gatherMiddleware());
+        $this->assertContains('throttle:admin-write', $gestion->gatherMiddleware());
         $this->assertSame(['GET', 'HEAD'], $rutas['legales.reclamaciones']->methods());
         $this->assertSame(['POST'], $rutas['legales.reclamaciones.store']->methods());
         $this->assertSame('libro-reclamaciones', $rutas['legales.reclamaciones.store']->uri());

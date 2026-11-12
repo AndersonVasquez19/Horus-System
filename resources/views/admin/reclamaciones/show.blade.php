@@ -279,6 +279,11 @@
         </section>
     @endif
 
+    {{-- H. Gestión del caso (E4): solo para quien puede gestionar o responder. --}}
+    @canany(['reclamaciones.gestionar', 'reclamaciones.responder'])
+        @include('admin.reclamaciones._gestion')
+    @endcanany
+
     {{-- F. Historial de actuaciones (solo de esta reclamación; cargado en una consulta agrupada) --}}
     <section class="admin-card sm:p-7" aria-labelledby="historial-titulo">
         <div class="mb-5 flex items-center justify-between border-b border-[#E2E8F0] pb-4">
@@ -384,12 +389,38 @@
                                     @if ($envio->canal === 'carta' && $envio->constancia)
                                         <span class="mt-0.5 block text-[11px] text-[#64748B]">Constancia: {{ $envio->constancia }}</span>
                                     @endif
+                                    @can('reclamaciones.gestionar')
+                                        @if ($envio->estado === 'fallido' && $envio->canal === 'correo')
+                                            <button type="button" data-admin-modal-open="gestion-reintento-{{ $envio->id }}" class="admin-btn-outline mt-2 min-h-8 px-3 py-1 text-xs">
+                                                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reintentar
+                                            </button>
+                                        @endif
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
+            @can('reclamaciones.gestionar')
+                @php($operacionPrevia = $errors->any() ? (string) old('operacion') : '')
+                @foreach ($reclamacion->envios->where('estado', 'fallido')->where('canal', 'correo') as $envio)
+                    @php($reabrir = $operacionPrevia === 'reintento' && (string) old('envio_id') === (string) $envio->id)
+                    <x-admin.form-modal id="gestion-reintento-{{ $envio->id }}" title="Reintentar envío" :auto-open="$reabrir">
+                        @include('admin.reclamaciones._gestion-errores', ['mensajes' => $reabrir ? collect($errors->getMessages())->except('gestion')->flatten()->all() : []])
+                        <form action="{{ route('admin.reclamaciones.gestionar', $reclamacion) }}" method="POST" class="space-y-5">
+                            @csrf
+                            <input type="hidden" name="operacion" value="reintento">
+                            <input type="hidden" name="envio_id" value="{{ $envio->id }}">
+                            <p class="text-sm text-[#475569]">Se reintentará el envío «{{ \App\Support\PresentacionReclamacion::tipoEnvio($envio->tipo) }}» con el mismo texto y el contador de intentos reiniciado.</p>
+                            @include('admin.reclamaciones._gestion-aviso-correo', ['operacion' => $reabrir ? 'reintento' : '__ninguna__'])
+                            <div class="flex justify-end border-t border-[#E2E8F0] pt-4">
+                                <button type="submit" class="admin-btn-primary"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reintentar envío</button>
+                            </div>
+                        </form>
+                    </x-admin.form-modal>
+                @endforeach
+            @endcan
             @if (! \App\Support\Reclamaciones::envioHabilitado())
                 <p class="mt-3 text-xs text-[#64748B]">El envío de correos del libro está desactivado: los correos registrados permanecen pendientes y no se remite nada.</p>
             @endif

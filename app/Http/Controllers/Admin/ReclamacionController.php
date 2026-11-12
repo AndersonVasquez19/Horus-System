@@ -5,28 +5,51 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\GestionarReclamacionRequest;
 use App\Models\Reclamacion;
+use App\Models\ReclamacionEnvio;
 use App\Models\User;
 use App\Services\GestionReclamaciones;
 use App\Support\HojaReclamacion;
+use App\Support\Reclamaciones;
 use Carbon\CarbonImmutable;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Permission;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
- * Bandeja administrativa del Libro de Reclamaciones (Sprint 20, E3): consulta e impresión, sin gestión.
+ * Bandeja administrativa del Libro de Reclamaciones: consulta e impresión (E3) y gestión del caso (E4).
  *
  * Permite a Gerencia y personal con permiso `reclamaciones.ver` consultar las quejas
  * y reclamos recibidos, aplicar filtros por tipo, estado, fechas y texto, revisar
  * el detalle completo de cada registro (con su historial y envíos) e imprimir la hoja.
  * Ninguna de estas peticiones GET modifica reclamaciones: la única escritura es la auditoría del acceso.
+ *
+ * La gestión (`gestionar`) solo delega en {@see GestionReclamaciones}, que comprueba permiso, estado y reglas
+ * bajo bloqueo y deja historial y auditoría. Este controlador no decide reglas del libro.
  */
 class ReclamacionController extends Controller implements HasMiddleware
 {
+    /** Mensaje de éxito por operación de gestión. */
+    private const MENSAJES = [
+        'responsable' => 'Responsable actualizado.',
+        'tipo' => 'Tipo de registro actualizado.',
+        'nota' => 'Nota interna registrada.',
+        'propuesta' => 'Propuesta de solución registrada.',
+        'rechazo' => 'Rechazo de la propuesta registrado; el plazo se reanudó.',
+        'aceptacion' => 'Aceptación de la propuesta registrada; el caso concluyó por acuerdo.',
+        'respuesta' => 'Respuesta formal registrada.',
+        'reintento' => 'Envío reprogramado.',
+    ];
+
     public function __construct(private readonly GestionReclamaciones $gestion) {}
 
     /** @return list<Middleware> */
@@ -34,6 +57,8 @@ class ReclamacionController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('permission:reclamaciones.ver', only: ['index', 'show', 'hoja']),
+            // Permiso fino por operación: GestionarReclamacionRequest::authorize() y el propio servicio.
+            new Middleware('permission:reclamaciones.gestionar|reclamaciones.responder', only: ['gestionar']),
         ];
     }
 
@@ -120,7 +145,92 @@ class ReclamacionController extends Controller implements HasMiddleware
             // Indicadores de solo lectura: se calculan para mostrarlos, sin persistir nada.
             'avisoPlazo' => $this->gestion->umbralAviso($registro),
             'propuestaVencida' => $this->gestion->propuestaVencidaSinProcesar($registro),
+            'responsables' => $this->responsablesDisponibles(),
+            'correoActivo' => Reclamaciones::envioHabilitado(),
         ])->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * Operaciones de gestión (E4). Un 409 del servicio (el caso ya no admite la operación) vuelve al detalle con
+     * el mensaje fijo del servicio, que no contiene datos personales; 403 y 404 siguen su curso normal.
+     */
+    public function gestionar(GestionarReclamacionRequest $request, Reclamacion $reclamacion): RedirectResponse|JsonResponse
+    {
+        /** @var array<string, mixed> $datos */
+        $datos = $request->validated();
+        $operacion = (string) $datos['operacion'];
+        $actor = $this->usuario($request);
+        $uuid = (string) $reclamacion->identificador;
+
+        try {
+            match ($operacion) {
+                'responsable' => $this->gestion->asignarResponsable(
+                    $actor, $uuid, $datos['responsable_id'] === null ? null : (int) $datos['responsable_id']),
+                'tipo' => $this->gestion->reclasificarTipo($actor, $uuid, (string) $datos['tipo']),
+                'nota' => $this->gestion->agregarNota($actor, $uuid, (string) $datos['nota']),
+                'propuesta' => $this->gestion->enviarPropuesta($actor, $uuid, (string) $datos['asunto'], (string) $datos['cuerpo']),
+                'rechazo' => $this->gestion->registrarRechazo(
+                    $actor, $uuid, (string) $datos['fecha_recepcion'], isset($datos['nota']) ? (string) $datos['nota'] : null),
+                'aceptacion' => $this->gestion->registrarAceptacion(
+                    $actor, $uuid, (string) $datos['fecha_recepcion'], (string) $datos['medio'], (string) $datos['constancia']),
+                'respuesta' => $this->gestion->registrarRespuesta(
+                    $actor, $uuid, (string) $datos['respuesta'], (string) $datos['canal'],
+                    isset($datos['constancia']) ? (string) $datos['constancia'] : null),
+                'reintento' => $this->gestion->reintentarEnvio($actor, $this->envioDeLaReclamacion($reclamacion, (int) $datos['envio_id'])),
+                // El request ya rechaza una operación desconocida (403); nunca se ejecuta otra cosa.
+                default => abort(403),
+            };
+        } catch (HttpException $e) {
+            if ($e->getStatusCode() !== 409) {
+                throw $e;
+            }
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 409);
+            }
+
+            return redirect()->route('admin.reclamaciones.show', $reclamacion)
+                ->withErrors(['gestion' => $e->getMessage()])
+                ->withInput();
+        }
+
+        $mensaje = self::MENSAJES[$operacion];
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $mensaje]);
+        }
+
+        return redirect()->route('admin.reclamaciones.show', $reclamacion)->with('success', $mensaje);
+    }
+
+    /** Un envío solo se reintenta desde la reclamación a la que pertenece: si no, 404 sin tocar nada. */
+    private function envioDeLaReclamacion(Reclamacion $reclamacion, int $envioId): int
+    {
+        abort_unless(
+            ReclamacionEnvio::query()->whereKey($envioId)->where('reclamacion_id', $reclamacion->getKey())->exists(),
+            404,
+        );
+
+        return $envioId;
+    }
+
+    /**
+     * Personal del panel con `reclamaciones.ver`: el mismo criterio con el que el servicio valida la asignación.
+     * Solo id y nombre.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    private function responsablesDisponibles(): array
+    {
+        if (! Permission::query()->where('name', 'reclamaciones.ver')->where('guard_name', 'web')->exists()) {
+            return [];
+        }
+
+        return User::permission('reclamaciones.ver')
+            ->role(RolesAndPermissionsSeeder::STAFF_ROLES)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $u): array => ['id' => (int) $u->id, 'name' => (string) $u->name])
+            ->values()
+            ->all();
     }
 
     /** Hoja de reclamación imprimible: el texto oficial es el de {@see HojaReclamacion} (el mismo de la copia al consumidor). */

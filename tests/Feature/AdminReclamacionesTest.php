@@ -539,20 +539,27 @@ class AdminReclamacionesTest extends TestCase
         }
     }
 
-    public function test_e3_no_expone_acciones_de_gestion_ni_escrituras(): void
+    public function test_e3_no_expone_escrituras_salvo_la_gestion_e4_del_detalle(): void
     {
         $rec = $this->registrar()['reclamacion'];
+        $gestion = route('admin.reclamaciones.gestionar', $rec);
 
-        // El layout incluye un modal de confirmación genérico; lo que no debe existir es ningún formulario ni acción
-        // dirigida a reclamaciones (gestión de E4).
+        // El layout incluye un modal de confirmación genérico. Fuera de la gestión E4 (formularios POST del detalle
+        // hacia la única ruta de gestión) no debe existir ningún formulario de escritura dirigido a reclamaciones.
         foreach (['admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'] as $ruta) {
             $html = (string) $this->actingAs($this->admin)->get(route($ruta, $rec))->assertOk()->getContent();
-            // Solo se admite el formulario de filtros del listado, que es GET.
             preg_match_all('#<form\b[^>]*>#i', $html, $formularios);
             foreach ($formularios[0] as $form) {
-                if (str_contains($form, 'reclamaciones')) {
-                    $this->assertMatchesRegularExpression('#method="get"#i', $form, "{$ruta}: {$form}");
+                if (! str_contains($form, 'reclamaciones')) {
+                    continue;
                 }
+                if ($ruta === 'admin.reclamaciones.show' && str_contains($form, 'action="'.$gestion.'"')) {
+                    $this->assertMatchesRegularExpression('#method="post"#i', $form, "{$ruta}: {$form}");
+
+                    continue;
+                }
+                // Solo se admite el formulario de filtros del listado, que es GET.
+                $this->assertMatchesRegularExpression('#method="get"#i', $form, "{$ruta}: {$form}");
             }
             $this->assertDoesNotMatchRegularExpression('#formaction="[^"]*reclamaciones#', $html, $ruta);
             // El modal genérico del layout usa un _method dinámico (:value); aquí no debe haber uno fijo.
