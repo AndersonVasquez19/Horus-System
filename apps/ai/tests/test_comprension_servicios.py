@@ -65,7 +65,7 @@ def test_la_ficha_editorial_vigente_conserva_la_prioridad():
 
 
 def test_las_respuestas_consumidas_por_laravel_proceden_del_motor_actual():
-    fixture = json.loads((PROJECT_ROOT.parent.parent / "tests/Fixtures/chat-comprension-replies.json").read_text(encoding="utf-8"))
+    fixture = json.loads((PROJECT_ROOT.parent / "api" / "tests/Fixtures/chat-comprension-replies.json").read_text(encoding="utf-8"))
     engine = make_engine([])
     for case in fixture:
         assert engine.chat(case["query"]).model_dump() == case["reply"]

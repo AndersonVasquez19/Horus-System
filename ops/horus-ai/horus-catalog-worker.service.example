@@ -12,7 +12,7 @@ CPUAccounting=true
 MemoryAccounting=true
 User=horus-worker
 Group=horus-worker
-WorkingDirectory=/srv/horus/current
+WorkingDirectory=/srv/horus/current/apps/api
 Environment=HORUS_OPS_ENABLED=false
 EnvironmentFile=/etc/horus-ai/laravel-worker.conf
 ExecStartPre=/usr/bin/php artisan horus:advisor-operacion status

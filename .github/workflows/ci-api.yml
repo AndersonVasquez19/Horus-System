@@ -1,4 +1,4 @@
-# Integración continua de la API (Laravel 12, raíz del repositorio). Parte de la división por aplicación:
+# Integración continua de la API (Laravel 12, en apps/api). Parte de la división por aplicación:
 # ci-api.yml, ci-web.yml (apps/web) y ci-ai.yml (apps/ai). Los tres están SUSPENDIDOS (solo manuales).
 #
 # Alcance: lo que se puede comprobar sin servicios externos. La suite usa SQLite en memoria (phpunit.xml), así que
@@ -9,7 +9,7 @@ name: CI API
 
 # SUSPENDIDO (10/11/2026, decisión del propietario; confirmado para los tres workflows el 11/11/2026): solo se ejecuta
 # a mano desde la pestaña Actions («Run workflow»). Para reactivarlo, restaura los disparadores, acotados a lo que
-# esta API usa (hoy Laravel vive en la raíz; si pasa a apps/api, sustituye las rutas):
+# esta API usa (Laravel vive en apps/api):
 #   pull_request:
 #     paths-ignore: ['apps/web/**', 'apps/ai/**', 'packages/**', 'docs/**']
 #   push:
@@ -20,6 +20,11 @@ on:
 
 permissions:
   contents: read
+
+# Todos los comandos de `run` se ejecutan dentro de la aplicación Laravel.
+defaults:
+  run:
+    working-directory: apps/api
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -45,7 +50,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.composer/cache
-          key: composer-${{ hashFiles('composer.lock') }}
+          key: composer-${{ hashFiles('apps/api/composer.lock') }}
           restore-keys: composer-
 
       - name: Instalar dependencias
@@ -56,6 +61,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+          cache-dependency-path: apps/api/package-lock.json
 
       - name: Compilar recursos para las pruebas de vistas
         run: |
@@ -82,7 +88,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          mapfile -t archivos < <(git diff --name-only --diff-filter=AM "$BASE_SHA"...HEAD -- '*.php')
+          mapfile -t archivos < <(git diff --relative --name-only --diff-filter=AM "$BASE_SHA"...HEAD -- '*.php')
           if [ "${#archivos[@]}" -gt 0 ]; then
             vendor/bin/pint --test "${archivos[@]}"
           fi
@@ -98,6 +104,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+          cache-dependency-path: apps/api/package-lock.json
 
       - name: Instalar dependencias
         run: npm ci

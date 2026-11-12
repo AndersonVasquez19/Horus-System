@@ -21,7 +21,7 @@ trait InstalaMigracionesEnMemoria
         if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatabaseName() !== ':memory:') {
             throw new RuntimeException('Este instalador solo acepta SQLite :memory:.');
         }
-        $manifiesto = json_decode(file_get_contents(base_path('docs/consolidacion-fase-4-manifiesto.json')), true, 512, JSON_THROW_ON_ERROR);
+        $manifiesto = json_decode(file_get_contents(dirname(base_path(), 2).'/docs/consolidacion-fase-4-manifiesto.json'), true, 512, JSON_THROW_ON_ERROR);
         $paths = [];
         foreach ($manifiesto['migrations'] as $migracion) {
             if (preg_match('/_00002[23]_/', $migracion['file'])) {

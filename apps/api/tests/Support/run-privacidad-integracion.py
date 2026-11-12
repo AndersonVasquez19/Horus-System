@@ -15,9 +15,9 @@ Pasos y criterios de éxito:
   2. Pasada «permitidos» (etiquetados P): las peticiones POST /api/v1/chat no pueden superar los mensajes que el filtro deja
      pasar (la deduplicación puede reducirlas); las respuestas con la aclaración de privacidad son falsos positivos y se informan.
 
-Uso (PowerShell, desde la raíz del repositorio, con la autorización del propietario):
+Uso (PowerShell, desde apps/api, con la autorización del propietario):
   $env:HORUS_PRIVACIDAD_INTEGRACION = "1"
-  apps\\ai\\.venv\\Scripts\\python.exe tests\\Support\\run-privacidad-integracion.py <informe.json> <corpus.txt> [<corpus2.txt> ...]
+  ..\\ai\\.venv\\Scripts\\python.exe tests\\Support\\run-privacidad-integracion.py <informe.json> <corpus.txt> [<corpus2.txt> ...]
 El informe se escribe en la ruta indicada (fuera del repositorio). Los corpus son los del auditor (formato CATEGORIA|B/P|MENSAJE).
 """
 
@@ -84,7 +84,7 @@ def main() -> int:
     resultados: dict[str, object] = {}
     try:
         proceso = subprocess.Popen(
-            [str(ROOT / "apps/ai/.venv/Scripts/python.exe"), "-c", comando], cwd=ROOT / "apps/ai", env=env,
+            [str(ROOT.parent / "ai/.venv/Scripts/python.exe"), "-c", comando], cwd=ROOT.parent / "ai", env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         for _ in range(120):

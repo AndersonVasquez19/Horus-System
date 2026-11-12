@@ -72,7 +72,7 @@ try {
         exigir(($config[$key] ?? null) === $value, 'Configuración distinta del destino autorizado: '.$key);
     }
     exigir(empty($config['DB_URL']) && ! getenv('HORUS_PG_TEST_PROFILE'), 'Perfil alternativo no permitido.');
-    $manifest = json_decode(file_get_contents($root.'/docs/consolidacion-fase-4-manifiesto.json'), true, 512, JSON_THROW_ON_ERROR);
+    $manifest = json_decode(file_get_contents(dirname($root, 2).'/docs/consolidacion-fase-4-manifiesto.json'), true, 512, JSON_THROW_ON_ERROR);
     $hashes = [];
     foreach ($files as $name) {
         $path = 'database/migrations/'.$name.'.php';

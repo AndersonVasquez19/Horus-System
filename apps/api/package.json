@@ -8,10 +8,7 @@
     "test:frontend": "node scripts/run-frontend-tests.mjs",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "web:dev": "npm --prefix apps/web run dev",
-    "web:build": "npm --prefix apps/web run build",
-    "web:verify": "npm --prefix apps/web run verify:assets"
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",

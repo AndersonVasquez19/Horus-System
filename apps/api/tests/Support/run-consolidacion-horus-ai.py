@@ -38,13 +38,13 @@ python_env = {k: v for k, v in base.items() if not k.startswith(("DB_", "PG"))}
 with (evidence / "fastapi.log").open("w", encoding="utf-8") as log:
     process = subprocess.Popen(
         [
-            str(root / "apps/ai/.venv/Scripts/python.exe"),
+            str(root.parent / "ai/.venv/Scripts/python.exe"),
             "-m",
             "app.operacion",
             "run",
             "--execute",
         ],
-        cwd=root / "apps/ai",
+        cwd=root.parent / "ai",
         env=python_env,
         stdout=log,
         stderr=log,

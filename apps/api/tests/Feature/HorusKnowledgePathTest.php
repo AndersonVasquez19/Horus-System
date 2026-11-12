@@ -44,7 +44,7 @@ class HorusKnowledgePathTest extends TestCase
 
         $_SERVER['HORUS_AI_KNOWLEDGE_PATH'] = $_ENV['HORUS_AI_KNOWLEDGE_PATH'] = '';
         $this->assertSame(
-            base_path('apps/ai/data/knowledge.json'),
+            dirname(base_path()).'/ai/data/knowledge.json',
             (require base_path('config/horus-knowledge.php'))['path']
         );
     }

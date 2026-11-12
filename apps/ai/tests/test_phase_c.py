@@ -186,7 +186,7 @@ def test_recommend_endpoint_uses_same_current_query_understanding():
 
 def test_public_php_contract_fixture_is_produced_by_the_current_python_engine():
     fixture = json.loads(
-        (Path(__file__).parents[3] / "tests/Fixtures/phase-c-public-replies.json").read_text(encoding="utf-8")
+        (Path(__file__).parents[2] / "api" / "tests/Fixtures/phase-c-public-replies.json").read_text(encoding="utf-8")
     )
     engine = make_engine(fixture["items"])
     for case in fixture["cases"]:

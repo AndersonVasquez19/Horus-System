@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { chatClient, safeChatLinks } from '../../resources/js/chat-client.js';
 
-const knowledge = JSON.parse(await readFile(new URL('../../apps/ai/data/knowledge.json', import.meta.url), 'utf8'));
+const knowledge = JSON.parse(await readFile(new URL('../../../ai/data/knowledge.json', import.meta.url), 'utf8'));
 const contactAnswer = knowledge.records.find(record => record.id === 'contacto_canales').answer;
 const whatsapp = { url: 'https://wa.me/51972021374', label: 'Contactar por WhatsApp', whatsapp: true };
 

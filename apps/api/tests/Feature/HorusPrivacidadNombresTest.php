@@ -83,7 +83,7 @@ class HorusPrivacidadNombresTest extends TestCase
     #[DataProvider('consultasLegitimas')]
     public function test_consultas_legitimas_llegan_a_python(string $q): void
     {
-        $kb = json_decode((string) file_get_contents(__DIR__.'/../../apps/ai/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
+        $kb = json_decode((string) file_get_contents(__DIR__.'/../../../ai/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
         $record = collect($kb['records'])->firstWhere('id', 'servicio_soporte');
         Http::fake([
             '*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured', 'catalog' => 'none', 'semantic' => 'disabled']),

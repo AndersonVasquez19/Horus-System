@@ -25,7 +25,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LARAVEL_ROOT = ROOT.parent.parent
+LARAVEL_ROOT = ROOT.parent / "api"
 sys.path.insert(0, str(ROOT))
 
 from app.core.text import normalize  # noqa: E402

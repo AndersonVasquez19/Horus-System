@@ -102,7 +102,7 @@ class FiltroPrivacidadNombresMinusculasTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function consultasDelConocimiento(): iterable
     {
-        $kb = json_decode((string) file_get_contents(__DIR__.'/../../apps/ai/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
+        $kb = json_decode((string) file_get_contents(__DIR__.'/../../../ai/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
         foreach ($kb['records'] as $record) {
             foreach (array_merge([$record['title']], $record['examples'] ?? []) as $q) {
                 if (is_string($q)) {

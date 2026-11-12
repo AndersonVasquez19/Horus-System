@@ -18,6 +18,7 @@ require_once __DIR__.'/Support/EntornoSeguro.php';
 require_once __DIR__.'/Support/LocalCatalogRenewal.php';
 
 $root = dirname(__DIR__);
+$ai = dirname($root).'/ai';
 $action = $argv[1] ?? '';
 $runtime = isset($argv[2]) && str_starts_with($argv[2], '--runtime=') ? substr($argv[2], 10) : '';
 if (! in_array($action, ['configure', 'run', 'inspect', 'verify'], true) || ! is_dir($runtime)) {
@@ -115,7 +116,7 @@ function localReady(): array
 try {
     requireLocal(str_starts_with(str_replace('\\', '/', realpath($runtime)), str_replace('\\', '/', getenv('LOCALAPPDATA')).'/HorusAI/'), 'Directorio de operación fuera de la raíz privada.');
     $rootEnv = $root.'/.env';
-    $pythonEnv = $root.'/apps/ai/.env';
+    $pythonEnv = $ai.'/.env';
     $php = Dotenv::parse(file_get_contents($rootEnv));
     $python = Dotenv::parse(file_get_contents($pythonEnv));
     foreach (['DB_CONNECTION' => 'pgsql', 'DB_HOST' => '127.0.0.1', 'DB_PORT' => '5432', 'DB_DATABASE' => 'horus_group'] as $key => $value) {
@@ -209,7 +210,7 @@ try {
             $pythonVariables[$name] = false;
         }
     }
-    runLocal([$root.'/apps/ai/.venv/Scripts/python.exe', '-m', 'app.operacion', 'check'], $root.'/apps/ai', $pythonVariables);
+    runLocal([$ai.'/.venv/Scripts/python.exe', '-m', 'app.operacion', 'check'], $ai, $pythonVariables);
     $start = function (string $name, array $command, string $cwd, array $env) use (&$children, &$handles, $runtime): void {
         $log = fopen($runtime.'/'.$name.'.log', 'ab');
         $handles[] = $log;
@@ -220,7 +221,7 @@ try {
         });
         $children[$name] = $process;
     };
-    $start('fastapi', [$root.'/apps/ai/.venv/Scripts/python.exe', '-m', 'app.operacion', 'run', '--execute'], $root.'/apps/ai', $pythonVariables);
+    $start('fastapi', [$ai.'/.venv/Scripts/python.exe', '-m', 'app.operacion', 'run', '--execute'], $ai, $pythonVariables);
     $started = time();
     do {
         requireLocal($children['fastapi']->isRunning(), 'FastAPI terminó antes de readiness.');

@@ -9,7 +9,7 @@ import pytest
 from app.core.config import PROJECT_ROOT
 from app.services.knowledge import KnowledgeBase, KnowledgeError, find_privacy_violations, load_knowledge_file
 
-REPO_ROOT = PROJECT_ROOT.parent.parent
+API_ROOT = PROJECT_ROOT.parent / "api"
 KNOWLEDGE = PROJECT_ROOT / "data" / "knowledge.json"
 
 
@@ -37,11 +37,11 @@ def test_sources_point_to_existing_files(kb: KnowledgeBase) -> None:
     """Cada fuente cita archivos reales de Horus-System (lectura, sin modificarlos)."""
     for record in kb.records:
         for part in record.source.file.split(";"):
-            assert (REPO_ROOT / part.strip()).exists(), f"{record.id}: fuente inexistente {part!r}"
+            assert (API_ROOT / part.strip()).exists(), f"{record.id}: fuente inexistente {part!r}"
 
 
 def test_public_url_paths_exist_in_laravel_routes(kb: KnowledgeBase) -> None:
-    routes = (REPO_ROOT / "routes" / "web.php").read_text(encoding="utf-8")
+    routes = (API_ROOT / "routes" / "web.php").read_text(encoding="utf-8")
     for record in kb.records:
         path = (record.source.url_path or "").split("#")[0]
         if path and path != "/":
