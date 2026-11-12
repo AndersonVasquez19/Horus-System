@@ -1,0 +1,338 @@
+openapi: 3.1.0
+info:
+  title: Horus Group - contratos HTTP existentes
+  version: 0.1.0
+  description: |
+    Documenta SOLO lo que ya existe y se verificó en el código el 11/11/2026. No es una especificación de diseño:
+    cualquier cambio de comportamiento se hace primero en la aplicación y después aquí.
+
+    Fuentes: `routes/api.php` y `app/Http/Controllers/Api/AuthController.php` (Laravel),
+    `routes/web.php` y `app/Http/Controllers/ChatWidgetController.php` (chat público) y
+    `apps/ai/app/api/routes.py` y `apps/ai/app/schemas/chat.py` (Horus AI).
+
+    Fuera de este documento, a propósito: `/api/auth/email-verification/*` (suspendido tras
+    `VerificacionRegistroHabilitada`), `/api/v1/catalog/*` (sincronización firmada entre Laravel y Horus AI) y todo
+    `/admin` (sesión, CSRF y permisos de Spatie; no es una API pública).
+servers:
+  - url: http://127.0.0.1:8000
+    description: Laravel local (`php artisan serve`)
+  - url: http://127.0.0.1:18081
+    description: Horus AI local (solo loopback; lo consume Laravel, nunca el navegador)
+tags:
+  - name: auth
+    description: Autenticación JWT de Laravel (`/api/auth`).
+  - name: chat-publico
+    description: Chat del sitio web (sesión y CSRF de Laravel).
+  - name: horus-ai
+    description: Servicio Python de Horus AI.
+paths:
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Registrar una cuenta (nunca asigna roles)
+      description: |
+        Limitado por `throttle:register`. Con la verificación de registro activa responde 202 sin emitir token; por
+        defecto está apagada y responde 201 con usuario y token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation]
+              properties:
+                name: {type: string, maxLength: 120}
+                email: {type: string, format: email, maxLength: 255}
+                password: {type: string, description: "Sujeta a `PasswordPolicy`."}
+                password_confirmation: {type: string}
+      responses:
+        "201":
+          description: Cuenta creada.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SesionJwt"}
+        "202":
+          description: Solicitud recibida (solo con la verificación de registro activa).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Mensaje"}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Demasiados intentos.}
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Iniciar sesión y obtener un JWT
+      description: Limitado por `throttle:login`. Las credenciales inválidas devuelven 422 con un mensaje genérico.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string}
+      responses:
+        "200":
+          description: Sesión emitida.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SesionJwt"}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Demasiados intentos.}
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Usuario del token actual
+      security: [{bearerJwt: []}]
+      responses:
+        "200":
+          description: Usuario autenticado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: {$ref: "#/components/schemas/Usuario"}
+        "401": {description: Token ausente, inválido, vencido o revocado (`jwt_version`).}
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Cerrar la sesión JWT
+      security: [{bearerJwt: []}]
+      responses:
+        "200":
+          description: Sesión cerrada.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Mensaje"}
+        "401": {description: Token ausente, inválido, vencido o revocado.}
+  /chat/mensaje:
+    post:
+      tags: [chat-publico]
+      summary: Enviar un mensaje al asistente del sitio web
+      description: |
+        Usa la sesión y el token CSRF de Laravel (`X-CSRF-TOKEN`) y `throttle:chat`. Con `HORUS_ADVISOR_ENABLED=true`
+        responde Horus AI; si no, o ante fallo, una contingencia institucional. Solo se almacenan metadatos, nunca el
+        texto libre. La forma completa de la respuesta aún no está documentada: aquí solo constan los campos
+        verificados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mensaje, session_id]
+              properties:
+                mensaje: {type: string, maxLength: 2000}
+                session_id: {type: string, maxLength: 64}
+      responses:
+        "200":
+          description: Respuesta del asistente.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                properties:
+                  respuesta: {type: string}
+                  fuente: {type: string, description: "Origen de la respuesta (p. ej. `advisor` o `respaldo`)."}
+        "419": {description: Token CSRF ausente o vencido.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Demasiadas solicitudes.}
+  /health:
+    get:
+      tags: [horus-ai]
+      summary: Vivacidad de Horus AI (público y mínimo)
+      responses:
+        "200":
+          description: Servicio vivo.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: {type: string, enum: [ok]}
+  /ready:
+    get:
+      tags: [horus-ai]
+      summary: Disponibilidad de Horus AI (público y mínimo)
+      responses:
+        "200":
+          description: Estado de los componentes.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Ready"}
+  /api/v1/chat:
+    post:
+      tags: [horus-ai]
+      summary: Consulta conversacional (contrato Laravel a Horus AI)
+      description: "Laravel envía siempre `history: []` y no envía identificador de sesión propio. El token nunca llega al navegador."
+      security: [{serviceToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ChatRequest"}
+      responses:
+        "200":
+          description: Respuesta verificada o abstención.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ChatResponse"}
+        "401": {$ref: "#/components/responses/ErrorHorus"}
+        "413": {$ref: "#/components/responses/ErrorHorus"}
+        "422": {$ref: "#/components/responses/ErrorHorus"}
+        "503": {$ref: "#/components/responses/ErrorHorus"}
+components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    serviceToken:
+      type: apiKey
+      in: header
+      name: X-Horus-Service-Token
+      description: Secreto compartido (`HORUS_AI_SERVICE_TOKEN`).
+  responses:
+    ValidacionLaravel:
+      description: Validación fallida (formato estándar de Laravel).
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: {type: string}
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: {type: string}
+    ErrorHorus:
+      description: Error de Horus AI.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorHorus"}
+  schemas:
+    Mensaje:
+      type: object
+      required: [message]
+      properties:
+        message: {type: string}
+    Usuario:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        email: {type: string, format: email}
+    SesionJwt:
+      type: object
+      required: [user, access_token, token_type, expires_in]
+      properties:
+        user: {$ref: "#/components/schemas/Usuario"}
+        access_token: {type: string}
+        token_type: {type: string, enum: [Bearer]}
+        expires_in: {type: integer, description: Segundos hasta el vencimiento.}
+    Ready:
+      type: object
+      required: [status, knowledge, semantic, auth]
+      properties:
+        status: {type: string, enum: [ready, not_ready]}
+        knowledge: {type: string, enum: [loaded, unavailable]}
+        semantic: {type: string, enum: [loaded, loading, disabled, unavailable]}
+        auth: {type: string, enum: [configured, missing]}
+        catalog: {type: string, enum: [none, loaded, stale, error]}
+        catalog_version: {type: string}
+        catalog_pending_version: {type: string, pattern: "^[a-f0-9]{40}$"}
+    HistoryItem:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role: {type: string, enum: [user, assistant]}
+        content: {type: string, minLength: 1, maxLength: 4000}
+    ChatRequest:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message: {type: string, minLength: 1, maxLength: 4000}
+        session_id: {type: [string, "null"], pattern: "^[A-Za-z0-9_\\-]{1,64}$"}
+        history:
+          type: array
+          maxItems: 30
+          items: {$ref: "#/components/schemas/HistoryItem"}
+    MatchLevel:
+      type: string
+      enum: [alta, media, baja, ninguna]
+      description: Calidad de la coincidencia. No es una probabilidad de acierto.
+    SourceRef:
+      type: object
+      required: [id, title]
+      properties:
+        id: {type: string}
+        title: {type: string}
+        url_path: {type: [string, "null"]}
+    Recommendation:
+      type: object
+      required: [id, title, kind, reason, evidence, match_level]
+      properties:
+        id: {type: string}
+        title: {type: string}
+        kind: {type: string}
+        reason: {type: string}
+        evidence: {type: array, items: {type: string}, description: Identificadores de registros verificados.}
+        match_level: {$ref: "#/components/schemas/MatchLevel"}
+        url_path: {type: [string, "null"]}
+        evidence_text: {type: [string, "null"]}
+        signals: {type: array, items: {type: string}}
+        limitations: {type: array, items: {type: string}}
+        needs_clarification: {type: boolean}
+        clarification_question: {type: [string, "null"]}
+        next_step: {type: [string, "null"]}
+    ConversationContext:
+      type: object
+      required: [turns_considered]
+      properties:
+        turns_considered: {type: integer}
+        topics: {type: array, items: {type: string}}
+        level: {type: [string, "null"]}
+        modality: {type: [string, "null"]}
+        focus_ids: {type: array, items: {type: string}}
+        topic_changed: {type: boolean}
+        referential: {type: boolean}
+    ChatResponse:
+      type: object
+      required: [answer, intent, match_level]
+      properties:
+        answer: {type: string}
+        intent: {type: string}
+        match_level: {$ref: "#/components/schemas/MatchLevel"}
+        needs_clarification: {type: boolean}
+        clarification_question: {type: [string, "null"]}
+        abstained: {type: boolean, description: "Verdadero si el motor no pudo afirmar nada confirmado."}
+        recommendations: {type: array, items: {$ref: "#/components/schemas/Recommendation"}}
+        missing_data: {type: array, items: {type: string}}
+        general_guidance: {type: [string, "null"], description: Orientación general NO atribuida a Horus Group.}
+        sources: {type: array, items: {$ref: "#/components/schemas/SourceRef"}}
+        mode: {type: string, enum: [lexical, hybrid]}
+        context: {oneOf: [{$ref: "#/components/schemas/ConversationContext"}, {type: "null"}]}
+        session_id: {type: [string, "null"]}
+    ErrorHorus:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            details:
+              type: [array, "null"]
+              items: {type: object, additionalProperties: {type: string}}
