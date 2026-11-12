@@ -10,7 +10,7 @@ class ConveniosPublicos
     /** @return list<array<string, mixed>> */
     public function tarjetas(): array
     {
-        $datos = json_decode((string) file_get_contents(base_path('chatbot-python/data/knowledge.json')), true, 512, JSON_THROW_ON_ERROR);
+        $datos = json_decode((string) file_get_contents((string) config('horus-knowledge.path')), true, 512, JSON_THROW_ON_ERROR);
         $tarjetas = [];
         foreach ($datos['records'] as $registro) {
             if (isset($registro['public_card']) && $registro['category'] === 'convenio') {

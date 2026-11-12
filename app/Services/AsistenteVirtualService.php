@@ -50,7 +50,7 @@ class AsistenteVirtualService
         $politica = '';
         foreach ([__FILE__, app_path('Support/FiltroPrivacidadChat.php'), app_path('Services/HorusAdvisorClient.php'),
             app_path('Support/Privacidad/LexicoPublico.php'), app_path('Support/Privacidad/lexico-publico.php'),
-            base_path('chatbot-python/data/knowledge.json')] as $archivo) {
+            (string) config('horus-knowledge.path')] as $archivo) {
             $politica .= hash_file('sha256', $archivo);
         }
         $version = hash('sha256', 'privacy-before-cache-v2|'.$politica.serialize(config('horus-advisor')).serialize(config('chatbot.max_answer_chars', 1800))

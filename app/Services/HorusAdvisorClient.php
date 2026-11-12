@@ -697,12 +697,12 @@ class HorusAdvisorClient
     {
         static $cache = null;
         $vacio = ['porTexto' => [], 'porId' => [], 'entidades' => []];
-        $path = base_path('chatbot-python/data/knowledge.json');
+        $path = (string) config('horus-knowledge.path');
         clearstatcache(true, $path);
         if (! is_file($path) || ! is_readable($path)) {
             return $vacio;
         }
-        $firma = filemtime($path).':'.filesize($path);
+        $firma = $path.'|'.filemtime($path).':'.filesize($path);
         if (is_array($cache) && $cache['firma'] === $firma) {
             return $cache['datos'];
         }

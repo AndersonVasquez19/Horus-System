@@ -105,7 +105,7 @@ class ChatComprensionTest extends TestCase
     public function test_una_respuesta_duplicada_restaura_su_tema_y_la_privacidad_prevalece(): void
     {
         $messages = [];
-        $raw = json_decode((string) file_get_contents(base_path('chatbot-python/data/knowledge.json')), true, 512, JSON_THROW_ON_ERROR);
+        $raw = json_decode((string) file_get_contents((string) config('horus-knowledge.path')), true, 512, JSON_THROW_ON_ERROR);
         $support = collect($raw['records'])->firstWhere('id', 'servicio_soporte');
         Http::fake(function (Request $request) use (&$messages, $support) {
             if (str_ends_with($request->url(), '/ready')) {
