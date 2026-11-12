@@ -6,6 +6,7 @@ use App\Services\AsistenteVirtualService;
 use App\Services\ExportadorCatalogoAdvisor;
 use App\Services\OperacionHorus;
 use Dotenv\Dotenv;
+use Horus\Local\EntornoSeguro;
 use Horus\Local\LocalCatalogRenewal;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -13,13 +14,30 @@ use Illuminate\Support\Facades\Http;
 use Symfony\Component\Process\Process;
 
 require dirname(__DIR__).'/vendor/autoload.php';
+require_once __DIR__.'/Support/EntornoSeguro.php';
 require_once __DIR__.'/Support/LocalCatalogRenewal.php';
 
 $root = dirname(__DIR__);
 $action = $argv[1] ?? '';
 $runtime = isset($argv[2]) && str_starts_with($argv[2], '--runtime=') ? substr($argv[2], 10) : '';
 if (! in_array($action, ['configure', 'run', 'inspect', 'verify'], true) || ! is_dir($runtime)) {
-    fwrite(STDERR, "Uso: php scripts/horus-local.php configure|run|inspect|verify --runtime=<directorio privado existente>\n");
+    fwrite(STDERR, "Uso: php scripts/horus-local.php configure|run|inspect|verify --runtime=<directorio privado existente> [--permitir=gemini,correo]\n");
+    exit(1);
+}
+// Por defecto ningun proceso lanzado por este gestor puede llamar a Google ni enviar correo (EntornoSeguro).
+// `--permitir=` habilita una familia de forma expresa; el valor efectivo pasa entonces a ser el del entorno.
+$permitidas = [];
+foreach (array_slice($argv, 3) as $argumento) {
+    if (! str_starts_with($argumento, '--permitir=')) {
+        fwrite(STDERR, 'Opcion desconocida: '.$argumento."\n");
+        exit(1);
+    }
+    $permitidas = array_values(array_filter(explode(',', substr($argumento, 11)), static fn (string $familia): bool => $familia !== ''));
+}
+try {
+    EntornoSeguro::permitiendo($permitidas);
+} catch (InvalidArgumentException $error) {
+    fwrite(STDERR, $error->getMessage()."\n");
     exit(1);
 }
 $children = [];
@@ -60,7 +78,8 @@ function updateLocalEnv(string $path, array $updates, string $runtime): void
 
 function cleanLocalEnv(): array
 {
-    $env = ['NO_PROXY' => '127.0.0.1,localhost', 'no_proxy' => '127.0.0.1,localhost'];
+    global $permitidas;
+    $env = ['NO_PROXY' => '127.0.0.1,localhost', 'no_proxy' => '127.0.0.1,localhost'] + EntornoSeguro::permitiendo($permitidas);
     foreach (['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy'] as $name) {
         $env[$name] = false;
     }
