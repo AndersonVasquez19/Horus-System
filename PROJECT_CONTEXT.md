@@ -4246,3 +4246,8 @@ como las migraciones. El estado de PHPStan (11 errores preexistentes en solicitu
 registro, con migraciones suspendidas) se tratará como tarea independiente de estabilización previa a la API y los
 paneles, sin alterar las migraciones suspendidas. Dirección de autenticación para Next.js: sesión por cookie HttpOnly con
 CSRF y BFF, conservando JWT para integraciones existentes; aún sin implementar.
+
+Cierre de E4 — 11/11/2026: dos commits locales sobre `a92a14a`, sin push: `3c5b769` (código, vistas y pruebas, 10
+archivos) y `337673c` (documentación, 3 archivos). Verificados: índice vacío, stashes `52e2f29` y `d69d6ca` intactos, migraciones
+y `frontend/` sin cambios. El respaldo externo conserva además doce commits sin referencia (instantáneas `stash create`
+generadas por una herramienta externa durante la sesión), en un paquete independiente.
