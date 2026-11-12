@@ -26,6 +26,9 @@
             <div><label for="f-estado" class="admin-label">Estado</label><select id="f-estado" name="estado" class="admin-select">
                 <option value="">Todos</option><option value="recibida" @selected(($filtros['estado'] ?? '') === 'recibida')>Recibida</option><option value="en_revision" @selected(($filtros['estado'] ?? '') === 'en_revision')>En revisión</option>
             </select></div>
+            <div><label for="f-origen" class="admin-label">Origen</label><select id="f-origen" name="origen" class="admin-select">
+                <option value="">Todos</option><option value="publico" @selected(($filtros['origen'] ?? '') === 'publico')>Web (solicitud del cliente)</option><option value="administrativo" @selected(($filtros['origen'] ?? '') === 'administrativo')>Registrada por el personal</option>
+            </select></div>
             @foreach (['responsable_id' => 'ID de responsable', 'servicio_uuid' => 'UUID del servicio', 'codigo' => 'Código de seguimiento'] as $campo => $etiqueta)
                 <div><label for="f-{{ $campo }}" class="admin-label">{{ $etiqueta }}</label><input id="f-{{ $campo }}" name="{{ $campo }}" value="{{ $filtros[$campo] ?? '' }}" maxlength="40" class="admin-input min-w-0"></div>
             @endforeach
@@ -45,7 +48,7 @@
                 <thead><tr>@foreach (['Código / recepción', 'Estado', 'Servicio histórico', 'Responsable', 'Acción'] as $columna)<th scope="col">{{ $columna }}</th>@endforeach</tr></thead>
                 <tbody>
                 @forelse ($solicitudes as $solicitud)
-                    <tr><td class="max-w-xs break-words"><span class="block font-semibold text-[#172B3A]">{{ $solicitud->codigo }}</span><span class="mt-0.5 block text-xs text-[#64748B]">{{ $solicitud->recibida_at->timezone('America/Lima')->format('d/m/Y H:i') }} Lima</span></td>
+                    <tr><td class="max-w-xs break-words"><span class="block font-semibold text-[#172B3A]">{{ $solicitud->codigo }}@if ($solicitud->origen === 'publico') <span class="ml-1 rounded bg-[#E6F4F3] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#176B9A]">Web</span>@endif</span><span class="mt-0.5 block text-xs text-[#64748B]">{{ $solicitud->recibida_at->timezone('America/Lima')->format('d/m/Y H:i') }} Lima</span></td>
                         <td class="font-medium text-[#172B3A]"><x-admin.badge-estado :estado="$solicitud->estado" /></td>
                         <td class="max-w-xs break-words">{{ $solicitud->servicio_nombre_historico ?? 'Sin asociación' }}</td>
                         <td>{{ $solicitud->responsable_id ? 'ID '.$solicitud->responsable_id : 'Sin asignar' }}</td>

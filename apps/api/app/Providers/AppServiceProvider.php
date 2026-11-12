@@ -98,5 +98,8 @@ class AppServiceProvider extends ServiceProvider
         // Fase 2c.2 (BFF): solicitud de matrícula. Topes amplios por visitante (HMAC del BFF); los estrictos los aplica el controlador tras validar.
         RateLimiter::for('matriculas-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('matriculas-bff-intentos:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('matriculas-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('matriculas-bff-formulario:'.ChatPublicoController::visitante($request)));
+        // Fase 2c.3 (BFF): solicitud de cotización. Topes amplios por visitante; los estrictos los aplica el controlador tras validar.
+        RateLimiter::for('cotizaciones-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('cotizaciones-bff-intentos:'.ChatPublicoController::visitante($request)));
+        RateLimiter::for('cotizaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('cotizaciones-bff-formulario:'.ChatPublicoController::visitante($request)));
     }
 }

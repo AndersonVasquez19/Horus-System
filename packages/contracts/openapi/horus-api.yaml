@@ -434,6 +434,90 @@ paths:
         "422": {$ref: "#/components/responses/ValidacionLaravel"}
         "429": {description: "Límite de envíos o de intentos (`Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
         "503": {description: Recepción no disponible (catálogo apagado o migración de solicitudes sin aplicar).}
+  /api/public/v1/cotizaciones/formulario:
+    get:
+      tags: [bff-publico]
+      summary: Servicios que se pueden solicitar y marca de un solo uso del formulario de cotización
+      description: |
+        La oferta se calcula en el servidor: las tres líneas con página propia (si el servicio está activo) y las fichas
+        publicadas y vigentes del catálogo, con su título público. Recepción apagada
+        (`recepcion-cotizaciones.enabled` distinto de `true`) devuelve `habilitado: false`, sin marca ni servicios.
+        `X-Horus-Visitante` agrupa el límite `cotizaciones-bff-formulario`.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      responses:
+        "200":
+          description: Estado del formulario.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/FormularioCotizacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "429": {description: Límite `cotizaciones-bff-formulario` o `publico-web`.}
+  /api/public/v1/cotizaciones:
+    post:
+      tags: [bff-publico]
+      summary: Registra una solicitud de cotización (la necesidad del cliente; no es una cotización emitida)
+      description: |
+        Entra al módulo comercial existente (`solicitudes_cotizacion`, `origen = publico`, estado inicial `recibida`,
+        sin responsable) y se gestiona en `/admin/cotizaciones`. No lleva precios, no genera documentos ni compromisos
+        económicos. Los servicios se resuelven en el servidor por `identificador_publico` (hasta 5); el primero es el
+        servicio asociado y todos se conservan en el texto de la necesidad. Idempotente por `marca`; el mismo contenido
+        de una solicitud abierta devuelve la existente (200). No existe ruta pública para consultar solicitudes.
+        Límites tras validar: 5 por 10 min y 10 por día por visitante y 5 por día por correo; reintentos y rechazos
+        del servicio devuelven su cupo. Recepción apagada: 503 sin leer el cuerpo.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [servicios, nombre, email, ubicacion, necesidad, consentimiento, marca]
+              properties:
+                servicios:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  items: {type: string, format: uuid, description: "`valor` de `/cotizaciones/formulario`."}
+                nombre: {type: string, minLength: 2, maxLength: 120}
+                empresa: {type: string, maxLength: 120}
+                email: {type: string, format: email, maxLength: 254}
+                telefono: {type: string, maxLength: 30}
+                ubicacion: {type: string, minLength: 2, maxLength: 120}
+                necesidad: {type: string, minLength: 10, maxLength: 3000}
+                informacion: {type: string, maxLength: 1000}
+                consentimiento: {type: boolean, description: Debe ser verdadero.}
+                marca: {type: string, description: Marca de `/cotizaciones/formulario` (entre 3 s y 2 h de antigüedad; un solo uso por solicitud).}
+                sitio_web: {type: string, maxLength: 0, description: Señuelo anti-bots; debe ir vacío.}
+      responses:
+        "200":
+          description: Repetición del mismo formulario o solicitud abierta existente con el mismo contenido.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionCotizacion"}
+        "201":
+          description: Solicitud registrada.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionCotizacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: "Límite de envíos o de intentos (`Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
+        "503": {description: Recepción apagada.}
   /health:
     get:
       tags: [horus-ai]
@@ -663,6 +747,30 @@ components:
         codigo: {type: string, example: SM-1A2B3C4D}
         curso: {type: string}
         modalidad: {type: string}
+        repetida: {type: boolean}
+    FormularioCotizacion:
+      type: object
+      required: [habilitado, marca, servicios, max_servicios]
+      properties:
+        habilitado: {type: boolean}
+        marca: {type: string, nullable: true}
+        max_servicios: {type: integer, example: 5}
+        servicios:
+          type: array
+          items:
+            type: object
+            required: [valor, titulo, resumen]
+            properties:
+              valor: {type: string, format: uuid}
+              titulo: {type: string}
+              resumen: {type: string, nullable: true}
+    ConfirmacionCotizacion:
+      type: object
+      description: Sin datos personales. No es una cotización ni incluye precios.
+      required: [codigo, recibida_at, repetida]
+      properties:
+        codigo: {type: string, example: SOL-0A7631A6-54F5-45F8-8C12-8198BFD15DA1}
+        recibida_at: {type: string, format: date-time}
         repetida: {type: boolean}
     RespuestaChat:
       type: object

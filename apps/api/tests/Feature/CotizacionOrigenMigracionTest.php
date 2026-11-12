@@ -64,7 +64,7 @@ class CotizacionOrigenMigracionTest extends TestCase
         $this->assertSame('administrativo', DB::table('solicitudes_cotizacion')->value('origen'));
     }
 
-    public function test_el_alta_del_panel_existente_queda_como_administrativa_sin_exponer_el_origen(): void
+    public function test_el_alta_del_panel_existente_queda_como_administrativa_y_la_bandeja_lo_expone(): void
     {
         $admin = $this->adminUser();
         $respuesta = $this->actingAs($admin)->postJson('/admin/cotizaciones', [
@@ -74,8 +74,8 @@ class CotizacionOrigenMigracionTest extends TestCase
         $respuesta->assertCreated();
         $this->assertSame('administrativo', DB::table('solicitudes_cotizacion')->value('origen'));
         $uuid = $respuesta->json('solicitud.identificador');
-        $this->actingAs($admin)->getJson('/admin/cotizaciones/'.$uuid)->assertOk()->assertJsonMissingPath('solicitud.origen');
-        $this->actingAs($admin)->getJson('/admin/cotizaciones')->assertOk()->assertJsonMissingPath('data.0.origen');
+        $this->actingAs($admin)->getJson('/admin/cotizaciones/'.$uuid)->assertOk()->assertJsonPath('solicitud.origen', 'administrativo');
+        $this->actingAs($admin)->getJson('/admin/cotizaciones')->assertOk()->assertJsonPath('data.0.origen', 'administrativo');
     }
 
     public function test_acepta_publico_y_rechaza_cualquier_otro_valor(): void

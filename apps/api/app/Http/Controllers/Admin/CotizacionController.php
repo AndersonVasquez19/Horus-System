@@ -38,14 +38,15 @@ class CotizacionController extends Controller implements HasMiddleware
             'estado' => ['sometimes', Rule::in(['recibida', 'en_revision'])],
             'responsable_id' => ['sometimes', 'integer', 'min:1', 'max:2147483647'],
             'servicio_uuid' => ['sometimes', 'uuid'], 'codigo' => ['sometimes', 'string', 'max:40'],
+            'origen' => ['sometimes', Rule::in(['administrativo', 'publico'])],
             'recibida_desde' => ['sometimes', 'date_format:Y-m-d'],
             'recibida_hasta' => ['sometimes', 'date_format:Y-m-d', ...($request->has('recibida_desde') ? ['after_or_equal:recibida_desde'] : [])],
             'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'],
             'por_pagina' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
         $consulta = SolicitudCotizacion::query()->select(['identificador', 'codigo', 'recibida_at', 'estado', 'responsable_id',
-            'servicio_uuid', 'servicio_nombre_historico', 'proximo_seguimiento', 'revision']);
-        foreach (['estado', 'responsable_id', 'servicio_uuid', 'codigo'] as $campo) {
+            'servicio_uuid', 'servicio_nombre_historico', 'proximo_seguimiento', 'revision', 'origen']);
+        foreach (['estado', 'responsable_id', 'servicio_uuid', 'codigo', 'origen'] as $campo) {
             if (isset($datos[$campo])) {
                 $consulta->where($campo, $datos[$campo]);
             }
@@ -79,7 +80,7 @@ class CotizacionController extends Controller implements HasMiddleware
         return response()->json(['solicitud' => $cotizacion->only([
             'identificador', 'codigo', 'recibida_at', 'servicio_uuid', 'servicio_nombre_historico',
             'necesidad_cliente', 'contacto_nombre', 'contacto_email', 'contacto_telefono', 'estado',
-            'responsable_id', 'creado_por', 'ultimo_seguimiento_at', 'proximo_seguimiento', 'revision', 'created_at', 'updated_at',
+            'responsable_id', 'creado_por', 'origen', 'ultimo_seguimiento_at', 'proximo_seguimiento', 'revision', 'created_at', 'updated_at',
         ])])->header('ETag', $cotizacion->etag())->header('Cache-Control', 'no-store, private');
     }
 
