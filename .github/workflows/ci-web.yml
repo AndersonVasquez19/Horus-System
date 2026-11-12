@@ -1,0 +1,60 @@
+# Integración continua del frontend Next.js (apps/web).
+#
+# Alcance: lo que se comprueba sin servicios del propietario: referencias de imágenes, tipos y compilación.
+# `next build` descarga fuentes de Google (next/font/google) porque el runner tiene red; en local se ejecuta sin red y
+# compila igualmente. No se despliega nada y el workflow no usa secretos.
+name: CI Web
+
+# SUSPENDIDO (11/11/2026, decisión del propietario): solo se ejecuta a mano desde la pestaña Actions
+# («Run workflow»). Para reactivarlo, restaura:
+#   pull_request:
+#     paths: ['apps/web/**', 'packages/contracts/**', '.github/workflows/ci-web.yml']
+#   push:
+#     branches: [main, anderson]
+#     paths: ['apps/web/**', 'packages/contracts/**', '.github/workflows/ci-web.yml']
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web (referencias, tipos y compilación)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Referencias de imágenes
+        run: npm run verify:assets
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      - name: Compilar
+        run: npm run build
+
+      # Informativo: ESLint informa 9 errores y 9 avisos preexistentes (PROJECT_CONTEXT.md, etapa 5). No bloquea
+      # hasta que se corrijan como tarea aparte.
+      - name: ESLint (informativo)
+        continue-on-error: true
+        run: npm run lint

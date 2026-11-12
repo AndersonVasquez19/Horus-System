@@ -1,16 +1,20 @@
-# Integración continua de Horus Group (Laravel 12).
+# Integración continua de la API (Laravel 12, raíz del repositorio). Parte de la división por aplicación:
+# ci-api.yml, ci-web.yml (apps/web) y ci-ai.yml (apps/ai). Los tres están SUSPENDIDOS (solo manuales).
 #
 # Alcance: lo que se puede comprobar sin servicios externos. La suite usa SQLite en memoria (phpunit.xml), así que
 # NO prueba PostgreSQL, concurrencia, correo real ni Horus AI; eso exige los perfiles y autorizaciones que
 # describen CLAUDE.md y docs/postgresql-*. No se ejecutan los smokes de navegador (requieren Edge) ni el perfil
 # PostgreSQL aislado. El workflow no usa secretos.
-name: CI
+name: CI API
 
-# SUSPENDIDO (10/11/2026, decisión del propietario): solo se ejecuta a mano desde la pestaña Actions
-# («Run workflow»). Para reactivarlo, restaura los disparadores pull_request y push:
+# SUSPENDIDO (10/11/2026, decisión del propietario; confirmado para los tres workflows el 11/11/2026): solo se ejecuta
+# a mano desde la pestaña Actions («Run workflow»). Para reactivarlo, restaura los disparadores, acotados a lo que
+# esta API usa (hoy Laravel vive en la raíz; si pasa a apps/api, sustituye las rutas):
 #   pull_request:
+#     paths-ignore: ['apps/web/**', 'apps/ai/**', 'packages/**', 'docs/**']
 #   push:
 #     branches: [main, anderson]
+#     paths-ignore: ['apps/web/**', 'apps/ai/**', 'packages/**', 'docs/**']
 on:
   workflow_dispatch:
 
@@ -83,8 +87,8 @@ jobs:
             vendor/bin/pint --test "${archivos[@]}"
           fi
 
-  frontend:
-    name: Frontend (pruebas y compilación)
+  recursos:
+    name: Recursos de Laravel (Vite, pruebas y compilación)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
