@@ -4251,3 +4251,21 @@ Cierre de E4 — 11/11/2026: dos commits locales sobre `a92a14a`, sin push: `3c5
 archivos) y `337673c` (documentación, 3 archivos). Verificados: índice vacío, stashes `52e2f29` y `d69d6ca` intactos, migraciones
 y `frontend/` sin cambios. El respaldo externo conserva además doce commits sin referencia (instantáneas `stash create`
 generadas por una herramienta externa durante la sesión), en un paquete independiente.
+
+## Etapa 3: PHPStan estabilizado y entorno local seguro — 11/11/2026
+
+Rama `monorepo/base`, sin push. PHPStan: el commit `3b4d94b` hace que Larastan lea también
+`database/migraciones-suspendidas` (solo lectura; ninguna migración se ejecuta ni se modifica) y el análisis completo
+pasa sin errores, frente a los 11 anotados en E4. Resuelve el pendiente de la sección anterior sobre una configuración
+controlada: `scripts/Support/EntornoSeguro.php` define una única lista de variables neutralizadas (`GEMINI_API_KEY`,
+`OPENAI_API_KEY`, Resend, transporte de correo y las banderas de envío de matrícula, reclamaciones y verificación);
+`scripts/entorno-seguro.php` ejecuta cualquier comando con ese perfil por proceso, sin leer ni escribir `.env`, y
+`scripts/horus-local.php` lo aplica por defecto a FastAPI, worker, `status` y servidor web (`--permitir=gemini,correo`
+lo levanta de forma expresa). Cambio de comportamiento: el gestor local ya no llama a Google ni envía correo salvo
+permiso expreso. Validación sin servicios: `EntornoSeguroTest` 13 pruebas (45 aserciones); suite completa a través del
+ejecutor 3718 aprobadas y 1 omitida (20879 aserciones); 26 pruebas Python de Gemini; con el entorno normal el selector
+de Gemini queda activo y bajo el ejecutor inactivo; Pint y PHPStan aprobados. Detalle y límites:
+[entorno local seguro](docs/entorno-local-seguro.md).
+
+Aclaración de convención: el repositorio almacena LF y `core.autocrlf=true` deja CRLF solo en la copia de trabajo de
+Windows; la mención anterior a «finales CRLF» como convención del repositorio se refiere a esa copia de trabajo.
