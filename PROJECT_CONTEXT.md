@@ -4318,3 +4318,32 @@ cambiar contenido. Siguen pendientes los formularios simulados del libro y de la
 Reversión: `git revert` de `a4fa5e2` y `5a393af`; devolver el `.git` y las imágenes con `mv` desde el respaldo. Corrección de
 mi propio manifiesto: `ARTEFACTOS-v2.sha256` tenía seis rutas de parches relativas a `commit-preview/`; `ARTEFACTOS-v3.sha256`
 las corrige (39 de 39 OK). **Siguiente:** etapa 6, mover `chatbot-python/` a `apps/ai` (lista de pendientes en la etapa 4).
+
+## Etapa 6: `chatbot-python/` movido a `apps/ai` — 11/11/2026
+
+Commits en `monorepo/base` (sin push): `752db59` (renombre puro: 69 archivos, R100, 0 líneas cambiadas; los 69 hashes
+SHA-256 coinciden con el manifiesto previo `Backups Horus\pre-monorepo-20261111\ai\chatbot-python-versionado.sha256`) y
+`28a0146` (24 archivos con rutas: `config/horus-knowledge.php`, `scripts/horus-local.php`,
+`scripts/privacidad-generar-lexico.php`, `tests/Support/run-*.py`, plantilla `ops/horus-ai`, pruebas PHP/JS que leen
+`knowledge.json` y pruebas/guiones de Python que suponían el repositorio un nivel por encima: `parents[2]` pasó a
+`parents[3]` y `PROJECT_ROOT.parent` a `.parent.parent`). Los archivos ignorados (`.env`, `.venv`, `models/`, cachés)
+viajaron con la carpeta; se guardó además una copia del `.env` en `Backups Horus\pre-monorepo-20261111\ai\` (hash
+idéntico, sin imprimirla).
+
+El `.venv` sigue funcionando tras moverse (`python -m pytest` con la ruta absoluta del intérprete), porque Python lo resuelve
+por `pyvenv.cfg`. **Límite:** los lanzadores `Scripts\*.exe` (`pip.exe`, etc.) conservan en su cabecera la ruta antigua; usar
+siempre `python -m ...` o recrear el entorno con `requirements.lock` cuando se disponga de red autorizada.
+
+Validación con `scripts/entorno-seguro.php` (sin red, sin servicios): suite PHP 3723 aprobadas, 1 omitida (20888
+aserciones); PHPStan 0 errores; Pint aprobado en los archivos tocados; `npm test` 97 de 97; `pytest` en `apps/ai`:
+323 aprobadas, 26 deseleccionadas, 1 fallo. **Hallazgo preexistente:**
+`tests/test_respuestas_breves.py::test_fixtures_que_consume_laravel_proceden_del_motor_actual[chat-breve-catalogo.json]`
+falla igual en el commit anterior al movimiento (extraído a una carpeta temporal): el motor responde `match_level: alta` /
+`course_recommendation` donde el fixture de Laravel espera `media` / `training_info`. Queda como tarea independiente, no
+se alteró el fixture ni el motor.
+
+Reversión: `git revert` de `28a0146` y `752db59`, y `mv apps/ai chatbot-python` si se hiciera fuera de Git. Una incidencia
+del proceso: el primer `git mv` falló por «Permission denied» porque un `du.exe` mío (lectura de tamaño de `.venv`)
+mantenía la carpeta abierta; se detuvo ese proceso propio y el segundo intento funcionó. **Siguiente:** etapa 7 (workspaces
+npm para `apps/web` y `packages/*`, `packages/contracts`, CI por aplicación y, al final, Laravel a `apps/api` en un commit
+de solo renombres).

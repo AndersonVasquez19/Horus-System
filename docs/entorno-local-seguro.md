@@ -1,12 +1,12 @@
 # Entorno local seguro: sin llamadas externas involuntarias
 
-Fecha: 11/11/2026. Rama `monorepo/base`. **Sin servicios iniciados, sin cambios en `.env` ni en `chatbot-python/.env`.**
+Fecha: 11/11/2026. Rama `monorepo/base`. **Sin servicios iniciados, sin cambios en `.env` ni en `apps/ai/.env`.**
 
 ## 1. Problema
 
-El `.env` local del propietario tiene Horus AI habilitado desde la activación autorizada del 05/11/2026 y varias credenciales externas definidas (Gemini en `chatbot-python/.env`; Resend y OpenAI en `.env`). Con el entorno normal:
+El `.env` local del propietario tiene Horus AI habilitado desde la activación autorizada del 05/11/2026 y varias credenciales externas definidas (Gemini en `apps/ai/.env`; Resend y OpenAI en `.env`). Con el entorno normal:
 
-- El selector de Gemini queda activo en cuanto arranca el servicio Python (`chatbot-python/app/services/gemini.py`, `from_settings`), porque la clave sale del archivo `.env` de Python.
+- El selector de Gemini queda activo en cuanto arranca el servicio Python (`apps/ai/app/services/gemini.py`, `from_settings`), porque la clave sale del archivo `.env` de Python.
 - `scripts/horus-local.php run` solo anulaba `DB_`, `PG`, `RESEND_`, `OPENAI_` y `HORUS_ADVISOR_` en el entorno de Python: `GEMINI_API_KEY` pasaba tal cual.
 - `phpunit.xml` forzaba apagadas las banderas de Horus y de reclamaciones, pero no `MATRICULA_MAIL_ENABLED`, Resend ni Gemini.
 
@@ -35,8 +35,8 @@ php scripts/entorno-seguro.php ejecutar -- php artisan test --compact
 php scripts/entorno-seguro.php ejecutar -- php vendor/bin/phpstan analyse --no-progress
 
 # Python: usar la ruta absoluta del intérprete (en Windows una ruta relativa con «/» no se resuelve)
-cd chatbot-python
-php ..\scripts\entorno-seguro.php ejecutar -- "$PWD\.venv\Scripts\python.exe" -m pytest tests\test_gemini.py -q
+cd apps/ai
+php ..\..\scripts\entorno-seguro.php ejecutar -- "$PWD\.venv\Scripts\python.exe" -m pytest tests\test_gemini.py -q
 
 # Permitir una familia de forma expresa
 php scripts/entorno-seguro.php ejecutar --permitir=gemini -- <comando>
@@ -58,7 +58,7 @@ Solo SQLite en memoria, procesos con valores ficticios y sin red:
 | --- | --- |
 | `tests/Unit/EntornoSeguroTest.php` | 13 pruebas, 45 aserciones |
 | Variable vacía en Windows | Llega vacía al proceso hijo (`GEMINI_API_KEY => ''` aunque el padre tuviera un valor) |
-| Selector de Gemini, entorno normal | `selector_gemini_activo = True` (la clave sale de `chatbot-python/.env`; solo se imprime el booleano) |
+| Selector de Gemini, entorno normal | `selector_gemini_activo = True` (la clave sale de `apps/ai/.env`; solo se imprime el booleano) |
 | Selector de Gemini, bajo `ejecutar` | `selector_gemini_activo = False` |
 | `pytest tests/test_gemini.py` bajo `ejecutar` | 26 aprobadas |
 | `horus-local.php` con `--permitir=openai` o un argumento desconocido | Sale con error antes de cualquier acción |
