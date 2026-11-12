@@ -4289,3 +4289,32 @@ literal `chatbot-python` en `app/`; suite completa a través de `scripts/entorno
 carpeta `chatbot-python` las pruebas con ruta relativa (`FiltroPrivacidadNombresMinusculasTest`, `HorusPrivacidadNombresTest`,
 `HorusCorreccionR01R05Test`, `tests/frontend/chat-contact.test.mjs`), los guiones (`scripts/horus-local.php`,
 `scripts/privacidad-generar-lexico.php`, `tests/Support/run-*.py`) y las plantillas `ops/horus-ai/*.service.example`.
+
+## Etapa 5: frontend absorbido como `apps/web` — 11/11/2026
+
+Rama `monorepo/base`, sin push. `frontend/` era un repositorio Git anidado con un único commit de plantilla (`9f2cdd0`) y
+todo el trabajo sin confirmar. El commit `5a393af` lo incorpora como carpeta normal (139 archivos, 22,28 MB) y el commit
+`a4fa5e2` lo renombra a `apps/web` (139 renombres al 100 %, 0 líneas cambiadas; `node_modules` y `.next`, ignorados,
+viajaron con la carpeta).
+
+Su `.git` no se borró: se movió a `Backups Horus\pre-monorepo-20261111\frontend\dot-git-original-movido` (49 archivos,
+verificado contra el manifiesto `frontend-dot-git-ANTES-DE-MOVER.sha256`). Difiere de la copia anterior del respaldo en
+un solo archivo, `gk/config`, metadato de un cliente Git con interfaz gráfica reescrito durante la sesión. Se conservan
+además `dot-git`, el bundle y el tar del árbol de trabajo.
+
+Imágenes: las 136 de `frontend/public/images` eran copias exactas de `public/assets/images` de Laravel. Se versionaron las
+86 que el código referencia (21,74 MB). Las 50 sin referencia (32,75 MB) se movieron, sin borrarlas, a
+`Backups Horus\pre-monorepo-20261111\frontend\imagenes-no-incorporadas\` con el manifiesto
+`imagenes-no-incorporadas.sha256` (50 de 50 hashes verificados); las 136 de Laravel siguen intactas. No se desduplicaron
+los seis pares internos ni se reescribió ninguna referencia.
+
+Validación sin red, antes y después del renombre: `verify:assets` (69 llamadas, todas existen), `tsc --noEmit` sin errores y
+`next build` con la red bloqueada por `scripts/entorno-seguro.php` y la telemetría desactivada, correcto (19 de 19 páginas
+estáticas, sin descarga de fuentes observada pese a usar `next/font/google`). **Límite:** ESLint informa 9 errores y 9
+avisos preexistentes (`no-require-imports` en `scripts/*.js`, `react-hooks/purity` y `set-state-in-effect` en `libro-form`,
+`solicitar-matricula`, `chat-widget` y `navbar`, y variables sin usar); no se corrigieron porque el movimiento no debe
+cambiar contenido. Siguen pendientes los formularios simulados del libro y de la matrícula (sin envío real).
+
+Reversión: `git revert` de `a4fa5e2` y `5a393af`; devolver el `.git` y las imágenes con `mv` desde el respaldo. Corrección de
+mi propio manifiesto: `ARTEFACTOS-v2.sha256` tenía seis rutas de parches relativas a `commit-preview/`; `ARTEFACTOS-v3.sha256`
+las corrige (39 de 39 OK). **Siguiente:** etapa 6, mover `chatbot-python/` a `apps/ai` (lista de pendientes en la etapa 4).
