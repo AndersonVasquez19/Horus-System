@@ -4371,3 +4371,45 @@ respaldo y autorización específica; seguirá el patrón de renombre puro más 
 
 Incidencia propia: un nombre de job con dos puntos sin comillas rompía el YAML de `ci-api.yml`; el analizador lo detectó y
 se corrigió antes de confirmar. Reversión: `git revert` de `31f25ca`, `98fa3bd` y `093dc35`.
+
+## Etapa 8: Laravel movido a `apps/api` — 11/11/2026
+
+Commits en `monorepo/base` (sin push): `19eae35` (renombre puro: 854 archivos `R100`, 0 líneas cambiadas; `app`, `bootstrap`,
+`config`, `database`, `lang`, `public`, `resources`, `routes`, `storage`, `tests`, `scripts`, `artisan`, `composer.*`,
+`phpunit*.xml`, `phpstan.neon.dist`, configuraciones de Vite/Tailwind/PostCSS, `package.json`/lockfile y las plantillas
+`.env*.example`) y `7bab7ad` (27 archivos, +78/−55: rutas y configuración). Los ignorados (`vendor/`, `node_modules/`,
+`.env`, `.env.pgsql-testing.local`) se movieron con `mv`, con los hashes de los `.env` idénticos al respaldo. `docs/`, `ops/`,
+`.github/`, `README.md`, `PROJECT_CONTEXT.md`, `CLAUDE.md` y `AGENTS.md` se quedan en la raíz.
+
+**Cambios de ruta:** `.gitignore` repartido (genérico en la raíz; patrones de Laravel en `apps/api/.gitignore`); el
+`package.json` de la raíz es mínimo y privado, sin dependencias ni lockfile (atajos `api:*` y `web:*` con `npm --prefix`);
+`config/horus-knowledge.php` y varias pruebas leen `knowledge.json` con `dirname(base_path()).'/ai/data/knowledge.json'`; las que
+usan `docs/` lo resuelven con `dirname(base_path(), 2)`; `scripts/horus-local.php` y `privacidad-generar-lexico.php`, los
+ejecutores `tests/Support/run-*.py` y las pruebas de `apps/ai` apuntan a la carpeta hermana; `ci-api.yml` usa
+`working-directory: apps/api` (sigue suspendido); `ops/horus-ai/horus-catalog-worker.service.example` usa
+`WorkingDirectory=/srv/horus/current/apps/api`.
+
+**Validación (sin red, con `apps/api/scripts/entorno-seguro.php`), igual a la línea base previa al movimiento:** PHP 3723
+aprobadas y 1 omitida (20888 aserciones); PHPStan 0 errores; `npm test` 97; `vite build` a `apps/api/public/build`; `pytest` de
+`apps/ai` 323 aprobadas (la prueba que ya fallaba antes, `chat-breve-catalogo.json`, va deseleccionada); `apps/web`
+`verify:assets` 69, `tsc` 0 y `next build` 19 de 19; Pint y `git diff --check` limpios. **No ejecutado:** pruebas de PostgreSQL,
+smokes de navegador, las acciones de `scripts/horus-local.php` y `aplicar-editorial-auditoria.php` (solo comprobación
+sintáctica), los workflows en GitHub, `composer install` y `npm ci` (necesitan red; `vendor/` y `node_modules/` viajaron
+intactos). Reconstruí `public/build` mientras corría la suite PHP sin que fallara ninguna prueba.
+
+**Despliegue (no automatizado en el repositorio):** la raíz web pasa a `apps/api/public/`; el cron de `php artisan
+schedule:run` y cualquier servicio que use Laravel deben apuntar a `apps/api`; `ReadWritePaths` del worker debe seguir
+cubriendo el `storage` real. **Respaldo:** `Backups Horus\pre-etapa8-20261111\` (bundle de todas las ramas, manifiestos
+SHA-256, copias de los `.env` y línea base). **Reversión:** `git revert` de `7bab7ad` y `19eae35` (el renombre es `R100`, el
+historial se conserva con `git log --follow`) o el bundle del respaldo.
+
+**Estado del frontend y decisión del 12/11/2026.** El destino es que Next.js sea el único frontend. Hoy: Laravel sirve 110
+vistas Blade (`admin` 49, `auth` 5, `pages` 19, `components` 20, `layouts` 3, `partials` 1) compiladas con Vite
+(`resources/css/app.css`, `resources/js/app.js`, `admin-servicios.mjs`, `admin-cotizaciones.mjs`); `apps/web` tiene las 16
+páginas públicas como interfaz pero **no hace ninguna petición a Laravel**: libro-reclamaciones y solicitar-matricula no
+guardan nada, no existe página de cotización y el catálogo de cursos/servicios y el chat siguen en Laravel. Por eso Vite no
+puede retirarse todavía. El propietario eligió retirar por fases: **Fase 1** (autorizada) las páginas Blade estáticas que Next
+ya cubre; **Fase 2** (pendiente de autorización) endpoints JSON con CSRF/cookie y BFF para matrícula, reclamaciones,
+cotización, catálogo y chat, y después el resto de vistas públicas; **Fase 3** panel y autenticación en Next, con lo que salen
+Blade, `resources/views` y Vite. El Libro de Reclamaciones, la solicitud de matrícula y la cotización no deben quedar sin
+servicio en ningún paso intermedio.

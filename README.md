@@ -2,7 +2,7 @@
 
 Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio está hecha con **Laravel 12**, Blade, Alpine.js, Tailwind CSS y Vite. Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, aprobaciones, reportes y un asistente virtual. La sección Procesos fue retirada del panel; se conserva su histórico sin borrar datos ([alcance](docs/retiro-procesos.md)).
 
-> **Identifica la aplicación antes de trabajar.** Laravel ocupa la raíz de este repositorio. El sitio público son las vistas Blade; el sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git. El chatbot descrito aquí está en las páginas Blade servidas por Laravel.
+> **Identifica la aplicación antes de trabajar.** Laravel vive en `apps/api/` (desde la etapa 8); la raíz del repositorio solo contiene `apps/`, `packages/`, `docs/`, `ops/`, `.github/` y los documentos de contexto. El sitio y el panel que hoy sirve Laravel son vistas Blade compiladas con Vite; `apps/web` (Next.js) es el frontend destino y, a medida que lo cubre, sustituye a Blade (ver «Frontend: Blade y Next.js»). El sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git.
 
 ## Contenido
 
@@ -18,6 +18,8 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 - [Seguridad y alcance](#seguridad-y-alcance)
 
 ## Mapa del proyecto
+
+Las rutas de la tabla son relativas a `apps/api/` salvo `apps/web/`, `apps/ai/`, `packages/` y `.github/`, que cuelgan de la raíz del repositorio.
 
 | Ruta | Responsabilidad |
 | --- | --- |
@@ -35,9 +37,20 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 | `packages/contracts/` | Contratos HTTP existentes (OpenAPI), documentados a partir del código. Sin clientes generados. |
 | `.github/workflows/` | `ci-api.yml`, `ci-web.yml` y `ci-ai.yml`, todos **suspendidos** (solo ejecución manual). |
 
-**Monorepo en transición.** Laravel sigue en la raíz; moverlo a `apps/api` es una etapa posterior y aparte. No hay workspaces de npm: la raíz (Vite de Laravel, Tailwind 3) y `apps/web` (Next, Tailwind 4) mantienen dependencias separadas. Detalle y decisiones en `PROJECT_CONTEXT.md`.
+**Monorepo.** `apps/api` (Laravel), `apps/web` (Next.js) y `apps/ai` (Horus AI) son proyectos independientes. No hay workspaces de npm: `apps/api` (Vite, Tailwind 3) y `apps/web` (Next, Tailwind 4) mantienen dependencias y lockfiles separados. Detalle y decisiones en `PROJECT_CONTEXT.md`.
 
-El `package.json` de la raíz contiene los comandos y dependencias de **Vite de Laravel**. `npm run dev` desde la raíz inicia Vite.
+### Frontend: Blade y Next.js
+
+El destino es que **Next.js sea el único frontend**. Hoy conviven, y **Vite sigue siendo necesario** mientras exista una sola vista Blade con `@vite`:
+
+| | Laravel (`apps/api`) | Next.js (`apps/web`) |
+| --- | --- | --- |
+| Tecnología | Blade, Alpine, Tailwind 3, Vite | Next 16, React 19, TypeScript, Tailwind 4 |
+| Sirve hoy | Panel `/admin`, autenticación web, y las páginas públicas con formulario o datos de Laravel (cursos, matrícula, libro de reclamaciones, cotización, tecnologías) | Las 16 páginas públicas como interfaz; todavía **no llama a Laravel** |
+
+Retirada por fases: la Fase 1 retira las páginas Blade estáticas que Next ya cubre; la Fase 2 expone endpoints JSON con CSRF/cookie y un BFF para los formularios, el catálogo y el chat; la Fase 3 lleva panel y autenticación a Next, momento en que salen Blade y Vite. Estado y límites en `PROJECT_CONTEXT.md`.
+
+El `package.json` de `apps/api` contiene los comandos y dependencias de **Vite de Laravel** (`npm run dev` dentro de `apps/api` inicia Vite). El de la raíz es mínimo y privado, sin dependencias ni lockfile: solo atajos `api:dev`, `api:build`, `api:test`, `web:dev`, `web:build` y `web:verify` que delegan con `npm --prefix`.
 
 Las vistas Laravel cargan imágenes, estilos y scripts estáticos con `asset('assets/...')`, desde `public/assets/`. Esa carpeta se versiona y no requiere ningún paso de copia o compilación. Para añadir una imagen, colócala directamente en `public/assets/images/`. `public/build/` sí es generada y no se versiona.
 
@@ -51,9 +64,10 @@ Las vistas Laravel cargan imágenes, estilos y scripts estáticos con `asset('as
 
 ## Instalación local
 
-Ejecuta estos comandos en **PowerShell**, desde la raíz de este proyecto:
+Ejecuta estos comandos en **PowerShell**, desde `apps/api` (Laravel):
 
 ```powershell
+cd apps/api
 php composer.phar install
 npm ci
 if (-not (Test-Path -LiteralPath .env)) { Copy-Item -LiteralPath .env.example -Destination .env }
@@ -68,7 +82,7 @@ npm run build
 php artisan serve
 ```
 
-Abre la URL que imprime `php artisan serve` (normalmente `http://127.0.0.1:8000`). La raíz web es `public/`; no abras las vistas Blade ni el `index.html` histórico con `file://` como sustituto de Laravel. Si prefieres recarga de estilos y JavaScript, deja `php artisan serve` en una terminal y ejecuta `npm run dev` en otra. Para usar los recursos compilados, `npm run build` genera `public/build/`.
+Abre la URL que imprime `php artisan serve` (normalmente `http://127.0.0.1:8000`). La raíz web es `apps/api/public/`; no abras las vistas Blade ni el `index.html` histórico con `file://` como sustituto de Laravel. Si prefieres recarga de estilos y JavaScript, deja `php artisan serve` en una terminal y ejecuta `npm run dev` en otra. Para usar los recursos compilados, `npm run build` genera `public/build/`.
 
 No ejecutes `php artisan key:generate` al actualizar una instalación existente: cambiar `APP_KEY` invalida datos cifrados y sesiones. `php artisan migrate` aplica cambios al destino configurado; revisa ese destino antes de ejecutarlo. El script `composer setup` del manifiesto genera una clave y ejecuta migraciones automáticamente, así que este README usa pasos explícitos.
 
@@ -177,6 +191,8 @@ El área `admin/asistente` permite probar el mismo flujo y consultar hasta 50 re
 La plantilla `.env.example` declara `HORUS_ADVISOR_ENABLED=false`, URL loopback y secretos vacíos. El flag continúa apagado por defecto; no habilitarlo para usuarios reales sin autorización. El token de servicio solo vive en el servidor. Laravel usa `config()`; cualquier cambio operativo requiere regenerar la configuración cacheada mediante el procedimiento autorizado. No modificar `.env` para ejecutar pruebas.
 
 ## Pruebas y comprobaciones
+
+Los comandos de esta sección se ejecutan desde `apps/api`. Las comprobaciones de `apps/web` (`npm run web:verify`, `npm run web:build`) se lanzan desde la raíz.
 
 El perfil PostgreSQL aislado y sus salvaguardas están en [docs/postgresql-l2.2-a.md](docs/postgresql-l2.2-a.md); el procedimiento de aprovisionamiento preparado (no ejecutado) está en [docs/postgresql-l2.2-b-provisioning.md](docs/postgresql-l2.2-b-provisioning.md). Su preparación no autoriza ejecutar pruebas destructivas; la suite habitual conserva SQLite en memoria.
 

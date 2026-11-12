@@ -9,6 +9,8 @@ Guía técnica para asistentes de código que modifican **esta carpeta**. Define
 
 ## 1. Sistema y stack
 
+**Monorepo (etapa 8, 11–12/11/2026):** Laravel vive en `apps/api/`. Todas las rutas y comandos de este documento son relativos a `apps/api/`, salvo `apps/web` (Next.js), `apps/ai` (Horus AI), `packages/`, `docs/`, `ops/` y `.github/`, que cuelgan de la raíz del repositorio. Desde `apps/api`, `docs/` se alcanza con `dirname(base_path(), 2)` y `apps/ai` con `dirname(base_path()).'/ai'` (ver `config/horus-knowledge.php`). El frontend destino es Next.js (`apps/web`); **Blade y Vite siguen en `apps/api`** para el panel, la autenticación web y las páginas con formulario o datos de Laravel hasta que se migren (fases en `PROJECT_CONTEXT.md`).
+
 Sitio público y panel administrativo de Horus Group SRL (Cajamarca): estudiantes, cursos, matrículas, usuarios/roles, aprobaciones, reportes, publicación editorial de cursos y asistente virtual. Procesos fue retirado del panel sin eliminar su histórico (ver `docs/retiro-procesos.md`).
 
 | Capa | Tecnología |
@@ -27,13 +29,13 @@ Sitio público y panel administrativo de Horus Group SRL (Cajamarca): estudiante
 - **Pruebas aisladas PostgreSQL:** `app/Support/Testing/` y `config/pgsql-testing-database.php`. Forman parte del arranque (`bootstrap/app.php`); no las debilites.
 - **Comandos:** `horus:crear-usuario`, `horus:promover-admin`, `horus:matriculas-notificar`.
 - **Datos y vistas:** `database/{migrations,seeders}`, `resources/views/{admin,auth,components,layouts,pages,partials}`.
-- **Estáticos:** `public/assets/` (versionado, `asset('assets/...')`). `public/build/` y `public/hot` son generados y no se versionan. `public/assets/css/Market/` está ignorado a propósito. El sitio `legacy-html-node/` solo existe en el historial de Git.
+- **Estáticos:** `public/assets/` (versionado, dentro de `apps/api`, `asset('assets/...')`). `public/build/` y `public/hot` son generados y no se versionan. `public/assets/css/Market/` está ignorado a propósito. El sitio `legacy-html-node/` solo existe en el historial de Git.
 
 Ubica la ruta o pantalla que pide el usuario antes de cambiar archivos.
 
 ## 2. Comandos habituales
 
-Entorno Windows: PowerShell, rutas relativas a la raíz. Existe `composer.phar` local (`php composer.phar ...`).
+Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe `composer.phar` local (`php composer.phar ...`). El `package.json` de la raíz solo ofrece atajos (`npm run api:test`, `web:build`, etc.) con `npm --prefix`.
 
 | Objetivo | Comando |
 | --- | --- |

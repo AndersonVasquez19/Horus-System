@@ -17,6 +17,8 @@ Una instrucción genérica («implementa el sprint», «arregla la suite») **no
 
 ## 2. Alcance predeterminado: solo backend
 
+Las rutas de la tabla son relativas a `apps/api/` (Laravel se movió allí en la etapa 8). `apps/web/**` (Next.js) sigue la misma regla de frontend protegido.
+
 Sin autorización expresa para la tarea concreta, **no modificar**:
 
 | Zona protegida | Incluye |
@@ -37,6 +39,10 @@ Si una funcionalidad exige tocar esas zonas:
 - El catálogo dinámico del asistente está **apagado por defecto**: `chatbot.public_catalog_enabled = false` en `config/chatbot.php`.
 - No cambiar ese valor, ni habilitarlo en la aplicación o en el entorno, para que una prueba pase. Las pruebas aisladas pueden simular su activación con `config([...])` sin tocar el predeterminado.
 - Una ficha editorial (`curso_publicaciones`) nunca se crea, publica ni migra automáticamente desde datos administrativos. La publicación real requiere autorización independiente de la migración.
+
+### Autorización del 12/11/2026 (Fase 1, no es precedente)
+
+El propietario autorizó retirar de Laravel las páginas Blade **estáticas** que `apps/web` ya cubre (home, quiénes somos, galería, contactos, las cuatro legales, asesoramiento y capacitaciones), sustituyendo sus rutas por redirecciones. No alcanza al panel, a la autenticación ni a las páginas con formulario o datos de Laravel, ni a Vite. Cada fase posterior requiere autorización propia.
 
 ### Excepción histórica (no es precedente)
 

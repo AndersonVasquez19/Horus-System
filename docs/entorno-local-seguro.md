@@ -26,6 +26,8 @@ La lista vive en un solo sitio: `scripts/Support/EntornoSeguro.php`.
 
 ## 3. Uso
 
+Desde la etapa 8 el script vive en `apps/api/scripts/`; los comandos se lanzan desde `apps/api` (`cd apps/api`).
+
 ```powershell
 # Ver el perfil, sin valores heredados
 php scripts/entorno-seguro.php mostrar
@@ -36,7 +38,7 @@ php scripts/entorno-seguro.php ejecutar -- php vendor/bin/phpstan analyse --no-p
 
 # Python: usar la ruta absoluta del intérprete (en Windows una ruta relativa con «/» no se resuelve)
 cd apps/ai
-php ..\..\scripts\entorno-seguro.php ejecutar -- "$PWD\.venv\Scripts\python.exe" -m pytest tests\test_gemini.py -q
+php ..\api\scripts\entorno-seguro.php ejecutar -- "$PWD\.venv\Scripts\python.exe" -m pytest tests\test_gemini.py -q
 
 # Permitir una familia de forma expresa
 php scripts/entorno-seguro.php ejecutar --permitir=gemini -- <comando>
