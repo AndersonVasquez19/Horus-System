@@ -66,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('admin-write', fn (Request $request) => Limit::perMinute(120)->by(
             'admin-write:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
+        // BFF de apps/web: un solo cubo por servicio (el visitante final no llega a Laravel con su IP en las lecturas).
+        RateLimiter::for('publico-web', fn (Request $request) => Limit::perMinute(300)->by('publico-web'));
         RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
         ));
