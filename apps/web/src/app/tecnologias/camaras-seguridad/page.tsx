@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import Image from 'next/image';
 import {
   Video,
@@ -10,13 +11,15 @@ import {
 } from 'lucide-react';
 import { CAMARAS_ITEMS } from '@/data/servicios';
 import { CONTACT_INFO } from '@/data/contactos';
+import { obtenerPagina } from '@/lib/horus-api';
+import { ContenidoEditorial } from '@/components/tecnologias/contenido-editorial';
 
 export const metadata: Metadata = {
   title: 'Cámaras de Seguridad',
   description: 'Desarrollamos proyectos de seguridad integral con cámaras IP, analógicas, domo, 360° y monitoreo en Cajamarca.',
 };
 
-export default function CamarasSeguridadPage() {
+function Estatica() {
   const getIcon = (id: string) => {
     switch (id) {
       case 'sensor-movimiento':
@@ -132,5 +135,23 @@ export default function CamarasSeguridadPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * El contenido editorial autorizado sale de Laravel (servidor a servidor); si no hay ficha autorizada, el catálogo
+ * está apagado o la API no responde, se muestra el contenido estático de siempre.
+ */
+async function Dinamica() {
+  const resultado = await obtenerPagina('camaras-seguridad');
+  const contenido = resultado.ok ? resultado.data.contenido : null;
+  return contenido ? <ContenidoEditorial contenido={contenido} /> : <Estatica />;
+}
+
+export default function CamarasSeguridadPage() {
+  return (
+    <Suspense fallback={<Estatica />}>
+      <Dinamica />
+    </Suspense>
   );
 }

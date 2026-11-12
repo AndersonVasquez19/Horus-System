@@ -4435,3 +4435,54 @@ para el panel, la autenticación, los formularios ni Vite (ver `AGENTS.md`).
 - **Pendiente:** `tests/browser/chat-smoke.mjs` y `public-restoration-smoke.mjs` entran por `/` y por páginas retiradas; no se
   ejecutaron ni se actualizaron (requieren Edge). Fase 2 y Fase 3 siguen sin autorización.
 - **Reversión:** `git revert dcd2f55` (las vistas y assets quedan en el historial).
+
+## Fase 2a, cierre: servicios y páginas de tecnologías desde Laravel — 12/11/2026
+
+**Rutas de Next conectadas (servidor a servidor, `src/lib/horus-api.ts`, siempre dentro de `Suspense`):**
+`/educacion/cursos` → `GET /api/public/v1/cursos`; `/tecnologias/cableado-estructurado`, `/tecnologias/camaras-seguridad` y
+`/tecnologias/soporte-mantenimiento` → `GET /api/public/v1/paginas/{cableado-estructurado|camaras-seguridad|soporte-mantenimiento}`;
+y, dentro de soporte-mantenimiento, la sección «Catálogo de servicios tecnológicos» → `GET /api/public/v1/servicios?pagina=N`
+(en Next la paginación es `?servicios_pagina=N`, igual que en Blade). **No existe una página `/servicios` en Next ni en Laravel:**
+el catálogo genérico siempre vivió en soporte-mantenimiento. No se crearon endpoints nuevos.
+
+**Comportamiento:** cada página de tecnologías muestra el contenido editorial autorizado en Laravel (introducción con imagen y
+tarjetas) y, si no hay ficha autorizada, el catálogo está apagado o la API no responde, conserva su contenido estático de siempre
+(también como `fallback` mientras llega la respuesta). El catálogo genérico excluye por diseño los tres servicios que ya tienen
+página propia (`PaginasServicios::codigos()`). Sin fichas o con el catálogo apagado no inventa nada (apagado: no pinta la sección;
+vacío o fallo: aviso y enlace a contactos). Los iconos Font Awesome que guarda Laravel se traducen por nombre a iconos de `lucide`
+(los desconocidos usan uno genérico). Componentes nuevos: `src/components/tecnologias/{contenido-editorial,catalogo-servicios}.tsx`.
+
+**Imágenes:** `imagen_url` llega como URL absoluta construida con el host con el que se llamó a la API (puede ser interno). Next
+conserva solo la **ruta**, y solo si es `/assets/...` o `/storage/...` sin `..`, y le antepone `HORUS_ASSETS_URL` (o
+`HORUS_API_URL` si no se define); cualquier otra cosa se descarta y la imagen simplemente no se muestra. Se sirven con
+`next/image` `unoptimized`, así que no hace falta `images.remotePatterns` ni conocer el host en el build.
+
+**Corrección importante:** `horusGet` llama primero a `connection()` de `next/server`. Sin ello, un build sin variables de entorno
+prerrenderizaba el resultado «no configurado» y la página no volvía a consultar Laravel en cada visita (afectaba también a
+`/educacion/cursos`). Con el cambio las cuatro rutas figuran como parciales (`◐`) en `next build`.
+
+**Configuración de despliegue**
+
+| Dónde | Variable | Notas |
+| --- | --- | --- |
+| `apps/api` | `HORUS_WEB_SERVICE_TOKEN` | Mínimo 32 caracteres aleatorios. Vacío o corto: `/api/public/v1/*` responde 404. |
+| `apps/api` | `APP_URL` y enlace `public/storage` | Las imágenes cargadas desde el panel se sirven en `/storage/...`; requiere `php artisan storage:link` (no ejecutado aquí). |
+| `apps/api` | `config/catalogo-publico.php` y `config/catalogo-servicios.php` (`enabled`) | Son interruptores de configuración, no variables de entorno; `catalogo-servicios.enabled` está en `false` por defecto. |
+| `apps/web` (solo servidor, nunca `NEXT_PUBLIC_*`) | `HORUS_API_URL` | URL base de Laravel alcanzable desde el servidor de Next, sin barra final. |
+| `apps/web` | `HORUS_WEB_SERVICE_TOKEN` | Mismo valor que en Laravel. |
+| `apps/web` | `HORUS_ASSETS_URL` | Base pública de Laravel alcanzable desde el navegador para `/assets` y `/storage`; si se omite se usa `HORUS_API_URL`. Si la API es interna, debe definirse. |
+
+Tiempo de espera de cada llamada: 5 s, sin reintentos; cualquier fallo se trata como «no disponible» sin detalle para el visitante.
+Plantilla: `apps/web/.env.example`. No se modificó ningún `.env` real.
+
+**Validación (12/11/2026):** `ApiPublicaCatalogoTest` y el nuevo `ApiPublicaServiciosTest` (fichas sin autorizar, publicadas y
+retiradas; imágenes; paginación de 12 en 12; sin token) pasan, 11 pruebas y 224 aserciones; Pint aprobado; `tsc`, ESLint de los
+archivos tocados y `next build` sin errores. **Prueba de ejecución con un stub local** (Node en `127.0.0.1`, que imita el
+contrato y exige el token) más `next start`: las tres páginas muestran el contenido editorial, las imágenes se resuelven contra
+la base configurada, la paginación avanza, una URL de otro dominio no se usa como host, y los modos sin ficha, API caída (503 y
+caída total), catálogo apagado y catálogo vacío se comportan como se describe; el token no aparece en el HTML ni en
+`.next/static` y la API recibió el token en todas las llamadas. **Límite:** no se probó contra Laravel real con datos reales de
+PostgreSQL ni con el navegador; la evidencia de contrato es de PHPUnit (SQLite en memoria) y la de interfaz, del stub.
+
+**Estado:** el paso 2A queda cerrado. Pendiente conocido: `packages/contracts/openapi/horus-api.yaml` no incluye todavía
+`/api/public/v1/*`. Siguiente paso, sin iniciar: 2B (chat).
