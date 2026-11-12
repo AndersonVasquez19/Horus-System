@@ -30,6 +30,12 @@ Sitio público y panel administrativo de Horus Group SRL. La aplicación princip
 | `tests/Feature/`, `tests/Unit/`, `tests/frontend/`, `tests/browser/` | Pruebas PHP, frontend y comprobación de chat en Edge. |
 | `public/` | Raíz pública del servidor web; Vite escribe en `public/build/`. |
 | `public/assets/` | Imágenes, estilos y scripts estáticos de las vistas Blade (`css/`, `images/`, `js/`). Está versionada. |
+| `apps/web/` | Frontend **Next.js** (React 19, Tailwind 4), proyecto Node independiente con su propio `package.json`. Atajos desde la raíz: `npm run web:dev`, `web:build` y `web:verify`. |
+| `apps/ai/` | **Horus AI** (Python, FastAPI): servicio del asistente. Su `.venv`, `.env` y `models/` no se versionan; ver su `README.md`. |
+| `packages/contracts/` | Contratos HTTP existentes (OpenAPI), documentados a partir del código. Sin clientes generados. |
+| `.github/workflows/` | `ci-api.yml`, `ci-web.yml` y `ci-ai.yml`, todos **suspendidos** (solo ejecución manual). |
+
+**Monorepo en transición.** Laravel sigue en la raíz; moverlo a `apps/api` es una etapa posterior y aparte. No hay workspaces de npm: la raíz (Vite de Laravel, Tailwind 3) y `apps/web` (Next, Tailwind 4) mantienen dependencias separadas. Detalle y decisiones en `PROJECT_CONTEXT.md`.
 
 El `package.json` de la raíz contiene los comandos y dependencias de **Vite de Laravel**. `npm run dev` desde la raíz inicia Vite.
 

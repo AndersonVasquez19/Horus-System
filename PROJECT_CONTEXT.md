@@ -4347,3 +4347,27 @@ del proceso: el primer `git mv` falló por «Permission denied» porque un `du.e
 mantenía la carpeta abierta; se detuvo ese proceso propio y el segundo intento funcionó. **Siguiente:** etapa 7 (workspaces
 npm para `apps/web` y `packages/*`, `packages/contracts`, CI por aplicación y, al final, Laravel a `apps/api` en un commit
 de solo renombres).
+
+## Etapa 7: contratos, CI por aplicación y atajos — 11/11/2026
+
+Commits en `monorepo/base` (sin push): `093dc35` (`packages/contracts`: README y `openapi/horus-api.yaml`, OpenAPI 3.1 con
+8 rutas y 12 esquemas, solo lo verificado en código: `/api/auth/register|login|me|logout`, `POST /chat/mensaje`, y de Horus
+AI `/health`, `/ready` y `POST /api/v1/chat`; validado con el analizador YAML del `.venv` de `apps/ai`, 14 referencias
+internas, ninguna rota), `98fa3bd` (CI dividido en `ci-api.yml`, renombrado de `ci.yml`, más `ci-web.yml` y `ci-ai.yml`) y
+`31f25ca` (atajos `web:dev`, `web:build` y `web:verify` en el `package.json` raíz, con `npm --prefix apps/web`).
+
+**CI suspendido:** los tres workflows tienen solo `workflow_dispatch` (comprobado: 0 disparadores `pull_request`/`push` sin
+comentar), por la decisión del propietario del 10/11 y confirmada el 11/11. Cada archivo lleva comentado el bloque para
+reactivarlo con filtros `paths`. **Límites:** `requirements.lock` se generó para Windows x64 y Python 3.13, y su instalación
+con hashes en Linux no se ha probado; `ci-ai.yml` excluye la prueba que ya fallaba antes del movimiento (ver etapa 6);
+`ci-web.yml` deja ESLint como informativo por los 18 problemas previos; el job `recursos` de `ci-api.yml` (antes
+`frontend`) es el Vite de Laravel. Ninguno se ha ejecutado en GitHub.
+
+**Decisiones:** no se crean workspaces de npm (la raíz usa Tailwind 3 y Vite, `apps/web` Tailwind 4 y Next; un `node_modules`
+compartido mezclaría versiones y obligaría a regenerar lockfiles con red). Se reconsiderará cuando exista un segundo
+paquete JavaScript compartido. Mover Laravel a `apps/api` pasa a la **etapa 8**, aparte, con inventario de rutas
+(autoload de `composer.json`, `phpunit*.xml`, `phpstan.neon.dist`, `vite.config.js`, `storage/`, `scripts/horus-local.php`),
+respaldo y autorización específica; seguirá el patrón de renombre puro más commit de rutas.
+
+Incidencia propia: un nombre de job con dos puntos sin comillas rompía el YAML de `ci-api.yml`; el analizador lo detectó y
+se corrigió antes de confirmar. Reversión: `git revert` de `31f25ca`, `98fa3bd` y `093dc35`.
