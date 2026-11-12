@@ -150,7 +150,10 @@ export function FichaServicioPanel({ servicio }: { servicio: ServicioDetalle }) 
           <div className="space-y-3">
             <p>El contenido de la ficha podrá mostrarse en el sitio web dentro de su vigencia, mientras el servicio esté activo.</p>
             <label className="flex items-start gap-2 text-panel-text">
-              <input type="checkbox" checked={confirmada} onChange={(evento) => setConfirmada(evento.target.checked)} className="mt-0.5 h-4 w-4 accent-servicios-700" />
+              <input type="checkbox" checked={confirmada} onChange={(evento) => {
+              setConfirmada(evento.target.checked);
+              setError((previo) => (previo?.errors?.confirmacion_publica ? { ...previo, errors: { ...previo.errors, confirmacion_publica: [] } } : previo));
+            }} className="mt-0.5 h-4 w-4 accent-servicios-700" />
               Confirmo que este contenido puede mostrarse públicamente.
             </label>
             {err('confirmacion_publica') ? <p className="text-estado-error">{err('confirmacion_publica')}</p> : null}

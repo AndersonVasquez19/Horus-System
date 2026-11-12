@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Horus Group - API de los paneles administrativos (/api/panel/v1)
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Contrato verificado contra `apps/api/routes/panel.php` y `app/Http/Controllers/Api/Panel/**` (12/11/2026).
 
@@ -12,6 +12,16 @@ info:
 
     Errores: `{ message, code, errors? }` con `code` estable (`no_autenticado`, `sesion_expirada`, `prohibido`,
     `no_encontrado`, `csrf`, `validacion`, `demasiadas_solicitudes`, `error_interno`…).
+
+    Seguridad por capas: token de servicio (`X-Horus-Web-Token`), sesión web, CSRF, `SesionPanelVigente`,
+    permiso de entrada al panel (`panel.academico.acceder` / `panel.servicios.acceder`) y permiso por acción (se indica
+    en cada operación). Las cotizaciones son además solo del rol `admin`.
+
+    Concurrencia: las escrituras sobre servicios, fichas y cotizaciones exigen la revisión (`If-Match`; el BFF la envía
+    como `_revision`) y responden 428 si falta y 412 si está obsoleta. Las creaciones y seguimientos de cotizaciones
+    son idempotentes con `Idempotency-Key` (el BFF envía `_clave`). Mensajes de validación en español.
+
+    Limitadores: `login`, `password-recovery`, `admin-write` (120/min), `admin-opciones` (120/min) y `admin-export` (6/min).
 
     Listados: `page`, `per_page` (1..100, 20 por defecto), `sort=campo|-campo` (lista blanca; un valor desconocido
     usa el orden por defecto) y filtros con nombre propio. Respuesta `{ data, meta }`.
@@ -106,15 +116,17 @@ paths:
   /academico/resumen:
     get:
       tags: [academico]
-      summary: Dashboard académico (bloques según permisos de módulo; ingresos solo rol admin)
-      description: Exige `panel.academico.acceder`.
+      summary: "Dashboard académico (bloques según permisos de módulo; ingresos solo rol admin)"
+      description: "Permiso: `panel.academico.acceder`."
       responses:
         '200': { description: Indicadores y bloques, content: { application/json: { schema: { type: object } } } }
-        '403': { $ref: '#/components/responses/Error' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/cursos:
     get:
       tags: [academico]
-      summary: Cursos (`cursos.ver`)
+      summary: "Listado de cursos"
+      description: "Permiso: `cursos.ver`."
       parameters:
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/PorPagina' }
@@ -126,27 +138,457 @@ paths:
         - { name: eliminados, in: query, schema: { type: boolean } }
       responses:
         '200': { $ref: '#/components/responses/Listado' }
-        '403': { $ref: '#/components/responses/Error' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [academico]
+      summary: "Crea un curso"
+      description: "Permiso: `cursos.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CursoEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/cursos/{curso}:
     get:
       tags: [academico]
-      summary: Detalle de curso con estudiantes minimizados (`cursos.ver`)
-      parameters: [{ name: curso, in: path, required: true, schema: { type: integer } }]
+      summary: "Detalle del curso con estudiantes minimizados"
+      description: "Permiso: `cursos.ver`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
       responses:
-        '200': { description: Curso }
-        '404': { $ref: '#/components/responses/Error' }
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [academico]
+      summary: "Edita un curso (no se pueden bajar los cupos por debajo de las matrículas vigentes)"
+      description: "Permiso: `cursos.editar`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CursoEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [academico]
+      summary: "Archiva (eliminación lógica) un curso"
+      description: "Permiso: `cursos.eliminar`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Curso archivado }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/cursos/{curso}/restaurar:
+    post:
+      tags: [academico]
+      summary: "Restaura un curso archivado"
+      description: "Permiso: `cursos.restaurar`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/cursos/{curso}/publicacion:
+    get:
+      tags: [academico]
+      summary: "Ficha pública del curso y su revisión (cabecera `ETag`)"
+      description: "Permiso: `cursos.publicar`. La publicación es una autorización editorial distinta de activar el curso."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [academico]
+      summary: "Guarda y autoriza la ficha pública (obliga a `confirmacion_publica`)"
+      description: "Permiso: `cursos.publicar`. La revisión es obligatoria: `If-Match` o el campo `_revision` (el BFF reenvía solo el campo)."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FichaCursoEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/cursos/{curso}/publicacion/retirar:
+    post:
+      tags: [academico]
+      summary: "Retira la ficha pública"
+      description: "Permiso: `cursos.publicar`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SoloRevision' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/estudiantes:
+    get:
+      tags: [academico]
+      summary: "Listado de estudiantes"
+      description: "Permiso: `estudiantes.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: sort, in: query, schema: { type: string, enum: [apellidos, -apellidos, nombres, -nombres, dni, -dni, creado, -creado] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [activo, inactivo] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [academico]
+      summary: "Registra un estudiante (DNI único)"
+      description: "Permiso: `estudiantes.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EstudianteEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/estudiantes/{estudiante}:
+    get:
+      tags: [academico]
+      summary: "Ficha del estudiante con matrículas e historial minimizado (acción, fecha, usuario y campos; nunca valores ni IP)"
+      description: "Permiso: `estudiantes.ver`."
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [academico]
+      summary: "Edita un estudiante"
+      description: "Permiso: `estudiantes.editar`."
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EstudianteEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [academico]
+      summary: "Archiva (eliminación lógica) un estudiante"
+      description: "Permiso: `estudiantes.eliminar`."
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Estudiante archivado }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/estudiantes/{estudiante}/restaurar:
+    post:
+      tags: [academico]
+      summary: "Restaura un estudiante archivado"
+      description: "Permiso: `estudiantes.restaurar`."
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas:
+    get:
+      tags: [academico]
+      summary: "Listado de matrículas"
+      description: "Permiso: `matriculas.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: sort, in: query, schema: { type: string, enum: [fecha, -fecha, creado, -creado, estado, -estado] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: curso_id, in: query, schema: { type: integer } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [academico]
+      summary: "Crea una matrícula (transacción con bloqueo: cursos, estudiantes y matrícula; comprueba duplicado vigente y cupo)"
+      description: "Permiso: `matriculas.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MatriculaEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/opciones/estudiantes:
+    get:
+      tags: [academico]
+      summary: "Estudiantes elegibles para el selector (`q`, `contexto`)"
+      description: "Permiso: `matriculas.ver|crear|editar`."
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: contexto, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/opciones/cursos:
+    get:
+      tags: [academico]
+      summary: "Cursos elegibles para el selector (`q`, `contexto`)"
+      description: "Permiso: `matriculas.ver|crear|editar`."
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: contexto, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta las matrículas filtradas a CSV (sin fórmulas inyectables)"
+      description: "Permiso: `matriculas.exportar`."
+      parameters:
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: curso_id, in: query, schema: { type: integer } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo CSV, content: { text/csv: { schema: { type: string, format: binary } } } }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/{matricula}:
+    get:
+      tags: [academico]
+      summary: "Detalle de la matrícula con historial"
+      description: "Permiso: `matriculas.ver`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [academico]
+      summary: "Edita la matrícula; pasar a `anulada` exige además `matriculas.anular`"
+      description: "Permiso: `matriculas.editar`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MatriculaEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [academico]
+      summary: "Elimina lógicamente la matrícula y libera el cupo"
+      description: "Permiso: `matriculas.eliminar`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Matrícula eliminada }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/{matricula}/anular:
+    post:
+      tags: [academico]
+      summary: "Anula la matrícula y libera el cupo (repetir no devuelve el cupo dos veces)"
+      description: "Permiso: `matriculas.anular`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/{matricula}/restaurar:
+    post:
+      tags: [academico]
+      summary: "Restaura una matrícula eliminada (si era vigente, vuelve a exigir cupo y elegibilidad)"
+      description: "Permiso: `matriculas.restaurar`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/reportes:
+    get:
+      tags: [academico]
+      summary: "Resumen y listado de matrículas para reportes"
+      description: "Permiso: `reportes.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+        - { name: lote, in: query, description: 'Lote de 1000 filas para el PDF', schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/reportes/exportar/excel:
+    post:
+      tags: [academico]
+      summary: "Exporta el reporte filtrado a Excel (límite de memoria; coincide con el listado)"
+      description: "Permiso: `reportes.exportar.excel`. Limitador `admin-export` (6 por minuto y usuario)."
+      parameters:
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+        - { name: lote, in: query, description: 'Lote de 1000 filas para el PDF', schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo XLSX, content: { application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: { schema: { type: string, format: binary } } } }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/reportes/exportar/pdf:
+    post:
+      tags: [academico]
+      summary: "Exporta un lote del reporte a PDF"
+      description: "Permiso: `reportes.exportar.pdf`. Limitador `admin-export` (6 por minuto y usuario)."
+      parameters:
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+        - { name: lote, in: query, description: 'Lote de 1000 filas para el PDF', schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo PDF, content: { application/pdf: { schema: { type: string, format: binary } } } }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /servicios/resumen:
     get:
       tags: [servicios]
-      summary: Dashboard tecnológico (cotizaciones solo rol admin + `cotizaciones.ver`)
-      description: Exige `panel.servicios.acceder`.
+      summary: "Dashboard tecnológico (cotizaciones solo rol admin + `cotizaciones.ver`)"
+      description: "Permiso: `panel.servicios.acceder`."
       responses:
-        '200': { description: Indicadores y bloques }
-        '403': { $ref: '#/components/responses/Error' }
+        '200': { description: Indicadores y bloques, content: { application/json: { schema: { type: object } } } }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /servicios/servicios:
     get:
       tags: [servicios]
-      summary: Catálogo interno de servicios (`servicios.ver`)
+      summary: "Catálogo interno de servicios"
+      description: "Permiso: `servicios.ver`."
       parameters:
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/PorPagina' }
@@ -156,31 +598,337 @@ paths:
         - { name: publicacion, in: query, schema: { type: string, enum: [sin_ficha, borrador, publicada, retirada] } }
       responses:
         '200': { $ref: '#/components/responses/Listado' }
-        '403': { $ref: '#/components/responses/Error' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [servicios]
+      summary: "Registra un servicio (código en mayúsculas, único e inmutable)"
+      description: "Permiso: `servicios.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServicioEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/servicios/{servicio}:
+    get:
+      tags: [servicios]
+      summary: "Detalle con ficha pública y `estado_editorial` calculado (cabecera `ETag`)"
+      description: "Permiso: `servicios.ver`."
+      parameters:
+        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [servicios]
+      summary: "Edita el servicio"
+      description: "Permiso: `servicios.editar`."
+      parameters:
+        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServicioEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/servicios/{servicio}/estado:
+    post:
+      tags: [servicios]
+      summary: "Cambia el estado; si deja de estar activo su ficha publicada se retira automáticamente"
+      description: "Permiso: `servicios.editar`."
+      parameters:
+        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EstadoServicio' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/servicios/{servicio}/publicacion:
+    put:
+      tags: [servicios]
+      summary: "Guarda el borrador editorial (retira cualquier autorización anterior). La imagen principal y las tarjetas (multipart) siguen en Blade"
+      description: "Permiso: `servicios.editar`."
+      parameters:
+        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FichaServicioEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/servicios/{servicio}/publicacion/autorizar:
+    post:
+      tags: [servicios]
+      summary: "Autoriza la publicación (obliga a `confirmacion_publica`)"
+      description: "Permiso: `servicios.publicar`."
+      parameters:
+        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AutorizarFicha' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/servicios/{servicio}/publicacion/retirar:
+    post:
+      tags: [servicios]
+      summary: "Retira la ficha pública"
+      description: "Permiso: `servicios.publicar`."
+      parameters:
+        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SoloRevision' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /servicios/cotizaciones:
     get:
       tags: [servicios]
-      summary: Bandeja de cotizaciones sin datos de contacto (rol admin + `cotizaciones.ver`)
+      summary: "Bandeja de cotizaciones sin datos de contacto (rol admin)"
+      description: "Permiso: `cotizaciones.ver`."
       parameters:
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/PorPagina' }
         - { name: sort, in: query, schema: { type: string, enum: [recibida, -recibida, codigo, -codigo, seguimiento, -seguimiento] } }
         - { name: estado, in: query, schema: { type: string, enum: [recibida, en_revision] } }
+        - { name: origen, in: query, description: 'publico = web, administrativo = alta manual', schema: { type: string, enum: [publico, administrativo] } }
+        - { name: servicio, in: query, schema: { type: string, format: uuid } }
         - { name: codigo, in: query, schema: { type: string, maxLength: 40 } }
         - { name: desde, in: query, schema: { type: string, format: date } }
         - { name: hasta, in: query, schema: { type: string, format: date } }
         - { name: seguimiento_pendiente, in: query, schema: { type: boolean } }
       responses:
         '200': { $ref: '#/components/responses/Listado' }
-        '403': { $ref: '#/components/responses/Error' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [servicios]
+      summary: "Alta manual (origen administrativo), idempotente por `Idempotency-Key` / `_clave`"
+      description: "Permiso: `cotizaciones.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CotizacionEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '200': { description: "Repetición con la misma clave y los mismos datos: devuelve el recurso ya creado", content: { application/json: { schema: { type: object } } } }
+  /servicios/cotizaciones/opciones/responsables:
+    get:
+      tags: [servicios]
+      summary: "Responsables asignables"
+      description: "Permiso: `cotizaciones.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/cotizaciones/opciones/servicios:
+    get:
+      tags: [servicios]
+      summary: "Servicios ofrecidos para asociar"
+      description: "Permiso: `cotizaciones.crear`."
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/cotizaciones/{identificador}:
+    get:
+      tags: [servicios]
+      summary: "Expediente con datos del solicitante, necesidad e historial (cabecera `ETag`)"
+      description: "Permiso: `cotizaciones.ver`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [servicios]
+      summary: "Edita los datos de la solicitud"
+      description: "Permiso: `cotizaciones.editar`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CotizacionEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/cotizaciones/{identificador}/estado:
+    post:
+      tags: [servicios]
+      summary: "Pasa a revisión (`recibida` no se recupera desde `en_revision`)"
+      description: "Permiso: `cotizaciones.gestionar`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EstadoCotizacion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/cotizaciones/{identificador}/responsable:
+    post:
+      tags: [servicios]
+      summary: "Asigna responsable"
+      description: "Permiso: `cotizaciones.gestionar`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResponsableCotizacion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /servicios/cotizaciones/{identificador}/seguimientos:
+    post:
+      tags: [servicios]
+      summary: "Registra un seguimiento (idempotente por `Idempotency-Key` / `_clave`)"
+      description: "Permiso: `cotizaciones.gestionar`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SeguimientoEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 components:
   securitySchemes:
     tokenServicio: { type: apiKey, in: header, name: X-Horus-Web-Token }
   parameters:
     Csrf: { name: X-CSRF-TOKEN, in: header, required: true, schema: { type: string } }
+    IfMatch: { name: If-Match, in: header, required: false, description: 'Revisión (ETag) del recurso. El BFF la envía en el cuerpo como `_revision`; Laravel acepta ambas. Sin ella: 428; obsoleta: 412.', schema: { type: string } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: false, description: 'UUID aleatorio por intención. El BFF lo envía como `_clave`. Misma clave y mismos datos: respuesta repetida; misma clave con otros datos: 409.', schema: { type: string, format: uuid } }
     Pagina: { name: page, in: query, schema: { type: integer, minimum: 1 } }
     PorPagina: { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
   responses:
+    Recurso:
+      description: Recurso en `{ data }`; los recursos con revisión devuelven además la cabecera `ETag`
+      headers: { ETag: { schema: { type: string } } }
+      content: { application/json: { schema: { type: object, properties: { data: { type: object } } } } }
     Error:
       description: Error con código estable
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
@@ -219,6 +967,116 @@ components:
                   orden: { type: string }
                   filtros: { type: object }
   schemas:
+    SoloRevision:
+      type: object
+      properties: { _revision: { type: string, description: Equivale a If-Match } }
+    CursoEntrada:
+      type: object
+      required: [codigo, nombre]
+      properties:
+        codigo: { type: string, maxLength: 30 }
+        nombre: { type: string, maxLength: 255 }
+        descripcion: { type: [string, 'null'] }
+        categoria: { type: string, enum: [tecnologia, educacion, salud, gestion, otros] }
+        duracion_horas: { type: integer, minimum: 0, maximum: 2147483647 }
+        precio: { type: number, minimum: 0, maximum: 99999999.99 }
+        modalidad: { type: string, enum: [presencial, semipresencial, virtual, hibrido] }
+        horario: { type: [string, 'null'] }
+        cupos_maximos: { type: integer, minimum: 0, maximum: 2147483647, description: No puede ser menor que las matrículas vigentes }
+        estado: { type: string, enum: [activo, inactivo, archivado] }
+    FichaCursoEntrada:
+      type: object
+      required: [titulo, resumen, modalidad, vigente_desde, vigente_hasta, confirmacion_publica, _revision]
+      properties:
+        titulo: { type: string }
+        resumen: { type: string }
+        modalidad: { type: string, enum: [presencial, semipresencial, virtual, hibrido] }
+        horario: { type: [string, 'null'] }
+        inscripcion: { type: [string, 'null'] }
+        vigente_desde: { type: string, format: date }
+        vigente_hasta: { type: string, format: date }
+        confirmacion_publica: { type: boolean, description: Debe ser verdadero }
+        _revision: { type: string }
+    EstudianteEntrada:
+      type: object
+      required: [dni, nombres, apellidos, estado]
+      properties:
+        dni: { type: string, description: Único }
+        nombres: { type: string }
+        apellidos: { type: string }
+        email: { type: [string, 'null'], format: email }
+        telefono: { type: [string, 'null'] }
+        fecha_nacimiento: { type: [string, 'null'], format: date }
+        direccion: { type: [string, 'null'] }
+        estado: { type: string, enum: [activo, inactivo] }
+    MatriculaEntrada:
+      type: object
+      required: [estudiante_id, curso_id]
+      properties:
+        estudiante_id: { type: integer }
+        curso_id: { type: integer }
+        fecha_matricula: { type: string, format: date }
+        estado: { type: string, enum: [pendiente, pagada, anulada] }
+        monto_pagado: { type: [number, 'null'], minimum: 0 }
+        observaciones: { type: [string, 'null'] }
+    ServicioEntrada:
+      type: object
+      required: [codigo, nombre]
+      properties:
+        codigo: { type: string, pattern: '^[A-Za-z0-9_-]+$' }
+        nombre: { type: string }
+        categoria: { type: [string, 'null'] }
+        estado: { type: string, enum: [activo, inactivo, archivado] }
+        _revision: { type: string }
+    EstadoServicio:
+      type: object
+      required: [estado, _revision]
+      properties: { estado: { type: string, enum: [activo, inactivo, archivado] }, _revision: { type: string } }
+    FichaServicioEntrada:
+      type: object
+      required: [titulo, resumen, descripcion, vigente_desde, vigente_hasta, _revision]
+      properties:
+        titulo: { type: string }
+        resumen: { type: string }
+        descripcion: { type: string }
+        categoria: { type: [string, 'null'] }
+        vigente_desde: { type: string, format: date }
+        vigente_hasta: { type: string, format: date }
+        titulo_tarjetas: { type: [string, 'null'] }
+        imagen_principal_alt: { type: [string, 'null'] }
+        _revision: { type: string }
+    AutorizarFicha:
+      type: object
+      required: [confirmacion_publica, _revision]
+      properties: { confirmacion_publica: { type: boolean }, _revision: { type: string } }
+    CotizacionEntrada:
+      type: object
+      required: [contacto_nombre, necesidad_cliente]
+      description: Exige correo o teléfono del solicitante
+      properties:
+        contacto_nombre: { type: string }
+        necesidad_cliente: { type: string }
+        contacto_email: { type: [string, 'null'], format: email }
+        contacto_telefono: { type: [string, 'null'] }
+        servicio_uuid: { type: [string, 'null'], format: uuid }
+        _revision: { type: string }
+        _clave: { type: string, format: uuid }
+    EstadoCotizacion:
+      type: object
+      required: [estado, _revision]
+      properties: { estado: { type: string, enum: [en_revision] }, _revision: { type: string } }
+    ResponsableCotizacion:
+      type: object
+      required: [responsable_id, _revision]
+      properties: { responsable_id: { type: [integer, 'null'] }, _revision: { type: string } }
+    SeguimientoEntrada:
+      type: object
+      required: [nota, _revision, _clave]
+      properties:
+        nota: { type: string }
+        proximo_seguimiento: { type: [string, 'null'], format: date }
+        _revision: { type: string }
+        _clave: { type: string, format: uuid }
     Error:
       type: object
       required: [message, code]
