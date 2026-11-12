@@ -1,4 +1,6 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
+import { BotonNuevaSolicitud } from '@/components/servicios/acciones-cotizacion';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { FiltrosListado, SelectorFiltro, claseControl, parametro } from '@/components/shared/ui/filtros-listado';
@@ -11,7 +13,7 @@ import { ETIQUETAS, etiqueta, fecha } from '@/lib/panel/formato';
 export const metadata = { title: 'Cotizaciones · Servicios tecnológicos' };
 
 const RUTA = '/admin/servicios/cotizaciones';
-const PARAMETROS = ['estado', 'codigo', 'desde', 'hasta', 'seguimiento_pendiente', 'sort', 'page'] as const;
+const PARAMETROS = ['estado', 'origen', 'codigo', 'desde', 'hasta', 'seguimiento_pendiente', 'sort', 'page'] as const;
 type Parametros = Record<string, string | string[] | undefined>;
 
 export default function CotizacionesPage({ searchParams }: { searchParams: Promise<Parametros> }) {
@@ -21,6 +23,7 @@ export default function CotizacionesPage({ searchParams }: { searchParams: Promi
         titulo="Cotizaciones"
         descripcion="Bandeja de solicitudes de cotización. Los datos de contacto solo se muestran en el expediente."
         migas={[{ etiqueta: 'Inicio', href: '/admin/servicios' }, { etiqueta: 'Cotizaciones' }]}
+        acciones={<BotonNuevaSolicitud />}
       />
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando cotizaciones" />}>
         <Bandeja searchParams={searchParams} />
@@ -49,6 +52,7 @@ async function Bandeja({ searchParams }: { searchParams: Promise<Parametros> }) 
           <input id="codigo" name="codigo" defaultValue={parametro(parametros, 'codigo')} maxLength={40} placeholder="COT-…" className={control} />
         </div>
         <SelectorFiltro tono="servicios" nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={ETIQUETAS.estadoCotizacion} />
+        <SelectorFiltro tono="servicios" nombre="origen" etiqueta="Origen" valor={parametro(parametros, 'origen')} opciones={ETIQUETAS.origenCotizacion} />
         <div>
           <label htmlFor="desde" className="mb-1 block text-xs font-medium text-panel-muted">Recibida desde</label>
           <input id="desde" name="desde" type="date" defaultValue={parametro(parametros, 'desde')} className={control} />
@@ -83,7 +87,10 @@ async function Bandeja({ searchParams }: { searchParams: Promise<Parametros> }) 
               <tbody className="divide-y divide-panel-border">
                 {cotizaciones.map((cotizacion) => (
                   <tr key={cotizacion.identificador} className="hover:bg-servicios-50/50">
-                    <td className="px-4 py-3 font-semibold text-panel-text">{cotizacion.codigo}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`${RUTA}/${cotizacion.identificador}`} className="font-semibold text-panel-text hover:text-servicios-800 hover:underline">{cotizacion.codigo}</Link>
+                      {cotizacion.origen === 'publico' ? <span className="ml-2 align-middle"><Insignia color="azul">Web</Insignia></span> : null}
+                    </td>
                     <td className="px-4 py-3 text-panel-muted">{cotizacion.servicio ?? 'Sin servicio'}</td>
                     <td className="px-4 py-3"><Insignia color={colorEstado(cotizacion.estado)}>{etiqueta('estadoCotizacion', cotizacion.estado)}</Insignia></td>
                     <td className="px-4 py-3 text-panel-muted">{cotizacion.responsable ?? 'Sin asignar'}</td>

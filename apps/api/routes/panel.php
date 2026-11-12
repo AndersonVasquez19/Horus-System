@@ -91,5 +91,26 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
     ->group(function (): void {
         Route::get('resumen', Servicios\ResumenController::class)->name('resumen');
         Route::get('servicios', [Servicios\ServicioController::class, 'index'])->name('servicios.index');
+        Route::get('servicios/{servicio}', [Servicios\ServicioController::class, 'show'])->whereNumber('servicio')->name('servicios.show');
         Route::get('cotizaciones', [Servicios\CotizacionController::class, 'index'])->name('cotizaciones.index');
+        Route::get('cotizaciones/opciones/responsables', [Servicios\CotizacionController::class, 'opcionesResponsables'])
+            ->middleware('throttle:admin-opciones')->name('cotizaciones.opciones.responsables');
+        Route::get('cotizaciones/opciones/servicios', [Servicios\CotizacionController::class, 'opcionesServicios'])
+            ->middleware('throttle:admin-opciones')->name('cotizaciones.opciones.servicios');
+        Route::get('cotizaciones/{identificador}', [Servicios\CotizacionController::class, 'show'])->name('cotizaciones.show');
+
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
+            Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
+            Route::post('servicios/{servicio}/estado', [Servicios\ServicioController::class, 'estado'])->whereNumber('servicio')->name('servicios.estado');
+            Route::put('servicios/{servicio}/publicacion', [Servicios\ServicioController::class, 'preparar'])->whereNumber('servicio')->name('servicios.publicacion.preparar');
+            Route::post('servicios/{servicio}/publicacion/autorizar', [Servicios\ServicioController::class, 'autorizar'])->whereNumber('servicio')->name('servicios.publicacion.autorizar');
+            Route::post('servicios/{servicio}/publicacion/retirar', [Servicios\ServicioController::class, 'retirar'])->whereNumber('servicio')->name('servicios.publicacion.retirar');
+
+            Route::post('cotizaciones', [Servicios\CotizacionController::class, 'store'])->name('cotizaciones.store');
+            Route::put('cotizaciones/{identificador}', [Servicios\CotizacionController::class, 'update'])->name('cotizaciones.update');
+            Route::post('cotizaciones/{identificador}/estado', [Servicios\CotizacionController::class, 'estado'])->name('cotizaciones.estado');
+            Route::post('cotizaciones/{identificador}/responsable', [Servicios\CotizacionController::class, 'responsable'])->name('cotizaciones.responsable');
+            Route::post('cotizaciones/{identificador}/seguimientos', [Servicios\CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento');
+        });
     });

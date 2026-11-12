@@ -23,12 +23,16 @@ export interface Operacion {
 }
 
 const ID = '[1-9][0-9]{0,17}';
+const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 
 const CAMPOS_ESTUDIANTE = ['dni', 'nombres', 'apellidos', 'email', 'telefono', 'fecha_nacimiento', 'direccion', 'estado'] as const;
 const CAMPOS_CURSO = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado'] as const;
 const CAMPOS_FICHA = ['titulo', 'resumen', 'modalidad', 'horario', 'inscripcion', 'vigente_desde', 'vigente_hasta', 'confirmacion_publica', '_revision'] as const;
 const FILTROS_REPORTE = ['busqueda', 'estado', 'eliminados', 'lote'] as const;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const CAMPOS_SERVICIO = ['codigo', 'nombre', 'categoria', 'estado', '_revision'] as const;
+const CAMPOS_FICHA_SERVICIO = ['titulo', 'resumen', 'descripcion', 'categoria', 'vigente_desde', 'vigente_hasta', 'titulo_tarjetas', 'imagen_principal_alt', '_revision'] as const;
+const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_email', 'contacto_telefono', 'servicio_uuid', '_revision', '_clave'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -52,6 +56,22 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: /^academico\/reportes$/, consulta: FILTROS_REPORTE },
   { metodo: 'POST', patron: /^academico\/reportes\/exportar\/excel$/, consulta: FILTROS_REPORTE, archivo: [XLSX] },
   { metodo: 'POST', patron: /^academico\/reportes\/exportar\/pdf$/, consulta: FILTROS_REPORTE, archivo: ['application/pdf'] },
+
+  // Servicios tecnológicos y su ficha pública (la revisión viaja en el cuerpo: `_revision`)
+  { metodo: 'POST', patron: /^servicios\/servicios$/, campos: CAMPOS_SERVICIO },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/servicios/${ID}$`), campos: CAMPOS_SERVICIO },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/servicios/${ID}/publicacion$`), campos: CAMPOS_FICHA_SERVICIO },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/publicacion/autorizar$`), campos: ['confirmacion_publica', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/publicacion/retirar$`), campos: ['_revision'] },
+
+  // Cotizaciones (identificador = UUID; la revisión en `_revision` y la idempotencia en `_clave`)
+  { metodo: 'GET', patron: /^servicios\/cotizaciones\/opciones\/(responsables|servicios)$/ },
+  { metodo: 'POST', patron: /^servicios\/cotizaciones$/, campos: CAMPOS_COTIZACION },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/cotizaciones/${UUID}$`), campos: CAMPOS_COTIZACION },
+  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/seguimientos$`), campos: ['nota', 'proximo_seguimiento', '_revision', '_clave'] },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },

@@ -83,6 +83,22 @@ export const ETIQUETAS = {
   estadoServicio: { activo: 'Activo', inactivo: 'Inactivo', archivado: 'Archivado' },
   estadoPublicacion: { sin_ficha: 'Sin ficha', borrador: 'Borrador', publicada: 'Publicada', retirada: 'Retirada' },
   estadoCotizacion: { recibida: 'Recibida', en_revision: 'En revisión' },
+  origenCotizacion: { publico: 'Web', administrativo: 'Interna' },
+  estadoEditorial: {
+    sin_ficha: 'Sin ficha',
+    borrador: 'Borrador',
+    publicada: 'Publicada',
+    retirada: 'Retirada',
+    caducada: 'Caducada',
+    programada: 'Programada',
+  },
+  accionCotizacion: {
+    creada: 'Solicitud registrada',
+    informacion_actualizada: 'Datos modificados',
+    estado_modificado: 'Estado modificado',
+    responsable_asignado: 'Responsable asignado',
+    seguimiento_registrado: 'Seguimiento registrado',
+  },
 } as const;
 
 export function etiqueta<T extends keyof typeof ETIQUETAS>(grupo: T, valor: string | null | undefined): string {

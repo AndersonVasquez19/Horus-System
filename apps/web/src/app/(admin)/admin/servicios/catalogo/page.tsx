@@ -1,4 +1,6 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
+import { BotonNuevoServicio } from '@/components/servicios/acciones-servicio';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
@@ -21,6 +23,7 @@ export default function CatalogoPage({ searchParams }: { searchParams: Promise<P
         titulo="Servicios"
         descripcion="Catálogo interno de servicios tecnológicos y estado de su ficha pública."
         migas={[{ etiqueta: 'Inicio', href: '/admin/servicios' }, { etiqueta: 'Servicios' }]}
+        acciones={<BotonNuevoServicio />}
       />
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando servicios" />}>
         <Listado searchParams={searchParams} />
@@ -76,7 +79,7 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
                 {servicios.map((servicio) => (
                   <tr key={servicio.id} className="hover:bg-servicios-50/50">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-panel-text">{servicio.nombre}</p>
+                      <Link href={`${RUTA}/${servicio.id}`} className="font-semibold text-panel-text hover:text-servicios-800 hover:underline">{servicio.nombre}</Link>
                       <p className="text-xs text-panel-muted">{servicio.codigo}</p>
                     </td>
                     <td className="px-4 py-3 text-panel-muted">{servicio.categoria ?? '—'}</td>

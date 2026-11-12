@@ -140,7 +140,7 @@ final class ServiciosPanelTest extends PanelApiTestCase
         $todas = $this->como($admin, 'servicios/cotizaciones')->assertOk();
         $todas->assertJsonPath('meta.total', 2)->assertJsonPath('data.0.codigo', 'COT-2');
         $this->assertSame(
-            ['identificador', 'codigo', 'servicio', 'estado', 'responsable', 'recibida_en', 'proximo_seguimiento'],
+            ['identificador', 'codigo', 'servicio', 'servicio_uuid', 'origen', 'estado', 'responsable', 'recibida_en', 'proximo_seguimiento'],
             array_keys($todas->json('data.0')),
         );
 
