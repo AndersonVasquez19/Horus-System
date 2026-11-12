@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEstudianteRequest;
 use App\Http\Requests\UpdateEstudianteRequest;
 use App\Models\Estudiante;
+use App\Services\GestionEstudiantes;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
@@ -16,11 +17,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class EstudianteController extends Controller implements HasMiddleware
 {
+    public function __construct(private readonly GestionEstudiantes $gestion) {}
+
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
@@ -76,14 +78,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function store(StoreEstudianteRequest $request): RedirectResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-
-        // La auditoría es la última escritura de la transacción: si falla, el alta se revierte (fail-closed).
-        DB::transaction(function () use ($request, $actor): void {
-            $estudiante = Estudiante::create($request->validated());
-
-            AuditoriaAcademica::registrarCreacion('estudiante_creado', $estudiante, AuditoriaAcademica::ESTUDIANTE, $actor);
-        });
+        $this->gestion->crear($request->validated(), AuditoriaAcademica::actorDe($request));
 
         return redirect()
             ->route('admin.estudiantes.index')
@@ -106,17 +101,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function update(UpdateEstudianteRequest $request, Estudiante $estudiante): RedirectResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-
-        DB::transaction(function () use ($request, $estudiante, $actor): void {
-            // Se relee la fila bajo bloqueo para que «antes» sea el valor real y no el del enlace de ruta.
-            $bloqueado = Estudiante::query()->lockForUpdate()->findOrFail($estudiante->getKey());
-            $bloqueado->fill($request->validated());
-            $diferencias = AuditoriaAcademica::diferencias($bloqueado, AuditoriaAcademica::ESTUDIANTE);
-            $bloqueado->save();
-
-            AuditoriaAcademica::registrarActualizacion('estudiante_actualizado', $bloqueado, $diferencias, $actor);
-        });
+        $this->gestion->actualizar($estudiante, $request->validated(), AuditoriaAcademica::actorDe($request));
 
         return redirect()
             ->route('admin.estudiantes.show', $estudiante)
@@ -125,31 +110,10 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function destroy(Request $request, Estudiante $estudiante): RedirectResponse|JsonResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-        $vigentes = 0;
-
-        DB::transaction(function () use ($estudiante, $actor, &$vigentes): void {
-            // Sin SoftDeletes::withTrashed(): si otra petición ya lo eliminó, no hay operación efectiva ni auditoría.
-            $bloqueado = Estudiante::query()->lockForUpdate()->find($estudiante->getKey());
-
-            if ($bloqueado === null) {
-                return;
-            }
-
-            // Con matrículas vigentes (pendiente/pagada) el estudiante seguiría ocupando cupos de sus cursos:
-            // hay que anularlas antes. Se evalúa bajo el bloqueo del estudiante.
-            $vigentes = $bloqueado->matriculas()->whereIn('estado', ['pendiente', 'pagada'])->count();
-            if ($vigentes > 0) {
-                return;
-            }
-
-            $bloqueado->delete();
-
-            AuditoriaAcademica::registrarOperacion('estudiante_eliminado', $bloqueado, 'eliminacion_logica', $actor);
-        });
+        $vigentes = $this->gestion->eliminar($estudiante, AuditoriaAcademica::actorDe($request));
 
         if ($vigentes > 0) {
-            $mensaje = 'No se puede desactivar al estudiante: tiene '.$vigentes.' matrícula(s) vigente(s). Anúlalas primero para liberar sus cupos.';
+            $mensaje = GestionEstudiantes::mensajeMatriculasVigentes($vigentes);
 
             return $request->expectsJson()
                 ? response()->json(['message' => $mensaje], 422)
@@ -163,20 +127,7 @@ class EstudianteController extends Controller implements HasMiddleware
 
     public function restaurar(Request $request, string $estudiante): RedirectResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-
-        DB::transaction(function () use ($estudiante, $actor): void {
-            $bloqueado = Estudiante::withTrashed()->lockForUpdate()->findOrFail($estudiante);
-
-            // Restaurar un estudiante no eliminado no es una operación efectiva: no se audita (evita duplicados).
-            if (! $bloqueado->trashed()) {
-                return;
-            }
-
-            $bloqueado->restore();
-
-            AuditoriaAcademica::registrarOperacion('estudiante_restaurado', $bloqueado, 'restauracion', $actor);
-        });
+        $this->gestion->restaurar($estudiante, AuditoriaAcademica::actorDe($request));
 
         return redirect()
             ->route('admin.estudiantes.index', ['eliminados' => 1])

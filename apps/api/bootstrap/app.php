@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Middleware\AutenticarBffPanel;
 use App\Http\Middleware\AuthenticateJwt;
 use App\Http\Middleware\DescartarSesionSinVerificar;
 use App\Http\Middleware\SecurityHeaders;
 use App\Models\User;
+use App\Support\ErroresApiPanel;
 use App\Support\Testing\TestDatabaseSafety;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Application;
@@ -12,6 +14,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Env;
+use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -22,6 +25,13 @@ $app = Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        // API de los paneles de apps/web: sesión web + CSRF, solo para el BFF de Next (ver routes/panel.php).
+        then: function (): void {
+            Route::middleware([AutenticarBffPanel::class, 'web'])
+                ->prefix('api/panel/v1')
+                ->name('api.panel.')
+                ->group(__DIR__.'/../routes/panel.php');
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Detrás de un balanceador, sin proxies de confianza `$request->ip()` sería la IP del proxy y todos los
@@ -46,7 +56,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        ErroresApiPanel::registrar($exceptions);
     })->create();
 
 if (Env::get('HORUS_PG_TEST_PROFILE') !== null && Env::get('HORUS_PG_TEST_PROFILE') !== '') {

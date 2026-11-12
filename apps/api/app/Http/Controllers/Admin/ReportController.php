@@ -6,29 +6,25 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReportMatriculasRequest;
-use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Services\MatriculasExcelExport;
-use App\Support\BusquedaLike;
+use App\Services\ReportesMatriculas;
 use App\Support\HoraLocal;
-use App\Support\TemporaryExportFile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Throwable;
 
 class ReportController extends Controller implements HasMiddleware
 {
-    public const PDF_BATCH_SIZE = 50;
+    public const PDF_BATCH_SIZE = ReportesMatriculas::TAMANO_LOTE;
+
+    public function __construct(private readonly ReportesMatriculas $reportes) {}
 
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
@@ -48,9 +44,7 @@ class ReportController extends Controller implements HasMiddleware
     {
         $query = $this->filteredQuery($request);
         // El mismo agregado filtrado alimenta el resumen y el total del paginador.
-        $resumen = (clone $query)->toBase()->select([])
-            ->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
-            ->first();
+        $resumen = $this->reportes->resumen($query);
         $matriculas = $this->batch($query, $request, (int) $resumen->total);
         $cursos = Curso::withTrashed()->orderBy('nombre')->get(['id', 'codigo', 'nombre', 'deleted_at']);
 
@@ -104,33 +98,7 @@ class ReportController extends Controller implements HasMiddleware
     /** @return Builder<Matricula> */
     private function filteredQuery(ReportMatriculasRequest $request): Builder
     {
-        // No hidratar observaciones ni datos personales que el reporte no utiliza.
-        $query = Matricula::query()
-            ->select(['id', 'estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado'])
-            ->with(['estudiante:id,nombres,apellidos', 'curso:id,codigo,nombre']);
-        $filtros = $request->filters();
-
-        if ($request->boolean('eliminados')) {
-            $query->onlyTrashed();
-        }
-        if (isset($filtros['estado'])) {
-            $query->where('estado', $filtros['estado']);
-        }
-        if (isset($filtros['curso_id'])) {
-            $query->where('curso_id', $filtros['curso_id']);
-        }
-        if (isset($filtros['busqueda'])) {
-            $busqueda = (string) $filtros['busqueda'];
-            $query->where(function (Builder $query) use ($busqueda): void {
-                $query->whereHas('estudiante', function (Builder $estudiante) use ($busqueda): void {
-                    BusquedaLike::contiene($estudiante, ['dni', 'nombres', 'apellidos'], $busqueda);
-                })->orWhereHas('curso', function (Builder $curso) use ($busqueda): void {
-                    BusquedaLike::contiene($curso, ['codigo', 'nombre'], $busqueda);
-                });
-            });
-        }
-
-        return $query;
+        return $this->reportes->consulta($request);
     }
 
     /**
@@ -139,75 +107,21 @@ class ReportController extends Controller implements HasMiddleware
      */
     private function batch(Builder $query, ReportMatriculasRequest $request, ?int $total = null): LengthAwarePaginator
     {
-        $matriculas = (clone $query)->orderByDesc('fecha_matricula')->orderByDesc('id')
-            ->paginate(self::PDF_BATCH_SIZE, ['*'], 'lote', (int) ($request->validated('lote') ?? 1), $total)
-            ->appends($request->filters());
-
-        abort_if($matriculas->currentPage() > $matriculas->lastPage(), 404, 'El lote solicitado no existe. Vuelve a aplicar los filtros.');
-
-        return $matriculas;
+        return $this->reportes->lote($query, $request, $total);
     }
 
     /**
-     * Escribe el reporte en un temporal privado de nombre único, audita y lo entrega para descarga.
-     *
-     * El nombre interno es un UUID para que dos exportaciones simultáneas no compartan archivo.
-     * Si la escritura o la auditoría fallan, el temporal (con datos personales) se borra antes
-     * de propagar el error; en el camino feliz lo elimina deleteFileAfterSend().
-     *
      * @param  callable(string): mixed  $write
      * @param  array<string, mixed>  $filtros
      */
     private function downloadTemporaryExport(string $extension, string $auditAction, callable $write, array $filtros = []): BinaryFileResponse
     {
-        $filename = 'reporte-matriculas-'.now()->format('Ymd-His').'.'.$extension;
-        $disk = Storage::disk('local');
-        if (! $disk->makeDirectory('exports')) {
-            throw new RuntimeException('No se pudo crear el directorio temporal de exportación.');
-        }
-
-        $file = $disk->path('exports/'.Str::uuid()->toString().'.'.$extension);
-        $temporary = new TemporaryExportFile($file, false);
-
-        try {
-            $write($file);
-
-            clearstatcache(true, $file);
-            if (! is_file($file) || filesize($file) === 0) {
-                throw new RuntimeException('No se pudo completar el archivo de exportación.');
-            }
-
-            AuditLog::record($auditAction, Matricula::class, null, ['filename' => $filename, 'filtros' => $filtros]);
-
-            return response()->download($temporary, $filename)->deleteFileAfterSend(true);
-        } catch (Throwable $error) {
-            if (is_file($file)) {
-                unlink($file);
-            }
-
-            throw $error;
-        }
+        return $this->reportes->descargaTemporal($extension, $auditAction, $write, $filtros);
     }
 
-    /**
-     * Resumen acotado de los filtros usados en la exportación (el texto libre de búsqueda no se guarda).
-     *
-     * @return array{estado: string|null, curso_id: int|null, eliminados: bool, con_busqueda: bool, lote?: int}
-     */
+    /** @return array{estado: string|null, curso_id: int|null, eliminados: bool, con_busqueda: bool, lote?: int} */
     private function filtrosAuditados(ReportMatriculasRequest $request, ?int $lote = null): array
     {
-        $filtros = $request->filters();
-        $resumen = [
-            'estado' => isset($filtros['estado']) ? (string) $filtros['estado'] : null,
-            'curso_id' => isset($filtros['curso_id']) ? (int) $filtros['curso_id'] : null,
-            'eliminados' => $request->boolean('eliminados'),
-            'con_busqueda' => isset($filtros['busqueda']) && (string) $filtros['busqueda'] !== '',
-        ];
-
-        if ($lote !== null) {
-            $resumen['lote'] = $lote;
-        }
-
-        return $resumen;
+        return $this->reportes->filtrosAuditados($request, $lote);
     }
 }

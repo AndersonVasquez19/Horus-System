@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  title: Horus Group - API de los paneles administrativos (/api/panel/v1)
+  version: 1.0.0
+  description: |
+    Contrato verificado contra `apps/api/routes/panel.php` y `app/Http/Controllers/Api/Panel/**` (12/11/2026).
+
+    Solo la consume el BFF de `apps/web` (servidor a servidor). Toda petición lleva `X-Horus-Web-Token`; sin token
+    configurado en Laravel las rutas responden 404, y con token incorrecto 401 `servicio_no_autorizado`.
+    El BFF reenvía la cookie de sesión web de Laravel y, en mutaciones, `X-CSRF-TOKEN` (de `auth/csrf` o
+    `auth/sesion`). `X-Horus-Client-Ip` lleva la IP del visitante para los limitadores.
+
+    Errores: `{ message, code, errors? }` con `code` estable (`no_autenticado`, `sesion_expirada`, `prohibido`,
+    `no_encontrado`, `csrf`, `validacion`, `demasiadas_solicitudes`, `error_interno`…).
+
+    Listados: `page`, `per_page` (1..100, 20 por defecto), `sort=campo|-campo` (lista blanca; un valor desconocido
+    usa el orden por defecto) y filtros con nombre propio. Respuesta `{ data, meta }`.
+servers:
+  - url: http://127.0.0.1:8000/api/panel/v1
+    description: Laravel local (solo para el BFF; no se expone al navegador)
+security:
+  - tokenServicio: []
+tags:
+  - name: auth
+  - name: academico
+  - name: servicios
+paths:
+  /auth/csrf:
+    get:
+      tags: [auth]
+      summary: Abre o retoma una sesión anónima y devuelve su token CSRF
+      responses:
+        '200':
+          description: Token CSRF de la sesión
+          content:
+            application/json:
+              schema: { type: object, required: [csrf_token], properties: { csrf_token: { type: string } } }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Inicia sesión (throttle `login`, por IP del visitante y por correo)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties: { email: { type: string, format: email, maxLength: 255 }, password: { type: string, maxLength: 1024 } }
+      responses:
+        '200': { $ref: '#/components/responses/Sesion' }
+        '419': { $ref: '#/components/responses/Error' }
+        '422':
+          description: Credenciales inválidas o cuenta sin permiso de entrada (misma respuesta)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/sesion:
+    get:
+      tags: [auth]
+      summary: Sesión actual con permisos (sin caché)
+      responses:
+        '200': { $ref: '#/components/responses/Sesion' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Cierra la sesión y revoca los JWT de la cuenta
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { description: Sesión cerrada }
+        '401': { $ref: '#/components/responses/Error' }
+        '419': { $ref: '#/components/responses/Error' }
+  /auth/contrasena/solicitar:
+    post:
+      tags: [auth]
+      summary: Envía el enlace de recuperación (respuesta idéntica exista o no la cuenta)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email } } } } }
+      responses:
+        '202': { description: Solicitud recibida }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/contrasena/restablecer:
+    post:
+      tags: [auth]
+      summary: Restablece la contraseña con el token del correo; revoca JWT y sesiones
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, email, password, password_confirmation]
+              properties:
+                token: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10, maxLength: 72 }
+                password_confirmation: { type: string }
+      responses:
+        '200': { description: Contraseña actualizada }
+        '422': { $ref: '#/components/responses/Error' }
+  /academico/resumen:
+    get:
+      tags: [academico]
+      summary: Dashboard académico (bloques según permisos de módulo; ingresos solo rol admin)
+      description: Exige `panel.academico.acceder`.
+      responses:
+        '200': { description: Indicadores y bloques, content: { application/json: { schema: { type: object } } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/cursos:
+    get:
+      tags: [academico]
+      summary: Cursos (`cursos.ver`)
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: sort, in: query, schema: { type: string, enum: [nombre, -nombre, codigo, -codigo, cupos_disponibles, -cupos_disponibles, creado, -creado] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [activo, inactivo, archivado] } }
+        - { name: modalidad, in: query, schema: { type: string, enum: [presencial, semipresencial, virtual, hibrido] } }
+        - { name: categoria, in: query, schema: { type: string, enum: [tecnologia, educacion, salud, gestion, otros] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/cursos/{curso}:
+    get:
+      tags: [academico]
+      summary: Detalle de curso con estudiantes minimizados (`cursos.ver`)
+      parameters: [{ name: curso, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Curso }
+        '404': { $ref: '#/components/responses/Error' }
+  /servicios/resumen:
+    get:
+      tags: [servicios]
+      summary: Dashboard tecnológico (cotizaciones solo rol admin + `cotizaciones.ver`)
+      description: Exige `panel.servicios.acceder`.
+      responses:
+        '200': { description: Indicadores y bloques }
+        '403': { $ref: '#/components/responses/Error' }
+  /servicios/servicios:
+    get:
+      tags: [servicios]
+      summary: Catálogo interno de servicios (`servicios.ver`)
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: sort, in: query, schema: { type: string, enum: [nombre, -nombre, codigo, -codigo, actualizado, -actualizado] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [activo, inactivo, archivado] } }
+        - { name: publicacion, in: query, schema: { type: string, enum: [sin_ficha, borrador, publicada, retirada] } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '403': { $ref: '#/components/responses/Error' }
+  /servicios/cotizaciones:
+    get:
+      tags: [servicios]
+      summary: Bandeja de cotizaciones sin datos de contacto (rol admin + `cotizaciones.ver`)
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: sort, in: query, schema: { type: string, enum: [recibida, -recibida, codigo, -codigo, seguimiento, -seguimiento] } }
+        - { name: estado, in: query, schema: { type: string, enum: [recibida, en_revision] } }
+        - { name: codigo, in: query, schema: { type: string, maxLength: 40 } }
+        - { name: desde, in: query, schema: { type: string, format: date } }
+        - { name: hasta, in: query, schema: { type: string, format: date } }
+        - { name: seguimiento_pendiente, in: query, schema: { type: boolean } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '403': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    tokenServicio: { type: apiKey, in: header, name: X-Horus-Web-Token }
+  parameters:
+    Csrf: { name: X-CSRF-TOKEN, in: header, required: true, schema: { type: string } }
+    Pagina: { name: page, in: query, schema: { type: integer, minimum: 1 } }
+    PorPagina: { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+  responses:
+    Error:
+      description: Error con código estable
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Sesion:
+      description: Sesión del panel
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                required: [usuario, roles, permisos, paneles, csrf_token]
+                properties:
+                  usuario: { type: object, properties: { id: { type: integer }, nombre: { type: string }, email: { type: string } } }
+                  roles: { type: array, items: { type: string } }
+                  permisos: { type: array, items: { type: string } }
+                  paneles: { type: object, properties: { academico: { type: boolean }, servicios: { type: boolean } } }
+                  csrf_token: { type: string }
+                  expira_en: { type: [integer, 'null'], description: Fin de la vida absoluta (epoch en segundos) }
+    Listado:
+      description: Página de resultados
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { type: array, items: { type: object } }
+              meta:
+                type: object
+                properties:
+                  pagina: { type: integer }
+                  por_pagina: { type: integer }
+                  total: { type: integer }
+                  paginas: { type: integer }
+                  orden: { type: string }
+                  filtros: { type: object }
+  schemas:
+    Error:
+      type: object
+      required: [message, code]
+      properties:
+        message: { type: string }
+        code: { type: string }
+        errors: { type: object, additionalProperties: { type: array, items: { type: string } } }

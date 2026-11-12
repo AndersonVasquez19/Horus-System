@@ -6,21 +6,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicarCursoRequest;
-use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\CursoPublicacion;
-use App\Models\User;
-use Database\Seeders\RolesAndPermissionsSeeder;
+use App\Services\PublicacionCursos;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CursoPublicacionController extends Controller implements HasMiddleware
 {
+    public function __construct(private readonly PublicacionCursos $publicacion) {}
+
     public static function middleware(): array
     {
         return [new Middleware('permission:cursos.publicar')];
@@ -39,61 +38,34 @@ class CursoPublicacionController extends Controller implements HasMiddleware
 
     public function update(PublicarCursoRequest $request, Curso $curso): RedirectResponse
     {
-        $datos = $request->safe()->except('confirmacion_publica');
-        DB::transaction(function () use ($curso, $datos, $request): void {
-            $curso = Curso::withTrashed()->lockForUpdate()->findOrFail($curso->id);
-            $autor = $this->autorizarActual($request);
-            $existente = CursoPublicacion::where('curso_id', $curso->id)->lockForUpdate()->first();
-            $this->comprobarRevision($request, $curso, $existente);
-            if ($curso->trashed() || $curso->estado !== 'activo') {
-                throw ValidationException::withMessages(['titulo' => 'Solo puedes publicar un curso activo y no eliminado.']);
-            }
-            $publicacion = $existente ?? new CursoPublicacion(['curso_id' => $curso->id]);
-            $publicacion->fill([...$datos, 'publicada' => true, 'autorizado_por' => $autor->id]);
-            // La misma autorización y contenido no renuevan fechas ni duplican auditoría.
-            if ($publicacion->exists && ! $publicacion->isDirty()) {
-                return;
-            }
-            $publicacion->fill(['autorizado_at' => now()])->save();
-            AuditLog::record('curso_publicado', Curso::class, $curso->id, [
-                'modalidad' => $publicacion->modalidad,
-                'vigente_desde' => (string) $publicacion->vigente_desde,
-                'vigente_hasta' => (string) $publicacion->vigente_hasta,
-            ], $autor->id);
-        });
+        $actual = $request->user();
+        abort_unless($actual !== null, 403);
+        $this->publicacion->publicar(
+            $curso,
+            $request->safe()->except('confirmacion_publica'),
+            $actual,
+            fn (Curso $bloqueado, ?CursoPublicacion $ficha) => $this->comprobarRevision($request, $bloqueado, $ficha),
+        );
 
         return redirect()->route('admin.cursos.publicacion.edit', $curso)->with('success', 'La ficha pública fue autorizada. Su visibilidad depende de la vigencia indicada y del estado del curso.');
     }
 
     public function destroy(Request $request, Curso $curso): RedirectResponse
     {
-        DB::transaction(function () use ($curso, $request): void {
-            $curso = Curso::withTrashed()->lockForUpdate()->findOrFail($curso->id);
-            $autor = $this->autorizarActual($request);
-            $publicacion = CursoPublicacion::where('curso_id', $curso->id)->lockForUpdate()->first();
-            $this->comprobarRevision($request, $curso, $publicacion);
-            if ($publicacion === null || ! $publicacion->publicada) {
-                return;
-            }
-            $publicacion->update(['publicada' => false]);
-            AuditLog::record('curso_despublicado', Curso::class, $curso->id, ['publicada' => false], $autor->id);
-        });
+        $actual = $request->user();
+        abort_unless($actual !== null, 403);
+        $this->publicacion->despublicar(
+            $curso,
+            $actual,
+            fn (Curso $bloqueado, ?CursoPublicacion $ficha) => $this->comprobarRevision($request, $bloqueado, $ficha),
+        );
 
         return redirect()->route('admin.cursos.publicacion.edit', $curso)->with('success', 'La ficha dejó de estar publicada.');
     }
 
     private function revision(Curso $curso, ?CursoPublicacion $publicacion): string
     {
-        return '"'.hash('sha256', serialize([$curso->id, $publicacion?->getAttributes()])).'"';
-    }
-
-    private function autorizarActual(Request $request): User
-    {
-        $autor = $request->user()?->fresh();
-        abort_unless($autor !== null && $autor->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES)
-            && $autor->can('cursos.publicar'), 403);
-
-        return $autor;
+        return PublicacionCursos::revision($curso, $publicacion);
     }
 
     private function comprobarRevision(Request $request, Curso $curso, ?CursoPublicacion $publicacion): void

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCursoRequest;
 use App\Http\Requests\UpdateCursoRequest;
 use App\Models\Curso;
+use App\Services\GestionCursos;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
@@ -16,12 +17,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CursoController extends Controller implements HasMiddleware
 {
+    public function __construct(private readonly GestionCursos $gestion) {}
+
     /**
      * Permisos Spatie por acción; el grupo /admin ya exige sesión y rol administrativo.
      *
@@ -82,18 +83,7 @@ class CursoController extends Controller implements HasMiddleware
 
     public function store(StoreCursoRequest $request): RedirectResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-        $datos = $request->validated();
-        $datos['cupos_disponibles'] = $datos['cupos_maximos'];
-
-        // La auditoría es la última escritura de la transacción: si falla, el alta se revierte (fail-closed).
-        $curso = DB::transaction(function () use ($datos, $actor): Curso {
-            $curso = Curso::create($datos);
-
-            AuditoriaAcademica::registrarCreacion('curso_creado', $curso, AuditoriaAcademica::CURSO, $actor);
-
-            return $curso;
-        });
+        $curso = $this->gestion->crear($request->validated(), AuditoriaAcademica::actorDe($request));
 
         return redirect()
             ->route('admin.cursos.show', $curso)
@@ -120,28 +110,7 @@ class CursoController extends Controller implements HasMiddleware
 
     public function update(UpdateCursoRequest $request, Curso $curso): RedirectResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-        $datos = $request->validated();
-
-        DB::transaction(function () use ($curso, &$datos, $actor): void {
-            $curso = Curso::query()->lockForUpdate()->findOrFail($curso->id);
-            $matriculasActivas = $curso->matriculas()
-                ->where('estado', '!=', 'anulada')
-                ->count();
-
-            if ($datos['cupos_maximos'] < $matriculasActivas) {
-                throw ValidationException::withMessages([
-                    'cupos_maximos' => "No puedes reducir los cupos por debajo de las {$matriculasActivas} matrículas activas.",
-                ]);
-            }
-
-            $datos['cupos_disponibles'] = $datos['cupos_maximos'] - $matriculasActivas;
-            $curso->fill($datos);
-            $diferencias = AuditoriaAcademica::diferencias($curso, AuditoriaAcademica::CURSO);
-            $curso->save();
-
-            AuditoriaAcademica::registrarActualizacion('curso_actualizado', $curso, $diferencias, $actor);
-        });
+        $this->gestion->actualizar($curso, $request->validated(), AuditoriaAcademica::actorDe($request));
 
         return redirect()
             ->route('admin.cursos.show', $curso)
@@ -150,31 +119,10 @@ class CursoController extends Controller implements HasMiddleware
 
     public function destroy(Request $request, Curso $curso): RedirectResponse|JsonResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-        $vigentes = 0;
-
-        DB::transaction(function () use ($curso, $actor, &$vigentes): void {
-            // Sin withTrashed(): si otra petición ya lo archivó, no hay operación efectiva ni auditoría.
-            $bloqueado = Curso::query()->lockForUpdate()->find($curso->getKey());
-
-            if ($bloqueado === null) {
-                return;
-            }
-
-            // Con matrículas vigentes (pendiente/pagada) el curso conservaría cupos ocupados por alumnos que
-            // siguen inscritos: hay que anularlas antes. Se evalúa bajo el bloqueo del curso.
-            $vigentes = $bloqueado->matriculas()->whereIn('estado', ['pendiente', 'pagada'])->count();
-            if ($vigentes > 0) {
-                return;
-            }
-
-            $bloqueado->delete();
-
-            AuditoriaAcademica::registrarOperacion('curso_archivado', $bloqueado, 'archivado_logico', $actor);
-        });
+        $vigentes = $this->gestion->archivar($curso, AuditoriaAcademica::actorDe($request));
 
         if ($vigentes > 0) {
-            $mensaje = 'No se puede archivar el curso: tiene '.$vigentes.' matrícula(s) vigente(s). Anúlalas primero para liberar sus cupos.';
+            $mensaje = GestionCursos::mensajeMatriculasVigentes($vigentes);
 
             return $request->expectsJson()
                 ? response()->json(['message' => $mensaje], 422)
@@ -188,20 +136,7 @@ class CursoController extends Controller implements HasMiddleware
 
     public function restaurar(Request $request, string $curso): RedirectResponse
     {
-        $actor = AuditoriaAcademica::actorDe($request);
-
-        DB::transaction(function () use ($curso, $actor): void {
-            $bloqueado = Curso::withTrashed()->lockForUpdate()->findOrFail($curso);
-
-            // Restaurar un curso no archivado no es una operación efectiva: no se audita (evita duplicados).
-            if (! $bloqueado->trashed()) {
-                return;
-            }
-
-            $bloqueado->restore();
-
-            AuditoriaAcademica::registrarOperacion('curso_restaurado', $bloqueado, 'restauracion', $actor);
-        });
+        $this->gestion->restaurar($curso, AuditoriaAcademica::actorDe($request));
 
         return redirect()
             ->route('admin.cursos.index', ['eliminados' => 1])

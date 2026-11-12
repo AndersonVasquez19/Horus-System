@@ -3,18 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
-use App\Support\SessionRevoker;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Support\RestablecimientoContrasena;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ResetPasswordController extends Controller
@@ -52,30 +47,13 @@ class ResetPasswordController extends Controller
             throw $error;
         }
 
-        $status = DB::transaction(fn () => Password::reset(
-            [
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-                'password_confirmation' => $request->input('password_confirmation'),
-                'token' => $validated['token'],
-            ],
-            function ($user, string $password) {
-                // jwt_version + 1 revoca los JWT emitidos antes del cambio; SessionRevoker cierra las sesiones web.
-                // El reset NO verifica el correo (Sprint 14: no debe saltarse la verificación de registro).
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                    'jwt_version' => (int) $user->jwt_version + 1,
-                ])->setRememberToken(Str::random(60));
-
-                $user->save();
-                SessionRevoker::revokeSessions($user);
-
-                // Actor explícito: en el reset no hay sesión autenticada. Sin la contraseña ni el token.
-                AuditLog::record('password_reset', $user::class, $user->getKey(), [], (int) $user->getKey());
-
-                event(new PasswordReset($user));
-            },
-        ));
+        // Revoca JWT y sesiones web, audita y no verifica el correo: ver RestablecimientoContrasena.
+        $status = RestablecimientoContrasena::restablecer([
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'password_confirmation' => $request->input('password_confirmation'),
+            'token' => $validated['token'],
+        ]);
 
         if ($status === Password::PASSWORD_RESET) {
             return redirect()->route('login')->with('success', 'Contraseña actualizada correctamente.');

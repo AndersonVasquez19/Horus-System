@@ -17,7 +17,7 @@ Una instrucción genérica («implementa el sprint», «arregla la suite») **no
 
 ## 2. Alcance predeterminado: solo backend
 
-Las rutas de la tabla son relativas a `apps/api/` (Laravel se movió allí en la etapa 8). `apps/web/**` (Next.js) sigue la misma regla de frontend protegido.
+Las rutas de la tabla son relativas a `apps/api/` (Laravel se movió allí en la etapa 8). `apps/web/**` (Next.js) sigue la misma regla de frontend protegido, con la excepción acotada de los paneles administrativos descrita en «Autorización del 12/11/2026 (paneles administrativos en Next.js)».
 
 Sin autorización expresa para la tarea concreta, **no modificar**:
 
@@ -44,6 +44,29 @@ Si una funcionalidad exige tocar esas zonas:
 
 El propietario autorizó retirar de Laravel las páginas Blade **estáticas** que `apps/web` ya cubre (home, quiénes somos, galería, contactos, las cuatro legales, asesoramiento y capacitaciones), sustituyendo sus rutas por redirecciones. No alcanza al panel, a la autenticación ni a las páginas con formulario o datos de Laravel, ni a Vite. Cada fase posterior requiere autorización propia.
 
+### Autorización del 12/11/2026 (paneles administrativos en Next.js; no es precedente)
+
+El propietario aprobó una sola aplicación Next.js con dos paneles, `/admin/academico` y `/admin/servicios`, bajo un mismo origen, con Laravel como autoridad de autenticación y autorización ([`docs/arquitectura-paneles.md`](docs/arquitectura-paneles.md)). Se autorizó por etapas, y solo hasta donde se indica:
+
+| Etapa | Contenido | Estado |
+| --- | --- | --- |
+| 0 | Documentación de la arquitectura y de las decisiones | Ejecutada |
+| 1 | Base de `apps/web`: carpetas, layouts, tokens | Ejecutada |
+| 1.1 | Cierre de observaciones: aislamiento visual, contrato de navegación, accesibilidad | Ejecutada |
+| Prompt maestro (12/11/2026) | Ejecución continua por fases 1–8: autenticación + BFF, API del panel, módulos académicos y tecnológicos, servicios compartidos, formularios públicos y retirada progresiva de Blade | **Autorizada**, con los límites de su sección 13 (abajo) |
+
+**Límites del prompt maestro:** sin despliegues, push, cambio de rama ni comandos destructivos de Git; sin migraciones ni escrituras en bases reales (las migraciones se prueban en SQLite en memoria o en un SQLite desechable fuera del repositorio); sin modificar credenciales ni variables de entorno reales; sin dependencias nuevas sin aprobación; sin retirar rutas, vistas Blade, Vite o activos antes de validar su reemplazo; correos y PDF Blade se conservan; el CI suspendido no se reactiva.
+
+**Áreas administrativas de `apps/web` que pueden desarrollarse** (dentro de la fase en curso): `src/app/(admin)/**`, `src/app/(acceso)/**` (login y recuperación), `src/app/api/bff/**`, `src/proxy.ts`, `src/lib/panel/**`, `src/components/{shared,academico,servicios}/**`, `src/features/**`, los bloques «Paneles administrativos» y «Aislamiento del tema público» de `src/app/globals.css`, y la documentación (`PROJECT_CONTEXT.md`, `docs/arquitectura-paneles.md`).
+
+**Áreas de `apps/api` para la API de los paneles:** `routes/panel.php`, `app/Http/Controllers/Api/Panel/**`, `app/Services/Panel/**`, `app/Support/Panel/**`, los middleware `AutenticarBffPanel` y `SesionPanelVigente`, `config/panel.php`, `tests/Feature/Panel/**` y migraciones nuevas de permisos (constante en el seeder **y** migración). Extraer lógica de controladores Blade a servicios está permitido si conserva el comportamiento y sus pruebas.
+
+**Áreas públicas que siguen protegidas** (requieren autorización expresa): las páginas públicas bajo `src/app/**` fuera de `(admin)`, `src/components/{home,faq,galeria,libro,chat,layout}/**`, `src/data/**`, `public/**`, los estilos y tokens públicos de `globals.css` fuera de esos bloques, y `src/app/layout.tsx` salvo los contenedores `data-chrome-publico` ya incorporados. No trasladar páginas públicas a nuevos route groups sin autorización específica.
+
+**Requieren siempre autorización expresa y de la etapa:** autenticación, BFF y cookies de sesión; endpoints de panel; permisos nuevos (constante en el seeder **y** migración); páginas funcionales de los paneles; módulos; dependencias nuevas; retirar Blade o Vite.
+
+**Siguen vigentes sin cambios:** la protección de `AdminProtection` y de las salvaguardas de pruebas; PostgreSQL S7 suspendido; no modificar `apps/ai` (Python) salvo en la fase de Horus AI. Commit, push y despliegue siguen exigiendo petición expresa.
+
 ### Excepción histórica (no es precedente)
 
 La restauración del 28 de octubre de 2026 fue una excepción limitada: retirar un marcador Vite obsoleto (`public/hot`) y recuperar únicamente los fragmentos originales identificados, preservando el backend. **No autoriza cambios visuales futuros.** Evidencia y alcance: [`docs/restauracion-web-publica.md`](docs/restauracion-web-publica.md).
@@ -58,6 +81,7 @@ La restauración del 28 de octubre de 2026 fue una excepción limitada: retirar 
 **Durante**
 
 - Cambios mínimos y focalizados; convenciones del archivo editado; nombres de dominio en español.
+- Servidores de desarrollo: iniciarlos solo enlazados a `127.0.0.1`, detenerlos al terminar y no detener procesos que no sean propios. `next dev` conserva una caché en `.next/dev` (carpeta generada e ignorada por Git): si tras editar `globals.css` el CSS servido no cambia, detener el servidor propio y vaciarla.
 - Para un fallo reproducible, añadir una prueba de regresión.
 - Permisos nuevos: constante en `RolesAndPermissionsSeeder` **y** migración propia (el seeder resincroniza roles y no sirve para bases con datos).
 - No debilitar controles, validaciones, salvaguardas (`AdminProtection`, `app/Support/Testing/`, `config/pgsql-testing-database.php`) ni ampliar tiempos de espera para ocultar un fallo.
@@ -115,6 +139,7 @@ Si existe un valor predeterminado seguro y reversible, declararlo, aplicarlo y c
 | Contratos, comandos y validación | [`CLAUDE.md`](CLAUDE.md) |
 | Instalación y configuración | [`README.md`](README.md) |
 | Restauración web pública y protección del frontend | [`docs/restauracion-web-publica.md`](docs/restauracion-web-publica.md) |
+| Arquitectura de los paneles administrativos | [`docs/arquitectura-paneles.md`](docs/arquitectura-paneles.md) |
 | Publicación editorial de cursos (Sprint 09) | [`docs/sprint-09-publicacion-cursos.md`](docs/sprint-09-publicacion-cursos.md) |
 | Reglas de matrículas (Sprint 08) | [`docs/sprint-08-reglas-matriculas.md`](docs/sprint-08-reglas-matriculas.md) |
 | Seguridad | [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md) |

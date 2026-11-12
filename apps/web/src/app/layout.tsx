@@ -71,10 +71,19 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${poppins.variable} ${montserrat.variable} scroll-smooth`}>
       <body className="min-h-screen flex flex-col bg-[#0A2540] text-slate-100 antialiased selection:bg-gold selection:text-ink-dark">
-        <Navbar />
+        {/*
+          Los contenedores `contents` no alteran el diseño público. Los paneles (/admin) los ocultan
+          con CSS (globals.css, bloque «Aislamiento del tema público»): sin lógica de ruta en el
+          cliente, sin desajuste de hidratación en el 404 prerenderizado y sin parpadeo.
+        */}
+        <div data-chrome-publico className="contents">
+          <Navbar />
+        </div>
         <main className="flex-1">{children}</main>
-        <Footer />
-        <ChatWidget />
+        <div data-chrome-publico className="contents">
+          <Footer />
+          <ChatWidget />
+        </div>
       </body>
     </html>
   );

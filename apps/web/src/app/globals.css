@@ -13,6 +13,117 @@
   --shadow-gold: 0 12px 40px rgba(201, 169, 97, 0.25);
 }
 
+/*
+ * Paneles administrativos. Solo definen variables y utilidades nuevas: no alteran ningún token
+ * ni estilo del sitio público.
+ *   academico-*  -> panel de gestión académica (azul)
+ *   servicios-*  -> panel de servicios tecnológicos (verde)
+ *   panel-*      -> neutros compartidos por ambos paneles (tema claro)
+ *   estado-*     -> éxito, aviso, error e información
+ * `static` emite todas las variables siempre: las reglas de aislamiento de más abajo dependen de ellas.
+ * Contraste (WCAG 2.1): texto blanco desde 700 (azul 6,7:1, verde 5,5:1); contornos de foco con 700;
+ * el 600 verde (3,8:1 sobre blanco) solo para elementos grandes o decorativos, nunca para texto ni foco.
+ */
+@theme static {
+  --color-academico-50: #EFF6FF;
+  --color-academico-100: #DBEAFE;
+  --color-academico-200: #BFDBFE;
+  --color-academico-300: #93C5FD;
+  --color-academico-400: #60A5FA;
+  --color-academico-500: #3B82F6;
+  --color-academico-600: #2563EB;
+  --color-academico-700: #1D4ED8;
+  --color-academico-800: #1E40AF;
+  --color-academico-900: #1E3A8A;
+  --color-academico-950: #172554;
+
+  --color-servicios-50: #ECFDF5;
+  --color-servicios-100: #D1FAE5;
+  --color-servicios-200: #A7F3D0;
+  --color-servicios-300: #6EE7B7;
+  --color-servicios-400: #34D399;
+  --color-servicios-500: #10B981;
+  --color-servicios-600: #059669;
+  --color-servicios-700: #047857;
+  --color-servicios-800: #065F46;
+  --color-servicios-900: #064E3B;
+  --color-servicios-950: #022C22;
+
+  --color-panel-bg: #F8FAFC;
+  --color-panel-surface: #FFFFFF;
+  --color-panel-border: #E2E8F0;
+  --color-panel-text: #0F172A;
+  --color-panel-muted: #475569;
+  --color-panel-scroll: #94A3B8;
+  --color-panel-scroll-hover: #64748B;
+
+  --color-estado-exito: #15803D;
+  --color-estado-aviso: #B45309;
+  --color-estado-error: #B91C1C;
+  --color-estado-info: #1D4ED8;
+}
+
+/*
+ * Aislamiento del tema público bajo los paneles (/admin).
+ *
+ * El layout raíz aplica al <body> el tema público (fondo azul marino, texto claro, selección y
+ * barra de desplazamiento dorados) y las páginas públicas no se pueden trasladar a un grupo
+ * `(public)` todavía. Mientras el panel esté en pantalla, estas reglas sustituyen ese tema en el
+ * <html>/<body>: así lo heredan también los portales de React, los menús, los diálogos y todo lo
+ * que se pinte directamente en document.body, sin depender de un contenedor.
+ *
+ * Marcadores (los pone el servidor, sin JavaScript de cliente):
+ *   [data-panel-root]        -> (admin)/admin/layout.tsx: activa el aislamiento de /admin.
+ *   [data-panel-tono="..."]  -> PanelShell: color de selección de cada panel (dentro de la raíz).
+ * Ambos los gestiona MarcaPanel y existen solo mientras el panel está en pantalla: con
+ * `cacheComponents` Next conserva el panel oculto en el DOM al salir, y un atributo fijo seguiría
+ * casando con :has().
+ *   [data-chrome-publico]    -> app/layout.tsx: barra, pie y chat públicos; se ocultan.
+ * Estas reglas no están en una capa de Tailwind, así que prevalecen sobre las utilidades del <body>.
+ * Sin marcador (sitio público y 404) no se aplica nada. Requiere :has() (Chrome 105, Safari 15.4,
+ * Firefox 121).
+ */
+:root:has([data-panel-root]) {
+  --background: var(--color-panel-bg);
+  --foreground: var(--color-panel-text);
+  color-scheme: light;
+  scroll-behavior: auto;
+}
+
+body:has([data-panel-root]) [data-chrome-publico] {
+  display: none;
+}
+
+:root:has([data-panel-root])::-webkit-scrollbar-track,
+:root:has([data-panel-root]) ::-webkit-scrollbar-track {
+  background: var(--color-panel-bg);
+}
+
+:root:has([data-panel-root])::-webkit-scrollbar-thumb,
+:root:has([data-panel-root]) ::-webkit-scrollbar-thumb {
+  background: var(--color-panel-scroll);
+}
+
+:root:has([data-panel-root])::-webkit-scrollbar-thumb:hover,
+:root:has([data-panel-root]) ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-panel-scroll-hover);
+}
+
+:root:has([data-panel-root]) ::selection {
+  background: var(--color-panel-border);
+  color: var(--color-panel-text);
+}
+
+:root:has([data-panel-root] [data-panel-tono="academico"]) ::selection {
+  background: var(--color-academico-200);
+  color: var(--color-academico-950);
+}
+
+:root:has([data-panel-root] [data-panel-tono="servicios"]) ::selection {
+  background: var(--color-servicios-200);
+  color: var(--color-servicios-950);
+}
+
 :root {
   --background: #0A2540;
   --foreground: #f8fafc;

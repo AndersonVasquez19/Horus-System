@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SolicitudCotizacion extends Model
 {
@@ -20,5 +21,11 @@ class SolicitudCotizacion extends Model
     public function etag(): string
     {
         return '"cotizacion-'.$this->identificador.'-v'.$this->revision.'"';
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function responsable(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsable_id');
     }
 }

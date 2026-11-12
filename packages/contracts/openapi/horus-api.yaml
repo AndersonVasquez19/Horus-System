@@ -16,7 +16,8 @@ info:
 
     Fuera de este documento, a propósito: `/api/auth/email-verification/*` (suspendido tras
     `VerificacionRegistroHabilitada`), `/api/v1/catalog/*` (sincronización firmada entre Laravel y Horus AI) y todo
-    `/admin` (sesión, CSRF y permisos de Spatie; no es una API pública).
+    `/admin` (sesión, CSRF y permisos de Spatie; no es una API pública). La API de los paneles de apps/web
+    (`/api/panel/v1/*`) tiene su propio contrato: `horus-panel-api.yaml`.
 servers:
   - url: http://127.0.0.1:8000
     description: Laravel local (`php artisan serve`)

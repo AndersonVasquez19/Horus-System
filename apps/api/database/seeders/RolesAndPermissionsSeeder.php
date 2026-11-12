@@ -28,8 +28,23 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Solicitudes públicas de matrícula: solo admin por defecto. @var list<string> */
     public const SOLICITUDES_MATRICULA_PERMISSIONS = ['solicitudes-matricula.ver', 'solicitudes-matricula.gestionar'];
 
+    /** Entrada al panel académico de apps/web (/admin/academico). */
+    public const PANEL_ACADEMICO = 'panel.academico.acceder';
+
+    /** Entrada al panel de servicios tecnológicos de apps/web (/admin/servicios). Solo admin por defecto. */
+    public const PANEL_SERVICIOS = 'panel.servicios.acceder';
+
+    /**
+     * Permisos de entrada a los paneles de apps/web. Son necesarios, no suficientes: cada operación
+     * de la API del panel exige además su permiso de módulo.
+     *
+     * @var list<string>
+     */
+    public const PANEL_PERMISSIONS = [self::PANEL_ACADEMICO, self::PANEL_SERVICIOS];
+
     /** @var list<string> */
     public const PERMISSIONS = [
+        ...self::PANEL_PERMISSIONS,
         ...self::SERVICIOS_PERMISSIONS,
         ...self::COTIZACIONES_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
@@ -77,6 +92,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
     /** @var list<string> */
     public const COORDINADOR_PERMISSIONS = [
+        self::PANEL_ACADEMICO,
         'estudiantes.ver',
         'estudiantes.crear',
         'estudiantes.editar',
@@ -98,6 +114,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
     /** @var list<string> */
     public const SECRETARIA_PERMISSIONS = [
+        self::PANEL_ACADEMICO,
         'estudiantes.ver',
         'estudiantes.crear',
         'cursos.ver',

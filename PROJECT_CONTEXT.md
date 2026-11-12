@@ -4436,6 +4436,22 @@ para el panel, la autenticación, los formularios ni Vite (ver `AGENTS.md`).
   ejecutaron ni se actualizaron (requieren Edge). Fase 2 y Fase 3 siguen sin autorización.
 - **Reversión:** `git revert dcd2f55` (las vistas y assets quedan en el historial).
 
+## Fase 2a: catálogo público JSON y primer consumo desde Next.js — 12/11/2026
+
+Dos commits locales en `monorepo/base` (sin push), verificados en el historial el 12/11/2026 y no registrados antes en este
+documento. `0075cba` (API): `GET /api/public/v1/{cursos,servicios,paginas/{pagina}}`, solo lectura, con los mismos servicios
+y defensas que las vistas Blade; protegidos por el token de servicio `X-Horus-Web-Token` (`HORUS_WEB_SERVICE_TOKEN`, mínimo
+32 caracteres; sin token configurado responden 404, con token incorrecto 401, comparación en tiempo constante), limitador
+`publico-web` y `Cache-Control: no-store`; los fallos técnicos devuelven 503 con un código genérico. Archivos:
+`CatalogoPublicoController`, `AutenticarServicioWeb`, `config/horus-web.php`, `routes/api.php`, `AppServiceProvider` y
+`ApiPublicaCatalogoTest`. `38dc510` (web): `/educacion/cursos` pide el catálogo a esa ruta desde el servidor de Next
+(`src/lib/horus-api.ts`, `server-only`, dentro de `Suspense`) y muestra solo las fichas con autorización editorial; sin
+configuración, con el catálogo apagado o ante un fallo, un aviso con enlace a contactos. `apps/web/.env.example` documenta
+`HORUS_API_URL` y `HORUS_WEB_SERVICE_TOKEN`.
+
+**Pendiente:** `packages/contracts/openapi/horus-api.yaml` no incluye todavía `/api/public/v1/*` (se escribió a mano antes de
+estos endpoints). Es el único cliente HTTP de `apps/web`; no hay cliente de usuarios ni de panel.
+
 ## Fase 2a, cierre: servicios y páginas de tecnologías desde Laravel — 12/11/2026
 
 **Rutas de Next conectadas (servidor a servidor, `src/lib/horus-api.ts`, siempre dentro de `Suspense`):**
@@ -4596,3 +4612,200 @@ navegador no permitió estrechar la ventana, así que el comportamiento responsi
 **Contrato:** `packages/contracts/openapi/horus-api.yaml` documenta las dos rutas y sus esquemas.
 
 **Validación (12/11/2026).** Con transporte simulado (PHPUnit, SQLite en memoria; **no prueba PostgreSQL, concurrencia real ni correo**): `ApiPublicaCotizacionesTest` (20 pruebas: token, apagado y solo `true`, servicios ofrecidos con título público, alta con servicio asociado y texto, varios servicios, historial y auditoría sin datos personales, servicios inválidos o no disponibles, datos incompletos o inválidos, campos del servidor y precios rechazados, marca joven o caducada, idempotencia, duplicado de contenido y necesidad distinta, límites por visitante y correo, reintentos y rechazos sin consumo, ráfagas, sin consulta pública, Blade sin cambios, **recepción en la bandeja con búsqueda por código, filtros, detalle, estado, responsable, seguimiento e historial**, y permisos) más el conteo de rutas de `ApiPublicaCatalogoTest`. **Con Laravel real** (servidor PHP en loopback, base SQLite desechable fuera del repositorio con todas las migraciones, el seeder de roles y servicios activos y publicados; caché en esa base) a través de Next: 23 comprobaciones (marca joven, alta, idempotencia, duplicado de contenido, necesidad distinta, varios servicios, servicio inexistente, correo inválido, sin consentimiento, honeypot, campos del servidor descartados en Next, origen ausente o ajeno 403, no JSON 415, cuerpo enorme 413, JSON roto 400, 405, 429 de Laravel con otro visitante intacto), recepción apagada (503) y Laravel caído (503); filas `publico/recibida` sin responsable ni operador, historial `creada` con actor nulo y auditoría con IP y usuario nulos. Chrome: preselección por `?servicio=`, errores por campo y alta real con confirmación. **Límites:** PostgreSQL no validado (no hay migraciones nuevas ni se ejecutó nada sobre bases persistentes; el comportamiento de los `CHECK`, el índice único de identidad y la concurrencia solo se probaron en SQLite); la gestión desde el panel se probó por sus endpoints JSON y la vista Blade con transporte simulado, no en un navegador contra el panel real; mensajes de campo de Laravel en inglés; responsive no verificado en ancho estrecho; la solicitud con varios servicios asocia solo el primero a la columna filtrable; la activación real depende de `recepcion-cotizaciones.enabled`, `catalogo-servicios.enabled` y de la decisión de privacidad.
+
+## Auditoría de arquitectura de los dos paneles y decisiones — 12/11/2026
+
+Auditoría integral de solo lectura (Git, `apps/web`, `apps/api`, PostgreSQL por migraciones, `apps/ai`, contratos y CI), sin
+modificar archivos ni ejecutar pruebas, migraciones o servicios. Detalle, matriz de módulos y plan por etapas:
+[arquitectura de los paneles](docs/arquitectura-paneles.md).
+
+**Decisiones aprobadas por el propietario (12/11/2026):** (1) una sola aplicación Next.js con dos paneles independientes por
+layouts y rutas: `/admin/academico` (azul) y `/admin/servicios` (verde); (2) despliegue bajo un mismo origen mediante proxy
+inverso; (3) Laravel como backend central y autoridad de autenticación y autorización; (4) se conservan los roles `admin`,
+`coordinador` y `secretaria`; (5) permisos de entrada independientes por panel; (6) capacitaciones y asesorías serán módulos
+operativos académicos; (7) reclamaciones con gestión centralizada y clasificación por dominio.
+
+**Hechos verificados que condicionan el diseño:**
+
+- **Laravel ya implementa** estudiantes, cursos y su publicación editorial, matrículas y cupos, servicios tecnológicos,
+  cotizaciones, reclamaciones, usuarios, roles y permisos, notificaciones, aprobaciones y auditoría, todo en Blade. **No existe
+  una API JSON del panel**: solo `/api/auth/*` (JWT) y `/api/public/v1/*` (token de servicio).
+- **No existen** convocatorias, ediciones, calificaciones, capacitaciones y asesorías como entidad, clientes, prospectos, CRM,
+  pipeline, proyectos ni soporte técnico. `cursos.horario` es texto libre; los datos del solicitante de una cotización están
+  embebidos en `solicitudes_cotizacion`; los convenios son contenido estático (`ConveniosPublicos`).
+- **Autorización:** guard único `web`, tres roles, 52 permisos `modulo.accion` (recuento por expresión regular sobre
+  `RolesAndPermissionsSeeder`), sin Policies (los permisos se aplican con `HasMiddleware` en cada controlador). `coordinador` y
+  `secretaria` reciben permisos académicos y algunos transversales (`aprobaciones`, `reportes`, `asistente.ver`,
+  `respaldo.ver`); servicios, cotizaciones y reclamaciones son solo de `admin`, y cotizaciones exige además `role:admin`. No hay
+  Sanctum ni `config/cors.php`.
+- **Reclamaciones:** módulo completo en Laravel sin campo de dominio. Horus AI no clasifica reclamaciones ni deriva a
+  paneles; solo sugerirá un dominio y una persona lo confirmará.
+- **Next.js:** 16 páginas públicas (16 `page.tsx`); sin autenticación, `proxy.ts`/`middleware.ts`, route groups ni pruebas
+  automáticas; un único cliente HTTP (`src/lib/horus-api.ts`). `/admin`, `/admin/academico`, `/admin/servicios` y `/login`
+  estaban libres en Next; Laravel sirve hoy `/login`, `/register` y `/admin`.
+- **Pruebas de Laravel:** PHPUnit ^11.5 (no Pest), SQLite en memoria y un perfil PostgreSQL aislado (puerto 55433). Los CHECK,
+  el índice único parcial de matrículas y las FK RESTRICT solo existen en PostgreSQL.
+
+**Decisiones de autenticación y autorización:** Laravel decide siempre y el frontend solo oculta navegación; dos permisos de
+entrada independientes (nombres sin confirmar; en estudio `panel.academico.acceder` y `panel.servicios.acceder`, que **no
+existen**), de modo que los permisos académicos no abren `/admin/servicios` ni al revés; sesión por cookie HttpOnly con CSRF y
+BFF en el mismo origen (sin JWT en el navegador, que se conserva para las integraciones existentes); permisos nuevos con
+constante en el seeder y migración que los cree sin resincronizar el resto; `AdminProtection` no se toca.
+
+**Discrepancias detectadas:** este documento no registraba la Fase 2a; el OpenAPI no cubre `/api/public/v1/*`;
+`docs/auditoria-panel-2026-11.md` aún nombra `ci.yml` (hoy `ci-api.yml`). `CLAUDE.md` y `README.md` no mencionan los paneles
+ni este documento: no hay contradicción imprescindible, así que no se modificaron (pendiente menor: añadir la referencia al
+índice de `CLAUDE.md` §9).
+
+## Etapas 0 y 1 de los paneles: documentación y base de Next.js — 12/11/2026
+
+**Estado:** ejecutadas y **aceptadas con observaciones** tras la revisión independiente (sección siguiente). Las observaciones
+se cerraron en la Etapa 1.1. Alcance autorizado: solo documentación y preparación de `apps/web`; nada de autenticación, BFF,
+endpoints, modelos, middleware, permisos, migraciones, PostgreSQL, dependencias, traslado o retiro de páginas, Blade ni Vite.
+Sin commit ni push. Punto de reversión: HEAD `38dc510` con el árbol limpio al empezar.
+
+**Etapa 0:** las secciones de este bloque y [`docs/arquitectura-paneles.md`](docs/arquitectura-paneles.md) (dominios,
+responsabilidades, rutas, servicios compartidos, decisiones de acceso, estructura, etapas, riesgos y pendientes).
+
+**Etapa 1 (`apps/web`), tal como se ejecutó:** layouts de panel sin ninguna página (`src/app/(admin)/admin/layout.tsx`,
+`academico/layout.tsx` y `servicios/layout.tsx`) con un `PanelShell` común y navegación vacía; ninguna ruta de panel
+expuesta; un componente de cliente `OcultarEnPanel` (que ocultaba barra, pie y chat según `usePathname`) con dos usos en
+`src/app/layout.tsx`; tokens `acad-*`, `serv-*`, `panel-*` y `estado-*` en `globals.css` (solo añadidos); carpetas vacías con
+`.gitkeep`. Validación entonces: `tsc` 0 errores, ESLint de los archivos propios sin problemas, `verify:assets` 69 de 69,
+`next build` correcto. **`OcultarEnPanel` y los nombres `acad`/`serv`/`technology` se sustituyeron después, en la
+Etapa 1.1 (más abajo).**
+
+## Revisión de aceptación de las Etapas 0 y 1 — 12/11/2026
+
+Revisión independiente de solo lectura sobre los archivos de las Etapas 0 y 1. **Sin hallazgos críticos.** Importantes: I1
+posible desajuste de hidratación en los 404 bajo `/admin` (el HTML prerenderizado de producción incluye barra y pie, y en el
+cliente `OcultarEnPanel` los retiraba); I2 cifras erróneas en la documentación (las páginas públicas son 16, no 17; el build
+lista 17 entradas con `/_not-found` y genera 19 páginas estáticas); I3 `AGENTS.md` seguía declarando protegido todo
+`apps/web/**`; I4 el contrato de navegación no admitía permisos y su lectura dinámica no estaba evaluada frente a
+`cacheComponents`; I5 los portales de React quedaban fuera del contenedor del panel y heredaban el tema público. Menores:
+`aside`/`nav`, `header` dentro de `main`, estados activos y `aria-current`, indicadores de foco, selección y barra de
+desplazamiento públicas, metadatos heredados, nombres `technology`/`servicios`/`serv`, permisos transversales descritos como
+académicos y una frase contradictoria sobre ESLint. **Veredictos: Etapa 0 y Etapa 1, aceptadas con observaciones.**
+
+## Etapa 1.1: cierre de observaciones de arquitectura frontend — 12/11/2026
+
+**Estado:** ejecutada; pendiente de aceptación. Sin commit ni push; mismo alcance acotado (nada de autenticación, BFF,
+endpoints, Laravel, PostgreSQL, Python, dependencias, páginas funcionales ni traslado de páginas públicas). Punto de
+reversión: HEAD `38dc510`; copia previa de los archivos editados con SHA-256 fuera del repositorio.
+
+**I1 (hidratación) — confirmado por evidencia estática, no por ejecución en producción.** En el navegador `usePathname` sale de
+`location.href` (`next/dist/client/components/app-router.js`, `create-initial-router-state.js`), mientras el 404 se prerenderiza
+una sola vez con la barra y el pie (`.next/server/app/_not-found.html`): cualquier URL inexistente bajo `/admin` hidrataba un
+árbol distinto. En desarrollo no se reproduce (el servidor renderiza con la ruta real; sin errores de consola). Corrección:
+`OcultarEnPanel` se eliminó. Barra, pie y chat van en contenedores `data-chrome-publico` (`display: contents`) que el CSS
+oculta mientras el panel está en pantalla.
+
+**Hallazgo nuevo al verificar el aislamiento:** con `cacheComponents`, Next conserva el panel en el DOM, oculto, al navegar
+fuera de él; un marcador fijo hacía que `:has()` siguiera casando y el tema del panel (fondo claro, sin barra ni pie) se
+quedaba en las páginas públicas tras salir del panel. Se comprobó en el navegador y se corrigió con `MarcaPanel`, que
+gestiona los atributos `data-panel-root` y `data-panel-tono` con un efecto de layout (se retiran al ocultarse el panel y se
+reponen antes de pintar), manteniéndolos en el HTML del servidor para que no haya parpadeo.
+
+**I2 (documentación):** corregidas las cifras (16 `page.tsx`; 17 entradas del build con `/_not-found`; 19 páginas generadas),
+el recuento de permisos (52; la auditoría decía "unos 59"), la descripción de los permisos transversales y la frase de ESLint;
+se distinguen etapas ejecutadas, aceptadas y pendientes. **I3 (`AGENTS.md`):** nueva sección «Autorización del 12/11/2026
+(paneles administrativos en Next.js)» con las áreas que pueden desarrollarse, las públicas protegidas, lo que exige
+autorización expresa y lo que sigue vigente para Laravel, PostgreSQL y Python; regla sobre servidores de desarrollo. Referencia
+añadida a la tabla final. `CLAUDE.md` y `README.md` no se modificaron.
+
+**I4 (navegación):** contrato en `components/shared/panel-tipos.ts` (`ModeloNavegacion`: grupos con `id` y `etiqueta?`; entradas
+con `id` estable, `etiqueta`, `href`, `icono?`, `permisosRequeridos?`, `coincidencia?`). Iconos por clave
+(`panel-iconos.ts`, serializable entre servidor y cliente). Estado activo con `aria-current` y menú plegable en móvil en el
+cliente (`panel-navegacion.tsx`). Sin filtrado, sin lectura de sesión y sin ningún permiso definido: los arreglos `NAVEGACION`
+siguen vacíos. Evaluación de `cacheComponents`/`Suspense` y estrategia recomendada para la Etapa 2 en
+[arquitectura de los paneles](docs/arquitectura-paneles.md).
+
+**I5 (aislamiento visual):** reglas sin capa de Tailwind en `globals.css` (`:root:has([data-panel-root])`) sustituyen fondo,
+texto, `color-scheme`, `scroll-behavior`, selección y barra de desplazamiento y ocultan el chrome público; al actuar sobre
+`<html>`/`<body>` las heredan los portales, menús y diálogos pintados en `document.body`. Selección por panel (azul o verde).
+Sin marcador (sitio público y 404) no se aplica nada. **Menores:** `aside` y `header` sustituidos por `div` (el layout raíz
+aporta el único `main`), enlace de salto con foco visible, foco con tonos 700, `Suspense` alrededor de la barra lateral,
+metadatos del panel (descripción, palabras clave y Open Graph propios; `noindex, nofollow, nocache`), y nombres unificados:
+`components/academico` y `components/servicios`, tokens `academico-*` y `servicios-*` (se eliminaron `academic`, `technology`,
+`acad` y `serv`); el contrato pasó a `panel-tipos.ts` para no confundirlo con `panel-navegacion.tsx`.
+
+**Validación realizada.** Con `next dev` propio en `127.0.0.1:3100` y Chrome, usando fixtures temporales (páginas bajo
+`/admin`, borradas antes de compilar; no son páginas funcionales): sin errores ni avisos en la consola; en `/admin/academico`
+y `/admin/servicios` el chrome público queda oculto y fondo, texto, selección, barra de desplazamiento, `color-scheme` y
+`scroll-behavior` son los del panel; un portal en `document.body` hereda el texto del panel; el estado activo y `aria-current`
+funcionan; el enlace de salto aparece al enfocarlo y mueve el foco; el menú móvil (comprobado en un `iframe` de 390 px) se
+abre, se cierra con Escape devolviendo el foco, se cierra al pulsar un enlace y no desborda; las páginas públicas (`/`,
+`/quienes-somos`, `/educacion/cursos`) y los 404 (`/foo`, `/admin/zzz`) conservan chrome y tema públicos; la navegación del
+router del cliente entre panel verde, panel azul y páginas públicas (incluido Atrás) activa y desactiva el aislamiento
+correctamente. Con el árbol final, sin fixtures: `next build` correcto (17 entradas, 19 páginas estáticas, ninguna `/admin`),
+`tsc --noEmit` 0 errores, ESLint de los archivos propios sin problemas, `verify:assets` 69 de 69, 16 `page.tsx`, HTML
+prerenderizado de `/`, `/quienes-somos` y `/educacion/cursos` con una barra, un pie y un `main` y sin marcadores de panel, y
+las reglas de aislamiento presentes en el CSS de producción con las capas de Tailwind intactas.
+
+**No verificado:** `next start` (comportamiento de hidratación en modo producción; la conclusión de I1 es estática); Firefox y
+Safari; lector de pantalla; recorrido completo con Tab; el caso `aria-current="true"` de una subruta; ESLint de todo el
+proyecto (conserva sus 18 problemas previos); `test:routes`; las suites de Laravel y Python (no se tocaron). La ventana del
+navegador no se pudo redimensionar, por eso lo móvil se probó en un `iframe`.
+
+**Incidencias.** (1) Al empezar había un `next dev` ajeno (PID 6248) escuchando en `0.0.0.0:3000`, es decir, accesible desde
+la red local; no se detuvo ni se usó, y desapareció después por sí solo. (2) Los servidores propios se iniciaron solo en
+`127.0.0.1:3100` y se detuvieron por PID; el puerto quedó libre. (3) `next dev` siguió sirviendo el CSS anterior tras editar
+`globals.css` (caché de Turbopack en `.next/dev`); se detuvo el servidor propio y se vació esa carpeta generada e ignorada
+por Git, varias veces; el servidor del usuario no volvió a levantarse. (4) Mi primera versión del aislamiento (`:has()` con
+atributo fijo) filtraba el tema al sitio público; detectado en la prueba de navegación y corregido (ver arriba).
+
+**Pendiente y riesgos restantes:** aceptación de la Etapa 1.1; el chrome público sigue montado (oculto) bajo `/admin`
+hasta que se autorice `(public)`; el aislamiento depende de `:has()` y de `MarcaPanel` (no sustituir por un atributo fijo);
+`banner` y `main` propios del panel llegarán con layouts raíz por grupo; menú móvil sin cajón con trampa de foco (no
+necesaria con el menú actual); decisiones abiertas de la Etapa 2 (permisos de entrada, reparto entre roles, permisos
+transversales, reglas del proxy `/admin`). Sin autenticación ni API: no se implementaron.
+
+**Reversión:** como nada se confirmó, `git restore AGENTS.md PROJECT_CONTEXT.md apps/web/src/app/layout.tsx
+apps/web/src/app/globals.css` y borrar los archivos nuevos (`apps/web/src/app/(admin)`, `apps/web/src/components/{shared,academico,servicios}`,
+`apps/web/src/features`, `docs/arquitectura-paneles.md`). **Siguiente:** Etapa 2 (autenticación y API del panel), sin autorización.
+
+### Prompt maestro de ejecución continua (12/11/2026): fases 1–4 iniciadas
+
+El propietario autorizó la construcción continua por fases (Next único frontend; Laravel solo backend y API; retirada
+progresiva de Blade por paridad). Detalle técnico en `docs/arquitectura-paneles.md` §10.
+
+- **Fase 1 (autenticación) terminada:** permisos `panel.academico.acceder` y `panel.servicios.acceder` (seeder +
+  migración `2026_11_12_000042`, sin resincronizar roles); `/api/panel/v1/auth/*` sobre la sesión web (grupo `web`,
+  CSRF), puerta `AutenticarBffPanel`, vida absoluta `SesionPanelVigente`, errores uniformes `ErroresApiPanel`,
+  recuperación compartida `RestablecimientoContrasena` (Blade y API) con enlace a apps/web en el fragmento. BFF en
+  `apps/web/src/app/api/bff/auth/*`, `src/proxy.ts`, páginas `(acceso)` y selector `/admin`.
+- **Fase 2 (API) base:** `Support\Panel\Listado` (paginación, orden y filtros en lista blanca) e inventario de rutas.
+- **Fase 3 (corte académico):** inicio, cursos y detalle de curso (lectura) en `/admin/academico`.
+- **Fase 4 (tecnológico) iniciada:** inicio, catálogo de servicios y bandeja de cotizaciones (lectura) en
+  `/admin/servicios`; cotizaciones conservan `role:admin`. Relación `SolicitudCotizacion::responsable()` añadida.
+
+**Validación:** `tests/Feature/Panel` 46/46 (SQLite en memoria); suite completa de Laravel 3.782 correctas, 1
+omitida y 1 fallo por carrera (la suite leyó una ruta nueva antes de actualizar su prueba; repetido después, el
+grupo del panel pasa); `tsc`, ESLint de los archivos propios y `next build` sin errores; extremo a extremo
+48/48 con Laravel sobre un SQLite desechable fuera del repositorio (variables de proceso; ningún `.env` modificado) y
+Next en `127.0.0.1`; revisión visual en Chrome de login, ambos dashboards, cursos, detalle y cotizaciones.
+**No verificado:** PostgreSQL (la migración 000042 solo en SQLite), `next start`, otros navegadores, lector de
+pantalla, proxy de producción. **Pendiente:** escrituras de los módulos (siguen en Blade), resto de módulos
+académicos y tecnológicos, servicios compartidos, formularios públicos y retirada de Blade.
+
+## Fase 3 (panel académico en Next.js): estudiantes, matrículas, cursos y reportes — 12/11/2026
+
+**Alcance autorizado por el propietario:** completar `/admin/academico` en `apps/web` para que las operaciones administrativas se hagan sin Blade como interfaz. Laravel sigue siendo la fuente de verdad: las escrituras pasan por servicios compartidos con el panel Blade (transacción, bloqueos y auditoría intactos), los Form Requests son los mismos y el navegador solo habla con el BFF (`/api/bff/panel/*`, lista cerrada de operaciones en `src/lib/panel/operaciones-panel.ts`). **Blade no se retiró ni se modificó en su comportamiento** (sigue como referencia funcional y como plantilla del PDF).
+
+**Estado del código encontrado:** la base del panel (autenticación, BFF, dashboard, cursos de lectura, estudiantes y matrículas) existía sin commitear en el árbol de trabajo; se confirmó en un commit propio antes de esta fase.
+
+**Módulo 1, Estudiantes:** listado con búsqueda (DNI, nombres, apellidos), filtros (estado, desactivados), orden y paginación; alta, edición, detalle y desactivación/restauración con las reglas existentes (no se desactiva con matrículas vigentes: 409). **Nuevo:** historial en el detalle (`HistorialAuditoria`, auditoría minimizada: acción, fecha, autor, nombres de campo y transición de estado; nunca valores personales ni IP).
+
+**Módulo 2, Matrículas:** ya estaban completas (listado, filtros, alta, edición, anulación, eliminación/restauración, cupos, duplicados, historial, exportación CSV). Esta fase añadió comprobación de punta a punta con Laravel real (cupo agotado, duplicado, anulación que libera el cupo una sola vez).
+
+**Módulo 3, Cursos:** `GestionCursos` (alta, edición con recálculo de cupos y límite por matrículas activas, archivado con matrículas vigentes impedido, restauración idempotente) extraído de `Admin\CursoController`, que ahora delega en él. `PublicacionCursos` extraído de `Admin\CursoPublicacionController` (misma regla: curso activo y no archivado, auditoría `curso_publicado`/`curso_despublicado`). API: `POST|PUT|DELETE /academico/cursos`, `POST …/restaurar`, `GET|PUT /cursos/{id}/publicacion` y `POST …/publicacion/retirar`. **La revisión (ETag) es obligatoria** en la API del panel (el Blade la mantiene opcional por compatibilidad): viaja en `If-Match` o en `_revision`; una revisión vieja da 412 sin escribir. Next: formulario, archivar/restaurar, panel de ficha pública (autorizar, editar, retirar) e historial en el detalle; los cupos disponibles nunca los envía el navegador.
+
+**Módulo 4, Convocatorias y horarios:** **no se implementó.** No existen convocatorias ni ediciones en el modelo (`cursos.horario` es texto libre, editable en el curso y en la ficha pública). Crearlas exige una decisión de modelo y una migración, que no se autorizó.
+
+**Módulo 5, Calificaciones y reportes:** **calificaciones no existen** en el backend (sin tabla, servicio ni permiso); no se inventaron. **Reportes:** `ReportesMatriculas` extraído de `Admin\ReportController` (consulta filtrada, lotes de 50, descarga temporal con auditoría); API `GET /academico/reportes` y `POST /academico/reportes/exportar/{excel,pdf}` con los permisos `reportes.ver`, `reportes.exportar.excel` y `reportes.exportar.pdf`. Los ingresos agregados solo se entregan al rol `admin` (criterio del dashboard; el Blade los mostraba a todo `reportes.ver`: diferencia deliberada). El PDF sigue renderizándose con la plantilla Blade `admin/reportes/pdf`. Página `/admin/academico/reportes` con indicadores, filtros, lotes y exportación.
+
+**Paridad con Blade (resumen):** estudiantes, cursos, ficha pública y reportes comparten servicio, Form Request y permisos con su vista Blade (las pruebas Blade existentes siguen pasando sin cambios). Diferencias: revisión obligatoria en la ficha (API), ingresos solo admin (reportes), la API responde 409 (no 422) al impedir archivar o desactivar con matrículas vigentes.
+
+**PostgreSQL:** sin migraciones nuevas y nada ejecutado sobre bases persistentes. Los bloqueos (`lockForUpdate`), el índice único de matrícula vigente, los CHECK y la concurrencia real de cupos solo se probaron en SQLite en memoria; **no se declara compatibilidad con PostgreSQL**. Quedan por preparar en el perfil aislado `phpunit.pgsql.xml` (autorización necesaria): doble matrícula simultánea al último cupo, archivado de curso concurrente con una matrícula, publicación concurrente con la misma revisión.
+
+**Validación:** `tests/Feature/Panel` (ahora con `CursosPanelTest`, `ReportesPanelTest` y el historial de estudiantes) y la suite completa; Laravel real a través del BFF de Next sobre una base SQLite desechable (44 comprobaciones: estudiantes, cursos, ficha con 412, matrículas con cupos y duplicados, reportes en Excel y PDF reales, y rechazos del BFF: sin Origin 403, operación fuera de lista 404, traversal 404); navegador: ficha del curso y reportes sin errores de consola. **Límites:** responsive no verificado en ancho estrecho; mensajes de campo de Laravel en inglés; no se probó el flujo de formularios con clics (solo su API y el render).
