@@ -77,8 +77,8 @@ for mode in ("lexical", "hybrid"):
     )
     with (evidence / (mode + "-server.txt")).open("w", encoding="utf-8") as handle:
         process = subprocess.Popen(
-            [str(root / "chatbot-python/.venv/Scripts/python.exe"), "-c", command],
-            cwd=root / "chatbot-python",
+            [str(root / "apps/ai/.venv/Scripts/python.exe"), "-c", command],
+            cwd=root / "apps/ai",
             env=env,
             stdout=handle,
             stderr=handle,

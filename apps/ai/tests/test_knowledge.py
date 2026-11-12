@@ -9,7 +9,7 @@ import pytest
 from app.core.config import PROJECT_ROOT
 from app.services.knowledge import KnowledgeBase, KnowledgeError, find_privacy_violations, load_knowledge_file
 
-REPO_ROOT = PROJECT_ROOT.parent
+REPO_ROOT = PROJECT_ROOT.parent.parent
 KNOWLEDGE = PROJECT_ROOT / "data" / "knowledge.json"
 
 

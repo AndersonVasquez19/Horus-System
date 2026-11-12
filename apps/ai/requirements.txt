@@ -5,7 +5,7 @@
 # este archivo lo reutiliza para evitar listas divergentes.
 # Entorno de referencia: Windows x64 y Python 3.13 (ver README.md).
 #
-# Instalacion desde PowerShell, dentro de chatbot-python:
+# Instalacion desde PowerShell, dentro de apps/ai:
 #   py -3.13 -m venv .venv
 #   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 #   .\.venv\Scripts\python.exe -m pip check

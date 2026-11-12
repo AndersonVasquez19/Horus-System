@@ -117,7 +117,7 @@ def test_el_listado_se_reconstruye_desde_las_tarjetas_aunque_el_resumen_guardado
 
 @pytest.mark.parametrize("name", ["chat-breve-catalogo.json", "chat-breve-replies.json"])
 def test_fixtures_que_consume_laravel_proceden_del_motor_actual(kb, name):
-    fixture = json.loads((PROJECT_ROOT.parent / "tests/Fixtures" / name).read_text(encoding="utf-8"))
+    fixture = json.loads((PROJECT_ROOT.parent.parent / "tests/Fixtures" / name).read_text(encoding="utf-8"))
     engine = make_engine(fixture["items"]) if isinstance(fixture, dict) else AdvisorEngine(kb)
     cases = fixture["cases"] if isinstance(fixture, dict) else fixture
     for case in cases:

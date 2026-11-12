@@ -1,9 +1,9 @@
-"""Descarga EXPLÍCITA y única del modelo de embeddings a chatbot-python/models/.
+"""Descarga EXPLÍCITA y única del modelo de embeddings a apps/ai/models/.
 
 Es el único paso que accede a Internet (Hugging Face Hub). El servicio nunca descarga en
 tiempo de ejecución: carga el modelo desde disco con HF_HUB_OFFLINE=1.
 
-Uso (PowerShell, desde chatbot-python/):
+Uso (PowerShell, desde apps/ai/):
     .venv\\Scripts\\python.exe scripts\\download_model.py
     .venv\\Scripts\\python.exe scripts\\download_model.py --model intfloat/multilingual-e5-small
 """

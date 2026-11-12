@@ -28,7 +28,7 @@ class HorusCorreccionR01R05Test extends TestCase
     /** @return iterable<string, array{array<string, mixed>}> */
     public static function registrosVerificados(): iterable
     {
-        $kb = json_decode((string) file_get_contents(__DIR__.'/../../chatbot-python/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
+        $kb = json_decode((string) file_get_contents(__DIR__.'/../../apps/ai/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
         foreach ($kb['records'] as $record) {
             if (($record['status'] ?? null) === 'verified' && is_string($record['answer'] ?? null)) {
                 yield $record['id'] => [$record];

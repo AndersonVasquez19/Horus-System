@@ -17,7 +17,7 @@ Pasos y criterios de éxito:
 
 Uso (PowerShell, desde la raíz del repositorio, con la autorización del propietario):
   $env:HORUS_PRIVACIDAD_INTEGRACION = "1"
-  chatbot-python\\.venv\\Scripts\\python.exe tests\\Support\\run-privacidad-integracion.py <informe.json> <corpus.txt> [<corpus2.txt> ...]
+  apps\\ai\\.venv\\Scripts\\python.exe tests\\Support\\run-privacidad-integracion.py <informe.json> <corpus.txt> [<corpus2.txt> ...]
 El informe se escribe en la ruta indicada (fuera del repositorio). Los corpus son los del auditor (formato CATEGORIA|B/P|MENSAJE).
 """
 
@@ -84,7 +84,7 @@ def main() -> int:
     resultados: dict[str, object] = {}
     try:
         proceso = subprocess.Popen(
-            [str(ROOT / "chatbot-python/.venv/Scripts/python.exe"), "-c", comando], cwd=ROOT / "chatbot-python", env=env,
+            [str(ROOT / "apps/ai/.venv/Scripts/python.exe"), "-c", comando], cwd=ROOT / "apps/ai", env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         for _ in range(120):

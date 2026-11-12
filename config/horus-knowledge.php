@@ -8,5 +8,5 @@ return [
     //
     // Clave propia, fuera de `horus-advisor`: ese arreglo se serializa en la versión de la caché de respuestas y
     // añadirle la ruta la invalidaría y la haría depender de cada máquina.
-    'path' => env('HORUS_AI_KNOWLEDGE_PATH') ?: base_path('chatbot-python/data/knowledge.json'),
+    'path' => env('HORUS_AI_KNOWLEDGE_PATH') ?: base_path('apps/ai/data/knowledge.json'),
 ];

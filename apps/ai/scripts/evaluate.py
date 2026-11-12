@@ -1,6 +1,6 @@
 """Evaluación reproducible de Horus AI Advisor.
 
-Uso (PowerShell, desde chatbot-python/):
+Uso (PowerShell, desde apps/ai/):
     .venv\\Scripts\\python.exe scripts\\evaluate.py                  # modo léxico
     .venv\\Scripts\\python.exe scripts\\evaluate.py --mode hybrid    # requiere el modelo en models/
     .venv\\Scripts\\python.exe scripts\\evaluate.py --mode both      # cada modo en su propio proceso

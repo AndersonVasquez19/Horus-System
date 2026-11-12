@@ -12,15 +12,15 @@ CPUAccounting=true
 MemoryAccounting=true
 User=horus-ai
 Group=horus-ai
-WorkingDirectory=/srv/horus/current/chatbot-python
+WorkingDirectory=/srv/horus/current/apps/ai
 Environment=HORUS_OPS_ENABLED=false
 Environment=HF_HUB_OFFLINE=1
 Environment=TRANSFORMERS_OFFLINE=1
 Environment=HF_HUB_DISABLE_TELEMETRY=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 EnvironmentFile=/etc/horus-ai/python.conf
-ExecStartPre=/srv/horus/current/chatbot-python/.venv/bin/python -m app.operacion check
-ExecStart=/srv/horus/current/chatbot-python/.venv/bin/python -m app.operacion run --execute
+ExecStartPre=/srv/horus/current/apps/ai/.venv/bin/python -m app.operacion check
+ExecStart=/srv/horus/current/apps/ai/.venv/bin/python -m app.operacion run --execute
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=60

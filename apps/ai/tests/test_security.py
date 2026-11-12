@@ -187,5 +187,5 @@ def test_source_has_no_network_or_execution_primitives() -> None:
 
 
 def test_project_files_stay_inside_chatbot_python() -> None:
-    assert PROJECT_ROOT.name == "chatbot-python"
+    assert PROJECT_ROOT.name == "ai"
     assert Path(PROJECT_ROOT / "data" / "knowledge.json").is_file()

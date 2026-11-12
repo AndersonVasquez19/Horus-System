@@ -169,7 +169,7 @@ def test_more_information_points_to_the_official_contact_record(engine, query):
 
 def test_php_contract_fixture_is_produced_by_the_current_python_engine():
     fixture = json.loads(
-        (Path(__file__).parents[2] / "tests/Fixtures/cierre-funcional-replies.json").read_text(
+        (Path(__file__).parents[3] / "tests/Fixtures/cierre-funcional-replies.json").read_text(
             encoding="utf-8"
         )
     )

@@ -34,7 +34,7 @@ try:
         "uvicorn.run(create_app(settings),host='127.0.0.1',port=8001,access_log=False)"
     )
     for name, args, cwd in [
-        ("python", [str(root / "chatbot-python/.venv/Scripts/python.exe"), "-c", command], root / "chatbot-python"),
+        ("python", [str(root / "apps/ai/.venv/Scripts/python.exe"), "-c", command], root / "apps/ai"),
         ("laravel", ["php", "-S", "127.0.0.1:8765", "-t", "public", "tests/Support/horus-ai-browser-router.php"], root),
     ]:
         handle = (logdir / (name + ".log")).open("w", encoding="utf-8")

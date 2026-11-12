@@ -115,7 +115,7 @@ foreach ($vistas as $archivo) {
 }
 
 // Datos públicos del asistente.
-$datos = $raiz.'/chatbot-python/data';
+$datos = $raiz.'/apps/ai/data';
 $textos = [];
 $recorrer = static function (mixed $nodo) use (&$recorrer, &$textos): void {
     if (is_string($nodo)) {

@@ -44,14 +44,14 @@ Qué **no** es: no es un modelo generativo ni un modelo entrenado para Horus. Us
 
 > Corrección respecto de la fase 1: el informe anterior citaba «≈ 228 MB con el modelo». Esa medición era engañosa (Windows recorta el conjunto de trabajo). Las cifras de arriba proceden de `scripts/sysinfo.py`: conjunto de trabajo, pico y memoria privada.
 
-Todo se instala en `chatbot-python\.venv`. El Python global, Composer, Laragon y Laravel no se tocan.
+Todo se instala en `apps\ai\.venv`. El Python global, Composer, Laragon y Laravel no se tocan.
 
 ## 2-3. Crear el entorno e instalar dependencias
 
-Desde PowerShell, en la carpeta `chatbot-python`:
+Desde PowerShell, en la carpeta `apps/ai`:
 
 ```powershell
-cd "<ruta-del-repositorio>\chatbot-python"
+cd "<ruta-del-repositorio>\apps\ai"
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock
@@ -68,8 +68,8 @@ El sprint 2 no añadió dependencias. Para regenerar los bloqueos: `.venv\Script
 
 ## 4. Seleccionar el intérprete en VS Code
 
-1. Abre la carpeta `chatbot-python` en VS Code. Su `.vscode/settings.json` ya apunta al entorno.
-2. Si abres la raíz de Horus-System: `Ctrl+Shift+P` → **Python: Select Interpreter** → `chatbot-python\.venv\Scripts\python.exe`.
+1. Abre la carpeta `apps/ai` en VS Code. Su `.vscode/settings.json` ya apunta al entorno.
+2. Si abres la raíz de Horus-System: `Ctrl+Shift+P` → **Python: Select Interpreter** → `apps\ai\.venv\Scripts\python.exe`.
 3. Extensiones recomendadas: *Python* (Microsoft) y *Ruff* (Astral).
 
 ## 5. Ejecutar FastAPI
@@ -338,7 +338,7 @@ Los importes van como **cadena** ("150.00") para evitar diferencias de coma flot
 ## Estructura
 
 ```text
-chatbot-python/
+apps/ai/
 ├── app/
 │   ├── main.py                 # arranque, límites de tamaño (1 MB solo para catalog/validate), errores, catálogo opcional
 │   ├── api/routes.py           # /health, /ready, /api/v1/{info,chat,recommend,catalog/validate}

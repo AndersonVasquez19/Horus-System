@@ -11,7 +11,7 @@ use RecursiveIteratorIterator;
 use Tests\TestCase;
 
 /**
- * Laravel no debe depender de la carpeta `chatbot-python`: la ruta de `knowledge.json` sale de una clave de
+ * Laravel no debe depender de la carpeta `apps/ai`: la ruta de `knowledge.json` sale de una clave de
  * configuración, de modo que mover el servicio Python no obliga a tocar el código de producción.
  */
 class HorusKnowledgePathTest extends TestCase
@@ -33,7 +33,7 @@ class HorusKnowledgePathTest extends TestCase
     {
         $ruta = str_replace('\\', '/', (string) config('horus-knowledge.path'));
 
-        $this->assertStringEndsWith('chatbot-python/data/knowledge.json', $ruta);
+        $this->assertStringEndsWith('apps/ai/data/knowledge.json', $ruta);
         $this->assertFileExists((string) config('horus-knowledge.path'));
     }
 
@@ -44,7 +44,7 @@ class HorusKnowledgePathTest extends TestCase
 
         $_SERVER['HORUS_AI_KNOWLEDGE_PATH'] = $_ENV['HORUS_AI_KNOWLEDGE_PATH'] = '';
         $this->assertSame(
-            base_path('chatbot-python/data/knowledge.json'),
+            base_path('apps/ai/data/knowledge.json'),
             (require base_path('config/horus-knowledge.php'))['path']
         );
     }
@@ -98,12 +98,12 @@ class HorusKnowledgePathTest extends TestCase
         $infractores = [];
         foreach ($directorio as $archivo) {
             if ($archivo->isFile() && $archivo->getExtension() === 'php'
-                && str_contains((string) file_get_contents($archivo->getPathname()), 'chatbot-python')) {
+                && str_contains((string) file_get_contents($archivo->getPathname()), 'apps/ai')) {
                 $infractores[] = str_replace(base_path().DIRECTORY_SEPARATOR, '', $archivo->getPathname());
             }
         }
 
-        $this->assertSame([], $infractores, 'La ruta de chatbot-python debe salir de config/horus-knowledge.php.');
+        $this->assertSame([], $infractores, 'La ruta de apps/ai debe salir de config/horus-knowledge.php.');
     }
 
     /** @param list<array<string, mixed>> $registros */

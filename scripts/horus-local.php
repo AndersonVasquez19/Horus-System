@@ -115,7 +115,7 @@ function localReady(): array
 try {
     requireLocal(str_starts_with(str_replace('\\', '/', realpath($runtime)), str_replace('\\', '/', getenv('LOCALAPPDATA')).'/HorusAI/'), 'Directorio de operación fuera de la raíz privada.');
     $rootEnv = $root.'/.env';
-    $pythonEnv = $root.'/chatbot-python/.env';
+    $pythonEnv = $root.'/apps/ai/.env';
     $php = Dotenv::parse(file_get_contents($rootEnv));
     $python = Dotenv::parse(file_get_contents($pythonEnv));
     foreach (['DB_CONNECTION' => 'pgsql', 'DB_HOST' => '127.0.0.1', 'DB_PORT' => '5432', 'DB_DATABASE' => 'horus_group'] as $key => $value) {
@@ -209,7 +209,7 @@ try {
             $pythonVariables[$name] = false;
         }
     }
-    runLocal([$root.'/chatbot-python/.venv/Scripts/python.exe', '-m', 'app.operacion', 'check'], $root.'/chatbot-python', $pythonVariables);
+    runLocal([$root.'/apps/ai/.venv/Scripts/python.exe', '-m', 'app.operacion', 'check'], $root.'/apps/ai', $pythonVariables);
     $start = function (string $name, array $command, string $cwd, array $env) use (&$children, &$handles, $runtime): void {
         $log = fopen($runtime.'/'.$name.'.log', 'ab');
         $handles[] = $log;
@@ -220,7 +220,7 @@ try {
         });
         $children[$name] = $process;
     };
-    $start('fastapi', [$root.'/chatbot-python/.venv/Scripts/python.exe', '-m', 'app.operacion', 'run', '--execute'], $root.'/chatbot-python', $pythonVariables);
+    $start('fastapi', [$root.'/apps/ai/.venv/Scripts/python.exe', '-m', 'app.operacion', 'run', '--execute'], $root.'/apps/ai', $pythonVariables);
     $started = time();
     do {
         requireLocal($children['fastapi']->isRunning(), 'FastAPI terminó antes de readiness.');

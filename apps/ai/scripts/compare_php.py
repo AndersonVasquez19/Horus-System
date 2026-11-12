@@ -1,6 +1,6 @@
 """Comparación reproducible: chatbot PHP (motor local) vs Horus AI Advisor sobre las MISMAS consultas.
 
-Uso (PowerShell, desde chatbot-python/):
+Uso (PowerShell, desde apps/ai/):
     .venv\\Scripts\\python.exe scripts\\evaluate.py --mode both --tag despues   # informes de Python
     .venv\\Scripts\\python.exe scripts\\compare_php.py --python-tag despues
 
@@ -25,7 +25,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LARAVEL_ROOT = ROOT.parent
+LARAVEL_ROOT = ROOT.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.core.text import normalize  # noqa: E402
