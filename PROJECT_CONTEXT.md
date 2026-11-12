@@ -4269,3 +4269,23 @@ de Gemini queda activo y bajo el ejecutor inactivo; Pint y PHPStan aprobados. De
 
 Aclaración de convención: el repositorio almacena LF y `core.autocrlf=true` deja CRLF solo en la copia de trabajo de
 Windows; la mención anterior a «finales CRLF» como convención del repositorio se refiere a esa copia de trabajo.
+
+## Etapa 4: Laravel desacoplado de la ruta de `chatbot-python` — 11/11/2026
+
+Rama `monorepo/base`, sin push. Los tres puntos de producción que leían `base_path('chatbot-python/data/knowledge.json')`
+(`AsistenteVirtualService`, que lo incluye en el hash de la política de privacidad de la caché; `ConveniosPublicos`; y
+`HorusAdvisorClient::conocimiento()`) leen ahora `config('horus-knowledge.path')`, definido en `config/horus-knowledge.php`.
+Su valor por defecto es la ruta actual, así que el comportamiento no cambia. La variable `HORUS_AI_KNOWLEDGE_PATH` ya
+existía en Python (`knowledge_path`), de modo que un único valor configura ambos lados; vacío o ausente conserva la
+ubicación actual. La clave es propia y no se añadió a `horus-advisor`, porque ese arreglo se serializa en la versión de la
+caché de respuestas y la ruta la habría invalidado. `.env.example` no se modificó.
+
+Además, la caché por proceso de `conocimiento()` comparaba solo `filemtime:filesize`; ahora la firma incluye la ruta, para
+que cambiar de archivo no devuelva datos del anterior (una prueba con dos archivos del mismo tamaño falla sin esa línea).
+
+Validación sin servicios: `HorusKnowledgePathTest` 5 pruebas (9 aserciones), con una guarda que impide reintroducir el
+literal `chatbot-python` en `app/`; suite completa a través de `scripts/entorno-seguro.php` 3723 aprobadas y 1 omitida
+(20888 aserciones); PHPStan y Pint aprobados. **Pendiente para la etapa 6 (movimiento de Python):** siguen apuntando a la
+carpeta `chatbot-python` las pruebas con ruta relativa (`FiltroPrivacidadNombresMinusculasTest`, `HorusPrivacidadNombresTest`,
+`HorusCorreccionR01R05Test`, `tests/frontend/chat-contact.test.mjs`), los guiones (`scripts/horus-local.php`,
+`scripts/privacidad-generar-lexico.php`, `tests/Support/run-*.py`) y las plantillas `ops/horus-ai/*.service.example`.
