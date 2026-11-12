@@ -48,7 +48,7 @@ El destino es que **Next.js sea el único frontend**. Hoy conviven, y **Vite sig
 | Tecnología | Blade, Alpine, Tailwind 3, Vite | Next 16, React 19, TypeScript, Tailwind 4 |
 | Sirve hoy | Panel `/admin`, autenticación web, y las páginas públicas con formulario o datos de Laravel (cursos, matrícula, libro de reclamaciones, cotización, tecnologías) | Las 16 páginas públicas como interfaz; todavía **no llama a Laravel** |
 
-Retirada por fases: la Fase 1 retira las páginas Blade estáticas que Next ya cubre; la Fase 2 expone endpoints JSON con CSRF/cookie y un BFF para los formularios, el catálogo y el chat; la Fase 3 lleva panel y autenticación a Next, momento en que salen Blade y Vite. Estado y límites en `PROJECT_CONTEXT.md`.
+Retirada por fases: la Fase 1 (hecha, 12/11/2026) retiró las páginas Blade estáticas que Next ya cubre: sus rutas redirigen a `HORUS_WEB_URL` (obligatoria en el despliegue; vacía = 404); la Fase 2 expone endpoints JSON con CSRF/cookie y un BFF para los formularios, el catálogo y el chat; la Fase 3 lleva panel y autenticación a Next, momento en que salen Blade y Vite. Estado y límites en `PROJECT_CONTEXT.md`.
 
 El `package.json` de `apps/api` contiene los comandos y dependencias de **Vite de Laravel** (`npm run dev` dentro de `apps/api` inicia Vite). El de la raíz es mínimo y privado, sin dependencias ni lockfile: solo atajos `api:dev`, `api:build`, `api:test`, `web:dev`, `web:build` y `web:verify` que delegan con `npm --prefix`.
 

@@ -4413,3 +4413,25 @@ ya cubre; **Fase 2** (pendiente de autorización) endpoints JSON con CSRF/cookie
 cotización, catálogo y chat, y después el resto de vistas públicas; **Fase 3** panel y autenticación en Next, con lo que salen
 Blade, `resources/views` y Vite. El Libro de Reclamaciones, la solicitud de matrícula y la cotización no deben quedar sin
 servicio en ningún paso intermedio.
+
+## Fase 1 del retiro de Blade: páginas estáticas a Next.js — 12/11/2026
+
+Commit `dcd2f55`. Autorizado por el propietario solo para las páginas estáticas que `apps/web` ya cubre; no es precedente
+para el panel, la autenticación, los formularios ni Vite (ver `AGENTS.md`).
+
+- **Redirecciones (302):** `home` (`/`), `quienes-somos`, `galeria`, `contactos`, `educacion.asesoramiento`,
+  `educacion.capacitaciones` y `legales.{devolucion,privacidad,cookies,faq}` (`/politicas-*` y `/preguntas-frecuentes`)
+  conservan su ruta y su nombre y redirigen a `HORUS_WEB_URL` (`RedirigirAWebController`, `config/horus-web.php`). Las
+  rutas legales apuntan a `/legales/...`, como en Next. **Sin `HORUS_WEB_URL` válida (http/https) responden 404**, incluido
+  `/` y el destino de login y cierre de sesión: **definirla antes de desplegar este commit** (no se modificó ningún `.env`).
+- **Retirado:** 10 vistas `pages/*` y 16 CSS/JS que solo ellas usaban. Se conservan sus imágenes y los CSS/JS de
+  `assets/css/index` y `assets/js` que ya estaban sin referencias (limpieza pendiente, aparte).
+- **Sigue en Blade y Vite:** panel `/admin`, login y registro, `educacion/cursos`, `solicitar-matricula`,
+  `libro-reclamaciones`, `solicitar-cotizacion`, las tres páginas de `tecnologias`, el chat `POST /chat/mensaje` y el layout
+  público (barra, pie, widget), que cargan Vite.
+- **Pruebas:** nueva `RedirigirAWebTest`; se retiraron las aserciones de HTML de las páginas que ya no sirve Laravel (inicio,
+  galería, contactos, quiénes somos, asesoramiento, capacitaciones, horarios en FAQ/devoluciones) y las de sesión y widget
+  pasaron a `/tecnologias/camaras-seguridad`. Suite PHP: 3736 pasan, 1 omitida (antes 3723); PHPStan 0; `npm test` 97.
+- **Pendiente:** `tests/browser/chat-smoke.mjs` y `public-restoration-smoke.mjs` entran por `/` y por páginas retiradas; no se
+  ejecutaron ni se actualizaron (requieren Edge). Fase 2 y Fase 3 siguen sin autorización.
+- **Reversión:** `git revert dcd2f55` (las vistas y assets quedan en el historial).
