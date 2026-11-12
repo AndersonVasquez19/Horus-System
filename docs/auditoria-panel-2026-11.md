@@ -87,7 +87,7 @@ Resueltos después: hora de Lima en el resto de pantallas y en el «mes» del in
 **Requieren decisión funcional**
 
 - Pagos/cuotas de matrícula, importación masiva, respaldo real de PostgreSQL (`pg_dump` programado y retención).
-- Permisos sin uso: `seguimientos.*` y `asistente.entrenar` se retiraron (sección 14). `reclamaciones.gestionar|responder` **no son huérfanos** (los exige `GestionReclamaciones`; el panel de reclamaciones es de solo lectura por diseño) y `procesos_internos` se conserva a propósito (`docs/retiro-procesos.md`).
+- Permisos sin uso: `seguimientos.*` y `asistente.entrenar` se retiraron (sección 14). `reclamaciones.gestionar|responder` **no son huérfanos** (los exige `GestionReclamaciones`; desde el 11/11/2026 el panel los usa para la gestión E4, ver `docs/reclamaciones-e4-gestion-panel.md`) y `procesos_internos` se conserva a propósito (`docs/retiro-procesos.md`).
 - `cascadeOnDelete` en `matriculas`: migración 000040 aplicada en `horus_group` (§17). `json` frente a `jsonb`: decidido no migrar (§17).
 
 **Despliegue (no se tocó `.env.example`)**

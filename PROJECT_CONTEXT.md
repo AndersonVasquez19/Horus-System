@@ -4203,3 +4203,46 @@ build y smoke Edge en 390/768/1440 px aprobados; Pint propio y diff limpios.
 Suite general: 3028 aprobadas, 5 fallos, 1 riesgosa y 1 omitida por los fixtures
 de privacidad ausentes ya documentados; el último caso nuevo se valida en el
 bloque acotado posterior. No se atribuye evidencia sobre PostgreSQL o despliegue.
+
+## Libro de Reclamaciones — E4: gestión desde el panel — 11/11/2026
+
+Primera fase del plan para completar el panel, aprobado por el propietario (vistas del panel autorizadas; sitio
+público sin cambios). Se expone la gestión que `GestionReclamaciones` ya tenía probada, sin cambiar el servicio:
+una ruta `POST admin/reclamaciones/{uuid}/gestion` (`admin.reclamaciones.gestionar`, `throttle:admin-write`) cuyo
+campo `operacion` elige responsable, reclasificación, nota, propuesta, rechazo, aceptación, respuesta formal o
+reintento, con el permiso de `GestionarReclamacionRequest` (hasta ahora sin rutas) y la relectura del servicio. Un
+409 del servicio vuelve al detalle como error de formulario. Nueva sección «H. Gestión del caso» en el detalle.
+
+Por decisión del propietario se exponen todas las operaciones, pero las que envían un correo real al consumidor
+(propuesta, respuesta por correo, reintento) exigen `confirmar_envio` y muestran un aviso cuando el envío del libro
+está activo. El envío de reclamaciones depende de `RECLAMACIONES_CORREO_ENABLED` y permanece apagado por defecto cuando no está definido. El registro de hojas del libro físico queda fuera. Sin permisos, migraciones
+ni seeders nuevos (`gestionar` y `responder` siguen solo en `admin`). Detalle y límites:
+[E4 gestión](docs/reclamaciones-e4-gestion-panel.md).
+
+Validación (SQLite en memoria; correo y cola simulados): `ReclamacionGestionPanelTest` 21 pruebas; filtro
+`Reclamacion` 277 aprobadas (1895 aserciones); suite completa 3705 aprobadas y 1 omitida (20834 aserciones,
+la omitida es la preexistente solo PostgreSQL); PHPStan completo presenta 11 errores preexistentes en módulos de solicitudes de matrícula y verificación de registro (los archivos de E4 pasan sin errores); 97 pruebas frontend; build aprobado; Pint propio
+sin cambios de estilo salvo los finales de línea CRLF preexistentes; `git diff --check` limpio. No mide PostgreSQL,
+concurrencia ni entrega real de correos.
+
+## Estado local de Horus AI y preparación del monorepo — 11/11/2026
+
+Comprobación de solo lectura de los interruptores del entorno local, sin valores secretos y sin modificar `.env`. En
+`.env`: `HORUS_ADVISOR_ENABLED`, `HORUS_AI_CATALOG_SYNC_ENABLED`, `HORUS_OPS_ENABLED` y `HORUS_OPS_RENEW_CATALOG` están en
+`true` (activación local autorizada el 05/11/2026, sección anterior); `MATRICULA_MAIL_ENABLED`, `RECLAMACIONES_*` y
+`REGISTRO_VERIFICACION_ENABLED` no están definidos y por tanto apagados. En `chatbot-python/.env`: búsqueda semántica
+habilitada, catálogo sin firma deshabilitado y **`GEMINI_API_KEY` presente**: con el servicio en marcha, el selector de
+fuentes de Gemini se habilita y realiza llamadas a Google (`docs/chatbot-gemini.md`). También hay credenciales definidas
+para Advisor, firma del catálogo, Resend y OpenAI (esta última sin consumidores desde el retiro de OpenAI). El 11/11 no
+había procesos escuchando en 18080/18081.
+
+Pendiente, antes de cualquier prueba local: preparar una configuración controlada que evite llamadas externas
+involuntarias (Gemini, Resend, correo). No se ha iniciado ningún servicio ni modificado ningún entorno.
+
+Las pruebas de E4 se ejecutaron con un entorno defensivo (SQLite en memoria, correo `array`, claves externas vacías y
+proxy a un puerto sin servicio). Antes de iniciar el monorepo se generó un respaldo externo verificable (repositorio raíz
+con sus dos stashes, `frontend/.git` y su árbol de trabajo, manifiestos SHA-256); quedan sin mover tanto `frontend/.git`
+como las migraciones. El estado de PHPStan (11 errores preexistentes en solicitudes de matrícula y verificación de
+registro, con migraciones suspendidas) se tratará como tarea independiente de estabilización previa a la API y los
+paneles, sin alterar las migraciones suspendidas. Dirección de autenticación para Next.js: sesión por cookie HttpOnly con
+CSRF y BFF, conservando JWT para integraciones existentes; aún sin implementar.
