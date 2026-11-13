@@ -1,0 +1,67 @@
+# Fase 5.2 — Validación real de PostgreSQL (12/11/2026)
+
+Línea base: HEAD `8b03c6e`, rama `monorepo/base`. Sin cambios funcionales, sin migraciones nuevas, sin push. Sustituye el estado «no iniciado» de `docs/fase-5-1-multimedia-y-produccion.md` §5.
+
+**Alcance autorizado:** solo el clúster aislado `horus_pgt_55433` (`127.0.0.1:55433`, `system_identifier` `7702263743609677164`), base `horus_l2_test`, rol `horus_l2_test_runner`, datos desechables. Fuera de uso: 5432, 55432, `horus_l2_restore_test` y las migraciones suspendidas 000035/000036. La compatibilidad PostgreSQL **no se declara total**: ver §6.
+
+## 1. Entorno y arranque
+
+- Antes de arrancar: puerto 55433 libre, ningún proceso sobre el directorio, identificador físico leído con `pg_controldata` igual al esperado. `postmaster.pid` obsoleto (PID 7932, del 5/11) y estado `in production`: el arranque hizo recuperación por WAL sin incidencias.
+- `pg_ctl start` como proceso de usuario (sin servicio); `php scripts/pgsql-test.php probe` correcto (base, rol, puerto, `cluster_name horus_pgt_55433`, identificador, solo lectura, `UTC`).
+- Consentimiento destructivo: solo como variable de proceso en cada comando; `.env.pgsql-testing.local` no se modificó y el consentimiento sigue vacío.
+- Cierre: `pg_ctl stop -m fast`, estado `shut down`, sin listener, sin procesos y sin `postmaster.pid`. 5432 (PID 5828) y 55432 (PID 6108) intactos.
+
+## 2. Migraciones
+
+`migrate:status` mostró 28 aplicadas y 8 pendientes. `artisan migrate` aplicó sin errores 000033, 000034, 000037, 000038, 000039, 000040, 000041 y 000042. La 000035 y la 000036 no están en `database/migrations` y no se ejecutaron. Tras las pruebas quedan 37 registradas y 0 pendientes.
+
+## 3. Defecto encontrado: `db:wipe` no borra funciones
+
+`migrate:fresh` (usado por `RefreshDatabase` y `DatabaseTruncation`) no podía repetirse en PostgreSQL: `db:wipe` elimina tablas, vistas y tipos, pero **no funciones**. Sobrevivía `notificaciones_internas_audiencia_coherente()` y la migración `2026_10_31_000032` (up, líneas 98-101) se negaba a continuar por su salvaguarda («la columna audiencia no existe pero ya hay objetos con los nombres de esta migración»), fijada por `test_10_columna_ausente_con_objetos_residuales` (función **y** trigger). La 000032 es posterior a las ejecuciones PostgreSQL anteriores, por eso no se había visto. Todas las pruebas con `RefreshDatabase`/`DatabaseTruncation` fallaban en el `setUp` sin llegar a ninguna aserción.
+
+- Alcance: producción e instalaciones nuevas no se ven afectadas; sí cualquier `migrate:fresh` repetido en PostgreSQL (pruebas y desarrollo). Precedente: la 000030 ya tolera el residuo de su función con `CREATE OR REPLACE`.
+- **Mitigación aplicada (solo código de pruebas):** `tests/TestCase.php` sobrescribe `setUpTraits()`; bajo el perfil PostgreSQL, solo si la clase usa esos traits y antes del único `migrate:fresh` del proceso (`RefreshDatabaseState::$migrated` falso), ejecuta `DROP FUNCTION IF EXISTS … CASCADE` de `notificaciones_internas_audiencia_coherente` y `reclamacion_historial_inmutable` tras `assertIsolatedTestDatabase()`. Los ganchos `beforeRefreshingDatabase`/`beforeTruncatingDatabase` no sirven: el método del trait prevalece sobre el de la clase base.
+- **Decisión pendiente (no necesaria para validar):** hacer la 000032 tolerante al residuo «solo función» (opción B) solo si se usa `migrate:fresh` en PostgreSQL de desarrollo; implicaría ajustar `test_10` y reprobar en SQLite y PostgreSQL. Hoy queda la opción A: mitigado y documentado.
+
+## 4. Correcciones de pruebas (no de producto)
+
+| Hallazgo | Causa | Corrección |
+| --- | --- | --- |
+| Rechazos «preflight refused» en las últimas pruebas de una clase | `max_connections=30` (27 útiles): cada prueba dejaba su PDO abierto hasta el final del proceso | `RequiresIsolatedPostgres::tearDown()` suelta la conexión principal tras `parent::tearDown()` y llama a `gc_collect_cycles()` |
+| `RestrictOnDeleteMatriculasPostgresTest` esperaba `23503` | PostgreSQL 18.6 informa `ON DELETE RESTRICT` como `restrict_violation` | Expectativa exacta `23001` (igual que ya hacía `ReclamacionesDdlPostgresTest`) |
+| Prueba c9: «isolated runtime required: mail.default» | La segunda sesión se usaba con `mail.default=smtp` dentro de `conRecepcion()`; la guarda exige `array` | La prueba restaura `array` solo durante ese `INSERT`; la guarda no se tocó |
+
+## 5. Resultados
+
+**Pruebas existentes** (`tests/PostgresIntegrity`, una clase por proceso): `AprobacionesConcurrencia` 2 (15 aserciones), `Concurrency` 3 (24), `EstadosCheck` 3 (11), `MatriculaConstraints` 5 (10), `MatriculaOperacionesConcurrencia` 7 (59), `MatriculaRules` 6 (35), `NotificacionAudiencia` 29 (631), `ReclamacionesConcurrencia` 16 (114), `ReclamacionesDdl` 24 (157), `RestrictOnDeleteMatriculas` 2 (7); `ReclamacionesReconstruccionD9` 1 omitida por diseño. Cero fallos y cero errores.
+
+**Pruebas nuevas** (`MatrizFase52PostgresTest`, 14 pruebas, 91 aserciones): idempotencia de creación y seguimiento de cotizaciones (bloqueo `55P03` y después `23505` con el nombre de la restricción; otro ámbito sí se admite); historial 1-2-3 sin repetidas ni huecos y eventos sin clave que no chocan; DNI, código de curso y código de servicio únicos bajo concurrencia; límites numéricos (máximos válidos pasan y un paso más da `22003`); CHECK de la 000041 (rechazo y restricción validada); `RESTRICT` (`23001`) y `SET NULL` en servicios y cotizaciones, y `23503` para referencia inexistente; rollback forzado sin filas ni bloqueos; migraciones registradas e índices de la 000037/000038.
+
+**EXPLAIN** (`ExplainListadosPostgresTest`, 5 000 estudiantes × 20 cursos = 100 000 matrículas sintéticas, `ANALYZE`, TRUNCATE al terminar):
+
+| Consulta | Plan | Tiempo |
+| --- | --- | --- |
+| Listado por defecto (fecha desc, id desc) | Index Scan Backward `matriculas_fecha_matricula_index` + Incremental Sort | 0,9 ms |
+| Filtro por estado / por curso | mismo índice | 0,2 ms / 0,2 ms |
+| Papelera | mismo índice | 0,4 ms |
+| Matrículas de un estudiante | `matriculas_estudiante_id_curso_id_index` | 0,06 ms |
+| Búsqueda por DNI/curso (`EXISTS` con `LIKE '%x%'`) | índice de fecha; `Seq Scan` en `estudiantes` (5 000) y `cursos` | 39 ms |
+| Página profunda (offset 50 000) | mismo índice | 34 ms |
+| `count(*)` del total | Seq Scan (normal en PostgreSQL) | 13 ms |
+
+Sin `Seq Scan` en la ruta paginada. Las observaciones son orientativas (datos uniformes): con datos sesgados un curso poco frecuente podría degradar el filtro por curso (índice posible `(curso_id, fecha_matricula)`); la búsqueda `LIKE '%x%'` recorre `estudiantes` (con muchas más filas pediría trigram); el offset profundo crece de forma lineal. No se aplicó ningún índice.
+
+**Regresión SQLite:** suite completa 3 912 pasan, 1 omitida (23 721 aserciones), sin cambios. Pint: los archivos nuevos pasan; los tres antiguos modificados siguen marcando `line_ending` y espaciado de `!` (ruido previo del repositorio, no reformateado).
+
+**Limpieza:** recuentos exactos 0 en estudiantes, cursos, matrículas, cotizaciones, historial, servicios, aprobaciones, usuarios, auditoría y reclamaciones.
+
+## 6. No ejecutado (la compatibilidad no es total)
+
+- Suite «PostgreSQL isolated» (~3 900 pruebas): excluida por instrucción.
+- Matriz a nivel servicio/HTTP: ETag 200/412 en servicios, fichas y cotizaciones; publicación de curso en paralelo; imágenes con fallo forzado (archivo y registro); recepción pública de cotizaciones con la misma `Idempotency-Key`; auditoría de una fila por operación concurrente.
+- Solicitudes públicas de matrícula: tabla de la 000035 suspendida.
+- Concurrencia: dos sesiones reales de PostgreSQL con bloqueos reales en un proceso; no hay procesos paralelos del sistema operativo.
+
+## 7. Archivos
+
+Modificados: `apps/api/tests/TestCase.php`, `apps/api/tests/PostgresIntegrity/Concerns/RequiresIsolatedPostgres.php`, `…/ReclamacionesConcurrenciaPostgresTest.php`, `…/RestrictOnDeleteMatriculasPostgresTest.php`. Nuevos: `…/MatrizFase52PostgresTest.php`, `…/ExplainListadosPostgresTest.php`. Documentación: este archivo, `PROJECT_CONTEXT.md` y `CLAUDE.md` §5.

@@ -47,7 +47,19 @@ trait RequiresIsolatedPostgres
         }
         $this->concurrentSessions = [];
 
+        // El clúster de pruebas admite 30 conexiones (27 útiles): cada prueba crea una aplicación nueva y su PDO
+        // no se libera hasta el final del proceso, de modo que una clase larga agotaba las plazas (PostgreSQL
+        // respondía «remaining connection slots are reserved…» y la comprobación previa rechazaba las últimas
+        // pruebas). Se cierra la conexión principal al terminar cada prueba.
+        // Se toma la conexión antes: RefreshDatabase/DatabaseTruncation hacen su propio rollback dentro de parent::tearDown().
+        $principal = $this->app !== null ? DB::connection() : null;
+
         parent::tearDown();
+
+        // La conexión ya no depende del contenedor (destruido): se suelta su PDO directamente.
+        $principal?->disconnect();
+        unset($principal);
+        gc_collect_cycles();
     }
 
     /**

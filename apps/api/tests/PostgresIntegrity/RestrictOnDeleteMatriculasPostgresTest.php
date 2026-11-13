@@ -21,7 +21,8 @@ class RestrictOnDeleteMatriculasPostgresTest extends TestCase
         setUp as requireIsolatedPostgres;
     }
 
-    private const FOREIGN_KEY_VIOLATION = '23503';
+    /** PostgreSQL informa ON DELETE RESTRICT como restrict_violation (23001), no como foreign_key_violation (23503): observado en 18.6. */
+    private const RESTRICT_VIOLATION = '23001';
 
     protected function setUp(): void
     {
@@ -55,7 +56,7 @@ class RestrictOnDeleteMatriculasPostgresTest extends TestCase
                 DB::transaction(fn () => DB::table($tabla)->where('id', $id)->delete());
                 $this->fail("El DELETE físico en {$tabla} debía ser rechazado.");
             } catch (QueryException $e) {
-                $this->assertSame(self::FOREIGN_KEY_VIOLATION, $e->getCode());
+                $this->assertSame(self::RESTRICT_VIOLATION, $e->getCode());
             }
         }
 

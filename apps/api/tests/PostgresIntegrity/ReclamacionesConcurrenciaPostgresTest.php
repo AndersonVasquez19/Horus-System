@@ -251,7 +251,15 @@ class ReclamacionesConcurrenciaPostgresTest extends TestCase
             // Justo después de que la sesión principal incremente el contador, B confirma una alta con el mismo token.
             if (! $hecho && $q->connection === $principal && str_starts_with($q->sql, 'update "reclamacion_contadores"')) {
                 $hecho = true;
-                $this->b->table('reclamaciones')->insert($this->filaReclamacion(['numero' => '000000900-2026', 'token_envio' => hash('sha256', $token)]));
+                // El guard del perfil exige mail.default=array en cualquier consulta de la segunda sesión: se restaura
+                // solo durante este INSERT, sin tocar el guard, y se devuelve el valor que usa conRecepcion().
+                $correo = config('mail.default');
+                config(['mail.default' => 'array']);
+                try {
+                    $this->b->table('reclamaciones')->insert($this->filaReclamacion(['numero' => '000000900-2026', 'token_envio' => hash('sha256', $token)]));
+                } finally {
+                    config(['mail.default' => $correo]);
+                }
             }
         });
 

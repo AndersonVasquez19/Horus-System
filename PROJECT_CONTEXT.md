@@ -4851,3 +4851,15 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 **Responsive:** 360, 390, 768 px y escritorio sin desbordamientos; encabezado móvil corregido (título en una línea; botón de salida solo con icono bajo 400 px).
 
 **PostgreSQL:** clúster aislado (55433) detenido, existente y sin tocar; 5432 y 55432 en ejecución y fuera de uso. Matriz de 12 verificaciones y plan exacto pendientes de autorización. Compatibilidad PostgreSQL no validada.
+
+## Fase 5.2 (validación real de PostgreSQL) — 12/11/2026
+
+**Línea base:** HEAD `8b03c6e`. Sin cambios funcionales ni migraciones nuevas. Detalle en `docs/fase-5-2-validacion-postgresql.md`.
+
+**Entorno:** solo el clúster aislado `horus_pgt_55433` (`system_identifier 7702263743609677164`), base `horus_l2_test`, con autorización expresa; arrancado con `pg_ctl` como proceso de usuario (recuperación por WAL tras un `postmaster.pid` obsoleto del 5/11) y cerrado al terminar (`shut down`, sin listener ni procesos). Consentimiento destructivo solo como variable de proceso; el perfil local no se modificó. 5432 y 55432 intactos. Se aplicaron sin errores las migraciones 000033, 000034, 000037 a 000042 (37 registradas, 0 pendientes); 000035/000036 siguen suspendidas.
+
+**Defecto:** `db:wipe` no borra funciones de PostgreSQL; `notificaciones_internas_audiencia_coherente()` sobrevivía y la migración 000032 (salvaguarda deliberada) impedía repetir `migrate:fresh`, por lo que todas las pruebas con `RefreshDatabase`/`DatabaseTruncation` fallaban en el `setUp`. Mitigado solo en pruebas: `tests/TestCase.php::setUpTraits()` elimina las dos funciones conocidas (con `CASCADE`) antes del único `migrate:fresh` de cada proceso, solo bajo el perfil PostgreSQL. La migración no se tocó; hacerla tolerante (opción B) queda como decisión pendiente. Correcciones de pruebas: liberar la conexión en `tearDown` (límite de 30 conexiones del clúster), `23001` para `ON DELETE RESTRICT` en PostgreSQL 18.6 y `mail.default=array` durante el INSERT de la segunda sesión en la prueba c9; la guarda no se modificó.
+
+**Resultados:** 11 clases de integridad existentes en verde (el D9 se omite por diseño); 14 pruebas nuevas en verde (`MatrizFase52PostgresTest`: idempotencia y unicidades de cotizaciones, historial sin huecos, DNI/código de curso/código de servicio bajo concurrencia, límites numéricos `22003`, CHECK de la 000041, `RESTRICT`/`SET NULL`, rollback, índices de la 000037/000038); EXPLAIN con 100 000 matrículas sintéticas sin `Seq Scan` en las rutas paginadas (0,2–0,9 ms; búsqueda 39 ms; offset 50 000: 34 ms); SQLite 3 912 pasan, 1 omitida. Datos sintéticos eliminados (recuentos 0).
+
+**No ejecutado (compatibilidad PostgreSQL NO declarada total):** suite «PostgreSQL isolated» completa; ETag 200/412 a nivel servicio, publicación de curso en paralelo, imágenes con fallo forzado, recepción pública de cotizaciones con la misma `Idempotency-Key` y auditoría concurrente; concurrencia con procesos paralelos del sistema operativo.
