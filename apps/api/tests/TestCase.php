@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\Testing\GuardedPostgresConnection;
 use App\Support\Testing\PostgresTestGuard;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
@@ -61,8 +62,9 @@ abstract class TestCase extends BaseTestCase
     /**
      * Solo bajo el perfil PostgreSQL aislado y antes del único `migrate:fresh` de cada proceso, elimina las funciones
      * que el wipe dejaría atrás. CASCADE es seguro: el wipe siguiente borra las tablas y las migraciones recrean función
-     * y trigger. No se ejecuta en SQLite ni en pruebas que no usan RefreshDatabase/DatabaseTruncation, ni después de la
-     * primera migración del proceso (entonces la base ya está migrada y no debe tocarse).
+     * y trigger. No se ejecuta en SQLite ni en pruebas que no migran; con RefreshDatabase/DatabaseTruncation solo antes de
+     * la primera migración del proceso (después la base ya está migrada y no debe tocarse); con DatabaseMigrations,
+     * antes de cada prueba (cada una hace su propio `migrate:fresh`).
      */
     protected function setUpTraits()
     {
@@ -73,12 +75,17 @@ abstract class TestCase extends BaseTestCase
 
     private function eliminarFuncionesResidualesAntesDelWipe(): void
     {
-        if (getenv('HORUS_PG_TEST_PROFILE') !== '1' || RefreshDatabaseState::$migrated) {
+        if (getenv('HORUS_PG_TEST_PROFILE') !== '1') {
             return;
         }
 
         $usos = class_uses_recursive(static::class);
-        if (! isset($usos[RefreshDatabase::class]) && ! isset($usos[DatabaseTruncation::class])) {
+        // DatabaseMigrations ejecuta `migrate:fresh` antes de CADA prueba (no una vez por proceso): las funciones se
+        // limpian siempre. RefreshDatabase y DatabaseTruncation solo migran una vez por proceso.
+        $migraEnCadaPrueba = isset($usos[DatabaseMigrations::class]);
+        $migraUnaVez = isset($usos[RefreshDatabase::class]) || isset($usos[DatabaseTruncation::class]);
+
+        if (! $migraEnCadaPrueba && (! $migraUnaVez || RefreshDatabaseState::$migrated)) {
             return;
         }
 

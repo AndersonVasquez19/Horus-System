@@ -67,9 +67,46 @@ Sin `Seq Scan` en la ruta paginada. Las observaciones son orientativas (datos un
 
 Carpeta completa `tests/PostgresIntegrity` en un solo proceso: **118 pruebas, 1 181 aserciones, 1 omitida (D9, por diseño), 0 fallos, 4 min 24 s**. Recuentos 0 en todas las tablas de datos al terminar; clúster 55433 cerrado (`shut down`, sin listener, procesos ni `postmaster.pid`); consentimiento vacío; 5432 y 55432 intactos.
 
+## 6c. Paso 4 (12/11/2026, autorizado): suite «PostgreSQL isolated» por lotes
+
+Misma base (`horus_l2_test`, clúster 55433), consentimiento solo como variable de proceso, un proceso por lote con `--filter` (el script no admite `--testsuite`; el filtro usa `.` como comodín de la barra invertida). Sin `--stop-on-*`: se quería la lista completa de fallos.
+
+**Defecto de arnés (no de producto) hallado y corregido en código de pruebas:** cinco clases usan `DatabaseMigrations`, que ejecuta `migrate:fresh` antes de **cada** prueba; la mitigación del §3 solo limpiaba las funciones antes del primer `migrate:fresh` del proceso, de modo que desde la segunda prueba la 000032 se negaba de nuevo (salvaguarda deliberada) y el esquema roto arrastraba al resto del lote (20 errores en cascada). `tests/TestCase.php::setUpTraits()` limpia ahora las funciones antes de cada prueba de una clase con `DatabaseMigrations` (mismo perfil y misma comprobación de identidad). La migración no se tocó; la opción B del §3 sigue pendiente.
+
+| Lote | Pruebas | Pasan | No pasan |
+| --- | --- | --- | --- |
+| `Tests\Unit` | 1 192 | 1 192 | 0 |
+| Feature A(a–d) | 279 | 275 | 4 |
+| Feature A(e–z) | 329 | 305 | 24 |
+| Feature B–C | 281 | 266 | 15 |
+| Feature E–I | 818 | 818 | 0 |
+| Feature L–O | 370 | 344 | 26 |
+| Feature P (incluye `Panel`) | 172 | 171 | 1 |
+| Feature R | 162 | 161 | 1 |
+| Feature S–W | 255 | 197 | 58 |
+| **Total** | **3 858** | **3 729** | **129** |
+
+**Clasificación de las 129 (ninguna es defecto de producto):**
+
+- **79 no ejecutables por restricción (migraciones suspendidas 000035/000022):** `ApiPublicaMatriculasTest` (23), `SolicitudMatriculaTest` (28), `Sprint14EmailVerificationTest` (28). `InstalaMigracionesSuspendidas` se niega por diseño a instalarlas fuera de SQLite en memoria.
+- **49 expectativas propias de SQLite (no se modificaron):**
+  - Filas incoherentes que PostgreSQL rechaza con sus `CHECK` (23514): `AdvisorCatalogoTest` 3, `CatalogoWebCursosTest` 2, `CursoPublicacionTest` 1, `Sprint17PublicacionTest` 1.
+  - `DROP TABLE` sin `CASCADE` (2BP01): `CatalogoWebServiciosTest` 2, `ServicioTecnologicoTest` 1.
+  - Exigen el controlador `sqlite` o una conexión `sqlite` fija: `CotizacionOrigenMigracionTest` 8, `CheckEstadosAcademicosMigracionTest` 1, `RestrictOnDeleteMatriculasMigracionTest` 1, `AdvisorColaRealTest` 1, `OperacionHorusColaTest` 1.
+  - Triggers y migraciones parciales de SQLite: `NotificacionAudienciaMigracionTest` 14 (la cobertura PostgreSQL equivalente son las 29 de `NotificacionAudienciaPostgresTest`), `NotificacionAudienciaTest` 1 (PostgreSQL rechaza con `NOT NULL`).
+  - `NotificacionAudienciaPuntoRetornoTest` 10 (la prueba crea una tabla en `setUp` y no la borra; en SQLite en memoria desaparece sola).
+  - `DELETE` crudo que SQLite deja pasar y PostgreSQL rechaza con `RESTRICT` (23001): `ArchivadoConMatriculasVigentesTest` 1.
+  - Ids fijos 1–5 con secuencias que PostgreSQL no reinicia: `BackendPerformanceTest` 1.
+  - Exportación Excel dentro de la transacción de `RefreshDatabase` (el servicio exige nivel 0 y falla de forma controlada): `Panel\ReportesPanelTest` 1.
+- **1 rechazo transitorio de infraestructura («preflight refused»)** en `CatalogoWebServiciosTest::test_errores_sql_solo_codigo_seguro`: no se reproduce al ejecutar la clase sola (solo fallan las 2 de `DROP TABLE`). Causa no determinada (sospecha: plazas de conexión del clúster de 30, que las clases Feature no liberan).
+
+Un `DROP TABLE` o `CHECK` rechazado por PostgreSQL no es un defecto: es la integridad real que SQLite no aplica. Convertir estas pruebas a PostgreSQL (o marcarlas solo-SQLite) queda como decisión pendiente; no se debilitó ninguna.
+
+**Cierre:** recuentos exactos 0 en todas las tablas salvo `migrations` (37) y `permissions` (20, sembradas por migraciones); sin tablas residuales; clúster 55433 cerrado (`apagado`, sin listener, procesos ni `postmaster.pid`); consentimiento vacío; 5432 y 55432 intactos.
+
 ## 6b. No ejecutado (la compatibilidad no es total)
 
-- Suite «PostgreSQL isolated» (~3 900 pruebas): excluida por instrucción.
+- Suite «PostgreSQL isolated»: ejecutada en el Paso 4 (§6c); 79 pruebas dependen de migraciones suspendidas y no son ejecutables.
 - Recepción pública de cotizaciones (`/api/public/v1/cotizaciones`, marca firmada y catálogo publicado): su reconciliación de `23505` usa el mismo patrón que la creación administrativa, pero no se ejecutó por HTTP.
 - Solicitudes públicas de matrícula: tabla de la 000035 suspendida.
 - Concurrencia: dos sesiones reales de PostgreSQL con bloqueos reales en un proceso; no hay procesos paralelos del sistema operativo.
