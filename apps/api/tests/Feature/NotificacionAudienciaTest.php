@@ -69,9 +69,12 @@ class NotificacionAudienciaTest extends TestCase
     {
         $usuario = $this->staff('secretaria');
 
-        $this->assertRechazada(self::AUDIENCIA_VALIDA, fn () => NotificacionInterna::create($this->datos(['user_id' => $usuario->id])));
-        $this->assertRechazada(self::AUDIENCIA_VALIDA, fn () => NotificacionInterna::create($this->datos(['user_id' => null])));
-        $this->assertRechazada(self::AUDIENCIA_VALIDA, fn () => DB::table('notificaciones_internas')->insert($this->fila(['user_id' => null, 'audiencia' => null])));
+        // Una audiencia nula la rechaza antes la columna NOT NULL de PostgreSQL; en SQLite, el trigger de validez.
+        $sinAudiencia = DB::getDriverName() === 'pgsql' ? 'not-null' : self::AUDIENCIA_VALIDA;
+
+        $this->assertRechazada($sinAudiencia, fn () => NotificacionInterna::create($this->datos(['user_id' => $usuario->id])));
+        $this->assertRechazada($sinAudiencia, fn () => NotificacionInterna::create($this->datos(['user_id' => null])));
+        $this->assertRechazada($sinAudiencia, fn () => DB::table('notificaciones_internas')->insert($this->fila(['user_id' => null, 'audiencia' => null])));
         $this->assertRechazada(self::AUDIENCIA_VALIDA, fn () => DB::table('notificaciones_internas')->insert($this->fila(['user_id' => null, 'audiencia' => 'todos'])));
         $this->assertRechazada(self::AUDIENCIA_VALIDA, fn () => DB::table('notificaciones_internas')->insert($this->fila(['user_id' => $usuario->id, 'audiencia' => 'PERSONAL'])));
     }

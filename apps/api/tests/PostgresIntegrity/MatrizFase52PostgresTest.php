@@ -285,6 +285,25 @@ class MatrizFase52PostgresTest extends TestCase
         }
     }
 
+    public function test_origen_de_cotizaciones_de_la_000029(): void
+    {
+        $sinOrigen = $this->filaCotizacion();
+        unset($sinOrigen['origen']);
+        $id = DB::table('solicitudes_cotizacion')->insertGetId($sinOrigen);
+        $this->assertSame('administrativo', DB::table('solicitudes_cotizacion')->where('id', $id)->value('origen'), 'El valor por defecto es administrativo.');
+
+        DB::table('solicitudes_cotizacion')->insert($this->filaCotizacion(['origen' => 'publico']));
+        $this->assertSame(1, (int) DB::table('solicitudes_cotizacion')->where('origen', 'publico')->count());
+
+        $this->assertSqlState(self::CHECK_VIOLATION, fn () => DB::table('solicitudes_cotizacion')->insert($this->filaCotizacion(['origen' => 'interno'])), 'solicitudes_cotizacion_origen_check');
+
+        $columna = DB::selectOne("SELECT is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'solicitudes_cotizacion' AND column_name = 'origen'");
+        $this->assertNotNull($columna);
+        $this->assertSame('NO', $columna->is_nullable);
+        $this->assertStringContainsString('administrativo', (string) $columna->column_default);
+        $this->assertSame(1, (int) DB::table('migrations')->where('migration', '2026_10_29_000029_add_origen_to_solicitudes_cotizacion')->count());
+    }
+
     // Referencias --------------------------------------------------------------------------------------------------
 
     public function test_restrict_y_set_null_en_servicios_y_cotizaciones(): void

@@ -19,7 +19,7 @@ class OperacionHorusColaTest extends TestCase
     {
         config(['horus-ops.enabled' => true, 'horus-advisor.enabled' => true, 'horus-catalog.sync_enabled' => true,
             'horus-advisor.token' => str_repeat('t', 32), 'horus-advisor.signing_key' => str_repeat('k', 32),
-            'queue.default' => 'database', 'queue.connections.database.connection' => 'sqlite']);
+            'queue.default' => 'database', 'queue.connections.database.connection' => config('database.default')]);
         $version = str_repeat('a', 40);
         Cache::put('horus-ai.catalog.expected-version', $version);
         Cache::put('horus.ops.worker', ['at' => time()]);

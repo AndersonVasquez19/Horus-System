@@ -460,6 +460,7 @@ class ServicioTecnologicoTest extends TestCase
                 $this->assertTrue(true);
             }
         }
+        Schema::dropIfExists('servicio_publicacion_elementos');
         Schema::drop('servicio_publicaciones');
         $this->assertSame([], $lector->pagina()['servicios']);
         $this->assertDatabaseCount('servicios_tecnologicos', 0);

@@ -157,7 +157,7 @@ class CatalogoWebCursosTest extends TestCase
         [$autor, $curso, $ficha] = $this->ficha();
         match ($caso) {
             'borrador', 'retirada' => $ficha->update(['publicada' => false]),
-            'caducada' => $ficha->update(['vigente_hasta' => '2026-10-28']),
+            'caducada' => $ficha->update(['vigente_desde' => '2026-10-20', 'vigente_hasta' => '2026-10-28']),
             'futura' => $ficha->update(['vigente_desde' => '2026-10-30']),
             'inactivo' => $curso->update(['estado' => 'inactivo']),
             'archivado' => $curso->update(['estado' => 'archivado']),
@@ -215,7 +215,10 @@ class CatalogoWebCursosTest extends TestCase
     public function test_invalid_legacy_public_fields_fail_closed(): void
     {
         [, , $ficha] = $this->ficha();
-        $ficha->update(['modalidad' => 'inventada']);
+        // Una modalidad inventada no puede existir en PostgreSQL (CHECK): ahí se exige el rechazo de la base.
+        if (! $this->aplicarOVerificarCheck(fn () => $ficha->update(['modalidad' => 'inventada']), 'curso_publicaciones_modalidad_valida')) {
+            return;
+        }
         config(['catalogo-publico.enabled' => true]);
         Log::shouldReceive('warning')->once()->with('catalogo_web_ficha_invalida');
         $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Redes autorizadas');

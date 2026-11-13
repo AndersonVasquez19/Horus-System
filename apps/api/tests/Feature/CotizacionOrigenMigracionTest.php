@@ -21,6 +21,7 @@ class CotizacionOrigenMigracionTest extends TestCase
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
+        $this->omitirEnPostgres('Específica de SQLite; cubierta en PostgreSQL por MatrizFase52PostgresTest::test_origen_de_cotizaciones_de_la_000029.');
         $this->assertSame('sqlite', DB::getDriverName());
     }
 

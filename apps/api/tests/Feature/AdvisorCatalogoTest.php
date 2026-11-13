@@ -62,8 +62,8 @@ class AdvisorCatalogoTest extends TestCase
         $lector = $this->adminUser();
         match ($caso) {
             'borrador', 'retirado' => CursoPublicacion::query()->update(['publicada' => false]),
-            'caducado' => CursoPublicacion::query()->update(['vigente_hasta' => '2026-10-27']),
-            'futuro' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-29']),
+            'caducado' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-20', 'vigente_hasta' => '2026-10-27']),
+            'futuro' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-10-30']),
             'inactivo', 'archivado' => $curso->update(['estado' => $caso]),
             'eliminado' => $curso->delete(),
             'sin_autor' => CursoPublicacion::query()->update(['autorizado_por' => null]),
@@ -139,7 +139,10 @@ class AdvisorCatalogoTest extends TestCase
     public function test_incompatible_editorial_text_fails_closed(string $campo, string $valor): void
     {
         [$admin] = $this->publicar();
-        CursoPublicacion::query()->update([$campo => $valor]);
+        // Una modalidad inventada no puede existir en PostgreSQL (CHECK): ahí se exige el rechazo de la base.
+        if (! $this->aplicarOVerificarCheck(fn () => CursoPublicacion::query()->update([$campo => $valor]), 'curso_publicaciones_modalidad_valida', $campo === 'modalidad')) {
+            return;
+        }
         $this->expectException(InvalidArgumentException::class);
         app(ExportadorCatalogoAdvisor::class)->construir($admin);
     }

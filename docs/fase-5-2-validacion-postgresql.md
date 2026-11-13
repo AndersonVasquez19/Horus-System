@@ -104,6 +104,30 @@ Un `DROP TABLE` o `CHECK` rechazado por PostgreSQL no es un defecto: es la integ
 
 **Cierre:** recuentos exactos 0 en todas las tablas salvo `migrations` (37) y `permissions` (20, sembradas por migraciones); sin tablas residuales; clúster 55433 cerrado (`apagado`, sin listener, procesos ni `postmaster.pid`); consentimiento vacío; 5432 y 55432 intactos.
 
+## 6d. Pista 1 (12/11/2026, autorizada): suite aislada sin expectativas propias de SQLite
+
+Solo cambió código de pruebas (`apps/api/tests/`); ni la aplicación ni las migraciones ni las salvaguardas. Mismo clúster 55433, mismo procedimiento que el Paso 4.
+
+**Cambios:** `TestCase::tearDown()` libera la conexión en las clases Feature bajo el perfil PostgreSQL (los primeros 118 de 119 errores de Integridad y los 279 de la clase A salieron de una primera versión que llamaba a `DatabaseManager::disconnect()` con el contenedor ya destruido; se corrigió usando el objeto `Connection`); ayudantes `omitirEnPostgres()` (omisión con motivo escrito) y `aplicarOVerificarCheck()` (en PostgreSQL exige el rechazo `23514` de la fila incoherente); fechas coherentes en las pruebas con `CHECK` de vigencia; borrado de la tabla dependiente antes de `DROP TABLE`; conexión de cola por defecto en lugar de `sqlite` fijo; ids relativos en `BackendPerformanceTest`; limpieza de matrículas eliminadas lógicamente en `ArchivadoConMatriculasVigentesTest`; omisión con motivo de las pruebas cuyo objeto es propio de SQLite; `NotificacionAudienciaTest` acepta el rechazo `NOT NULL` en las tres comprobaciones de audiencia nula; `OperacionHorusTest` se omite en PostgreSQL porque simula `queue.default=database` y la salvaguarda exige `sync`. Cobertura PostgreSQL nueva: `MatrizFase52PostgresTest::test_origen_de_cotizaciones_de_la_000029`.
+
+| Lote | Pruebas | Resultado |
+| --- | --- | --- |
+| Integridad (`tests/PostgresIntegrity`) | 119 | 118 pasan, 1 omitida (D9, por diseño) |
+| `Tests\Unit` | 1 192 | 1 192 pasan |
+| Feature A(a–d) | 279 | 279 pasan |
+| Feature A(e–z) | 329 | 306 pasan, 23 no ejecutables (migraciones suspendidas) |
+| Feature B–C | 281 | 273 pasan, 8 omitidas con motivo |
+| Feature E–I | 818 | 818 pasan (2 rechazos transitorios de la sonda en `HorusCorreccionR01R05Test` no se reprodujeron al reejecutar la clase) |
+| Feature L–O | 370 | 337 pasan, 33 omitidas con motivo (tras reejecutar `OperacionHorusTest` y `NotificacionAudienciaTest`) |
+| Feature P | 172 | 171 pasan, 1 omitida |
+| Feature R | 162 | 161 pasan, 1 omitida |
+| Feature S–W | 255 | 199 pasan, 56 no ejecutables (migraciones suspendidas) |
+| **Suite aislada** | **3 858** | **3 736 pasan, 43 omitidas con motivo, 79 no ejecutables (migraciones suspendidas); 0 fallos, 0 defectos de producto** |
+
+Límites: los lotes L–O y E–I se completaron reejecutando solo las clases afectadas (392 pruebas: 384 pasan y 8 omitidas), no una nueva pasada de toda la suite tras la última corrección. Las 79 siguen sin ejecutarse hasta decidir qué hacer con 000022/000035/000036. El rechazo transitorio de la sonda se observó otra vez (2 casos en una clase con cientos de datasets); no se determinó la causa. La compatibilidad PostgreSQL sigue sin declararse total.
+
+**Cierre:** recuentos exactos 0 salvo `migrations` (37) y `permissions` (20); clúster 55433 detenido (`apagado`, mismo identificador, sin listener ni `postmaster.pid`); consentimiento solo como variable de proceso; 5432 y 55432 intactos.
+
 ## 6b. No ejecutado (la compatibilidad no es total)
 
 - Suite «PostgreSQL isolated»: ejecutada en el Paso 4 (§6c); 79 pruebas dependen de migraciones suspendidas y no son ejecutables.

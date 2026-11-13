@@ -63,6 +63,7 @@ class RestrictOnDeleteMatriculasMigracionTest extends TestCase
 
     public function test_up_y_down_no_hacen_nada_en_sqlite(): void
     {
+        $this->omitirEnPostgres('Comprueba que la migración no hace nada en SQLite; en PostgreSQL la cubre tests/PostgresIntegrity/RestrictOnDeleteMatriculasPostgresTest.');
         $this->assertSame('sqlite', DB::getDriverName());
         $migracion = $this->migracion();
 

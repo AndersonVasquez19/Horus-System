@@ -71,7 +71,10 @@ class BackendPerformanceTest extends TestCase
         $this->assertSame(55, $rows->total());
         $this->assertCount(5, $rows);
         $this->assertSame(2, $rows->currentPage());
-        $this->assertSame([5, 4, 3, 2, 1], $rows->pluck('id')->all());
+        // Las cinco más antiguas de las 55 vigentes y pagadas del curso (ids relativos: PostgreSQL no reinicia secuencias).
+        $esperados = Matricula::query()->where('curso_id', $course->id)->where('estado', 'pagada')->orderBy('id')->limit(5)->pluck('id')->reverse()->values()->all();
+        $this->assertCount(5, $esperados);
+        $this->assertSame($esperados, $rows->pluck('id')->all());
         parse_str(parse_url($rows->previousPageUrl(), PHP_URL_QUERY), $query);
         $this->assertSame('PRUEBA', $query['busqueda']);
         $this->assertSame('pagada', $query['estado']);

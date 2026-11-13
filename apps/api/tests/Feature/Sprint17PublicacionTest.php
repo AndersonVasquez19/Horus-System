@@ -256,7 +256,7 @@ class Sprint17PublicacionTest extends TestCase
         match ($caso) {
             'sin_ficha' => CursoPublicacion::query()->delete(),
             'retirado' => CursoPublicacion::query()->update(['publicada' => false]),
-            'caducado' => CursoPublicacion::query()->update(['vigente_hasta' => '2026-10-27']),
+            'caducado' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-20', 'vigente_hasta' => '2026-10-27']),
             'futuro' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-10-30']),
             'inactivo', 'archivado' => $curso->update(['estado' => $caso]),
             'eliminado' => $curso->delete(),

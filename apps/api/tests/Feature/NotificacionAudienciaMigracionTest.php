@@ -40,6 +40,9 @@ class NotificacionAudienciaMigracionTest extends TestCase
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
+        // Triggers y migraciones parciales de SQLite en memoria; en PostgreSQL la migración la cubren NotificacionAudienciaPostgresTest
+        // (inventario, CHECK, función y triggers) y ReclamacionesDdlPostgresTest.
+        $this->omitirEnPostgres('Específica de SQLite; cubierta en PostgreSQL por tests/PostgresIntegrity/NotificacionAudienciaPostgresTest.');
 
         Artisan::call('migrate', ['--path' => self::anteriores(glob(database_path('migrations/*.php')) ?: []), '--realpath' => true, '--force' => true]);
         $this->assertFalse(Schema::hasColumn('notificaciones_internas', 'audiencia'));

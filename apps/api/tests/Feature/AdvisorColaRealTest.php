@@ -22,7 +22,7 @@ class AdvisorColaRealTest extends TestCase
     public function test_confirmacion_pendiente_sobrevive_al_payload_original_de_la_cola(): void
     {
         Http::preventStrayRequests();
-        config(['queue.default' => 'database', 'queue.connections.database.connection' => 'sqlite',
+        config(['queue.default' => 'database', 'queue.connections.database.connection' => config('database.default'),
             'horus-advisor.enabled' => true, 'horus-catalog.sync_enabled' => true]);
         $version = str_repeat('a', 40);
         $exportador = $this->createMock(ExportadorCatalogoAdvisor::class);

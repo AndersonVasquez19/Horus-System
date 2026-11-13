@@ -22,6 +22,11 @@ class OperacionHorusTest extends TestCase
 {
     private function habilitar(): void
     {
+        // La salvaguarda del perfil PostgreSQL exige queue.default=sync y no se relaja; esta prueba simula una cola
+        // asíncrona con el driver «database», que no es ejecutable allí. No hay prueba PostgreSQL equivalente: el
+        // preflight de la operación Horus no depende del motor de base de datos.
+        $this->omitirEnPostgres('Simula queue.default=database, que la salvaguarda del perfil PostgreSQL rechaza; el preflight de Horus no depende del motor de BD.');
+
         config(['horus-ops.enabled' => true, 'horus-advisor.enabled' => true,
             'horus-catalog.sync_enabled' => true, 'horus-advisor.token' => str_repeat('t', 32),
             'horus-advisor.signing_key' => str_repeat('k', 32), 'queue.default' => 'database',

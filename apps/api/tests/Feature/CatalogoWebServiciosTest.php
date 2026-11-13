@@ -55,6 +55,7 @@ class CatalogoWebServiciosTest extends TestCase
         $this->assertSame(['GET', 'HEAD'], $ruta->methods());
         $this->assertSame(ServiciosPublicosController::class, $ruta->getActionName());
         $this->assertSame(url('/tecnologias/soporte-mantenimiento'), route('tecnologias.soporte'));
+        Schema::dropIfExists('servicio_publicacion_elementos');
         Schema::drop('servicio_publicaciones');
         Schema::drop('cotizacion_historial');
         Schema::drop('solicitudes_cotizacion');
@@ -154,6 +155,7 @@ class CatalogoWebServiciosTest extends TestCase
     public function test_esquema_ausente_habilitado_falla_controlado(): void
     {
         config(['catalogo-servicios.enabled' => true]);
+        Schema::dropIfExists('servicio_publicacion_elementos');
         Schema::drop('servicio_publicaciones');
         Log::shouldReceive('warning')->once()->with('servicios_web_esquema_incompleto');
         $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No podemos mostrar los servicios publicados')

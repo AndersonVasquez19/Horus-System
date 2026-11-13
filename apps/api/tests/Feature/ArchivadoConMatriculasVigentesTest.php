@@ -72,7 +72,7 @@ class ArchivadoConMatriculasVigentesTest extends TestCase
             $this->assertDatabaseMissing('audit_logs', ['action' => 'estudiante_eliminado', 'model_id' => $estudiante->id]);
 
             // Limpieza para la siguiente iteración (dni único).
-            Matricula::query()->delete();
+            Matricula::withTrashed()->forceDelete();
             Estudiante::withTrashed()->forceDelete();
             Curso::withTrashed()->forceDelete();
         }

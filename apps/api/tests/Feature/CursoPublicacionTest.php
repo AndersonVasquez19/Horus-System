@@ -74,7 +74,7 @@ class CursoPublicacionTest extends TestCase
             'inactive' => $course->update(['estado' => 'inactivo']),
             'archived' => $course->update(['estado' => 'archivado']),
             'deleted' => $course->delete(),
-            'expired' => CursoPublicacion::query()->update(['vigente_hasta' => '2026-10-27']),
+            'expired' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-20', 'vigente_hasta' => '2026-10-27']),
             'future' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-29']),
         };
         $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Python inicial');

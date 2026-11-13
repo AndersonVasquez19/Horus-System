@@ -36,6 +36,9 @@ class NotificacionAudienciaPuntoRetornoTest extends TestCase
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
+        // Esta clase prueba la lógica de enPuntoDeRetorno() con un PDO SQLite simulado (PdoFalible) que sustituye al de la
+        // conexión: no es una prueba de PostgreSQL. El uso real sobre PostgreSQL (SAVEPOINT) lo cubre NotificacionAudienciaPostgresTest.
+        $this->omitirEnPostgres('PDO SQLite simulado; cubierto en PostgreSQL por tests/PostgresIntegrity/NotificacionAudienciaPostgresTest.');
         Schema::create(self::TABLA, function (Blueprint $table): void {
             $table->id();
             $table->string('nombre')->unique();
