@@ -55,13 +55,25 @@ Sin `Seq Scan` en la ruta paginada. Las observaciones son orientativas (datos un
 
 **Limpieza:** recuentos exactos 0 en estudiantes, cursos, matrículas, cotizaciones, historial, servicios, aprobaciones, usuarios, auditoría y reclamaciones.
 
-## 6. No ejecutado (la compatibilidad no es total)
+## 6. Paso 3 (12/11/2026, autorizado): matriz a nivel servicio / HTTP
+
+`PanelConcurrenciaPostgresTest` (5 pruebas, 47 aserciones; `DatabaseTruncation`, mismo protocolo: la sesión B toma el bloqueo, la petición real espera con `55P03` y no deja rastro, B confirma y se repite):
+
+- ETag de servicios por `PUT /api/panel/v1/servicios/servicios/{id}`: dos escrituras con la misma revisión dan 200 y 412 (sin segunda auditoría ni segundo avance de revisión); una escritura bloqueada por B espera, y tras el cambio de B la revisión obsoleta da 412 y la vigente 200.
+- Publicación de curso: publicar, retiro bloqueado por B (sin auditoría), retiro posterior 200 y publicar con la revisión previa 412; una sola ficha por curso y una auditoría por operación efectiva (`curso_publicado`, `curso_despublicado`).
+- Creación de cotización con la misma clave en carrera real: la lectura «¿existe esta clave?» no encuentra nada, otra sesión confirma la clave, el `INSERT` termina en `23505` y `GestionCotizaciones::crear` reconcilia con 200 devolviendo la ganadora, sin tercer expediente ni segunda auditoría de creación.
+- Imágenes con fallo forzado a mitad de transacción: el `CHECK` de `orden` (000033) rechaza la tarjeta después de guardar el archivo; el archivo recién subido se borra, no hay registro, la revisión no avanza y no hay auditoría; con datos válidos, archivo y registro nacen juntos.
+- La auditoría se comprueba en cada caso (una fila por operación efectiva, ninguna por intento bloqueado o rechazado).
+
+Carpeta completa `tests/PostgresIntegrity` en un solo proceso: **118 pruebas, 1 181 aserciones, 1 omitida (D9, por diseño), 0 fallos, 4 min 24 s**. Recuentos 0 en todas las tablas de datos al terminar; clúster 55433 cerrado (`shut down`, sin listener, procesos ni `postmaster.pid`); consentimiento vacío; 5432 y 55432 intactos.
+
+## 6b. No ejecutado (la compatibilidad no es total)
 
 - Suite «PostgreSQL isolated» (~3 900 pruebas): excluida por instrucción.
-- Matriz a nivel servicio/HTTP: ETag 200/412 en servicios, fichas y cotizaciones; publicación de curso en paralelo; imágenes con fallo forzado (archivo y registro); recepción pública de cotizaciones con la misma `Idempotency-Key`; auditoría de una fila por operación concurrente.
+- Recepción pública de cotizaciones (`/api/public/v1/cotizaciones`, marca firmada y catálogo publicado): su reconciliación de `23505` usa el mismo patrón que la creación administrativa, pero no se ejecutó por HTTP.
 - Solicitudes públicas de matrícula: tabla de la 000035 suspendida.
 - Concurrencia: dos sesiones reales de PostgreSQL con bloqueos reales en un proceso; no hay procesos paralelos del sistema operativo.
 
 ## 7. Archivos
 
-Modificados: `apps/api/tests/TestCase.php`, `apps/api/tests/PostgresIntegrity/Concerns/RequiresIsolatedPostgres.php`, `…/ReclamacionesConcurrenciaPostgresTest.php`, `…/RestrictOnDeleteMatriculasPostgresTest.php`. Nuevos: `…/MatrizFase52PostgresTest.php`, `…/ExplainListadosPostgresTest.php`. Documentación: este archivo, `PROJECT_CONTEXT.md` y `CLAUDE.md` §5.
+Modificados: `apps/api/tests/TestCase.php`, `apps/api/tests/PostgresIntegrity/Concerns/RequiresIsolatedPostgres.php`, `…/ReclamacionesConcurrenciaPostgresTest.php`, `…/RestrictOnDeleteMatriculasPostgresTest.php`. Nuevos: `…/MatrizFase52PostgresTest.php`, `…/ExplainListadosPostgresTest.php`, `…/PanelConcurrenciaPostgresTest.php` (paso 3). Documentación: este archivo, `PROJECT_CONTEXT.md` y `CLAUDE.md` §5.
