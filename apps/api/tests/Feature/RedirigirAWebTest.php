@@ -65,7 +65,7 @@ class RedirigirAWebTest extends TestCase
     {
         config(['horus-web.url' => self::WEB]);
 
-        foreach (['/educacion/cursos', '/tecnologias/camaras-seguridad', '/tecnologias/cableado-estructurado', '/tecnologias/soporte-mantenimiento', '/solicitar-matricula'] as $uri) {
+        foreach (['/educacion/cursos', '/tecnologias/camaras-seguridad', '/tecnologias/cableado-estructurado', '/tecnologias/soporte-mantenimiento'] as $uri) {
             $this->assertFalse($this->get($uri)->isRedirect(self::WEB.$uri), $uri);
         }
     }

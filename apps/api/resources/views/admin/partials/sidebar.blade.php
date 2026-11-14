@@ -37,10 +37,6 @@
             <x-admin.nav-item href="/admin/matriculas" title="Matrículas" icon="fa-clipboard-check" :active="request()->is('admin/matriculas*')" />
         @endcan
 
-        @can('solicitudes-matricula.ver')
-            <x-admin.nav-item :href="route('admin.solicitudes-matricula.index')" title="Solicitudes de matrícula" icon="fa-file-pen" :active="request()->routeIs('admin.solicitudes-matricula.*')" />
-        @endcan
-
         <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 md:hidden xl:block">Comercial y atención</p>
 
         @can('servicios.ver')

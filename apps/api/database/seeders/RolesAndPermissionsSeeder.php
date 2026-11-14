@@ -25,9 +25,6 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Libro de Reclamaciones (Sprint 20). Solo admin por defecto; ampliar a otros roles es decisión del propietario. @var list<string> */
     public const RECLAMACIONES_PERMISSIONS = ['reclamaciones.ver', 'reclamaciones.gestionar', 'reclamaciones.responder'];
 
-    /** Solicitudes públicas de matrícula: solo admin por defecto. @var list<string> */
-    public const SOLICITUDES_MATRICULA_PERMISSIONS = ['solicitudes-matricula.ver', 'solicitudes-matricula.gestionar'];
-
     /** Entrada al panel académico de apps/web (/admin/academico). */
     public const PANEL_ACADEMICO = 'panel.academico.acceder';
 
@@ -48,7 +45,6 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::SERVICIOS_PERMISSIONS,
         ...self::COTIZACIONES_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
-        ...self::SOLICITUDES_MATRICULA_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',
         'estudiantes.editar',

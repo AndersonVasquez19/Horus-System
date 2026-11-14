@@ -15,11 +15,4 @@ parameters:
         - config
         - bootstrap/app.php
         - bootstrap/providers.php
-    # Larastan infiere las propiedades de los modelos desde las migraciones. Las suspendidas
-    # (database/migraciones-suspendidas) siguen describiendo tablas de modelos del código; solo se leen,
-    # nunca se ejecutan ni se modifican. Definir esta clave sustituye la ruta predeterminada, así que
-    # se repite database/migrations.
-    databaseMigrationsPath:
-        - database/migrations
-        - database/migraciones-suspendidas
     reportUnmatchedIgnoredErrors: true

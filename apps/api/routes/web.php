@@ -20,7 +20,6 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServicioTecnologicoController;
-use App\Http\Controllers\Admin\SolicitudMatriculaController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -31,7 +30,6 @@ use App\Http\Controllers\PaginaTecnologicaController;
 use App\Http\Controllers\RedirigirAWebController;
 use App\Http\Controllers\ServiciosPublicosController;
 use App\Http\Controllers\SolicitudCotizacionPublicaController;
-use App\Http\Controllers\SolicitudMatriculaPublicaController;
 use App\Http\Middleware\NoStoreAdminResponse;
 use App\Http\Middleware\RecepcionCotizacionesHabilitada;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
@@ -46,8 +44,6 @@ Route::get('/tecnologias/soporte-mantenimiento', ServiciosPublicosController::cl
 Route::get('/educacion/asesoramiento', RedirigirAWebController::class)->defaults('destino', '/educacion/asesoramiento')->name('educacion.asesoramiento');
 Route::get('/educacion/capacitaciones', RedirigirAWebController::class)->defaults('destino', '/educacion/capacitaciones')->name('educacion.capacitaciones');
 Route::get('/educacion/cursos', CursosPublicosController::class)->name('educacion.cursos');
-Route::get('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'create'])->name('matricula-publica.create');
-Route::post('/solicitar-matricula', [SolicitudMatriculaPublicaController::class, 'store'])->middleware('throttle:matricula-publica')->name('matricula-publica.store');
 Route::get('/galeria', RedirigirAWebController::class)->defaults('destino', '/galeria')->name('galeria');
 Route::get('/contactos', RedirigirAWebController::class)->defaults('destino', '/contactos')->name('contactos');
 Route::get('/politicas-devolucion', RedirigirAWebController::class)->defaults('destino', '/legales/politicas-devolucion')->name('legales.devolucion');
@@ -166,9 +162,6 @@ Route::prefix('admin')
             ->middleware('throttle:admin-opciones')
             ->name('matriculas.opciones.cursos');
         Route::resource('matriculas', MatriculaController::class);
-        Route::get('solicitudes-matricula', [SolicitudMatriculaController::class, 'index'])->name('solicitudes-matricula.index');
-        Route::patch('solicitudes-matricula/{solicitud:identificador}', [SolicitudMatriculaController::class, 'update'])
-            ->whereUuid('solicitud')->name('solicitudes-matricula.update');
         Route::patch('matriculas/{matricula}/anular', [MatriculaController::class, 'anular'])
             ->name('matriculas.anular');
         Route::patch('matriculas/{matricula}/restaurar', [MatriculaController::class, 'restaurar'])

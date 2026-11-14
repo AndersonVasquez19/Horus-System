@@ -46,7 +46,6 @@ class AppServiceProvider extends ServiceProvider
         // Registro web y API comparten cupo a propósito (Sprint 13).
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(5)->by('register:'.$request->ip()));
         RateLimiter::for('password-recovery', fn (Request $request) => Limit::perMinute(5)->by('password-recovery:'.$request->ip()));
-        RateLimiter::for('matricula-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('matricula-publica:'.$request->ip()));
         RateLimiter::for('cotizacion-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('cotizacion-publica:'.$request->ip()));
         // Perfil propio: la contraseña actual se comprueba en cada intento, así que se limita por usuario
         // para que una sesión robada no sirva para adivinarla.
@@ -92,9 +91,6 @@ class AppServiceProvider extends ServiceProvider
         // después de validar, para que equivocarse al rellenar el formulario no bloquee al consumidor.
         RateLimiter::for('reclamaciones-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('reclamaciones-bff-intentos:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('reclamaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('reclamaciones-bff-formulario:'.ChatPublicoController::visitante($request)));
-        // Fase 2c.2 (BFF): solicitud de matrícula. Topes amplios por visitante (HMAC del BFF); los estrictos los aplica el controlador tras validar.
-        RateLimiter::for('matriculas-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('matriculas-bff-intentos:'.ChatPublicoController::visitante($request)));
-        RateLimiter::for('matriculas-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('matriculas-bff-formulario:'.ChatPublicoController::visitante($request)));
         // Fase 2c.3 (BFF): solicitud de cotización. Topes amplios por visitante; los estrictos los aplica el controlador tras validar.
         RateLimiter::for('cotizaciones-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('cotizaciones-bff-intentos:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('cotizaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('cotizaciones-bff-formulario:'.ChatPublicoController::visitante($request)));

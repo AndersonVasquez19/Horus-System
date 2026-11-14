@@ -46,7 +46,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 3. Actualizar el código (`git pull` o el artefacto que se use).
 4. `composer install --no-dev --optimize-autoloader --no-interaction`.
 5. `npm ci && npm run build`. `public/build` es un artefacto generado y no se versiona.
-6. **Migraciones, con `--path` por prudencia.** Desde el 10/11/2026 `2026_10_28_000022` (verificación de registro), `000035` y `000036` (solicitudes de matrícula) están apartadas en `database/migraciones-suspendidas/` y `migrate` no las ve, así que `php artisan migrate` plano ya no las arrastra; aun así, en una base real aplica una a una, en orden, las que muestre `migrate:status` como pendientes, con `php artisan migrate --force --path=database/migrations/<archivo>.php`. Recientes y su efecto:
+6. **Migraciones, con `--path` por prudencia.** El 13/11/2026 se eliminaron `2026_10_28_000022` (verificación de registro), `000035` y `000036` (solicitudes de matrícula) con su código; ya no hay migraciones apartadas ni pendientes por decisión del propietario, y aun así, en una base real aplica una a una, en orden, las que muestre `migrate:status` como pendientes, con `php artisan migrate --force --path=database/migrations/<archivo>.php`. Recientes y su efecto:
 
    | Migración | Efecto |
    | --- | --- |
@@ -72,7 +72,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 1. `GET /up` responde 200.
 2. Inicio de sesión del panel, listado de matrículas y la campana de notificaciones.
 3. Una exportación desde su botón (son `POST` con CSRF) y comprobar que queda el registro de auditoría correspondiente.
-4. `php artisan migrate:status` sin pendientes. Las apartadas (`000035`, `000036`; la `000022` se eliminó el 13/11/2026) no aparecen y no se aplican sin autorización expresa.
+4. `php artisan migrate:status` sin pendientes. Las antiguas `000022`, `000035` y `000036` se eliminaron el 13/11/2026 y no existen.
 5. `php artisan schedule:list` muestra las tareas esperadas.
 6. Revisar `storage/logs` en busca de errores nuevos.
 

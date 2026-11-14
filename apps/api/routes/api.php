@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\Publico\CatalogoPublicoController;
 use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use App\Http\Controllers\Api\Publico\CotizacionesPublicoController;
 use App\Http\Controllers\Api\Publico\ReclamacionesPublicoController;
-use App\Http\Controllers\Api\Publico\SolicitudesMatriculaPublicoController;
 use App\Http\Middleware\AutenticarServicioWeb;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use Illuminate\Support\Facades\Route;
@@ -31,11 +30,6 @@ Route::prefix('public/v1')->name('api.publico.')->middleware([AutenticarServicio
         ->middleware('throttle:reclamaciones-bff-formulario')->name('reclamaciones.formulario');
     Route::post('/reclamaciones', [ReclamacionesPublicoController::class, 'store'])
         ->middleware([RecepcionReclamacionesHabilitada::class, 'throttle:reclamaciones-bff-intentos'])->name('reclamaciones.store');
-    // Fase 2c.2: solicitud de matrícula (un contacto para el personal; nunca crea matrícula). Sin consulta pública.
-    Route::get('/matriculas/formulario', [SolicitudesMatriculaPublicoController::class, 'formulario'])
-        ->middleware('throttle:matriculas-bff-formulario')->name('matriculas.formulario');
-    Route::post('/matriculas', [SolicitudesMatriculaPublicoController::class, 'store'])
-        ->middleware('throttle:matriculas-bff-intentos')->name('matriculas.store');
     // Fase 2c.3: solicitud de cotización (entra al módulo comercial existente; no es una cotización emitida). Sin consulta pública.
     Route::get('/cotizaciones/formulario', [CotizacionesPublicoController::class, 'formulario'])
         ->middleware('throttle:cotizaciones-bff-formulario')->name('cotizaciones.formulario');

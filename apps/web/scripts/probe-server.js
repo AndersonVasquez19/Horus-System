@@ -41,7 +41,6 @@ async function waitForServer(maxAttempts = 20) {
       '/educacion/asesoramiento',
       '/educacion/capacitaciones',
       '/educacion/cursos',
-      '/educacion/solicitar-matricula',
       '/galeria',
       '/contactos',
       '/legales/libro-reclamaciones',
