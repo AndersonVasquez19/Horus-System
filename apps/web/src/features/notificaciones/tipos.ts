@@ -42,3 +42,22 @@ export interface RegistroAuditoria {
   /** Cambios ya enmascarados por Laravel (secretos y texto de búsqueda). */
   cambios: Record<string, unknown> | null;
 }
+
+export interface UsuarioPanel {
+  id: number;
+  nombre: string;
+  email: string;
+  roles: string[];
+  verificado: boolean;
+  /** ISO 8601. */
+  creado_en: string | null;
+}
+
+export interface RolPanel {
+  id: number;
+  nombre: string;
+  /** `principal`: el rol admin; `base`: no se renombra ni se elimina; `personalizado`: editable y eliminable. */
+  tipo: 'principal' | 'base' | 'personalizado';
+  permisos: string[];
+  usuarios: number;
+}

@@ -81,3 +81,53 @@ enmascarados en listado y exportación, y registro de los filtros usados en la a
 
 **Next:** la navegación de ambos paneles muestra «Auditoría» solo con `auditoria.ver`; el botón de exportar solo con
 `auditoria.exportar` (ayuda visual: Laravel vuelve a comprobar).
+
+## 2.3 Usuarios y roles
+
+| Blade (se mantiene) | API del panel | Página Next |
+| --- | --- | --- |
+| `GET /admin/usuarios` (`usuarios.ver`) | `GET /compartido/usuarios` (`busqueda`, `page`, `per_page`, `sort=±nombre\|email\|creado`) y `GET /compartido/usuarios/{id}` | `/admin/{panel}/usuarios` |
+| `POST /admin/usuarios` (`usuarios.crear`) | `POST /compartido/usuarios` | «Nuevo usuario» (diálogo) |
+| `PUT /admin/usuarios/{id}` (`usuarios.editar`) | `PUT /compartido/usuarios/{id}` | «Editar» (diálogo) |
+| `DELETE /admin/usuarios/{id}` (`usuarios.eliminar`) | `DELETE /compartido/usuarios/{id}` | «Eliminar» (confirmación) |
+| (roles en el formulario) | `GET /compartido/usuarios/roles-asignables` (`usuarios.crear` o `usuarios.editar`) | casillas de roles |
+| `GET /admin/roles` (`roles.ver`) | `GET /compartido/roles` (`data` + `meta.permisos`) | `/admin/{panel}/roles` |
+| `POST/PUT/DELETE /admin/roles[/{id}]` | `POST /compartido/roles`, `PUT/DELETE /compartido/roles/{id}` | «Nuevo rol», «Editar», «Eliminar» |
+
+**Una sola implementación de las reglas de protección.** Antes la lógica vivía dentro de los controladores Blade. Se movió,
+sin cambiar su comportamiento, a dos servicios que usan el Blade y el panel:
+
+- `App\Services\GestionUsuarios` (crear, actualizar, eliminar).
+- `App\Services\GestionRoles` (crear, actualizar, eliminar, catálogo de permisos visibles).
+
+Los controladores Blade quedaron en unas pocas líneas por acción. Así la escalada de privilegios, el último
+administrador y la auditoría no pueden divergir entre el Blade y el panel. `AdminProtection` no se tocó.
+
+**Garantías que llegan intactas al panel:** el actor se relee con datos vigentes bajo bloqueo (no con la caché de
+Spatie); quien no es administrador no crea ni modifica administradores ni se concede roles que superen sus permisos
+(R1 a R3); no se concede un permiso que no se posee (R4c) ni se edita el rol `admin`; el rol `admin` conserva sus
+permisos de administración y ni él ni los roles base se renombran o eliminan; nadie se elimina a sí mismo ni al último
+administrador; cambiar una contraseña sube `jwt_version` y cierra las demás sesiones (la actual se conserva si es la
+propia); un usuario que se edita sin enviar `roles` no pierde los suyos. Las denegaciones son un 403 genérico que se
+registra después del rollback como `acceso_denegado`. La auditoría nunca guarda contraseñas ni hashes.
+
+**Diferencias:** respuesta JSON `{message?, data, meta?}`, validación 422, `PUT`/`DELETE` explícitos y representación de
+lista cerrada (nunca contraseña, hash, `remember_token` ni `jwt_version`). Los roles añaden `tipo`
+(`principal` | `base` | `personalizado`) y el número de usuarios. Los permisos históricos sin módulo se ocultan.
+
+**BFF:** nueva capacidad acotada `listas` en la lista cerrada `OPERACIONES` (hasta 100 textos de 100 caracteres) para
+`roles` y `permissions`; el resto de campos sigue siendo escalar. Una lista ausente no se envía, y Laravel distingue
+«sin campo» de «lista vacía».
+
+**Pruebas:** `Panel\UsuariosRolesPanelTest` (22): acceso y permisos de cada acción, listado con búsqueda y orden sin
+secretos, comodines, detalle y 404, `roles-asignables` sin `roles.ver`, alta con auditoría sin la clave, validaciones,
+escalada al crear y al editarse, cambio de clave que revoca tokens, edición propia sin `roles`, administradores
+protegidos, último administrador, autoeliminación, listado de roles con tipo, ciclo de vida de un rol, nombre repetido,
+roles `admin` y base protegidos, permisos de administración y escalada con `roles.*`. Las pruebas Blade existentes
+(`AdminProtectionTest`, `EscaladaPrivilegiosRolesTest`, `ProteccionAdministradoresTest`, `ProteccionRolesBaseTest`,
+`PromoverAdminLocalTest` y las que tocan `admin.usuarios` o `admin.roles`) se conservan y siguen en verde: confirman que
+la extracción no cambió nada.
+
+**Next:** la navegación de ambos paneles añade «Usuarios» (`usuarios.ver`) y «Roles y permisos» (`roles.ver`) en
+«Sistema»; los botones solo aparecen con el permiso correspondiente (ayuda visual: Laravel vuelve a comprobar). La
+sección de roles del formulario de usuario aparece con `usuarios.asignar-roles`.

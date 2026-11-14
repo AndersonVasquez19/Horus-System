@@ -21,7 +21,11 @@ const NAVEGACION: ModeloNavegacion = [
   {
     id: 'sistema',
     etiqueta: 'Sistema',
-    elementos: [{ id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/academico/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] }],
+    elementos: [
+      { id: 'usuarios', etiqueta: 'Usuarios', href: '/admin/academico/usuarios', icono: 'personas', permisosRequeridos: ['usuarios.ver'] },
+      { id: 'roles', etiqueta: 'Roles y permisos', href: '/admin/academico/roles', icono: 'seguridad', permisosRequeridos: ['roles.ver'] },
+      { id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/academico/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] },
+    ],
   },
   {
     id: 'cuenta',

@@ -1,4 +1,4 @@
-import { Bell, BookOpen, ClipboardList, FileText, LayoutDashboard, ServerCog, Settings, Users } from 'lucide-react';
+import { Bell, BookOpen, ClipboardList, FileText, LayoutDashboard, ServerCog, Settings, ShieldCheck, Users } from 'lucide-react';
 
 /**
  * Registro de iconos permitidos en la navegación de los paneles.
@@ -16,6 +16,7 @@ export const ICONOS_PANEL = {
   cursos: BookOpen,
   registros: ClipboardList,
   servicios: ServerCog,
+  seguridad: ShieldCheck,
 } as const;
 
 export type NombreIconoPanel = keyof typeof ICONOS_PANEL;

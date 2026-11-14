@@ -16,6 +16,8 @@ export interface Operacion {
   patron: RegExp;
   /** Campos del cuerpo JSON que se reenvían (solo cadenas, números, booleanos o null). */
   campos?: readonly string[];
+  /** Campos del cuerpo que son listas de textos (roles o permisos): hasta `MAX_LISTA` elementos de texto acotado. */
+  listas?: readonly string[];
   /** Parámetros de consulta que se reenvían. */
   consulta?: readonly string[];
   /** La respuesta es un archivo con alguno de estos tipos MIME. */
@@ -31,6 +33,9 @@ export interface Operacion {
 
 /** Tamaño máximo de la imagen de la ficha (igual que `ImagenesServicios::MAX_KB` en Laravel: 3 MB). */
 export const MAX_IMAGEN = 3 * 1024 * 1024;
+
+/** Elementos admitidos en un campo de lista (Laravel limita roles a 20 y permisos a 100). */
+export const MAX_LISTA = 100;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
@@ -50,6 +55,7 @@ const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estad
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
 const SESION = '[a-f0-9]{32}';
+const CAMPOS_USUARIO = ['name', 'email', 'password', 'password_confirmation'] as const;
 
 export const OPERACIONES: readonly Operacion[] = [
   // Cuenta propia compartida por los dos paneles: notificaciones, perfil y sesiones
@@ -58,6 +64,12 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^compartido/notificaciones/${ID}/leida$`) },
   { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
   { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta'], archivo: ['application/json'] },
+  { metodo: 'POST', patron: /^compartido\/usuarios$/, campos: CAMPOS_USUARIO, listas: ['roles'] },
+  { metodo: 'PUT', patron: new RegExp(`^compartido/usuarios/${ID}$`), campos: CAMPOS_USUARIO, listas: ['roles'] },
+  { metodo: 'DELETE', patron: new RegExp(`^compartido/usuarios/${ID}$`) },
+  { metodo: 'POST', patron: /^compartido\/roles$/, campos: ['name'], listas: ['permissions'] },
+  { metodo: 'PUT', patron: new RegExp(`^compartido/roles/${ID}$`), campos: ['name'], listas: ['permissions'] },
+  { metodo: 'DELETE', patron: new RegExp(`^compartido/roles/${ID}$`) },
   { metodo: 'POST', patron: /^compartido\/perfil\/sesiones\/cerrar-otras$/, campos: ['current_password'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/perfil/sesiones/${SESION}/cerrar$`), campos: ['current_password'] },
 
@@ -120,13 +132,20 @@ export function buscarOperacion(metodo: string, ruta: string): Operacion | null 
 }
 
 /** Cuerpo reenviado: solo los campos declarados y con valores escalares. */
-export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unknown>): Record<string, string | number | boolean | null> | undefined {
+export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unknown>): Record<string, string | number | boolean | null | string[]> | undefined {
   if (operacion.metodo === 'GET' || operacion.metodo === 'DELETE') return undefined;
-  const resultado: Record<string, string | number | boolean | null> = {};
+  const resultado: Record<string, string | number | boolean | null | string[]> = {};
   for (const campo of operacion.campos ?? []) {
     const valor = cuerpo[campo];
     if (valor === null || typeof valor === 'string' || typeof valor === 'number' || typeof valor === 'boolean') {
       resultado[campo] = typeof valor === 'string' ? valor.slice(0, 4000) : valor;
+    }
+  }
+  for (const campo of operacion.listas ?? []) {
+    const valor = cuerpo[campo];
+    // Solo listas de textos cortos; una lista ausente se omite (Laravel distingue «sin campo» de «lista vacía»).
+    if (Array.isArray(valor) && valor.length <= MAX_LISTA && valor.every((elemento) => typeof elemento === 'string')) {
+      resultado[campo] = valor.map((elemento: string) => elemento.slice(0, 100));
     }
   }
   return resultado;

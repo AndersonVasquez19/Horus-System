@@ -49,6 +49,21 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         Route::post('auditoria/exportar', [Compartido\AuditoriaController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('auditoria.exportar');
 
+        // Usuarios y roles: el permiso lo declara cada controlador; la lógica (R1 a R4, último administrador) es la de
+        // `GestionUsuarios` y `GestionRoles`, compartida con el Blade.
+        Route::get('usuarios', [Compartido\UsuarioController::class, 'index'])->name('usuarios.index');
+        Route::get('usuarios/roles-asignables', [Compartido\UsuarioController::class, 'rolesAsignables'])->name('usuarios.roles-asignables');
+        Route::get('usuarios/{user}', [Compartido\UsuarioController::class, 'show'])->whereNumber('user')->name('usuarios.show');
+        Route::get('roles', [Compartido\RolController::class, 'index'])->name('roles.index');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('usuarios', [Compartido\UsuarioController::class, 'store'])->name('usuarios.store');
+            Route::put('usuarios/{user}', [Compartido\UsuarioController::class, 'update'])->whereNumber('user')->name('usuarios.update');
+            Route::delete('usuarios/{user}', [Compartido\UsuarioController::class, 'destroy'])->whereNumber('user')->name('usuarios.destroy');
+            Route::post('roles', [Compartido\RolController::class, 'store'])->name('roles.store');
+            Route::put('roles/{role}', [Compartido\RolController::class, 'update'])->whereNumber('role')->name('roles.update');
+            Route::delete('roles/{role}', [Compartido\RolController::class, 'destroy'])->whereNumber('role')->name('roles.destroy');
+        });
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('notificaciones/leidas', [Compartido\NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
             Route::post('notificaciones/{notificacion}/leida', [Compartido\NotificacionController::class, 'marcarLeida'])

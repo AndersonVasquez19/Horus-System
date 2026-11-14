@@ -20,7 +20,11 @@ const NAVEGACION: ModeloNavegacion = [
   {
     id: 'sistema',
     etiqueta: 'Sistema',
-    elementos: [{ id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/servicios/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] }],
+    elementos: [
+      { id: 'usuarios', etiqueta: 'Usuarios', href: '/admin/servicios/usuarios', icono: 'personas', permisosRequeridos: ['usuarios.ver'] },
+      { id: 'roles', etiqueta: 'Roles y permisos', href: '/admin/servicios/roles', icono: 'seguridad', permisosRequeridos: ['roles.ver'] },
+      { id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/servicios/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] },
+    ],
   },
   {
     id: 'cuenta',
