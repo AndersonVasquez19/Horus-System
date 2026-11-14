@@ -58,7 +58,6 @@ class AdminAuthorizationTest extends TestCase
             'usuarios.create' => ['admin.usuarios.create', ['admin']],
             'roles.index' => ['admin.roles.index', ['admin']],
             'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
-            'notificaciones.index' => ['admin.notificaciones.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
             'asistente.index' => ['admin.asistente.index', ['admin', 'coordinador']],

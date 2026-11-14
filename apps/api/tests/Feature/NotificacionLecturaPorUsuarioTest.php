@@ -11,10 +11,12 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * Lectura por usuario de las notificaciones generales, campana (recientes) y «marcar todas».
+ * Lectura por usuario de las notificaciones generales, campana (recientes) y «marcar todas». La bandeja y «marcar una»
+ * se retiraron de Blade el 14/11/2026: se prueban por la API del panel; la campana del Blade sigue en pie.
  * Decisión del propietario (10/11/2026). SQLite en memoria: no prueba PostgreSQL ni concurrencia.
  */
 class NotificacionLecturaPorUsuarioTest extends TestCase
@@ -40,15 +42,13 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
     {
         $general = $this->general('Aviso general');
 
-        $this->actingAs($this->a)->patch(route('admin.notificaciones.leida', $general))->assertRedirect();
-        $this->actingAs($this->a)->patch(route('admin.notificaciones.leida', $general))->assertRedirect(); // idempotente
+        $this->panel($this->a, 'POST', 'notificaciones/'.$general->id.'/leida')->assertOk();
+        $this->panel($this->a, 'POST', 'notificaciones/'.$general->id.'/leida')->assertOk(); // idempotente
 
         $this->assertSame(1, DB::table('notificacion_lecturas')->count());
         $this->assertFalse($general->fresh()->leida);
-        $this->actingAs($this->a)->get(route('admin.notificaciones.index'))->assertViewHas('pendientes', 0);
-        $this->actingAs($this->b)->get(route('admin.notificaciones.index'))
-            ->assertViewHas('pendientes', 1)
-            ->assertSee('Sin leer:', false);
+        $this->panel($this->a, 'GET', 'notificaciones')->assertJsonPath('meta.pendientes', 0);
+        $this->panel($this->b, 'GET', 'notificaciones')->assertJsonPath('meta.pendientes', 1);
     }
 
     public function test_una_general_leida_antes_del_cambio_sigue_leida_para_todos(): void
@@ -56,7 +56,7 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
         $this->general('Aviso heredado', leida: true);
 
         foreach ([$this->a, $this->b] as $usuario) {
-            $this->actingAs($usuario)->get(route('admin.notificaciones.index'))->assertViewHas('pendientes', 0);
+            $this->panel($usuario, 'GET', 'notificaciones')->assertJsonPath('meta.pendientes', 0);
         }
     }
 
@@ -70,11 +70,9 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
             'titulo' => 'Indeterminada', 'mensaje' => 'M', 'tipo' => 'info', 'leida' => false,
         ]);
 
-        $this->actingAs($this->a)
-            ->from(route('admin.notificaciones.index'))
-            ->patch(route('admin.notificaciones.leidas'))
-            ->assertRedirect(route('admin.notificaciones.index'))
-            ->assertSessionHas('success', 'Se marcaron 2 notificaciones como leídas.');
+        // La campana del Blade (que sigue en pie mientras exista su shell) marca por JSON.
+        $this->actingAs($this->a)->patchJson(route('admin.notificaciones.leidas'))
+            ->assertOk()->assertExactJson(['marcadas' => 2, 'pendientes' => 0]);
 
         $this->assertTrue($propia->fresh()->leida);
         $this->assertTrue($general->fresh()->estaLeidaPara($this->a));
@@ -84,9 +82,8 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
         $this->assertFalse($indeterminada->fresh()->leida);
 
         // Sin pendientes: no cambia nada y lo dice.
-        $this->actingAs($this->a)
-            ->patch(route('admin.notificaciones.leidas'))
-            ->assertSessionHas('success', 'No había notificaciones pendientes.');
+        $this->actingAs($this->a)->patchJson(route('admin.notificaciones.leidas'))
+            ->assertOk()->assertExactJson(['marcadas' => 0, 'pendientes' => 0]);
         $this->assertSame(1, DB::table('notificacion_lecturas')->count());
     }
 
@@ -163,10 +160,10 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
         $this->personal($this->a, 'Con vínculo externo', vinculo: '//externo.example/x');
         $this->personal($this->a, 'Con vínculo interno', vinculo: '/admin/aprobaciones');
 
-        $this->actingAs($this->a)->get(route('admin.notificaciones.index'))
-            ->assertOk()
-            ->assertDontSee('href="//externo.example/x"', false)
-            ->assertSee('href="/admin/aprobaciones"', false);
+        $vinculos = $this->panel($this->a, 'GET', 'notificaciones')->assertOk()->json('data.*.vinculo');
+
+        $this->assertContains('/admin/aprobaciones', $vinculos);
+        $this->assertNotContains('//externo.example/x', $vinculos);
     }
 
     public function test_la_migracion_funciona_en_base_sembrada_y_es_reversible(): void
@@ -189,6 +186,18 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
         $this->assertSame(1, DB::table('notificacion_lecturas')->count());
         $this->a->delete();
         $this->assertSame(0, DB::table('notificacion_lecturas')->count());
+    }
+
+    /** @param array<string, mixed> $datos */
+    private function panel(User $usuario, string $metodo, string $ruta, array $datos = []): TestResponse
+    {
+        $token = (string) config('horus-web.service_token');
+        if ($token === '') {
+            $token = 'token-de-servicio-del-bff-para-pruebas-0123456789';
+            config(['horus-web.service_token' => $token]);
+        }
+
+        return $this->actingAs($usuario)->json($metodo, '/api/panel/v1/compartido/'.$ruta, $datos, ['X-Horus-Web-Token' => $token]);
     }
 
     private function staff(string $rol): User

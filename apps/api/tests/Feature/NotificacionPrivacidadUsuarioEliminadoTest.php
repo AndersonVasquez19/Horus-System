@@ -53,22 +53,22 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $huerfana = $this->notificacionHuerfanaPorHttp();
         $propiaB = $this->notificar($this->usuarioB, 'Aviso propio de B');
 
-        $this->bandeja($this->usuarioB)
-            ->assertDontSee(self::TITULO_PRIVADO)
-            ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === [$propiaB->id]);
+        $b = $this->bandeja($this->usuarioB);
+        $this->assertStringNotContainsString(self::TITULO_PRIVADO, $b->getContent());
+        $this->assertSame([$propiaB->id], $this->ids($b));
 
         // El administrador que eliminó al usuario tampoco hereda sus avisos personales.
-        $this->bandeja($this->admin)
-            ->assertDontSee(self::TITULO_PRIVADO)
-            ->assertViewHas('notificaciones', fn ($p): bool => ! in_array($huerfana->id, $this->ids($p), true));
+        $admin = $this->bandeja($this->admin);
+        $this->assertStringNotContainsString(self::TITULO_PRIVADO, $admin->getContent());
+        $this->assertNotContains($huerfana->id, $this->ids($admin));
     }
 
     public function test_http_deleted_user_personal_notification_is_not_counted_in_inbox_pending(): void
     {
         $this->notificacionHuerfanaPorHttp();
 
-        $this->bandeja($this->usuarioB)->assertViewHas('pendientes', 0);
-        $this->bandeja($this->admin)->assertViewHas('pendientes', 0);
+        $this->assertSame(0, $this->pendientes($this->bandeja($this->usuarioB)));
+        $this->assertSame(0, $this->pendientes($this->bandeja($this->admin)));
     }
 
     public function test_http_deleted_user_personal_notification_is_not_counted_in_dashboard(): void
@@ -88,9 +88,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $huerfana = $this->notificacionHuerfanaPorHttp();
 
         foreach ([$this->usuarioB, $this->admin] as $usuario) {
-            $this->actingAs($usuario)
-                ->patch(route('admin.notificaciones.leida', $huerfana))
-                ->assertForbidden();
+            $this->marcarLeida($usuario, $huerfana)->assertForbidden();
         }
 
         $this->assertFalse($huerfana->fresh()->leida);
@@ -103,10 +101,10 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
     {
         $huerfana = $this->notificacionHuerfanaPorQueryBuilder();
 
-        $this->bandeja($this->usuarioB)
-            ->assertDontSee(self::TITULO_PRIVADO)
-            ->assertViewHas('notificaciones', fn ($p): bool => ! in_array($huerfana->id, $this->ids($p), true))
-            ->assertViewHas('pendientes', 0);
+        $b = $this->bandeja($this->usuarioB);
+        $this->assertStringNotContainsString(self::TITULO_PRIVADO, $b->getContent());
+        $this->assertNotContains($huerfana->id, $this->ids($b));
+        $this->assertSame(0, $this->pendientes($b));
     }
 
     public function test_query_builder_deleted_user_personal_notification_is_not_counted_in_dashboard(): void
@@ -123,14 +121,10 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
     {
         $huerfana = $this->notificacionHuerfanaPorQueryBuilder();
 
-        $this->actingAs($this->usuarioB)
-            ->patch(route('admin.notificaciones.leida', $huerfana))
-            ->assertForbidden();
+        $this->marcarLeida($this->usuarioB, $huerfana)->assertForbidden();
 
         $this->assertFalse($huerfana->fresh()->leida);
     }
-
-    // --- Rollback de la eliminación administrativa -----------------------------------------
 
     /**
      * Si la auditoría falla DESPUÉS del DELETE, la transacción de AdminProtection revierte todo:
@@ -164,10 +158,8 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $this->assertSame(NotificacionInterna::AUDIENCIA_PERSONAL, $fila->audiencia);
         $this->assertSame(0, DB::table('audit_logs')->where('action', 'user_deleted')->count());
 
-        $this->bandeja($this->usuarioA)
-            ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === [$notificacion->id]);
-        $this->bandeja($this->usuarioB)
-            ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === []);
+        $this->assertSame([$notificacion->id], $this->ids($this->bandeja($this->usuarioA)));
+        $this->assertSame([], $this->ids($this->bandeja($this->usuarioB)));
     }
 
     // --- Notificaciones indeterminadas (histórico sin destinatario cierto) -----------------
@@ -177,10 +169,10 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $indeterminada = $this->indeterminada('Aviso histórico sin destinatario');
 
         foreach ([$this->admin, $this->usuarioA, $this->usuarioB] as $usuario) {
-            $this->bandeja($usuario)
-                ->assertDontSee('Aviso histórico sin destinatario')
-                ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === [])
-                ->assertViewHas('pendientes', 0);
+            $bandeja = $this->bandeja($usuario);
+            $this->assertSame([], $this->ids($bandeja));
+            $this->assertSame(0, $this->pendientes($bandeja));
+            $this->assertStringNotContainsString('sin destinatario', $bandeja->getContent());
 
             $this->actingAs($usuario)
                 ->get(route('admin.dashboard'))
@@ -196,9 +188,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $indeterminada = $this->indeterminada('Aviso histórico sin destinatario');
 
         foreach ([$this->admin, $this->usuarioA, $this->usuarioB] as $usuario) {
-            $this->actingAs($usuario)
-                ->patch(route('admin.notificaciones.leida', $indeterminada))
-                ->assertForbidden();
+            $this->marcarLeida($usuario, $indeterminada)->assertForbidden();
         }
 
         $this->assertFalse($indeterminada->fresh()->leida);
@@ -212,16 +202,11 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $this->notificacionHuerfanaPorHttp();
         $propia = $this->notificar($this->usuarioB, 'Aviso propio de B');
 
-        $this->bandeja($this->usuarioB)
-            ->assertSee('Aviso propio de B')
-            ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === [$propia->id])
-            ->assertViewHas('pendientes', 1);
+        $b = $this->bandeja($this->usuarioB);
+        $this->assertSame([$propia->id], $this->ids($b));
+        $this->assertSame(1, $this->pendientes($b));
 
-        $this->actingAs($this->usuarioB)
-            ->from(route('admin.notificaciones.index'))
-            ->patch(route('admin.notificaciones.leida', $propia))
-            ->assertRedirect(route('admin.notificaciones.index'))
-            ->assertSessionHas('success');
+        $this->marcarLeida($this->usuarioB, $propia)->assertOk();
 
         $this->assertTrue($propia->fresh()->leida);
     }
@@ -231,10 +216,9 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $general = $this->general('Aviso general explícito');
 
         foreach ([$this->admin, $this->usuarioA, $this->usuarioB] as $usuario) {
-            $this->bandeja($usuario)
-                ->assertSee('Aviso general explícito')
-                ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === [$general->id])
-                ->assertViewHas('pendientes', 1);
+            $bandeja = $this->bandeja($usuario);
+            $this->assertSame([$general->id], $this->ids($bandeja));
+            $this->assertSame(1, $this->pendientes($bandeja));
 
             $this->actingAs($usuario)
                 ->get(route('admin.dashboard'))
@@ -242,9 +226,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
                 ->assertViewHas('notificacionesPendientes', 1);
         }
 
-        $this->actingAs($this->usuarioB)
-            ->patch(route('admin.notificaciones.leida', $general))
-            ->assertRedirect();
+        $this->marcarLeida($this->usuarioB, $general)->assertOk();
 
         $this->assertTrue($general->fresh()->estaLeidaPara($this->usuarioB));
         $this->assertFalse($general->fresh()->estaLeidaPara($this->usuarioA));
@@ -261,10 +243,9 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $this->assertModelMissing($this->usuarioA);
         $this->assertSame(NotificacionInterna::AUDIENCIA_GENERAL, $general->fresh()->audiencia);
 
-        $this->bandeja($this->usuarioB)
-            ->assertSee('Aviso general explícito')
-            ->assertViewHas('notificaciones', fn ($p): bool => $this->ids($p) === [$general->id])
-            ->assertViewHas('pendientes', 1);
+        $b = $this->bandeja($this->usuarioB);
+        $this->assertSame([$general->id], $this->ids($b));
+        $this->assertSame(1, $this->pendientes($b));
     }
 
     public function test_marking_an_already_read_notification_again_still_succeeds(): void
@@ -273,11 +254,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $general = $this->general('General ya leída', leida: true);
 
         foreach ([$propia, $general] as $notificacion) {
-            $this->actingAs($this->usuarioB)
-                ->from(route('admin.notificaciones.index'))
-                ->patch(route('admin.notificaciones.leida', $notificacion))
-                ->assertRedirect(route('admin.notificaciones.index'))
-                ->assertSessionHas('success');
+            $this->marcarLeida($this->usuarioB, $notificacion)->assertOk();
 
             $this->assertTrue($notificacion->fresh()->leida);
         }
@@ -291,19 +268,14 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
     {
         $general = $this->general('Aviso general compartido');
 
-        $this->actingAs($this->usuarioA)
-            ->patch(route('admin.notificaciones.leida', $general))
-            ->assertRedirect();
+        $this->marcarLeida($this->usuarioA, $general)->assertOk();
 
-        $this->bandeja($this->usuarioA)
-            ->assertViewHas('pendientes', 0);
+        $this->assertSame(0, $this->pendientes($this->bandeja($this->usuarioA)));
 
-        $this->bandeja($this->usuarioB)
-            ->assertSee('Aviso general compartido')
-            ->assertViewHas('notificaciones', function ($p) use ($general): bool {
-                return $this->ids($p) === [$general->id] && $p->first()->estaLeidaPara($this->usuarioB) === false;
-            })
-            ->assertViewHas('pendientes', 1);
+        $b = $this->bandeja($this->usuarioB);
+        $this->assertSame([$general->id], $this->ids($b));
+        $this->assertFalse($b->json('data.0.leida'));
+        $this->assertSame(1, $this->pendientes($b));
     }
 
     // --- Utilidades ------------------------------------------------------------------------
@@ -340,15 +312,43 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         return $notificacion;
     }
 
+    /** Bandeja por la API del panel (`GET /api/panel/v1/compartido/notificaciones`): `data` y `meta.pendientes`. */
     private function bandeja(User $usuario): TestResponse
     {
-        return $this->actingAs($usuario)->get(route('admin.notificaciones.index'))->assertOk();
+        return $this->actingAs($usuario)
+            ->json('GET', '/api/panel/v1/compartido/notificaciones', [], ['X-Horus-Web-Token' => $this->tokenDelPanel()])
+            ->assertOk();
+    }
+
+    private function marcarLeida(User $usuario, NotificacionInterna $notificacion): TestResponse
+    {
+        return $this->actingAs($usuario)
+            ->json('POST', '/api/panel/v1/compartido/notificaciones/'.$notificacion->id.'/leida', [], ['X-Horus-Web-Token' => $this->tokenDelPanel()]);
+    }
+
+    private function tokenDelPanel(): string
+    {
+        $token = (string) config('horus-web.service_token');
+        if ($token === '') {
+            $token = 'token-de-servicio-del-bff-para-pruebas-0123456789';
+            config(['horus-web.service_token' => $token]);
+        }
+
+        return $token;
     }
 
     /** @return list<int> */
-    private function ids(mixed $paginador): array
+    private function ids(TestResponse $bandeja): array
     {
-        return collect($paginador->items())->map(fn (NotificacionInterna $n): int => $n->id)->sort()->values()->all();
+        $ids = array_map('intval', $bandeja->json('data.*.id') ?? []);
+        sort($ids);
+
+        return $ids;
+    }
+
+    private function pendientes(TestResponse $bandeja): int
+    {
+        return (int) $bandeja->json('meta.pendientes');
     }
 
     private function staff(string $role): User

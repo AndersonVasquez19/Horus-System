@@ -38,6 +38,8 @@ class AdminModulosRetiradosTest extends TestCase
             'matriculas' => ['admin.matriculas.index', '/admin/academico/matriculas'],
             'auditoria' => ['admin.auditoria.index', '/admin/auditoria'],
             'reclamaciones' => ['admin.reclamaciones.index', '/admin/reclamaciones'],
+            'perfil' => ['admin.perfil.edit', '/admin/perfil'],
+            'notificaciones' => ['admin.notificaciones.index', '/admin/notificaciones'],
         ];
     }
 
@@ -77,6 +79,26 @@ class AdminModulosRetiradosTest extends TestCase
         $this->get(route('admin.reclamaciones.hoja', $uuid))->assertRedirect(self::WEB.'/admin/reclamaciones/'.$uuid.'/hoja');
         $this->get('/admin/reclamaciones/no-es-uuid')->assertNotFound();
         $this->post('/admin/reclamaciones/'.$uuid.'/gestion', ['operacion' => 'nota', 'nota' => 'x'])->assertNotFound();
+    }
+
+    public function test_la_edicion_del_perfil_y_las_sesiones_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $this->put('/admin/perfil', ['name' => 'X', 'email' => 'x@example.invalid'])->assertStatus(405);
+        $this->getJson('/admin/perfil/sesiones')->assertNotFound();
+        $this->deleteJson('/admin/perfil/sesiones', ['current_password' => 'x'])->assertNotFound();
+        $this->deleteJson('/admin/perfil/sesiones/'.str_repeat('a', 32), ['current_password' => 'x'])->assertNotFound();
+    }
+
+    public function test_marcar_una_notificacion_ya_no_existe_en_blade_pero_la_campana_sigue(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $this->patchJson('/admin/notificaciones/1/leida')->assertNotFound();
+        // La campana del shell Blade (hasta la Ola 4) conserva sus dos endpoints JSON.
+        $this->getJson(route('admin.notificaciones.recientes'))->assertOk()->assertJsonStructure(['pendientes', 'notificaciones']);
+        $this->patchJson(route('admin.notificaciones.leidas'))->assertOk()->assertJsonStructure(['marcadas', 'pendientes']);
     }
 
     public function test_la_exportacion_de_auditoria_ya_no_existe_en_blade(): void

@@ -226,3 +226,25 @@ efectos sobre una propuesta vencida y sin N+1). `ReclamacionGestionPanelTest` (2
 `Panel\ReclamacionesGestionPanelTest` (16, contra JSON 422/409). Se retiraron solo las comprobaciones de HTML (textos de
 pantalla, escapado, formularios, modales y secciones de gestión por estado), que ahora son del componente de Next. Lo que
 queda **sin cobertura automática** es la vista de impresión A4 de Next: está pendiente de revisión visual en un navegador.
+
+### Perfil y notificaciones (retirados; la campana se queda)
+
+| Blade | Ahora |
+| --- | --- |
+| `GET /admin/perfil` | 302 a `/admin/perfil` de Next (nombre `admin.perfil.edit` conservado) |
+| `PUT /admin/perfil`, `GET/DELETE /admin/perfil/sesiones[...]` | eliminadas (404/405); `PUT /compartido/perfil` y `…/perfil/sesiones[/cerrar-otras\|/{huella}/cerrar]` |
+| `GET /admin/notificaciones` | 302 a `/admin/notificaciones` de Next (nombre `admin.notificaciones.index` conservado) |
+| `PATCH /admin/notificaciones/{id}/leida` | eliminada (404); `POST /compartido/notificaciones/{id}/leida` |
+| `GET /admin/notificaciones/recientes`, `PATCH /admin/notificaciones/leidas` | **se conservan** (JSON): son los endpoints de la campana del shell Blade |
+
+`Admin\NotificacionController` queda reducido a la campana (`recientes` y `marcarTodas`, esta última solo en JSON).
+Se eliminan `PerfilController`, `PerfilSesionesController` y las vistas `perfil/edit` y `notificaciones/index`. Cuando se retire
+el shell Blade (Ola 4) desaparecerán también los dos endpoints de la campana, y Next necesitará su propia campana (pendiente).
+
+Pruebas: `PerfilPropioTest` (11) y `SesionesActivasTest` (7) se sustituyen por `Panel\PerfilPropioPanelTest` (7: correo
+normalizado y JWT revocado, sesión actual conservada, límite de intentos, sesiones propias sin identificadores reales,
+cierre de las demás, cierre de una y huella ajena, driver no disponible), que complementa a `Panel\CompartidoCuentaPanelTest`.
+`AdminNotificacionTest` se elimina (duplicada por `CompartidoCuentaPanelTest`). `NotificacionLecturaPorUsuarioTest` y
+`NotificacionPrivacidadUsuarioEliminadoTest` conservan todos sus casos: la bandeja y «marcar una» se prueban ahora por la API del
+panel, la campana y el contador del inicio siguen contra el Blade. `HoraLocalPanelTest` y `RetiroProcesosTest` leen la bandeja del
+panel. Se retiraron solo comprobaciones de HTML (formularios de sesiones, errores por sección, vínculos en la plantilla).

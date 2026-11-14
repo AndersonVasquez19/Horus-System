@@ -11,14 +11,15 @@ use App\Models\User;
 use App\Support\HoraLocal;
 use App\Support\NotificacionesPendientes;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 
+/**
+ * Campana de notificaciones del shell Blade (que sigue en pie hasta la Ola 4): últimas no leídas y «marcar todas», en JSON.
+ * La bandeja y «marcar una» se retiraron el 14/11/2026: las sirve `Api\Panel\Compartido\NotificacionController`.
+ */
 class NotificacionController extends Controller implements HasMiddleware
 {
     /** Notificaciones que muestra el desplegable de la campana. */
@@ -34,24 +35,6 @@ class NotificacionController extends Controller implements HasMiddleware
         return [
             new Middleware('auth'),
         ];
-    }
-
-    public function index(): View
-    {
-        $usuario = $this->usuario();
-
-        $notificaciones = NotificacionInterna::query()
-            ->visiblePara($usuario)
-            ->conLecturaDe($usuario)
-            ->latest()
-            ->latest('id')
-            ->paginate(12);
-
-        return view('admin.notificaciones.index', [
-            'notificaciones' => $notificaciones,
-            'pendientes' => NotificacionesPendientes::para($usuario),
-            'usuario' => $usuario,
-        ]);
     }
 
     /**
@@ -86,27 +69,10 @@ class NotificacionController extends Controller implements HasMiddleware
     }
 
     /**
-     * Solo el destinatario de una personal o cualquier miembro del personal en una general.
-     * Personales ajenas o huérfanas e indeterminadas: 403. Una general queda leída solo para quien la marca.
-     */
-    public function marcarLeida(NotificacionInterna $notificacion): RedirectResponse
-    {
-        $usuario = $this->usuario();
-
-        if (! $notificacion->esVisiblePara($usuario)) {
-            abort(403);
-        }
-
-        $notificacion->marcarLeidaPara($usuario);
-
-        return back()->with('success', 'La notificación se marcó como leída.');
-    }
-
-    /**
      * Marca como leídas todas las notificaciones visibles y no leídas del usuario (personales en su fila,
      * generales con una lectura propia). No afecta a lo que ven los demás.
      */
-    public function marcarTodas(Request $request): RedirectResponse|JsonResponse
+    public function marcarTodas(): JsonResponse
     {
         $usuario = $this->usuario();
 
@@ -137,15 +103,7 @@ class NotificacionController extends Controller implements HasMiddleware
 
         NotificacionesPendientes::olvidar($usuario);
 
-        if ($request->wantsJson()) {
-            return response()->json(['marcadas' => $marcadas, 'pendientes' => 0]);
-        }
-
-        return back()->with('success', match ($marcadas) {
-            0 => 'No había notificaciones pendientes.',
-            1 => 'Se marcó 1 notificación como leída.',
-            default => "Se marcaron {$marcadas} notificaciones como leídas.",
-        });
+        return response()->json(['marcadas' => $marcadas, 'pendientes' => 0]);
     }
 
     private function usuario(): User

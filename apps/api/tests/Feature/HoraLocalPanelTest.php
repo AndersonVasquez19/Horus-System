@@ -72,7 +72,9 @@ class HoraLocalPanelTest extends TestCase
         $this->assertTrue(Carbon::parse($creado)->equalTo($matricula->created_at));
         $this->assertSame('2026-11-30 23:30', Carbon::parse($creado)->setTimezone('America/Lima')->format('Y-m-d H:i'));
 
-        $this->actingAs($admin)->get(route('admin.notificaciones.index'))
-            ->assertOk()->assertSee('30/11/2026 23:30');
+        // Las notificaciones las sirve el panel con `fecha_local` ya formateada en Lima.
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $this->actingAs($admin)->json('GET', '/api/panel/v1/compartido/notificaciones', [], ['X-Horus-Web-Token' => config('horus-web.service_token')])
+            ->assertOk()->assertJsonPath('data.0.fecha_local', '30/11/2026 23:30');
     }
 }

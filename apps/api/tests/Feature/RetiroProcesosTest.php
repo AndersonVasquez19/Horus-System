@@ -138,11 +138,13 @@ class RetiroProcesosTest extends TestCase
             'tipo' => 'info', 'leida' => false, 'vinculo' => '/admin/aprobaciones',
         ]);
 
-        $this->actingAs($admin)->get(route('admin.notificaciones.index'))
-            ->assertOk()
-            ->assertSee('Aviso histórico ficticio')
-            ->assertDontSee('href="'.$vinculo.'"', false)
-            ->assertSee('href="/admin/aprobaciones"', false);
+        // La bandeja la sirve el panel: el vínculo retirado no se entrega (null) y el vigente sí.
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $lista = $this->actingAs($admin)->json('GET', '/api/panel/v1/compartido/notificaciones', [], ['X-Horus-Web-Token' => config('horus-web.service_token')])
+            ->assertOk()->json('data');
+        $porTitulo = collect($lista)->keyBy('titulo');
+        $this->assertNull($porTitulo['Aviso histórico ficticio']['vinculo']);
+        $this->assertSame('/admin/aprobaciones', $porTitulo['Aviso vigente ficticio']['vinculo']);
 
         $this->assertSame($vinculo, $aviso->fresh()->vinculo);
         $this->assertFalse($aviso->fresh()->leida);

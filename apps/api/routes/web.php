@@ -7,8 +7,6 @@ use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificacionController;
-use App\Http\Controllers\Admin\PerfilController;
-use App\Http\Controllers\Admin\PerfilSesionesController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -76,14 +74,10 @@ Route::prefix('admin')
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('buscar', [BusquedaController::class, 'index'])->name('busqueda.index');
 
-        // Perfil propio: el usuario sale de la sesión; cambiar correo o clave exige la contraseña actual.
-        Route::get('perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
-        Route::put('perfil', [PerfilController::class, 'update'])->middleware('throttle:perfil')->name('perfil.update');
-        Route::get('perfil/sesiones', [PerfilSesionesController::class, 'index'])->name('perfil.sesiones.index');
-        Route::delete('perfil/sesiones', [PerfilSesionesController::class, 'destroyOtras'])
-            ->middleware('throttle:perfil')->name('perfil.sesiones.destroy-otras');
-        Route::delete('perfil/sesiones/{identificador}', [PerfilSesionesController::class, 'destroy'])
-            ->where('identificador', '[a-f0-9]{32}')->middleware('throttle:perfil')->name('perfil.sesiones.destroy');
+        // Perfil propio retirado de Blade (14/11/2026): lo sirve apps/web con /api/panel/v1/compartido/perfil. Se conserva el
+        // nombre `perfil.edit` para la barra lateral y la barra superior; responde 302 a `/admin/perfil` de Next. La edición
+        // (PUT) y las sesiones activas (GET/DELETE) ya no existen aquí.
+        Route::get('perfil', RedirigirAWebController::class)->defaults('destino', '/admin/perfil')->name('perfil.edit');
 
         // Estudiantes (retirados de Blade el 14/11/2026): los atiende apps/web con /api/panel/v1/academico/estudiantes.
         // Se conservan `index` y `show` solo por sus nombres (búsqueda global, barra lateral); responden 302 a Next.
@@ -130,10 +124,12 @@ Route::prefix('admin')
         Route::post('aprobaciones/{aprobacion}/aprobar', [AprobacionController::class, 'aprobar'])->name('aprobaciones.aprobar');
         Route::post('aprobaciones/{aprobacion}/rechazar', [AprobacionController::class, 'rechazar'])->name('aprobaciones.rechazar');
         Route::post('aprobaciones/{aprobacion}/reabrir', [AprobacionController::class, 'reabrir'])->name('aprobaciones.reabrir');
-        Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+        // Bandeja de notificaciones retirada de Blade (14/11/2026): la sirve apps/web con /api/panel/v1/compartido/notificaciones.
+        // `notificaciones.index` responde 302 a Next. Se conservan `recientes` y `leidas` (JSON) porque la campana del shell
+        // Blade, que sigue en pie hasta la Ola 4, las consume; «marcar una» ya no existe aquí.
+        Route::get('notificaciones', RedirigirAWebController::class)->defaults('destino', '/admin/notificaciones')->name('notificaciones.index');
         Route::get('notificaciones/recientes', [NotificacionController::class, 'recientes'])->name('notificaciones.recientes');
         Route::patch('notificaciones/leidas', [NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
-        Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
         // Reportes retirados de Blade (14/11/2026): los sirve apps/web con /api/panel/v1/academico/reportes. Se conserva el
         // nombre para los enlaces de las vistas Blade que quedan (barra lateral, panel); responde 302 a Next.
         Route::get('reportes', RedirigirAWebController::class)->defaults('destino', '/admin/academico/reportes')->name('reportes.index');
