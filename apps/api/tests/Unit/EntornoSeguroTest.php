@@ -30,7 +30,6 @@ class EntornoSeguroTest extends TestCase
         'RESEND_API_KEY' => '',
         'MATRICULA_MAIL_ENABLED' => 'false',
         'RECLAMACIONES_CORREO_ENABLED' => 'false',
-        'REGISTRO_VERIFICACION_ENABLED' => 'false',
     ];
 
     public function test_el_entorno_neutralizado_cubre_cada_familia_y_las_claves_siempre_cerradas(): void

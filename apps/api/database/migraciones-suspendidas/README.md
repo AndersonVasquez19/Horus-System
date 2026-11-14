@@ -9,7 +9,7 @@ Laravel solo ejecuta las migraciones de `database/migrations/`. Estas dos se **a
 
 Mientras estén aquí, el código de esas funciones permanece **inactivo**: el formulario público responde 503, el panel responde 403 y el enlace del menú no aparece.
 
-**Retirada de la 000022 (13/11/2026).** El propietario eliminó `2026_10_28_000022_create_registros_pendientes_table.php` (tabla `registros_pendientes` de la verificación de correo) porque ya no es necesaria; nunca se aplicó a `horus_group`. Se retiró también `Sprint14EmailVerificationTest`. El código de la verificación (`VerificacionRegistroService`, `RegistroPendiente`, `VerificacionRegistroController`, middleware y las ramas `enabled()`) sigue en `app/` **inactivo**: `REGISTRO_VERIFICACION_ENABLED` debe permanecer en `false`, porque sin la tabla activarlo fallaría. Su eliminación completa queda como paso aparte. Quedó en el historial de Git.
+**Retirada de la 000022 (13/11/2026).** El propietario eliminó `2026_10_28_000022_create_registros_pendientes_table.php` (tabla `registros_pendientes` de la verificación de correo) porque ya no es necesaria; nunca se aplicó a `horus_group`. Se retiró también `Sprint14EmailVerificationTest`. El mismo día se retiró todo el código de la verificación (servicio, modelo, controlador, middleware, rutas, limitadores, configuración y ramas de login/registro/JWT). Quedó en el historial de Git.
 
 **Pruebas.** Usan `Tests\Support\InstalaMigracionesSuspendidas`, que ejecuta estos archivos solo en SQLite `:memory:`.
 

@@ -3,16 +3,14 @@
 namespace App\Models;
 
 use App\Notifications\ResetPasswordNotification;
-use App\Services\VerificacionRegistroService;
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
@@ -24,16 +22,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 return;
             }
 
-            // Cambiar el correo siempre revoca los JWT vigentes, esté o no activa la verificación de registro.
+            // Cambiar el correo siempre revoca los JWT vigentes, con independencia de otras condiciones.
             // Si la misma operación ya subió la versión (p. ej. cambio simultáneo de contraseña), no se suma otra vez.
             if (! $user->isDirty('jwt_version')) {
                 $user->jwt_version = (int) $user->jwt_version + 1;
             }
             $user->setRememberToken(Str::random(60));
-
-            if (VerificacionRegistroService::enabled()) {
-                $user->email_verified_at = null;
-            }
         });
     }
 
@@ -75,12 +69,5 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
-    }
-
-    public function sendEmailVerificationNotification(): void
-    {
-        if (VerificacionRegistroService::enabled()) {
-            app(VerificacionRegistroService::class)->solicitar($this->email);
-        }
     }
 }

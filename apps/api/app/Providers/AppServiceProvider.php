@@ -41,13 +41,10 @@ class AppServiceProvider extends ServiceProvider
             Route::pattern($parametro, '[0-9]+');
         }
 
-        RateLimiter::for('verification-confirm', fn (Request $request) => Limit::perMinute(10)->by('ip:'.$request->ip()));
-
         // `throttle:N,M` numérico firma solo por dominio|IP: todas las rutas así declaradas comparten un único
         // contador. Los limitadores con nombre separan el cupo de cada superficie conservando los mismos límites.
         // Registro web y API comparten cupo a propósito (Sprint 13).
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(5)->by('register:'.$request->ip()));
-        RateLimiter::for('verification-resend', fn (Request $request) => Limit::perMinute(5)->by('verification-resend:'.$request->ip()));
         RateLimiter::for('password-recovery', fn (Request $request) => Limit::perMinute(5)->by('password-recovery:'.$request->ip()));
         RateLimiter::for('matricula-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('matricula-publica:'.$request->ip()));
         RateLimiter::for('cotizacion-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('cotizacion-publica:'.$request->ip()));

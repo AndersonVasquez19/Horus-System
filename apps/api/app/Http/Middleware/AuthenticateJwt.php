@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Services\JwtTokenService;
-use App\Services\VerificacionRegistroService;
 use Closure;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -30,8 +29,7 @@ class AuthenticateJwt
             $claims = $this->tokens->decode($token);
             $user = User::query()->find($claims->sub ?? null);
 
-            if (! $user || (int) ($claims->ver ?? -1) !== (int) $user->jwt_version
-                || (VerificacionRegistroService::enabled() && ! $user->hasVerifiedEmail())) {
+            if (! $user || (int) ($claims->ver ?? -1) !== (int) $user->jwt_version) {
                 return new JsonResponse(['message' => 'El token no es válido o fue revocado.'], 401);
             }
         } catch (UnexpectedValueException|DomainException|InvalidArgumentException) {

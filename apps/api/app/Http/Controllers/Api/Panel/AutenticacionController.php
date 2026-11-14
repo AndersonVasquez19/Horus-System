@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Notifications\RestablecerContrasenaWebNotification;
-use App\Services\VerificacionRegistroService;
 use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
@@ -58,8 +57,7 @@ final class AutenticacionController extends Controller
         // incorrectas y no abre sesión.
         $aceptada = Auth::guard('web')->attemptWhen(
             ['email' => $credenciales['email'], 'password' => $credenciales['password']],
-            fn (User $user): bool => (! VerificacionRegistroService::enabled() || $user->hasVerifiedEmail())
-                && SesionPanel::tieneAccesoAlgunPanel($user),
+            fn (User $user): bool => SesionPanel::tieneAccesoAlgunPanel($user),
         );
 
         if (! $aceptada) {
@@ -79,13 +77,6 @@ final class AutenticacionController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        if (VerificacionRegistroService::enabled()) {
-            $request->session()->put([
-                'auth.verification_user' => $user->getKey(),
-                'auth.verification_version' => (int) $user->jwt_version,
-            ]);
-        }
-
         AuditLog::record('login', User::class, $user->getKey(), ['canal' => 'panel', 'personal_panel' => true]);
 
         return response()->json(['data' => SesionPanel::representar($request, $user)]);

@@ -58,7 +58,7 @@ $app->make(Kernel::class)->bootstrap();
 $app->make(Vite::class)->useHotFile($root.'/tests/Support/.cotizaciones-fixture-no-hot');
 if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatabaseName() !== ':memory:'
     || config('catalogo-servicios.enabled') || config('catalogo-publico.enabled') || config('horus-advisor.enabled')
-    || config('chatbot.public_catalog_enabled') || config('registro-verificacion.enabled') || config('matricula-mail.enabled')) {
+    || config('chatbot.public_catalog_enabled') || config('matricula-mail.enabled')) {
     throw new RuntimeException('Fixture requires memory SQLite and disabled publication/provider flags.');
 }
 Http::preventStrayRequests();

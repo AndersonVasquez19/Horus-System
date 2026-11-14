@@ -24,7 +24,6 @@ use App\Http\Controllers\Admin\SolicitudMatriculaController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
-use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Controllers\ChatWidgetController;
 use App\Http\Controllers\CursosPublicosController;
 use App\Http\Controllers\LibroReclamacionesController;
@@ -36,7 +35,6 @@ use App\Http\Controllers\SolicitudMatriculaPublicaController;
 use App\Http\Middleware\NoStoreAdminResponse;
 use App\Http\Middleware\RecepcionCotizacionesHabilitada;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
-use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
 // Páginas estáticas retiradas de Blade (Fase 1, 12/11/2026): las sirve apps/web; aquí solo redirigen.
@@ -70,10 +68,6 @@ Route::middleware(RecepcionCotizacionesHabilitada::class)->group(function () {
 });
 
 Route::middleware('guest')->group(function () {
-    Route::post('/email-verification/resend', [VerificacionRegistroController::class, 'reenviar'])
-        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-resend'])->name('verification.resend');
-    Route::post('/email-verification/confirm', [VerificacionRegistroController::class, 'confirmar'])
-        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-confirm'])->name('verification.confirm');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register')->name('register.post');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

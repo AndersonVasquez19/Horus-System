@@ -14,8 +14,7 @@ info:
     `Api/Publico/ChatPublicoController.php`) es la lectura y el chat que consume el servidor de apps/web (BFF); lo
     protege `X-Horus-Web-Token` y nunca se llama desde el navegador.
 
-    Fuera de este documento, a propósito: `/api/auth/email-verification/*` (suspendido tras
-    `VerificacionRegistroHabilitada`), `/api/v1/catalog/*` (sincronización firmada entre Laravel y Horus AI) y todo
+    Fuera de este documento, a propósito: `/api/v1/catalog/*` (sincronización firmada entre Laravel y Horus AI) y todo
     `/admin` (sesión, CSRF y permisos de Spatie; no es una API pública). La API de los paneles de apps/web
     (`/api/panel/v1/*`) tiene su propio contrato: `horus-panel-api.yaml`.
 servers:
@@ -38,8 +37,7 @@ paths:
       tags: [auth]
       summary: Registrar una cuenta (nunca asigna roles)
       description: |
-        Limitado por `throttle:register`. Con la verificación de registro activa responde 202 sin emitir token; por
-        defecto está apagada y responde 201 con usuario y token.
+        Limitado por `throttle:register`. Responde 201 con usuario y token (la verificación de correo del registro se retiró el 13/11/2026).
       requestBody:
         required: true
         content:
@@ -58,11 +56,6 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/SesionJwt"}
-        "202":
-          description: Solicitud recibida (solo con la verificación de registro activa).
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/Mensaje"}
         "422": {$ref: "#/components/responses/ValidacionLaravel"}
         "429": {description: Demasiados intentos.}
   /api/auth/login:

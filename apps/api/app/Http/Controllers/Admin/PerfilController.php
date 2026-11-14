@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePerfilRequest;
 use App\Models\AuditLog;
 use App\Models\User;
-use App\Services\VerificacionRegistroService;
 use App\Support\SesionesActivas;
 use App\Support\SessionRevoker;
 use Illuminate\Http\RedirectResponse;
@@ -63,11 +62,6 @@ class PerfilController extends Controller
                 // Cierra las demás sesiones; esta se conserva y se renueva su identificador.
                 SessionRevoker::revokeSessions($user, $request->session()->getId());
                 $request->session()->regenerate();
-            }
-
-            // Con la verificación de registro activa la sesión se compara con `jwt_version`.
-            if (VerificacionRegistroService::enabled() && $user->hasVerifiedEmail()) {
-                $request->session()->put('auth.verification_version', (int) $user->jwt_version);
             }
 
             if ($campos !== []) {

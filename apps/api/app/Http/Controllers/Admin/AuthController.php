@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
-use App\Services\VerificacionRegistroService;
 use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
@@ -31,9 +30,7 @@ class AuthController extends Controller
         try {
             $data = $request->validate([
                 'name' => ['required', 'string', 'max:120'],
-                'email' => ['required', 'string', 'email', 'max:255', ...(
-                    VerificacionRegistroService::enabled() ? [] : [Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')]
-                )],
+                'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
                 'password' => ['required', 'confirmed', PasswordPolicy::rule()],
                 'terms' => ['accepted'],
             ], [
@@ -47,14 +44,6 @@ class AuthController extends Controller
             $request->replace($request->only('name', 'email', 'terms'));
             $request->query->replace([]);
             throw $error;
-        }
-
-        if (VerificacionRegistroService::enabled()) {
-            app(VerificacionRegistroService::class)->solicitar($data['email']);
-
-            return $request->expectsJson()
-                ? response()->json(['message' => VerificacionRegistroService::SOLICITUD_RECIBIDA], 202)
-                : redirect()->route('login')->with('success', VerificacionRegistroService::SOLICITUD_RECIBIDA);
         }
 
         // El registro público nunca asigna roles. El acceso al panel se concede por consola:
@@ -95,7 +84,7 @@ class AuthController extends Controller
             CredentialTiming::check($credentials['password'], null);
         }
 
-        if (! Auth::attemptWhen($credentials, fn (User $user): bool => ! VerificacionRegistroService::enabled() || $user->hasVerifiedEmail())) {
+        if (! Auth::attempt($credentials)) {
             // Sin correo en claro ni contraseña: solo una huella con la clave de la aplicación (permite
             // correlacionar intentos contra una misma cuenta sin guardar el dato personal). El throttle `login`
             // acota el volumen de estos registros.
@@ -112,10 +101,6 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $personal = $request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES);
         AuditLog::record('login', User::class, $request->user()->getKey(), ['personal_panel' => $personal]);
-        if (VerificacionRegistroService::enabled()) {
-            $request->session()->put(['auth.verification_user' => $request->user()->getKey(),
-                'auth.verification_version' => (int) $request->user()->jwt_version]);
-        }
 
         if ($request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES)) {
             return redirect()->intended(route('admin.dashboard'));

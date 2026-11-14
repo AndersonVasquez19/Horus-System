@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\JwtTokenService;
-use App\Services\VerificacionRegistroService;
 use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
@@ -23,17 +22,9 @@ class AuthController extends Controller
         Email::normalizeRequest($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'string', 'email', 'max:255', ...(
-                VerificacionRegistroService::enabled() ? [] : [Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')]
-            )],
+            'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
             'password' => ['required', 'confirmed', PasswordPolicy::rule()],
         ]);
-
-        if (VerificacionRegistroService::enabled()) {
-            app(VerificacionRegistroService::class)->solicitar($data['email']);
-
-            return response()->json(['message' => VerificacionRegistroService::SOLICITUD_RECIBIDA], 202);
-        }
 
         return DB::transaction(function () use ($data, $tokens): JsonResponse {
             $user = User::create([
@@ -61,9 +52,8 @@ class AuthController extends Controller
 
         // Una única comprobación de hash, exista o no la cuenta, para no revelarlo por latencia.
         $valid = CredentialTiming::check($data['password'], $user?->password);
-        $verificada = ! VerificacionRegistroService::enabled() || $user?->hasVerifiedEmail() === true;
 
-        if (! $valid || ! $user || ! $verificada) {
+        if (! $valid || ! $user) {
             AuditLog::record('login_failed', User::class, null, [
                 'canal' => 'api',
                 'cuenta_existente' => $user !== null,

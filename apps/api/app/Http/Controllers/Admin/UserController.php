@@ -10,7 +10,6 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AdminProtection;
-use App\Services\VerificacionRegistroService;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
 use App\Support\SessionRevoker;
@@ -177,12 +176,6 @@ class UserController extends Controller implements HasMiddleware
             if ($passwordChanged) {
                 // Quien cambia su propia clave conserva la sesión actual; las demás se cierran.
                 SessionRevoker::revokeSessions($user, $user->is($actor) ? $request->session()->getId() : null);
-
-                // Con la verificación activa la sesión se compara con `jwt_version`: sin actualizarla, quien cambia
-                // su propia clave quedaría expulsado en la siguiente petición pese a conservar la sesión.
-                if ($user->is($actor) && VerificacionRegistroService::enabled()) {
-                    $request->session()->put('auth.verification_version', (int) $user->jwt_version);
-                }
             }
 
             if ($cambiaRoles) {

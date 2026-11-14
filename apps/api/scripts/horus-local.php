@@ -157,7 +157,7 @@ try {
         $_ENV['HORUS_ADVISOR_ENABLED'] = $_SERVER['HORUS_ADVISOR_ENABLED'] = 'true';
         $app = require $root.'/bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
-        requireLocal(config('matricula-mail.enabled') === false && config('registro-verificacion.enabled') === false, 'Hay una activación de correo no contemplada.');
+        requireLocal(config('matricula-mail.enabled') === false, 'Hay una activación de correo no contemplada.');
         $snapshot = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
         if ($action === 'verify') {
             requireLocal(($php['HORUS_ADVISOR_ENABLED'] ?? '') === 'true', 'El perfil web todavía no está habilitado.');

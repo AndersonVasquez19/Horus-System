@@ -39,7 +39,6 @@ final class EntornoSeguro
             'RESEND_API_KEY' => '',
             'MATRICULA_MAIL_ENABLED' => 'false',
             'RECLAMACIONES_CORREO_ENABLED' => 'false',
-            'REGISTRO_VERIFICACION_ENABLED' => 'false',
         ],
     ];
 

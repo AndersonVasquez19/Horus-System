@@ -6,17 +6,11 @@ use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use App\Http\Controllers\Api\Publico\CotizacionesPublicoController;
 use App\Http\Controllers\Api\Publico\ReclamacionesPublicoController;
 use App\Http\Controllers\Api\Publico\SolicitudesMatriculaPublicoController;
-use App\Http\Controllers\Auth\VerificacionRegistroController;
 use App\Http\Middleware\AutenticarServicioWeb;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
-use App\Http\Middleware\VerificacionRegistroHabilitada;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->name('api.auth.')->group(function (): void {
-    Route::post('/email-verification/resend', [VerificacionRegistroController::class, 'reenviar'])
-        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-resend'])->name('verification.resend');
-    Route::post('/email-verification/confirm', [VerificacionRegistroController::class, 'confirmar'])
-        ->middleware([VerificacionRegistroHabilitada::class, 'throttle:verification-confirm'])->name('verification.confirm');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register')->name('register');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
     Route::middleware('jwt.auth')->group(function (): void {

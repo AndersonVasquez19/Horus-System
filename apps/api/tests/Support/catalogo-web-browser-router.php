@@ -54,7 +54,7 @@ $app->make(Kernel::class)->bootstrap();
 $app->make(Vite::class)->useHotFile($root.'/tests/Support/.catalogo-fixture-no-hot');
 if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatabaseName() !== ':memory:'
     || config('catalogo-publico.enabled') !== true || config('horus-advisor.enabled') || config('chatbot.public_catalog_enabled')
-    || config('registro-verificacion.enabled') || config('matricula-mail.enabled')) {
+    || config('matricula-mail.enabled')) {
     throw new RuntimeException('Fixture requires in-memory SQLite, the enabled web catalog default and disabled AI/mail flags.');
 }
 Http::preventStrayRequests();

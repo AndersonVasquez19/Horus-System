@@ -12,7 +12,6 @@ describe **lo que ya existe** (verificado en el código el 11/11/2026), no un di
 
 ## Qué deja fuera, a propósito
 
-- `/api/auth/email-verification/*`: suspendido tras `VerificacionRegistroHabilitada`.
 - `/api/v1/catalog/*`, `/api/v1/info` y `/api/v1/recommend`: sincronización firmada y diagnóstico entre servicios.
 - Todo `/admin`: sesión, CSRF y permisos de Spatie; no es una API pública.
 

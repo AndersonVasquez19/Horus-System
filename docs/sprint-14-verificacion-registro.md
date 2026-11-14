@@ -1,5 +1,7 @@
 # Sprint 14: alta pendiente y verificación de correo
 
+> **Retirado el 13/11/2026.** El propietario eliminó la migración `000022` (`registros_pendientes`) y, con ella, todo el código de esta función (servicio, modelo, controlador, middleware, rutas `email-verification/*`, limitadores y ramas de login/registro/JWT). Este documento conserva solo el contexto histórico del sprint; el registro y el inicio de sesión funcionan como antes con la verificación desactivada.
+
 Fecha: 28 de octubre de 2026. Rama `anderson`. Implementación backend de la opción 1 autorizada por el propietario: contraseña definitiva después de acreditar control del correo. Sin activación ni integración visual.
 
 ## Contrato anterior y compatibilidad

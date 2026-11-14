@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
-use App\Services\VerificacionRegistroService;
 use App\Support\SesionesActivas;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,7 +41,7 @@ class PerfilSesionesController extends Controller
         $actual = $request->user();
         $sesionActual = $request->session()->getId();
 
-        $cerradas = DB::transaction(function () use ($actual, $sesionActual, $request): int {
+        $cerradas = DB::transaction(function () use ($actual, $sesionActual): int {
             $user = User::query()->whereKey($actual->getKey())->lockForUpdate()->firstOrFail();
 
             // Revoca los JWT y cualquier token "recordarme"; esta sesión web se conserva.
@@ -50,11 +49,6 @@ class PerfilSesionesController extends Controller
             $user->save();
 
             $cerradas = SesionesActivas::cerrarOtras($user, $sesionActual);
-
-            // Con la verificación de registro activa la sesión se compara con `jwt_version`.
-            if (VerificacionRegistroService::enabled() && $user->hasVerifiedEmail()) {
-                $request->session()->put('auth.verification_version', (int) $user->jwt_version);
-            }
 
             AuditLog::record('sesiones_cerradas', User::class, $user->id, [
                 'alcance' => 'otras',
