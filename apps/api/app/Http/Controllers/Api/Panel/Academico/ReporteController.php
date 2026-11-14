@@ -19,8 +19,8 @@ use Illuminate\Routing\Controllers\Middleware;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
- * Reporte de matrículas del panel académico. Misma consulta, mismos lotes, mismas exportaciones y misma auditoría
- * que el reporte Blade (ambos usan {@see ReportesMatriculas}); los permisos son los de siempre: `reportes.ver`,
+ * Reporte de matrículas del panel académico (único: el reporte Blade se retiró el 14/11/2026). Consulta, lotes,
+ * exportaciones y auditoría viven en {@see ReportesMatriculas}; los permisos son los de siempre: `reportes.ver`,
  * `reportes.exportar.excel` y `reportes.exportar.pdf`. Los ingresos agregados solo se entregan al rol `admin`
  * (mismo criterio que el dashboard).
  */

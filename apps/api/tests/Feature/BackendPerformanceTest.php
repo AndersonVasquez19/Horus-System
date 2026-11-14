@@ -12,6 +12,7 @@ use App\Services\AsistenteVirtualService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class BackendPerformanceTest extends TestCase
@@ -51,6 +52,15 @@ class BackendPerformanceTest extends TestCase
         Http::assertNothingSent();
     }
 
+    /** Listado del reporte por la API del panel (usuario fijado antes con actingAs). @param array<string, mixed> $filtros */
+    private function reportePanel(array $filtros = []): TestResponse
+    {
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+
+        return $this->withHeaders(['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])
+            ->getJson('/api/panel/v1/academico/reportes'.($filtros === [] ? '' : '?'.http_build_query($filtros)));
+    }
+
     public function test_reports_reuse_filtered_total_for_pagination_and_income(): void
     {
         $course = $this->course();
@@ -64,21 +74,19 @@ class BackendPerformanceTest extends TestCase
         $filters = ['busqueda' => 'PRUEBA', 'estado' => 'pagada', 'curso_id' => (string) $course->id, 'lote' => '2'];
 
         DB::enableQueryLog();
-        $response = $this->get(route('admin.reportes.index', $filters))->assertOk();
+        $response = $this->reportePanel($filters)->assertOk();
         $aggregates = $this->enrollmentAggregates();
-        $response->assertViewHas('resumen', fn ($value) => $value['matriculas'] === 55 && (float) $value['ingresos'] === 563.75);
-        $rows = $response->viewData('matriculas');
-        $this->assertSame(55, $rows->total());
-        $this->assertCount(5, $rows);
-        $this->assertSame(2, $rows->currentPage());
+        $response->assertJsonPath('resumen.matriculas', 55)->assertJsonPath('resumen.ingresos', '563.75');
+        $this->assertSame(55, $response->json('meta.total'));
+        $this->assertCount(5, (array) $response->json('data'));
+        $this->assertSame(2, $response->json('meta.lote'));
         // Las cinco más antiguas de las 55 vigentes y pagadas del curso (ids relativos: PostgreSQL no reinicia secuencias).
         $esperados = Matricula::query()->where('curso_id', $course->id)->where('estado', 'pagada')->orderBy('id')->limit(5)->pluck('id')->reverse()->values()->all();
         $this->assertCount(5, $esperados);
-        $this->assertSame($esperados, $rows->pluck('id')->all());
-        parse_str(parse_url($rows->previousPageUrl(), PHP_URL_QUERY), $query);
-        $this->assertSame('PRUEBA', $query['busqueda']);
-        $this->assertSame('pagada', $query['estado']);
-        $this->assertSame((string) $course->id, $query['curso_id']);
+        $this->assertSame($esperados, array_map('intval', array_column((array) $response->json('data'), 'id')));
+        $this->assertSame('PRUEBA', $response->json('meta.filtros.busqueda'));
+        $this->assertSame('pagada', $response->json('meta.filtros.estado'));
+        $this->assertSame($course->id, (int) $response->json('meta.filtros.curso_id'));
         $this->assertCount(1, $aggregates);
         Http::assertNothingSent();
     }
@@ -88,9 +96,8 @@ class BackendPerformanceTest extends TestCase
         $this->actingAs($this->adminUser());
         $this->get(route('admin.dashboard'))->assertOk()
             ->assertViewHas('matriculasMes', 0)->assertViewHas('ingresosMes', fn ($value) => (float) $value === 0.0);
-        $this->get(route('admin.reportes.index'))->assertOk()
-            ->assertViewHas('resumen', fn ($value) => $value['matriculas'] === 0 && (float) $value['ingresos'] === 0.0);
-        $this->get(route('admin.reportes.index', ['lote' => 2]))->assertNotFound();
+        $this->reportePanel()->assertOk()->assertJsonPath('resumen.matriculas', 0)->assertJsonPath('resumen.ingresos', '0.00');
+        $this->reportePanel(['lote' => 2])->assertNotFound();
         Http::assertNothingSent();
     }
 

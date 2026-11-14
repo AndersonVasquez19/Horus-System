@@ -57,7 +57,6 @@ class AdminAuthorizationTest extends TestCase
             'roles.index' => ['admin.roles.index', ['admin']],
             'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
             'notificaciones.index' => ['admin.notificaciones.index', self::ALL],
-            'reportes.index' => ['admin.reportes.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
             'auditoria.index' => ['admin.auditoria.index', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
@@ -101,7 +100,6 @@ class AdminAuthorizationTest extends TestCase
         $estudiante = $this->makeStudent('70000001');
 
         $this->delete(route('admin.estudiantes.destroy', $estudiante))->assertRedirect(route('login'));
-        $this->post(route('admin.reportes.exportar.excel'))->assertRedirect(route('login'));
         $this->post(route('admin.respaldo.exportar'))->assertRedirect(route('login'));
         $this->post(route('admin.usuarios.store'), [])->assertRedirect(route('login'));
 
@@ -200,10 +198,8 @@ class AdminAuthorizationTest extends TestCase
 
     public function test_exports_are_restricted_to_their_permissions(): void
     {
-        foreach (['secretaria'] as $role) {
-            $this->actingAs($this->staff($role))->post(route('admin.reportes.exportar.excel'))->assertForbidden();
-            $this->post(route('admin.reportes.exportar.pdf'))->assertForbidden();
-        }
+        // Las exportaciones de reportes (Excel/PDF) se retiraron de Blade el 14/11/2026: su matriz de permisos está en
+        // Panel\ReportesConsistenciaPanelTest::test_export_endpoints_require_their_own_permission y ReportesPanelTest.
 
         foreach (['coordinador', 'secretaria'] as $role) {
             $this->actingAs($this->staff($role))->post(route('admin.respaldo.exportar'))->assertForbidden();

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
+namespace Tests\Feature\Panel;
 
 use App\Models\AuditLog;
 use App\Models\Curso;
@@ -12,23 +12,52 @@ use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * DatabaseMigrations: varias pruebas descargan el Excel, que debe abrir su propio snapshot desde el
- * nivel 0; la transacción READ COMMITTED de RefreshDatabase la haría fallar en PostgreSQL.
+ * Consistencia del reporte de matrículas en /api/panel/v1/academico/reportes (listado, PDF y Excel). Sustituye a
+ * `AdminReportConsistencyTest`, que ejercitaba la ruta Blade retirada el 14/11/2026: las reglas son las mismas
+ * (ReportesMatriculas) y las afirmaciones sobre HTML pasaron a afirmaciones sobre el JSON del panel.
+ *
+ * DatabaseMigrations (no RefreshDatabase): varias pruebas descargan el Excel, que debe abrir su propio snapshot desde
+ * el nivel 0; la transacción READ COMMITTED de RefreshDatabase la haría fallar en PostgreSQL. Esta clase es la que
+ * cubre las exportaciones del panel en PostgreSQL (ver ReportesPanelTest).
  */
-class AdminReportConsistencyTest extends TestCase
+class ReportesConsistenciaPanelTest extends TestCase
 {
     use DatabaseMigrations;
+
+    private const TOKEN = 'token-de-servicio-del-bff-para-pruebas-0123456789';
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
         Storage::fake('local');
+        config(['horus-web.service_token' => self::TOKEN]);
+    }
+
+    /** @param array<string, mixed> $datos */
+    private function panel(User $user, string $metodo, string $ruta, array $datos = []): TestResponse
+    {
+        return $this->actingAs($user)
+            ->withHeaders(['X-Horus-Web-Token' => self::TOKEN])
+            ->json($metodo, '/api/panel/v1/academico/'.$ruta, $datos);
+    }
+
+    /** @param array<string, mixed> $filtros */
+    private function listado(User $user, array $filtros = []): TestResponse
+    {
+        return $this->panel($user, 'GET', 'reportes'.($filtros === [] ? '' : '?'.http_build_query($filtros)));
+    }
+
+    /** @return list<int> */
+    private function ids(TestResponse $respuesta): array
+    {
+        return array_map('intval', array_column((array) $respuesta->json('data'), 'id'));
     }
 
     public function test_pdf_batches_include_all_55_matches_without_overlap_and_show_their_scope(): void
@@ -37,7 +66,7 @@ class AdminReportConsistencyTest extends TestCase
         for ($i = 1; $i <= 55; $i++) {
             $this->enrollment($curso, $i);
         }
-        $this->actingAs($this->adminUser());
+        $admin = $this->adminUser();
         $ids = [];
         $renderers = [1 => app('dompdf.wrapper'), 2 => app('dompdf.wrapper')];
         $panelIds = [];
@@ -59,13 +88,15 @@ class AdminReportConsistencyTest extends TestCase
         });
 
         foreach ([1 => 50, 2 => 5] as $lote => $cantidad) {
-            $panel = $this->get(route('admin.reportes.index', ['lote' => $lote]))->assertOk();
-            $panel->assertViewHas('matriculas', fn ($rows) => $rows->total() === 55 && $rows->count() === $cantidad);
-            $panelIds = $panel->viewData('matriculas')->pluck('id')->all();
-            $response = $this->post(route('admin.reportes.exportar.pdf'), ['lote' => $lote])->assertOk()->assertDownload();
+            $panel = $this->listado($admin, ['lote' => $lote])->assertOk()
+                ->assertJsonPath('meta.total', 55)->assertJsonPath('meta.lote', $lote)->assertJsonPath('meta.lotes', 2)
+                ->assertJsonPath('meta.tamano_lote', 50);
+            $this->assertCount($cantidad, (array) $panel->json('data'));
+            $panelIds = $this->ids($panel);
+            $response = $this->panel($admin, 'POST', 'reportes/exportar/pdf', ['lote' => $lote])->assertOk()->assertDownload();
             $path = $response->baseResponse->getFile()->getPathname();
             try {
-                $this->assertStringStartsWith('%PDF-', file_get_contents($path));
+                $this->assertStringStartsWith('%PDF-', (string) file_get_contents($path));
             } finally {
                 unlink($path);
             }
@@ -84,12 +115,12 @@ class AdminReportConsistencyTest extends TestCase
         $this->enrollment($otra, 3, 'pagada');
         $this->enrollment($curso, 4, 'pagada')->delete();
         $filtros = ['busqueda' => 'ANA', 'curso_id' => (string) $curso->id, 'estado' => 'pagada', 'eliminados' => '0'];
-        $this->actingAs($this->adminUser());
-        $panel = $this->get(route('admin.reportes.index', $filtros))->assertOk();
-        $panel->assertViewHas('resumen', fn ($r) => $r['matriculas'] === 1 && (float) $r['ingresos'] === 150.0)
-            ->assertViewHas('matriculas', fn ($rows) => $rows->pluck('id')->all() === [$match->id])
-            ->assertSee('name="estado" value="pagada"', false)
-            ->assertSee('name="busqueda" value="ANA"', false);
+        $admin = $this->adminUser();
+
+        $panel = $this->listado($admin, $filtros)->assertOk()
+            ->assertJsonPath('resumen.matriculas', 1)->assertJsonPath('resumen.ingresos', '150.00')
+            ->assertJsonPath('meta.filtros.estado', 'pagada')->assertJsonPath('meta.filtros.busqueda', 'ANA');
+        $this->assertSame([$match->id], $this->ids($panel));
 
         $renderer = app('dompdf.wrapper');
         Pdf::shouldReceive('loadView')->once()->andReturnUsing(function ($view, $data) use ($renderer, $match, $filtros) {
@@ -99,10 +130,10 @@ class AdminReportConsistencyTest extends TestCase
 
             return $renderer->loadView($view, $data);
         });
-        $pdf = $this->post(route('admin.reportes.exportar.pdf'), $filtros)->assertOk()->assertDownload();
+        $pdf = $this->panel($admin, 'POST', 'reportes/exportar/pdf', $filtros)->assertOk()->assertDownload();
         unlink($pdf->baseResponse->getFile()->getPathname());
 
-        $excel = $this->post(route('admin.reportes.exportar.excel'), $filtros)->assertOk()->assertDownload();
+        $excel = $this->panel($admin, 'POST', 'reportes/exportar/excel', $filtros)->assertOk()->assertDownload();
         $path = $excel->baseResponse->getFile()->getPathname();
         try {
             $sheet = IOFactory::load($path)->getActiveSheet();
@@ -120,27 +151,32 @@ class AdminReportConsistencyTest extends TestCase
         $row->delete();
         $curso->delete();
         $row->estudiante->delete();
-        $this->actingAs($this->adminUser());
-        $this->get(route('admin.reportes.index'))->assertOk()
-            ->assertViewHas('matriculas', fn ($rows) => $rows->total() === 0);
-        $this->get(route('admin.reportes.index', ['eliminados' => '1', 'busqueda' => 'ANA', 'curso_id' => $curso->id]))
-            ->assertOk()->assertSee('Ana')->assertSee('Curso ficticio')
-            ->assertViewHas('matriculas', fn ($rows) => $rows->pluck('id')->all() === [$row->id]);
+        $admin = $this->adminUser();
+
+        $this->listado($admin)->assertOk()->assertJsonPath('meta.total', 0);
+        $respuesta = $this->listado($admin, ['eliminados' => '1', 'busqueda' => 'ANA', 'curso_id' => $curso->id])->assertOk()
+            ->assertJsonPath('data.0.curso.nombre', 'Curso ficticio');
+        $this->assertSame([$row->id], $this->ids($respuesta));
+        $this->assertStringContainsString('Ana', (string) $respuesta->json('data.0.estudiante'));
     }
 
-    public function test_pagination_links_preserve_filters_and_filtering_resets_the_batch(): void
+    public function test_batch_metadata_preserves_filters_and_the_next_batch_continues_the_listing(): void
     {
         $curso = $this->course();
         for ($i = 1; $i <= 51; $i++) {
             $this->enrollment($curso, $i);
         }
         $filtros = ['busqueda' => 'Ana', 'curso_id' => (string) $curso->id, 'estado' => 'pendiente'];
-        $panel = $this->actingAs($this->adminUser())->get(route('admin.reportes.index', $filtros))->assertOk();
-        parse_str(parse_url($panel->viewData('matriculas')->nextPageUrl(), PHP_URL_QUERY), $query);
-        $this->assertSame($filtros + ['lote' => '2'], $query);
-        $panel->assertSee('Máximo 50 registros por PDF');
-        $this->get(route('admin.reportes.index', $filtros + ['lote' => '2']))->assertOk()
-            ->assertSee('name="lote" value="2"', false);
+        $admin = $this->adminUser();
+
+        $primero = $this->listado($admin, $filtros)->assertOk()
+            ->assertJsonPath('meta.lotes', 2)->assertJsonPath('meta.tamano_lote', 50)->assertJsonPath('meta.filtros.estado', 'pendiente');
+        $segundo = $this->listado($admin, $filtros + ['lote' => '2'])->assertOk()
+            ->assertJsonPath('meta.lote', 2)->assertJsonPath('meta.filtros.busqueda', 'Ana');
+
+        $this->assertCount(50, (array) $primero->json('data'));
+        $this->assertCount(1, (array) $segundo->json('data'));
+        $this->assertCount(51, array_unique(array_merge($this->ids($primero), $this->ids($segundo))), 'Los lotes no se solapan.');
     }
 
     /** @return iterable<string, array{array<string, mixed>}> */
@@ -154,13 +190,14 @@ class AdminReportConsistencyTest extends TestCase
         yield 'deleted array' => [['eliminados' => ['1']]];
     }
 
+    /** @param array<string, mixed> $filtros */
     #[DataProvider('invalidFilters')]
     public function test_invalid_filters_are_rejected_by_panel_and_both_export_endpoints(array $filtros): void
     {
-        $this->actingAs($this->adminUser());
-        $this->getJson(route('admin.reportes.index', $filtros))->assertUnprocessable();
-        $this->postJson(route('admin.reportes.exportar.pdf'), $filtros)->assertUnprocessable();
-        $this->postJson(route('admin.reportes.exportar.excel'), $filtros)->assertUnprocessable();
+        $admin = $this->adminUser();
+        $this->listado($admin, $filtros)->assertUnprocessable();
+        $this->panel($admin, 'POST', 'reportes/exportar/pdf', $filtros)->assertUnprocessable();
+        $this->panel($admin, 'POST', 'reportes/exportar/excel', $filtros)->assertUnprocessable();
         $this->assertSame(0, AuditLog::whereIn('action', ['report_pdf_exported', 'report_excel_exported'])->count());
     }
 
@@ -173,20 +210,18 @@ class AdminReportConsistencyTest extends TestCase
         yield 'both' => [['reportes.exportar.pdf', 'reportes.exportar.excel']];
     }
 
+    /** @param list<string> $permissions */
     #[DataProvider('exportPermissions')]
-    public function test_export_buttons_and_endpoints_require_their_own_permission(array $permissions): void
+    public function test_export_endpoints_require_their_own_permission(array $permissions): void
     {
         $this->adminUser();
         $user = User::factory()->create();
         $user->assignRole('secretaria');
         $user->givePermissionTo($permissions);
-        $this->actingAs($user);
-        $panel = $this->get(route('admin.reportes.index'))->assertOk();
+        $this->listado($user)->assertOk();
         foreach (['pdf', 'excel'] as $format) {
             $allowed = in_array('reportes.exportar.'.$format, $permissions, true);
-            $action = 'action="'.route('admin.reportes.exportar.'.$format).'"';
-            $allowed ? $panel->assertSee($action, false) : $panel->assertDontSee($action, false);
-            $export = $this->post(route('admin.reportes.exportar.'.$format));
+            $export = $this->panel($user, 'POST', 'reportes/exportar/'.$format);
             if ($allowed) {
                 $export->assertOk()->assertDownload();
                 unlink($export->baseResponse->getFile()->getPathname());
@@ -198,28 +233,9 @@ class AdminReportConsistencyTest extends TestCase
 
     public function test_nonexistent_batch_is_rejected_instead_of_producing_an_empty_partial_report(): void
     {
-        $this->actingAs($this->adminUser());
-        $this->get(route('admin.reportes.index', ['lote' => 2]))->assertNotFound();
-        $this->post(route('admin.reportes.exportar.pdf'), ['lote' => 2])->assertNotFound();
-    }
-
-    public function test_student_summary_distinguishes_pending_paid_and_cancelled_and_excludes_deleted(): void
-    {
-        $pendiente = $this->enrollment($this->course('PEN'), 1);
-        foreach (['pagada', 'anulada'] as $index => $estado) {
-            Matricula::create([
-                'estudiante_id' => $pendiente->estudiante_id, 'curso_id' => $this->course('CUR'.$index)->id,
-                'fecha_matricula' => '2026-10-28', 'estado' => $estado,
-            ]);
-        }
-        $deleted = Matricula::create([
-            'estudiante_id' => $pendiente->estudiante_id, 'curso_id' => $this->course('DEL')->id,
-            'fecha_matricula' => '2026-10-28', 'estado' => 'pendiente',
-        ]);
-        $deleted->delete();
-        $this->actingAs($this->adminUser())->get(route('admin.estudiantes.show', $pendiente->estudiante_id))
-            ->assertOk()->assertSee('3 registros · 2 activas')
-            ->assertSee('Pendientes: 1')->assertSee('Pagadas: 1')->assertSee('Anuladas: 1');
+        $admin = $this->adminUser();
+        $this->listado($admin, ['lote' => 2])->assertNotFound();
+        $this->panel($admin, 'POST', 'reportes/exportar/pdf', ['lote' => 2])->assertNotFound();
     }
 
     private function course(string $codigo = 'CUR-REP'): Curso

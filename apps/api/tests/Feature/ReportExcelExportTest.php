@@ -22,6 +22,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaReportesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -35,6 +36,7 @@ use Tests\TestCase;
 class ReportExcelExportTest extends TestCase
 {
     use DatabaseMigrations;
+    use LlamaReportesDelPanel;
 
     protected function setUp(): void
     {
@@ -111,7 +113,7 @@ class ReportExcelExportTest extends TestCase
             }
         });
 
-        $response = $this->actingAs($admin)->post(route('admin.reportes.exportar.excel'))->assertOk()->assertDownload();
+        $response = $this->actingAs($admin)->exportarReporte('excel')->assertOk()->assertDownload();
         unlink($response->baseResponse->getFile()->getPathname());
 
         $this->assertNotNull($observed, 'La exportación no leyó matrículas.');
@@ -126,7 +128,7 @@ class ReportExcelExportTest extends TestCase
         $coordinador = User::factory()->create();
         $coordinador->assignRole('coordinador');
 
-        $response = $this->actingAs($coordinador)->post(route('admin.reportes.exportar.excel'))->assertOk()->assertDownload();
+        $response = $this->actingAs($coordinador)->exportarReporte('excel')->assertOk()->assertDownload();
         unlink($response->baseResponse->getFile()->getPathname());
 
         $this->assertSame(1, AuditLog::where('action', 'report_excel_exported')->count());
@@ -192,12 +194,12 @@ class ReportExcelExportTest extends TestCase
      */
     public static function exportRoutes(): iterable
     {
-        yield 'excel' => ['admin.reportes.exportar.excel'];
-        yield 'pdf' => ['admin.reportes.exportar.pdf'];
+        yield 'excel' => ['excel'];
+        yield 'pdf' => ['pdf'];
     }
 
     #[DataProvider('exportRoutes')]
-    public function test_temporary_export_is_removed_when_the_request_fails_after_writing_it(string $route): void
+    public function test_temporary_export_is_removed_when_the_request_fails_after_writing_it(string $formato): void
     {
         $this->makeEnrollment($this->makeStudent('10000002', 'Ana', 'Ficticia'), $this->makeCourse('Curso ficticio'));
         $admin = $this->adminUser();
@@ -210,7 +212,7 @@ class ReportExcelExportTest extends TestCase
         $this->withoutExceptionHandling();
 
         try {
-            $this->actingAs($admin)->post(route($route));
+            $this->actingAs($admin)->exportarReporte($formato);
             $this->fail('La exportación debía fallar sin tabla de auditoría.');
         } catch (QueryException) {
             // Esperado.
@@ -254,7 +256,7 @@ class ReportExcelExportTest extends TestCase
     private function exportedSheet(): Worksheet
     {
         $response = $this->actingAs($this->adminUser())
-            ->post(route('admin.reportes.exportar.excel'))
+            ->exportarReporte('excel')
             ->assertOk()
             ->assertDownload();
 

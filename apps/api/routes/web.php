@@ -16,7 +16,6 @@ use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\PerfilController;
 use App\Http\Controllers\Admin\PerfilSesionesController;
 use App\Http\Controllers\Admin\ReclamacionController;
-use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServicioTecnologicoController;
@@ -180,9 +179,9 @@ Route::prefix('admin')
         Route::get('notificaciones/recientes', [NotificacionController::class, 'recientes'])->name('notificaciones.recientes');
         Route::patch('notificaciones/leidas', [NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
         Route::patch('notificaciones/{notificacion}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
-        Route::get('reportes', [ReportController::class, 'index'])->name('reportes.index');
-        Route::post('reportes/exportar/excel', [ReportController::class, 'exportarExcel'])->middleware('throttle:admin-export')->name('reportes.exportar.excel');
-        Route::post('reportes/exportar/pdf', [ReportController::class, 'exportarPdf'])->middleware('throttle:admin-export')->name('reportes.exportar.pdf');
+        // Reportes retirados de Blade (14/11/2026): los sirve apps/web con /api/panel/v1/academico/reportes. Se conserva el
+        // nombre para los enlaces de las vistas Blade que quedan (barra lateral, panel); responde 302 a Next.
+        Route::get('reportes', RedirigirAWebController::class)->defaults('destino', '/admin/academico/reportes')->name('reportes.index');
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
         Route::get('auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');

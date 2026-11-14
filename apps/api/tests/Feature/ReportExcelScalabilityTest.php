@@ -17,6 +17,7 @@ use Mockery;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Settings;
 use RuntimeException;
+use Tests\Support\LlamaReportesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,7 @@ use Tests\TestCase;
 class ReportExcelScalabilityTest extends TestCase
 {
     use DatabaseMigrations;
+    use LlamaReportesDelPanel;
 
     protected function setUp(): void
     {
@@ -46,7 +48,7 @@ class ReportExcelScalabilityTest extends TestCase
             }
         });
         $cache = Settings::getCache();
-        $response = $this->post(route('admin.reportes.exportar.excel'))->assertOk()->assertDownload();
+        $response = $this->exportarReporte('excel')->assertOk()->assertDownload();
         $path = $response->baseResponse->getFile()->getPathname();
         try {
             $this->assertSame($cache, Settings::getCache());
@@ -78,7 +80,7 @@ class ReportExcelScalabilityTest extends TestCase
             }
         });
 
-        $this->postJson(route('admin.reportes.exportar.excel'))->assertStatus(500)->assertHeaderMissing('Content-Disposition');
+        $this->exportarReporte('excel')->assertStatus(500)->assertHeaderMissing('Content-Disposition');
         $this->assertSame($cache, Settings::getCache());
         $this->assertSame([], Storage::disk('local')->allFiles('exports'));
         $this->assertSame(0, AuditLog::where('action', 'report_excel_exported')->count());
@@ -99,7 +101,7 @@ class ReportExcelScalabilityTest extends TestCase
         Storage::shouldReceive('disk')->with('local')->andReturn($failingDisk);
         $cache = Settings::getCache();
 
-        $this->postJson(route('admin.reportes.exportar.excel'))->assertStatus(500)->assertHeaderMissing('Content-Disposition');
+        $this->exportarReporte('excel')->assertStatus(500)->assertHeaderMissing('Content-Disposition');
         $this->assertSame($cache, Settings::getCache());
         $this->assertSame([], $disk->allFiles('exports'));
         $this->assertSame(0, AuditLog::where('action', 'report_excel_exported')->count());
