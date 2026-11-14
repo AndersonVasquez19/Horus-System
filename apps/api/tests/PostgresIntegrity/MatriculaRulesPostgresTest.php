@@ -7,7 +7,9 @@ namespace Tests\PostgresIntegrity;
 use App\Models\Matricula;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -20,7 +22,9 @@ use Tests\TestCase;
  */
 class MatriculaRulesPostgresTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
     use RequiresIsolatedPostgres;
 
@@ -30,10 +34,10 @@ class MatriculaRulesPostgresTest extends TestCase
         $curso = $this->makeCourse('PG-DUP', 5);
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso))
-            ->assertRedirect();
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso))
-            ->assertSessionHasErrors('estudiante_id');
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso))
+            ->assertCreated();
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
 
         $this->assertSame(1, $this->activeEnrollments($estudiante, $curso));
         $this->assertSame(4, $curso->fresh()->cupos_disponibles);
@@ -45,13 +49,12 @@ class MatriculaRulesPostgresTest extends TestCase
         $curso = $this->makeCourse('PG-ANU', 1);
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
         $primera = Matricula::query()->sole();
-        $this->patch(route('admin.matriculas.anular', $primera))->assertRedirect();
+        $this->panelMatriculas('POST', $primera->id.'/anular')->assertOk();
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
 
-        $this->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso))
-            ->assertSessionHasNoErrors();
+        $this->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
 
         $this->assertSame(1, $this->activeEnrollments($estudiante, $curso));
         $this->assertSame(0, $curso->fresh()->cupos_disponibles);
@@ -63,11 +66,10 @@ class MatriculaRulesPostgresTest extends TestCase
         $curso = $this->makeCourse('PG-DEL', 2);
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
-        $this->delete(route('admin.matriculas.destroy', Matricula::query()->sole()))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
+        $this->panelMatriculas('DELETE', (string) Matricula::query()->sole())->assertOk();
 
-        $this->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso))
-            ->assertSessionHasNoErrors();
+        $this->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
 
         $this->assertSame(1, $this->activeEnrollments($estudiante, $curso));
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
@@ -79,13 +81,13 @@ class MatriculaRulesPostgresTest extends TestCase
         $curso = $this->makeCourse('PG-RES', 3);
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
         $eliminada = Matricula::query()->sole();
-        $this->delete(route('admin.matriculas.destroy', $eliminada));
-        $this->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
+        $this->panelMatriculas('DELETE', (string) $eliminada->id);
+        $this->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
 
-        $this->patch(route('admin.matriculas.restaurar', $eliminada->id))
-            ->assertSessionHasErrors('estudiante_id');
+        $this->panelMatriculas('POST', $eliminada->id.'/restaurar')
+            ->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
 
         $this->assertSoftDeleted($eliminada);
         $this->assertSame(1, $this->activeEnrollments($estudiante, $curso));
@@ -97,10 +99,9 @@ class MatriculaRulesPostgresTest extends TestCase
         $curso = $this->makeCourse('PG-CUP', 1);
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($this->makeStudent('30000005'), $curso))
-            ->assertSessionHasNoErrors();
-        $this->post(route('admin.matriculas.store'), $this->enrollmentPayload($this->makeStudent('30000006'), $curso))
-            ->assertSessionHasErrors('curso_id');
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($this->makeStudent('30000005'), $curso));
+        $this->panelMatriculas('POST', '', $this->enrollmentPayload($this->makeStudent('30000006'), $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
 
         $this->assertSame(0, $curso->fresh()->cupos_disponibles);
     }
@@ -110,13 +111,13 @@ class MatriculaRulesPostgresTest extends TestCase
         $curso = $this->makeCourse('PG-BUS', 5, 'Redes y Servidores');
         $estudiante = $this->makeStudent('30000007', 'Juan', 'Pérez');
         $admin = $this->adminUser();
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
 
         // PostgreSQL distingue mayúsculas con LIKE; whereLike() usa ILIKE.
         // El listado de estudiantes lo sirve la API del panel (Blade retirado el 14/11/2026): ILIKE sobre `apellidos`.
         $this->assertContains('Pérez', $this->panelEstudiantes('GET', '', ['busqueda' => 'JUAN'])->assertOk()->json('data.*.apellidos'));
-        $this->get(route('admin.cursos.index', ['busqueda' => 'redes']))->assertOk()->assertSee('Redes y Servidores');
-        $this->assertCount(1, $this->get(route('admin.matriculas.index', ['busqueda' => 'juan']))->viewData('matriculas'));
+        $this->assertContains('Redes y Servidores', $this->panelCursos('GET', '', ['busqueda' => 'redes'])->assertOk()->json('data.*.nombre'));
+        $this->panelMatriculas('GET', '', ['busqueda' => 'juan'])->assertOk()->assertJsonPath('meta.total', 1);
 
         // Búsqueda global: coincidencia parcial por ID ("id"::text ilike) y por curso sin mayúsculas.
         $matricula = Matricula::query()->sole();

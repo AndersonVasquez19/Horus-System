@@ -1,5 +1,5 @@
-// Cursos, servicios y cotizaciones salieron de Blade (los atiende apps/web): este smoke solo recorre los módulos que
-// siguen en Blade (matrículas, usuarios, roles, aprobaciones y configuración).
+// Cursos, servicios, cotizaciones, estudiantes y matrículas salieron de Blade (los atiende apps/web): este smoke solo
+// recorre lo que sigue en Blade (usuarios, roles, aprobaciones y configuración).
 // Solo http://127.0.0.1:8778 con formularios-modal-browser-router.php opt-in y SQLite :memory:.
 // Usa el panel real y formularios nativos; cada petición reconstruye datos ficticios.
 import { spawn } from 'node:child_process';
@@ -58,7 +58,7 @@ let debugEvaluate;
 let debugScreenshot;
 const report = { sqlite: ':memory: per request', widths: [], responses: [], externalBlocked: [], errors: [] };
 try {
-  await waitFor(async () => (await localRequest(`${base}/admin/matriculas`)).headers['x-horus-fixture'] === 'sqlite-memory-modal');
+  await waitFor(async () => (await localRequest(`${base}/admin/usuarios`)).headers['x-horus-fixture'] === 'sqlite-memory-modal');
   await waitFor(async () => (await localRequest(`http://127.0.0.1:${debugPort}/json/version`)).status === 200);
   const tab = JSON.parse((await localRequest(`http://127.0.0.1:${debugPort}/json/new?about:blank`, 'PUT')).body);
   socket = new WebSocket(tab.webSocketDebuggerUrl);
@@ -131,28 +131,28 @@ try {
   const modalOpen = () => evaluate('!!document.querySelector("dialog[data-admin-modal][open]")');
   for (const width of [390, 768, 1440]) {
     await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width === 390 });
-    await navigate('/admin/matriculas', 'a[href$="/matriculas/create"]');
+    await navigate('/admin/usuarios', 'a[href$="/usuarios/create"]');
     await evaluate('window.listadoConservado = true');
-    await click('a[href$="/matriculas/create"]');
+    await click('a[href$="/usuarios/create"]');
     await waitFor(modalOpen);
     const view = await evaluate(`(() => {
       const dialog = document.querySelector('dialog[open]');
       return { width: innerWidth, fits: dialog.getBoundingClientRect().right <= innerWidth && dialog.scrollWidth <= dialog.clientWidth + 1,
         focusInside: dialog.contains(document.activeElement), locked: document.documentElement.classList.contains('admin-modal-open'),
-        backgroundKept: window.listadoConservado === true, correctUrl: location.pathname === '/admin/matriculas/create' };
+        backgroundKept: window.listadoConservado === true, correctUrl: location.pathname === '/admin/usuarios/create' };
     })()`);
     check(Object.values(view).every(Boolean), 'Modal layout or focus failed: ' + JSON.stringify(view));
-    await screenshot('matricula-modal-' + width);
+    await screenshot('usuario-modal-' + width);
     await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-    await waitFor(() => evaluate('location.pathname === "/admin/matriculas" && !document.querySelector("dialog[open]")'));
-    check(await evaluate(`document.activeElement.matches('a[href$="/matriculas/create"]') && window.listadoConservado && !document.documentElement.classList.contains('admin-modal-open')`), 'Focus or list not restored');
+    await waitFor(() => evaluate('location.pathname === "/admin/usuarios" && !document.querySelector("dialog[open]")'));
+    check(await evaluate(`document.activeElement.matches('a[href$="/usuarios/create"]') && window.listadoConservado && !document.documentElement.classList.contains('admin-modal-open')`), 'Focus or list not restored');
     await command('Page.navigateToHistoryEntry', { entryId: (await command('Page.getNavigationHistory')).entries.at(-1).id });
     await waitFor(modalOpen);
-    check(await evaluate('location.pathname === "/admin/matriculas/create"'), 'Forward failed');
+    check(await evaluate('location.pathname === "/admin/usuarios/create"'), 'Forward failed');
     report.widths.push(view);
   }
-  for (const module of ['matriculas', 'usuarios']) {
+  for (const module of ['usuarios']) {
     for (const action of ['create', '1/edit']) {
       await navigate('/admin/' + module + '/' + action, 'dialog[data-admin-page-form]');
       await waitFor(modalOpen);
@@ -160,40 +160,14 @@ try {
       check(await evaluate(`(() => { const modal = document.querySelector('dialog[open]'); return [...modal.querySelectorAll('label[for]')].every(label => label.control && modal.contains(label.control)); })()`), 'Label outside modal: ' + module + action);
     }
   }
-  // Selectores de matrícula con búsqueda en el servidor: teclado, valor oculto y Escape sin cerrar el diálogo.
-  await navigate('/admin/matriculas/create', '#estudiante_id'); await waitFor(modalOpen);
-  // Sin foco real del documento, el navegador sin ventana no emite eventos focus/blur.
-  await command('Emulation.setFocusEmulationEnabled', { enabled: true });
-  const tecla = async (key, code, windowsVirtualKeyCode) => {
-    await command('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode });
-    await command('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode });
-  };
-  for (const [campo, etiqueta] of [['estudiante_id', '70123456 · Estudiante Ficticio'], ['curso_id', 'FIXTURE · Curso ficticio (19 cupos)']]) {
-    await evaluate(`(() => { const campo = document.querySelector('#${campo}'); campo.blur(); campo.focus(); })()`);
-    await waitFor(() => evaluate(`document.querySelectorAll('#${campo}-lista [role=option]').length === 1`));
-    check(await evaluate(`document.querySelector('#${campo}').getAttribute('aria-expanded') === 'true'`), 'Combobox no abre: ' + campo);
-    await tecla('ArrowDown', 'ArrowDown', 40);
-    check(await evaluate(`document.querySelector('#${campo}').getAttribute('aria-activedescendant') === '${campo}-opcion-0'`), 'Combobox sin opción activa: ' + campo);
-    await tecla('Enter', 'Enter', 13);
-    check(await evaluate(`document.querySelector('input[type=hidden][name=${campo}]').value === '1' && document.querySelector('#${campo}').value === ${JSON.stringify(etiqueta)}`), 'Combobox no eligió: ' + campo);
-    check(await modalOpen(), 'Enter del combobox cerró o envió el diálogo: ' + campo);
-  }
-  await evaluate(`(() => { const campo = document.querySelector('#estudiante_id'); campo.blur(); campo.focus(); })()`);
-  await waitFor(() => evaluate(`document.querySelector('#estudiante_id').getAttribute('aria-expanded') === 'true'`));
-  await tecla('Escape', 'Escape', 27);
-  check(await evaluate(`document.querySelector('#estudiante_id').getAttribute('aria-expanded') === 'false'`), 'Escape no cerró la lista');
-  check(await modalOpen(), 'Escape del combobox cerró el diálogo del formulario');
-  await evaluate(`(() => { const campo = document.querySelector('#estudiante_id'); campo.value = 'sin-coincidencias'; campo.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  await waitFor(() => evaluate(`document.querySelectorAll('#estudiante_id-lista [role=option]').length === 0 && /Sin resultados/.test(document.body.innerText)`));
-  check(await evaluate(`document.querySelector('input[type=hidden][name=estudiante_id]').value === '1'`), 'Escribir sin elegir no debe cambiar el valor');
   await navigate('/admin/configuracion', '#settings_nombre_empresa'); await waitFor(modalOpen);
-  await navigate('/admin/matriculas', 'a[href$="/matriculas/1/edit"]');
-  await click('a[href$="/matriculas/1/edit"]'); await waitFor(modalOpen);
-  await evaluate(`const f = document.querySelector('dialog[open] form'); f.noValidate = true; f.querySelector('[name=observaciones]').value = 'Borrador modal conservado'; f.querySelector('[name=monto_pagado]').value = '-5'; f.requestSubmit();`);
-  await waitFor(() => evaluate('document.querySelector("dialog[open] [name=observaciones]")?.value === "Borrador modal conservado" && !!document.querySelector("dialog[open] .admin-error")'));
-  check(await evaluate('location.pathname === "/admin/matriculas/1/edit"'), 'Validation did not return to form URL');
-  await evaluate(`document.querySelector('dialog[open] [name=monto_pagado]').value = '150'; document.querySelector('dialog[open] form').requestSubmit();`);
-  await waitFor(() => evaluate('location.pathname === "/admin/matriculas/1" && document.readyState === "complete"'));
+  await navigate('/admin/usuarios', 'a[href$="/usuarios/1/edit"]');
+  await click('a[href$="/usuarios/1/edit"]'); await waitFor(modalOpen);
+  await evaluate(`const f = document.querySelector('dialog[open] form'); f.noValidate = true; f.querySelector('[name=name]').value = 'Borrador modal conservado'; f.querySelector('[name=email]').value = 'no-es-correo'; f.requestSubmit();`);
+  await waitFor(() => evaluate('document.querySelector("dialog[open] [name=name]")?.value === "Borrador modal conservado" && !!document.querySelector("dialog[open] .admin-error")'));
+  check(await evaluate('location.pathname === "/admin/usuarios/1/edit"'), 'Validation did not return to form URL');
+  await evaluate(`document.querySelector('dialog[open] [name=email]').value = 'borrador.modal@example.test'; document.querySelector('dialog[open] form').requestSubmit();`);
+  await waitFor(() => evaluate('location.pathname === "/admin/usuarios" && document.readyState === "complete"'));
   report.nativeSave = true;
   await navigate('/admin/roles', '[data-admin-modal-open="crear-rol"]');
   await click('[data-admin-modal-open="crear-rol"]'); await waitFor(modalOpen);

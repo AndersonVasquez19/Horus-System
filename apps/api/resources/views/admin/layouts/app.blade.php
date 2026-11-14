@@ -35,7 +35,6 @@
             <main id="admin-main-content" tabindex="-1" class="focus:outline-none mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 @php
                     $rutaFormulario = request()->routeIs(
-                        'admin.matriculas.create', 'admin.matriculas.edit',
                         'admin.usuarios.create', 'admin.usuarios.edit', 'admin.configuracion.index',
                     );
                     $moduloFormulario = explode('.', request()->route()?->getName() ?? '')[1] ?? '';

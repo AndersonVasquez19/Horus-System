@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class ExportacionesPostTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -41,7 +43,6 @@ class ExportacionesPostTest extends TestCase
     public static function exportaciones(): array
     {
         return [
-            'matriculas.csv' => ['admin.matriculas.csv', 'matriculas/exportar/csv'],
             'auditoria.exportar' => ['admin.auditoria.exportar', 'auditoria/exportar'],
             'respaldo.exportar' => ['admin.respaldo.exportar', 'respaldo/exportar'],
         ];
@@ -85,33 +86,43 @@ class ExportacionesPostTest extends TestCase
         $this->assertTrue($respuesta->baseResponse->headers->has('Content-Disposition'));
     }
 
-    public function test_el_listado_de_matriculas_exporta_con_un_formulario_post_y_los_filtros_como_campos_ocultos(): void
+    /**
+     * Matrículas se exporta por la API del panel: solo POST, mismo límite de velocidad, 401/403 según corresponda y
+     * los filtros viajan en el cuerpo. El formulario con campos ocultos era HTML de Blade (ahora lo hace Next).
+     */
+    public function test_la_exportacion_de_matriculas_del_panel_solo_acepta_post_y_esta_limitada(): void
     {
-        $html = (string) $this->actingAs($this->staff('admin'))
-            ->get(route('admin.matriculas.index', ['estado' => 'pagada', 'curso_id' => '7', 'busqueda' => 'Ana "x"', 'otro' => 'no']))
-            ->assertOk()
-            ->getContent();
+        $ruta = Route::getRoutes()->getByName('api.panel.academico.matriculas.exportar');
 
-        $this->assertMatchesRegularExpression(
-            '#<form method="POST" action="'.preg_quote(e(route('admin.matriculas.csv')), '#').'">\s*<input type="hidden" name="_token"#',
-            $html,
-        );
-        $this->assertStringContainsString('<input type="hidden" name="estado" value="pagada">', $html);
-        $this->assertStringContainsString('<input type="hidden" name="curso_id" value="7">', $html);
-        $this->assertStringContainsString('<input type="hidden" name="busqueda" value="Ana &quot;x&quot;">', $html);
-        $this->assertStringNotContainsString('name="otro"', $html);
-        $this->assertStringNotContainsString('href="'.route('admin.matriculas.csv'), $html);
+        $this->assertNotNull($ruta);
+        $this->assertSame(['POST'], $ruta->methods());
+        $this->assertContains('throttle:admin-export', $ruta->gatherMiddleware());
+
+        $this->actingAs($this->staff('admin'))->panelMatriculas('GET', 'exportar')->assertStatus(405);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'matriculas_csv_exported']);
     }
 
-    public function test_el_listado_de_matriculas_no_reenvia_filtros_con_forma_de_array(): void
+    public function test_matriz_de_acceso_de_la_exportacion_de_matriculas_del_panel(): void
     {
-        $html = (string) $this->actingAs($this->staff('admin'))
-            ->get(route('admin.matriculas.index', ['busqueda' => ['x'], 'estado' => ['pagada']]))
-            ->assertOk()
-            ->getContent();
+        $this->panelMatriculas('POST', 'exportar')->assertUnauthorized();
 
-        $this->assertStringNotContainsString('name="busqueda" value=', $html);
-        $this->assertStringNotContainsString('type="hidden" name="estado"', $html);
+        foreach (['coordinador', 'secretaria'] as $rol) {
+            $this->actingAs($this->staff($rol))->panelMatriculas('POST', 'exportar')->assertForbidden();
+        }
+        $this->actingAs(User::factory()->create())->panelMatriculas('POST', 'exportar')->assertForbidden();
+
+        $respuesta = $this->actingAs($this->staff('admin'))->panelMatriculas('POST', 'exportar')->assertOk();
+        $this->assertTrue($respuesta->baseResponse->headers->has('Content-Disposition'));
+    }
+
+    public function test_la_exportacion_de_matriculas_ignora_los_filtros_con_forma_de_array(): void
+    {
+        $this->actingAs($this->staff('admin'))
+            ->panelMatriculas('POST', 'exportar', ['busqueda' => ['x'], 'estado' => ['pagada'], 'curso_id' => ['7']])
+            ->assertOk();
+
+        $registro = AuditLog::query()->where('action', 'matriculas_csv_exported')->sole();
+        $this->assertStringNotContainsString('pagada', (string) json_encode($registro->changes));
     }
 
     public function test_la_pantalla_de_auditoria_y_la_de_respaldo_exportan_con_un_formulario_post_con_token(): void
@@ -133,14 +144,10 @@ class ExportacionesPostTest extends TestCase
         $this->assertStringNotContainsString('href="'.route('admin.respaldo.exportar'), $respaldo);
     }
 
-    public function test_las_pantallas_no_ofrecen_la_exportacion_a_quien_no_tiene_el_permiso(): void
+    public function test_la_pantalla_de_respaldo_no_ofrece_la_exportacion_a_quien_no_tiene_el_permiso(): void
     {
         $this->actingAs($this->staff('coordinador'))
-            ->get(route('admin.matriculas.index'))
-            ->assertOk()
-            ->assertDontSee(route('admin.matriculas.csv'), false);
-
-        $this->get(route('admin.respaldo.index'))
+            ->get(route('admin.respaldo.index'))
             ->assertOk()
             ->assertDontSee(route('admin.respaldo.exportar'), false);
     }

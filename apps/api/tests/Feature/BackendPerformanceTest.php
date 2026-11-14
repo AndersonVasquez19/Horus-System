@@ -13,10 +13,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 class BackendPerformanceTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -109,21 +111,17 @@ class BackendPerformanceTest extends TestCase
         $row = $this->enrollment($active);
         $admin = $this->adminUser();
 
-        $response = $this->actingAs($admin)->get(route('admin.matriculas.index', [
+        $response = $this->actingAs($admin)->panelMatriculas('GET', '', [
             'curso_id' => (string) $active->id, 'busqueda' => 'PRUEBA', 'estado' => 'pendiente',
-        ]))->assertOk();
-        // La página ya no lleva la lista completa de cursos: solo el curso elegido, como opción inicial.
-        $response->assertViewMissing('cursos');
-        $this->assertSame($active->id, $response->viewData('cursoFiltro')['id']);
-        $this->assertSame([$row->id], $response->viewData('matriculas')->pluck('id')->all());
-        $this->assertSame(15, $response->viewData('matriculas')->perPage());
-        $response->assertSee('<input type="hidden" name="curso_id" value="'.$active->id.'"', false);
-        $response->assertDontSee('value="'.$deleted->id.'"', false);
+        ])->assertOk();
+        // El listado devuelve solo las matrículas del curso elegido (no la lista completa de cursos).
+        $this->assertSame([$row->id], $response->json('data.*.id'));
+        $response->assertJsonPath('meta.por_pagina', 20)->assertJsonPath('meta.filtros.curso_id', $active->id);
 
-        // Un curso eliminado sigue siendo filtrable y se indica en la etiqueta.
-        $filtrado = $this->get(route('admin.matriculas.index', ['curso_id' => (string) $deleted->id]))->assertOk();
-        $this->assertTrue($filtrado->viewData('cursoFiltro')['eliminado']);
-        $filtrado->assertSee('(eliminado)', false);
+        // Un curso eliminado sigue siendo filtrable: el selector de filtro lo ofrece marcado como eliminado.
+        $this->panelMatriculas('GET', '', ['curso_id' => (string) $deleted->id])->assertOk()->assertJsonPath('meta.total', 0);
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro', 'q' => 'ELIMINADO'])->assertOk()
+            ->assertJsonPath('data.0.eliminado', true);
         Http::assertNothingSent();
     }
 

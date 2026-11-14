@@ -2,7 +2,7 @@
 export function esEnlaceFormulario(href, base) {
   const url = new URL(href, base);
   return url.origin === new URL(base).origin
-    && /\/admin\/(estudiantes|cursos|matriculas|usuarios)\/(create|\d+\/(edit|publicacion))$/.test(url.pathname);
+    && /\/admin\/usuarios\/(create|\d+\/edit)$/.test(url.pathname);
 }
 
 export function sincronizarModal(dialogo, abierto) {

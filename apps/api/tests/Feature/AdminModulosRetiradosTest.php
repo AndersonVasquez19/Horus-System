@@ -35,6 +35,7 @@ class AdminModulosRetiradosTest extends TestCase
             'servicios' => ['admin.servicios.index', '/admin/servicios/catalogo'],
             'estudiantes' => ['admin.estudiantes.index', '/admin/academico/estudiantes'],
             'cursos' => ['admin.cursos.index', '/admin/academico/cursos'],
+            'matriculas' => ['admin.matriculas.index', '/admin/academico/matriculas'],
         ];
     }
 
@@ -88,6 +89,29 @@ class AdminModulosRetiradosTest extends TestCase
             ->assertRedirect(self::WEB.'/admin/academico/cursos/7');
         $this->get('/admin/cursos/abc')->assertNotFound();
         $this->get('/admin/cursos/1;DROP')->assertNotFound();
+    }
+
+    public function test_la_ficha_antigua_de_una_matricula_redirige_a_su_ficha_en_next(): void
+    {
+        $this->actingAs($this->adminUser())->get(route('admin.matriculas.show', 9))
+            ->assertRedirect(self::WEB.'/admin/academico/matriculas/9');
+        $this->get('/admin/matriculas/abc')->assertNotFound();
+        $this->get('/admin/matriculas/1;DROP')->assertNotFound();
+    }
+
+    public function test_las_operaciones_de_matriculas_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+        $this->get('/admin/matriculas/create')->assertNotFound();
+        $this->get('/admin/matriculas/1/edit')->assertNotFound();
+        $this->postJson('/admin/matriculas', [])->assertStatus(405);
+        $this->putJson('/admin/matriculas/1', [])->assertStatus(405);
+        $this->deleteJson('/admin/matriculas/1')->assertStatus(405);
+        $this->patchJson('/admin/matriculas/1/anular')->assertNotFound();
+        $this->patchJson('/admin/matriculas/1/restaurar')->assertNotFound();
+        $this->postJson('/admin/matriculas/exportar/csv')->assertNotFound();
+        $this->getJson('/admin/matriculas/opciones/estudiantes?contexto=crear')->assertNotFound();
+        $this->getJson('/admin/matriculas/opciones/cursos?contexto=filtro')->assertNotFound();
     }
 
     public function test_las_operaciones_de_cursos_y_de_su_ficha_ya_no_existen_en_blade(): void

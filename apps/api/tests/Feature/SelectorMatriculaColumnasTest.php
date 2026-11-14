@@ -8,6 +8,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -16,6 +17,7 @@ use Tests\TestCase;
  */
 class SelectorMatriculaColumnasTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -26,7 +28,7 @@ class SelectorMatriculaColumnasTest extends TestCase
         Http::preventStrayRequests();
     }
 
-    public function test_el_formulario_de_creacion_y_las_opciones_no_exponen_datos_de_contacto(): void
+    public function test_el_listado_y_las_opciones_no_exponen_datos_de_contacto(): void
     {
         Estudiante::create([
             'dni' => '70007777', 'nombres' => 'Lucia', 'apellidos' => 'Selector', 'estado' => 'activo',
@@ -39,21 +41,21 @@ class SelectorMatriculaColumnasTest extends TestCase
         ]);
         $admin = $this->adminUser();
 
-        // El formulario ya no incluye las listas: ni siquiera las etiquetas de los registros.
-        $this->actingAs($admin)->get(route('admin.matriculas.create'))
+        // El listado de matrículas no lleva las listas de estudiantes ni de cursos: solo las opciones, y mínimas.
+        $this->actingAs($admin)->panelMatriculas('GET', '')
             ->assertOk()
             ->assertDontSee('70007777')
             ->assertDontSee('lucia.selector@example.test')
             ->assertDontSee('Descripcion privada del curso');
 
-        $estudiantes = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))->assertOk();
-        $estudiantes->assertExactJson(['opciones' => [
+        $estudiantes = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertOk();
+        $estudiantes->assertExactJson(['data' => [
             ['id' => Estudiante::query()->value('id'), 'texto' => '70007777 · Lucia Selector', 'eliminado' => false],
         ]]);
         $this->assertStringNotContainsString('lucia.selector@example.test', $estudiantes->getContent());
 
-        $cursos = $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'crear']))->assertOk();
-        $cursos->assertExactJson(['opciones' => [
+        $cursos = $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'crear'])->assertOk();
+        $cursos->assertExactJson(['data' => [
             ['id' => Curso::query()->value('id'), 'texto' => 'COD-SEL-1 · Curso Selector (3 cupos)', 'eliminado' => false],
         ]]);
         $this->assertStringNotContainsString('Descripcion privada del curso', $cursos->getContent());

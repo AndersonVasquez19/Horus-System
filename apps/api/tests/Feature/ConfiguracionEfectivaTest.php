@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
-use App\Models\Curso;
-use App\Models\Estudiante;
-use App\Models\Matricula;
 use App\Models\SystemSetting;
 use App\Support\ConfiguracionSistema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,52 +26,31 @@ class ConfiguracionEfectivaTest extends TestCase
         $this->assertIsolatedTestDatabase();
     }
 
-    /**
-     * Una matrícula pagada de S/ 150: el listado de matrículas es la página del panel que muestra a la vez el título,
-     * el nombre de la empresa y un importe (el listado de cursos salió de Blade el 14/11/2026).
-     */
-    private function curso(): Curso
-    {
-        $curso = Curso::create([
-            'codigo' => 'COD-CFG-1', 'nombre' => 'Curso Config', 'descripcion' => 'x', 'categoria' => 'tecnologia',
-            'duracion_horas' => 10, 'precio' => 150, 'modalidad' => 'virtual', 'horario' => 'x',
-            'cupos_maximos' => 5, 'cupos_disponibles' => 4, 'estado' => 'activo',
-        ]);
-        $estudiante = Estudiante::create(['dni' => '70000150', 'nombres' => 'Ana', 'apellidos' => 'Config', 'estado' => 'activo']);
-        Matricula::create([
-            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => now()->toDateString(),
-            'estado' => 'pagada', 'monto_pagado' => 150,
-        ]);
-
-        return $curso;
-    }
-
     public function test_sin_ajustes_guardados_usa_los_predeterminados(): void
     {
-        $this->curso();
-
-        $this->actingAs($this->adminUser())->get(route('admin.matriculas.index'))
+        $this->actingAs($this->adminUser())->get(route('admin.usuarios.index'))
             ->assertOk()
-            ->assertSee('<title>Matrículas | Horus Group SRL</title>', false)
-            ->assertSee('S/ 150.00');
+            ->assertSee('<title>Usuarios | Horus Group SRL</title>', false);
+        $this->assertSame('S/ 150.00', ConfiguracionSistema::monto('150'));
     }
 
+    /**
+     * El nombre de la empresa sigue viéndose en las páginas Blade restantes (título, barra superior, menú) y la moneda
+     * en todo importe que formatea el servidor (PDF, correos). Los importes del panel los muestra apps/web con la moneda
+     * que entrega la sesión del panel.
+     */
     public function test_el_nombre_y_la_moneda_configurados_se_ven_en_el_panel(): void
     {
         $admin = $this->adminUser();
-        $this->curso();
 
         $this->actingAs($admin)->put(route('admin.configuracion.update'), [
             'settings' => ['nombre_empresa' => 'Academia Prueba SAC', 'moneda' => 'USD'],
         ])->assertRedirect(route('admin.configuracion.index'));
 
-        $this->actingAs($admin)->get(route('admin.matriculas.index'))
+        $this->actingAs($admin)->get(route('admin.usuarios.index'))
             ->assertOk()
-            ->assertSee('<title>Matrículas | Academia Prueba SAC</title>', false)
-            ->assertSee('USD 150.00')
-            ->assertDontSee('S/ 150.00');
-
-        $this->actingAs($admin)->get(route('admin.matriculas.create'))->assertOk()->assertSee('Monto pagado (USD)');
+            ->assertSee('<title>Usuarios | Academia Prueba SAC</title>', false);
+        $this->assertSame('USD 150.00', ConfiguracionSistema::monto('150'));
     }
 
     public function test_el_encabezado_del_pdf_usa_el_nombre_configurado(): void
@@ -135,7 +111,6 @@ class ConfiguracionEfectivaTest extends TestCase
     public function test_los_ajustes_se_leen_con_una_sola_consulta_por_peticion(): void
     {
         $admin = $this->adminUser();
-        $this->curso();
         $consultas = 0;
         DB::listen(function ($query) use (&$consultas): void {
             if (str_contains($query->sql, 'system_settings')) {
@@ -143,8 +118,8 @@ class ConfiguracionEfectivaTest extends TestCase
             }
         });
 
-        // El listado de matrículas usa el nombre (title, topbar, menú) y la moneda varias veces.
-        $this->actingAs($admin)->get(route('admin.matriculas.index'))->assertOk();
+        // El listado de usuarios usa el nombre (title, topbar, menú) varias veces.
+        $this->actingAs($admin)->get(route('admin.usuarios.index'))->assertOk();
 
         $this->assertSame(1, $consultas);
     }

@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
  */
 class MatriculaOpcionesTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -34,11 +36,11 @@ class MatriculaOpcionesTest extends TestCase
 
     public function test_exige_sesion_y_rol_del_panel(): void
     {
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))->assertUnauthorized();
-        $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro']))->assertUnauthorized();
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertUnauthorized();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->assertUnauthorized();
 
         $this->actingAs(User::factory()->create())
-            ->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))
+            ->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])
             ->assertForbidden();
     }
 
@@ -50,31 +52,31 @@ class MatriculaOpcionesTest extends TestCase
         $secretaria->assignRole('secretaria');
         $this->actingAs($secretaria);
 
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))->assertOk();
-        $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'crear']))->assertOk();
-        $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro']))->assertOk();
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'editar']))->assertForbidden();
-        $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'editar']))->assertForbidden();
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertOk();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'crear'])->assertOk();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->assertOk();
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'editar'])->assertForbidden();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'editar'])->assertForbidden();
 
         Role::findByName('secretaria')->revokePermissionTo('matriculas.crear');
         $this->app->make(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))->assertForbidden();
-        $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro']))->assertOk();
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertForbidden();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->assertOk();
 
         Role::findByName('secretaria')->revokePermissionTo('matriculas.ver');
         $this->app->make(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro']))->assertForbidden();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->assertForbidden();
     }
 
     public function test_el_contexto_es_obligatorio_y_el_de_filtro_solo_aplica_a_cursos(): void
     {
         $this->actingAs($this->adminUser());
 
-        $this->getJson(route('admin.matriculas.opciones.estudiantes'))->assertStatus(422);
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'otro']))->assertStatus(422);
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => ['crear']]))->assertStatus(422);
-        $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'filtro']))->assertStatus(422);
-        $this->getJson(route('admin.matriculas.opciones.cursos'))->assertStatus(422);
+        $this->panelMatriculas('GET', 'opciones/estudiantes', [])->assertStatus(422);
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'otro'])->assertStatus(422);
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => ['crear']])->assertStatus(422);
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'filtro'])->assertStatus(422);
+        $this->panelMatriculas('GET', 'opciones/cursos', [])->assertStatus(422);
     }
 
     public function test_devuelve_como_maximo_veinte_opciones_ordenadas_y_busca_en_el_servidor(): void
@@ -85,15 +87,15 @@ class MatriculaOpcionesTest extends TestCase
         $this->estudiante('72000000', 'Rosa', 'Zapata');
         $this->actingAs($this->adminUser());
 
-        $todos = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))->assertOk()->json('opciones');
+        $todos = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertOk()->json('data');
         $this->assertCount(OpcionesMatricula::LIMITE, $todos);
         $this->assertSame('71000001 · Nombre1 Apellido01', $todos[0]['texto']);
         $this->assertSame(['id', 'texto', 'eliminado'], array_keys($todos[0]));
 
-        $buscados = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear', 'q' => 'zapa']))->json('opciones');
+        $buscados = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear', 'q' => 'zapa'])->json('data');
         $this->assertSame(['72000000 · Rosa Zapata'], array_column($buscados, 'texto'));
 
-        $porDni = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear', 'q' => '71000025']))->json('opciones');
+        $porDni = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear', 'q' => '71000025'])->json('data');
         $this->assertSame(['71000025 · Nombre25 Apellido25'], array_column($porDni, 'texto'));
     }
 
@@ -106,13 +108,13 @@ class MatriculaOpcionesTest extends TestCase
         $this->curso('C-LIBRE', 'Taller libre');
         $this->actingAs($this->adminUser());
 
-        $porcentaje = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear', 'q' => '%']))->json('opciones');
+        $porcentaje = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear', 'q' => '%'])->json('data');
         $this->assertSame(['73000001 · Ana 100% Real Soto'], array_column($porcentaje, 'texto'));
 
-        $guion = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear', 'q' => 'Cris_T']))->json('opciones');
+        $guion = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear', 'q' => 'Cris_T'])->json('data');
         $this->assertSame(['73000002 · Cris_Tina Rojas'], array_column($guion, 'texto'));
 
-        $cursos = $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro', 'q' => '%']))->json('opciones');
+        $cursos = $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro', 'q' => '%'])->json('data');
         $this->assertSame(['C-100 · Excel al 100% práctico'], array_column($cursos, 'texto'));
     }
 
@@ -121,7 +123,7 @@ class MatriculaOpcionesTest extends TestCase
         $this->estudiante('74000001', 'Ana', 'Uno');
         $this->actingAs($this->adminUser());
 
-        $opciones = $this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear', 'q' => ['x']]))->assertOk()->json('opciones');
+        $opciones = $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear', 'q' => ['x']])->assertOk()->json('data');
         $this->assertCount(1, $opciones);
     }
 
@@ -133,10 +135,10 @@ class MatriculaOpcionesTest extends TestCase
         $eliminado->delete();
         $this->actingAs($this->adminUser());
 
-        $crear = array_column($this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'crear']))->json('opciones'), 'id');
+        $crear = array_column($this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->json('data'), 'id');
         $this->assertSame([$activo->id], $crear);
 
-        $editar = array_column($this->getJson(route('admin.matriculas.opciones.estudiantes', ['contexto' => 'editar']))->json('opciones'), 'id');
+        $editar = array_column($this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'editar'])->json('data'), 'id');
         // Orden por apellido: «Dos» (inactivo) antes que «Uno» (activo).
         $this->assertSame([$inactivo->id, $activo->id], $editar);
     }
@@ -150,50 +152,26 @@ class MatriculaOpcionesTest extends TestCase
         $eliminado->delete();
         $this->actingAs($this->adminUser());
 
-        $crear = $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'crear']))->json('opciones');
+        $crear = $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'crear'])->json('data');
         $this->assertSame([$disponible->id], array_column($crear, 'id'));
         $this->assertSame('C-1 · Disponible (5 cupos)', $crear[0]['texto']);
 
-        $editar = array_column($this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'editar']))->json('opciones'), 'id');
+        $editar = array_column($this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'editar'])->json('data'), 'id');
         $this->assertEqualsCanonicalizing([$disponible->id, $sinCupos->id, $inactivo->id], $editar);
 
         // El filtro del listado incluye los eliminados y no muestra cupos.
-        $filtro = $this->getJson(route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro']))->json('opciones');
+        $filtro = $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->json('data');
         $this->assertEqualsCanonicalizing([$disponible->id, $sinCupos->id, $inactivo->id, $eliminado->id], array_column($filtro, 'id'));
         $textos = array_column($filtro, 'texto', 'id');
         $this->assertSame('C-4 · Eliminado (eliminado)', $textos[$eliminado->id]);
         $this->assertSame('C-1 · Disponible', $textos[$disponible->id]);
     }
 
-    public function test_el_formulario_de_alta_usa_el_combobox_y_preselecciona_solo_registros_elegibles(): void
-    {
-        $activo = $this->estudiante('76000001', 'Activo', 'Uno');
-        $inactivo = $this->estudiante('76000002', 'Inactivo', 'Dos', 'inactivo');
-        $curso = $this->curso('C-1', 'Disponible');
-        $admin = $this->adminUser();
-
-        $html = (string) $this->actingAs($admin)
-            ->get(route('admin.matriculas.create', ['estudiante_id' => $activo->id, 'curso_id' => $curso->id]))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringContainsString('role="combobox"', $html);
-        $this->assertStringContainsString('aria-controls="estudiante_id-lista"', $html);
-        $this->assertStringContainsString('x-data="selectorAsincrono"', $html);
-        $this->assertStringContainsString('data-contexto="crear"', $html);
-        $this->assertStringContainsString('<input type="hidden" name="estudiante_id" value="'.$activo->id.'"', $html);
-        $this->assertStringContainsString('data-texto="76000001 · Activo Uno"', $html);
-        $this->assertStringContainsString('data-texto="C-1 · Disponible (5 cupos)"', $html);
-        $this->assertStringNotContainsString('<select id="estudiante_id"', $html);
-        $this->assertStringNotContainsString('<select id="curso_id"', $html);
-
-        // Un estudiante inactivo no es elegible para una alta: no se preselecciona, como antes.
-        $sinSeleccion = (string) $this->get(route('admin.matriculas.create', ['estudiante_id' => $inactivo->id]))->assertOk()->getContent();
-        $this->assertStringContainsString('<input type="hidden" name="estudiante_id" value=""', $sinSeleccion);
-        $this->assertStringNotContainsString('76000002', $sinSeleccion);
-    }
-
-    public function test_el_formulario_de_edicion_conserva_el_estudiante_y_el_curso_actuales_aunque_esten_eliminados(): void
+    /**
+     * El formulario de edición lo sirve apps/web: parte del detalle de la matrícula. Aunque el estudiante y el curso
+     * actuales estén eliminados, el detalle los entrega (marcados como eliminados) para que el selector los conserve.
+     */
+    public function test_el_detalle_conserva_el_estudiante_y_el_curso_actuales_aunque_esten_eliminados(): void
     {
         $estudiante = $this->estudiante('77000001', 'Actual', 'Eliminada');
         $curso = $this->curso('C-9', 'Curso actual');
@@ -204,101 +182,44 @@ class MatriculaOpcionesTest extends TestCase
         $estudiante->delete();
         $curso->delete();
 
-        $html = (string) $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.edit', $matricula))
+        $this->actingAs($this->adminUser())
+            ->panelMatriculas('GET', (string) $matricula->id)
             ->assertOk()
-            ->getContent();
-
-        $this->assertStringContainsString('data-contexto="editar"', $html);
-        $this->assertStringContainsString('<input type="hidden" name="estudiante_id" value="'.$estudiante->id.'"', $html);
-        $this->assertStringContainsString('data-texto="77000001 · Actual Eliminada (eliminado)"', $html);
-        $this->assertStringContainsString('data-texto="C-9 · Curso actual ('.$curso->cupos_disponibles.' cupos) (eliminado)"', $html);
+            ->assertJsonPath('data.estudiante.id', $estudiante->id)
+            ->assertJsonPath('data.estudiante.eliminado', true)
+            ->assertJsonPath('data.curso.id', $curso->id)
+            ->assertJsonPath('data.curso.eliminado', true);
     }
 
-    public function test_las_paginas_ya_no_llevan_las_listas_completas(): void
+    public function test_ni_las_opciones_ni_el_listado_llevan_las_listas_completas(): void
     {
         foreach (range(1, 60) as $n) {
             $this->estudiante(sprintf('7800%04d', $n), 'Masivo', 'Registro'.$n);
             $this->curso('MAS-'.$n, 'Curso masivo '.$n);
         }
-        $matricula = Matricula::create([
+        Matricula::create([
             'estudiante_id' => Estudiante::query()->value('id'), 'curso_id' => Curso::query()->value('id'),
             'fecha_matricula' => now()->toDateString(), 'estado' => 'pendiente',
         ]);
         $this->actingAs($this->adminUser());
 
-        $alta = (string) $this->get(route('admin.matriculas.create'))->assertOk()->getContent();
-        $edicion = (string) $this->get(route('admin.matriculas.edit', $matricula))->assertOk()->getContent();
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertOk()->assertJsonCount(20, 'data');
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'crear'])->assertOk()->assertJsonCount(20, 'data');
 
-        foreach ([$alta, $edicion] as $html) {
-            $this->assertStringNotContainsString('Registro40', $html);
-            $this->assertStringNotContainsString('Curso masivo 40', $html);
-        }
-
-        // El listado solo resuelve el curso elegido en el filtro, y conserva las matrículas.
-        $listado = $this->get(route('admin.matriculas.index'))->assertOk();
-        $listado->assertViewMissing('cursos');
-        $listado->assertDontSee('Curso masivo 40');
-    }
-
-    public function test_el_filtro_del_listado_usa_el_combobox_y_conserva_el_curso_elegido(): void
-    {
-        $curso = $this->curso('C-F', 'Curso filtrado');
-        $this->actingAs($this->adminUser());
-
-        $html = (string) $this->get(route('admin.matriculas.index', ['curso_id' => (string) $curso->id]))->assertOk()->getContent();
-
-        $this->assertStringContainsString('id="filtro_curso_id"', $html);
-        $this->assertStringContainsString('aria-label="Filtrar por curso"', $html);
-        $this->assertStringContainsString('data-contexto="filtro"', $html);
-        $this->assertStringContainsString('<input type="hidden" name="curso_id" value="'.$curso->id.'"', $html);
-        $this->assertStringContainsString('data-texto="C-F · Curso filtrado"', $html);
-        $this->assertStringNotContainsString('<select name="curso_id"', $html);
-
-        $sinFiltro = (string) $this->get(route('admin.matriculas.index'))->assertOk()->getContent();
-        $this->assertStringContainsString('<input type="hidden" name="curso_id" value=""', $sinFiltro);
-        $this->assertStringContainsString('placeholder="Todos los cursos"', $sinFiltro);
-    }
-
-    public function test_un_identificador_con_forma_de_array_no_se_preselecciona(): void
-    {
-        $this->estudiante('79000001', 'Ana', 'Uno');
-        $this->actingAs($this->adminUser());
-
-        $html = (string) $this->get(route('admin.matriculas.create', ['estudiante_id' => ['1'], 'curso_id' => ['1']]))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringContainsString('<input type="hidden" name="estudiante_id" value=""', $html);
-        $this->assertStringContainsString('<input type="hidden" name="curso_id" value=""', $html);
-    }
-
-    public function test_el_alta_sin_estudiantes_o_cursos_elegibles_muestra_el_aviso_y_desactiva_guardar(): void
-    {
-        $this->actingAs($this->adminUser());
-
-        $this->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertSee('No hay estudiantes activos disponibles.')
-            ->assertSee('No hay cursos activos con cupos disponibles para esta matrícula.');
-
-        $this->estudiante('70000009', 'Ana', 'Uno');
-        $this->curso('C-1', 'Disponible');
-        $this->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertDontSee('No hay estudiantes activos disponibles.')
-            ->assertDontSee('No hay cursos activos con cupos disponibles');
+        // El listado solo devuelve matrículas, nunca la lista de cursos o estudiantes.
+        $listado = $this->panelMatriculas('GET', '', [])->assertOk();
+        $listado->assertJsonCount(1, 'data');
+        $this->assertStringNotContainsString('Curso masivo 40', (string) $listado->getContent());
     }
 
     public function test_las_opciones_tienen_su_propio_limite_de_velocidad_por_usuario(): void
     {
         $this->actingAs($this->adminUser());
-        $url = route('admin.matriculas.opciones.cursos', ['contexto' => 'filtro']);
 
         foreach (range(1, 120) as $intento) {
-            $this->getJson($url)->assertOk();
+            $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->assertOk();
         }
-        $this->getJson($url)->assertTooManyRequests();
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'filtro'])->assertTooManyRequests();
     }
 
     public function test_la_validacion_de_escritura_sigue_siendo_la_autoridad(): void
@@ -307,11 +228,11 @@ class MatriculaOpcionesTest extends TestCase
         $curso = $this->curso('C-1', 'Disponible');
 
         $this->actingAs($this->adminUser())
-            ->post(route('admin.matriculas.store'), [
+            ->panelMatriculas('POST', '', [
                 'estudiante_id' => $inactivo->id, 'curso_id' => $curso->id,
                 'fecha_matricula' => now()->toDateString(), 'estado' => 'pendiente',
             ])
-            ->assertSessionHasErrors('estudiante_id');
+            ->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
 
         $this->assertDatabaseCount('matriculas', 0);
     }

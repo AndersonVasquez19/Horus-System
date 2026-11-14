@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesCurso } from '@/components/academico/acciones-curso';
 import { HistorialAcademico } from '@/components/academico/historial-academico';
@@ -112,6 +112,11 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
             <Link href={`/admin/academico/matriculas?curso_id=${curso.id}`} className="mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
               Ver todas las matrículas del curso
             </Link>
+            {!curso.eliminado && curso.estado === 'activo' && curso.cupos_disponibles > 0 ? (
+              <Link href={`/admin/academico/matriculas/nueva?curso_id=${curso.id}`} className="ml-4 mt-1 inline-flex items-center gap-1 text-xs font-semibold text-academico-700 hover:underline">
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Matricular en este curso
+              </Link>
+            ) : null}
           </div>
           {curso.estudiantes.length === 0 ? (
             <p className="px-5 py-12 text-center text-sm text-panel-muted">Este curso todavía no tiene estudiantes matriculados.</p>

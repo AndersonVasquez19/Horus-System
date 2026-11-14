@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -27,6 +28,7 @@ class AdminAuthorizationTest extends TestCase
 {
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     private const ALL = ['admin', 'coordinador', 'secretaria'];
@@ -50,8 +52,6 @@ class AdminAuthorizationTest extends TestCase
         return [
             'dashboard' => ['admin.dashboard', self::ALL],
             'busqueda' => ['admin.busqueda.index', self::ALL],
-            'matriculas.index' => ['admin.matriculas.index', self::ALL],
-            'matriculas.create' => ['admin.matriculas.create', self::ALL],
             'usuarios.index' => ['admin.usuarios.index', ['admin']],
             'usuarios.create' => ['admin.usuarios.create', ['admin']],
             'roles.index' => ['admin.roles.index', ['admin']],
@@ -166,18 +166,25 @@ class AdminAuthorizationTest extends TestCase
 
         foreach (['coordinador', 'secretaria'] as $role) {
             $this->actingAs($this->staff($role))
-                ->patch(route('admin.matriculas.anular', $matricula))
+                ->panelMatriculas('POST', $matricula->id.'/anular')
                 ->assertForbidden();
-            $this->delete(route('admin.matriculas.destroy', $matricula))->assertForbidden();
+            $this->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
         }
 
-        $this->actingAs($this->staff('secretaria'))
-            ->get(route('admin.matriculas.edit', $matricula))
-            ->assertForbidden();
-        $this->put(route('admin.matriculas.update', $matricula), [])->assertForbidden();
+        $this->actingAs($this->staff('secretaria'));
+        $this->panelMatriculas('PUT', (string) $matricula->id, [])->assertForbidden();
 
         $this->assertDatabaseHas('matriculas', ['id' => $matricula->id, 'estado' => 'pendiente', 'deleted_at' => null]);
         $this->assertSame(4, $curso->fresh()->cupos_disponibles);
+    }
+
+    public function test_el_listado_de_matriculas_del_panel_sigue_la_matriz_de_roles(): void
+    {
+        $this->panelMatriculas('GET')->assertUnauthorized();
+        foreach (self::ALL as $rol) {
+            $this->actingAs($this->staff($rol))->panelMatriculas('GET')->assertOk();
+        }
+        $this->actingAs(User::factory()->create())->panelMatriculas('GET')->assertForbidden();
     }
 
     public function test_admin_can_cancel_enrollments_and_coordinador_can_restore_them(): void
@@ -186,13 +193,13 @@ class AdminAuthorizationTest extends TestCase
         $matricula = $this->makeEnrollment($this->makeStudent('70000007'), $curso);
 
         $this->actingAs($this->staff('admin'))
-            ->delete(route('admin.matriculas.destroy', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'));
+            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->assertOk();
         $this->assertSoftDeleted($matricula);
 
         $this->actingAs($this->staff('coordinador'))
-            ->patch(route('admin.matriculas.restaurar', $matricula->id))
-            ->assertRedirect(route('admin.matriculas.index'));
+            ->panelMatriculas('POST', $matricula->id.'/restaurar')
+            ->assertOk();
         $this->assertNotSoftDeleted($matricula);
     }
 

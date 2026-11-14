@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -28,6 +29,7 @@ use ZipArchive;
  */
 class AuditoriaExportacionMatriculasTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     private const BUSQUEDA = '71000001 Ana Prueba';
@@ -52,7 +54,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $curso = $this->matriculaConDatos()[1];
 
         $this->actingAs($admin)
-            ->post(route('admin.matriculas.csv', ['estado' => 'pagada', 'curso_id' => (string) $curso->id, 'eliminados' => '0', 'busqueda' => self::BUSQUEDA]))
+            ->panelMatriculas('POST', 'exportar', ['estado' => 'pagada', 'curso_id' => (string) $curso->id, 'eliminados' => '0', 'busqueda' => self::BUSQUEDA])
             ->assertOk()
             ->streamedContent();
 
@@ -78,7 +80,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $this->matriculaConDatos();
 
         $this->actingAs($admin)
-            ->post(route('admin.matriculas.csv', ['busqueda' => self::BUSQUEDA]))
+            ->panelMatriculas('POST', 'exportar', ['busqueda' => self::BUSQUEDA])
             ->assertOk()
             ->streamedContent();
 
@@ -93,7 +95,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $admin = $this->adminUser();
         $this->matriculaConDatos();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.csv'))->assertOk()->streamedContent();
+        $this->actingAs($admin)->panelMatriculas('POST', 'exportar', [])->assertOk()->streamedContent();
 
         $cambios = AuditLog::where('action', 'matriculas_csv_exported')->sole()->changes;
         $this->assertNull($cambios['estado']);
@@ -107,7 +109,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $admin = $this->adminUser();
         $this->matriculaConDatos();
 
-        $this->actingAs($admin)->post(route('admin.matriculas.csv', ['eliminados' => '1']))->assertOk()->streamedContent();
+        $this->actingAs($admin)->panelMatriculas('POST', 'exportar', ['eliminados' => '1'])->assertOk()->streamedContent();
 
         $this->assertTrue(AuditLog::where('action', 'matriculas_csv_exported')->sole()->changes['eliminados']);
     }
@@ -118,9 +120,9 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $this->matriculaConDatos();
 
         foreach (['', '   '] as $busqueda) {
-            $this->actingAs($admin)->post(route('admin.matriculas.csv', ['busqueda' => $busqueda]))->assertOk()->streamedContent();
+            $this->actingAs($admin)->panelMatriculas('POST', 'exportar', ['busqueda' => $busqueda])->assertOk()->streamedContent();
         }
-        $this->actingAs($admin)->post(route('admin.matriculas.csv', ['busqueda' => ['Ana']]))->assertOk()->streamedContent();
+        $this->actingAs($admin)->panelMatriculas('POST', 'exportar', ['busqueda' => ['Ana']])->assertOk()->streamedContent();
 
         $registros = AuditLog::where('action', 'matriculas_csv_exported')->get();
         $this->assertCount(3, $registros);
@@ -135,7 +137,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $this->matriculaConDatos();
 
         $this->actingAs($admin)
-            ->post(route('admin.matriculas.csv', ['estado' => '71000001', 'curso_id' => 'Ana Prueba']))
+            ->panelMatriculas('POST', 'exportar', ['estado' => '71000001', 'curso_id' => 'Ana Prueba'])
             ->assertOk()
             ->streamedContent();
 
@@ -152,7 +154,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         [$matricula, $curso] = $this->matriculaConDatos();
 
         $csv = $this->actingAs($admin)
-            ->post(route('admin.matriculas.csv', ['busqueda' => 'Ana']))
+            ->panelMatriculas('POST', 'exportar', ['busqueda' => 'Ana'])
             ->assertOk()
             ->streamedContent();
 
@@ -160,7 +162,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
             ."ID,DNI,Estudiante,Curso,\"Código Curso\",Fecha,Estado,Monto\n"
             .$matricula->id.',71000001,"Ana Prueba","Curso ficticio",SOURCE,2026-10-28,Pagada,150.50'."\n";
         $this->assertSame($esperado, $csv);
-        $this->assertStringContainsString('text/csv', (string) $this->actingAs($admin)->post(route('admin.matriculas.csv'))->headers->get('Content-Type'));
+        $this->assertStringContainsString('text/csv', (string) $this->actingAs($admin)->panelMatriculas('POST', 'exportar', [])->headers->get('Content-Type'));
     }
 
     public function test_si_la_auditoria_falla_no_se_entrega_el_archivo(): void
@@ -175,7 +177,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $this->expectException(RuntimeException::class);
 
         try {
-            $this->actingAs($admin)->post(route('admin.matriculas.csv'));
+            $this->actingAs($admin)->panelMatriculas('POST', 'exportar', []);
         } finally {
             $this->assertSame(0, DB::table('audit_logs')->count());
         }
@@ -187,7 +189,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
 
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->post(route('admin.matriculas.csv'))->assertForbidden();
+            $this->actingAs($this->staff($rol))->panelMatriculas('POST', 'exportar', [])->assertForbidden();
         }
 
         $this->assertSame(0, AuditLog::where('action', 'matriculas_csv_exported')->count());

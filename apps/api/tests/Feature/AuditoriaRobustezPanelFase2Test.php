@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
 {
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
+    use LlamaMatriculasDelPanel;
     use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
@@ -53,7 +55,7 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         $this->assertStringContainsString('private', $cacheControl);
 
         $csv = $this->actingAs($this->admin)
-            ->post(route('admin.matriculas.csv'))
+            ->panelMatriculas('POST', 'exportar', [])
             ->assertOk();
 
         $this->assertStringContainsString('attachment', (string) $csv->headers->get('Content-Disposition'));
@@ -191,7 +193,7 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         $this->panelEstudiantes('GET', '', ['estado' => ['activo']])->assertOk()->assertJsonPath('meta.filtros', []);
 
         $this->actingAs($this->admin)
-            ->get(route('admin.matriculas.index', ['estado' => ['pendiente']]))
+            ->panelMatriculas('GET', '', ['estado' => ['pendiente']])
             ->assertOk();
 
         $this->actingAs($this->admin)
@@ -230,13 +232,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
             'estado' => 'activo',
         ]);
 
-        $htmlCrearMatricula = (string) $this->actingAs($secretaria)
-            ->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringNotContainsString('<option value="anulada"', $htmlCrearMatricula);
-
         $htmlDashboard = (string) $this->actingAs($secretaria)
             ->get(route('admin.dashboard'))
             ->assertOk()
@@ -260,12 +255,9 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
             'monto_pagado' => 0,
         ]);
 
-        $htmlMatriculaShow = (string) $this->actingAs($secretaria)
-            ->get(route('admin.matriculas.show', $matricula))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringNotContainsString('admin.matriculas.anular', $htmlMatriculaShow);
+        // Puede ver la matrícula pero no anularla (permiso propio): los botones son de la UI, la regla es del servidor.
+        $this->actingAs($secretaria)->panelMatriculas('GET', (string) $matricula->id)->assertOk();
+        $this->panelMatriculas('POST', $matricula->id.'/anular')->assertForbidden();
 
         $htmlAsistente = (string) $this->actingAs($this->admin)
             ->get(route('admin.asistente.index'))

@@ -15,10 +15,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 class MatriculaOperationsTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -48,7 +50,7 @@ class MatriculaOperationsTest extends TestCase
         $notifications = DB::table('matricula_notifications')->count();
         $this->actingAs($this->adminUser());
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, $to))->assertRedirect();
+            $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, $to))->assertOk();
             $this->assertSame($to, $enrollment->fresh()->estado);
             $this->assertSame($target->id, $enrollment->fresh()->curso_id);
             $this->assertSeats($source);
@@ -81,8 +83,8 @@ class MatriculaOperationsTest extends TestCase
             $target->decrement('cupos_disponibles');
             Matricula::whereKey($enrollment->id)->update(['estado' => 'pendiente', 'curso_id' => $target->id]);
         });
-        $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pagada'))
-            ->assertRedirect();
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'))
+            ->assertOk();
         $this->assertSame('pagada', $enrollment->fresh()->estado);
         $this->assertSeats($source);
         $this->assertSeats($target);
@@ -110,13 +112,13 @@ class MatriculaOperationsTest extends TestCase
         if ($deleted !== null) {
             ($deleted === 'student' ? $student : $target)->delete();
         }
-        $response = $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pagada'));
+        $response = $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'));
         if ($deleted !== null || $studentState !== 'activo' || $courseState !== 'activo') {
             $response->assertUnprocessable()->assertJsonValidationErrors($deleted === 'student' || $studentState !== 'activo' ? 'estudiante_id' : 'curso_id');
             $this->assertSame('anulada', $enrollment->fresh()->estado);
             $this->assertSame($source->id, $enrollment->fresh()->curso_id);
         } else {
-            $response->assertRedirect();
+            $response->assertOk();
             $this->assertSame('pagada', $enrollment->fresh()->estado);
             $this->assertSame($target->id, $enrollment->fresh()->curso_id);
         }
@@ -137,15 +139,15 @@ class MatriculaOperationsTest extends TestCase
     public function test_restore_requires_eligible_parents_only_for_current_occupation(string $state, string $studentState, string $courseState, ?string $deleted): void
     {
         [$student, $course, $enrollment] = $this->enrollment($state);
-        $this->actingAs($this->adminUser())->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
-        $this->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertNotFound();
+        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
+        $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertNotFound();
         $student->update(['estado' => $studentState]);
         $course->update(['estado' => $courseState]);
         if ($deleted !== null) {
             ($deleted === 'student' ? $student : $course)->delete();
         }
         if ($state !== 'anulada' && ($deleted !== null || $studentState !== 'activo' || $courseState !== 'activo')) {
-            $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertUnprocessable();
+            $this->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertUnprocessable();
             $this->assertSoftDeleted($enrollment);
             $this->assertSame($state, $enrollment->fresh()->estado);
             $this->assertSame(2, $course->fresh()->cupos_disponibles);
@@ -153,11 +155,11 @@ class MatriculaOperationsTest extends TestCase
 
             return;
         }
-        $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertRedirect();
+        $this->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertOk();
         $this->assertSame($state, $enrollment->fresh()->estado);
         $this->assertNotSoftDeleted($enrollment);
         $this->assertSeats($course);
-        $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertNotFound();
+        $this->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertNotFound();
         $this->assertSeats($course);
         $this->assertDatabaseCount('matricula_notifications', $state === 'anulada' ? 0 : 1);
     }
@@ -178,7 +180,7 @@ class MatriculaOperationsTest extends TestCase
         $target = $this->course('TARGET');
         $this->actingAs($this->adminUser());
         if ($operation === 'restaurar') {
-            $this->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
+            $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
         }
         $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
         $sourceSeats = $source->fresh()->cupos_disponibles;
@@ -191,9 +193,9 @@ class MatriculaOperationsTest extends TestCase
         $this->withoutExceptionHandling();
         try {
             match ($operation) {
-                'update', 'transfer' => $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente')),
-                'destroy' => $this->deleteJson(route('admin.matriculas.destroy', $enrollment)),
-                default => $this->patchJson(route('admin.matriculas.'.$operation, $enrollment->id)),
+                'update', 'transfer' => $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente')),
+                'destroy' => $this->panelMatriculas('DELETE', (string) $enrollment->id),
+                default => $this->panelMatriculas('POST', $enrollment->id.'/'.$operation),
             };
             $this->fail('Expected simulated failure');
         } catch (RuntimeException $error) {
@@ -216,15 +218,15 @@ class MatriculaOperationsTest extends TestCase
         $this->adminUser();
         $editor = User::factory()->create();
         $editor->assignRole('coordinador');
-        $this->actingAs($editor)->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'anulada'))->assertForbidden();
+        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'anulada'))->assertForbidden();
         $this->assertSame($source->id, $enrollment->fresh()->curso_id);
         $this->assertSame('pagada', $enrollment->fresh()->estado);
         $this->assertSeats($source);
         $this->assertSeats($target);
         // The same editor may reactivate: no separate reactivation permission exists.
         $this->actingAs(User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->firstOrFail())
-            ->patchJson(route('admin.matriculas.anular', $enrollment))->assertRedirect();
-        $this->actingAs($editor)->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente'))->assertRedirect();
+            ->panelMatriculas('POST', $enrollment->id.'/anular')->assertOk();
+        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'))->assertOk();
         $this->assertSeats($source);
         $this->assertSeats($target);
     }
@@ -235,12 +237,12 @@ class MatriculaOperationsTest extends TestCase
         $this->adminUser();
         $secretary = User::factory()->create();
         $secretary->assignRole('secretaria');
-        $this->actingAs($secretary)->putJson(route('admin.matriculas.update', $enrollment), [])->assertForbidden();
-        $this->patchJson(route('admin.matriculas.anular', $enrollment))->assertForbidden();
-        $this->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertForbidden();
+        $this->actingAs($secretary)->panelMatriculas('PUT', (string) $enrollment->id, [])->assertForbidden();
+        $this->panelMatriculas('POST', $enrollment->id.'/anular')->assertForbidden();
+        $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertForbidden();
         $enrollment->delete();
         $course->increment('cupos_disponibles');
-        $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertForbidden();
+        $this->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertForbidden();
         $this->assertSoftDeleted($enrollment);
         $this->assertSeats($course);
     }
@@ -260,14 +262,14 @@ class MatriculaOperationsTest extends TestCase
         [$student, $course, $enrollment] = $this->enrollment($restore ? 'pagada' : 'anulada');
         $this->actingAs($this->adminUser());
         if ($restore) {
-            $this->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
+            $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
         }
         $other = $duplicate ? $student : Estudiante::create(['dni' => '71000002', 'nombres' => 'Luis', 'apellidos' => 'Prueba', 'estado' => 'activo']);
         $course->refresh()->update(['cupos_maximos' => 1, 'cupos_disponibles' => 1]);
-        $this->postJson(route('admin.matriculas.store'), $this->data($other, $course, 'pendiente'))->assertRedirect();
+        $this->panelMatriculas('POST', '', $this->data($other, $course, 'pendiente'))->assertCreated();
         $response = $restore
-            ? $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))
-            : $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $course, 'pendiente'));
+            ? $this->panelMatriculas('POST', $enrollment->id.'/restaurar')
+            : $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $course, 'pendiente'));
         $response->assertUnprocessable()->assertJsonValidationErrors($duplicate ? 'estudiante_id' : 'curso_id');
         $this->assertSame($restore ? 'pagada' : 'anulada', Matricula::withTrashed()->findOrFail($enrollment->id)->estado);
         $this->assertSame($restore, Matricula::withTrashed()->findOrFail($enrollment->id)->trashed());
@@ -296,7 +298,7 @@ class MatriculaOperationsTest extends TestCase
             Matricula::create($this->data($other, $target, 'pendiente'));
             $target->decrement('cupos_disponibles');
         });
-        $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pagada'))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'))
             ->assertUnprocessable()->assertJsonValidationErrors($duplicate ? 'estudiante_id' : 'curso_id');
         $this->assertSame($transfer ? 'pagada' : 'anulada', $enrollment->fresh()->estado);
         $this->assertSame($source->id, $enrollment->fresh()->curso_id);
@@ -311,7 +313,7 @@ class MatriculaOperationsTest extends TestCase
         $course->delete();
         $this->actingAs($this->adminUser());
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            $this->patchJson(route('admin.matriculas.anular', $enrollment))->assertRedirect();
+            $this->panelMatriculas('POST', $enrollment->id.'/anular')->assertOk();
             $this->assertSame('anulada', $enrollment->fresh()->estado);
             $this->assertSeats($course);
         }
@@ -320,11 +322,11 @@ class MatriculaOperationsTest extends TestCase
     public function test_coordinator_can_restore_but_cannot_delete(): void
     {
         [, $course, $enrollment] = $this->enrollment('pagada');
-        $this->actingAs($this->adminUser())->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
+        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
         $coordinator = User::factory()->create();
         $coordinator->assignRole('coordinador');
-        $this->actingAs($coordinator)->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertRedirect();
-        $this->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertForbidden();
+        $this->actingAs($coordinator)->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertOk();
+        $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertForbidden();
         $this->assertSame('pagada', $enrollment->fresh()->estado);
         $this->assertSeats($course);
     }
@@ -357,10 +359,10 @@ class MatriculaOperationsTest extends TestCase
         $targetSeats = $target->fresh()->cupos_disponibles;
         $this->actingAs($this->adminUser());
         $response = $operation === 'create'
-            ? $this->postJson(route('admin.matriculas.store'), $this->data($student, $target, 'pendiente'))
-            : $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente'));
+            ? $this->panelMatriculas('POST', '', $this->data($student, $target, 'pendiente'))
+            : $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'));
         if ($studentState === 'activo' && $courseState === 'activo' && $deleted === null) {
-            $response->assertRedirect();
+            $operation === 'create' ? $response->assertCreated() : $response->assertOk();
         } else {
             $response->assertUnprocessable();
             $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
@@ -391,7 +393,7 @@ class MatriculaOperationsTest extends TestCase
         $course->update(['estado' => $courseState, 'cupos_maximos' => $state === 'anulada' ? 0 : 1, 'cupos_disponibles' => 0]);
         $data = $this->data($student, $course, $state === 'pendiente' ? 'pagada' : $state);
         $data['observaciones'] = 'Corrección histórica';
-        $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $data)->assertRedirect();
+        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $data)->assertOk();
         $this->assertSame('Corrección histórica', $enrollment->fresh()->observaciones);
         $this->assertSame(0, $course->fresh()->cupos_disponibles);
         $this->assertSeats($course);
@@ -422,7 +424,7 @@ class MatriculaOperationsTest extends TestCase
                 'course deleted' => $target->delete(),
             };
         });
-        $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pendiente'))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'))
             ->assertUnprocessable()->assertJsonValidationErrors(str_starts_with($change, 'student') ? 'estudiante_id' : 'curso_id');
         $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
         $this->assertSeats($source);
@@ -433,12 +435,12 @@ class MatriculaOperationsTest extends TestCase
     {
         [$student, $course, $enrollment] = $this->enrollment('anulada');
         $course->update(['cupos_maximos' => 1, 'cupos_disponibles' => 1]);
-        $this->actingAs($this->adminUser())->deleteJson(route('admin.matriculas.destroy', $enrollment))->assertRedirect();
-        $this->postJson(route('admin.matriculas.store'), $this->data($student, $course, 'pagada'))->assertRedirect();
+        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
+        $this->panelMatriculas('POST', '', $this->data($student, $course, 'pagada'))->assertCreated();
         $student->delete();
         $course->delete();
         $notifications = DB::table('matricula_notifications')->count();
-        $this->patchJson(route('admin.matriculas.restaurar', $enrollment->id))->assertRedirect();
+        $this->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertOk();
         $this->assertNotSoftDeleted($enrollment);
         $this->assertSame('anulada', $enrollment->fresh()->estado);
         $this->assertSoftDeleted($student);
@@ -453,7 +455,7 @@ class MatriculaOperationsTest extends TestCase
     {
         [$student, $course] = $this->enrollment('pagada');
         $course->update(['cupos_maximos' => 1, 'cupos_disponibles' => 0]);
-        $this->actingAs($this->adminUser())->postJson(route('admin.matriculas.store'), $this->data($student, $course, 'anulada'))->assertRedirect();
+        $this->actingAs($this->adminUser())->panelMatriculas('POST', '', $this->data($student, $course, 'anulada'))->assertCreated();
         $this->assertSame(1, Matricula::where('estado', 'anulada')->count());
         $this->assertSame(0, $course->fresh()->cupos_disponibles);
         $this->assertSeats($course);
@@ -477,7 +479,7 @@ class MatriculaOperationsTest extends TestCase
                 }
             });
         });
-        $this->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $source, 'pagada'))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $source, 'pagada'))
             ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
         $this->assertTrue($changed);
         $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
@@ -498,7 +500,7 @@ class MatriculaOperationsTest extends TestCase
         $target = $this->course('TARGET', 0);
         $student->update(['estado' => 'inactivo']);
         $target->update(['estado' => 'archivado']);
-        $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'anulada'))->assertRedirect();
+        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'anulada'))->assertOk();
         $this->assertSame('anulada', $enrollment->fresh()->estado);
         $this->assertSame($target->id, $enrollment->fresh()->curso_id);
         $this->assertSeats($source);
@@ -522,7 +524,7 @@ class MatriculaOperationsTest extends TestCase
         } else {
             $source->update(['estado' => $condition]);
         }
-        $this->actingAs($this->adminUser())->putJson(route('admin.matriculas.update', $enrollment), $this->data($student, $target, 'pagada'))->assertRedirect();
+        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'))->assertOk();
         $this->assertSame($target->id, $enrollment->fresh()->curso_id);
         $this->assertSame($condition === 'deleted', $source->fresh()->trashed());
         $this->assertSeats($source);

@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -30,6 +31,7 @@ use Tests\TestCase;
  */
 class AuditoriaMatriculasTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     private const PRIVADO = 'PRIVATE-NOTE DNI 71000001';
@@ -56,8 +58,8 @@ class AuditoriaMatriculasTest extends TestCase
         $notificaciones = MatriculaNotification::count();
 
         $this->actingAs($admin)
-            ->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, $estado, ['monto_pagado' => 150.5, 'observaciones' => self::PRIVADO]))
-            ->assertRedirect();
+            ->panelMatriculas('POST', '', $this->datos($estudiante, $curso, $estado, ['monto_pagado' => 150.5, 'observaciones' => self::PRIVADO]))
+            ->assertCreated();
 
         $matricula = Matricula::sole();
         $registro = $this->unicoEvento('matricula_creada');
@@ -93,7 +95,7 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'anulada'))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'anulada'))->assertCreated();
 
         $registro = $this->unicoEvento('matricula_creada');
         $this->assertSame('ninguno', $registro->changes['efecto_cupo']);
@@ -107,10 +109,10 @@ class AuditoriaMatriculasTest extends TestCase
         $admin = $this->adminUser();
         [$estudiante, $curso] = $this->escenario(2);
 
-        $respuesta = $this->actingAs($admin)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente'));
+        $respuesta = $this->actingAs($admin)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente'));
 
-        $respuesta->assertRedirect(route('admin.matriculas.show', Matricula::sole()));
-        $respuesta->assertSessionHas('success', 'La matrícula se registró correctamente.');
+        $respuesta->assertCreated();
+        $respuesta->assertJsonPath('message', 'La matrícula se registró correctamente.');
     }
 
     /** D9: un formulario HTML envía los ids como cadena; no debe fallar ni auditar tipos mezclados. */
@@ -120,13 +122,12 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
 
         $respuesta = $this->actingAs($admin)
-            ->post(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente', [
+            ->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente', [
                 'estudiante_id' => (string) $estudiante->id,
                 'curso_id' => (string) $curso->id,
             ]));
 
-        $respuesta->assertRedirect();
-        $respuesta->assertSessionHasNoErrors();
+        $respuesta->assertCreated();
         $this->assertSame(1, Matricula::count());
 
         $valores = $this->unicoEvento('matricula_creada')->changes['valores'];
@@ -143,7 +144,7 @@ class AuditoriaMatriculasTest extends TestCase
         $admin = $this->adminUser();
         [$estudiante, $curso] = $this->escenario(2);
 
-        $this->actingAs($admin)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente'))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente'))->assertCreated();
 
         Bus::assertNothingDispatched();
         Http::assertNothingSent();
@@ -160,8 +161,8 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(3);
         $otro = Estudiante::create(['dni' => '71000002', 'nombres' => 'Luis', 'apellidos' => 'Otro', 'estado' => 'activo']);
 
-        $this->actingAs($primero)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente'))->assertRedirect();
-        $this->actingAs($segundo)->postJson(route('admin.matriculas.store'), $this->datos($otro, $curso, 'pendiente'))->assertRedirect();
+        $this->actingAs($primero)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente'))->assertCreated();
+        $this->actingAs($segundo)->panelMatriculas('POST', '', $this->datos($otro, $curso, 'pendiente'))->assertCreated();
 
         $this->assertSame(
             [$primero->id, $segundo->id],
@@ -176,10 +177,10 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
 
         $this->actingAs($admin)
-            ->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente', [
+            ->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente', [
                 'dni' => '99999999', 'password' => 'SECRETO-1', 'remember_token' => 'TOKEN-SECRETO', 'campo_interno' => 'X-INTERNO',
             ]))
-            ->assertRedirect();
+            ->assertCreated();
 
         $json = $this->auditoriaComoTexto();
         foreach (['99999999', 'SECRETO-1', 'TOKEN-SECRETO', 'X-INTERNO'] as $prohibido) {
@@ -198,7 +199,7 @@ class AuditoriaMatriculasTest extends TestCase
         $this->withoutExceptionHandling();
 
         try {
-            $this->actingAs($admin)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente'));
+            $this->actingAs($admin)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente'));
             $this->fail('Se esperaba el fallo simulado de auditoría.');
         } catch (RuntimeException $error) {
             $this->assertSame('Fallo de auditoría simulado', $error->getMessage());
@@ -220,7 +221,7 @@ class AuditoriaMatriculasTest extends TestCase
         $secretaria->assignRole('secretaria');
         [$estudiante, $curso] = $this->escenario(2);
 
-        $this->actingAs($secretaria)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente'))->assertForbidden();
+        $this->actingAs($secretaria)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente'))->assertForbidden();
 
         $this->assertSame(0, Matricula::count());
         $this->assertSame(0, AuditLog::count());
@@ -242,7 +243,7 @@ class AuditoriaMatriculasTest extends TestCase
         $antes = $this->cupos($curso);
         $matriculas = Matricula::count();
 
-        $this->actingAs($admin)->postJson(route('admin.matriculas.store'), $this->datos($estudiante, $curso, 'pendiente'))->assertUnprocessable();
+        $this->actingAs($admin)->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente'))->assertUnprocessable();
 
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame($matriculas, Matricula::count());
@@ -273,10 +274,10 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, $estado, ['observaciones' => self::PRIVADO]);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->patchJson(route('admin.matriculas.anular', $matricula));
+        $respuesta = $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular');
 
-        $respuesta->assertRedirect(route('admin.matriculas.index'));
-        $respuesta->assertSessionHas('success', 'La matrícula se anuló correctamente.');
+        $respuesta->assertOk();
+        $respuesta->assertJsonPath('message', 'La matrícula se anuló correctamente.');
         $registro = $this->unicoEvento('matricula_anulada');
         $this->assertSame($admin->id, $registro->user_id);
         $this->assertSame($matricula->id, (int) $registro->model_id);
@@ -296,13 +297,13 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($admin)->patchJson(route('admin.matriculas.anular', $matricula))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular')->assertOk();
         $cupos = $this->cupos($curso);
 
-        $segunda = $this->patchJson(route('admin.matriculas.anular', $matricula));
+        $segunda = $this->panelMatriculas('POST', $matricula->id.'/anular');
 
-        $segunda->assertRedirect(route('admin.matriculas.index'));
-        $segunda->assertSessionHas('success', 'La matrícula se anuló correctamente.');
+        $segunda->assertOk();
+        $segunda->assertJsonPath('message', 'La matrícula se anuló correctamente.');
         $this->assertSame($cupos, $this->cupos($curso));
         $this->assertSame(1, AuditLog::count());
     }
@@ -314,7 +315,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = Matricula::create($this->datos($estudiante, $curso, 'anulada'));
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->patchJson(route('admin.matriculas.anular', $matricula))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular')->assertOk();
 
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
@@ -331,8 +332,8 @@ class AuditoriaMatriculasTest extends TestCase
         $a = $this->matriculaVigente($estudiante, $curso);
         $b = $this->matriculaVigente($otro, $curso);
 
-        $this->actingAs($primero)->patchJson(route('admin.matriculas.anular', $a))->assertRedirect();
-        $this->actingAs($segundo)->patchJson(route('admin.matriculas.anular', $b))->assertRedirect();
+        $this->actingAs($primero)->panelMatriculas('POST', $a->id.'/anular')->assertOk();
+        $this->actingAs($segundo)->panelMatriculas('POST', $b->id.'/anular')->assertOk();
 
         $this->assertSame([$primero->id, $segundo->id], AuditLog::where('action', 'matricula_anulada')->orderBy('id')->pluck('user_id')->all());
     }
@@ -347,7 +348,7 @@ class AuditoriaMatriculasTest extends TestCase
         $coordinador->assignRole('coordinador');
         $antes = $this->cupos($curso);
 
-        $this->actingAs($coordinador)->patchJson(route('admin.matriculas.anular', $matricula))->assertForbidden();
+        $this->actingAs($coordinador)->panelMatriculas('POST', $matricula->id.'/anular')->assertForbidden();
 
         $this->assertSame('pendiente', $matricula->fresh()->estado);
         $this->assertSame($antes, $this->cupos($curso));
@@ -371,7 +372,7 @@ class AuditoriaMatriculasTest extends TestCase
         });
         $this->actingAs($admin);
 
-        $this->patchJson(route('admin.matriculas.anular', $matricula))->assertRedirect();
+        $this->panelMatriculas('POST', $matricula->id.'/anular')->assertOk();
 
         $this->assertSame('anulada', $matricula->fresh()->estado);
         $this->assertSame($curso->cupos_maximos, $curso->fresh()->cupos_disponibles);
@@ -390,12 +391,12 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente', ['monto_pagado' => 100]);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pagada', [
+        $respuesta = $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', [
             'monto_pagado' => 80, 'fecha_matricula' => '2026-10-30',
         ]));
 
-        $respuesta->assertRedirect(route('admin.matriculas.show', $matricula));
-        $respuesta->assertSessionHas('success', 'La matrícula se actualizó correctamente.');
+        $respuesta->assertOk();
+        $respuesta->assertJsonPath('message', 'La matrícula se actualizó correctamente.');
         $registro = $this->unicoEvento('matricula_actualizada');
         $this->assertSame($admin->id, $registro->user_id);
         $this->assertEqualsCanonicalizing(['estado', 'monto_pagado', 'fecha_matricula'], $registro->changes['campos']);
@@ -415,10 +416,10 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pagada');
         $antes = $this->cupos($curso, $destino);
 
-        $this->actingAs($admin)->put(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $destino, 'pagada', [
+        $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'pagada', [
             'estudiante_id' => (string) $estudiante->id,
             'curso_id' => (string) $destino->id,
-        ]))->assertRedirect();
+        ]))->assertOk();
 
         $registro = $this->unicoEvento('matricula_actualizada');
         $this->assertSame(['curso_id'], $registro->changes['campos']);
@@ -440,7 +441,7 @@ class AuditoriaMatriculasTest extends TestCase
         $antes = $this->cupos($curso, $destino);
         $notificaciones = MatriculaNotification::count();
 
-        $this->actingAs($admin)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $objetivo, 'pendiente'))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $objetivo, 'pendiente'))->assertOk();
 
         $registro = $this->unicoEvento('matricula_actualizada');
         $this->assertSame('ocupa', $registro->changes['efecto_cupo']);
@@ -465,9 +466,9 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pagada', ['monto_pagado' => 100]);
         $antes = $this->cupos($curso, $destino);
 
-        $this->actingAs($admin)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $destino, 'anulada', [
+        $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'anulada', [
             'monto_pagado' => 0, 'observaciones' => self::PRIVADO,
-        ]))->assertRedirect();
+        ]))->assertOk();
 
         $this->assertSame(1, AuditLog::count());
         $this->assertSame(0, AuditLog::where('action', 'matricula_actualizada')->count());
@@ -488,15 +489,15 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente', ['monto_pagado' => 100, 'observaciones' => 'igual']);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->put(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente', [
+        $respuesta = $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', [
             'estudiante_id' => (string) $estudiante->id,
             'curso_id' => (string) $curso->id,
             'monto_pagado' => '100',
             'observaciones' => 'igual',
         ]));
 
-        $respuesta->assertRedirect(route('admin.matriculas.show', $matricula));
-        $respuesta->assertSessionHas('success', 'La matrícula se actualizó correctamente.');
+        $respuesta->assertOk();
+        $respuesta->assertJsonPath('message', 'La matrícula se actualizó correctamente.');
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
     }
@@ -508,9 +509,9 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($admin)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente', [
+        $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', [
             'fecha_matricula' => '2026-10-28 10:30:00',
-        ]))->assertRedirect();
+        ]))->assertOk();
 
         $this->assertSame('2026-10-28', $matricula->fresh()->fecha_matricula->toDateString());
         $this->assertSame(0, AuditLog::count());
@@ -523,7 +524,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = Matricula::create($this->datos($estudiante, $curso, 'anulada'));
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'anulada'))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada'))->assertOk();
 
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
@@ -538,10 +539,10 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($primero)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pagada', [
+        $this->actingAs($primero)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', [
             'observaciones' => self::PRIVADO, 'dni' => '99999999', 'password' => 'SECRETO-1', 'remember_token' => 'TOKEN-SECRETO',
-        ]))->assertRedirect();
-        $this->actingAs($segundo)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente'))->assertRedirect();
+        ]))->assertOk();
+        $this->actingAs($segundo)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente'))->assertOk();
 
         $this->assertSame([$primero->id, $segundo->id], AuditLog::where('action', 'matricula_actualizada')->orderBy('id')->pluck('user_id')->all());
         $primera = AuditLog::orderBy('id')->first();
@@ -564,13 +565,13 @@ class AuditoriaMatriculasTest extends TestCase
         $secretaria->assignRole('secretaria');
         $antes = $this->cupos($curso);
 
-        $this->actingAs($secretaria)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente'))->assertForbidden();
-        $this->actingAs($coordinador)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'anulada'))->assertForbidden();
+        $this->actingAs($secretaria)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente'))->assertForbidden();
+        $this->actingAs($coordinador)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada'))->assertForbidden();
         $this->assertSame('pagada', $matricula->fresh()->estado);
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
 
-        $this->actingAs($coordinador)->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente'))->assertRedirect();
+        $this->actingAs($coordinador)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente'))->assertOk();
         $this->assertSame($coordinador->id, $this->unicoEvento('matricula_actualizada')->user_id);
         $this->assertNotNull($admin);
     }
@@ -597,7 +598,7 @@ class AuditoriaMatriculasTest extends TestCase
         $antes = $this->cupos($curso, $destino);
         $fila = DB::table('matriculas')->where('id', $matricula->id)->first();
 
-        $this->actingAs($admin)->putJson(route('admin.matriculas.update', $matricula), $this->datos($quien, $objetivo, 'pendiente'));
+        $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($quien, $objetivo, 'pendiente'));
 
         $this->assertEquals($fila, DB::table('matriculas')->where('id', $matricula->id)->first());
         $this->assertSame($antes, $this->cupos($curso, $destino));
@@ -628,7 +629,7 @@ class AuditoriaMatriculasTest extends TestCase
             DB::table('matriculas')->where('id', $matricula->id)->update(['estado' => 'pagada', 'monto_pagado' => 55]);
         });
 
-        $this->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pagada', ['monto_pagado' => 70]))->assertRedirect();
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', ['monto_pagado' => 70]))->assertOk();
 
         $registro = $this->unicoEvento('matricula_actualizada');
         $this->assertSame(['monto_pagado'], $registro->changes['campos']);
@@ -648,7 +649,7 @@ class AuditoriaMatriculasTest extends TestCase
             DB::table('cursos')->where('id', $curso->id)->increment('cupos_disponibles');
         });
 
-        $this->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'anulada'))->assertRedirect();
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada'))->assertOk();
 
         $this->assertSame($curso->cupos_maximos, $curso->fresh()->cupos_disponibles);
         $this->assertSame(0, AuditLog::count());
@@ -688,11 +689,11 @@ class AuditoriaMatriculasTest extends TestCase
 
         try {
             match ($operacion) {
-                'anular' => $this->patchJson(route('admin.matriculas.anular', $matricula)),
-                'update datos' => $this->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente', ['monto_pagado' => 5])),
-                'update traslado' => $this->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $destino, 'pagada')),
-                'update anulada' => $this->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $destino, 'anulada')),
-                default => $this->putJson(route('admin.matriculas.update', $matricula), $this->datos($estudiante, $curso, 'pendiente')),
+                'anular' => $this->panelMatriculas('POST', $matricula->id.'/anular'),
+                'update datos' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', ['monto_pagado' => 5])),
+                'update traslado' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'pagada')),
+                'update anulada' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'anulada')),
+                default => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente')),
             };
             $this->fail('Se esperaba el fallo simulado de auditoría.');
         } catch (RuntimeException $error) {
@@ -718,10 +719,10 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, $estado, ['monto_pagado' => 90, 'observaciones' => self::PRIVADO]);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->deleteJson(route('admin.matriculas.destroy', $matricula));
+        $respuesta = $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id);
 
-        $respuesta->assertRedirect(route('admin.matriculas.index'));
-        $respuesta->assertSessionHas('success', 'La matrícula se eliminó correctamente.');
+        $respuesta->assertOk();
+        $respuesta->assertJsonPath('message', 'La matrícula se eliminó correctamente.');
         $this->assertSoftDeleted($matricula);
         $registro = $this->unicoEvento('matricula_eliminada');
         $this->assertSame($admin->id, $registro->user_id);
@@ -748,7 +749,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = Matricula::create($this->datos($estudiante, $curso, 'anulada'));
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
 
         $this->assertSoftDeleted($matricula);
         $registro = $this->unicoEvento('matricula_eliminada');
@@ -766,7 +767,7 @@ class AuditoriaMatriculasTest extends TestCase
         $curso->delete();
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
 
         $registro = $this->unicoEvento('matricula_eliminada');
         $this->assertSame('libera', $registro->changes['efecto_cupo']);
@@ -782,10 +783,10 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaEliminada($estudiante, $curso, $estado, ['monto_pagado' => 90, 'observaciones' => self::PRIVADO]);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->patchJson(route('admin.matriculas.restaurar', $matricula->id));
+        $respuesta = $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/restaurar');
 
-        $respuesta->assertRedirect(route('admin.matriculas.index'));
-        $respuesta->assertSessionHas('success', 'La matrícula se restauró correctamente.');
+        $respuesta->assertOk();
+        $respuesta->assertJsonPath('message', 'La matrícula se restauró correctamente.');
         $this->assertNotSoftDeleted($matricula);
         $registro = $this->unicoEvento('matricula_restaurada');
         $this->assertSame($admin->id, $registro->user_id);
@@ -817,7 +818,7 @@ class AuditoriaMatriculasTest extends TestCase
         };
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertOk();
 
         $this->assertNotSoftDeleted($matricula);
         $registro = $this->unicoEvento('matricula_restaurada');
@@ -845,9 +846,9 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pagada');
         $inicio = $this->cupos($curso);
 
-        $this->actingAs($admin)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
         $this->assertSame([$curso->id => $inicio[$curso->id] + 1], $this->cupos($curso));
-        $this->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertRedirect();
+        $this->panelMatriculas('POST', $matricula->id.'/restaurar')->assertOk();
 
         $this->assertSame($inicio, $this->cupos($curso));
         $this->assertSame(['matricula_eliminada', 'matricula_restaurada'], AuditLog::orderBy('id')->pluck('action')->all());
@@ -869,8 +870,8 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(3);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($segundo)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
-        $this->actingAs($tercero)->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertRedirect();
+        $this->actingAs($segundo)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($tercero)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertOk();
 
         $this->assertGreaterThan(1, $segundo->id);
         $this->assertSame($segundo->id, $this->unicoEvento('matricula_eliminada')->user_id);
@@ -885,11 +886,11 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso);
         $this->actingAs($admin);
 
-        $this->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertNotFound();
+        $this->panelMatriculas('POST', $matricula->id.'/restaurar')->assertNotFound();
         $this->assertSame(0, AuditLog::count());
 
-        $this->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
-        $this->deleteJson(route('admin.matriculas.destroy', $matricula->id))->assertNotFound();
+        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertNotFound();
 
         $this->assertSame(1, AuditLog::count());
         $this->assertSame(1, AuditLog::where('action', 'matricula_eliminada')->count());
@@ -913,8 +914,8 @@ class AuditoriaMatriculasTest extends TestCase
 
         try {
             $operacion === 'destroy'
-                ? $this->deleteJson(route('admin.matriculas.destroy', $matricula))
-                : $this->patchJson(route('admin.matriculas.restaurar', $matricula->id));
+                ? $this->panelMatriculas('DELETE', (string) $matricula->id)
+                : $this->panelMatriculas('POST', $matricula->id.'/restaurar');
             $this->fail('Se esperaba el fallo simulado de auditoría.');
         } catch (RuntimeException $error) {
             $this->assertSame('Fallo de auditoría simulado', $error->getMessage());
@@ -950,20 +951,20 @@ class AuditoriaMatriculasTest extends TestCase
         $antes = $this->cupos($curso);
 
         // El coordinador no puede eliminar; la secretaria no puede eliminar ni restaurar: 403 y sin auditoría.
-        $this->actingAs($coordinador)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertForbidden();
-        $this->actingAs($secretaria)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertForbidden();
+        $this->actingAs($coordinador)->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
+        $this->actingAs($secretaria)->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
         $this->assertNotSoftDeleted($matricula);
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
 
         // El administrador elimina; el coordinador sí puede restaurar (contrato actual) y se audita con su usuario.
         $admin = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))->firstOrFail();
-        $this->actingAs($admin)->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
-        $this->actingAs($secretaria)->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertForbidden();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($secretaria)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertForbidden();
         $this->assertSoftDeleted($matricula);
         $this->assertSame(1, AuditLog::count());
 
-        $this->actingAs($coordinador)->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertRedirect();
+        $this->actingAs($coordinador)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertOk();
         $this->assertSame($coordinador->id, $this->unicoEvento('matricula_restaurada')->user_id);
     }
 
@@ -985,7 +986,7 @@ class AuditoriaMatriculasTest extends TestCase
         $antes = $this->cupos($curso);
         $auditoriasPrevias = AuditLog::count();
 
-        $this->actingAs($admin)->patchJson(route('admin.matriculas.restaurar', $matricula->id))->assertUnprocessable();
+        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertUnprocessable();
 
         $this->assertSoftDeleted($matricula);
         $this->assertSame($antes, $this->cupos($curso));
@@ -1022,7 +1023,7 @@ class AuditoriaMatriculasTest extends TestCase
         });
         $this->actingAs($admin);
 
-        $this->deleteJson(route('admin.matriculas.destroy', $matricula))->assertRedirect();
+        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
 
         $registro = $this->unicoEvento('matricula_eliminada');
         $this->assertSame('anulada', $registro->changes['estado']);

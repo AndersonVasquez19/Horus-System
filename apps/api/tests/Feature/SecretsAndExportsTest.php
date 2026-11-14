@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -29,6 +30,7 @@ use ZipArchive;
  */
 class SecretsAndExportsTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     private const LEGACY_SECRET = 're_SECRETO_HISTORICO_9f8e7d6c';
@@ -414,7 +416,7 @@ class SecretsAndExportsTest extends TestCase
         ]);
         $admin = $this->staff('admin');
 
-        $csv = $this->actingAs($admin)->post(route('admin.matriculas.csv', ['estado' => 'pagada']))->assertOk()->streamedContent();
+        $csv = $this->actingAs($admin)->panelMatriculas('POST', 'exportar', ['estado' => 'pagada'])->assertOk()->streamedContent();
 
         $this->assertStringContainsString("'=cmd|calc", $csv);
         $this->assertStringContainsString("'@Maria Perez", $csv);

@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 class MatriculaIntegrityConstraintsTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     private const INDEX = 'matriculas_vigente_unica';
@@ -83,8 +85,8 @@ class MatriculaIntegrityConstraintsTest extends TestCase
         $this->insertEnrollment($estudiante, $curso, 'pendiente');
 
         $this->actingAs($this->adminUser())
-            ->patch(route('admin.matriculas.restaurar', $eliminada->id))
-            ->assertSessionHasErrors('estudiante_id');
+            ->panelMatriculas('POST', $eliminada->id.'/restaurar')
+            ->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
 
         $this->assertSoftDeleted($eliminada);
     }

@@ -11,6 +11,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -28,6 +29,7 @@ use Tests\TestCase;
 class ConcurrencyPostgresTest extends TestCase
 {
     use DatabaseTruncation;
+    use LlamaMatriculasDelPanel;
     use RequiresIsolatedPostgres;
 
     private const LOCK_NOT_AVAILABLE = '55P03';
@@ -51,14 +53,14 @@ class ConcurrencyPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->post(route('admin.matriculas.store'), $this->enrollmentPayload($segundo, $curso)));
+            ->panelMatriculas('POST', '', $this->enrollmentPayload($segundo, $curso)));
 
         $b->commit();
 
         $this->withExceptionHandling()
             ->actingAs($admin)
-            ->post(route('admin.matriculas.store'), $this->enrollmentPayload($segundo, $curso))
-            ->assertSessionHasErrors('curso_id');
+            ->panelMatriculas('POST', '', $this->enrollmentPayload($segundo, $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
 
         $this->assertSame(0, $curso->fresh()->cupos_disponibles);
         $this->assertSame(1, Matricula::query()->where('curso_id', $curso->id)->count());
@@ -81,14 +83,14 @@ class ConcurrencyPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso)));
+            ->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso)));
 
         $b->commit();
 
         $this->withExceptionHandling()
             ->actingAs($admin)
-            ->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso))
-            ->assertSessionHasErrors('estudiante_id');
+            ->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
 
         $this->assertSame(1, $this->activeEnrollments($estudiante, $curso));
         $this->assertSame(4, $curso->fresh()->cupos_disponibles);

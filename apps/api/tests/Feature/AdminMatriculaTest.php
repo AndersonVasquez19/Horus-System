@@ -7,10 +7,12 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 class AdminMatriculaTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     public function test_store_decrements_course_seats_and_rejects_active_duplicates(): void
@@ -19,17 +21,17 @@ class AdminMatriculaTest extends TestCase
         $estudiante = $this->makeStudent('70123456');
 
         $this->actingAs($this->adminUser())
-            ->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso))
-            ->assertRedirect(route('admin.matriculas.show', Matricula::firstOrFail()))
-            ->assertSessionHas('success');
+            ->panelMatriculas('POST', '', $this->matriculaData($estudiante, $curso))
+            ->assertCreated()
+            ->assertJsonStructure(['message']);
 
         $this->assertDatabaseHas('cursos', [
             'id' => $curso->id,
             'cupos_disponibles' => 1,
         ]);
 
-        $this->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso))
-            ->assertSessionHasErrors([
+        $this->panelMatriculas('POST', '', $this->matriculaData($estudiante, $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors([
                 'estudiante_id' => 'El estudiante ya está matriculado en este curso.',
             ]);
 
@@ -43,29 +45,12 @@ class AdminMatriculaTest extends TestCase
         $estudiante = $this->makeStudent('70123456');
 
         $this->actingAs($this->adminUser())
-            ->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso))
-            ->assertSessionHasErrors([
+            ->panelMatriculas('POST', '', $this->matriculaData($estudiante, $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors([
                 'curso_id' => 'El curso no tiene cupos disponibles.',
             ]);
 
         $this->assertSame(0, Matricula::count());
-    }
-
-    public function test_create_and_edit_forms_render(): void
-    {
-        $curso = $this->makeCourse();
-        $estudiante = $this->makeStudent('70123456');
-        $matricula = $this->makeEnrollment($estudiante, $curso);
-
-        $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertSee('Nueva matrícula');
-
-        $this->get(route('admin.matriculas.edit', $matricula))
-            ->assertOk()
-            ->assertSee('Editar matrícula')
-            ->assertSee('Curso de prueba');
     }
 
     public function test_update_transfers_and_releases_seats_when_course_or_status_changes(): void
@@ -76,32 +61,32 @@ class AdminMatriculaTest extends TestCase
         $matricula = $this->makeEnrollment($estudiante, $cursoOriginal);
 
         $this->actingAs($this->adminUser())
-            ->put(route('admin.matriculas.update', $matricula), $this->matriculaData($estudiante, $cursoOriginal, [
+            ->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoOriginal, [
                 'estado' => 'pagada',
                 'monto_pagado' => 150,
             ]))
-            ->assertRedirect(route('admin.matriculas.show', $matricula));
+            ->assertOk();
 
         $this->assertSame(1, $cursoOriginal->fresh()->cupos_disponibles);
 
-        $this->put(route('admin.matriculas.update', $matricula), $this->matriculaData($estudiante, $cursoNuevo, [
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoNuevo, [
             'estado' => 'pagada',
             'monto_pagado' => 150,
         ]))
-            ->assertRedirect(route('admin.matriculas.show', $matricula));
+            ->assertOk();
 
         $this->assertSame(2, $cursoOriginal->fresh()->cupos_disponibles);
         $this->assertSame(0, $cursoNuevo->fresh()->cupos_disponibles);
 
-        $this->put(route('admin.matriculas.update', $matricula), $this->matriculaData($estudiante, $cursoNuevo, [
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoNuevo, [
             'estado' => 'anulada',
         ]))
-            ->assertRedirect(route('admin.matriculas.show', $matricula));
+            ->assertOk();
 
         $this->assertSame(1, $cursoNuevo->fresh()->cupos_disponibles);
 
-        $this->put(route('admin.matriculas.update', $matricula), $this->matriculaData($estudiante, $cursoNuevo))
-            ->assertRedirect(route('admin.matriculas.show', $matricula));
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoNuevo))
+            ->assertOk();
 
         $this->assertSame(0, $cursoNuevo->fresh()->cupos_disponibles);
     }
@@ -113,15 +98,15 @@ class AdminMatriculaTest extends TestCase
         $matricula = $this->makeEnrollment($estudiante, $curso);
 
         $this->actingAs($this->adminUser())
-            ->patch(route('admin.matriculas.anular', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'))
-            ->assertSessionHas('success');
+            ->panelMatriculas('POST', $matricula->id.'/anular')
+            ->assertOk()
+            ->assertJsonStructure(['message']);
 
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
         $this->assertSame('anulada', $matricula->fresh()->estado);
 
-        $this->patch(route('admin.matriculas.anular', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'));
+        $this->panelMatriculas('POST', $matricula->id.'/anular')
+            ->assertOk();
 
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
     }
@@ -133,15 +118,15 @@ class AdminMatriculaTest extends TestCase
         $matricula = $this->makeEnrollment($estudiante, $curso);
 
         $this->actingAs($this->adminUser())
-            ->delete(route('admin.matriculas.destroy', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'));
+            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->assertOk();
 
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
         $this->assertSoftDeleted('matriculas', ['id' => $matricula->id]);
 
-        $this->patch(route('admin.matriculas.restaurar', $matricula->id))
-            ->assertRedirect(route('admin.matriculas.index'))
-            ->assertSessionHas('success');
+        $this->panelMatriculas('POST', $matricula->id.'/restaurar')
+            ->assertOk()
+            ->assertJsonStructure(['message']);
 
         $this->assertSame(0, $curso->fresh()->cupos_disponibles);
         $this->assertNotSoftDeleted('matriculas', ['id' => $matricula->id]);
@@ -153,12 +138,12 @@ class AdminMatriculaTest extends TestCase
         $estudianteEliminado = $this->makeStudent('70123456');
         $matriculaEliminada = $this->makeEnrollment($estudianteEliminado, $curso);
         $this->actingAs($this->adminUser())
-            ->delete(route('admin.matriculas.destroy', $matriculaEliminada));
+            ->panelMatriculas('DELETE', (string) $matriculaEliminada->id);
         $this->makeEnrollment($this->makeStudent('70123457'), $curso);
         $this->makeEnrollment($this->makeStudent('70123458'), $curso);
 
-        $this->patch(route('admin.matriculas.restaurar', $matriculaEliminada->id))
-            ->assertSessionHasErrors([
+        $this->panelMatriculas('POST', $matriculaEliminada->id.'/restaurar')
+            ->assertUnprocessable()->assertJsonValidationErrors([
                 'curso_id' => 'El curso no tiene cupos disponibles para restaurar esta matrícula.',
             ]);
 
@@ -178,7 +163,7 @@ class AdminMatriculaTest extends TestCase
         $this->makeEnrollment($estudianteTres, $otroCurso, ['estado' => 'pagada', 'monto_pagado' => 150]);
 
         $response = $this->actingAs($this->adminUser())
-            ->post(route('admin.matriculas.csv', ['estado' => 'pagada', 'curso_id' => $curso->id]));
+            ->panelMatriculas('POST', 'exportar', ['estado' => 'pagada', 'curso_id' => $curso->id]);
 
         $response->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
@@ -206,13 +191,10 @@ class AdminMatriculaTest extends TestCase
         $this->makeEnrollment($estudianteDos, $otroCurso, ['estado' => 'pendiente']);
 
         $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.index', ['estado' => 'pagada', 'curso_id' => $curso->id]))
+            ->panelMatriculas('GET', '', ['estado' => 'pagada', 'curso_id' => $curso->id])
             ->assertOk()
-            ->assertViewHas(
-                'matriculas',
-                fn ($matriculas) => $matriculas->total() === 1
-                    && $matriculas->first()->curso_id === $curso->id,
-            );
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.curso.id', $curso->id);
     }
 
     /**
@@ -239,16 +221,8 @@ class AdminMatriculaTest extends TestCase
         $datos[$campo] = [(string) $datos[$campo]];
 
         $this->actingAs($this->adminUser())
-            ->from(route('admin.matriculas.create'))
-            ->post(route('admin.matriculas.store'), $datos)
-            ->assertRedirect(route('admin.matriculas.create'))
-            ->assertSessionHasErrors($campo);
-
-        $mensaje = session('errors')->first($campo);
-
-        $this->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertSee($mensaje);
+            ->panelMatriculas('POST', '', $datos)
+            ->assertUnprocessable()->assertJsonValidationErrors($campo);
 
         $this->assertSame(0, Matricula::count());
         $this->assertSame(5, $curso->fresh()->cupos_disponibles);
@@ -263,52 +237,16 @@ class AdminMatriculaTest extends TestCase
         $admin = $this->adminUser();
 
         $this->actingAs($admin)
-            ->from(route('admin.matriculas.create'))
-            ->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso, [
+            ->panelMatriculas('POST', '', $this->matriculaData($estudiante, $curso, [
                 'curso_id' => [(string) $curso->id],
             ]))
-            ->assertSessionHasErrors('curso_id');
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
 
-        $this->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertDontSee('name="curso_id" value="'.$curso->id.'"', false)
-            ->assertSee('name="estudiante_id" value="'.$estudiante->id.'"', false);
+        $this->panelMatriculas('POST', '', $this->matriculaData($estudiante, $curso, [
+            'estudiante_id' => [(string) $estudiante->id],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
 
-        $this->from(route('admin.matriculas.create'))
-            ->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso, [
-                'estudiante_id' => [(string) $estudiante->id],
-            ]))
-            ->assertSessionHasErrors('estudiante_id');
-
-        $this->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertDontSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
-            ->assertSee('name="curso_id" value="'.$curso->id.'"', false);
-    }
-
-    public function test_valid_old_input_is_still_redisplayed_after_a_validation_error(): void
-    {
-        $curso = $this->makeCourse();
-        $this->makeStudent('70000001');
-        $estudiante = $this->makeStudent('70123456');
-
-        $this->actingAs($this->adminUser())
-            ->from(route('admin.matriculas.create'))
-            ->post(route('admin.matriculas.store'), $this->matriculaData($estudiante, $curso, [
-                'fecha_matricula' => '2026-03-15',
-                'estado' => 'desconocido',
-                'monto_pagado' => '12.50',
-                'observaciones' => 'Observación conservada',
-            ]))
-            ->assertSessionHasErrors('estado');
-
-        $this->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
-            ->assertSee('name="curso_id" value="'.$curso->id.'"', false)
-            ->assertSee('value="2026-03-15"', false)
-            ->assertSee('value="12.50"', false)
-            ->assertSee('Observación conservada');
+        $this->assertSame(0, Matricula::count());
     }
 
     public function test_edit_form_redisplays_array_shaped_input_without_server_error(): void
@@ -318,8 +256,7 @@ class AdminMatriculaTest extends TestCase
         $matricula = $this->makeEnrollment($estudiante, $curso);
 
         $this->actingAs($this->adminUser())
-            ->from(route('admin.matriculas.edit', $matricula))
-            ->put(route('admin.matriculas.update', $matricula), [
+            ->panelMatriculas('PUT', (string) $matricula->id, [
                 'estudiante_id' => [(string) $estudiante->id],
                 'curso_id' => [(string) $curso->id],
                 'fecha_matricula' => ['2026-03-15'],
@@ -327,12 +264,7 @@ class AdminMatriculaTest extends TestCase
                 'monto_pagado' => ['10'],
                 'observaciones' => ['Nota'],
             ])
-            ->assertRedirect(route('admin.matriculas.edit', $matricula))
-            ->assertSessionHasErrors(['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones']);
-
-        $this->get(route('admin.matriculas.edit', $matricula))
-            ->assertOk()
-            ->assertDontSee('name="curso_id" value="'.$curso->id.'"', false);
+            ->assertUnprocessable()->assertJsonValidationErrors(['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones']);
 
         $this->assertSame('pendiente', $matricula->fresh()->estado);
     }

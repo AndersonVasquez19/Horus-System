@@ -10,6 +10,7 @@ use App\Models\Curso;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class AdminListFilterInputTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     /**
@@ -27,7 +29,6 @@ class AdminListFilterInputTest extends TestCase
     public static function listFilters(): iterable
     {
         foreach ([
-            'admin.matriculas.index' => ['busqueda', 'estado', 'curso_id'],
             'admin.aprobaciones.index' => ['busqueda', 'estado'],
             'admin.usuarios.index' => ['busqueda'],
             'admin.auditoria.index' => ['accion', 'modelo', 'usuario'],
@@ -48,8 +49,7 @@ class AdminListFilterInputTest extends TestCase
     }
 
     /**
-     * Con datos en los selectores, la vista compara cada opción con el filtro recibido: un
-     * curso_id con forma de array no debe llegar a una conversión a texto.
+     * Con datos presentes, un curso_id con forma de array no debe llegar a una conversión a texto.
      */
     public function test_enrollment_course_filter_tolerates_arrays_when_courses_exist(): void
     {
@@ -61,16 +61,24 @@ class AdminListFilterInputTest extends TestCase
         $admin = $this->adminUser();
 
         $this->actingAs($admin)
-            ->get(route('admin.matriculas.index', ['curso_id' => [(string) $curso->id]]))
+            ->panelMatriculas('GET', '', ['curso_id' => [(string) $curso->id]])
             ->assertOk()
-            // Un filtro con forma de array se trata como vacío: no preselecciona ningún curso.
-            ->assertSee('<input type="hidden" name="curso_id" value=""', false)
-            ->assertDontSee('Curso ficticio de filtros');
+            // Un filtro con forma de array se trata como vacío: no se aplica ni se devuelve como filtro efectivo.
+            ->assertJsonPath('meta.filtros', []);
 
-        // El filtro válido se conserva: el curso elegido llega como valor y etiqueta iniciales del selector.
-        $this->get(route('admin.matriculas.index', ['curso_id' => (string) $curso->id]))
+        // El filtro válido se conserva y se devuelve como filtro efectivo.
+        $this->panelMatriculas('GET', '', ['curso_id' => (string) $curso->id])
             ->assertOk()
-            ->assertSee('<input type="hidden" name="curso_id" value="'.$curso->id.'"', false);
+            ->assertJsonPath('meta.filtros.curso_id', $curso->id);
+    }
+
+    /** Matrículas ya no vive en Blade: sus filtros con forma de array se prueban contra el panel. */
+    public function test_los_filtros_de_matriculas_con_forma_de_array_no_causan_un_error_de_servidor(): void
+    {
+        $this->actingAs($this->adminUser());
+        foreach (['busqueda', 'estado', 'curso_id'] as $parametro) {
+            $this->panelMatriculas('GET', '', [$parametro => ['x', 'y']])->assertOk()->assertJsonPath('meta.total', 0);
+        }
     }
 
     public function test_approval_status_filters_still_work(): void

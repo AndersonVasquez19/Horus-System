@@ -10,7 +10,9 @@ use App\Models\Matricula;
 use App\Models\NotificacionInterna;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +21,7 @@ use Tests\TestCase;
  */
 class HoraLocalPanelTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -64,17 +67,12 @@ class HoraLocalPanelTest extends TestCase
             'titulo' => 'Aviso de prueba', 'mensaje' => 'x', 'tipo' => 'info',
         ]);
 
-        $this->actingAs($admin)->get(route('admin.matriculas.show', $matricula))
-            ->assertOk()->assertSee('30/11/2026 23:30')->assertDontSee('01/12/2026 04:30');
+        // La matrícula la sirve el panel: entrega el instante exacto (ISO 8601); mostrarlo en hora de Lima es de la UI de Next.
+        $creado = $this->actingAs($admin)->panelMatriculas('GET', (string) $matricula->id)->assertOk()->json('data.creado_en');
+        $this->assertTrue(Carbon::parse($creado)->equalTo($matricula->created_at));
+        $this->assertSame('2026-11-30 23:30', Carbon::parse($creado)->setTimezone('America/Lima')->format('Y-m-d H:i'));
 
         $this->actingAs($admin)->get(route('admin.notificaciones.index'))
             ->assertOk()->assertSee('30/11/2026 23:30');
-    }
-
-    public function test_el_formulario_de_matricula_propone_la_fecha_de_lima(): void
-    {
-        $this->actingAs($this->adminUser())->get(route('admin.matriculas.create'))
-            ->assertOk()
-            ->assertSee('name="fecha_matricula" type="date" value="2026-11-30"', false);
     }
 }

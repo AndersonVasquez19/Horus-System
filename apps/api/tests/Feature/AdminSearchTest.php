@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ class AdminSearchTest extends TestCase
 {
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     public function test_global_search_keeps_partial_matching_by_enrollment_id(): void
@@ -104,10 +106,10 @@ class AdminSearchTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.nombre', 'REDES Y SERVIDORES');
 
-        $this->assertCount(1, $this->actingAs($admin)
-            ->get(route('admin.matriculas.index', ['busqueda' => 'perez']))
+        $this->actingAs($admin)
+            ->panelMatriculas('GET', '', ['busqueda' => 'perez'])
             ->assertOk()
-            ->viewData('matriculas'));
+            ->assertJsonPath('meta.total', 1);
     }
 
     /**
@@ -118,7 +120,7 @@ class AdminSearchTest extends TestCase
     public function test_module_searches_use_the_portable_case_insensitive_like(): void
     {
         // Estudiantes y cursos ya no viven en Blade: su buscador es el del controlador del panel.
-        $controladores = ['Admin/BusquedaController', 'Api/Panel/Academico/EstudianteController', 'Api/Panel/Academico/CursoController', 'Admin/MatriculaController'];
+        $controladores = ['Admin/BusquedaController', 'Api/Panel/Academico/EstudianteController', 'Api/Panel/Academico/CursoController', 'Api/Panel/Academico/MatriculaController'];
         foreach ($controladores as $modulo) {
             $codigo = file_get_contents(app_path("Http/Controllers/{$modulo}.php"));
 

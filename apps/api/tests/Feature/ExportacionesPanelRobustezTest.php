@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -17,6 +18,7 @@ use Tests\TestCase;
  */
 class ExportacionesPanelRobustezTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -110,6 +112,6 @@ class ExportacionesPanelRobustezTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertTooManyRequests();
         // Otra exportación del mismo usuario comparte el cupo.
-        $this->actingAs($admin)->post(route('admin.matriculas.csv'))->assertTooManyRequests();
+        $this->actingAs($admin)->panelMatriculas('POST', 'exportar', [])->assertTooManyRequests();
     }
 }

@@ -181,8 +181,50 @@ Código retirado: `Admin\CursoController`, `Admin\CursoPublicacionController`, l
 ### Coste real del quinto módulo
 El más grande hasta ahora: 20 archivos de prueba tocados, un conversor automático de llamadas (con análisis de paréntesis) para no reescribir a mano y un helper con revisión automática. Un cambio de producción de endurecimiento (los dos Form Requests de fechas).
 
+## Matrículas (sexto módulo retirado)
+
+| Ruta Blade | Qué pasa | Endpoint del panel | Página Next |
+| --- | --- | --- | --- |
+| `GET /admin/matriculas` | 302 (se conserva el nombre `admin.matriculas.index`) | `GET /api/panel/v1/academico/matriculas` | `/admin/academico/matriculas` |
+| `GET /admin/matriculas/{id}` | 302 con el id (nombre `admin.matriculas.show`, lo usa la búsqueda global Blade) | `GET …/matriculas/{id}` (con historial minimizado) | `/admin/academico/matriculas/[id]` |
+| `GET …/create` y `…/{id}/edit` | **Desaparecen** (404): en Next son páginas `nueva` y `[id]/editar` | — | formulario de matrícula |
+| `POST/PUT/DELETE /admin/matriculas[/{id}]` | Desaparecen | `POST/PUT/DELETE …/matriculas[/{id}]` | alta, edición, eliminar |
+| `PATCH …/{id}/anular` y `…/{id}/restaurar` | Desaparecen | `POST …/{id}/anular` y `POST …/{id}/restaurar` | acciones de la ficha |
+| `POST /admin/matriculas/exportar/csv` | Desaparece | `POST …/matriculas/exportar` (mismo CSV, BOM, `csvSafe`, auditoría sin el texto buscado, `Cache-Control: no-store`) | botón exportar |
+| `GET …/opciones/estudiantes` y `…/opciones/cursos` | Desaparecen | `GET …/matriculas/opciones/{estudiantes,cursos}` (respuesta en `data`, no en `opciones`; mismo límite de 20 y mismo límite de velocidad) | selectores del formulario |
+
+**Reglas de negocio:** no se tocaron. El panel ya escribía por `GestionMatriculas` (transacción, protocolo de bloqueo cursos → estudiantes → matrícula, elegibilidad releída, duplicado vigente y cupo bajo bloqueo, auditoría como última escritura) y usaba los mismos Form Requests y permisos (`matriculas.ver|crear|editar|anular|eliminar|restaurar|exportar`). Las pruebas portadas prueban cada una de esas reglas contra el panel.
+
+**Diferencias aceptadas:**
+- Sin sesión el panel responde **401** (Blade redirigía a `/login`); sin permiso, 403.
+- Alta: 201; validación: 422 con `errors`; anular y restaurar son POST.
+- Listado: 20 por página por defecto, `per_page` hasta 100 (Blade, 15); filtro fuera de contrato se ignora.
+- La exportación acepta `curso_id` también como número en un cuerpo JSON (**endurecimiento**: antes un número se ignoraba y el CSV salía sin acotar al curso).
+- Crear una matrícula directamente como `anulada` sigue permitido con `matriculas.crear` (como en Blade: no ocupa cupo); solo **editar** hacia `anulada` exige `matriculas.anular`.
+
+**Seguridad:** sin brecha; el panel es igual o más estricto. Las opciones de los selectores siguen exigiendo el permiso de su contexto (crear → `matriculas.crear`, editar → `matriculas.editar`, filtro → `matriculas.ver`) y devuelven solo `id`, `texto` y `eliminado`, sin contacto ni descripciones.
+
+Código retirado: `Admin\MatriculaController` (284 líneas), las 6 plantillas `admin/matriculas/*` (formulario y selector incluidos), `resources/js/selector-asincrono.mjs` y sus 19 pruebas JS, y los pasos de matrículas del smoke de modales. Se conservan `GestionMatriculas`, `OpcionesMatricula`, los Form Requests y los modelos. La constante `ESTADOS_VALIDOS` pasa al controlador del panel.
+
+| Prueba que tocaba la ruta Blade | Qué probaba | Destino |
+| --- | --- | --- |
+| `AuditoriaMatriculasTest` (60 llamadas), `MatriculaOperationsTest`, `MatriculaNotificationTest`, `MatriculaIntegrityConstraintsTest`, `BackendRobustnessTest`, `LimitesTextoLargoTest`, `SecretsAndExportsTest` | auditoría de cada operación, atomicidad y reversión, notificación de bienvenida, restricciones de integridad, límites de texto, CSV sin secretos | **Misma prueba** contra el panel (mismas afirmaciones; 201/200/422 en vez de redirección/sesión) |
+| `AdminMatriculaTest` | cupos al crear/editar/anular/eliminar/restaurar, duplicados, CSV filtrado, listado filtrado, campos como array | **Portada**; se retiran «los formularios se dibujan» y «se redibuja el borrador» (HTML) |
+| `AdminMatriculaContextTest` | preselección de estudiante y curso, contexto inválido, borrador | Solo-HTML → UI de Next (que ahora **también preselecciona el curso**, ver abajo). Quedan: registrar con el contexto ocupa un cupo, el personal de solo lectura no puede registrar ni pedir opciones, un contexto eliminado no se acepta |
+| `MatriculaOpcionesTest` (41 llamadas) | opciones por contexto y permiso, límite de 20, comodines, arrays, límite de velocidad | Portada (respuesta en `data`); se retiran las 4 pruebas del HTML del combobox y se sustituyen por el detalle con padres eliminados y «las listas completas no viajan» |
+| `MatriculaSensitivePermissionsTest`, `AdminAuthorizationTest`, `AuditoriaRobustezPanelFase2Test`, `ExportacionesPostTest`, `ExportacionesPanelRobustezTest` | matriz de permisos, sin sesión, exportación POST y auditada | Portadas; sin sesión → 401; la matriz de roles del listado pasa a una prueba del panel; la exportación del panel tiene su prueba de «solo POST + límite» y de acceso |
+| `AdminListFilterInputTest`, `AdminSearchTest`, `BusquedaLikeEscapeTest`, `BackendPerformanceTest`, `HoraLocalPanelTest`, `SelectorMatriculaColumnasTest` | filtros con arrays, búsqueda sin distinguir mayúsculas, curso eliminado filtrable, hora de Lima, selector sin datos de contacto | Portadas a JSON; la hora de Lima se prueba como instante exacto (formatearlo es de Next) |
+| `AccesibilidadPanelTest`, `ConfiguracionEfectivaTest`, `PermisosRetiradosTest` | usaban páginas Blade de matrículas como ejemplo | Cambian a usuarios / `ConfiguracionSistema::monto`; la moneda del panel la muestra Next |
+| `MatriculaRulesPostgresTest`, `ConcurrencyPostgresTest`, `MatriculaOperacionesConcurrenciaPostgresTest` | reglas y concurrencia **en PostgreSQL** | **Adaptadas al panel y sin ejecutar** (necesitan tu autorización); `php -l` limpio |
+| (ampliada) `AdminModulosRetiradosTest` | redirección, ficha con id, operaciones Blade inexistentes | `matriculas` |
+
+**UX en Next (cierre de brechas):** la página `matriculas/nueva` ahora acepta también `?curso_id=` (curso activo, no archivado y con cupos) además de `?estudiante_id=`, y la ficha del curso enlaza «Matricular en este curso»; Blade lo hacía desde la ficha del curso.
+
+### Coste real del sexto módulo
+22 archivos de prueba tocados con un conversor automático (el mismo de cursos, ampliado) más 5 pasadas manuales para lo que era HTML, y un helper `LlamaMatriculasDelPanel`. Una mejora de producción (filtro `curso_id` numérico) y una pequeña de Next.
+
 ## Siguiente
 
-Ola 1 en curso (plan maestro acelerado): retirados reportes, cotizaciones, servicios, estudiantes y cursos. Faltan **matrículas** y **dashboard `/admin`**, y la **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`): mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin`. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`).
+Ola 1 en curso (plan maestro acelerado): retirados reportes, cotizaciones, servicios, estudiantes, cursos y matrículas. Faltan el **dashboard `/admin`** y la **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`): mientras existan módulos en Blade (usuarios, roles, aprobaciones, notificaciones, perfil, configuración, auditoría, respaldo, asistente, reclamaciones), el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin`. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`).
 
-Pendientes anotados: `MatriculaRulesPostgresTest` (próxima pasada PostgreSQL, con autorización); mover `ConfiguracionEfectivaTest` fuera de matrículas cuando esta se retire. Resueltos el 14/11/2026: smoke de modales adaptado y verificado con Edge; brecha de UX de la ficha pública de cursos.
+Pendientes anotados: las tres pruebas PostgreSQL de matrículas adaptadas al panel (`MatriculaRulesPostgresTest`, `ConcurrencyPostgresTest`, `MatriculaOperacionesConcurrenciaPostgresTest`) **sin ejecutar** (próxima pasada PostgreSQL, con autorización). Resueltos: smoke de modales con Edge y brecha de UX de la ficha pública de cursos.

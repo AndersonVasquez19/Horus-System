@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\Curso;
-use App\Models\Estudiante;
-use App\Models\Matricula;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -44,19 +41,8 @@ class AccesibilidadPanelTest extends TestCase
 
     public function test_cada_pagina_de_formulario_tiene_un_solo_h1_y_el_dialogo_se_rotula_con_su_titulo(): void
     {
-        $curso = Curso::create([
-            'codigo' => 'COD-A11Y-1', 'nombre' => 'Curso de prueba', 'descripcion' => 'x', 'categoria' => 'tecnologia',
-            'duracion_horas' => 10, 'precio' => 100, 'modalidad' => 'virtual', 'horario' => 'x',
-            'cupos_maximos' => 5, 'cupos_disponibles' => 5, 'estado' => 'activo',
-        ]);
-        $estudiante = Estudiante::create(['dni' => '70000555', 'nombres' => 'Ana', 'apellidos' => 'Prueba', 'estado' => 'activo']);
-        $matricula = Matricula::create([
-            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
-            'fecha_matricula' => now()->toDateString(), 'estado' => 'pendiente', 'monto_pagado' => 0,
-        ]);
-
+        // Matrículas, estudiantes y cursos ya no son páginas Blade (los formularios son diálogos de apps/web).
         $rutas = [
-            route('admin.matriculas.create'), route('admin.matriculas.edit', $matricula),
             route('admin.usuarios.create'), route('admin.usuarios.edit', $this->admin),
             route('admin.configuracion.index'),
         ];

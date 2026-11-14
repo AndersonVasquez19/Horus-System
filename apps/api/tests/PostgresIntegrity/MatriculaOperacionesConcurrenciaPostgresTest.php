@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -34,6 +35,7 @@ use Tests\TestCase;
 class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 {
     use DatabaseTruncation;
+    use LlamaMatriculasDelPanel;
     use RequiresIsolatedPostgres;
 
     private const LOCK_NOT_AVAILABLE = '55P03';
@@ -51,7 +53,7 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->post(route('admin.matriculas.store'), $this->enrollmentPayload($segundo, $curso)));
+            ->panelMatriculas('POST', '', $this->enrollmentPayload($segundo, $curso)));
 
         $this->assertSame(0, AuditLog::where('action', 'matricula_creada')->count());
         $this->assertSame(0, MatriculaNotification::count());
@@ -59,8 +61,8 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
         $b->commit();
 
         $this->withExceptionHandling()->actingAs($admin)
-            ->post(route('admin.matriculas.store'), $this->enrollmentPayload($segundo, $curso))
-            ->assertSessionHasErrors('curso_id');
+            ->panelMatriculas('POST', '', $this->enrollmentPayload($segundo, $curso))
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
 
         $this->assertSame(0, $curso->fresh()->cupos_disponibles);
         $this->assertSame(1, Matricula::query()->where('curso_id', $curso->id)->count());
@@ -80,13 +82,13 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->patch(route('admin.matriculas.anular', $matricula)));
+            ->panelMatriculas('POST', $matricula->id.'/anular'));
 
         $b->commit();
 
         $this->withExceptionHandling()->actingAs($admin)
-            ->patch(route('admin.matriculas.anular', $matricula))
-            ->assertRedirect();
+            ->panelMatriculas('POST', $matricula->id.'/anular')
+            ->assertCreated();
 
         $this->assertSame(3, $curso->fresh()->cupos_disponibles, 'El cupo no puede devolverse dos veces.');
         $this->assertSame('anulada', $matricula->fresh()->estado);
@@ -107,13 +109,12 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
         $payload = $this->enrollmentPayload($estudiante, $curso, 'anulada');
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->put(route('admin.matriculas.update', $matricula), $payload));
+            ->panelMatriculas('PUT', (string) $matricula->id, $payload));
 
         $b->commit();
 
         $this->withExceptionHandling()->actingAs($admin)
-            ->put(route('admin.matriculas.update', $matricula), $payload)
-            ->assertSessionHasNoErrors();
+            ->panelMatriculas('PUT', (string) $matricula->id, $payload);
 
         $this->assertSame(3, $curso->fresh()->cupos_disponibles, 'El estado releído bajo bloqueo ya era anulada.');
         $this->assertSame('anulada', $matricula->fresh()->estado);
@@ -133,14 +134,14 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->delete(route('admin.matriculas.destroy', $matricula)));
+            ->panelMatriculas('DELETE', (string) $matricula->id));
         $this->assertSame(0, AuditLog::where('action', 'matricula_eliminada')->count());
 
         $b->commit();
 
         $this->withExceptionHandling()->actingAs($admin)
-            ->delete(route('admin.matriculas.destroy', $matricula))
-            ->assertRedirect();
+            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->assertCreated();
 
         $this->assertSame(3, $curso->fresh()->cupos_disponibles);
         $this->assertTrue(Matricula::withTrashed()->findOrFail($matricula->id)->trashed());
@@ -163,13 +164,13 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->patch(route('admin.matriculas.restaurar', $eliminada->id)));
+            ->panelMatriculas('POST', $eliminada->id.'/restaurar'));
 
         $b->commit();
 
         $this->withExceptionHandling()->actingAs($admin)
-            ->patch(route('admin.matriculas.restaurar', $eliminada->id))
-            ->assertSessionHasErrors('curso_id');
+            ->panelMatriculas('POST', $eliminada->id.'/restaurar')
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
 
         $this->assertTrue(Matricula::withTrashed()->findOrFail($eliminada->id)->trashed());
         $this->assertSame(0, $curso->fresh()->cupos_disponibles);
@@ -193,13 +194,13 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
         $payload = $this->enrollmentPayload($estudiante, $destino);
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->put(route('admin.matriculas.update', $matricula), $payload));
+            ->panelMatriculas('PUT', (string) $matricula->id, $payload));
 
         $b->commit();
 
         $this->withExceptionHandling()->actingAs($admin)
-            ->put(route('admin.matriculas.update', $matricula), $payload)
-            ->assertSessionHasErrors('curso_id');
+            ->panelMatriculas('PUT', (string) $matricula->id, $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
 
         $this->assertSame($origen->id, $matricula->fresh()->curso_id);
         $this->assertSame(1, $origen->fresh()->cupos_disponibles);
@@ -220,7 +221,7 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         try {
             $this->actingAs($admin)->withoutExceptionHandling()
-                ->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
+                ->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
             $this->fail('El fallo de la auditoría debía propagarse.');
         } catch (RuntimeException $error) {
             $this->assertSame('Fallo de auditoría simulado', $error->getMessage());

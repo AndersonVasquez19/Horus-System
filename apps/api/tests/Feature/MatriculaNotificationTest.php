@@ -21,11 +21,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 class MatriculaNotificationTest extends TestCase
 {
     use DatabaseMigrations;
+    use LlamaMatriculasDelPanel;
 
     protected function setUp(): void
     {
@@ -83,10 +85,10 @@ class MatriculaNotificationTest extends TestCase
         MatriculaNotification::query()->delete();
         $data = ['estudiante_id' => $seed->estudiante_id, 'curso_id' => $seed->curso_id,
             'estado' => 'pendiente', 'fecha_matricula' => today()->toDateString(), 'monto_pagado' => null];
-        $this->actingAs($this->adminUser())->post(route('admin.matriculas.store'), $data)->assertSessionHasNoErrors();
-        $this->post(route('admin.matriculas.store'), $data)->assertSessionHasErrors('estudiante_id');
+        $this->actingAs($this->adminUser())->panelMatriculas('POST', '', $data);
+        $this->panelMatriculas('POST', '', $data)->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
         $matricula = Matricula::sole();
-        $this->put(route('admin.matriculas.update', $matricula), [...$data, 'estado' => 'pagada'])->assertSessionHasNoErrors();
+        $this->panelMatriculas('PUT', (string) $matricula->id, [...$data, 'estado' => 'pagada']);
         $this->assertDatabaseCount('matricula_notifications', 1);
         $this->service()->send(MatriculaNotification::sole()->id);
         $this->service()->send(MatriculaNotification::sole()->id);
@@ -98,8 +100,8 @@ class MatriculaNotificationTest extends TestCase
         $seed = $this->enrollment();
         $seed->forceDelete();
         $data = ['estudiante_id' => $seed->estudiante_id, 'curso_id' => $seed->curso_id, 'estado' => 'pendiente', 'fecha_matricula' => today()->toDateString()];
-        $this->post(route('admin.matriculas.store'), $data)->assertRedirect(route('login'));
-        $this->actingAs(User::factory()->create())->post(route('admin.matriculas.store'), $data)->assertForbidden();
+        $this->panelMatriculas('POST', '', $data)->assertUnauthorized();
+        $this->actingAs(User::factory()->create())->panelMatriculas('POST', '', $data)->assertForbidden();
         $this->assertDatabaseCount('matricula_notifications', 0);
         Http::assertNothingSent();
     }

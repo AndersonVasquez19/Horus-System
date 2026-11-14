@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Panel\Academico;
 
-use App\Http\Controllers\Admin\MatriculaController as MatriculaBlade;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMatriculaRequest;
 use App\Http\Requests\UpdateMatriculaRequest;
@@ -35,6 +34,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class MatriculaController extends Controller implements HasMiddleware
 {
+    /** Estados válidos de una matrícula (filtro del listado y de la exportación). */
+    public const ESTADOS_VALIDOS = ['pendiente', 'pagada', 'anulada'];
+
     private const ORDENABLES = [
         'fecha' => 'fecha_matricula',
         'creado' => 'created_at',
@@ -221,9 +223,14 @@ final class MatriculaController extends Controller implements HasMiddleware
         ]);
 
         $cursoId = $request->input('curso_id');
+        // El BFF puede enviar el id como número en un cuerpo JSON: un filtro válido no debe ignorarse en silencio (la
+        // exportación saldría sin acotar al curso).
+        if (is_int($cursoId) && $cursoId > 0) {
+            $cursoId = (string) $cursoId;
+        }
         $filtros = [
             'busqueda' => ListFilter::text($request, 'busqueda'),
-            'estado' => ListFilter::in($request, 'estado', MatriculaBlade::ESTADOS_VALIDOS),
+            'estado' => ListFilter::in($request, 'estado', self::ESTADOS_VALIDOS),
             'curso_id' => is_string($cursoId) && ctype_digit($cursoId) && strlen($cursoId) <= 18 ? (int) $cursoId : null,
             'eliminados' => $request->boolean('eliminados'),
         ];

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 class MatriculaSensitivePermissionsTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     private const MIGRATION = '2026_10_27_000012_add_matriculas_exportar_eliminar_permissions.php';
@@ -67,10 +69,10 @@ class MatriculaSensitivePermissionsTest extends TestCase
     public function test_csv_export_is_allowed_only_to_admin_among_the_base_roles(): void
     {
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->post(route('admin.matriculas.csv'))->assertForbidden();
+            $this->actingAs($this->staff($rol))->panelMatriculas('POST', 'exportar', [])->assertForbidden();
         }
 
-        $this->actingAs($this->staff('admin'))->post(route('admin.matriculas.csv'))->assertOk();
+        $this->actingAs($this->staff('admin'))->panelMatriculas('POST', 'exportar', [])->assertOk();
     }
 
     public function test_reading_enrollments_does_not_allow_exporting_them(): void
@@ -78,19 +80,19 @@ class MatriculaSensitivePermissionsTest extends TestCase
         $lector = $this->staff('secretaria');
         $this->assertTrue($lector->can('matriculas.ver'));
 
-        $this->actingAs($lector)->get(route('admin.matriculas.index'))->assertOk();
-        $this->post(route('admin.matriculas.csv'))->assertForbidden();
+        $this->actingAs($lector)->panelMatriculas('GET', '', [])->assertOk();
+        $this->panelMatriculas('POST', 'exportar', [])->assertForbidden();
     }
 
     public function test_exporting_requires_the_export_permission_and_nothing_else_grants_it(): void
     {
         $exportador = $this->staff('secretaria', ['matriculas.exportar']);
 
-        $this->actingAs($exportador)->post(route('admin.matriculas.csv'))->assertOk();
+        $this->actingAs($exportador)->panelMatriculas('POST', 'exportar', [])->assertOk();
 
         // Ni anular ni eliminar ni editar conceden exportar.
         $otro = $this->staff('coordinador', ['matriculas.anular', 'matriculas.eliminar']);
-        $this->actingAs($otro)->post(route('admin.matriculas.csv'))->assertForbidden();
+        $this->actingAs($otro)->panelMatriculas('POST', 'exportar', [])->assertForbidden();
     }
 
     // ---- Eliminación ------------------------------------------------------------------------
@@ -100,13 +102,13 @@ class MatriculaSensitivePermissionsTest extends TestCase
         $matricula = $this->makeEnrollment('70000101');
 
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->delete(route('admin.matriculas.destroy', $matricula))->assertForbidden();
+            $this->actingAs($this->staff($rol))->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
         }
         $this->assertNotSoftDeleted($matricula);
 
         $this->actingAs($this->staff('admin'))
-            ->delete(route('admin.matriculas.destroy', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'));
+            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->assertOk();
         $this->assertSoftDeleted($matricula);
     }
 
@@ -115,51 +117,36 @@ class MatriculaSensitivePermissionsTest extends TestCase
         $matricula = $this->makeEnrollment('70000102');
 
         $soloAnular = $this->staff('coordinador', ['matriculas.anular']);
-        $this->actingAs($soloAnular)->delete(route('admin.matriculas.destroy', $matricula))->assertForbidden();
+        $this->actingAs($soloAnular)->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
         $this->assertNotSoftDeleted($matricula);
 
         $soloEliminar = $this->staff('coordinador', ['matriculas.eliminar']);
-        $this->actingAs($soloEliminar)->patch(route('admin.matriculas.anular', $matricula))->assertForbidden();
+        $this->actingAs($soloEliminar)->panelMatriculas('POST', $matricula->id.'/anular')->assertForbidden();
         $this->assertSame('pendiente', $matricula->fresh()->estado);
 
         $this->actingAs($soloAnular)
-            ->patch(route('admin.matriculas.anular', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'));
+            ->panelMatriculas('POST', $matricula->id.'/anular')
+            ->assertOk();
         $this->assertSame('anulada', $matricula->fresh()->estado);
 
         $this->actingAs($soloEliminar)
-            ->delete(route('admin.matriculas.destroy', $matricula))
-            ->assertRedirect(route('admin.matriculas.index'));
+            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->assertOk();
         $this->assertSoftDeleted($matricula);
     }
 
-    public function test_guests_are_redirected_for_both_operations(): void
+    public function test_guests_are_rejected_for_both_operations(): void
     {
         $matricula = $this->makeEnrollment('70000103');
 
-        $this->post(route('admin.matriculas.csv'))->assertRedirect(route('login'));
-        $this->delete(route('admin.matriculas.destroy', $matricula))->assertRedirect(route('login'));
+        // Sin sesión, la API del panel responde 401 y no exporta ni elimina nada.
+        $this->panelMatriculas('POST', 'exportar', [])->assertUnauthorized();
+        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertUnauthorized();
         $this->assertNotSoftDeleted($matricula);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'matriculas_csv_exported']);
     }
 
     // ---- Vistas -----------------------------------------------------------------------------
-
-    public function test_list_hides_export_and_delete_controls_without_permission(): void
-    {
-        $this->makeEnrollment('70000104');
-
-        $this->actingAs($this->staff('coordinador'))
-            ->get(route('admin.matriculas.index'))
-            ->assertOk()
-            ->assertDontSee('Exportar CSV')
-            ->assertDontSee('Eliminar matrícula');
-
-        $this->actingAs($this->staff('admin'))
-            ->get(route('admin.matriculas.index'))
-            ->assertOk()
-            ->assertSee('Exportar CSV')
-            ->assertSee('Eliminar matrícula');
-    }
 
     // ---- Migración de permisos para bases existentes ----------------------------------------
 

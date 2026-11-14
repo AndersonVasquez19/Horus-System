@@ -72,7 +72,7 @@
 
                 <div class="flex flex-wrap items-center gap-2.5 lg:col-span-6 lg:justify-end">
                     @can('matriculas.crear')
-                        <a href="{{ route('admin.matriculas.create') }}" class="admin-btn-primary">
+                        <a href="{{ route('admin.matriculas.index') }}" class="admin-btn-primary">
                             <i class="fa-solid fa-plus text-xs" aria-hidden="true"></i>
                             <span>Nueva matrícula</span>
                         </a>

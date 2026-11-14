@@ -9,6 +9,7 @@ use App\Models\Estudiante;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\LlamaCursosDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -18,6 +19,7 @@ use Tests\TestCase;
 class LimitesTextoLargoTest extends TestCase
 {
     use LlamaCursosDelPanel;
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -43,12 +45,11 @@ class LimitesTextoLargoTest extends TestCase
             'estado' => 'pendiente', 'monto_pagado' => 0,
         ];
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $base + ['observaciones' => str_repeat('a', 2001)])
-            ->assertSessionHasErrors('observaciones');
+        $this->actingAs($admin)->panelMatriculas('POST', '', $base + ['observaciones' => str_repeat('a', 2001)])
+            ->assertUnprocessable()->assertJsonValidationErrors('observaciones');
         $this->assertDatabaseCount('matriculas', 0);
 
-        $this->actingAs($admin)->post(route('admin.matriculas.store'), $base + ['observaciones' => str_repeat('a', 2000)])
-            ->assertSessionHasNoErrors();
+        $this->actingAs($admin)->panelMatriculas('POST', '', $base + ['observaciones' => str_repeat('a', 2000)]);
         $this->assertDatabaseCount('matriculas', 1);
     }
 

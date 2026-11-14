@@ -21,6 +21,8 @@ interface FormularioMatriculaProps {
   matricula?: MatriculaDetalle;
   /** Preselección del registro (p. ej. desde la ficha del estudiante). */
   estudianteInicial?: OpcionRemota | null;
+  /** Preselección del curso (p. ej. desde su ficha), solo si es elegible. */
+  cursoInicial?: OpcionRemota | null;
   /** Fecha propuesta para un registro nuevo (hoy en Lima, calculada por la página en el servidor). */
   fechaInicial?: string;
 }
@@ -30,7 +32,7 @@ interface FormularioMatriculaProps {
  * duplicado vigente, cupo, permiso para anular y protocolo de bloqueo. El formulario solo propone opciones
  * (`matriculas/opciones/*`, filtradas por contexto) y muestra los errores que Laravel devuelve.
  */
-export function FormularioMatricula({ matricula, estudianteInicial = null, fechaInicial = '' }: FormularioMatriculaProps) {
+export function FormularioMatricula({ matricula, estudianteInicial = null, cursoInicial = null, fechaInicial = '' }: FormularioMatriculaProps) {
   const router = useRouter();
   const { mostrar } = useAvisos();
   const { ejecutar } = useOperacionPanel();
@@ -41,7 +43,7 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, fecha
     matricula?.estudiante ? { id: matricula.estudiante.id, texto: `${matricula.estudiante.dni} · ${matricula.estudiante.nombre}` } : estudianteInicial,
   );
   const [curso, setCurso] = useState<OpcionRemota | null>(
-    matricula?.curso ? { id: matricula.curso.id, texto: `${matricula.curso.codigo} · ${matricula.curso.nombre}` } : null,
+    matricula?.curso ? { id: matricula.curso.id, texto: `${matricula.curso.codigo} · ${matricula.curso.nombre}` } : cursoInicial,
   );
   const [fechaMatricula, setFechaMatricula] = useState(matricula?.fecha ?? fechaInicial);
   const [estado, setEstado] = useState<string>(matricula?.estado ?? 'pendiente');

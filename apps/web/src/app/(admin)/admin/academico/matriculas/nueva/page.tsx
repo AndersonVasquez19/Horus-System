@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { FormularioMatricula } from '@/components/academico/formulario-matricula';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
-import type { EstudianteDetalle } from '@/features/academico/tipos';
+import type { CursoDetalle, EstudianteDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 
 export const metadata = { title: 'Nueva matrícula · Gestión académica' };
@@ -27,10 +27,16 @@ export default function NuevaMatriculaPage({ searchParams }: { searchParams: Pro
   );
 }
 
-/** Preselecciona el estudiante de `?estudiante_id=` si existe y está activo; si no, el formulario empieza vacío. */
+/**
+ * Preselecciona el estudiante de `?estudiante_id=` (activo y no archivado) y el curso de `?curso_id=` (activo, no
+ * archivado y con cupos). Un identificador inválido o no elegible se ignora: el formulario empieza vacío, y Laravel
+ * vuelve a validar todo al guardar.
+ */
 async function Formulario({ searchParams }: { searchParams: Promise<Parametros> }) {
   const { estudiante_id: id } = await searchParams;
+  const { curso_id: idCurso } = await searchParams;
   let inicial = null;
+  let cursoInicial = null;
 
   if (typeof id === 'string' && /^\d{1,10}$/.test(id)) {
     const resultado = await consultarPanel<{ data: EstudianteDetalle }>(`academico/estudiantes/${id}`, `/admin/academico/matriculas/nueva?estudiante_id=${id}`);
@@ -40,8 +46,16 @@ async function Formulario({ searchParams }: { searchParams: Promise<Parametros> 
     }
   }
 
+  if (typeof idCurso === 'string' && /^\d{1,10}$/.test(idCurso)) {
+    const resultado = await consultarPanel<{ data: CursoDetalle }>(`academico/cursos/${idCurso}`, `/admin/academico/matriculas/nueva?curso_id=${idCurso}`);
+    if (resultado.estado === 'ok' && resultado.datos.data.estado === 'activo' && !resultado.datos.data.eliminado && resultado.datos.data.cupos_disponibles > 0) {
+      const curso = resultado.datos.data;
+      cursoInicial = { id: curso.id, texto: `${curso.codigo} · ${curso.nombre} (${curso.cupos_disponibles} cupos)` };
+    }
+  }
+
   // Tras leer searchParams la página ya es dinámica: la hora actual se puede leer en el servidor.
   const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
 
-  return <FormularioMatricula estudianteInicial={inicial} fechaInicial={hoy} />;
+  return <FormularioMatricula estudianteInicial={inicial} cursoInicial={cursoInicial} fechaInicial={hoy} />;
 }

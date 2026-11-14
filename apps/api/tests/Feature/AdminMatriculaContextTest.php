@@ -6,41 +6,39 @@ namespace Tests\Feature;
 
 use App\Models\Curso;
 use App\Models\Estudiante;
-use App\Models\Matricula;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 class AdminMatriculaContextTest extends TestCase
 {
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
-    public function test_student_and_course_details_link_to_a_preselected_enrollment_form(): void
+    /**
+     * Las fichas de estudiante y de curso y el formulario de matrícula los sirve apps/web: el enlace «Nueva matrícula»
+     * y la preselección son de su UI. Aquí queda la garantía de servidor: abrir el formulario no escribe nada y
+     * guardar con el contexto elegido ocupa un cupo.
+     */
+    public function test_registrar_con_el_contexto_elegido_ocupa_un_solo_cupo(): void
     {
         [$estudiante, $curso] = $this->records();
         $this->actingAs($this->adminUser());
 
-        // Las fichas de estudiante y de curso las sirve apps/web: sus enlaces «Nueva matrícula» son de la UI de Next.
-        $this->get(route('admin.matriculas.create', [
-            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
-        ]))->assertOk()
-            ->assertSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
-            ->assertSee('name="curso_id" value="'.$curso->id.'"', false);
-
         $this->assertDatabaseCount('matriculas', 0);
         $this->assertSame(2, $curso->fresh()->cupos_disponibles);
 
-        $this->post(route('admin.matriculas.store'), [
+        $this->panelMatriculas('POST', '', [
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
             'fecha_matricula' => '2026-10-28', 'estado' => 'pendiente',
-        ])->assertRedirect(route('admin.matriculas.show', Matricula::sole()));
+        ])->assertCreated();
 
         $this->assertDatabaseCount('matriculas', 1);
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
     }
 
-    public function test_read_only_staff_do_not_see_enrollment_actions_and_cannot_open_the_form(): void
+    public function test_el_personal_de_solo_lectura_no_puede_registrar_ni_pedir_opciones_de_alta(): void
     {
         [$estudiante, $curso] = $this->records();
         $this->adminUser();
@@ -49,19 +47,12 @@ class AdminMatriculaContextTest extends TestCase
         $lector->roles()->firstOrFail()->syncPermissions(['estudiantes.ver', 'cursos.ver']);
         $this->actingAs($lector);
 
-        $this->get(route('admin.matriculas.create', ['estudiante_id' => $estudiante->id]))->assertForbidden();
-    }
-
-    public function test_context_preselects_both_fields_without_writing(): void
-    {
-        [$estudiante, $curso] = $this->records();
-        $response = $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.create', ['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id]))
-            ->assertOk();
-        $this->assertStringContainsString('<input type="hidden" name="estudiante_id" value="'.$estudiante->id.'"', $response->getContent());
-        $this->assertStringContainsString('<input type="hidden" name="curso_id" value="'.$curso->id.'"', $response->getContent());
+        $this->panelMatriculas('POST', '', [
+            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
+            'fecha_matricula' => '2026-10-28', 'estado' => 'pendiente',
+        ])->assertForbidden();
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear'])->assertForbidden();
         $this->assertDatabaseCount('matriculas', 0);
-        $this->assertSame(2, $curso->fresh()->cupos_disponibles);
     }
 
     /** @return iterable<string, array{mixed}> */
@@ -72,49 +63,20 @@ class AdminMatriculaContextTest extends TestCase
         yield 'text' => ['invalido'];
     }
 
-    #[DataProvider('invalidContext')]
-    public function test_invalid_context_does_not_select_another_record(mixed $id): void
-    {
-        [$estudiante, $curso] = $this->records();
-        $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.create', ['estudiante_id' => $id, 'curso_id' => $id]))
-            ->assertOk()
-            ->assertDontSee('name="estudiante_id" value="'.$estudiante->id.'"', false)
-            ->assertDontSee('name="curso_id" value="'.$curso->id.'"', false);
-        $this->assertDatabaseCount('matriculas', 0);
-    }
-
-    public function test_unavailable_context_is_not_added_to_the_selectors_or_accepted_on_submit(): void
+    public function test_un_contexto_no_disponible_no_aparece_en_los_selectores_ni_se_acepta_al_guardar(): void
     {
         [$estudiante, $curso] = $this->records();
         $estudiante->delete();
         $curso->delete();
-        $this->actingAs($this->adminUser())
-            ->get(route('admin.matriculas.create', ['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id]))
-            ->assertOk()
-            ->assertDontSee($estudiante->dni)
-            ->assertDontSee($curso->codigo);
-        $this->post(route('admin.matriculas.store'), [
+        $this->actingAs($this->adminUser());
+        $this->panelMatriculas('GET', 'opciones/estudiantes', ['contexto' => 'crear', 'q' => $estudiante->dni])
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'crear', 'q' => $curso->codigo])
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->panelMatriculas('POST', '', [
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
             'fecha_matricula' => '2026-10-28', 'estado' => 'pendiente',
-        ])->assertSessionHasErrors(['estudiante_id', 'curso_id']);
-        $this->assertDatabaseCount('matriculas', 0);
-    }
-
-    public function test_validation_input_takes_precedence_over_the_original_context(): void
-    {
-        [$original, $curso] = $this->records();
-        $otro = Estudiante::create(['dni' => '70123457', 'nombres' => 'Otra', 'apellidos' => 'Persona', 'estado' => 'activo']);
-        $url = route('admin.matriculas.create', ['estudiante_id' => $original->id, 'curso_id' => $curso->id]);
-
-        $this->actingAs($this->adminUser())->from($url)->post(route('admin.matriculas.store'), [
-            'estudiante_id' => $otro->id, 'curso_id' => $curso->id,
-            'fecha_matricula' => '2026-10-28', 'estado' => 'invalido', 'observaciones' => 'Conservar borrador',
-        ])->assertRedirect($url)->assertSessionHasErrors('estado');
-
-        $this->get($url)->assertOk()
-            ->assertSee('name="estudiante_id" value="'.$otro->id.'"', false)
-            ->assertSee('Conservar borrador');
+        ])->assertUnprocessable()->assertJsonValidationErrors(['estudiante_id', 'curso_id']);
         $this->assertDatabaseCount('matriculas', 0);
     }
 

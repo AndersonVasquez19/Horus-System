@@ -7,7 +7,6 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\PerfilController;
 use App\Http\Controllers\Admin\PerfilSesionesController;
@@ -121,21 +120,11 @@ Route::prefix('admin')
         // /api/panel/v1/servicios/servicios. Se conserva el nombre para la barra lateral Blade; responde 302 a Next.
         Route::get('servicios', RedirigirAWebController::class)->defaults('destino', '/admin/servicios/catalogo')->name('servicios.index');
 
-        Route::post('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
-            ->middleware('throttle:admin-export')
-            ->name('matriculas.csv');
-        // Opciones de los selectores de estudiante y curso (búsqueda en el servidor); antes del resource.
-        Route::get('matriculas/opciones/estudiantes', [MatriculaController::class, 'opcionesEstudiantes'])
-            ->middleware('throttle:admin-opciones')
-            ->name('matriculas.opciones.estudiantes');
-        Route::get('matriculas/opciones/cursos', [MatriculaController::class, 'opcionesCursos'])
-            ->middleware('throttle:admin-opciones')
-            ->name('matriculas.opciones.cursos');
-        Route::resource('matriculas', MatriculaController::class);
-        Route::patch('matriculas/{matricula}/anular', [MatriculaController::class, 'anular'])
-            ->name('matriculas.anular');
-        Route::patch('matriculas/{matricula}/restaurar', [MatriculaController::class, 'restaurar'])
-            ->name('matriculas.restaurar');
+        // Matrículas (retiradas de Blade el 14/11/2026): las atiende apps/web con /api/panel/v1/academico/matriculas.
+        // Se conservan `index` y `show` solo por sus nombres (búsqueda global, barra lateral, panel); responden 302 a Next.
+        Route::get('matriculas', RedirigirAWebController::class)->defaults('destino', '/admin/academico/matriculas')->name('matriculas.index');
+        Route::get('matriculas/{matricula}', RedirigirAWebController::class)->defaults('destino', '/admin/academico/matriculas/{matricula}')
+            ->whereNumber('matricula')->name('matriculas.show');
 
         // El nombre del parámetro debe coincidir con el argumento del controlador para que el binding resuelva el registro.
         Route::resource('usuarios', UserController::class)->parameters(['usuarios' => 'user']);

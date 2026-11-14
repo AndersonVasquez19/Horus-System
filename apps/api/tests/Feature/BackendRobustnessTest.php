@@ -17,11 +17,13 @@ use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Support\LlamaCursosDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 class BackendRobustnessTest extends TestCase
 {
     use LlamaCursosDelPanel;
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -53,7 +55,7 @@ class BackendRobustnessTest extends TestCase
             $change === 'deleted' ? $model->delete() : $model->update(['estado' => $change]);
         });
 
-        $this->postJson(route('admin.matriculas.store'), $data)
+        $this->panelMatriculas('POST', '', $data)
             ->assertUnprocessable()->assertJsonValidationErrors($parent.'_id');
 
         $this->assertDatabaseCount('matriculas', 0);
@@ -79,7 +81,7 @@ class BackendRobustnessTest extends TestCase
             ($parent === 'estudiante' ? $student : $course)->delete();
         });
 
-        $this->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['estado' => 'pagada']))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'pagada']))
             ->assertUnprocessable()->assertJsonValidationErrors($parent.'_id');
 
         $this->assertSame('pendiente', $enrollment->fresh()->estado);
@@ -96,14 +98,14 @@ class BackendRobustnessTest extends TestCase
         $this->assertTrue($editor->can('matriculas.editar'));
         $this->assertFalse($editor->can('matriculas.anular'));
 
-        $this->actingAs($editor)->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['estado' => 'anulada']))
+        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada']))
             ->assertForbidden();
-        $this->patchJson(route('admin.matriculas.anular', $enrollment))->assertForbidden();
+        $this->panelMatriculas('POST', $enrollment->id.'/anular')->assertForbidden();
         $this->assertSame('pendiente', $enrollment->fresh()->estado);
         $this->assertSame(1, $course->fresh()->cupos_disponibles);
 
-        $this->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['estado' => 'pagada']))
-            ->assertRedirect();
+        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'pagada']))
+            ->assertOk();
         $this->assertSame('pagada', $enrollment->fresh()->estado);
     }
 
@@ -113,8 +115,8 @@ class BackendRobustnessTest extends TestCase
         $enrollment = $this->enroll($data, $course);
         $this->actingAs($this->adminUser());
         foreach ([1, 2] as $attempt) {
-            $this->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['estado' => 'anulada']))
-                ->assertRedirect();
+            $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada']))
+                ->assertOk();
             $this->assertSame(2, $course->fresh()->cupos_disponibles);
         }
         $this->assertDatabaseCount('matricula_notifications', 1);
@@ -165,7 +167,7 @@ class BackendRobustnessTest extends TestCase
         $this->app->afterResolving(StoreMatriculaRequest::class, function (StoreMatriculaRequest $request) use ($course): void {
             $this->enroll($request->validated(), $course);
         });
-        $this->postJson(route('admin.matriculas.store'), $data)->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
+        $this->panelMatriculas('POST', '', $data)->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
         $this->assertDatabaseCount('matriculas', 1);
         $this->assertDatabaseCount('matricula_notifications', 1);
         $this->assertSame(1, $course->fresh()->cupos_disponibles);
@@ -180,7 +182,7 @@ class BackendRobustnessTest extends TestCase
         $this->app->afterResolving(StoreMatriculaRequest::class, function (StoreMatriculaRequest $request) use ($course, $other): void {
             $this->enroll(array_replace($request->validated(), ['estudiante_id' => $other->id]), $course);
         });
-        $this->postJson(route('admin.matriculas.store'), $data)->assertUnprocessable()->assertJsonValidationErrors('curso_id');
+        $this->panelMatriculas('POST', '', $data)->assertUnprocessable()->assertJsonValidationErrors('curso_id');
         $this->assertDatabaseCount('matriculas', 1);
         $this->assertSame(0, $course->fresh()->cupos_disponibles);
     }
@@ -193,7 +195,7 @@ class BackendRobustnessTest extends TestCase
             throw new RuntimeException('simulated persistence failure');
         });
         try {
-            $this->postJson(route('admin.matriculas.store'), $data);
+            $this->panelMatriculas('POST', '', $data);
             $this->fail('Expected persistence failure');
         } catch (RuntimeException $exception) {
             $this->assertSame('simulated persistence failure', $exception->getMessage());
@@ -217,7 +219,7 @@ class BackendRobustnessTest extends TestCase
             throw new RuntimeException('simulated update failure');
         });
         try {
-            $this->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['curso_id' => $destination->id]));
+            $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['curso_id' => $destination->id]));
             $this->fail('Expected persistence failure');
         } catch (RuntimeException $exception) {
             $this->assertSame('simulated update failure', $exception->getMessage());
@@ -243,7 +245,7 @@ class BackendRobustnessTest extends TestCase
                 $enrollment->update(['estado' => 'pendiente']);
             });
         });
-        $this->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['estado' => 'anulada']))->assertForbidden();
+        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada']))->assertForbidden();
         $this->assertSame('pendiente', $enrollment->fresh()->estado);
         $this->assertSame(1, $course->fresh()->cupos_disponibles);
     }
@@ -255,8 +257,8 @@ class BackendRobustnessTest extends TestCase
         $student->update(['estado' => 'inactivo']);
         $course->update(['estado' => 'archivado']);
         $this->actingAs($this->adminUser())
-            ->putJson(route('admin.matriculas.update', $enrollment), array_replace($data, ['observaciones' => 'Corrección administrativa']))
-            ->assertRedirect();
+            ->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['observaciones' => 'Corrección administrativa']))
+            ->assertOk();
         $this->assertSame('Corrección administrativa', $enrollment->fresh()->observaciones);
         $this->assertSame(1, $course->fresh()->cupos_disponibles);
     }

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
+use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
 /**
@@ -27,6 +28,7 @@ class BusquedaLikeEscapeTest extends TestCase
 {
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
+    use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
     public function test_termino_escapa_los_caracteres_especiales_de_like(): void
@@ -142,17 +144,17 @@ class BusquedaLikeEscapeTest extends TestCase
         $this->matricular($this->crearEstudiante('70000002', 'Beto', 'Quispe'), $curso);
         $admin = $this->actingAs($this->adminUser());
 
-        $ids = $admin->get(route('admin.matriculas.index', ['busqueda' => '%']))->assertOk()->viewData('matriculas')->pluck('id')->all();
+        $ids = $admin->panelMatriculas('GET', '', ['busqueda' => '%'])->assertOk()->json('data.*.id');
         $this->assertSame([$conPorcentaje->id], $ids);
 
         $cursoGuion = $this->crearCurso('C-A_B', 'Taller guion');
         $this->crearCurso('C-AXB', 'Taller libre');
         $delGuion = $this->matricular($this->crearEstudiante('70000003', 'Carla', 'Díaz'), $cursoGuion);
-        $ids = $admin->get(route('admin.matriculas.index', ['busqueda' => 'A_B']))->assertOk()->viewData('matriculas')->pluck('id')->all();
+        $ids = $admin->panelMatriculas('GET', '', ['busqueda' => 'A_B'])->assertOk()->json('data.*.id');
         $this->assertSame([$delGuion->id], $ids);
 
         // Búsqueda normal por nombre de curso: las dos matrículas del «Curso común».
-        $this->assertCount(2, $admin->get(route('admin.matriculas.index', ['busqueda' => 'común']))->assertOk()->viewData('matriculas'));
+        $admin->panelMatriculas('GET', '', ['busqueda' => 'común'])->assertOk()->assertJsonPath('meta.total', 2);
     }
 
     public function test_aprobaciones_busca_el_porcentaje_como_texto(): void
