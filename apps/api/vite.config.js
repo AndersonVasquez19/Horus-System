@@ -10,7 +10,7 @@ export default defineConfig({
     },
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/admin-servicios.mjs', 'resources/js/admin-cotizaciones.mjs'],
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/admin-servicios.mjs'],
             refresh: [
                 'app/**/*.php',
                 'lang/**',

@@ -111,7 +111,7 @@ final class CotizacionController extends Controller implements HasMiddleware
         PrecondicionesPanel::aplicar($request);
         $resultado = $this->gestion->crear($request, $request->validated());
 
-        return $this->detalle($this->buscar($resultado['solicitud']->identificador), $resultado['repetida'] ? 200 : 201, 'La solicitud se registró correctamente.');
+        return $this->respuestaDeEscritura($request, $this->buscar($resultado['solicitud']->identificador), $resultado['repetida'] ? 200 : 201, 'La solicitud se registró correctamente.');
     }
 
     public function update(GuardarCotizacionRequest $request, string $identificador): JsonResponse
@@ -119,7 +119,7 @@ final class CotizacionController extends Controller implements HasMiddleware
         PrecondicionesPanel::aplicar($request);
         $solicitud = $this->gestion->cambiar($request, $this->buscar($identificador)->identificador, 'editar', $request->validated());
 
-        return $this->detalle($this->buscar($solicitud->identificador), 200, 'Los datos de la solicitud se actualizaron.');
+        return $this->respuestaDeEscritura($request, $this->buscar($solicitud->identificador), 200, 'Los datos de la solicitud se actualizaron.');
     }
 
     public function estado(GestionarCotizacionRequest $request, string $identificador): JsonResponse
@@ -164,7 +164,22 @@ final class CotizacionController extends Controller implements HasMiddleware
         PrecondicionesPanel::aplicar($request);
         $solicitud = $this->gestion->cambiar($request, $this->buscar($identificador)->identificador, $operacion, $request->validated());
 
-        return $this->detalle($this->buscar($solicitud->identificador), 200, $mensaje);
+        return $this->respuestaDeEscritura($request, $this->buscar($solicitud->identificador), 200, $mensaje);
+    }
+
+    /**
+     * Crear, editar o gestionar no concede lectura (mismo contrato que tuvo el módulo Blade, ya retirado): sin
+     * `cotizaciones.ver` la respuesta solo confirma la identidad del expediente, también al repetir una creación
+     * idempotente, para no entregar datos actuales de contacto, necesidad ni historial a quien no puede leerlos.
+     */
+    private function respuestaDeEscritura(Request $request, SolicitudCotizacion $solicitud, int $estado, string $mensaje): JsonResponse
+    {
+        if ($request->user()?->can('cotizaciones.ver') === true) {
+            return $this->detalle($solicitud, $estado, $mensaje);
+        }
+
+        return response()->json(['message' => $mensaje, 'data' => $solicitud->only(['identificador', 'codigo'])], $estado)
+            ->header('ETag', $solicitud->etag())->header('Cache-Control', 'no-store, private');
     }
 
     private function buscar(string $identificador): SolicitudCotizacion

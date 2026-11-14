@@ -31,6 +31,7 @@ class AdminModulosRetiradosTest extends TestCase
     {
         return [
             'reportes' => ['admin.reportes.index', '/admin/academico/reportes'],
+            'cotizaciones' => ['admin.cotizaciones.index', '/admin/servicios/cotizaciones'],
         ];
     }
 
@@ -59,5 +60,14 @@ class AdminModulosRetiradosTest extends TestCase
         $this->actingAs($this->adminUser());
         $this->post('/admin/reportes/exportar/excel')->assertNotFound();
         $this->post('/admin/reportes/exportar/pdf')->assertNotFound();
+    }
+
+    public function test_las_operaciones_json_de_cotizaciones_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+        $uuid = '11111111-1111-4111-8111-111111111111';
+        $this->postJson('/admin/cotizaciones', [])->assertStatus(405);
+        $this->getJson('/admin/cotizaciones/'.$uuid)->assertNotFound();
+        $this->patchJson('/admin/cotizaciones/'.$uuid.'/estado', [])->assertNotFound();
     }
 }

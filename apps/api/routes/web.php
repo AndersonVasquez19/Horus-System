@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
-use App\Http\Controllers\Admin\CotizacionController;
 use App\Http\Controllers\Admin\CursoController;
 use App\Http\Controllers\Admin\CursoPublicacionController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -98,15 +97,9 @@ Route::prefix('admin')
             ->name('estudiantes.restaurar');
 
         Route::resource('cursos', CursoController::class);
-        // Expedientes comerciales privados: no hay formularios ni recepción pública.
-        Route::get('cotizaciones', [CotizacionController::class, 'index'])->name('cotizaciones.index');
-        Route::post('cotizaciones', [CotizacionController::class, 'store'])->name('cotizaciones.store');
-        Route::get('cotizaciones/{cotizacion:identificador}', [CotizacionController::class, 'show'])->name('cotizaciones.show')->whereUuid('cotizacion');
-        Route::put('cotizaciones/{cotizacion:identificador}', [CotizacionController::class, 'update'])->name('cotizaciones.update')->whereUuid('cotizacion');
-        Route::patch('cotizaciones/{cotizacion:identificador}/estado', [CotizacionController::class, 'estado'])->name('cotizaciones.estado')->whereUuid('cotizacion');
-        Route::patch('cotizaciones/{cotizacion:identificador}/responsable', [CotizacionController::class, 'responsable'])->name('cotizaciones.responsable')->whereUuid('cotizacion');
-        Route::post('cotizaciones/{cotizacion:identificador}/seguimientos', [CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento')->whereUuid('cotizacion');
-        Route::get('cotizaciones/{cotizacion:identificador}/historial', [CotizacionController::class, 'historial'])->name('cotizaciones.historial')->whereUuid('cotizacion');
+        // Expedientes comerciales privados (retirados de Blade el 14/11/2026): la bandeja es la de apps/web con
+        // /api/panel/v1/servicios/cotizaciones. Se conserva el nombre para la barra lateral Blade; responde 302 a Next.
+        Route::get('cotizaciones', RedirigirAWebController::class)->defaults('destino', '/admin/servicios/cotizaciones')->name('cotizaciones.index');
 
         // Libro de Reclamaciones: consulta e impresión (E3) y gestión del caso (E4).
         Route::get('reclamaciones', [ReclamacionController::class, 'index'])->name('reclamaciones.index');

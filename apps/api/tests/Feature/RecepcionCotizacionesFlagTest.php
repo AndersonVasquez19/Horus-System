@@ -150,8 +150,14 @@ class RecepcionCotizacionesFlagTest extends TestCase
         config(['horus-web.url' => 'https://web.example.test']);
         $this->get('/contactos')->assertRedirect('https://web.example.test/contactos');
         $this->assertSame(['GET', 'HEAD'], app('router')->getRoutes()->getByName('contactos')->methods());
-        $this->getJson('/admin/cotizaciones')->assertUnauthorized();
-        $this->assertCount(8, collect(app('router')->getRoutes()->getRoutes())
-            ->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'admin/cotizaciones')));
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $this->withHeaders(['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])
+            ->getJson('/api/panel/v1/servicios/cotizaciones')->assertUnauthorized();
+        $rutas = collect(app('router')->getRoutes()->getRoutes());
+        // La bandeja privada vive solo en el panel (el módulo Blade se retiró el 14/11/2026); sin rutas públicas de lectura.
+        $antiguas = $rutas->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'admin/cotizaciones'));
+        $this->assertCount(1, $antiguas, 'Solo queda la redirección a Next.');
+        $this->assertSame(['GET', 'HEAD'], $antiguas->first()->methods());
+        $this->assertCount(9, $rutas->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'api/panel/v1/servicios/cotizaciones')));
     }
 }

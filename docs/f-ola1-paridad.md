@@ -31,6 +31,38 @@ Código retirado: `Admin\ReportController`, `admin/reportes/index.blade.php` y `
 
 Un módulo pequeño (reportes: 1 controlador de 127 líneas, 2 vistas, 5 archivos de prueba, ~45 pruebas) exigió portar 4 archivos de prueba y crear 3 nuevos, con una sola ruta funcional que sustituir. Los módulos grandes (matrículas ≈ 27 archivos de prueba, cursos ≈ 27, estudiantes ≈ 16) multiplican ese trabajo; la mayoría de sus pruebas verifican reglas de negocio (cupos, bloqueos, auditoría, permisos sensibles) que deben portarse al panel una a una, no borrarse.
 
+## Cotizaciones (segundo módulo retirado)
+
+| Ruta Blade retirada | Endpoint del panel | Página Next |
+| --- | --- | --- |
+| `GET /admin/cotizaciones` (HTML y JSON) | `GET /api/panel/v1/servicios/cotizaciones` | `/admin/servicios/cotizaciones` |
+| `POST /admin/cotizaciones` | `POST /api/panel/v1/servicios/cotizaciones` | alta de solicitud |
+| `GET /admin/cotizaciones/{uuid}` y `/historial` | `GET /api/panel/v1/servicios/cotizaciones/{uuid}` (el historial va dentro del detalle, del más reciente al más antiguo, sin `actor_id`: el actor se publica por nombre) | `/admin/servicios/cotizaciones/[id]` |
+| `PUT /admin/cotizaciones/{uuid}` | `PUT …/cotizaciones/{uuid}` | edición |
+| `PATCH …/estado`, `PATCH …/responsable`, `POST …/seguimientos` | `POST …/estado`, `POST …/responsable`, `POST …/seguimientos` (el verbo de las gestiones pasa a POST) | gestión |
+
+`GET /admin/cotizaciones` se conserva solo con su nombre (`admin.cotizaciones.index`, usado por la barra lateral) y responde 302 a `HORUS_WEB_URL/admin/servicios/cotizaciones`; las demás rutas Blade (JSON) ya no existen. El panel acepta `If-Match` e `Idempotency-Key` como cabeceras y, para el BFF, `_revision` y `_clave` en el cuerpo (`PrecondicionesPanel`).
+
+**Permisos:** idénticos en ambos lados (`role:admin` + `cotizaciones.ver|crear|editar|gestionar`). Diferencias de convención aceptadas: un filtro de listado fuera de contrato se ignora en el panel (en Blade devolvía 422); la paginación del panel usa `page`/`per_page`.
+
+**Brecha de seguridad detectada y cerrada en esta paridad:** el módulo Blade garantizaba que crear, editar o gestionar **no concede lectura** (recibo mínimo `identificador` + `codigo`, también al repetir una creación idempotente), pero el panel devolvía siempre el detalle completo (contacto, necesidad, historial) a quien solo tenía `cotizaciones.crear`/`editar`/`gestionar`. `Api\Panel\Servicios\CotizacionController::respuestaDeEscritura` ahora entrega solo la identidad (con `ETag`) cuando el usuario no tiene `cotizaciones.ver`. Cubierto por `test_creador_sin_lectura_no_recibe_datos_actuales_al_repetir…` y `test_quien_edita_o_gestiona_sin_lectura_recibe_solo_la_identidad`.
+
+Código retirado: `Admin\CotizacionController`, `admin/cotizaciones/index.blade.php` y `_editor.blade.php`, `resources/js/admin-cotizaciones.mjs` (y su entrada en `vite.config.js`), `tests/frontend/admin-cotizaciones.test.mjs`, el smoke `tests/browser/cotizaciones-panel-smoke.mjs` y su router `tests/Support/cotizaciones-panel-browser-router.php`. Se conservan `GestionCotizaciones`, `GuardarCotizacionRequest`, `GestionarCotizacionRequest` y los modelos.
+
+| Prueba que tocaba la ruta Blade | Qué probaba | Destino |
+| --- | --- | --- |
+| `CotizacionTest` (27 métodos + proveedores) | creación/idempotencia/huellas, validaciones (14 entradas inválidas), `If-Match` estricto (428/412), transiciones, responsables, seguimientos, matriz de permisos por operación (7 casos), revalidación de permisos y rol en la capa de servicio, rollback por fallo de auditoría o de historial, rotación de clave, restricciones SQL, migración de permisos | **Portadas** a `Panel\CotizacionesContratoPanelTest` (49 pruebas con proveedores). Las pruebas de capa de servicio, esquema y migración se copiaron sin cambios de lógica; las HTTP cambian ruta, verbo y forma de respuesta (`data.*`). La paginación del historial (`por_pagina`) ya no existe: el detalle trae hasta 100 eventos. |
+| `PanelCotizacionesTest` (8 métodos de HTML) | lista HTML minimizada, filtros, lector sin formularios de escritura, escapado, acciones visibles por permiso, navegación | La parte de **datos y permisos** (lista sin contacto, lector solo lee, `crear`/`servicios.ver` no conceden acceso, exigencia de admin + lectura) pasó a `CotizacionesContratoPanelTest`; la parte puramente de **interfaz** (formularios `data-form`, título, escapado en vista) la cubre ahora la UI de Next y no tiene equivalente de servidor. |
+| `ApiPublicaCotizacionesTest` (3 métodos) | las solicitudes públicas se gestionan en la misma bandeja; no hay ruta pública de lectura; sin `gestionar` no se cambia | Portadas a la bandeja del panel (`bandeja()`); el historial se lee del detalle. |
+| `CotizacionOrigenMigracionTest`, `RecepcionCotizacionesFlagTest` | origen `administrativo` del alta del panel; inventario de rutas | Portadas al panel; el inventario ahora exige 1 ruta `admin/cotizaciones` (la redirección GET) y 9 del panel. |
+| `tests/frontend/admin-cotizaciones.test.mjs`, smoke de navegador | cliente JS del editor Blade | Retirados con el JS. |
+| (ampliada) `AdminModulosRetiradosTest` | redirección, sesión/rol, 404 sin `HORUS_WEB_URL`, JSON de cotizaciones inexistente | Añadido `cotizaciones`. |
+
+**Hallazgo de harness:** la sesión del panel tiene vida máxima absoluta (`SesionPanelVigente`): una prueba que avanza el reloj 10 o 180 días debe reabrir la sesión (`reiniciarSesion()`); el control no se relaja.
+
+### Coste real del segundo módulo
+`CotizacionTest` (631 líneas) se reescribió casi entera: ~49 pruebas con proveedores, un cambio de producción (recibo mínimo) y 3 archivos de prueba dependientes ajustados. Fue más costoso que reportes (≈ 3×) pese a ser el módulo «pequeño» de la Ola 1; matrículas, cursos y estudiantes serán notablemente mayores.
+
 ## Siguiente
 
 Pendiente de decisión del propietario tras el piloto: continuar con cotizaciones → servicios → estudiantes → cursos → matrículas, o pausar la Etapa F aquí. La **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`) no se ejecutó: mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin` Blade. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`).

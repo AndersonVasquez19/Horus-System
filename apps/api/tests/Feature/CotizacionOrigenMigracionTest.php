@@ -68,15 +68,19 @@ class CotizacionOrigenMigracionTest extends TestCase
     public function test_el_alta_del_panel_existente_queda_como_administrativa_y_la_bandeja_lo_expone(): void
     {
         $admin = $this->adminUser();
-        $respuesta = $this->actingAs($admin)->postJson('/admin/cotizaciones', [
-            'contacto_nombre' => 'Contacto sintetico', 'contacto_email' => 'ficticio@example.test', 'necesidad_cliente' => 'Necesidad sintetica',
-        ], ['Idempotency-Key' => (string) Str::uuid()]);
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $panel = fn (string $ruta) => $this->actingAs($admin)->withHeaders(['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])
+            ->getJson('/api/panel/v1/servicios/'.$ruta);
+        $respuesta = $this->actingAs($admin)->withHeaders(['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])
+            ->postJson('/api/panel/v1/servicios/cotizaciones', [
+                'contacto_nombre' => 'Contacto sintetico', 'contacto_email' => 'ficticio@example.test', 'necesidad_cliente' => 'Necesidad sintetica',
+            ], ['Idempotency-Key' => (string) Str::uuid()]);
 
         $respuesta->assertCreated();
         $this->assertSame('administrativo', DB::table('solicitudes_cotizacion')->value('origen'));
-        $uuid = $respuesta->json('solicitud.identificador');
-        $this->actingAs($admin)->getJson('/admin/cotizaciones/'.$uuid)->assertOk()->assertJsonPath('solicitud.origen', 'administrativo');
-        $this->actingAs($admin)->getJson('/admin/cotizaciones')->assertOk()->assertJsonPath('data.0.origen', 'administrativo');
+        $uuid = $respuesta->json('data.identificador');
+        $panel('cotizaciones/'.$uuid)->assertOk()->assertJsonPath('data.origen', 'administrativo');
+        $panel('cotizaciones')->assertOk()->assertJsonPath('data.0.origen', 'administrativo');
     }
 
     public function test_acepta_publico_y_rechaza_cualquier_otro_valor(): void
