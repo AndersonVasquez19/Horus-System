@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,7 @@ use Tests\TestCase;
  */
 class AdminProtectionTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -42,13 +44,12 @@ class AdminProtectionTest extends TestCase
         $rol = Role::findByName('admin');
 
         $this->actingAs($admin)
-            ->from(route('admin.roles.index'))
-            ->put(route('admin.roles.update', $rol), [
+            ->actualizarRolPanel($rol, [
                 'name' => 'superadmin',
                 'permissions' => RolesAndPermissionsSeeder::PERMISSIONS,
             ])
-            ->assertRedirect(route('admin.roles.index'))
-            ->assertSessionHasErrors(['name' => 'El rol principal "admin" no se puede renombrar.']);
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name' => 'El rol principal "admin" no se puede renombrar.']);
 
         $this->assertDatabaseHas('roles', ['id' => $rol->id, 'name' => 'admin']);
         $this->assertTrue($admin->fresh()->hasRole('admin'));
@@ -63,16 +64,16 @@ class AdminProtectionTest extends TestCase
 
         // Sin ninguna casilla marcada (no llega la clave `permissions`).
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'admin'])
-            ->assertSessionHasErrors('permissions');
+            ->actualizarRolPanel($rol, ['name' => 'admin'])
+            ->assertJsonValidationErrors('permissions');
 
         // Quitando solo uno de los permisos críticos.
         $sinAsignarRoles = array_values(array_diff(
             RolesAndPermissionsSeeder::PERMISSIONS,
             ['usuarios.asignar-roles'],
         ));
-        $this->put(route('admin.roles.update', $rol), ['name' => 'admin', 'permissions' => $sinAsignarRoles])
-            ->assertSessionHasErrors(['permissions' => 'El rol "admin" no puede perder permisos de administración: usuarios.asignar-roles.']);
+        $this->actualizarRolPanel($rol, ['name' => 'admin', 'permissions' => $sinAsignarRoles])
+            ->assertJsonValidationErrors(['permissions' => 'El rol "admin" no puede perder permisos de administración: usuarios.asignar-roles.']);
 
         $this->assertSame($total, $rol->fresh()->permissions()->count());
         $this->assertTrue($admin->fresh()->can('usuarios.asignar-roles'));
@@ -85,9 +86,9 @@ class AdminProtectionTest extends TestCase
         $permisos = array_values(array_diff(RolesAndPermissionsSeeder::PERMISSIONS, ['respaldo.exportar']));
 
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'admin', 'permissions' => $permisos])
-            ->assertRedirect(route('admin.roles.index'))
-            ->assertSessionHasNoErrors();
+            ->actualizarRolPanel($rol, ['name' => 'admin', 'permissions' => $permisos])
+            ->assertSuccessful()
+            ->assertJsonMissingValidationErrors();
 
         $this->assertFalse($rol->fresh()->hasPermissionTo('respaldo.exportar'));
         $this->assertTrue($rol->fresh()->hasPermissionTo('usuarios.asignar-roles'));
@@ -99,8 +100,8 @@ class AdminProtectionTest extends TestCase
         $rol = Role::findByName('admin');
 
         $this->actingAs($admin)
-            ->delete(route('admin.roles.destroy', $rol))
-            ->assertSessionHasErrors(['rol' => 'No se puede eliminar el rol principal de administración.']);
+            ->eliminarRolPanel($rol)
+            ->assertJsonValidationErrors(['rol' => 'No se puede eliminar el rol principal de administración.']);
 
         $this->assertDatabaseHas('roles', ['id' => $rol->id, 'name' => 'admin']);
     }
@@ -110,16 +111,16 @@ class AdminProtectionTest extends TestCase
         $admin = $this->makeUser('admin');
 
         $this->actingAs($admin)
-            ->post(route('admin.roles.store'), ['name' => 'auditor', 'permissions' => ['auditoria.ver']])
-            ->assertRedirect(route('admin.roles.index'));
+            ->crearRolPanel(['name' => 'auditor', 'permissions' => ['auditoria.ver']])
+            ->assertSuccessful();
         $auditor = Role::findByName('auditor');
 
-        $this->put(route('admin.roles.update', $auditor), ['name' => 'auditor-externo', 'permissions' => ['auditoria.ver', 'reportes.ver']])
-            ->assertRedirect(route('admin.roles.index'))
-            ->assertSessionHasNoErrors();
+        $this->actualizarRolPanel($auditor, ['name' => 'auditor-externo', 'permissions' => ['auditoria.ver', 'reportes.ver']])
+            ->assertSuccessful()
+            ->assertJsonMissingValidationErrors();
         $this->assertDatabaseHas('roles', ['id' => $auditor->id, 'name' => 'auditor-externo']);
 
-        $this->delete(route('admin.roles.destroy', $auditor))->assertRedirect(route('admin.roles.index'));
+        $this->eliminarRolPanel($auditor)->assertSuccessful();
         $this->assertDatabaseMissing('roles', ['id' => $auditor->id]);
     }
 
@@ -376,9 +377,9 @@ class AdminProtectionTest extends TestCase
         $this->refillPermissionCacheBeforeCommit('CACHE-OBSOLETA');
 
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'auditor', 'permissions' => ['auditoria.ver']])
-            ->assertRedirect(route('admin.roles.index'))
-            ->assertSessionHasNoErrors();
+            ->actualizarRolPanel($rol, ['name' => 'auditor', 'permissions' => ['auditoria.ver']])
+            ->assertSuccessful()
+            ->assertJsonMissingValidationErrors();
 
         $this->assertFalse(Cache::has(app(PermissionRegistrar::class)->cacheKey), 'La caché rellenada antes del commit debe invalidarse después.');
         $this->assertTrue($rol->fresh()->hasPermissionTo('auditoria.ver'));
@@ -392,8 +393,8 @@ class AdminProtectionTest extends TestCase
         $this->refillPermissionCacheBeforeCommit('CACHE-OBSOLETA');
 
         $this->actingAs($admin)
-            ->delete(route('admin.roles.destroy', $rol))
-            ->assertRedirect(route('admin.roles.index'));
+            ->eliminarRolPanel($rol)
+            ->assertSuccessful();
 
         $this->assertFalse(Cache::has(app(PermissionRegistrar::class)->cacheKey));
         $this->assertDatabaseMissing('roles', ['id' => $rol->id]);
@@ -413,7 +414,7 @@ class AdminProtectionTest extends TestCase
         $this->withoutExceptionHandling();
 
         try {
-            $this->actingAs($admin)->put(route('admin.roles.update', $rol), ['name' => 'renombrado', 'permissions' => ['auditoria.ver']]);
+            $this->actingAs($admin)->actualizarRolPanel($rol, ['name' => 'renombrado', 'permissions' => ['auditoria.ver']]);
             $this->fail('La excepción debía propagarse, no ocultarse.');
         } catch (RuntimeException $e) {
             $this->assertSame('fallo-antes-del-commit', $e->getMessage());
@@ -432,8 +433,8 @@ class AdminProtectionTest extends TestCase
         app(PermissionRegistrar::class)->getPermissions(); // la caché ya está rellena y vigente
 
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'admin', 'permissions' => ['reportes.ver']])
-            ->assertSessionHasErrors('permissions');
+            ->actualizarRolPanel($rol, ['name' => 'admin', 'permissions' => ['reportes.ver']])
+            ->assertJsonValidationErrors('permissions');
 
         $this->assertTrue(Cache::has(app(PermissionRegistrar::class)->cacheKey), 'Un rechazo previo al cambio no invalida la caché.');
         $this->assertSame($total, $rol->fresh()->permissions()->count());

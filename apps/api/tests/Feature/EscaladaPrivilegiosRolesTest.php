@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
  */
 class EscaladaPrivilegiosRolesTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -41,7 +43,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
 
         // Cadena clásica: añadirse `usuarios.asignar-roles` editando el propio rol y luego asignarse `admin`.
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', Role::findByName('coordinador')), [
+            ->actualizarRolPanel(Role::findByName('coordinador'), [
                 'name' => 'coordinador',
                 'permissions' => array_merge($antes, ['usuarios.asignar-roles']),
             ])
@@ -64,7 +66,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $sinAuditoria = array_values(array_diff($antes, ['auditoria.ver', 'auditoria.exportar']));
 
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', $rol), ['name' => 'admin', 'permissions' => $sinAuditoria])
+            ->actualizarRolPanel($rol, ['name' => 'admin', 'permissions' => $sinAuditoria])
             ->assertForbidden();
 
         $this->assertSame($antes, $this->permisosDe('admin'));
@@ -77,17 +79,17 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $rol = Role::create(['name' => 'auditor', 'guard_name' => 'web']);
 
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'auditor', 'permissions' => ['auditoria.ver', 'usuarios.ver']])
-            ->assertRedirect(route('admin.roles.index'));
+            ->actualizarRolPanel($rol, ['name' => 'auditor', 'permissions' => ['auditoria.ver', 'usuarios.ver']])
+            ->assertSuccessful();
         $this->assertEqualsCanonicalizing(['auditoria.ver', 'usuarios.ver'], $this->permisosDe('auditor'));
 
         $sinExportar = array_values(array_diff($this->permisosDe('admin'), ['auditoria.exportar']));
-        $this->put(route('admin.roles.update', Role::findByName('admin')), ['name' => 'admin', 'permissions' => $sinExportar])
-            ->assertRedirect(route('admin.roles.index'));
+        $this->actualizarRolPanel(Role::findByName('admin'), ['name' => 'admin', 'permissions' => $sinExportar])
+            ->assertSuccessful();
 
         // Las reglas de integridad del rol admin siguen siendo 422 para el administrador.
-        $this->put(route('admin.roles.update', Role::findByName('admin')), ['name' => 'admin', 'permissions' => ['reportes.ver']])
-            ->assertSessionHasErrors('permissions');
+        $this->actualizarRolPanel(Role::findByName('admin'), ['name' => 'admin', 'permissions' => ['reportes.ver']])
+            ->assertJsonValidationErrors('permissions');
         $this->assertSame(0, AuditLog::where('action', 'acceso_denegado')->count());
     }
 
@@ -100,7 +102,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $rol->givePermissionTo('cursos.ver');
 
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', $rol), ['name' => 'analista', 'permissions' => ['cursos.ver', 'usuarios.eliminar', 'auditoria.ver']])
+            ->actualizarRolPanel($rol, ['name' => 'analista', 'permissions' => ['cursos.ver', 'usuarios.eliminar', 'auditoria.ver']])
             ->assertForbidden();
         $this->assertSame(['cursos.ver'], $this->permisosDe('analista'));
 
@@ -109,8 +111,8 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $this->assertEqualsCanonicalizing(['usuarios.eliminar', 'auditoria.ver'], $fila->changes['contexto']['permisos_excedidos']);
 
         // Solo cuenta lo que se AÑADE: conservar permisos existentes y sumar uno propio es válido.
-        $this->put(route('admin.roles.update', $rol), ['name' => 'analista', 'permissions' => ['cursos.ver', 'reportes.ver']])
-            ->assertRedirect(route('admin.roles.index'));
+        $this->actualizarRolPanel($rol, ['name' => 'analista', 'permissions' => ['cursos.ver', 'reportes.ver']])
+            ->assertSuccessful();
         $this->assertEqualsCanonicalizing(['cursos.ver', 'reportes.ver'], $this->permisosDe('analista'));
     }
 
@@ -119,12 +121,12 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $gestor = $this->gestorRoles();
 
         $this->actingAs($gestor)
-            ->post(route('admin.roles.store'), ['name' => 'tomado', 'permissions' => ['reportes.ver', 'usuarios.asignar-roles']])
+            ->crearRolPanel(['name' => 'tomado', 'permissions' => ['reportes.ver', 'usuarios.asignar-roles']])
             ->assertForbidden();
         $this->assertDatabaseMissing('roles', ['name' => 'tomado']);
 
-        $this->post(route('admin.roles.store'), ['name' => 'lector', 'permissions' => ['reportes.ver', 'cursos.ver']])
-            ->assertRedirect(route('admin.roles.index'));
+        $this->crearRolPanel(['name' => 'lector', 'permissions' => ['reportes.ver', 'cursos.ver']])
+            ->assertSuccessful();
         $this->assertEqualsCanonicalizing(['reportes.ver', 'cursos.ver'], $this->permisosDe('lector'));
         $this->assertSame($gestor->id, AuditLog::where('action', 'role_created')->sole()->user_id);
     }
@@ -137,9 +139,9 @@ class EscaladaPrivilegiosRolesTest extends TestCase
 
         // Ni siquiera para QUITAR permisos: el rol supera al actor (R4e).
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', $rol), ['name' => 'auditor', 'permissions' => ['reportes.ver']])
+            ->actualizarRolPanel($rol, ['name' => 'auditor', 'permissions' => ['reportes.ver']])
             ->assertForbidden();
-        $this->delete(route('admin.roles.destroy', $rol))->assertForbidden();
+        $this->eliminarRolPanel($rol)->assertForbidden();
 
         $this->assertEqualsCanonicalizing(['auditoria.ver', 'reportes.ver'], $this->permisosDe('auditor'));
         $this->assertDatabaseHas('roles', ['name' => 'auditor']);
@@ -154,8 +156,8 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $inocuo = Role::create(['name' => 'temporal', 'guard_name' => 'web']);
         $inocuo->givePermissionTo('cursos.ver');
 
-        $this->actingAs($gestor)->delete(route('admin.roles.destroy', Role::findByName('coordinador')))->assertForbidden();
-        $this->delete(route('admin.roles.destroy', Role::findByName('admin')))->assertForbidden();
+        $this->actingAs($gestor)->eliminarRolPanel(Role::findByName('coordinador'))->assertForbidden();
+        $this->eliminarRolPanel(Role::findByName('admin'))->assertForbidden();
 
         $this->assertDatabaseHas('roles', ['name' => 'coordinador']);
         $this->assertDatabaseHas('roles', ['name' => 'admin']);
@@ -163,7 +165,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $this->assertSame(['R4b', 'R4a'], AuditLog::where('action', 'acceso_denegado')->orderBy('id')->get()->map(fn ($f) => $f->changes['regla'])->all());
 
         // Un rol dentro del alcance y no asignado al actor se puede eliminar.
-        $this->delete(route('admin.roles.destroy', $inocuo))->assertRedirect(route('admin.roles.index'));
+        $this->eliminarRolPanel($inocuo)->assertSuccessful();
         $this->assertDatabaseMissing('roles', ['name' => 'temporal']);
     }
 
@@ -172,8 +174,8 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $admin = $this->makeUser('admin');
 
         $this->actingAs($admin)
-            ->delete(route('admin.roles.destroy', Role::findByName('admin')))
-            ->assertSessionHasErrors('rol');
+            ->eliminarRolPanel(Role::findByName('admin'))
+            ->assertJsonValidationErrors('rol');
         $this->assertDatabaseHas('roles', ['name' => 'admin']);
     }
 
@@ -194,7 +196,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         });
 
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', $rol), ['name' => 'renombrado', 'permissions' => []])
+            ->actualizarRolPanel($rol, ['name' => 'renombrado', 'permissions' => []])
             ->assertForbidden();
 
         $this->assertTrue($degradado);
@@ -214,9 +216,9 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $this->withoutExceptionHandling();
 
         foreach ([
-            fn () => $this->actingAs($admin)->post(route('admin.roles.store'), ['name' => 'nuevo', 'permissions' => ['reportes.ver']]),
-            fn () => $this->put(route('admin.roles.update', $rol), ['name' => 'renombrado', 'permissions' => ['reportes.ver']]),
-            fn () => $this->delete(route('admin.roles.destroy', $rol)),
+            fn () => $this->actingAs($admin)->crearRolPanel(['name' => 'nuevo', 'permissions' => ['reportes.ver']]),
+            fn () => $this->actualizarRolPanel($rol, ['name' => 'renombrado', 'permissions' => ['reportes.ver']]),
+            fn () => $this->eliminarRolPanel($rol),
         ] as $intento) {
             try {
                 $intento();
@@ -239,7 +241,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $this->assertTrue(Cache::has($clave));
 
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', Role::findByName('admin')), ['name' => 'admin', 'permissions' => ['reportes.ver']])
+            ->actualizarRolPanel(Role::findByName('admin'), ['name' => 'admin', 'permissions' => ['reportes.ver']])
             ->assertForbidden();
 
         $this->assertTrue(Cache::has($clave), 'Una denegación no invalida la caché.');
@@ -254,8 +256,8 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         });
 
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', $rol), ['name' => 'analista', 'permissions' => ['reportes.ver']])
-            ->assertRedirect(route('admin.roles.index'));
+            ->actualizarRolPanel($rol, ['name' => 'analista', 'permissions' => ['reportes.ver']])
+            ->assertSuccessful();
 
         $this->assertFalse(Cache::has(app(PermissionRegistrar::class)->cacheKey));
     }
@@ -267,7 +269,7 @@ class EscaladaPrivilegiosRolesTest extends TestCase
         $gestor = $this->gestorRoles();
 
         $this->actingAs($gestor)
-            ->put(route('admin.roles.update', Role::findByName('coordinador')), [
+            ->actualizarRolPanel(Role::findByName('coordinador'), [
                 'name' => 'coordinador', 'permissions' => ['usuarios.asignar-roles'],
                 '_token' => 'token-secreto', 'password' => 'ClaveSecreta12345',
             ])

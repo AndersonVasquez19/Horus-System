@@ -20,6 +20,7 @@ use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -31,6 +32,7 @@ class AdminAuthorizationTest extends TestCase
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     private const ALL = ['admin', 'coordinador', 'secretaria'];
@@ -56,7 +58,6 @@ class AdminAuthorizationTest extends TestCase
             'busqueda' => ['admin.busqueda.index', self::ALL],
             'usuarios.index' => ['admin.usuarios.index', ['admin']],
             'usuarios.create' => ['admin.usuarios.create', ['admin']],
-            'roles.index' => ['admin.roles.index', ['admin']],
             'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
@@ -228,9 +229,11 @@ class AdminAuthorizationTest extends TestCase
             $this->get(route('admin.usuarios.edit', $objetivo))->assertForbidden();
             $this->put(route('admin.usuarios.update', $objetivo), [])->assertForbidden();
             $this->delete(route('admin.usuarios.destroy', $objetivo))->assertForbidden();
-            $this->post(route('admin.roles.store'), ['name' => 'nuevo'])->assertForbidden();
-            $this->put(route('admin.roles.update', $rol), ['name' => 'renombrado'])->assertForbidden();
-            $this->delete(route('admin.roles.destroy', $rol))->assertForbidden();
+            // Los roles los sirve el panel (lectura incluida): sin `roles.*` es 403.
+            $this->llamarRolesPanel('GET')->assertForbidden();
+            $this->crearRolPanel(['name' => 'nuevo'])->assertForbidden();
+            $this->actualizarRolPanel($rol, ['name' => 'renombrado'])->assertForbidden();
+            $this->eliminarRolPanel($rol)->assertForbidden();
             $this->put(route('admin.configuracion.update'), ['settings' => ['moneda' => 'X']])->assertForbidden();
         }
 

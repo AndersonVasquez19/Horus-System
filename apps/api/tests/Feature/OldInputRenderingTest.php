@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class OldInputRenderingTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     private const MALFORMED = ['x'];
@@ -48,8 +50,10 @@ class OldInputRenderingTest extends TestCase
         $this->actingAs($this->adminUser());
         $rol = Role::create(['name' => 'rol-ficticio', 'guard_name' => 'web']);
 
-        $this->assertSurvives('post', route('admin.roles.store'), route('admin.roles.index'), ['name' => 'otro-rol'], 'name');
-        $this->assertSurvives('put', route('admin.roles.update', $rol), route('admin.roles.index'), ['name' => 'otro-rol'], 'name');
+        // Los roles los sirve el panel: un nombre con forma de arreglo es un 422 limpio, no un 500, y no cambia nada.
+        $this->crearRolPanel(['name' => self::MALFORMED])->assertUnprocessable()->assertJsonValidationErrors('name');
+        $this->actualizarRolPanel($rol, ['name' => self::MALFORMED])->assertUnprocessable()->assertJsonValidationErrors('name');
+        $this->assertSame('rol-ficticio', $rol->fresh()->name);
     }
 
     /** @return iterable<string, array{string}> */

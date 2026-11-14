@@ -15,10 +15,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Resend\Laravel\Events\EmailDelivered;
 use RuntimeException;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 class Sprint12AtomicityTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -46,7 +48,7 @@ class Sprint12AtomicityTest extends TestCase
         $this->actingAs($this->adminUser());
         $before = DB::table('role_has_permissions')->count();
         $this->failAudit();
-        $this->postJson(route('admin.roles.store'), ['name' => 'rol-prueba', 'permissions' => ['estudiantes.ver']])
+        $this->crearRolPanel(['name' => 'rol-prueba', 'permissions' => ['estudiantes.ver']])
             ->assertStatus(500);
         $this->assertDatabaseMissing('roles', ['name' => 'rol-prueba']);
         $this->assertSame($before, DB::table('role_has_permissions')->count());

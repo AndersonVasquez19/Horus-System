@@ -40,6 +40,7 @@ class AdminModulosRetiradosTest extends TestCase
             'reclamaciones' => ['admin.reclamaciones.index', '/admin/reclamaciones'],
             'perfil' => ['admin.perfil.edit', '/admin/perfil'],
             'notificaciones' => ['admin.notificaciones.index', '/admin/notificaciones'],
+            'roles' => ['admin.roles.index', '/admin/roles'],
         ];
     }
 
@@ -99,6 +100,16 @@ class AdminModulosRetiradosTest extends TestCase
         // La campana del shell Blade (hasta la Ola 4) conserva sus dos endpoints JSON.
         $this->getJson(route('admin.notificaciones.recientes'))->assertOk()->assertJsonStructure(['pendientes', 'notificaciones']);
         $this->patchJson(route('admin.notificaciones.leidas'))->assertOk()->assertJsonStructure(['marcadas', 'pendientes']);
+    }
+
+    public function test_crear_editar_y_eliminar_roles_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $this->post('/admin/roles', ['name' => 'nuevo'])->assertStatus(405);
+        $this->put('/admin/roles/1', ['name' => 'x'])->assertNotFound();
+        $this->delete('/admin/roles/1')->assertNotFound();
+        $this->assertDatabaseMissing('roles', ['name' => 'nuevo']);
     }
 
     public function test_la_exportacion_de_auditoria_ya_no_existe_en_blade(): void

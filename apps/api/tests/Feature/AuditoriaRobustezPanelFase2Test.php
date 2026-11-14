@@ -17,6 +17,7 @@ use Spatie\Permission\Models\Role;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
@@ -25,6 +26,7 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
+    use LlamaRolesDelPanel;
     use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
@@ -125,11 +127,11 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         AuditLog::query()->delete();
 
         $this->actingAs($this->admin)
-            ->put(route('admin.roles.update', $rolCustom), [
+            ->actualizarRolPanel($rolCustom, [
                 'name' => 'supervisor',
                 'permissions' => ['estudiantes.ver'],
             ])
-            ->assertRedirect(route('admin.roles.index'));
+            ->assertSuccessful();
 
         $this->assertDatabaseMissing('audit_logs', [
             'action' => 'role_updated',

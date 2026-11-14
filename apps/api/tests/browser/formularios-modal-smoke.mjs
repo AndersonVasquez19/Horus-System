@@ -169,15 +169,6 @@ try {
   await evaluate(`document.querySelector('dialog[open] [name=email]').value = 'borrador.modal@example.test'; document.querySelector('dialog[open] form').requestSubmit();`);
   await waitFor(() => evaluate('location.pathname === "/admin/usuarios" && document.readyState === "complete"'));
   report.nativeSave = true;
-  await navigate('/admin/roles', '[data-admin-modal-open="crear-rol"]');
-  await click('[data-admin-modal-open="crear-rol"]'); await waitFor(modalOpen);
-  await evaluate(`const f = document.querySelector('#crear-rol form'); f.noValidate = true; f.querySelector('[name=name]').value = 'admin'; f.querySelector('[name="permissions[]"]').checked = true; f.requestSubmit();`);
-  await waitFor(() => evaluate('!!document.querySelector("#crear-rol[open] [role=alert]")'));
-  check(await evaluate(`document.querySelector('#crear-rol [name=name]').value === 'admin' && document.querySelector('#crear-rol input[type=checkbox]').checked`), 'Role draft lost');
-  await click('#crear-rol [data-admin-modal-close]');
-  check(!(await modalOpen()), 'Role did not close');
-  const editId = await evaluate('document.querySelector("[data-admin-modal-open^=editar-rol-]").dataset.adminModalOpen');
-  await click('[data-admin-modal-open="' + editId + '"]'); await waitFor(modalOpen);
   await navigate('/admin/aprobaciones', '[aria-controls="form-nueva-aprobacion"]');
   await click('[aria-controls="form-nueva-aprobacion"]'); await waitFor(modalOpen);
   await click('#form-nueva-aprobacion [data-admin-modal-close]');

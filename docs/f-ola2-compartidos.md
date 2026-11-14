@@ -248,3 +248,20 @@ cierre de las demás, cierre de una y huella ajena, driver no disponible), que c
 `NotificacionPrivacidadUsuarioEliminadoTest` conservan todos sus casos: la bandeja y «marcar una» se prueban ahora por la API del
 panel, la campana y el contador del inicio siguen contra el Blade. `HoraLocalPanelTest` y `RetiroProcesosTest` leen la bandeja del
 panel. Se retiraron solo comprobaciones de HTML (formularios de sesiones, errores por sección, vínculos en la plantilla).
+
+### Roles (retirados)
+
+| Blade | Ahora |
+| --- | --- |
+| `GET /admin/roles` | 302 a `/admin/roles` de Next (nombre `admin.roles.index` conservado) |
+| `POST /admin/roles`, `PUT/DELETE /admin/roles/{id}` | eliminadas (405/404); `POST/PUT/DELETE /compartido/roles[/{id}]` |
+
+Se eliminan `Admin\RoleController` y la vista `roles/index`. Las reglas siguen en `GestionRoles` (R4a a R4e, rol `admin`
+intacto, roles base, caché de permisos tras el commit, atomicidad con la auditoría) y ahora las usa solo el panel.
+
+Pruebas: ninguna regla se retiró. `AdminProtectionTest`, `EscaladaPrivilegiosRolesTest`, `ProteccionRolesBaseTest`,
+`AuditoriaRobustezPanelFase2Test`, `Sprint12AtomicityTest` y `AdminAuthorizationTest` se portaron a la API del panel con el
+helper `LlamaRolesDelPanel` (`crearRolPanel`, `actualizarRolPanel`, `eliminarRolPanel`): la redirección con éxito pasa a 2xx,
+los errores que iban a la sesión pasan a 422 con `errors`, y las denegaciones R4 siguen siendo 403 con su constancia de
+auditoría. `PermisosRetiradosTest`, `RetiroProcesosTest` y `OldInputRenderingTest` leen la API en vez de la pantalla. Se
+retiró solo HTML: la entrada `roles.index` del inventario de páginas y el modal de roles del smoke de navegador.

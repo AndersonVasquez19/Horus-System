@@ -9,11 +9,13 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 /** Permisos sin ninguna comprobación en rutas, controladores o vistas: se retiran sin borrar filas. */
 class PermisosRetiradosTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     private const RETIRADOS = [
@@ -41,7 +43,7 @@ class PermisosRetiradosTest extends TestCase
         $this->assertSame([], array_values(array_intersect(self::RETIRADOS, RolesAndPermissionsSeeder::SECRETARIA_PERMISSIONS)));
     }
 
-    public function test_la_pantalla_de_roles_los_oculta_aunque_existan_y_no_se_borran(): void
+    public function test_la_api_de_roles_los_oculta_aunque_existan_y_no_se_borran(): void
     {
         $admin = $this->adminUser();
         foreach (self::RETIRADOS as $permiso) {
@@ -49,9 +51,13 @@ class PermisosRetiradosTest extends TestCase
         }
         Role::findByName('coordinador')->givePermissionTo(['seguimientos.ver', 'seguimientos.crear']);
 
-        $respuesta = $this->actingAs($admin)->get(route('admin.roles.index'))->assertOk()->assertSee('aprobaciones.ver');
+        // La lista de roles la sirve el panel: ni el catálogo (`meta.permisos`) ni los permisos de cada rol los incluyen.
+        $respuesta = $this->actingAs($admin)->llamarRolesPanel('GET')->assertOk();
+        $this->assertContains('aprobaciones.ver', $respuesta->json('meta.permisos'));
+        $coordinador = collect($respuesta->json('data'))->firstWhere('nombre', 'coordinador');
         foreach (self::RETIRADOS as $permiso) {
-            $respuesta->assertDontSee($permiso);
+            $this->assertNotContains($permiso, $respuesta->json('meta.permisos'));
+            $this->assertNotContains($permiso, $coordinador['permisos']);
         }
 
         $this->assertSame(5, Permission::whereIn('name', self::RETIRADOS)->count());
@@ -70,7 +76,7 @@ class PermisosRetiradosTest extends TestCase
         $sin = User::factory()->create();
         $sin->assignRole('secretaria');
 
-        foreach (['admin.estudiantes.index', 'admin.cursos.index', 'admin.matriculas.index', 'admin.roles.index', 'admin.asistente.index'] as $ruta) {
+        foreach (['admin.estudiantes.index', 'admin.cursos.index', 'admin.matriculas.index', 'admin.asistente.index'] as $ruta) {
             $this->actingAs($con)->get(route($ruta))->assertStatus($this->actingAs($sin)->get(route($ruta))->status());
         }
     }

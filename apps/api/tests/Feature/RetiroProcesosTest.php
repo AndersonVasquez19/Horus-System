@@ -13,10 +13,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 class RetiroProcesosTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -106,11 +108,11 @@ class RetiroProcesosTest extends TestCase
             $admin->givePermissionTo($permiso);
         }
 
-        $this->actingAs($admin)->get(route('admin.roles.index'))
-            ->assertOk()
-            ->assertDontSee('procesos.ver')
-            ->assertDontSee('procesos.gestionar')
-            ->assertSee('aprobaciones.ver');
+        // La lista de roles la sirve el panel (`/api/panel/v1/compartido/roles`).
+        $permisos = $this->actingAs($admin)->llamarRolesPanel('GET')->assertOk()->json('meta.permisos');
+        $this->assertNotContains('procesos.ver', $permisos);
+        $this->assertNotContains('procesos.gestionar', $permisos);
+        $this->assertContains('aprobaciones.ver', $permisos);
 
         $this->assertTrue($admin->fresh()->hasAllPermissions(['procesos.ver', 'procesos.gestionar']));
         $this->assertSame(2, Permission::whereIn('name', ['procesos.ver', 'procesos.gestionar'])->count());

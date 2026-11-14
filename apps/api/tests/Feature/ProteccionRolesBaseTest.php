@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaRolesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -16,6 +17,7 @@ use Tests\TestCase;
  */
 class ProteccionRolesBaseTest extends TestCase
 {
+    use LlamaRolesDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -33,8 +35,8 @@ class ProteccionRolesBaseTest extends TestCase
             $permisos = $rol->permissions()->pluck('name')->all();
 
             $this->actingAs($admin)
-                ->put(route('admin.roles.update', $rol), ['name' => $nombre.'-renombrado', 'permissions' => $permisos])
-                ->assertSessionHasErrors('name');
+                ->actualizarRolPanel($rol, ['name' => $nombre.'-renombrado', 'permissions' => $permisos])
+                ->assertJsonValidationErrors('name');
 
             $this->assertDatabaseHas('roles', ['name' => $nombre]);
             $this->assertDatabaseMissing('roles', ['name' => $nombre.'-renombrado']);
@@ -47,8 +49,8 @@ class ProteccionRolesBaseTest extends TestCase
 
         foreach (['coordinador', 'secretaria'] as $nombre) {
             $this->actingAs($admin)
-                ->delete(route('admin.roles.destroy', Role::findByName($nombre, 'web')))
-                ->assertSessionHasErrors('rol');
+                ->eliminarRolPanel(Role::findByName($nombre, 'web'))
+                ->assertJsonValidationErrors('rol');
 
             $this->assertDatabaseHas('roles', ['name' => $nombre]);
         }
@@ -60,8 +62,8 @@ class ProteccionRolesBaseTest extends TestCase
         $rol = Role::findByName('secretaria', 'web');
 
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'secretaria', 'permissions' => ['estudiantes.ver']])
-            ->assertRedirect(route('admin.roles.index'));
+            ->actualizarRolPanel($rol, ['name' => 'secretaria', 'permissions' => ['estudiantes.ver']])
+            ->assertSuccessful();
 
         $this->assertSame(['estudiantes.ver'], $rol->fresh()->permissions()->pluck('name')->all());
     }
@@ -72,11 +74,11 @@ class ProteccionRolesBaseTest extends TestCase
         $rol = Role::create(['name' => 'auxiliar', 'guard_name' => 'web']);
 
         $this->actingAs($admin)
-            ->put(route('admin.roles.update', $rol), ['name' => 'auxiliar-b', 'permissions' => []])
-            ->assertRedirect(route('admin.roles.index'));
+            ->actualizarRolPanel($rol, ['name' => 'auxiliar-b', 'permissions' => []])
+            ->assertSuccessful();
         $this->assertDatabaseHas('roles', ['name' => 'auxiliar-b']);
 
-        $this->actingAs($admin)->delete(route('admin.roles.destroy', $rol->fresh()))->assertRedirect(route('admin.roles.index'));
+        $this->actingAs($admin)->eliminarRolPanel($rol->fresh())->assertSuccessful();
         $this->assertDatabaseMissing('roles', ['name' => 'auxiliar-b']);
     }
 }

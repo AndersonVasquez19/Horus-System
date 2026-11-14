@@ -13,7 +13,7 @@ use Spatie\Permission\Models\Role;
 /**
  * Altas, cambios y bajas de roles con las reglas de protección administrativa (R4 y rol `admin`).
  *
- * Única implementación: la usan el Blade (`Admin\RoleController`) y el panel (`Api\Panel\Compartido\RolController`).
+ * Única implementación de las reglas de roles: la usa el panel (`Api\Panel\Compartido\RolController`); el Blade se retiró el 14/11/2026.
  * También centraliza qué permisos se muestran: los históricos sin módulo se ocultan, no se borran.
  */
 final class GestionRoles
