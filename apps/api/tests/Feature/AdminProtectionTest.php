@@ -16,6 +16,7 @@ use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\LlamaRolesDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -27,6 +28,7 @@ use Tests\TestCase;
 class AdminProtectionTest extends TestCase
 {
     use LlamaRolesDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -146,7 +148,7 @@ class AdminProtectionTest extends TestCase
 
         // Sprint 21.1: un no administrador ya no llega a la regla del último administrador (403, R3).
         $this->actingAs($gestor)
-            ->delete(route('admin.usuarios.destroy', $ultimo))
+            ->eliminarUsuarioPanel($ultimo)
             ->assertForbidden();
 
         // La regla de integridad sigue vigente como segunda barrera (p. ej. ante un actor degradado a medias).
@@ -168,15 +170,15 @@ class AdminProtectionTest extends TestCase
 
         // Solo un administrador elimina a otro administrador (R3).
         $this->actingAs($dos)
-            ->delete(route('admin.usuarios.destroy', $uno))
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->eliminarUsuarioPanel($uno)
+            ->assertSuccessful();
 
         $this->assertModelMissing($uno);
         $this->assertSame(1, app(AdminProtection::class)->activeAdminCount());
 
         // Ahora $dos es el último: no puede eliminarse (ni a sí mismo ni por otra vía).
-        $this->delete(route('admin.usuarios.destroy', $dos))
-            ->assertSessionHasErrors('usuario');
+        $this->eliminarUsuarioPanel($dos)
+            ->assertJsonValidationErrors('usuario');
         $this->assertModelExists($dos);
         $this->expectException(ValidationException::class);
         app(AdminProtection::class)->assertUserCanBeDeleted($dos, null);
@@ -189,7 +191,7 @@ class AdminProtectionTest extends TestCase
 
         // Sprint 21.1: un no administrador ya no puede tocar al administrador (403, R1/R2).
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $ultimo), [
+            ->actualizarUsuarioPanel($ultimo, [
                 'name' => 'Nombre nuevo',
                 'email' => $ultimo->email,
                 'roles' => ['secretaria'],
@@ -217,17 +219,17 @@ class AdminProtectionTest extends TestCase
         $this->makeUser('admin');
 
         $this->actingAs($yo)
-            ->put(route('admin.usuarios.update', $yo), [
+            ->actualizarUsuarioPanel($yo, [
                 'name' => $yo->name,
                 'email' => $yo->email,
                 'roles' => ['coordinador'],
             ])
-            ->assertSessionHasErrors(['roles' => 'No puedes retirarte a ti mismo el rol de administrador. Pídeselo a otro administrador.']);
+            ->assertJsonValidationErrors(['roles' => 'No puedes retirarte a ti mismo el rol de administrador. Pídeselo a otro administrador.']);
 
-        $this->put(route('admin.usuarios.update', $yo), [
+        $this->actualizarUsuarioPanel($yo, [
             'name' => $yo->name,
             'email' => $yo->email,
-        ])->assertSessionHasErrors('roles');
+        ])->assertJsonValidationErrors('roles');
 
         $this->assertTrue($yo->fresh()->hasRole('admin'));
         $this->get(route('admin.dashboard'))->assertOk();
@@ -238,13 +240,13 @@ class AdminProtectionTest extends TestCase
         $yo = $this->makeUser('admin');
 
         $this->actingAs($yo)
-            ->put(route('admin.usuarios.update', $yo), [
+            ->actualizarUsuarioPanel($yo, [
                 'name' => 'Nombre actualizado',
                 'email' => $yo->email,
                 'roles' => ['admin'],
             ])
-            ->assertRedirect(route('admin.usuarios.index'))
-            ->assertSessionHasNoErrors();
+            ->assertSuccessful()
+            ->assertJsonMissingValidationErrors();
 
         $this->assertSame('Nombre actualizado', $yo->fresh()->name);
         $this->assertTrue($yo->fresh()->hasRole('admin'));
@@ -256,12 +258,12 @@ class AdminProtectionTest extends TestCase
         $dos = $this->makeUser('admin');
 
         $this->actingAs($uno)
-            ->put(route('admin.usuarios.update', $dos), [
+            ->actualizarUsuarioPanel($dos, [
                 'name' => $dos->name,
                 'email' => $dos->email,
                 'roles' => ['secretaria'],
             ])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->assertSuccessful();
 
         $this->assertFalse($dos->fresh()->hasRole('admin'));
         $this->assertTrue($dos->fresh()->hasRole('secretaria'));
@@ -280,12 +282,12 @@ class AdminProtectionTest extends TestCase
 
         // Un administrador degrada al otro...
         $this->actingAs($uno)
-            ->put(route('admin.usuarios.update', $dos), ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->actualizarUsuarioPanel($dos, ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
+            ->assertSuccessful();
 
         // ...y el que queda no puede quitarse a sí mismo el rol: nunca se llega a cero administradores.
-        $this->put(route('admin.usuarios.update', $uno), ['name' => $uno->name, 'email' => $uno->email, 'roles' => ['secretaria']])
-            ->assertSessionHasErrors('roles');
+        $this->actualizarUsuarioPanel($uno, ['name' => $uno->name, 'email' => $uno->email, 'roles' => ['secretaria']])
+            ->assertJsonValidationErrors('roles');
 
         $this->assertSame(1, app(AdminProtection::class)->activeAdminCount());
         $this->assertTrue($uno->fresh()->hasRole('admin'));
@@ -297,15 +299,15 @@ class AdminProtectionTest extends TestCase
         $objetivo = $this->makeUser('secretaria');
 
         $this->actingAs($admin)
-            ->put(route('admin.usuarios.update', $objetivo), [
+            ->actualizarUsuarioPanel($objetivo, [
                 'name' => $objetivo->name,
                 'email' => $objetivo->email,
                 'roles' => ['coordinador'],
             ])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->assertSuccessful();
         $this->assertTrue($objetivo->fresh()->hasRole('coordinador'));
 
-        $this->delete(route('admin.usuarios.destroy', $objetivo))->assertRedirect(route('admin.usuarios.index'));
+        $this->eliminarUsuarioPanel($objetivo)->assertSuccessful();
         $this->assertModelMissing($objetivo);
     }
 
@@ -314,7 +316,7 @@ class AdminProtectionTest extends TestCase
         $admin = $this->makeUser('admin');
         $objetivo = $this->makeUser('secretaria');
 
-        $this->actingAs($admin)->put(route('admin.usuarios.update', $objetivo), [
+        $this->actingAs($admin)->actualizarUsuarioPanel($objetivo, [
             'name' => $objetivo->name,
             'email' => $objetivo->email,
             'roles' => ['coordinador'],

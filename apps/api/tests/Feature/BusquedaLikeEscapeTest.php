@@ -19,6 +19,7 @@ use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -31,6 +32,7 @@ class BusquedaLikeEscapeTest extends TestCase
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     public function test_termino_escapa_los_caracteres_especiales_de_like(): void
@@ -129,14 +131,17 @@ class BusquedaLikeEscapeTest extends TestCase
         User::factory()->create(['name' => 'Noraadíaz', 'email' => 'otra@example.test']);
         $admin = $this->adminUser();
 
-        $porcentaje = $this->actingAs($admin)->get(route('admin.usuarios.index', ['busqueda' => '%']))->assertOk()->getContent();
-        $this->assertStringContainsString('marta@example.test', $porcentaje);
-        $this->assertStringNotContainsString('nora@example.test', $porcentaje);
-        $this->assertStringNotContainsString('otra@example.test', $porcentaje);
+        $this->actingAs($admin);
+        $buscar = fn (string $texto): array => $this->llamarUsuariosPanel('GET', '', ['busqueda' => $texto])->assertOk()->json('data.*.email');
 
-        $guion = $this->get(route('admin.usuarios.index', ['busqueda' => 'Nora_D']))->assertOk()->getContent();
-        $this->assertStringContainsString('nora@example.test', $guion);
-        $this->assertStringNotContainsString('otra@example.test', $guion);
+        $porcentaje = $buscar('%');
+        $this->assertContains('marta@example.test', $porcentaje);
+        $this->assertNotContains('nora@example.test', $porcentaje);
+        $this->assertNotContains('otra@example.test', $porcentaje);
+
+        $guion = $buscar('Nora_D');
+        $this->assertContains('nora@example.test', $guion);
+        $this->assertNotContains('otra@example.test', $guion);
     }
 
     public function test_matriculas_busca_por_estudiante_o_curso_sin_comodines(): void

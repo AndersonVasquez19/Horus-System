@@ -41,6 +41,7 @@ class AdminModulosRetiradosTest extends TestCase
             'perfil' => ['admin.perfil.edit', '/admin/perfil'],
             'notificaciones' => ['admin.notificaciones.index', '/admin/notificaciones'],
             'roles' => ['admin.roles.index', '/admin/roles'],
+            'usuarios' => ['admin.usuarios.index', '/admin/usuarios'],
         ];
     }
 
@@ -100,6 +101,20 @@ class AdminModulosRetiradosTest extends TestCase
         // La campana del shell Blade (hasta la Ola 4) conserva sus dos endpoints JSON.
         $this->getJson(route('admin.notificaciones.recientes'))->assertOk()->assertJsonStructure(['pendientes', 'notificaciones']);
         $this->patchJson(route('admin.notificaciones.leidas'))->assertOk()->assertJsonStructure(['marcadas', 'pendientes']);
+    }
+
+    public function test_ver_crear_editar_y_eliminar_usuarios_ya_no_existen_en_blade(): void
+    {
+        $admin = $this->adminUser();
+        $this->actingAs($admin);
+
+        $this->post('/admin/usuarios', ['name' => 'X'])->assertStatus(405);
+        $this->get('/admin/usuarios/create')->assertNotFound();
+        $this->get('/admin/usuarios/'.$admin->id)->assertNotFound();
+        $this->get('/admin/usuarios/'.$admin->id.'/edit')->assertNotFound();
+        $this->put('/admin/usuarios/'.$admin->id, ['name' => 'X'])->assertNotFound();
+        $this->delete('/admin/usuarios/'.$admin->id)->assertNotFound();
+        $this->assertModelExists($admin);
     }
 
     public function test_crear_editar_y_eliminar_roles_ya_no_existen_en_blade(): void

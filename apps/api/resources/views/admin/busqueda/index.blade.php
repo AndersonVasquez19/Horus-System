@@ -60,7 +60,7 @@
                                             <span class="text-xs font-normal text-[#64748B]">· {{ $item->estudiante?->nombres }} {{ $item->estudiante?->apellidos }}</span>
                                         @else
                                             @can('usuarios.editar')
-                                                <a href="{{ route('admin.usuarios.edit', $item) }}" class="hover:text-[#176B9A] hover:underline">
+                                                <a href="{{ route('admin.usuarios.index') }}" class="hover:text-[#176B9A] hover:underline">
                                                     {{ $item->name }}
                                                 </a>
                                             @else

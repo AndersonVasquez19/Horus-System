@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Altas, cambios y bajas de usuarios con todas las reglas de protección administrativa (Sprint 21.1).
  *
- * Es la única implementación: la usan el Blade (`Admin\UserController`) y el panel (`Api\Panel\Compartido\UsuarioController`),
- * así que no pueden divergir en escalada de privilegios, último administrador ni auditoría. Cada operación corre bajo
+ * Es la única implementación: la usa el panel (`Api\Panel\Compartido\UsuarioController`; el Blade se retiró el 14/11/2026),
+ * así que escalada de privilegios, último administrador y auditoría viven en un solo lugar. Cada operación corre bajo
  * `AdminProtection::runAdministrative()`: el actor se relee con datos vigentes (no con la caché de Spatie) y una
  * denegación (403) se registra después del rollback.
  */

@@ -28,9 +28,9 @@ class ConfiguracionEfectivaTest extends TestCase
 
     public function test_sin_ajustes_guardados_usa_los_predeterminados(): void
     {
-        $this->actingAs($this->adminUser())->get(route('admin.usuarios.index'))
+        $this->actingAs($this->adminUser())->get(route('admin.aprobaciones.index'))
             ->assertOk()
-            ->assertSee('<title>Usuarios | Horus Group SRL</title>', false);
+            ->assertSee('<title>Aprobaciones internas | Horus Group SRL</title>', false);
         $this->assertSame('S/ 150.00', ConfiguracionSistema::monto('150'));
     }
 
@@ -47,9 +47,9 @@ class ConfiguracionEfectivaTest extends TestCase
             'settings' => ['nombre_empresa' => 'Academia Prueba SAC', 'moneda' => 'USD'],
         ])->assertRedirect(route('admin.configuracion.index'));
 
-        $this->actingAs($admin)->get(route('admin.usuarios.index'))
+        $this->actingAs($admin)->get(route('admin.aprobaciones.index'))
             ->assertOk()
-            ->assertSee('<title>Usuarios | Academia Prueba SAC</title>', false);
+            ->assertSee('<title>Aprobaciones internas | Academia Prueba SAC</title>', false);
         $this->assertSame('USD 150.00', ConfiguracionSistema::monto('150'));
     }
 
@@ -118,8 +118,8 @@ class ConfiguracionEfectivaTest extends TestCase
             }
         });
 
-        // El listado de usuarios usa el nombre (title, topbar, menú) varias veces.
-        $this->actingAs($admin)->get(route('admin.usuarios.index'))->assertOk();
+        // El listado de aprobaciones usa el nombre (title, topbar, menú) varias veces.
+        $this->actingAs($admin)->get(route('admin.aprobaciones.index'))->assertOk();
 
         $this->assertSame(1, $consultas);
     }

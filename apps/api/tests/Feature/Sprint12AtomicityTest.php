@@ -16,11 +16,13 @@ use Illuminate\Support\Facades\Http;
 use Resend\Laravel\Events\EmailDelivered;
 use RuntimeException;
 use Tests\Support\LlamaRolesDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 class Sprint12AtomicityTest extends TestCase
 {
     use LlamaRolesDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -36,7 +38,7 @@ class Sprint12AtomicityTest extends TestCase
         $this->actingAs($this->adminUser());
         $before = DB::table('model_has_roles')->count();
         $this->failAudit();
-        $this->postJson(route('admin.usuarios.store'), ['name' => 'Prueba', 'email' => 'nueva@example.invalid',
+        $this->crearUsuarioPanel(['name' => 'Prueba', 'email' => 'nueva@example.invalid',
             'password' => 'NuevaPrueba123', 'password_confirmation' => 'NuevaPrueba123', 'roles' => ['secretaria']])
             ->assertStatus(500);
         $this->assertDatabaseMissing('users', ['email' => 'nueva@example.invalid']);

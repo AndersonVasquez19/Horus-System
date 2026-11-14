@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\Support\LlamaRolesDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -21,6 +22,7 @@ use Tests\TestCase;
 class OldInputRenderingTest extends TestCase
 {
     use LlamaRolesDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     private const MALFORMED = ['x'];
@@ -40,9 +42,12 @@ class OldInputRenderingTest extends TestCase
         $otro = User::factory()->create();
         $this->actingAs($admin);
 
+        // Los usuarios los sirve el panel: un campo con forma de arreglo es un 422 limpio, no un 500, y no cambia nada.
         $datos = ['name' => 'Usuario Ficticio', 'email' => 'ficticio@example.invalid', 'password' => 'ClaveSegura123', 'password_confirmation' => 'ClaveSegura123'];
-        $this->assertSurvives('post', route('admin.usuarios.store'), route('admin.usuarios.create'), $datos, $campo);
-        $this->assertSurvives('put', route('admin.usuarios.update', $otro), route('admin.usuarios.edit', $otro), $datos, $campo);
+        $datos[$campo] = self::MALFORMED;
+        $this->crearUsuarioPanel($datos)->assertUnprocessable()->assertJsonValidationErrors($campo);
+        $this->actualizarUsuarioPanel($otro, $datos)->assertUnprocessable()->assertJsonValidationErrors($campo);
+        $this->assertDatabaseMissing('users', ['email' => 'ficticio@example.invalid']);
     }
 
     public function test_role_forms_survive_array_name(): void

@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -30,6 +31,7 @@ class ConcurrencyPostgresTest extends TestCase
 {
     use DatabaseTruncation;
     use LlamaMatriculasDelPanel;
+    use LlamaUsuariosDelPanel;
     use RequiresIsolatedPostgres;
 
     private const LOCK_NOT_AVAILABLE = '55P03';
@@ -116,7 +118,7 @@ class ConcurrencyPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($gestor)->withoutExceptionHandling()
-            ->put(route('admin.usuarios.update', $dos), ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']]));
+            ->actualizarUsuarioPanel($dos, ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']]));
 
         $b->commit();
 
@@ -124,7 +126,7 @@ class ConcurrencyPostgresTest extends TestCase
         // permisos directos. La autorización se reevalúa bajo el bloqueo con el estado confirmado.
         $this->withExceptionHandling()
             ->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $dos), ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
+            ->actualizarUsuarioPanel($dos, ['name' => $dos->name, 'email' => $dos->email, 'roles' => ['secretaria']])
             ->assertForbidden();
 
         $this->assertFalse($uno->fresh()->hasRole('admin'));

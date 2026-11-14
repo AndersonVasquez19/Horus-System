@@ -8,7 +8,6 @@ use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\RespaldoController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\ChatWidgetController;
@@ -114,8 +113,10 @@ Route::prefix('admin')
         Route::get('matriculas/{matricula}', RedirigirAWebController::class)->defaults('destino', '/admin/academico/matriculas/{matricula}')
             ->whereNumber('matricula')->name('matriculas.show');
 
-        // El nombre del parámetro debe coincidir con el argumento del controlador para que el binding resuelva el registro.
-        Route::resource('usuarios', UserController::class)->parameters(['usuarios' => 'user']);
+        // Usuarios retirados de Blade (14/11/2026): los sirve apps/web con /api/panel/v1/compartido/usuarios. Se conserva el
+        // nombre `usuarios.index` (barra lateral, búsqueda global, panel) y responde 302 a Next; crear, ver, editar y
+        // eliminar ya no existen aquí.
+        Route::get('usuarios', RedirigirAWebController::class)->defaults('destino', '/admin/usuarios')->name('usuarios.index');
         // Roles retirados de Blade (14/11/2026): los sirve apps/web con /api/panel/v1/compartido/roles. Se conserva el nombre
         // `roles.index` (barra lateral, panel) y responde 302 a Next; crear, editar y eliminar ya no existen aquí.
         Route::get('roles', RedirigirAWebController::class)->defaults('destino', '/admin/roles')->name('roles.index');

@@ -52,7 +52,7 @@ class PaginasErrorTest extends TestCase
         $secretaria = User::factory()->create();
         $secretaria->assignRole('secretaria');
 
-        $this->actingAs($secretaria)->get(route('admin.usuarios.index'))
+        $this->actingAs($secretaria)->get(route('admin.configuracion.index'))
             ->assertForbidden()
             ->assertSee('Acceso no permitido')
             ->assertSee('Volver al panel')
@@ -62,7 +62,7 @@ class PaginasErrorTest extends TestCase
 
     public function test_un_404_de_modelo_no_revela_nombres_internos(): void
     {
-        $this->actingAs($this->adminUser())->get('/admin/usuarios/999999')
+        $this->actingAs($this->adminUser())->put('/admin/aprobaciones/999999', [])
             ->assertNotFound()
             ->assertSee('Página no encontrada')
             ->assertDontSee('No query results')

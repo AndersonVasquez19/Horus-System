@@ -19,6 +19,7 @@ use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\Support\LlamaRolesDelPanel;
 use Tests\Support\LlamaServiciosDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 class AuditoriaRobustezPanelFase2Test extends TestCase
@@ -28,6 +29,7 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
     use LlamaMatriculasDelPanel;
     use LlamaRolesDelPanel;
     use LlamaServiciosDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     private User $admin;
@@ -107,14 +109,14 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         AuditLog::query()->delete();
 
         $this->actingAs($this->admin)
-            ->put(route('admin.usuarios.update', $coordinador), [
+            ->actualizarUsuarioPanel($coordinador, [
                 'name' => 'Coordinador Prueba',
                 'email' => 'coord@horus.test',
                 'password' => '',
                 'password_confirmation' => '',
                 'roles' => ['coordinador'],
             ])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->assertSuccessful();
 
         $this->assertDatabaseMissing('audit_logs', [
             'action' => 'user_updated',

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,7 @@ use Tests\TestCase;
  */
 class ProteccionAdministradoresTest extends TestCase
 {
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -43,9 +45,9 @@ class ProteccionAdministradoresTest extends TestCase
         $dos = $this->makeUser('admin');
 
         $this->actingAs($uno)
-            ->put(route('admin.usuarios.update', $dos), ['name' => 'Renombrado', 'email' => $dos->email, 'roles' => ['admin']])
-            ->assertRedirect(route('admin.usuarios.index'))
-            ->assertSessionHasNoErrors();
+            ->actualizarUsuarioPanel($dos, ['name' => 'Renombrado', 'email' => $dos->email, 'roles' => ['admin']])
+            ->assertSuccessful()
+            ->assertJsonMissingValidationErrors();
 
         $this->assertSame('Renombrado', $dos->fresh()->name);
         $log = AuditLog::where('action', 'user_updated')->latest('id')->firstOrFail();
@@ -62,7 +64,7 @@ class ProteccionAdministradoresTest extends TestCase
         $antes = $admin->only(['name', 'email', 'password']);
 
         $respuesta = $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $admin), [
+            ->actualizarUsuarioPanel($admin, [
                 'name' => 'Tomado',
                 'email' => 'tomado@example.com',
                 'password' => 'NuevaClave12345',
@@ -94,7 +96,7 @@ class ProteccionAdministradoresTest extends TestCase
         $superior = $this->makeUser('auditor');
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $superior), ['name' => 'Tomado', 'email' => $superior->email])
+            ->actualizarUsuarioPanel($superior, ['name' => 'Tomado', 'email' => $superior->email])
             ->assertForbidden();
 
         $this->assertNotSame('Tomado', $superior->fresh()->name);
@@ -110,8 +112,8 @@ class ProteccionAdministradoresTest extends TestCase
         $objetivo = $this->makeUser('secretaria');
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => 'Cambio válido', 'email' => $objetivo->email, 'roles' => ['secretaria']])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->actualizarUsuarioPanel($objetivo, ['name' => 'Cambio válido', 'email' => $objetivo->email, 'roles' => ['secretaria']])
+            ->assertSuccessful();
 
         $this->assertSame('Cambio válido', $objetivo->fresh()->name);
         $this->assertSame(0, AuditLog::where('action', 'acceso_denegado')->count());
@@ -125,14 +127,14 @@ class ProteccionAdministradoresTest extends TestCase
         $versionJwt = (int) $gestor->jwt_version;
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $gestor), [
+            ->actualizarUsuarioPanel($gestor, [
                 'name' => 'Mi nuevo nombre',
                 'email' => 'mi-correo@example.com',
                 'password' => 'ClaveNueva12345',
                 'password_confirmation' => 'ClaveNueva12345',
             ])
-            ->assertRedirect(route('admin.usuarios.index'))
-            ->assertSessionHasNoErrors();
+            ->assertSuccessful()
+            ->assertJsonMissingValidationErrors();
 
         $gestor->refresh();
         $this->assertSame('Mi nuevo nombre', $gestor->name);
@@ -150,7 +152,7 @@ class ProteccionAdministradoresTest extends TestCase
 
         foreach ([['coordinador', 'secretaria'], []] as $roles) {
             $this->actingAs($gestor)
-                ->put(route('admin.usuarios.update', $gestor), ['name' => $gestor->name, 'email' => $gestor->email, 'roles' => $roles])
+                ->actualizarUsuarioPanel($gestor, ['name' => $gestor->name, 'email' => $gestor->email, 'roles' => $roles])
                 ->assertForbidden();
         }
 
@@ -166,11 +168,11 @@ class ProteccionAdministradoresTest extends TestCase
         $objetivo = $this->makeUser('secretaria');
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['admin']])
+            ->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['admin']])
             ->assertForbidden();
-        $this->put(route('admin.usuarios.update', $gestor), ['name' => $gestor->name, 'email' => $gestor->email, 'roles' => ['coordinador', 'admin']])
+        $this->actualizarUsuarioPanel($gestor, ['name' => $gestor->name, 'email' => $gestor->email, 'roles' => ['coordinador', 'admin']])
             ->assertForbidden();
-        $this->post(route('admin.usuarios.store'), [
+        $this->crearUsuarioPanel([
             'name' => 'Nuevo admin', 'email' => 'nuevo-admin@example.com',
             'password' => 'Segura12345', 'password_confirmation' => 'Segura12345', 'roles' => ['admin'],
         ])->assertForbidden();
@@ -192,9 +194,9 @@ class ProteccionAdministradoresTest extends TestCase
         Role::create(['name' => 'auditor', 'guard_name' => 'web'])->givePermissionTo(['auditoria.ver', 'reportes.ver']);
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria', 'auditor']])
+            ->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria', 'auditor']])
             ->assertForbidden();
-        $this->post(route('admin.usuarios.store'), [
+        $this->crearUsuarioPanel([
             'name' => 'Nuevo', 'email' => 'nuevo@example.com',
             'password' => 'Segura12345', 'password_confirmation' => 'Segura12345', 'roles' => ['auditor'],
         ])->assertForbidden();
@@ -216,18 +218,18 @@ class ProteccionAdministradoresTest extends TestCase
 
         // Dos roles, ambos dentro del techo del actor: permitido.
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria', 'lector']])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria', 'lector']])
+            ->assertSuccessful();
         $this->assertEqualsCanonicalizing(['secretaria', 'lector'], app(AdminProtection::class)->roleNamesOf($objetivo));
 
         // Un rol inocuo junto a uno excedido: se rechaza el conjunto completo.
-        $this->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria', 'lector', 'auditor']])
+        $this->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria', 'lector', 'auditor']])
             ->assertForbidden();
         $this->assertEqualsCanonicalizing(['secretaria', 'lector'], app(AdminProtection::class)->roleNamesOf($objetivo));
 
         // Un objetivo que ya supera al actor no se puede «completar» con un rol inocuo.
         $superior = $this->makeUser('auditor');
-        $this->put(route('admin.usuarios.update', $superior), ['name' => $superior->name, 'email' => $superior->email, 'roles' => ['auditor', 'lector']])
+        $this->actualizarUsuarioPanel($superior, ['name' => $superior->name, 'email' => $superior->email, 'roles' => ['auditor', 'lector']])
             ->assertForbidden();
         $this->assertSame(['auditor'], app(AdminProtection::class)->roleNamesOf($superior));
     }
@@ -238,7 +240,7 @@ class ProteccionAdministradoresTest extends TestCase
         $objetivo = $this->makeUser('secretaria');
 
         $this->actingAs($editor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria']])
+            ->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['secretaria']])
             ->assertForbidden();
 
         $this->assertSame('sin_permiso_asignar_roles', AuditLog::where('action', 'acceso_denegado')->sole()->changes['motivo']);
@@ -253,7 +255,7 @@ class ProteccionAdministradoresTest extends TestCase
         $gestor = $this->gestor();
 
         $this->actingAs($gestor)
-            ->delete(route('admin.usuarios.destroy', $uno))
+            ->eliminarUsuarioPanel($uno)
             ->assertForbidden();
 
         $this->assertModelExists($uno);
@@ -261,7 +263,7 @@ class ProteccionAdministradoresTest extends TestCase
         $this->assertSame('R3', $fila->changes['regla']);
         $this->assertSame('admin_protegido_eliminacion', $fila->changes['motivo']);
 
-        $this->actingAs($dos)->delete(route('admin.usuarios.destroy', $uno))->assertRedirect(route('admin.usuarios.index'));
+        $this->actingAs($dos)->eliminarUsuarioPanel($uno)->assertSuccessful();
         $this->assertModelMissing($uno);
         $this->assertSame(1, app(AdminProtection::class)->activeAdminCount());
     }
@@ -272,10 +274,10 @@ class ProteccionAdministradoresTest extends TestCase
         $gestor = $this->gestor();
 
         // Un no administrador recibe 403 (sin revelar que es el último administrador), no el 422.
-        $this->actingAs($gestor)->delete(route('admin.usuarios.destroy', $ultimo))->assertForbidden()->assertSessionHasNoErrors();
+        $this->actingAs($gestor)->eliminarUsuarioPanel($ultimo)->assertForbidden()->assertJsonMissingValidationErrors();
 
         // Y un administrador sí recibe la regla de integridad.
-        $this->actingAs($ultimo)->delete(route('admin.usuarios.destroy', $ultimo))->assertSessionHasErrors('usuario');
+        $this->actingAs($ultimo)->eliminarUsuarioPanel($ultimo)->assertJsonValidationErrors('usuario');
         $this->assertModelExists($ultimo);
     }
 
@@ -286,11 +288,11 @@ class ProteccionAdministradoresTest extends TestCase
         $superior = $this->makeUser('auditor');
         $propia = $this->makeUser('secretaria');
 
-        $this->actingAs($gestor)->delete(route('admin.usuarios.destroy', $superior))->assertForbidden();
+        $this->actingAs($gestor)->eliminarUsuarioPanel($superior)->assertForbidden();
         $this->assertModelExists($superior);
         $this->assertSame('R1+', AuditLog::where('action', 'acceso_denegado')->sole()->changes['regla']);
 
-        $this->delete(route('admin.usuarios.destroy', $propia))->assertRedirect(route('admin.usuarios.index'));
+        $this->eliminarUsuarioPanel($propia)->assertSuccessful();
         $this->assertModelMissing($propia);
     }
 
@@ -314,7 +316,7 @@ class ProteccionAdministradoresTest extends TestCase
         });
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => 'Tarde', 'email' => $objetivo->email])
+            ->actualizarUsuarioPanel($objetivo, ['name' => 'Tarde', 'email' => $objetivo->email])
             ->assertForbidden();
 
         $this->assertTrue($degradado, 'La degradación se aplicó dentro de la sección exclusiva.');
@@ -347,15 +349,15 @@ class ProteccionAdministradoresTest extends TestCase
         $this->withoutExceptionHandling();
 
         $intentos = [
-            fn () => $this->actingAs($admin)->put(route('admin.usuarios.update', $objetivo), [
+            fn () => $this->actingAs($admin)->actualizarUsuarioPanel($objetivo, [
                 'name' => 'Otro', 'email' => $objetivo->email, 'roles' => ['coordinador'],
                 'password' => 'ClaveNueva12345', 'password_confirmation' => 'ClaveNueva12345',
             ]),
-            fn () => $this->post(route('admin.usuarios.store'), [
+            fn () => $this->crearUsuarioPanel([
                 'name' => 'Nuevo', 'email' => 'nuevo@example.com', 'password' => 'Segura12345',
                 'password_confirmation' => 'Segura12345', 'roles' => ['secretaria'],
             ]),
-            fn () => $this->delete(route('admin.usuarios.destroy', $objetivo)),
+            fn () => $this->eliminarUsuarioPanel($objetivo),
         ];
 
         foreach ($intentos as $intento) {
@@ -384,7 +386,7 @@ class ProteccionAdministradoresTest extends TestCase
         });
 
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $admin), ['name' => 'Tomado', 'email' => $admin->email])
+            ->actualizarUsuarioPanel($admin, ['name' => 'Tomado', 'email' => $admin->email])
             ->assertForbidden();
 
         $this->assertNotSame('Tomado', $admin->fresh()->name);
@@ -399,8 +401,8 @@ class ProteccionAdministradoresTest extends TestCase
         $this->refillPermissionCacheBeforeCommit('CACHE-OBSOLETA');
 
         $this->actingAs($admin)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['coordinador']])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['coordinador']])
+            ->assertSuccessful();
 
         $this->assertFalse(Cache::has(app(PermissionRegistrar::class)->cacheKey), 'La caché rellenada antes del commit debe invalidarse después.');
     }
@@ -410,10 +412,10 @@ class ProteccionAdministradoresTest extends TestCase
         $admin = $this->makeUser('admin');
         $this->refillPermissionCacheBeforeCommit('CACHE-OBSOLETA');
 
-        $this->actingAs($admin)->post(route('admin.usuarios.store'), [
+        $this->actingAs($admin)->crearUsuarioPanel([
             'name' => 'Nuevo', 'email' => 'nuevo@example.com', 'password' => 'Segura12345',
             'password_confirmation' => 'Segura12345', 'roles' => ['secretaria'],
-        ])->assertRedirect(route('admin.usuarios.index'));
+        ])->assertSuccessful();
 
         $this->assertFalse(Cache::has(app(PermissionRegistrar::class)->cacheKey));
     }
@@ -429,7 +431,7 @@ class ProteccionAdministradoresTest extends TestCase
         app(PermissionRegistrar::class)->getPermissions();
         $this->assertTrue(Cache::has($clave));
         $this->actingAs($gestor)
-            ->put(route('admin.usuarios.update', $objetivo), ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['admin']])
+            ->actualizarUsuarioPanel($objetivo, ['name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['admin']])
             ->assertForbidden();
         $this->assertTrue(Cache::has($clave), 'Una denegación no invalida la caché.');
 
@@ -441,7 +443,7 @@ class ProteccionAdministradoresTest extends TestCase
         $this->withoutExceptionHandling();
 
         try {
-            $this->actingAs($admin)->put(route('admin.usuarios.update', $objetivo), [
+            $this->actingAs($admin)->actualizarUsuarioPanel($objetivo, [
                 'name' => $objetivo->name, 'email' => $objetivo->email, 'roles' => ['coordinador'],
             ]);
             $this->fail('La excepción debía propagarse.');
@@ -460,19 +462,19 @@ class ProteccionAdministradoresTest extends TestCase
         $admin = $this->makeUser('admin');
 
         // Flujo legítimo completo de un administrador.
-        $this->actingAs($admin)->post(route('admin.usuarios.store'), [
+        $this->actingAs($admin)->crearUsuarioPanel([
             'name' => 'Nuevo', 'email' => 'nuevo@example.com', 'password' => 'Segura12345',
             'password_confirmation' => 'Segura12345', 'roles' => ['coordinador'],
-        ])->assertRedirect(route('admin.usuarios.index'));
+        ])->assertSuccessful();
         $nuevo = User::where('email', 'nuevo@example.com')->firstOrFail();
-        $this->put(route('admin.usuarios.update', $nuevo), ['name' => 'Editado', 'email' => $nuevo->email, 'roles' => ['secretaria']])
-            ->assertRedirect(route('admin.usuarios.index'));
-        $this->delete(route('admin.usuarios.destroy', $nuevo))->assertRedirect(route('admin.usuarios.index'));
+        $this->actualizarUsuarioPanel($nuevo, ['name' => 'Editado', 'email' => $nuevo->email, 'roles' => ['secretaria']])
+            ->assertSuccessful();
+        $this->eliminarUsuarioPanel($nuevo)->assertSuccessful();
         $this->assertSame(0, AuditLog::where('action', 'acceso_denegado')->count());
 
         // Coordinador y secretaria no gestionan usuarios ni roles (como antes).
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->makeUser($rol))->get(route('admin.usuarios.index'))->assertForbidden();
+            $this->actingAs($this->makeUser($rol))->llamarUsuariosPanel('GET')->assertForbidden();
         }
 
         $this->assertEqualsCanonicalizing(RolesAndPermissionsSeeder::PERMISSIONS, Role::findByName('admin')->permissions->pluck('name')->all());
@@ -487,14 +489,14 @@ class ProteccionAdministradoresTest extends TestCase
         $admin = $this->makeUser('admin');
         $gestor = $this->gestor();
 
-        $this->actingAs($gestor)->put(route('admin.usuarios.update', $admin), [
+        $this->actingAs($gestor)->actualizarUsuarioPanel($admin, [
             'name' => 'Nombre Secreto Persona',
             'email' => 'correo-secreto@example.com',
             'password' => 'ClaveSecreta12345',
             'password_confirmation' => 'ClaveSecreta12345',
             'roles' => ['admin'],
         ])->assertForbidden();
-        $this->delete(route('admin.usuarios.destroy', $admin))->assertForbidden();
+        $this->eliminarUsuarioPanel($admin)->assertForbidden();
 
         $filas = AuditLog::where('action', 'acceso_denegado')->get();
         $this->assertCount(2, $filas);

@@ -1,5 +1,5 @@
 // Cursos, servicios, cotizaciones, estudiantes y matrículas salieron de Blade (los atiende apps/web): este smoke solo
-// recorre lo que sigue en Blade (usuarios, roles, aprobaciones y configuración).
+// recorre lo que sigue en Blade (aprobaciones y configuración). Usuarios y roles también salieron (14/11/2026).
 // Solo http://127.0.0.1:8778 con formularios-modal-browser-router.php opt-in y SQLite :memory:.
 // Usa el panel real y formularios nativos; cada petición reconstruye datos ficticios.
 import { spawn } from 'node:child_process';
@@ -58,7 +58,7 @@ let debugEvaluate;
 let debugScreenshot;
 const report = { sqlite: ':memory: per request', widths: [], responses: [], externalBlocked: [], errors: [] };
 try {
-  await waitFor(async () => (await localRequest(`${base}/admin/usuarios`)).headers['x-horus-fixture'] === 'sqlite-memory-modal');
+  await waitFor(async () => (await localRequest(`${base}/admin/aprobaciones`)).headers['x-horus-fixture'] === 'sqlite-memory-modal');
   await waitFor(async () => (await localRequest(`http://127.0.0.1:${debugPort}/json/version`)).status === 200);
   const tab = JSON.parse((await localRequest(`http://127.0.0.1:${debugPort}/json/new?about:blank`, 'PUT')).body);
   socket = new WebSocket(tab.webSocketDebuggerUrl);
@@ -129,46 +129,8 @@ try {
   const check = (value, message) => { if (!value) throw new Error(message); };
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const modalOpen = () => evaluate('!!document.querySelector("dialog[data-admin-modal][open]")');
-  for (const width of [390, 768, 1440]) {
-    await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width === 390 });
-    await navigate('/admin/usuarios', 'a[href$="/usuarios/create"]');
-    await evaluate('window.listadoConservado = true');
-    await click('a[href$="/usuarios/create"]');
-    await waitFor(modalOpen);
-    const view = await evaluate(`(() => {
-      const dialog = document.querySelector('dialog[open]');
-      return { width: innerWidth, fits: dialog.getBoundingClientRect().right <= innerWidth && dialog.scrollWidth <= dialog.clientWidth + 1,
-        focusInside: dialog.contains(document.activeElement), locked: document.documentElement.classList.contains('admin-modal-open'),
-        backgroundKept: window.listadoConservado === true, correctUrl: location.pathname === '/admin/usuarios/create' };
-    })()`);
-    check(Object.values(view).every(Boolean), 'Modal layout or focus failed: ' + JSON.stringify(view));
-    await screenshot('usuario-modal-' + width);
-    await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-    await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-    await waitFor(() => evaluate('location.pathname === "/admin/usuarios" && !document.querySelector("dialog[open]")'));
-    check(await evaluate(`document.activeElement.matches('a[href$="/usuarios/create"]') && window.listadoConservado && !document.documentElement.classList.contains('admin-modal-open')`), 'Focus or list not restored');
-    await command('Page.navigateToHistoryEntry', { entryId: (await command('Page.getNavigationHistory')).entries.at(-1).id });
-    await waitFor(modalOpen);
-    check(await evaluate('location.pathname === "/admin/usuarios/create"'), 'Forward failed');
-    report.widths.push(view);
-  }
-  for (const module of ['usuarios']) {
-    for (const action of ['create', '1/edit']) {
-      await navigate('/admin/' + module + '/' + action, 'dialog[data-admin-page-form]');
-      await waitFor(modalOpen);
-      check(await evaluate('!!document.querySelector("dialog[open] form [name=_token]")'), 'Missing native form/CSRF: ' + module + action);
-      check(await evaluate(`(() => { const modal = document.querySelector('dialog[open]'); return [...modal.querySelectorAll('label[for]')].every(label => label.control && modal.contains(label.control)); })()`), 'Label outside modal: ' + module + action);
-    }
-  }
+  await command('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await navigate('/admin/configuracion', '#settings_nombre_empresa'); await waitFor(modalOpen);
-  await navigate('/admin/usuarios', 'a[href$="/usuarios/1/edit"]');
-  await click('a[href$="/usuarios/1/edit"]'); await waitFor(modalOpen);
-  await evaluate(`const f = document.querySelector('dialog[open] form'); f.noValidate = true; f.querySelector('[name=name]').value = 'Borrador modal conservado'; f.querySelector('[name=email]').value = 'no-es-correo'; f.requestSubmit();`);
-  await waitFor(() => evaluate('document.querySelector("dialog[open] [name=name]")?.value === "Borrador modal conservado" && !!document.querySelector("dialog[open] .admin-error")'));
-  check(await evaluate('location.pathname === "/admin/usuarios/1/edit"'), 'Validation did not return to form URL');
-  await evaluate(`document.querySelector('dialog[open] [name=email]').value = 'borrador.modal@example.test'; document.querySelector('dialog[open] form').requestSubmit();`);
-  await waitFor(() => evaluate('location.pathname === "/admin/usuarios" && document.readyState === "complete"'));
-  report.nativeSave = true;
   await navigate('/admin/aprobaciones', '[aria-controls="form-nueva-aprobacion"]');
   await click('[aria-controls="form-nueva-aprobacion"]'); await waitFor(modalOpen);
   await click('#form-nueva-aprobacion [data-admin-modal-close]');

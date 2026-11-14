@@ -11,9 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\PostgresIntegrity\Concerns\ReclamacionesPostgres;
+use Tests\Support\LlamaUsuariosDelPanel;
 
 class IntegridadExistenteTest extends CasoPostgresReversible
 {
+    use LlamaUsuariosDelPanel;
     use ReclamacionesPostgres;
 
     public function test_coordinador_espera_bloqueo_y_no_modifica_administrador_existente(): void
@@ -29,9 +31,9 @@ class IntegridadExistenteTest extends CasoPostgresReversible
             $b->select("SELECT id FROM roles WHERE name = 'admin' AND guard_name = 'web' FOR UPDATE");
             $datos = ['name' => 'Solicitud sintética', 'email' => 'consolidacion@example.test', 'roles' => ['secretaria']];
             $this->assertBloqueada(fn () => $this->actingAs($actor)->withoutExceptionHandling()
-                ->put(route('admin.usuarios.update', $adminId), $datos));
+                ->actualizarUsuarioPanel($adminId, $datos));
             $b->rollBack();
-            $this->withExceptionHandling()->put(route('admin.usuarios.update', $adminId), $datos)->assertForbidden();
+            $this->withExceptionHandling()->actualizarUsuarioPanel($adminId, $datos)->assertForbidden();
             $this->assertTrue(User::query()->findOrFail($adminId)->hasRole('admin'));
         } finally {
             ConcurrentTestSession::close($b);

@@ -10,6 +10,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,7 @@ use Tests\TestCase;
  */
 class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
 {
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     private const TITULO_PRIVADO = 'Aviso personal confidencial de A';
@@ -147,7 +149,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         });
 
         $this->actingAs($this->admin)
-            ->delete(route('admin.usuarios.destroy', $this->usuarioA))
+            ->eliminarUsuarioPanel($this->usuarioA)
             ->assertStatus(500);
 
         $this->assertTrue($borrado, 'El DELETE del usuario llegó a ejecutarse');
@@ -237,8 +239,8 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $general = $this->general('Aviso general explícito');
 
         $this->actingAs($this->admin)
-            ->delete(route('admin.usuarios.destroy', $this->usuarioA))
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->eliminarUsuarioPanel($this->usuarioA)
+            ->assertSuccessful();
 
         $this->assertModelMissing($this->usuarioA);
         $this->assertSame(NotificacionInterna::AUDIENCIA_GENERAL, $general->fresh()->audiencia);
@@ -285,8 +287,8 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $notificacion = $this->notificar($this->usuarioA, self::TITULO_PRIVADO);
 
         $this->actingAs($this->admin)
-            ->delete(route('admin.usuarios.destroy', $this->usuarioA))
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->eliminarUsuarioPanel($this->usuarioA)
+            ->assertSuccessful();
 
         return $this->comprobarHuerfana($notificacion);
     }

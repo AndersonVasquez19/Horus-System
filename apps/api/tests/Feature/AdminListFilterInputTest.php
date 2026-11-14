@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
 class AdminListFilterInputTest extends TestCase
 {
     use LlamaMatriculasDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     /**
@@ -29,13 +31,19 @@ class AdminListFilterInputTest extends TestCase
     {
         foreach ([
             'admin.aprobaciones.index' => ['busqueda', 'estado'],
-            'admin.usuarios.index' => ['busqueda'],
             'admin.busqueda.index' => ['q'],
         ] as $route => $params) {
             foreach ($params as $param) {
                 yield "{$route} {$param}[]" => [$route, $param];
             }
         }
+    }
+
+    public function test_el_filtro_de_usuarios_del_panel_tolera_formas_de_arreglo(): void
+    {
+        $this->actingAs($this->adminUser())
+            ->llamarUsuariosPanel('GET', '', ['busqueda' => ['x', 'y']])
+            ->assertOk();
     }
 
     #[DataProvider('listFilters')]
@@ -99,7 +107,7 @@ class AdminListFilterInputTest extends TestCase
         User::factory()->create(['name' => 'ROSA FICTICIA', 'email' => 'rosa.ficticia@example.invalid']);
         AprobacionInterna::create(['titulo' => 'COMPRA DE PROYECTOR', 'tipo' => 'compra', 'estado' => 'pendiente']);
 
-        $this->actingAs($admin)->get(route('admin.usuarios.index', ['busqueda' => 'rosa']))->assertOk()->assertSee('ROSA FICTICIA');
+        $this->actingAs($admin)->llamarUsuariosPanel('GET', '', ['busqueda' => 'rosa'])->assertOk()->assertJsonPath('data.0.nombre', 'ROSA FICTICIA');
         $this->get(route('admin.aprobaciones.index', ['busqueda' => 'proyector']))->assertOk()->assertSee('COMPRA DE PROYECTOR');
     }
 

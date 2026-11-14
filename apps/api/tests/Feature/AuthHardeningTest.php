@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class AuthHardeningTest extends TestCase
 {
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     private const STRONG = 'ClaveSegura123';
@@ -91,10 +93,10 @@ class AuthHardeningTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin)->post(route('admin.usuarios.store'), [
+        $this->actingAs($admin)->crearUsuarioPanel([
             'name' => 'Persona Panel', 'email' => '  Juan@Example.INVALID ',
             'password' => self::STRONG, 'password_confirmation' => self::STRONG,
-        ])->assertSessionHasNoErrors();
+        ])->assertJsonMissingValidationErrors();
 
         $this->assertDatabaseHas('users', ['email' => 'juan@example.invalid']);
 
@@ -120,15 +122,15 @@ class AuthHardeningTest extends TestCase
         $admin = $this->admin();
         $target = User::factory()->create();
 
-        $this->actingAs($admin)->post(route('admin.usuarios.store'), [
+        $this->actingAs($admin)->crearUsuarioPanel([
             'name' => 'Débil', 'email' => 'debil@example.invalid',
             'password' => 'aaaaaaaa', 'password_confirmation' => 'aaaaaaaa',
-        ])->assertSessionHasErrors('password');
+        ])->assertJsonValidationErrors('password');
 
-        $this->actingAs($admin)->put(route('admin.usuarios.update', $target), [
+        $this->actingAs($admin)->actualizarUsuarioPanel($target, [
             'name' => $target->name, 'email' => $target->email,
             'password' => 'aaaaaaaa', 'password_confirmation' => 'aaaaaaaa',
-        ])->assertSessionHasErrors('password');
+        ])->assertJsonValidationErrors('password');
     }
 
     public function test_reset_rejects_a_password_the_registration_would_reject(): void
@@ -185,10 +187,10 @@ class AuthHardeningTest extends TestCase
 
         $this->withToken($token)->getJson(route('api.auth.me'))->assertOk();
 
-        $this->actingAs($admin)->put(route('admin.usuarios.update', $target), [
+        $this->actingAs($admin)->actualizarUsuarioPanel($target, [
             'name' => $target->name, 'email' => $target->email,
             'password' => 'OtraClave12345', 'password_confirmation' => 'OtraClave12345',
-        ])->assertSessionHasNoErrors();
+        ])->assertJsonMissingValidationErrors();
 
         $this->withToken($token)->getJson(route('api.auth.me'))->assertUnauthorized();
     }
@@ -223,10 +225,10 @@ class AuthHardeningTest extends TestCase
             'id' => 's-target', 'user_id' => $target->id, 'payload' => 'x', 'last_activity' => time(),
         ]);
 
-        $this->actingAs($admin)->put(route('admin.usuarios.update', $target), [
+        $this->actingAs($admin)->actualizarUsuarioPanel($target, [
             'name' => $target->name, 'email' => $target->email,
             'password' => 'OtraClave12345', 'password_confirmation' => 'OtraClave12345',
-        ])->assertSessionHasNoErrors();
+        ])->assertJsonMissingValidationErrors();
 
         $this->assertDatabaseMissing('sessions', ['id' => 's-target']);
     }

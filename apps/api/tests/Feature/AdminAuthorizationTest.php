@@ -21,6 +21,7 @@ use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\Support\LlamaRolesDelPanel;
+use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -33,6 +34,7 @@ class AdminAuthorizationTest extends TestCase
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
     use LlamaRolesDelPanel;
+    use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
     private const ALL = ['admin', 'coordinador', 'secretaria'];
@@ -56,8 +58,6 @@ class AdminAuthorizationTest extends TestCase
         return [
             'dashboard' => ['admin.dashboard', self::ALL],
             'busqueda' => ['admin.busqueda.index', self::ALL],
-            'usuarios.index' => ['admin.usuarios.index', ['admin']],
-            'usuarios.create' => ['admin.usuarios.create', ['admin']],
             'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
@@ -102,7 +102,7 @@ class AdminAuthorizationTest extends TestCase
 
         $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertUnauthorized();
         $this->post(route('admin.respaldo.exportar'))->assertRedirect(route('login'));
-        $this->post(route('admin.usuarios.store'), [])->assertRedirect(route('login'));
+        $this->crearUsuarioPanel([])->assertUnauthorized();
 
         $this->assertNotSoftDeleted($estudiante);
     }
@@ -225,10 +225,11 @@ class AdminAuthorizationTest extends TestCase
 
         foreach (['coordinador', 'secretaria'] as $role) {
             $this->actingAs($this->staff($role));
-            $this->post(route('admin.usuarios.store'), [])->assertForbidden();
-            $this->get(route('admin.usuarios.edit', $objetivo))->assertForbidden();
-            $this->put(route('admin.usuarios.update', $objetivo), [])->assertForbidden();
-            $this->delete(route('admin.usuarios.destroy', $objetivo))->assertForbidden();
+            $this->crearUsuarioPanel([])->assertForbidden();
+            $this->llamarUsuariosPanel('GET')->assertForbidden();
+            $this->llamarUsuariosPanel('GET', (string) $objetivo->id)->assertForbidden();
+            $this->actualizarUsuarioPanel($objetivo, [])->assertForbidden();
+            $this->eliminarUsuarioPanel($objetivo)->assertForbidden();
             // Los roles los sirve el panel (lectura incluida): sin `roles.*` es 403.
             $this->llamarRolesPanel('GET')->assertForbidden();
             $this->crearRolPanel(['name' => 'nuevo'])->assertForbidden();
@@ -264,12 +265,12 @@ class AdminAuthorizationTest extends TestCase
         $usuarios = User::count();
 
         $this->actingAs($admin)
-            ->put(route('admin.usuarios.update', $objetivo), [
+            ->actualizarUsuarioPanel($objetivo, [
                 'name' => 'Actualizado',
                 'email' => 'objetivo@example.com',
                 'roles' => ['coordinador'],
             ])
-            ->assertRedirect(route('admin.usuarios.index'));
+            ->assertSuccessful();
 
         $this->assertSame($usuarios, User::count());
         $this->assertSame('Actualizado', $objetivo->fresh()->name);
@@ -282,12 +283,12 @@ class AdminAuthorizationTest extends TestCase
         $admin = $this->staff('admin');
         $objetivo = User::factory()->create();
 
-        $this->actingAs($admin)->get(route('admin.usuarios.edit', $objetivo))->assertOk()->assertSee($objetivo->email);
+        $this->actingAs($admin)->llamarUsuariosPanel('GET', (string) $objetivo->id)->assertOk()->assertJsonPath('data.email', $objetivo->email);
 
-        $this->delete(route('admin.usuarios.destroy', $objetivo))->assertRedirect(route('admin.usuarios.index'));
+        $this->eliminarUsuarioPanel($objetivo)->assertSuccessful();
         $this->assertModelMissing($objetivo);
 
-        $this->delete(route('admin.usuarios.destroy', $admin))->assertSessionHasErrors('usuario');
+        $this->eliminarUsuarioPanel($admin)->assertJsonValidationErrors('usuario');
         $this->assertModelExists($admin);
     }
 
@@ -299,7 +300,7 @@ class AdminAuthorizationTest extends TestCase
         $objetivo->assignRole('secretaria');
 
         $this->actingAs($editor)
-            ->put(route('admin.usuarios.update', $objetivo), [
+            ->actualizarUsuarioPanel($objetivo, [
                 'name' => 'Escalado',
                 'email' => 'objetivo@example.com',
                 'roles' => ['admin'],
@@ -309,10 +310,10 @@ class AdminAuthorizationTest extends TestCase
         $this->assertFalse($objetivo->fresh()->hasRole('admin'));
         $this->assertNotSame('Escalado', $objetivo->fresh()->name);
 
-        $this->put(route('admin.usuarios.update', $objetivo), [
+        $this->actualizarUsuarioPanel($objetivo, [
             'name' => 'Sin cambio de rol',
             'email' => 'objetivo@example.com',
-        ])->assertRedirect(route('admin.usuarios.index'));
+        ])->assertSuccessful();
 
         $this->assertSame('Sin cambio de rol', $objetivo->fresh()->name);
         $this->assertTrue($objetivo->fresh()->hasRole('secretaria'));
@@ -324,7 +325,7 @@ class AdminAuthorizationTest extends TestCase
         $creador->givePermissionTo('usuarios.crear');
 
         $this->actingAs($creador)
-            ->post(route('admin.usuarios.store'), [
+            ->crearUsuarioPanel([
                 'name' => 'Nuevo',
                 'email' => 'nuevo@example.com',
                 'password' => 'Segura12345',

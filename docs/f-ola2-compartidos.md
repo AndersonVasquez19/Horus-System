@@ -265,3 +265,39 @@ helper `LlamaRolesDelPanel` (`crearRolPanel`, `actualizarRolPanel`, `eliminarRol
 los errores que iban a la sesión pasan a 422 con `errors`, y las denegaciones R4 siguen siendo 403 con su constancia de
 auditoría. `PermisosRetiradosTest`, `RetiroProcesosTest` y `OldInputRenderingTest` leen la API en vez de la pantalla. Se
 retiró solo HTML: la entrada `roles.index` del inventario de páginas y el modal de roles del smoke de navegador.
+
+### Usuarios (retirados)
+
+| Blade | Ahora |
+| --- | --- |
+| `GET /admin/usuarios` | 302 a `/admin/usuarios` de Next (nombre `admin.usuarios.index` conservado) |
+| `GET /admin/usuarios/create`, `/{id}`, `/{id}/edit` | eliminadas (404); `GET /compartido/usuarios[/{id}]` |
+| `POST /admin/usuarios`, `PUT/DELETE /admin/usuarios/{id}` | eliminadas (405/404); `POST/PUT/DELETE /compartido/usuarios[/{id}]` |
+
+Se eliminan `Admin\UserController` y las vistas `usuarios/index`, `create` y `edit`. Las reglas siguen en `GestionUsuarios`
+(R1 a R3, último administrador, actor releído, revocación de sesiones y JWT, auditoría sin contraseñas) y ahora las usa solo el
+panel. La búsqueda global del Blade enlaza cada usuario al listado (`admin.usuarios.index`) en lugar de a la edición.
+
+Pruebas: ninguna regla se retiró. `ProteccionAdministradoresTest` (44 llamadas), `AdminProtectionTest`, `AuthHardeningTest`,
+`AdminAuthorizationTest`, `NotificacionPrivacidadUsuarioEliminadoTest`, `AuditoriaRobustezPanelFase2Test` y
+`Sprint12AtomicityTest` se portaron a la API del panel con `LlamaUsuariosDelPanel` (`crearUsuarioPanel`,
+`actualizarUsuarioPanel`, `eliminarUsuarioPanel`, `llamarUsuariosPanel`): la redirección con éxito pasa a 2xx, los errores de
+sesión a 422 con `errors`, los invitados a 401 y las denegaciones siguen siendo 403. `AdminListFilterInputTest` y
+`BusquedaLikeEscapeTest` leen el JSON del listado (filtro con forma de arreglo, comodines `%` y `_`, mayúsculas);
+`OldInputRenderingTest` comprueba el 422 limpio con campos en forma de arreglo. Las pruebas que usaban el listado de usuarios
+como página de ejemplo del shell Blade (título con el nombre de la empresa, 403, `<h1>` único, diálogo de confirmación,
+consultas a `system_settings`) usan ahora aprobaciones o configuración. Se retiró solo HTML: las entradas `usuarios.*` del
+inventario de páginas y los formularios de usuario de `AccesibilidadPanelTest`. El smoke de navegador
+(`formularios-modal-smoke.mjs`) pierde sus recorridos de usuarios y roles y conserva aprobaciones y configuración (no se
+ejecutó en esta sesión).
+
+**PostgreSQL, sin ejecutar:** `tests/ConsolidacionPostgres/IntegridadExistenteTest` y `tests/PostgresIntegrity/ConcurrencyPostgresTest`
+llaman ahora a `actualizarUsuarioPanel`. Se comprobó la sintaxis (`php -l`), pero no se corrieron (requieren autorización
+explícita y el clúster aislado). Hay que ejecutarlas antes de dar por cerrada la Ola 2 en PostgreSQL: el cambio es solo el punto de
+entrada HTTP (Blade a API del panel); la sección exclusiva y el bloqueo son los mismos servicios.
+
+### Cierre del retiro compartido
+
+Auditoría, reclamaciones, perfil y notificaciones, roles y usuarios ya no existen en Blade. Quedan en Blade, hasta la Ola 4:
+inicio (`/admin`), campana de notificaciones (`recientes` y `leidas`), aprobaciones, configuración, respaldo, asistente y
+búsqueda global.
