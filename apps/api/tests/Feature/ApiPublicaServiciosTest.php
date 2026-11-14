@@ -8,8 +8,10 @@ use App\Services\ImagenesServicios;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -18,6 +20,7 @@ use Tests\TestCase;
  */
 class ApiPublicaServiciosTest extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     private const TOKEN = 'token-de-prueba-bff-0123456789abcdefghij';
@@ -40,25 +43,25 @@ class ApiPublicaServiciosTest extends TestCase
 
     private function etag(int $id): string
     {
-        return (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
+        return $this->revisionServicioPanel($id);
     }
 
     /** Servicio con ficha en borrador (sin activar ni autorizar). */
     private function servicio(string $codigo, string $titulo): int
     {
-        $id = (int) $this->postJson('/admin/servicios', ['codigo' => $codigo, 'nombre' => 'Servicio '.$codigo, 'categoria' => 'Redes'])->assertCreated()->json('servicio.id');
-        $this->putJson("/admin/servicios/$id/publicacion", [
+        $id = $this->crearServicioPanel(['codigo' => $codigo, 'nombre' => 'Servicio '.$codigo, 'categoria' => 'Redes']);
+        $this->guardarFichaPanel($id, [
             'titulo' => $titulo, 'resumen' => 'Resumen público', 'descripcion' => "Primer párrafo.\n\nSegundo párrafo.",
             'vigente_desde' => '2026-11-01', 'vigente_hasta' => '2026-12-31', 'titulo_tarjetas' => 'Tarjetas del servicio',
-        ], ['If-Match' => $this->etag($id)])->assertOk();
+        ])->assertOk();
 
         return $id;
     }
 
     private function publicar(int $id): void
     {
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'activo'], ['If-Match' => $this->etag($id)])->assertOk();
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->etag($id)])->assertOk();
+        $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
+        $this->autorizarFichaPanel($id)->assertOk();
     }
 
     public function test_ficha_sin_autorizar_no_aparece_y_publicada_si_y_retirada_desaparece(): void
@@ -85,8 +88,8 @@ class ApiPublicaServiciosTest extends TestCase
         // Otra página sin ficha sigue sin contenido.
         $this->getJson('/api/public/v1/paginas/camaras-seguridad', $this->bff())->assertOk()->assertJsonPath('contenido', null);
 
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $this->etag($id)])->assertOk();
-        $this->deleteJson("/admin/servicios/$generico/publicacion", [], ['If-Match' => $this->etag($generico)])->assertOk();
+        $this->retirarFichaPanel($id)->assertOk();
+        $this->retirarFichaPanel($generico)->assertOk();
         $this->getJson('/api/public/v1/servicios', $this->bff())->assertJsonPath('total', 0);
         $this->getJson('/api/public/v1/paginas/cableado-estructurado', $this->bff())->assertJsonPath('contenido', null);
     }
@@ -95,10 +98,11 @@ class ApiPublicaServiciosTest extends TestCase
     {
         $this->actingAs($this->adminUser());
         $id = $this->servicio('VIDEOVIGILANCIA', 'Videovigilancia con imagen');
-        $tarjeta = $this->post("/admin/servicios/$id/elementos", [
+        $this->panelServiciosArchivo("$id/elementos", [
             'titulo' => 'Tarjeta con imagen', 'descripcion' => 'Descripción', 'imagen' => UploadedFile::fake()->image('foto.png', 200, 150),
-        ], ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertCreated();
-        $ruta = (string) $tarjeta->json('publicacion.elementos.0.imagen_ruta');
+        ], ['If-Match' => $this->etag($id)])->assertCreated();
+        // El panel nunca publica rutas de almacenamiento: se lee la ruta guardada directamente de la base.
+        $ruta = (string) DB::table('servicio_publicacion_elementos')->value('imagen_ruta');
         $this->publicar($id);
 
         $contenido = $this->getJson('/api/public/v1/paginas/camaras-seguridad', $this->bff())->assertOk()

@@ -17,7 +17,6 @@ use App\Http\Controllers\Admin\PerfilSesionesController;
 use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
-use App\Http\Controllers\Admin\ServicioTecnologicoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -115,28 +114,9 @@ Route::prefix('admin')
             ->name('reclamaciones.gestionar')
             ->whereUuid('reclamacion');
 
-        Route::resource('servicios', ServicioTecnologicoController::class)->only(['index', 'store', 'show'])->parameters(['servicios' => 'servicio']);
-        Route::put('servicios/{servicio}', [ServicioTecnologicoController::class, 'update'])->name('servicios.update');
-        Route::patch('servicios/{servicio}/estado', [ServicioTecnologicoController::class, 'estado'])->name('servicios.estado');
-        Route::get('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'publicacion'])->name('servicios.publicacion.show');
-        Route::put('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'preparar'])->name('servicios.publicacion.preparar');
-        Route::post('servicios/{servicio}/publicacion/autorizar', [ServicioTecnologicoController::class, 'autorizar'])->name('servicios.publicacion.autorizar');
-        Route::delete('servicios/{servicio}/publicacion', [ServicioTecnologicoController::class, 'retirar'])->name('servicios.publicacion.retirar');
-        // Contenido de la ficha: imagen principal y tarjetas (multipart, mismo If-Match; permiso servicios.editar).
-        Route::post('servicios/{servicio}/publicacion/imagen', [ServicioTecnologicoController::class, 'imagenPrincipal'])
-            ->middleware('throttle:admin-write')
-            ->name('servicios.publicacion.imagen');
-        Route::post('servicios/{servicio}/elementos', [ServicioTecnologicoController::class, 'elementoStore'])
-            ->middleware('throttle:admin-write')
-            ->name('servicios.elementos.store');
-        Route::post('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoUpdate'])
-            ->whereNumber('elemento')
-            ->middleware('throttle:admin-write')
-            ->name('servicios.elementos.update');
-        Route::delete('servicios/{servicio}/elementos/{elemento}', [ServicioTecnologicoController::class, 'elementoDestroy'])
-            ->whereNumber('elemento')
-            ->middleware('throttle:admin-write')
-            ->name('servicios.elementos.destroy');
+        // Catálogo de servicios tecnológicos (retirado de Blade el 14/11/2026): lo atiende apps/web con
+        // /api/panel/v1/servicios/servicios. Se conserva el nombre para la barra lateral Blade; responde 302 a Next.
+        Route::get('servicios', RedirigirAWebController::class)->defaults('destino', '/admin/servicios/catalogo')->name('servicios.index');
         Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
         Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
         Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');

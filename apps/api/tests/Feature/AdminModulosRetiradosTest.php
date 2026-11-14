@@ -32,6 +32,7 @@ class AdminModulosRetiradosTest extends TestCase
         return [
             'reportes' => ['admin.reportes.index', '/admin/academico/reportes'],
             'cotizaciones' => ['admin.cotizaciones.index', '/admin/servicios/cotizaciones'],
+            'servicios' => ['admin.servicios.index', '/admin/servicios/catalogo'],
         ];
     }
 
@@ -69,5 +70,18 @@ class AdminModulosRetiradosTest extends TestCase
         $this->postJson('/admin/cotizaciones', [])->assertStatus(405);
         $this->getJson('/admin/cotizaciones/'.$uuid)->assertNotFound();
         $this->patchJson('/admin/cotizaciones/'.$uuid.'/estado', [])->assertNotFound();
+    }
+
+    public function test_las_operaciones_del_catalogo_de_servicios_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+        $this->postJson('/admin/servicios', [])->assertStatus(405);
+        $this->getJson('/admin/servicios/1')->assertNotFound();
+        $this->putJson('/admin/servicios/1', [])->assertNotFound();
+        $this->patchJson('/admin/servicios/1/estado', [])->assertNotFound();
+        $this->getJson('/admin/servicios/1/publicacion')->assertNotFound();
+        $this->postJson('/admin/servicios/1/publicacion/autorizar', [])->assertNotFound();
+        $this->postJson('/admin/servicios/1/elementos', [])->assertNotFound();
+        $this->deleteJson('/admin/servicios/1/elementos/1')->assertNotFound();
     }
 }

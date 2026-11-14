@@ -19,10 +19,12 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 class CatalogoAdvisorSincronizacionTest extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -164,21 +166,17 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
         $admin = $this->adminUser();
         $this->actingAs($admin);
         config(['catalogo-servicios.enabled' => false]);
-        $id = (int) $this->postJson('/admin/servicios', [
+        $id = $this->crearServicioPanel([
             'codigo' => 'CATALOGO-SYNC', 'nombre' => 'Servicio de catálogo', 'categoria' => 'Tecnología',
-        ])->assertCreated()->json('servicio.id');
-        $etag = (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
-        $this->putJson("/admin/servicios/$id/publicacion", [
+        ]);
+        $this->guardarFichaPanel($id, [
             'titulo' => 'Soporte de catálogo', 'resumen' => 'Servicio público de soporte tecnológico.',
             'descripcion' => 'Ayuda técnica autorizada para equipos informáticos.',
             'vigente_desde' => now('America/Lima')->toDateString(), 'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(),
             'titulo_tarjetas' => 'Cobertura',
-        ], ['If-Match' => $etag])->assertOk();
-        $etag = (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'activo'], ['If-Match' => $etag])->assertOk();
-        $etag = (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $etag])->assertOk();
-        $etag = (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
+        ])->assertOk();
+        $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
+        $this->autorizarFichaPanel($id)->assertOk();
 
         $catalog = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
 
@@ -189,24 +187,21 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
         $this->assertFalse(config('catalogo-servicios.enabled'));
         $this->assertTrue(app(FirmaCatalogoAdvisor::class)->verificar($catalog));
 
-        $retiredDraft = $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $etag])->assertOk();
-        $draft = $this->putJson("/admin/servicios/$id/publicacion", [
+        $this->retirarFichaPanel($id)->assertOk();
+        $this->guardarFichaPanel($id, [
             'titulo' => 'Soporte de catálogo actualizado', 'resumen' => 'Servicio tecnológico actualizado y público.',
             'descripcion' => 'Orientación técnica actualizada para equipos informáticos.',
             'vigente_desde' => now('America/Lima')->toDateString(), 'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(),
             'titulo_tarjetas' => 'Cobertura actualizada',
-        ], ['If-Match' => $retiredDraft->headers->get('ETag')])->assertOk();
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], [
-            'If-Match' => $draft->headers->get('ETag'),
         ])->assertOk();
+        $this->autorizarFichaPanel($id)->assertOk();
         $updated = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
         $updatedService = collect($updated['items'])->firstWhere('stable_id', $stableId);
         $this->assertNotNull($updatedService);
         $this->assertSame('Soporte de catálogo actualizado', $updatedService['title']);
         $this->assertNotSame($catalog['catalog_version'], $updated['catalog_version']);
 
-        $etag = (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $etag])->assertOk();
+        $this->retirarFichaPanel($id)->assertOk();
         $retired = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
         $this->assertNull(collect($retired['items'])->firstWhere('stable_id', $stableId));
     }

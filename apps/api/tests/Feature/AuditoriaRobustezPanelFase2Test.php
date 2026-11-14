@@ -14,10 +14,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 class AuditoriaRobustezPanelFase2Test extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     private User $admin;
@@ -31,13 +33,9 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
 
     public function test_parametro_servicio_no_numerico_responde_404_sin_error_500(): void
     {
-        $this->actingAs($this->admin)
-            ->getJson('/admin/servicios/no-numerico')
-            ->assertNotFound();
-
-        $this->actingAs($this->admin)
-            ->putJson('/admin/servicios/no-numerico/publicacion', [])
-            ->assertNotFound();
+        $this->actingAs($this->admin);
+        $this->panelServicios('GET', 'no-numerico')->assertNotFound();
+        $this->panelServicios('PUT', 'no-numerico/publicacion', [])->assertNotFound();
     }
 
     public function test_respuestas_admin_incluyen_cache_control_no_store_salvo_descargas(): void

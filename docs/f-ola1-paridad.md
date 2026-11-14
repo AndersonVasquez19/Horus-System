@@ -63,6 +63,42 @@ Código retirado: `Admin\CotizacionController`, `admin/cotizaciones/index.blade.
 ### Coste real del segundo módulo
 `CotizacionTest` (631 líneas) se reescribió casi entera: ~49 pruebas con proveedores, un cambio de producción (recibo mínimo) y 3 archivos de prueba dependientes ajustados. Fue más costoso que reportes (≈ 3×) pese a ser el módulo «pequeño» de la Ola 1; matrículas, cursos y estudiantes serán notablemente mayores.
 
+## Servicios tecnológicos (tercer módulo retirado)
+
+| Ruta Blade retirada | Endpoint del panel | Página Next |
+| --- | --- | --- |
+| `GET /admin/servicios` (HTML y JSON) | `GET /api/panel/v1/servicios/servicios` | `/admin/servicios/catalogo` |
+| `POST /admin/servicios` | `POST …/servicios/servicios` | alta |
+| `GET /admin/servicios/{id}` y `/publicacion` | `GET …/servicios/servicios/{id}` (la ficha va dentro del detalle: `data.ficha`) | `/admin/servicios/catalogo/[id]` |
+| `PUT /admin/servicios/{id}` | `PUT …/servicios/servicios/{id}` | edición |
+| `PATCH …/estado` | `POST …/{id}/estado` | cambio de estado |
+| `PUT …/publicacion` | `PUT …/{id}/publicacion` | borrador de la ficha |
+| `POST …/publicacion/autorizar` | `POST …/{id}/publicacion/autorizar` | autorización pública |
+| `DELETE …/publicacion` | `POST …/{id}/publicacion/retirar` | retiro |
+| `POST …/publicacion/imagen` | `POST …/{id}/imagen` (y `…/imagen/quitar`) | imagen principal |
+| `POST/POST/DELETE …/elementos[/{id}]` | `POST …/{id}/elementos[/{id}[/eliminar]]` | tarjetas |
+
+`GET /admin/servicios` se conserva solo con su nombre (`admin.servicios.index`, usado por la barra lateral) y responde 302 a `HORUS_WEB_URL/admin/servicios/catalogo`; las demás rutas Blade ya no existen.
+
+**Permisos:** equivalentes. El panel exige además `panel.servicios.acceder` (solo admin por defecto) y cada acción conserva su permiso (`servicios.ver|crear|editar|publicar`; publicar no implica editar contenido y viceversa). Diferencias de convención aceptadas: un filtro de listado fuera de contrato se ignora (en Blade devolvía 422), la paginación usa `page`/`per_page` 1..100 (en Blade `por_pagina` ≤ 50) y la respuesta es `{message?, data}`.
+
+**Seguridad: paridad exacta, sin brecha.** Se comparó la regla «escribir no concede leer» que en cotizaciones sí se perdía: en el catálogo de servicios no existe en ninguno de los dos lados (Blade devolvía el detalle completo a quien creaba o editaba, igual que el panel; son datos de catálogo, no datos personales), así que no hay nada que cerrar. Una mejora menor: el panel nunca publica rutas ni URL de almacenamiento (la imagen se sirve por una ruta autenticada con `nosniff` y `no-store`), mientras Blade devolvía `imagen_ruta` e `imagen_url`.
+
+Código retirado: `Admin\ServicioTecnologicoController`, `admin/servicios/index.blade.php` y `_editor.blade.php`, `resources/js/admin-servicios.mjs` (y su entrada en `vite.config.js`), `tests/frontend/admin-servicios.test.mjs`, el smoke `tests/browser/servicios-panel-smoke.mjs` y su router `tests/Support/servicios-panel-browser-router.php`. Se conservan `GestionServiciosTecnologicos`, los FormRequests, `ImagenesServicios`, `CatalogoPublicoServicios` y los modelos.
+
+| Prueba que tocaba la ruta Blade | Qué probaba | Destino |
+| --- | --- | --- |
+| `ServicioTecnologicoTest` (22 métodos + proveedor) | CRUD sin publicación implícita, publicación/retiro idempotentes y auditoría, `If-Match` estricto (428/412/422), permisos separados, catálogo público (apagado, exclusiones, paginación, vigencia Lima), rollback por fallo de auditoría, revalidación de permiso tras el bloqueo, restricciones SQL, migración de permisos, normalización del código | **Portada** a `Panel\ServiciosContratoPanelTest` (25 métodos, 33 casos con el proveedor). Las de catálogo público, esquema y migración se copiaron sin cambios de lógica; las HTTP cambian ruta, verbo (`estado` y `retirar` pasan a POST) y forma de respuesta (`data.*`). Se añadió que la revisión también viaja en `_revision` (BFF) y que una cabecera real tiene prioridad. |
+| `PanelServiciosTest` (5 métodos de HTML) | HTML y JSON del listado, acciones visibles por permiso, invitado, paginación con texto escapado y sin N+1 | Datos y permisos pasan a `ServiciosContratoPanelTest` (lista vacía, entrada + lectura, editor y publicador independientes, filtros, paginación, 3 consultas, texto literal en JSON). Lo puramente visual (botones `data-form`, «Nuevo servicio») lo cubre ahora la UI de Next. |
+| `ServiciosContenidoTest` (tarjetas, imágenes, páginas públicas, semilla) | permisos del contenido, `If-Match`, ficha obligatoria y bloqueo con ficha publicada, validación de 13 campos, límite de 30 tarjetas, archivos huérfanos, imagen segura, reemplazo, imagen compartida/estática, páginas públicas | **Misma prueba**, llamando al panel mediante `Tests\Support\LlamaServiciosDelPanel`; donde se leía `imagen_ruta`/`imagen_url` de la respuesta ahora se lee de la base y se afirma que la respuesta no revela rutas. Retirada solo `test_panel_diferencia_las_tres_categorias` (HTML del listado Blade; `pagina_publica` sigue en el modelo). |
+| `ApiPublicaServiciosTest`, `ApiPublicaCotizacionesTest`, `CatalogoAdvisorSincronizacionTest`, `CatalogoWebServiciosTest`, `AuditoriaRobustezPanelFase2Test` | preparaban datos por las rutas Blade | Misma prueba, ahora con el helper del panel. |
+| (ampliada) `AdminModulosRetiradosTest` | redirección, sesión/rol, 404 sin `HORUS_WEB_URL` y operaciones Blade inexistentes | Añadido `servicios`. |
+
+**Hallazgo de harness:** `withHeaders()` deja la cabecera `X-Horus-Web-Token` pegada a la instancia de la prueba y contaminaba las llamadas públicas posteriores (que deben seguir dando 401 sin su token). El helper pasa las cabeceras solo por petición.
+
+### Coste real del tercer módulo
+Más ligero que cotizaciones: la lógica ya estaba cubierta por `ServiciosEscrituraPanelTest` y `ServiciosImagenesPanelTest`; el trabajo fue portar ~80 pruebas con un helper común y reajustar 5 archivos que preparaban datos por Blade. Sin cambios de código de producción.
+
 ## Siguiente
 
 Pendiente de decisión del propietario tras el piloto: continuar con cotizaciones → servicios → estudiantes → cursos → matrículas, o pausar la Etapa F aquí. La **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`) no se ejecutó: mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin` Blade. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`).

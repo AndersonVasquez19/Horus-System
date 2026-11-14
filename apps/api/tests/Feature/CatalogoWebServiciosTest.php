@@ -20,10 +20,12 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 class CatalogoWebServiciosTest extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -272,17 +274,18 @@ class CatalogoWebServiciosTest extends TestCase
         $autor = $this->adminUser();
         config(['catalogo-servicios.enabled' => true]);
         $this->actingAs($autor);
-        $creado = $this->postJson('/admin/servicios', ['codigo' => 'FLUJO-FICTICIO', 'nombre' => 'Nombre interno de prueba', 'estado' => 'activo'])->assertCreated();
-        $id = $creado->json('servicio.id');
-        $borrador = $this->putJson("/admin/servicios/$id/publicacion", ['titulo' => 'Servicio del flujo de prueba',
+        $id = $this->crearServicioPanel(['codigo' => 'FLUJO-FICTICIO', 'nombre' => 'Nombre interno de prueba', 'estado' => 'activo']);
+        $this->guardarFichaPanel($id, ['titulo' => 'Servicio del flujo de prueba',
             'resumen' => 'Información sintética', 'descripcion' => 'Detalle público sintético',
-            'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-11-01'], ['If-Match' => $creado->headers->get('ETag')])->assertOk();
+            'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-11-01'])->assertOk();
         auth()->forgetGuards();
         $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Servicio del flujo de prueba');
-        $publicada = $this->actingAs($autor)->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $borrador->headers->get('ETag')])->assertOk();
+        $this->actingAs($autor);
+        $this->autorizarFichaPanel($id)->assertOk();
         auth()->forgetGuards();
         $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('Servicio del flujo de prueba');
-        $this->actingAs($autor)->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $publicada->headers->get('ETag')])->assertOk();
+        $this->actingAs($autor);
+        $this->retirarFichaPanel($id)->assertOk();
         auth()->forgetGuards();
         $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Servicio del flujo de prueba');
         $this->assertDatabaseCount('audit_logs', 4);

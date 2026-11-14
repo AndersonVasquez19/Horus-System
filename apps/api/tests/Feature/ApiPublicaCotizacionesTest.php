@@ -18,16 +18,18 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 /**
  * Fase 2c.3: solicitud de cotización por el BFF (`/api/public/v1/cotizaciones*`). Entra por el módulo comercial
  * existente (`solicitudes_cotizacion` con `origen = publico`) y se gestiona en el panel (`/api/panel/v1/servicios/cotizaciones`). Transporte
  * simulado y SQLite en memoria: NO prueba PostgreSQL, concurrencia real ni correo. Las reglas internas del módulo
- * (estados, ETag, responsables) las cubre `CotizacionTest`; aquí se prueba que lo recibido de la web las cumple.
+ * (estados, ETag, responsables) las cubre `Panel\CotizacionesContratoPanelTest`; aquí se prueba que lo recibido de la web las cumple.
  */
 class ApiPublicaCotizacionesTest extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     private const TOKEN = 'token-de-prueba-bff-0123456789abcdefghij';
@@ -59,25 +61,25 @@ class ApiPublicaCotizacionesTest extends TestCase
 
     private function etag(int $id): string
     {
-        return (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
+        return $this->revisionServicioPanel($id);
     }
 
     /** Crea el servicio; con `$titulo` además prepara y publica su ficha, y con `$activo` lo activa. */
     private function servicio(string $codigo, string $nombre, bool $activo, ?string $titulo = null): void
     {
-        $id = (int) $this->postJson('/admin/servicios', ['codigo' => $codigo, 'nombre' => $nombre, 'categoria' => 'Redes'])->assertCreated()->json('servicio.id');
+        $id = $this->crearServicioPanel(['codigo' => $codigo, 'nombre' => $nombre, 'categoria' => 'Redes']);
         $this->uuids[$codigo] = (string) DB::table('servicios_tecnologicos')->where('id', $id)->value('identificador_publico');
         if ($titulo !== null) {
-            $this->putJson("/admin/servicios/$id/publicacion", [
+            $this->guardarFichaPanel($id, [
                 'titulo' => $titulo, 'resumen' => 'Resumen público', 'descripcion' => 'Descripción pública.',
                 'vigente_desde' => '2026-11-01', 'vigente_hasta' => '2026-12-31',
-            ], ['If-Match' => $this->etag($id)])->assertOk();
+            ])->assertOk();
         }
         if ($activo) {
-            $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'activo'], ['If-Match' => $this->etag($id)])->assertOk();
+            $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
         }
         if ($titulo !== null && $activo && $codigo !== 'BORRADOR') {
-            $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->etag($id)])->assertOk();
+            $this->autorizarFichaPanel($id)->assertOk();
         }
     }
 

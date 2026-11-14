@@ -28,11 +28,18 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
-/** Contenido administrable de las tres páginas de Servicios Tecnológicos (SQLite :memory:; sin PostgreSQL ni red). */
+/**
+ * Contenido administrable de las tres páginas de Servicios Tecnológicos (SQLite :memory:; sin PostgreSQL ni red). La
+ * administración se ejercita por la API del panel (`/api/panel/v1/servicios/servicios/*`); el módulo Blade se retiró el
+ * 14/11/2026. El panel nunca publica rutas de almacenamiento: donde antes se leía `imagen_ruta` de la respuesta ahora
+ * se lee de la base.
+ */
 class ServiciosContenidoTest extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -47,17 +54,17 @@ class ServiciosContenidoTest extends TestCase
 
     private function etag(int $id): string
     {
-        return (string) $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
+        return $this->revisionServicioPanel($id);
     }
 
     private function servicio(string $codigo = 'CABLEADO', bool $conFicha = true): int
     {
-        $id = (int) $this->postJson('/admin/servicios', ['codigo' => $codigo, 'nombre' => 'Servicio '.$codigo, 'categoria' => $codigo])->assertCreated()->json('servicio.id');
+        $id = $this->crearServicioPanel(['codigo' => $codigo, 'nombre' => 'Servicio '.$codigo, 'categoria' => $codigo]);
         if ($conFicha) {
-            $this->putJson("/admin/servicios/$id/publicacion", [
+            $this->guardarFichaPanel($id, [
                 'titulo' => 'Título principal '.$codigo, 'resumen' => 'Resumen público', 'descripcion' => "Primer párrafo.\n\nSegundo párrafo.",
                 'vigente_desde' => '2026-11-01', 'vigente_hasta' => '2026-12-31', 'titulo_tarjetas' => 'Sección de tarjetas',
-            ], ['If-Match' => $this->etag($id)])->assertOk();
+            ])->assertOk();
         }
 
         return $id;
@@ -66,19 +73,30 @@ class ServiciosContenidoTest extends TestCase
     /** @param array<string, mixed> $extra */
     private function tarjeta(int $id, array $extra = [], ?string $etag = null): TestResponse
     {
-        return $this->post("/admin/servicios/$id/elementos", array_merge(['titulo' => 'Tarjeta uno', 'descripcion' => 'Descripción uno'], $extra),
-            ['Accept' => 'application/json', 'If-Match' => $etag ?? $this->etag($id)]);
+        return $this->panelServiciosArchivo("$id/elementos", array_merge(['titulo' => 'Tarjeta uno', 'descripcion' => 'Descripción uno'], $extra),
+            ['If-Match' => $etag ?? $this->etag($id)]);
     }
 
     private function activarYPublicar(int $id): void
     {
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'activo'], ['If-Match' => $this->etag($id)])->assertOk();
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->etag($id)])->assertOk();
+        $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
+        $this->autorizarFichaPanel($id)->assertOk();
     }
 
     private function retirar(int $id): void
     {
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $this->etag($id)])->assertOk();
+        $this->retirarFichaPanel($id)->assertOk();
+    }
+
+    /** Ruta de almacenamiento guardada (el panel no la publica). */
+    private function rutaDeTarjeta(?int $elemento = null): ?string
+    {
+        $consulta = DB::table('servicio_publicacion_elementos');
+        if ($elemento !== null) {
+            $consulta->where('id', $elemento);
+        }
+
+        return $consulta->value('imagen_ruta');
     }
 
     private function imagen(string $nombre = 'foto.png', int $ancho = 200, int $alto = 150): UploadedFile
@@ -129,28 +147,28 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $etag = $this->etag($id);
-        $ruta = "/admin/servicios/$id/elementos";
+        $ruta = "$id/elementos";
 
         $lector = User::factory()->create();
         $lector->assignRole('secretaria');
-        $lector->givePermissionTo('servicios.ver');
+        $lector->givePermissionTo(['panel.servicios.acceder', 'servicios.ver']);
         $this->actingAs($lector);
-        $this->post($ruta, ['titulo' => 'X', 'descripcion' => 'Y'], ['Accept' => 'application/json', 'If-Match' => $etag])->assertForbidden();
-        $this->post("/admin/servicios/$id/publicacion/imagen", ['imagen' => $this->imagen()], ['Accept' => 'application/json', 'If-Match' => $etag])->assertForbidden();
-        $this->deleteJson("$ruta/1", [], ['If-Match' => $etag])->assertForbidden();
+        $this->panelServiciosArchivo($ruta, ['titulo' => 'X', 'descripcion' => 'Y'], ['If-Match' => $etag])->assertForbidden();
+        $this->panelServiciosArchivo("$id/imagen", ['imagen' => $this->imagen()], ['If-Match' => $etag])->assertForbidden();
+        $this->panelServiciosArchivo("$ruta/1/eliminar", [], ['If-Match' => $etag])->assertForbidden();
 
         // Publicar no implica editar contenido (permisos independientes, sin permisos nuevos).
         $publicador = User::factory()->create();
         $publicador->assignRole('coordinador');
-        $publicador->givePermissionTo(['servicios.ver', 'servicios.publicar']);
+        $publicador->givePermissionTo(['panel.servicios.acceder', 'servicios.ver', 'servicios.publicar']);
         $this->actingAs($publicador);
-        $this->post($ruta, ['titulo' => 'X', 'descripcion' => 'Y'], ['Accept' => 'application/json', 'If-Match' => $etag])->assertForbidden();
+        $this->panelServiciosArchivo($ruta, ['titulo' => 'X', 'descripcion' => 'Y'], ['If-Match' => $etag])->assertForbidden();
 
         $editor = User::factory()->create();
         $editor->assignRole('coordinador');
-        $editor->givePermissionTo(['servicios.ver', 'servicios.editar']);
+        $editor->givePermissionTo(['panel.servicios.acceder', 'servicios.ver', 'servicios.editar']);
         $this->actingAs($editor);
-        $this->post($ruta, ['titulo' => 'X', 'descripcion' => 'Y'], ['Accept' => 'application/json', 'If-Match' => $etag])->assertCreated();
+        $this->panelServiciosArchivo($ruta, ['titulo' => 'X', 'descripcion' => 'Y'], ['If-Match' => $etag])->assertCreated();
 
         $this->assertFalse(User::factory()->create()->can('servicios.editar'));
         foreach (['coordinador', 'secretaria'] as $rol) {
@@ -161,8 +179,8 @@ class ServiciosContenidoTest extends TestCase
     public function test_invitado_no_accede(): void
     {
         $id = $this->servicio();
-        auth()->logout();
-        $this->post("/admin/servicios/$id/elementos", ['titulo' => 'X', 'descripcion' => 'Y'], ['Accept' => 'application/json'])->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+        $this->panelServiciosArchivo("$id/elementos", ['titulo' => 'X', 'descripcion' => 'Y'])->assertUnauthorized();
     }
 
     // ---------------------------------------------------------------- Tarjetas
@@ -171,16 +189,16 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $respuesta = $this->tarjeta($id, ['caracteristicas' => ['Uno', ' Dos ', ''], 'icono' => 'fas fa-bolt', 'variante_imagen' => 'escena', 'activo' => '1'])->assertCreated();
-        $respuesta->assertJsonPath('publicacion.elementos.0.titulo', 'Tarjeta uno')
-            ->assertJsonPath('publicacion.elementos.0.caracteristicas', ['Uno', 'Dos'])
-            ->assertJsonPath('publicacion.elementos.0.orden', 1)->assertJsonPath('publicacion.elementos.0.activo', true);
-        $elemento = (int) $respuesta->json('publicacion.elementos.0.id');
+        $respuesta->assertJsonPath('data.ficha.elementos.0.titulo', 'Tarjeta uno')
+            ->assertJsonPath('data.ficha.elementos.0.caracteristicas', ['Uno', 'Dos'])
+            ->assertJsonPath('data.ficha.elementos.0.orden', 1)->assertJsonPath('data.ficha.elementos.0.activo', true);
+        $elemento = (int) $respuesta->json('data.ficha.elementos.0.id');
         $this->assertSame(3, ServicioTecnologico::findOrFail($id)->revision);
 
-        $this->post("/admin/servicios/$id/elementos/$elemento", ['titulo' => 'Cambiado', 'descripcion' => 'Nueva', 'orden' => 5, 'activo' => '0'],
-            ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertOk()
-            ->assertJsonPath('publicacion.elementos.0.titulo', 'Cambiado')->assertJsonPath('publicacion.elementos.0.activo', false)
-            ->assertJsonPath('publicacion.elementos.0.orden', 5);
+        $this->panelServiciosArchivo("$id/elementos/$elemento", ['titulo' => 'Cambiado', 'descripcion' => 'Nueva', 'orden' => 5, 'activo' => '0'],
+            ['If-Match' => $this->etag($id)])->assertOk()
+            ->assertJsonPath('data.ficha.elementos.0.titulo', 'Cambiado')->assertJsonPath('data.ficha.elementos.0.activo', false)
+            ->assertJsonPath('data.ficha.elementos.0.orden', 5);
         $this->assertSame(4, ServicioTecnologico::findOrFail($id)->revision);
 
         foreach (['servicio_elemento_creado', 'servicio_elemento_actualizado'] as $evento) {
@@ -196,10 +214,10 @@ class ServiciosContenidoTest extends TestCase
         $this->tarjeta($id, [], $viejo)->assertCreated();
         // Reutilizar la revisión anterior: conflicto.
         $this->tarjeta($id, [], $viejo)->assertStatus(412);
-        $this->post("/admin/servicios/$id/publicacion/imagen", ['imagen' => $this->imagen()], ['Accept' => 'application/json', 'If-Match' => $viejo])->assertStatus(412);
-        $this->deleteJson("/admin/servicios/$id/elementos/1", [], ['If-Match' => $viejo])->assertStatus(412);
+        $this->panelServiciosArchivo("$id/imagen", ['imagen' => $this->imagen()], ['If-Match' => $viejo])->assertStatus(412);
+        $this->panelServiciosArchivo("$id/elementos/1/eliminar", [], ['If-Match' => $viejo])->assertStatus(412);
         // Sin If-Match: 428.
-        $this->post("/admin/servicios/$id/elementos", ['titulo' => 'X', 'descripcion' => 'Y'], ['Accept' => 'application/json'])->assertStatus(428);
+        $this->panelServiciosArchivo("$id/elementos", ['titulo' => 'X', 'descripcion' => 'Y'])->assertStatus(428);
         $this->assertSame(1, ServicioPublicacionElemento::count());
         $this->assertSame([], $this->archivos());
     }
@@ -213,7 +231,7 @@ class ServiciosContenidoTest extends TestCase
         $this->tarjeta($id)->assertCreated();
         $this->activarYPublicar($id);
         $this->tarjeta($id)->assertStatus(409);
-        $this->post("/admin/servicios/$id/publicacion/imagen", ['imagen' => $this->imagen()], ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertStatus(409);
+        $this->panelServiciosArchivo("$id/imagen", ['imagen' => $this->imagen()], ['If-Match' => $this->etag($id)])->assertStatus(409);
         $this->assertSame([], $this->archivos());
         $this->retirar($id);
         $this->tarjeta($id, ['titulo' => 'Tras retiro'])->assertCreated();
@@ -265,9 +283,9 @@ class ServiciosContenidoTest extends TestCase
     {
         $a = $this->servicio('CABLEADO');
         $b = $this->servicio('SOPORTE');
-        $elemento = (int) $this->tarjeta($a)->assertCreated()->json('publicacion.elementos.0.id');
-        $this->post("/admin/servicios/$b/elementos/$elemento", ['titulo' => 'Robo', 'descripcion' => 'x'], ['Accept' => 'application/json', 'If-Match' => $this->etag($b)])->assertNotFound();
-        $this->deleteJson("/admin/servicios/$b/elementos/$elemento", [], ['If-Match' => $this->etag($b)])->assertNotFound();
+        $elemento = (int) $this->tarjeta($a)->assertCreated()->json('data.ficha.elementos.0.id');
+        $this->panelServiciosArchivo("$b/elementos/$elemento", ['titulo' => 'Robo', 'descripcion' => 'x'], ['If-Match' => $this->etag($b)])->assertNotFound();
+        $this->panelServiciosArchivo("$b/elementos/$elemento/eliminar", [], ['If-Match' => $this->etag($b)])->assertNotFound();
         $this->assertSame('Tarjeta uno', ServicioPublicacionElemento::findOrFail($elemento)->titulo);
     }
 
@@ -275,10 +293,10 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $r = $this->tarjeta($id, ['imagen' => $this->imagen()])->assertCreated();
-        $ruta = $r->json('publicacion.elementos.0.imagen_ruta');
+        $ruta = $this->rutaDeTarjeta();
         Storage::disk('public')->assertExists($ruta);
-        $this->deleteJson("/admin/servicios/$id/elementos/".$r->json('publicacion.elementos.0.id'), [], ['If-Match' => $this->etag($id)])->assertOk()
-            ->assertJsonPath('publicacion.elementos', []);
+        $this->panelServiciosArchivo("$id/elementos/".$r->json('data.ficha.elementos.0.id').'/eliminar', [], ['If-Match' => $this->etag($id)])->assertOk()
+            ->assertJsonPath('data.ficha.elementos', [])->assertJsonPath('data.ficha.tarjetas', 0);
         Storage::disk('public')->assertMissing($ruta);
         $this->assertDatabaseHas('audit_logs', ['action' => 'servicio_elemento_eliminado', 'model_id' => $id]);
     }
@@ -289,12 +307,13 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $r = $this->tarjeta($id, ['imagen' => $this->imagen('../../etc/passwd.png')])->assertCreated();
-        $ruta = (string) $r->json('publicacion.elementos.0.imagen_ruta');
+        $ruta = (string) $this->rutaDeTarjeta();
         $this->assertMatchesRegularExpression('#\Aservicios/[0-9a-f-]{36}\.png\z#', $ruta);
         Storage::disk('public')->assertExists($ruta);
         $this->assertStringNotContainsString('passwd', $ruta);
-        $this->assertStringContainsString('/storage/'.$ruta, (string) $r->json('publicacion.elementos.0.imagen_url'));
-        $this->assertSame($ruta, DB::table('servicio_publicacion_elementos')->value('imagen_ruta'));
+        // El panel no revela rutas ni URL de almacenamiento: la vista previa se pide por la ruta autenticada.
+        $this->assertStringNotContainsString($ruta, (string) $r->getContent());
+        $this->assertTrue($r->json('data.ficha.elementos.0.con_imagen'));
     }
 
     public static function imagenesInvalidas(): iterable
@@ -310,8 +329,8 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $this->tarjeta($id, ['imagen' => UploadedFile::fake()->createWithContent($nombre, $contenido)])->assertStatus(422)->assertJsonValidationErrors(['imagen']);
-        $this->post("/admin/servicios/$id/publicacion/imagen", ['imagen' => UploadedFile::fake()->createWithContent($nombre, $contenido)],
-            ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertStatus(422);
+        $this->panelServiciosArchivo("$id/imagen", ['imagen' => UploadedFile::fake()->createWithContent($nombre, $contenido)],
+            ['If-Match' => $this->etag($id)])->assertStatus(422);
         $this->assertSame([], $this->archivos());
         $this->assertSame(0, ServicioPublicacionElemento::count());
     }
@@ -328,24 +347,26 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $r = $this->tarjeta($id, ['imagen' => $this->imagen()])->assertCreated();
-        $elemento = (int) $r->json('publicacion.elementos.0.id');
-        $vieja = (string) $r->json('publicacion.elementos.0.imagen_ruta');
+        $elemento = (int) $r->json('data.ficha.elementos.0.id');
+        $vieja = (string) $this->rutaDeTarjeta();
 
         // Falla (ETag obsoleto): la anterior sigue y la nueva no queda huérfana.
-        $this->post("/admin/servicios/$id/elementos/$elemento", ['titulo' => 'T', 'descripcion' => 'd', 'imagen' => $this->imagen('b.png')],
-            ['Accept' => 'application/json', 'If-Match' => '"servicio-'.$id.'-v1"'])->assertStatus(412);
+        $this->panelServiciosArchivo("$id/elementos/$elemento", ['titulo' => 'T', 'descripcion' => 'd', 'imagen' => $this->imagen('b.png')],
+            ['If-Match' => '"servicio-'.$id.'-v1"'])->assertStatus(412);
         $this->assertSame([$vieja], $this->archivos());
 
-        $nuevo = (string) $this->post("/admin/servicios/$id/elementos/$elemento", ['titulo' => 'T', 'descripcion' => 'd', 'imagen' => $this->imagen('c.png')],
-            ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertOk()->json('publicacion.elementos.0.imagen_ruta');
+        $this->panelServiciosArchivo("$id/elementos/$elemento", ['titulo' => 'T', 'descripcion' => 'd', 'imagen' => $this->imagen('c.png')],
+            ['If-Match' => $this->etag($id)])->assertOk();
+        $nuevo = (string) $this->rutaDeTarjeta();
         $this->assertNotSame($vieja, $nuevo);
         Storage::disk('public')->assertMissing($vieja);
         Storage::disk('public')->assertExists($nuevo);
         $this->assertCount(1, $this->archivos());
 
         // Quitar la fotografía la borra y deja la tarjeta sin imagen.
-        $this->post("/admin/servicios/$id/elementos/$elemento", ['titulo' => 'T', 'descripcion' => 'd', 'quitar_imagen' => '1'],
-            ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertOk()->assertJsonPath('publicacion.elementos.0.imagen_ruta', null);
+        $this->panelServiciosArchivo("$id/elementos/$elemento", ['titulo' => 'T', 'descripcion' => 'd', 'quitar_imagen' => '1'],
+            ['If-Match' => $this->etag($id)])->assertOk()->assertJsonPath('data.ficha.elementos.0.con_imagen', false);
+        $this->assertNull($this->rutaDeTarjeta());
         $this->assertSame([], $this->archivos());
     }
 
@@ -353,36 +374,37 @@ class ServiciosContenidoTest extends TestCase
     {
         $id = $this->servicio();
         $a = $this->tarjeta($id, ['imagen' => $this->imagen()])->assertCreated();
-        $compartida = (string) $a->json('publicacion.elementos.0.imagen_ruta');
-        $primera = (int) $a->json('publicacion.elementos.0.id');
-        $segunda = (int) $this->tarjeta($id, ['titulo' => 'Otra'])->assertCreated()->json('publicacion.elementos.1.id');
+        $primera = (int) $a->json('data.ficha.elementos.0.id');
+        $compartida = (string) $this->rutaDeTarjeta($primera);
+        $segunda = (int) $this->tarjeta($id, ['titulo' => 'Otra'])->assertCreated()->json('data.ficha.elementos.1.id');
         // Otra tarjeta y la portada referencian la misma carga.
         DB::table('servicio_publicacion_elementos')->where('id', $segunda)->update(['imagen_ruta' => $compartida]);
         DB::table('servicio_publicaciones')->update(['imagen_principal_ruta' => $compartida]);
 
-        $this->deleteJson("/admin/servicios/$id/elementos/$primera", [], ['If-Match' => $this->etag($id)])->assertOk();
+        $this->panelServiciosArchivo("$id/elementos/$primera/eliminar", [], ['If-Match' => $this->etag($id)])->assertOk();
         Storage::disk('public')->assertExists($compartida);
 
         // Una ruta estática versionada nunca se elimina, ni siquiera sin referencias.
         DB::table('servicio_publicacion_elementos')->where('id', $segunda)->update(['imagen_ruta' => 'assets/images/tecnologias/categoria1.jpg']);
-        $nueva = $this->post("/admin/servicios/$id/elementos/$segunda", ['titulo' => 'Otra', 'descripcion' => 'd', 'imagen' => $this->imagen('n.png')],
-            ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertOk();
+        $this->panelServiciosArchivo("$id/elementos/$segunda", ['titulo' => 'Otra', 'descripcion' => 'd', 'imagen' => $this->imagen('n.png')],
+            ['If-Match' => $this->etag($id)])->assertOk();
         $this->assertFileExists(public_path('assets/images/tecnologias/categoria1.jpg'));
         Storage::disk('public')->assertExists($compartida);
-        $this->assertMatchesRegularExpression('#\Aservicios/#', (string) $nueva->json('publicacion.elementos.0.imagen_ruta'));
+        $this->assertMatchesRegularExpression('#\Aservicios/#', (string) $this->rutaDeTarjeta($segunda));
     }
 
     public function test_imagen_principal_se_reemplaza_y_conserva_alt(): void
     {
         $id = $this->servicio();
-        $url = "/admin/servicios/$id/publicacion/imagen";
-        $uno = (string) $this->post($url, ['imagen' => $this->imagen('uno.webp'), 'imagen_principal_alt' => 'Portada'], ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])
-            ->assertOk()->assertJsonPath('publicacion.imagen_principal_alt', 'Portada')->json('publicacion.imagen_principal_ruta');
-        $dos = (string) $this->post($url, ['imagen' => $this->imagen('dos.png')], ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])
-            ->assertOk()->json('publicacion.imagen_principal_ruta');
+        $url = "$id/imagen";
+        $this->panelServiciosArchivo($url, ['imagen' => $this->imagen('uno.webp'), 'imagen_principal_alt' => 'Portada'], ['If-Match' => $this->etag($id)])
+            ->assertOk()->assertJsonPath('data.ficha.imagen_principal_alt', 'Portada')->assertJsonPath('data.ficha.con_imagen', true);
+        $uno = (string) DB::table('servicio_publicaciones')->value('imagen_principal_ruta');
+        $this->panelServiciosArchivo($url, ['imagen' => $this->imagen('dos.png')], ['If-Match' => $this->etag($id)])->assertOk();
+        $dos = (string) DB::table('servicio_publicaciones')->value('imagen_principal_ruta');
         Storage::disk('public')->assertMissing($uno);
         Storage::disk('public')->assertExists($dos);
-        $this->post($url, ['imagen_principal_alt' => 'x'], ['Accept' => 'application/json', 'If-Match' => $this->etag($id)])->assertStatus(422);
+        $this->panelServiciosArchivo($url, ['imagen_principal_alt' => 'x'], ['If-Match' => $this->etag($id)])->assertStatus(422);
         $this->assertDatabaseHas('audit_logs', ['action' => 'servicio_imagen_principal_actualizada', 'model_id' => $id]);
     }
 
@@ -470,7 +492,7 @@ class ServiciosContenidoTest extends TestCase
         $this->get(route('tecnologias.camaras'))->assertSee('CAMARA NUEVA');
 
         // Inactivar retira.
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'inactivo'], ['If-Match' => $this->etag($id)])->assertOk();
+        $this->cambiarEstadoServicioPanel($id, 'inactivo')->assertOk();
         $this->get(route('tecnologias.camaras'))->assertDontSee('CAMARA NUEVA')->assertSee('CÁMARAS IP');
     }
 
@@ -478,10 +500,10 @@ class ServiciosContenidoTest extends TestCase
     {
         config(['catalogo-servicios.enabled' => true]);
         $id = $this->servicio('SOPORTE');
-        $r = $this->tarjeta($id, ['titulo' => 'Tarjeta & "comillas"', 'icono' => 'fas fa-cogs', 'caracteristicas' => ['Item & uno']])->assertCreated();
+        $this->tarjeta($id, ['titulo' => 'Tarjeta & "comillas"', 'icono' => 'fas fa-cogs', 'caracteristicas' => ['Item & uno']])->assertCreated();
         DB::table('servicio_publicacion_elementos')->update(['descripcion' => '<script>alert(1)</script>', 'imagen_alt' => '"><img src=x>']);
         $this->activarYPublicar($id);
-        $uuid = (string) $r->json('servicio.identificador_publico');
+        $uuid = (string) DB::table('servicios_tecnologicos')->where('id', $id)->value('identificador_publico');
         $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('<script>alert(1)</script>', false)->assertSee('Tarjeta &amp; &quot;comillas&quot;', false)
             ->assertDontSee($uuid)->assertDontSee('Servicio SOPORTE')->assertDontSee('"><img', false)->assertSee('fas fa-cogs');
     }
@@ -592,16 +614,5 @@ class ServiciosContenidoTest extends TestCase
         // Y el HTTP real sirve esa misma versión dinámica, con el diseño y el CSS existentes.
         $ruta = ['CABLEADO' => 'tecnologias.cableado', 'VIDEOVIGILANCIA' => 'tecnologias.camaras', 'SOPORTE' => 'tecnologias.soporte'][$codigo];
         $this->get(route($ruta))->assertOk()->assertSee('assets/css/tecnologias/', false)->assertSee('legacy-showcase', false);
-    }
-
-    public function test_panel_diferencia_las_tres_categorias(): void
-    {
-        $this->seed(ServiciosTecnologicosContenidoSeeder::class);
-        $html = $this->get('/admin/servicios')->assertOk()->getContent();
-        foreach (['Cableado estructurado', 'Sistema de videovigilancia', 'Soporte y mantenimiento', '/tecnologias/cableado-estructurado', '/tecnologias/camaras-seguridad', '/tecnologias/soporte-mantenimiento'] as $texto) {
-            $this->assertStringContainsString($texto, $html);
-        }
-        $json = $this->getJson('/admin/servicios')->assertOk()->json('data');
-        $this->assertSame(['CABLEADO', 'SOPORTE', 'VIDEOVIGILANCIA'], collect($json)->pluck('pagina_publica.codigo')->sort()->values()->all());
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
+namespace Tests\Feature\Panel;
 
 use App\Models\AuditLog;
 use App\Models\User;
@@ -23,10 +23,22 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
-class ServicioTecnologicoTest extends TestCase
+/**
+ * Contrato del catálogo de servicios tecnológicos en /api/panel/v1/servicios/servicios. Sustituye a
+ * `ServicioTecnologicoTest` y a `PanelServiciosTest`, que ejercitaban el módulo Blade retirado el 14/11/2026:
+ * revisión `If-Match`, permisos separados, publicación e idempotencia, auditoría, rollback, proyección pública y
+ * restricciones SQL. Cambian la ruta, el verbo de las gestiones (POST en vez de PATCH/DELETE) y la forma de la
+ * respuesta (`data.*`); las pruebas de catálogo, esquema y migración no dependían de la ruta y se conservan.
+ *
+ * Diferencias de convención aceptadas: un filtro de listado fuera de contrato se ignora (en Blade devolvía 422), la
+ * paginación usa `page`/`per_page` (1..100) y el acceso exige además `panel.servicios.acceder`.
+ */
+class ServiciosContratoPanelTest extends TestCase
 {
+    use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -52,33 +64,43 @@ class ServicioTecnologicoTest extends TestCase
 
     private function crear(): int
     {
-        return $this->postJson('/admin/servicios', $this->datos())->assertCreated()->json('servicio.id');
+        return $this->crearServicioPanel($this->datos());
     }
 
     private function revision(int $id): string
     {
-        return $this->getJson("/admin/servicios/$id")->assertOk()->headers->get('ETag');
+        return $this->revisionServicioPanel($id);
     }
 
     private function preparar(int $id): void
     {
-        $this->putJson("/admin/servicios/$id/publicacion", $this->ficha(), ['If-Match' => $this->revision($id)])->assertOk();
+        $this->guardarFichaPanel($id, $this->ficha())->assertOk();
     }
 
     private function publicar(int $id): void
     {
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertOk();
+        $this->autorizarFichaPanel($id)->assertOk();
+    }
+
+    /** Usuario con rol administrativo y los permisos indicados (entrada al panel incluida solo si se pide). */
+    private function usuario(string $rol, array $permisos): User
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole($rol);
+        $usuario->givePermissionTo($permisos);
+
+        return $usuario;
     }
 
     public function test_crear_listar_detalle_y_editar_sin_publicacion_implicita(): void
     {
         $id = $this->crear();
         $this->assertDatabaseCount('servicio_publicaciones', 0);
-        $this->getJson('/admin/servicios')->assertOk()->assertJsonPath('total', 1);
-        $detalle = $this->getJson("/admin/servicios/$id")->assertOk()->assertJsonPath('estado_editorial', 'sin_ficha');
-        $this->assertNotEmpty($detalle->json('servicio.identificador_publico'));
-        $this->putJson("/admin/servicios/$id", ['nombre' => 'Nombre corregido'], ['If-Match' => $detalle->headers->get('ETag')])
-            ->assertOk()->assertJsonPath('servicio.nombre', 'Nombre corregido');
+        $this->panelServicios('GET')->assertOk()->assertJsonPath('meta.total', 1);
+        $detalle = $this->panelServicios('GET', (string) $id)->assertOk()->assertJsonPath('data.estado_editorial', 'sin_ficha');
+        $this->assertNotEmpty($detalle->json('data.identificador_publico'));
+        $this->panelServicios('PUT', (string) $id, ['nombre' => 'Nombre corregido'], ['If-Match' => $detalle->headers->get('ETag')])
+            ->assertOk()->assertJsonPath('data.nombre', 'Nombre corregido');
         $this->assertDatabaseCount('audit_logs', 2);
         Http::assertNothingSent();
     }
@@ -87,17 +109,17 @@ class ServicioTecnologicoTest extends TestCase
     {
         $id = $this->crear();
         $this->preparar($id);
-        $this->getJson("/admin/servicios/$id/publicacion")->assertOk()->assertJsonPath('estado_editorial', 'borrador');
+        $this->panelServicios('GET', (string) $id)->assertOk()->assertJsonPath('data.estado_editorial', 'borrador');
         $this->publicar($id);
         $revision = $this->revision($id);
         $audits = AuditLog::count();
         $this->publicar($id);
         $this->assertSame($revision, $this->revision($id));
         $this->assertSame($audits, AuditLog::count());
-        $this->putJson("/admin/servicios/$id/publicacion", $this->ficha(), ['If-Match' => $revision])->assertConflict();
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $revision])->assertOk()->assertJsonPath('estado_editorial', 'retirada');
+        $this->panelServicios('PUT', "$id/publicacion", $this->ficha(), ['If-Match' => $revision])->assertConflict();
+        $this->panelServicios('POST', "$id/publicacion/retirar", [], ['If-Match' => $revision])->assertOk()->assertJsonPath('data.estado_editorial', 'retirada');
         $audits = AuditLog::count();
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $this->revision($id)])->assertOk();
+        $this->retirarFichaPanel($id)->assertOk();
         $this->assertSame($audits, AuditLog::count());
         $this->assertDatabaseHas('audit_logs', ['action' => 'servicio_publicado', 'model_id' => $id, 'user_id' => auth()->id()]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'servicio_retirado', 'model_id' => $id]);
@@ -108,14 +130,24 @@ class ServicioTecnologicoTest extends TestCase
         $id = $this->crear();
         $old = $this->revision($id);
         $this->preparar($id);
-        foreach ([['PUT', "/admin/servicios/$id", ['nombre' => 'Cambio']], ['PATCH', "/admin/servicios/$id/estado", ['estado' => 'inactivo']],
-            ['PUT', "/admin/servicios/$id/publicacion", $this->ficha()], ['POST', "/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true]],
-            ['DELETE', "/admin/servicios/$id/publicacion", []]] as [$method, $url, $body]) {
-            $this->json($method, $url, $body)->assertStatus(428);
-            $this->json($method, $url, $body, ['If-Match' => '*'])->assertUnprocessable();
-            $this->json($method, $url, $body, ['If-Match' => $old])->assertStatus(412);
+        foreach ([['PUT', "$id", ['nombre' => 'Cambio']], ['POST', "$id/estado", ['estado' => 'inactivo']],
+            ['PUT', "$id/publicacion", $this->ficha()], ['POST', "$id/publicacion/autorizar", ['confirmacion_publica' => true]],
+            ['POST', "$id/publicacion/retirar", []]] as [$method, $url, $body]) {
+            $this->panelServicios($method, $url, $body)->assertStatus(428);
+            $this->panelServicios($method, $url, $body, ['If-Match' => '*'])->assertUnprocessable();
+            $this->panelServicios($method, $url, $body, ['If-Match' => $old])->assertStatus(412);
         }
         $this->assertDatabaseCount('audit_logs', 2);
+    }
+
+    public function test_la_revision_tambien_viaja_en_el_cuerpo_para_el_bff(): void
+    {
+        $id = $this->crear();
+        $this->panelServicios('PUT', (string) $id, ['nombre' => 'Por cuerpo', '_revision' => $this->revision($id)])
+            ->assertOk()->assertJsonPath('data.nombre', 'Por cuerpo');
+        // Una cabecera real tiene prioridad sobre el campo del cuerpo.
+        $this->panelServicios('PUT', (string) $id, ['nombre' => 'Otra vez', '_revision' => $this->revision($id)], ['If-Match' => '"servicio-'.$id.'-v1"'])
+            ->assertStatus(412);
     }
 
     public function test_permisos_separados_y_roles_no_autorizados(): void
@@ -125,18 +157,22 @@ class ServicioTecnologicoTest extends TestCase
         $editor = User::factory()->create();
         $editor->assignRole('coordinador');
         $this->actingAs($editor);
-        $this->getJson('/admin/servicios')->assertForbidden();
+        $this->panelServicios('GET')->assertForbidden();
+        // Los permisos del módulo no abren el panel de servicios sin el permiso de entrada.
         $editor->givePermissionTo(['servicios.ver', 'servicios.editar']);
-        $this->getJson("/admin/servicios/$id")->assertOk();
+        $this->panelServicios('GET')->assertForbidden();
+        $editor->givePermissionTo('panel.servicios.acceder');
+        $this->panelServicios('GET', (string) $id)->assertOk();
         $this->preparar($id);
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertForbidden();
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $revision])->assertForbidden();
-        $this->postJson('/admin/servicios', $this->datos())->assertForbidden();
+        $this->panelServicios('POST', "$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertForbidden();
+        $this->panelServicios('POST', "$id/publicacion/retirar", [], ['If-Match' => $revision])->assertForbidden();
+        $this->panelServicios('POST', '', $this->datos())->assertForbidden();
         $externo = User::factory()->create();
         $externo->givePermissionTo('servicios.ver');
-        $this->actingAs($externo)->getJson('/admin/servicios')->assertForbidden();
+        $this->actingAs($externo);
+        $this->panelServicios('GET')->assertForbidden();
         $this->app['auth']->forgetGuards();
-        $this->getJson('/admin/servicios')->assertUnauthorized();
+        $this->panelServicios('GET')->assertUnauthorized();
     }
 
     public function test_catalogo_apagado_vacio_y_proyeccion_publica_sin_escrituras(): void
@@ -200,24 +236,25 @@ class ServicioTecnologicoTest extends TestCase
         $id = $this->crear();
         $this->preparar($id);
         $this->publicar($id);
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'inactivo'], ['If-Match' => $this->revision($id)])
-            ->assertOk()->assertJsonPath('estado_editorial', 'retirada');
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'activo'], ['If-Match' => $this->revision($id)])
-            ->assertOk()->assertJsonPath('estado_editorial', 'retirada');
+        $this->cambiarEstadoServicioPanel($id, 'inactivo')->assertOk()->assertJsonPath('data.estado_editorial', 'retirada');
+        $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk()->assertJsonPath('data.estado_editorial', 'retirada');
     }
 
     public function test_validacion_duplicados_identidad_y_mass_assignment(): void
     {
         $id = $this->crear();
-        $this->postJson('/admin/servicios', $this->datos())->assertUnprocessable()->assertJsonValidationErrors('codigo');
-        $this->putJson("/admin/servicios/$id", ['codigo' => 'OTRO'], ['If-Match' => $this->revision($id)])->assertUnprocessable();
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'inventado'], ['If-Match' => $this->revision($id)])->assertUnprocessable();
-        $this->putJson("/admin/servicios/$id/publicacion", [...$this->ficha(), 'vigente_hasta' => '2026-10-01'], ['If-Match' => $this->revision($id)])->assertUnprocessable();
-        $this->putJson("/admin/servicios/$id/publicacion", [...$this->ficha(), 'titulo' => '<script>alert(1)</script>'], ['If-Match' => $this->revision($id)])->assertUnprocessable();
-        $this->putJson("/admin/servicios/$id/publicacion", [...$this->ficha(), 'autorizado_por' => 999, 'estado' => 'publicada'], ['If-Match' => $this->revision($id)])->assertOk();
+        $this->panelServicios('POST', '', $this->datos())->assertUnprocessable()->assertJsonValidationErrors('codigo');
+        $this->panelServicios('PUT', (string) $id, ['codigo' => 'OTRO'], ['If-Match' => $this->revision($id)])->assertUnprocessable();
+        $this->cambiarEstadoServicioPanel($id, 'inventado')->assertUnprocessable();
+        $this->guardarFichaPanel($id, [...$this->ficha(), 'vigente_hasta' => '2026-10-01'])->assertUnprocessable();
+        $this->guardarFichaPanel($id, [...$this->ficha(), 'titulo' => '<script>alert(1)</script>'])->assertUnprocessable();
+        $this->guardarFichaPanel($id, [...$this->ficha(), 'autorizado_por' => 999, 'estado' => 'publicada'])->assertOk();
         $this->assertDatabaseHas('servicio_publicaciones', ['estado' => 'borrador', 'autorizado_por' => null]);
-        $this->getJson('/admin/servicios/999999')->assertNotFound();
-        $this->getJson('/admin/servicios?estado=inventado')->assertUnprocessable();
+        $this->panelServicios('GET', '999999')->assertNotFound();
+        $this->panelServicios('GET', 'no-numerico')->assertNotFound();
+        $this->panelServicios('PUT', 'no-numerico/publicacion', [])->assertNotFound();
+        // Un filtro fuera de contrato se ignora (no se aplica ni se refleja en `meta.filtros`).
+        $this->panelServicios('GET', '?estado=inventado')->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('meta.filtros', []);
     }
 
     public function test_paginacion_sql_acotada_orden_estable_y_sin_n_mas_uno(): void
@@ -251,32 +288,65 @@ class ServicioTecnologicoTest extends TestCase
         $this->assertStringContainsString('limit 50 offset 0', $sql);
         $this->assertLessThanOrEqual(8, count($queries));
         $this->assertSame([], $lector->pagina(3, 50)['servicios']);
-        $this->getJson('/admin/servicios?por_pagina=50&page=2')->assertOk()->assertJsonCount(5, 'data');
-        $this->getJson('/admin/servicios?por_pagina=51')->assertUnprocessable();
+        $this->panelServicios('GET', '?per_page=50&page=2')->assertOk()->assertJsonCount(5, 'data')->assertJsonPath('meta.total', 55);
+        // Un tamaño fuera de 1..100 vuelve al valor por defecto del panel.
+        $this->panelServicios('GET', '?per_page=101')->assertOk()->assertJsonPath('meta.por_pagina', 20)->assertJsonCount(20, 'data');
+    }
+
+    public function test_listado_con_filtros_texto_sin_interpretar_y_sin_n_mas_uno(): void
+    {
+        for ($i = 1; $i <= 17; $i++) {
+            $id = DB::table('servicios_tecnologicos')->insertGetId([
+                'identificador_publico' => (string) Str::uuid(), 'codigo' => 'TEC-'.$i,
+                'nombre' => $i === 1 ? '<script>intruso</script>' : 'Servicio ficticio '.$i,
+                'estado' => $i === 17 ? 'inactivo' : 'activo', 'revision' => 1,
+            ]);
+            DB::table('servicio_publicaciones')->insert([
+                'servicio_tecnologico_id' => $id, 'titulo' => 'Ficha ficticia', 'resumen' => 'Resumen', 'descripcion' => 'Detalle',
+                'estado' => 'borrador', 'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-11-30',
+            ]);
+        }
+        $this->panelServicios('GET', '?estado=activo&per_page=100')->assertOk();
+        DB::enableQueryLog();
+        $respuesta = $this->panelServicios('GET', '?estado=activo&per_page=100')->assertOk()->assertJsonPath('meta.total', 16)
+            ->assertJsonPath('meta.filtros', ['estado' => 'activo']);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+        // El nombre llega como dato JSON literal (la interfaz lo escapa); y el inactivo queda fuera.
+        $this->assertSame('<script>intruso</script>', collect($respuesta->json('data'))->firstWhere('codigo', 'TEC-1')['nombre']);
+        $this->assertNull(collect($respuesta->json('data'))->firstWhere('codigo', 'TEC-17'));
+        $this->assertSame('borrador', $respuesta->json('data.0.publicacion.estado'));
+        $this->assertCount(3, array_filter($queries, fn (array $query): bool => str_contains($query['query'], 'from "servicios_tecnologicos"') || str_contains($query['query'], 'from "servicio_publicaciones"')));
+        $this->panelServicios('GET', '?estado=activo&per_page=10&page=2')->assertOk()->assertJsonCount(6, 'data')->assertJsonPath('meta.paginas', 2);
+        $this->panelServicios('GET', '?estado=inactivo')->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.codigo', 'TEC-17');
     }
 
     public function test_bordes_de_vigencia_lima_y_caducidad_sin_jobs(): void
     {
         config(['catalogo-servicios.enabled' => true]);
         $id = $this->crear();
-        $this->putJson("/admin/servicios/$id/publicacion", [...$this->ficha(), 'vigente_hasta' => '2026-10-29'], ['If-Match' => $this->revision($id)])->assertOk();
+        $this->guardarFichaPanel($id, [...$this->ficha(), 'vigente_hasta' => '2026-10-29'])->assertOk();
         $this->publicar($id);
         $this->travelTo(Carbon::parse('2026-10-29 23:59:59', 'America/Lima'));
         $this->assertSame(1, app(CatalogoPublicoServicios::class)->pagina()['total']);
         $this->travelTo(Carbon::parse('2026-10-30 00:00:00', 'America/Lima'));
         $this->assertSame(0, app(CatalogoPublicoServicios::class)->pagina()['total']);
-        $this->getJson("/admin/servicios/$id/publicacion")->assertOk()->assertJsonPath('estado_editorial', 'caducada');
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertConflict();
+        // La sesión del panel tiene vida máxima absoluta: tras avanzar el reloj se abre una nueva (el control no se relaja).
+        $usuario = auth()->user();
+        $this->flushSession();
+        $this->actingAs($usuario);
+        $this->panelServicios('GET', (string) $id)->assertOk()->assertJsonPath('data.estado_editorial', 'caducada');
+        $this->autorizarFichaPanel($id)->assertConflict();
     }
 
     public function test_autorizar_exige_ficha_activa_confirmacion_y_estado_valido(): void
     {
         $id = $this->crear();
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertConflict();
+        $this->autorizarFichaPanel($id)->assertConflict();
         $this->preparar($id);
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", [], ['If-Match' => $this->revision($id)])->assertUnprocessable();
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'inactivo'], ['If-Match' => $this->revision($id)])->assertOk();
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertConflict();
+        $this->panelServicios('POST', "$id/publicacion/autorizar", [], ['If-Match' => $this->revision($id)])->assertUnprocessable();
+        $this->cambiarEstadoServicioPanel($id, 'inactivo')->assertOk();
+        $this->autorizarFichaPanel($id)->assertConflict();
         $this->assertDatabaseHas('servicio_publicaciones', ['estado' => 'borrador', 'autorizado_por' => null]);
     }
 
@@ -284,9 +354,9 @@ class ServicioTecnologicoTest extends TestCase
     {
         $id = $this->crear();
         $revision = $this->revision($id);
-        $this->deleteJson("/admin/servicios/$id/publicacion", [], ['If-Match' => $revision])->assertOk();
-        $this->putJson("/admin/servicios/$id", ['nombre' => $this->datos()['nombre']], ['If-Match' => $revision])->assertOk();
-        $this->patchJson("/admin/servicios/$id/estado", ['estado' => 'activo'], ['If-Match' => $revision])->assertOk();
+        $this->panelServicios('POST', "$id/publicacion/retirar", [], ['If-Match' => $revision])->assertOk();
+        $this->panelServicios('PUT', (string) $id, ['nombre' => $this->datos()['nombre']], ['If-Match' => $revision])->assertOk();
+        $this->panelServicios('POST', "$id/estado", ['estado' => 'activo'], ['If-Match' => $revision])->assertOk();
         $this->assertSame($revision, $this->revision($id));
         $this->assertDatabaseCount('audit_logs', 1);
         $this->preparar($id);
@@ -304,7 +374,7 @@ class ServicioTecnologicoTest extends TestCase
         Event::listen('eloquent.creating: '.AuditLog::class, function (): void {
             throw new \RuntimeException('Fallo simulado de auditoría');
         });
-        $this->postJson("/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $revision])->assertStatus(500);
+        $this->panelServicios('POST', "$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $revision])->assertStatus(500);
         $this->assertSame($revision, $this->revision($id));
         $this->assertDatabaseHas('servicio_publicaciones', ['estado' => 'borrador', 'autorizado_por' => null]);
         $this->assertDatabaseCount('audit_logs', 2);
@@ -317,7 +387,7 @@ class ServicioTecnologicoTest extends TestCase
         $revision = $this->revision($id);
         $actor = auth()->user();
         $actor->can('servicios.publicar'); // Precarga relaciones como una petición que ya pasó middleware.
-        $request = Request::create("/admin/servicios/$id/publicacion/autorizar", 'POST');
+        $request = Request::create("/api/panel/v1/servicios/servicios/$id/publicacion/autorizar", 'POST');
         $request->setUserResolver(fn () => $actor);
         $request->headers->set('If-Match', $revision);
         $actor->roles()->first()->revokePermissionTo('servicios.publicar');
@@ -338,7 +408,7 @@ class ServicioTecnologicoTest extends TestCase
         $this->publicar($id);
         $this->getJson('/servicios')->assertNotFound();
         $this->getJson('/api/servicios')->assertNotFound();
-        $this->deleteJson("/admin/servicios/$id")->assertStatus(405);
+        $this->panelServicios('DELETE', (string) $id)->assertStatus(405);
         $this->assertDatabaseCount('curso_publicaciones', 0);
         $this->assertSame([], app(CatalogoPublicoCursos::class)->paraWeb()['cursos']);
         foreach (['cableado-estructurado', 'camaras-seguridad', 'soporte-mantenimiento'] as $pagina) {
@@ -385,14 +455,14 @@ class ServicioTecnologicoTest extends TestCase
         }
     }
 
-    public function test_campos_inmutables_nulos_se_rechazan_y_patch_solo_cambia_estado_en_su_ruta(): void
+    public function test_campos_inmutables_nulos_se_rechazan_y_el_estado_solo_cambia_en_su_ruta(): void
     {
         $id = $this->crear();
         $revision = $this->revision($id);
-        $this->putJson("/admin/servicios/$id", ['estado' => null], ['If-Match' => $revision])->assertUnprocessable();
-        $this->putJson("/admin/servicios/$id", ['codigo' => null], ['If-Match' => $revision])->assertUnprocessable();
-        $this->postJson('/admin/servicios', [...$this->datos(), 'codigo' => 'TEC-002', 'identificador_publico' => null])->assertUnprocessable();
-        $this->patchJson("/admin/servicios/$id", ['estado' => 'inactivo'], ['If-Match' => $revision])->assertStatus(405);
+        $this->panelServicios('PUT', (string) $id, ['estado' => null], ['If-Match' => $revision])->assertUnprocessable();
+        $this->panelServicios('PUT', (string) $id, ['codigo' => null], ['If-Match' => $revision])->assertUnprocessable();
+        $this->panelServicios('POST', '', [...$this->datos(), 'codigo' => 'TEC-002', 'identificador_publico' => null])->assertUnprocessable();
+        $this->panelServicios('PATCH', (string) $id, ['estado' => 'inactivo'], ['If-Match' => $revision])->assertStatus(405);
         $this->assertDatabaseHas('servicios_tecnologicos', ['id' => $id, 'estado' => 'activo']);
         $this->assertSame($revision, $this->revision($id));
     }
@@ -401,36 +471,35 @@ class ServicioTecnologicoTest extends TestCase
     {
         $id = $this->crear();
         $this->preparar($id);
-        $lector = User::factory()->create();
-        $lector->assignRole('secretaria');
-        $lector->givePermissionTo('servicios.ver');
+        $lector = $this->usuario('secretaria', ['panel.servicios.acceder', 'servicios.ver']);
         $this->actingAs($lector);
         $revision = $this->revision($id);
-        $this->getJson("/admin/servicios/$id/publicacion")->assertOk();
-        foreach ([['PUT', "/admin/servicios/$id", ['nombre' => 'Cambio']],
-            ['PATCH', "/admin/servicios/$id/estado", ['estado' => 'inactivo']],
-            ['PUT', "/admin/servicios/$id/publicacion", $this->ficha()],
-            ['POST', "/admin/servicios/$id/publicacion/autorizar", ['confirmacion_publica' => true]],
-            ['DELETE', "/admin/servicios/$id/publicacion", []],
+        $this->panelServicios('GET', (string) $id)->assertOk();
+        foreach ([['PUT', "$id", ['nombre' => 'Cambio']],
+            ['POST', "$id/estado", ['estado' => 'inactivo']],
+            ['PUT', "$id/publicacion", $this->ficha()],
+            ['POST', "$id/publicacion/autorizar", ['confirmacion_publica' => true]],
+            ['POST', "$id/publicacion/retirar", []],
         ] as [$method, $url, $body]) {
-            $this->json($method, $url, $body, ['If-Match' => $revision])->assertForbidden();
+            $this->panelServicios($method, $url, $body, ['If-Match' => $revision])->assertForbidden();
         }
         $lector->givePermissionTo('servicios.publicar');
         $this->publicar($id);
-        $this->putJson("/admin/servicios/$id", ['nombre' => 'Cambio'], ['If-Match' => $this->revision($id)])->assertForbidden();
+        $this->panelServicios('PUT', (string) $id, ['nombre' => 'Cambio'], ['If-Match' => $this->revision($id)])->assertForbidden();
         $this->assertDatabaseHas('servicio_publicaciones', ['autorizado_por' => $lector->id, 'estado' => 'publicada']);
     }
 
     public function test_codigo_normalizado_por_servidor_y_etag_de_otro_servicio_rechazado(): void
     {
         $id = $this->crear();
-        $this->postJson('/admin/servicios', [...$this->datos(), 'codigo' => 'tec-001'])->assertUnprocessable();
-        $otro = $this->postJson('/admin/servicios', [...$this->datos(), 'codigo' => 'tec-002'])->assertCreated()->assertJsonPath('servicio.codigo', 'TEC-002')->json('servicio.id');
-        $this->putJson("/admin/servicios/$id", ['nombre' => 'Cambio'], ['If-Match' => $this->revision($otro)])->assertStatus(412);
+        $this->panelServicios('POST', '', [...$this->datos(), 'codigo' => 'tec-001'])->assertUnprocessable();
+        $otro = $this->panelServicios('POST', '', [...$this->datos(), 'codigo' => 'tec-002'])->assertCreated()->assertJsonPath('data.codigo', 'TEC-002')->json('data.id');
+        $this->panelServicios('PUT', (string) $id, ['nombre' => 'Cambio'], ['If-Match' => $this->revision($otro)])->assertStatus(412);
         foreach (['W/"servicio-1-v1"', '"servicio-1-v1", "servicio-1-v2"', ''] as $cabecera) {
-            $this->putJson("/admin/servicios/$id", ['nombre' => 'Cambio'], ['If-Match' => $cabecera])->assertUnprocessable();
+            $this->panelServicios('PUT', (string) $id, ['nombre' => 'Cambio'], ['If-Match' => $cabecera])->assertUnprocessable();
         }
-        $this->getJson('/admin/servicios?estado=activo%27%20OR%201=1--')->assertUnprocessable();
+        // Un intento de inyección en el filtro no se interpreta: se ignora y el listado sigue completo.
+        $this->panelServicios('GET', '?estado=activo%27%20OR%201=1--')->assertOk()->assertJsonPath('meta.total', 2)->assertJsonPath('meta.filtros', []);
         $this->assertDatabaseCount('audit_logs', 2);
     }
 
@@ -464,5 +533,40 @@ class ServicioTecnologicoTest extends TestCase
         Schema::drop('servicio_publicaciones');
         $this->assertSame([], $lector->pagina()['servicios']);
         $this->assertDatabaseCount('servicios_tecnologicos', 0);
+    }
+
+    public function test_lista_vacia_y_acceso_solo_con_entrada_y_permiso_de_lectura(): void
+    {
+        $this->panelServicios('GET')->assertOk()->assertJsonPath('meta.total', 0)->assertJsonPath('data', []);
+
+        // Entrada al panel sin `servicios.ver`: no lista.
+        $sinLectura = $this->usuario('coordinador', ['panel.servicios.acceder']);
+        $this->actingAs($sinLectura);
+        $this->panelServicios('GET')->assertForbidden();
+        $sinLectura->givePermissionTo('servicios.ver');
+        $this->panelServicios('GET')->assertOk();
+
+        // Editor y publicador son independientes: ninguno concede el permiso del otro.
+        $editor = $this->usuario('coordinador', ['panel.servicios.acceder', 'servicios.ver', 'servicios.editar']);
+        $this->actingAs($editor);
+        $id = $this->crearServicioComoAdmin();
+        $this->actingAs($editor);
+        $this->panelServicios('PUT', "$id/publicacion", $this->ficha(), ['If-Match' => $this->revision($id)])->assertOk();
+        $this->panelServicios('POST', "$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertForbidden();
+        $editor->revokePermissionTo('servicios.editar');
+        $editor->givePermissionTo('servicios.publicar');
+        $this->panelServicios('PUT', "$id/publicacion", $this->ficha(), ['If-Match' => $this->revision($id)])->assertForbidden();
+        $this->panelServicios('POST', "$id/publicacion/autorizar", ['confirmacion_publica' => true], ['If-Match' => $this->revision($id)])->assertOk();
+    }
+
+    /** Alta con el administrador y vuelta al usuario anterior. */
+    private function crearServicioComoAdmin(): int
+    {
+        $anterior = auth()->user();
+        $this->actingAs(User::query()->whereHas('roles', fn ($q) => $q->where('name', 'admin'))->firstOrFail());
+        $id = $this->crear();
+        $this->actingAs($anterior);
+
+        return $id;
     }
 }
