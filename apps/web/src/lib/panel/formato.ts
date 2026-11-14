@@ -11,6 +11,19 @@ export function fecha(valor: string | null | undefined): string {
   return Number.isNaN(instante.getTime()) ? '—' : FECHA.format(instante);
 }
 
+const DIA_LIMA = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Lima' });
+
+/** Hoy en Lima como AAAA-MM-DD (el día de negocio, no el del navegador ni el de UTC). */
+export function hoyLima(ahora: Date = new Date()): string {
+  return DIA_LIMA.format(ahora);
+}
+
+/** Suma días a una fecha AAAA-MM-DD sin pasar por la zona horaria del navegador. */
+export function sumarDias(iso: string, dias: number): string {
+  const [anio, mes, dia] = iso.split('-').map(Number);
+  return new Date(Date.UTC(anio, mes - 1, dia + dias)).toISOString().slice(0, 10);
+}
+
 export function moneda(valor: string | number | null | undefined): string {
   if (valor === null || valor === undefined || valor === '') return '—';
   const numero = typeof valor === 'number' ? valor : Number.parseFloat(valor);

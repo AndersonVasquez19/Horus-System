@@ -13,10 +13,21 @@ import { Insignia } from '@/components/shared/ui/insignia';
 import { ListaDatos, Seccion } from '@/components/shared/ui/tabla';
 import type { CursoDetalle, PublicacionCurso } from '@/features/academico/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
-import { ETIQUETAS, fecha } from '@/lib/panel/formato';
+import { ETIQUETAS, fecha, hoyLima, sumarDias } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
 type Respuesta = { message?: string; data: PublicacionCurso };
+
+/** Vigencia de una ficha frente a hoy (Lima). Las fechas guardadas son AAAA-MM-DD y se comparan como texto. */
+function vigenciaDe(ficha: { vigente_desde: string; vigente_hasta: string } | null, hoy: string): 'vigente' | 'programada' | 'vencida' | null {
+  if (!ficha) return null;
+  if (ficha.vigente_hasta < hoy) return 'vencida';
+  if (ficha.vigente_desde > hoy) return 'programada';
+  return 'vigente';
+}
+
+/** Días de vigencia que se sugieren al autorizar una ficha nueva. */
+const VIGENCIA_SUGERIDA_DIAS = 30;
 
 /**
  * Ficha pública del curso (sección del detalle). Solo se monta con `cursos.publicar`. La revisión (ETag) llega con
@@ -68,6 +79,7 @@ export function PanelPublicacion({ curso }: { curso: CursoDetalle }) {
   const datos = estado.tipo === 'ok' ? estado.datos : null;
   const ficha = datos?.ficha ?? null;
   const archivado = curso.eliminado;
+  const vigencia = ficha?.publicada ? vigenciaDe(ficha, hoyLima()) : null;
 
   return (
     <Seccion
@@ -101,6 +113,20 @@ export function PanelPublicacion({ curso }: { curso: CursoDetalle }) {
         <Alerta tipo="aviso" className="mb-4">
           {archivado ? 'El curso está archivado.' : 'El curso no está activo.'} Solo se puede publicar un curso activo y no archivado.
         </Alerta>
+      ) : null}
+
+      {vigencia === 'programada' && ficha ? (
+        <Alerta tipo="aviso" className="mb-4">
+          <strong>Publicación programada:</strong> se mostrará desde el {fecha(ficha.vigente_desde)}. Para mostrarla hoy, cambia la fecha de inicio a {fecha(hoyLima())} y vuelve a publicar.
+        </Alerta>
+      ) : null}
+      {vigencia === 'vencida' && ficha ? (
+        <Alerta tipo="aviso" className="mb-4">
+          <strong>Publicación vencida:</strong> dejó de mostrarse después del {fecha(ficha.vigente_hasta)}. Actualiza la vigencia y vuelve a publicar para mostrarla de nuevo.
+        </Alerta>
+      ) : null}
+      {vigencia === 'vigente' && ficha ? (
+        <p className="mb-3 text-sm text-panel-muted">Ficha autorizada y vigente hasta el {fecha(ficha.vigente_hasta)}, mientras el curso siga activo.</p>
       ) : null}
 
       {datos && ficha === null ? <p className="py-6 text-center text-sm text-panel-muted">Este curso todavía no tiene ficha pública.</p> : null}
@@ -171,14 +197,17 @@ function FormularioFicha({ curso, datos, onGuardado, onCancelar, onOcupado, onEx
 }) {
   const { ejecutar } = useOperacionPanel();
   const ficha = datos.ficha;
+  // Hoy se calcula una vez al abrir el formulario; con ficha nueva se sugieren hoy y 30 días de vigencia.
+  const [hoy] = useState(() => hoyLima());
+  const aviso = vigenciaDe(ficha, hoy);
   const [valores, setValores] = useState<DatosFicha>({
     titulo: ficha?.titulo ?? curso.nombre,
     resumen: ficha?.resumen ?? '',
     modalidad: ficha?.modalidad ?? curso.modalidad,
     horario: ficha?.horario ?? curso.horario ?? '',
     inscripcion: ficha?.inscripcion ?? '',
-    vigente_desde: ficha?.vigente_desde ?? '',
-    vigente_hasta: ficha?.vigente_hasta ?? '',
+    vigente_desde: ficha?.vigente_desde ?? hoy,
+    vigente_hasta: ficha?.vigente_hasta ?? sumarDias(hoy, VIGENCIA_SUGERIDA_DIAS),
   });
   const [confirmada, setConfirmada] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
@@ -216,6 +245,11 @@ function FormularioFicha({ curso, datos, onGuardado, onCancelar, onOcupado, onEx
     <form onSubmit={enviar} noValidate className="space-y-4">
       {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
       {error?.code === 'validacion' ? <Alerta tipo="error">{err('revision') ?? 'Revisa los campos marcados.'}</Alerta> : null}
+
+      {aviso === 'programada' || aviso === 'vencida' ? (
+        <Alerta tipo="aviso">Las fechas guardadas están {aviso === 'vencida' ? 'vencidas' : 'programadas para el futuro'}. Revísalas antes de publicar.</Alerta>
+      ) : null}
+      {ficha === null ? <p className="text-sm text-panel-muted">Para una publicación nueva se sugieren hoy y {VIGENCIA_SUGERIDA_DIAS} días de vigencia. Puedes ajustar las fechas.</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo etiqueta="Título público" value={valores.titulo} onChange={cambiar('titulo')} error={err('titulo')} required maxLength={120} className="sm:col-span-2" />
