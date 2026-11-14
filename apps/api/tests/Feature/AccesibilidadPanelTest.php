@@ -56,7 +56,6 @@ class AccesibilidadPanelTest extends TestCase
         ]);
 
         $rutas = [
-            route('admin.cursos.create'), route('admin.cursos.edit', $curso), route('admin.cursos.publicacion.edit', $curso),
             route('admin.matriculas.create'), route('admin.matriculas.edit', $matricula),
             route('admin.usuarios.create'), route('admin.usuarios.edit', $this->admin),
             route('admin.configuracion.index'),
@@ -73,14 +72,14 @@ class AccesibilidadPanelTest extends TestCase
 
     public function test_un_listado_tiene_un_solo_h1(): void
     {
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.cursos.index'))->assertOk()->getContent();
+        $html = (string) $this->actingAs($this->admin)->get(route('admin.usuarios.index'))->assertOk()->getContent();
 
         $this->assertSame(1, substr_count($html, '<h1'));
     }
 
     public function test_la_confirmacion_es_un_dialogo_nativo_con_titulo_y_descripcion(): void
     {
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.cursos.index'))->assertOk()->getContent();
+        $html = (string) $this->actingAs($this->admin)->get(route('admin.usuarios.index'))->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression('/<dialog\s+x-data="confirmModal"/', $html);
         $this->assertStringContainsString('aria-labelledby="confirm-modal-title"', $html);

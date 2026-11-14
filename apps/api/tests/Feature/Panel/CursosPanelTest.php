@@ -10,6 +10,7 @@ use App\Models\CursoPublicacion;
 use App\Models\Matricula;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Cursos en /api/panel/v1/academico/cursos: alta, edición, archivado, restauración, historial y ficha pública con
@@ -48,6 +49,70 @@ final class CursosPanelTest extends PanelApiTestCase
     private function admin(): User
     {
         return $this->usuarioConRol('admin', 'admin@horus.test');
+    }
+
+    public function test_listado_filtra_por_categoria_estado_modalidad_y_eliminados_y_los_restaura(): void
+    {
+        $admin = $this->admin();
+        $this->curso('CUR-TEC', ['nombre' => 'Tecnología aplicada', 'categoria' => 'tecnologia']);
+        $this->curso('CUR-SAL', ['nombre' => 'Primeros auxilios', 'categoria' => 'salud', 'modalidad' => 'presencial']);
+        $eliminado = $this->curso('CUR-DEL', ['nombre' => 'Curso eliminado']);
+        $eliminado->delete();
+
+        $this->como($admin, 'GET', 'cursos?categoria=tecnologia&estado=activo')
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.codigo', 'CUR-TEC')
+            ->assertJsonPath('meta.filtros.categoria', 'tecnologia');
+        $this->como($admin, 'GET', 'cursos?modalidad=presencial')->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.codigo', 'CUR-SAL');
+        $this->como($admin, 'GET', 'cursos?eliminados=1')->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.codigo', 'CUR-DEL')
+            ->assertJsonPath('data.0.eliminado', true);
+        $this->como($admin, 'GET', 'cursos?categoria=inventada&estado=otro')->assertOk()->assertJsonPath('meta.total', 2)->assertJsonPath('meta.filtros', []);
+        $this->como($admin, 'GET', 'cursos?sort=-nombre')->assertJsonPath('data.0.codigo', 'CUR-TEC');
+        $this->como($admin, 'GET', 'cursos?per_page=1&page=2')->assertJsonPath('meta.paginas', 2);
+
+        $this->como($admin, 'POST', "cursos/{$eliminado->id}/restaurar")->assertOk();
+        $this->assertNotSoftDeleted('cursos', ['id' => $eliminado->id]);
+    }
+
+    public function test_el_detalle_lista_los_estudiantes_matriculados_sin_datos_personales_ni_montos(): void
+    {
+        $admin = $this->admin();
+        $curso = $this->curso('CUR-DET', ['cupos_maximos' => 20, 'cupos_disponibles' => 19]);
+        $estudiante = $this->estudiante('70123456');
+        Matricula::create(['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => '2026-11-01', 'estado' => 'pagada', 'monto_pagado' => 150]);
+
+        $respuesta = $this->como($admin, 'GET', "cursos/{$curso->id}")->assertOk()
+            ->assertJsonPath('data.matriculas_activas', 1)->assertJsonPath('data.cupos_disponibles', 19)
+            ->assertJsonPath('data.estudiantes.0.estado_matricula', 'pagada');
+        $this->assertStringContainsString($estudiante->nombres, (string) $respuesta->json('data.estudiantes.0.nombre'));
+        $cuerpo = (string) json_encode($respuesta->json('data.estudiantes'));
+        foreach (['70123456', 'monto', 'email', 'telefono'] as $sensible) {
+            $this->assertStringNotContainsString($sensible, $cuerpo);
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function camposDelFormulario(): iterable
+    {
+        foreach (['codigo', 'nombre', 'categoria', 'modalidad', 'descripcion', 'duracion_horas', 'precio', 'horario', 'cupos_maximos', 'estado'] as $campo) {
+            yield $campo => [$campo];
+        }
+    }
+
+    /**
+     * Sustituye a las pruebas de «old input» del Blade retirado: un campo enviado como array (`campo[]=x`) lo rechaza la
+     * validación con 422 y el campo señalado, nunca con un 500, al crear y al editar.
+     */
+    #[DataProvider('camposDelFormulario')]
+    public function test_un_campo_con_forma_de_array_se_rechaza_con_422_y_nunca_con_500(string $campo): void
+    {
+        $admin = $this->admin();
+        $existente = $this->curso('CUR-EXI');
+
+        $this->como($admin, 'POST', 'cursos', $this->datosValidos([$campo => ['x']]))
+            ->assertUnprocessable()->assertJsonValidationErrors([$campo]);
+        $this->como($admin, 'PUT', "cursos/{$existente->id}", $this->datosValidos(['codigo' => 'CUR-EXI', $campo => ['x']]))
+            ->assertUnprocessable()->assertJsonValidationErrors([$campo]);
+        $this->assertSame(1, Curso::query()->count());
     }
 
     public function test_registrar_curso_audita_y_deja_los_cupos_disponibles_iguales_al_maximo(): void

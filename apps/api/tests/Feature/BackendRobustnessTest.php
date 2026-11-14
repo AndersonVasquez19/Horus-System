@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 class BackendRobustnessTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -134,9 +136,9 @@ class BackendRobustnessTest extends TestCase
         $original = $course->fresh()->getRawOriginal($field);
         $this->actingAs($this->adminUser());
 
-        $this->postJson(route('admin.cursos.store'), array_replace($data, ['codigo' => 'NEW', $field => $value]))
+        $this->panelCursos('POST', '', array_replace($data, ['codigo' => 'NEW', $field => $value]))
             ->assertUnprocessable()->assertJsonValidationErrors($field);
-        $this->putJson(route('admin.cursos.update', $course), array_replace($data, [$field => $value]))
+        $this->panelCursos('PUT', (string) $course->id, array_replace($data, [$field => $value]))
             ->assertUnprocessable()->assertJsonValidationErrors($field);
         $this->assertDatabaseCount('cursos', 1);
         $this->assertSame($original, $course->fresh()->getRawOriginal($field));
@@ -147,11 +149,11 @@ class BackendRobustnessTest extends TestCase
         [, $course] = $this->fixtures();
         $data = $course->only(['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado']);
         $data = array_replace($data, ['codigo' => 'LIMIT', 'precio' => '99999999.99', 'duracion_horas' => 2147483647, 'cupos_maximos' => 2147483647]);
-        $this->actingAs($this->adminUser())->postJson(route('admin.cursos.store'), $data)->assertRedirect();
+        $this->actingAs($this->adminUser())->panelCursos('POST', '', $data)->assertCreated();
         $created = Curso::where('codigo', 'LIMIT')->sole();
         $this->assertSame('99999999.99', $created->precio);
         $this->assertSame(2147483647, $created->cupos_disponibles);
-        $this->putJson(route('admin.cursos.update', $created), array_replace($data, ['precio' => 0, 'duracion_horas' => 1, 'cupos_maximos' => 1]))->assertRedirect();
+        $this->panelCursos('PUT', (string) $created->id, array_replace($data, ['precio' => 0, 'duracion_horas' => 1, 'cupos_maximos' => 1]))->assertOk();
         $this->assertSame('0.00', $created->fresh()->precio);
         $this->assertSame(1, $created->fresh()->cupos_disponibles);
     }

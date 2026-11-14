@@ -1,3 +1,6 @@
+// PENDIENTE (14/11/2026): los pasos que abren /admin/cursos, /admin/cursos/create, /admin/cursos/1/edit y
+// /admin/cursos/1/publicacion dejaron de existir en Blade (módulo retirado a Next). Hay que adaptarlos a un módulo que
+// siga en Blade (matrículas o usuarios) y verificarlo con Edge antes de volver a ejecutar este smoke.
 // Solo http://127.0.0.1:8778 con formularios-modal-browser-router.php opt-in y SQLite :memory:.
 // Usa el panel real y formularios nativos; cada petición reconstruye datos ficticios.
 import { spawn } from 'node:child_process';
@@ -150,7 +153,7 @@ try {
     check(await evaluate('location.pathname === "/admin/cursos/create"'), 'Forward failed');
     report.widths.push(view);
   }
-  for (const module of ['cursos', 'matriculas', 'usuarios']) {
+  for (const module of ['matriculas', 'usuarios']) {
     for (const action of ['create', '1/edit']) {
       await navigate('/admin/' + module + '/' + action, 'dialog[data-admin-page-form]');
       await waitFor(modalOpen);

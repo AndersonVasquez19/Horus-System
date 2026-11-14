@@ -62,7 +62,7 @@ class PaginasErrorTest extends TestCase
 
     public function test_un_404_de_modelo_no_revela_nombres_internos(): void
     {
-        $this->actingAs($this->adminUser())->get('/admin/cursos/999999')
+        $this->actingAs($this->adminUser())->get('/admin/usuarios/999999')
             ->assertNotFound()
             ->assertSee('Página no encontrada')
             ->assertDontSee('No query results')

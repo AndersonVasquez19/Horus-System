@@ -19,11 +19,13 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 class CatalogoAdvisorSincronizacionTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
@@ -123,11 +125,11 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
             'categoria' => 'Redes', 'duracion_horas' => 10, 'precio' => 900.00, 'modalidad' => 'virtual',
             'horario' => 'Horario interno', 'cupos_maximos' => 20, 'cupos_disponibles' => 18, 'estado' => 'activo',
         ]);
-        $this->actingAs($admin)->putJson(route('admin.cursos.publicacion.update', $course), [
+        $this->actingAs($admin)->publicarFichaCursoPanel($course, [
             'titulo' => 'Curso de redes públicas', 'resumen' => 'Contenido editorial aprobado para consultas.',
             'modalidad' => 'virtual', 'vigente_desde' => now('America/Lima')->toDateString(),
             'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(), 'confirmacion_publica' => '1',
-        ])->assertRedirect();
+        ])->assertOk();
 
         $catalog = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
 
@@ -214,17 +216,17 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
         $first = $exporter->construirParaSincronizacion();
         $stableId = $first['items'][0]['stable_id'];
 
-        $this->actingAs($admin)->putJson(route('admin.cursos.publicacion.update', $course), [
+        $this->actingAs($admin)->publicarFichaCursoPanel($course, [
             'titulo' => 'Curso de redes actualizado', 'resumen' => 'Descripción editorial revisada y autorizada.',
             'modalidad' => 'presencial', 'vigente_desde' => now('America/Lima')->toDateString(),
             'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(), 'confirmacion_publica' => '1',
-        ])->assertRedirect();
+        ])->assertOk();
         $updated = $exporter->construirParaSincronizacion();
         $this->assertSame($stableId, $updated['items'][0]['stable_id']);
         $this->assertSame('Curso de redes actualizado', $updated['items'][0]['title']);
         $this->assertNotSame($first['catalog_version'], $updated['catalog_version']);
 
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $course))->assertRedirect();
+        $this->retirarFichaCursoPanel($course)->assertOk();
         $retired = $exporter->construirParaSincronizacion();
         $this->assertSame([], $retired['items']);
         $this->assertNotSame($updated['catalog_version'], $retired['catalog_version']);
@@ -287,11 +289,11 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
             'categoria' => 'Redes', 'duracion_horas' => 10, 'precio' => 900.00, 'modalidad' => 'virtual',
             'horario' => 'Horario interno', 'cupos_maximos' => 20, 'cupos_disponibles' => 18, 'estado' => 'activo',
         ]);
-        $this->actingAs($admin)->putJson(route('admin.cursos.publicacion.update', $course), [
+        $this->actingAs($admin)->publicarFichaCursoPanel($course, [
             'titulo' => 'Curso de redes', 'resumen' => 'Contenido editorial aprobado para consultas.',
             'modalidad' => 'virtual', 'vigente_desde' => now('America/Lima')->toDateString(),
             'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(), 'confirmacion_publica' => '1',
-        ])->assertRedirect();
+        ])->assertOk();
 
         return $course;
     }

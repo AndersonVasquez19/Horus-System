@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AprobacionInterna;
-use App\Models\Curso;
-use App\Models\Estudiante;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -24,24 +22,6 @@ class OldInputRenderingTest extends TestCase
     use RefreshDatabase;
 
     private const MALFORMED = ['x'];
-
-    /** @return iterable<string, array{string}> */
-    public static function cursoFields(): iterable
-    {
-        foreach (['codigo', 'nombre', 'categoria', 'modalidad', 'descripcion', 'duracion_horas', 'precio', 'horario', 'cupos_maximos', 'estado'] as $f) {
-            yield $f => [$f];
-        }
-    }
-
-    #[DataProvider('cursoFields')]
-    public function test_curso_forms_survive_array_input(string $campo): void
-    {
-        $existente = $this->curso('CUR-EXI');
-        $this->actingAs($this->adminUser());
-
-        $this->assertSurvives('post', route('admin.cursos.store'), route('admin.cursos.create'), $this->cursoData(), $campo);
-        $this->assertSurvives('put', route('admin.cursos.update', $existente), route('admin.cursos.edit', $existente), $this->cursoData(), $campo);
-    }
 
     /** @return iterable<string, array{string}> */
     public static function userFields(): iterable
@@ -129,28 +109,6 @@ class OldInputRenderingTest extends TestCase
         $this->get($url.'?email[]=x')->assertOk();
     }
 
-    /**
-     * Valores normales, ceros y cadenas vacías se vuelven a mostrar tal cual tras un error de validación.
-     */
-    public function test_normal_zero_and_empty_values_are_redisplayed(): void
-    {
-        $this->actingAs($this->adminUser());
-
-        $this->from(route('admin.cursos.create'))
-            ->post(route('admin.cursos.store'), $this->cursoData([
-                'codigo' => 'ZERO-0', 'precio' => '0', 'horario' => '', 'descripcion' => 'Línea <b>1</b>', 'estado' => 'inexistente',
-            ]))
-            ->assertSessionHasErrors('estado');
-
-        $this->get(route('admin.cursos.create'))
-            ->assertOk()
-            ->assertSee('value="ZERO-0"', false)
-            ->assertSee('name="precio" type="number" min="0" step="0.01" value="0"', false)
-            ->assertSee('name="horario" type="text" maxlength="100" value=""', false)
-            ->assertSee('Línea &lt;b&gt;1&lt;/b&gt;', false); // el escape de Blade se conserva
-
-    }
-
     public function test_valid_old_email_is_redisplayed_on_login_and_registration(): void
     {
         $this->from(route('login'))
@@ -205,32 +163,5 @@ class OldInputRenderingTest extends TestCase
             ->assertSessionHasErrors($campo);
 
         $this->get($formulario)->assertOk();
-    }
-
-    private function estudiante(string $dni): Estudiante
-    {
-        return Estudiante::create(['dni' => $dni, 'nombres' => 'Estudiante', 'apellidos' => 'Ficticio', 'estado' => 'activo']);
-    }
-
-    private function curso(string $codigo): Curso
-    {
-        return Curso::create($this->cursoData(['codigo' => $codigo, 'cupos_disponibles' => 5]));
-    }
-
-    private function estudianteData(array $extra = []): array
-    {
-        return array_replace([
-            'dni' => '71234567', 'nombres' => 'Ana', 'apellidos' => 'Ficticia', 'email' => 'ana@example.invalid',
-            'telefono' => '999111222', 'fecha_nacimiento' => '2000-01-15', 'direccion' => 'Calle 1', 'estado' => 'activo',
-        ], $extra);
-    }
-
-    private function cursoData(array $extra = []): array
-    {
-        return array_replace([
-            'codigo' => 'CUR-NEW', 'nombre' => 'Curso ficticio', 'descripcion' => 'Descripción.', 'categoria' => 'tecnologia',
-            'duracion_horas' => 20, 'precio' => 150, 'modalidad' => 'virtual', 'horario' => 'Lunes', 'cupos_maximos' => 5,
-            'estado' => 'activo',
-        ], $extra);
     }
 }

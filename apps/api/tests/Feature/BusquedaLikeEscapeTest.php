@@ -15,6 +15,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
@@ -24,6 +25,7 @@ use Tests\TestCase;
  */
 class BusquedaLikeEscapeTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
@@ -109,14 +111,11 @@ class BusquedaLikeEscapeTest extends TestCase
         $this->crearCurso('C-AXB', 'Taller libre');
         $admin = $this->adminUser();
 
-        $porcentaje = $this->actingAs($admin)->get(route('admin.cursos.index', ['busqueda' => '%']))->assertOk()->getContent();
-        $this->assertStringContainsString('Excel al 100% práctico', $porcentaje);
-        $this->assertStringNotContainsString('Taller guion', $porcentaje);
-        $this->assertStringNotContainsString('Taller libre', $porcentaje);
+        $this->actingAs($admin);
+        $buscar = fn (string $texto): array => $this->panelCursos('GET', '', ['busqueda' => $texto])->assertOk()->json('data.*.nombre');
 
-        $guion = $this->get(route('admin.cursos.index', ['busqueda' => 'A_B']))->assertOk()->getContent();
-        $this->assertStringContainsString('Taller guion', $guion);
-        $this->assertStringNotContainsString('Taller libre', $guion);
+        $this->assertSame(['Excel al 100% práctico'], $buscar('%'));
+        $this->assertSame(['Taller guion'], $buscar('A_B'));
     }
 
     public function test_usuarios_busca_el_porcentaje_y_el_guion_bajo_como_texto(): void

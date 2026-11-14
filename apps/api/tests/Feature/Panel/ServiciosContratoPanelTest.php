@@ -535,6 +535,17 @@ class ServiciosContratoPanelTest extends TestCase
         $this->assertDatabaseCount('servicios_tecnologicos', 0);
     }
 
+    public function test_fechas_de_la_ficha_con_forma_de_array_dan_422_y_nunca_500(): void
+    {
+        $id = $this->crear();
+        // `after_or_equal:vigente_desde` fallaba con un TypeError (500) si `vigente_desde` llegaba como array.
+        $this->guardarFichaPanel($id, [...$this->ficha(), 'vigente_desde' => ['x']])
+            ->assertUnprocessable()->assertJsonValidationErrors(['vigente_desde']);
+        $this->guardarFichaPanel($id, [...$this->ficha(), 'vigente_hasta' => ['x']])
+            ->assertUnprocessable()->assertJsonValidationErrors(['vigente_hasta']);
+        $this->assertDatabaseCount('servicio_publicaciones', 0);
+    }
+
     public function test_lista_vacia_y_acceso_solo_con_entrada_y_permiso_de_lectura(): void
     {
         $this->panelServicios('GET')->assertOk()->assertJsonPath('meta.total', 0)->assertJsonPath('data', []);

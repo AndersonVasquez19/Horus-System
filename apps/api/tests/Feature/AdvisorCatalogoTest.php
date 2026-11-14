@@ -15,10 +15,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 class AdvisorCatalogoTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -161,10 +163,10 @@ class AdvisorCatalogoTest extends TestCase
     {
         $admin ??= $this->adminUser();
         $curso = Curso::create(['codigo' => 'PRIVADO', 'nombre' => 'Nombre privado', 'descripcion' => 'Cupos privados', 'categoria' => 'Interno', 'duracion_horas' => 10, 'precio' => 9876.54, 'modalidad' => 'virtual', 'horario' => 'Horario privado', 'cupos_maximos' => 10, 'cupos_disponibles' => 9, 'estado' => 'activo']);
-        $this->actingAs($admin)->putJson(route('admin.cursos.publicacion.update', $curso), [
+        $this->actingAs($admin)->publicarFichaCursoPanel($curso, [
             'titulo' => 'Redes iniciales', 'resumen' => 'Formación pública autorizada en redes.', 'modalidad' => 'virtual',
             'vigente_desde' => '2026-10-28', 'vigente_hasta' => '2026-10-28', 'confirmacion_publica' => '1',
-        ])->assertRedirect();
+        ])->assertOk();
 
         return [$admin, $curso];
     }

@@ -11,6 +11,7 @@ use Illuminate\Database\PostgresConnection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
@@ -20,6 +21,7 @@ use Tests\TestCase;
  */
 class AdminSearchTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
@@ -98,10 +100,9 @@ class AdminSearchTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.apellidos', 'PEREZ');
 
-        $this->actingAs($admin)
-            ->get(route('admin.cursos.index', ['busqueda' => 'redes']))
+        $this->panelCursos('GET', '', ['busqueda' => 'redes'])
             ->assertOk()
-            ->assertSee('REDES Y SERVIDORES');
+            ->assertJsonPath('data.0.nombre', 'REDES Y SERVIDORES');
 
         $this->assertCount(1, $this->actingAs($admin)
             ->get(route('admin.matriculas.index', ['busqueda' => 'perez']))
@@ -116,8 +117,8 @@ class AdminSearchTest extends TestCase
      */
     public function test_module_searches_use_the_portable_case_insensitive_like(): void
     {
-        // Estudiantes ya no vive en Blade: su buscador es el del controlador del panel.
-        $controladores = ['Admin/BusquedaController', 'Api/Panel/Academico/EstudianteController', 'Admin/CursoController', 'Admin/MatriculaController'];
+        // Estudiantes y cursos ya no viven en Blade: su buscador es el del controlador del panel.
+        $controladores = ['Admin/BusquedaController', 'Api/Panel/Academico/EstudianteController', 'Api/Panel/Academico/CursoController', 'Admin/MatriculaController'];
         foreach ($controladores as $modulo) {
             $codigo = file_get_contents(app_path("Http/Controllers/{$modulo}.php"));
 

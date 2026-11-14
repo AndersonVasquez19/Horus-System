@@ -10,10 +10,19 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
+/**
+ * Editor de la ficha pública de un curso por la API del panel (`/api/panel/v1/academico/cursos/{id}/publicacion`).
+ * Sustituye a las pruebas del editor Blade retirado el 14/11/2026. Lo que dependía del HTML (el enlace del listado,
+ * los dos campos `_revision` ocultos, el borrador conservado en sesión y el botón «Cargar versión actual») pasa a la UI
+ * de Next; aquí quedan las garantías de servidor: permiso propio, revisión obligatoria (cuerpo o cabecera), 412 sin
+ * escribir, una revisión obsoleta no pisa la versión de otro administrador y nada se publica sin precondición válida.
+ */
 class EditorPublicacionPanelTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -23,14 +32,13 @@ class EditorPublicacionPanelTest extends TestCase
         Http::preventStrayRequests();
     }
 
-    public function test_authorized_link_uses_existing_route_including_deleted_courses(): void
+    public function test_el_editor_se_abre_tambien_para_un_curso_eliminado_y_lo_marca_no_publicable(): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $this->get(route('admin.cursos.index'))->assertOk()->assertSee('href="'.route('admin.cursos.publicacion.edit', $curso).'"', false);
+        $this->fichaCursoPanel($curso)->assertOk()->assertJsonPath('data.publicable', true);
         $curso->delete();
-        $this->get(route('admin.cursos.index', ['eliminados' => 1]))->assertOk()->assertSee('href="'.route('admin.cursos.publicacion.edit', $curso).'"', false);
-        $this->get(route('admin.cursos.publicacion.edit', $curso))->assertOk();
+        $this->fichaCursoPanel($curso)->assertOk()->assertJsonPath('data.publicable', false);
     }
 
     public static function personal(): iterable
@@ -41,7 +49,7 @@ class EditorPublicacionPanelTest extends TestCase
     }
 
     #[DataProvider('personal')]
-    public function test_link_and_backend_follow_permission_not_just_role(string $rol, bool $permitido): void
+    public function test_el_acceso_sigue_al_permiso_y_no_solo_al_rol(string $rol, bool $permitido): void
     {
         $this->adminUser();
         $user = User::factory()->create();
@@ -50,61 +58,63 @@ class EditorPublicacionPanelTest extends TestCase
             $user->givePermissionTo('cursos.publicar');
         }
         $curso = $this->curso();
-        $url = route('admin.cursos.publicacion.edit', $curso);
-        $listado = $this->actingAs($user)->get(route('admin.cursos.index'))->assertOk();
-        $permitido ? $listado->assertSee('href="'.$url.'"', false) : $listado->assertDontSee('href="'.$url.'"', false);
-        $this->get($url)->assertStatus($permitido ? 200 : 403);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos())->assertStatus($permitido ? 302 : 403);
+        $this->actingAs($user);
+
+        $this->fichaCursoPanel($curso)->assertStatus($permitido ? 200 : 403);
+        $this->publicarFichaCursoPanel($curso, $this->datos())->assertStatus($permitido ? 200 : 403);
         if (! $permitido) {
-            $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso))->assertForbidden();
+            $this->retirarFichaCursoPanel($curso)->assertForbidden();
+            $this->assertDatabaseCount('curso_publicaciones', 0);
         }
     }
 
-    public function test_editor_sends_same_revision_in_both_forms_and_native_save_and_withdraw_work(): void
+    public function test_guardar_y_retirar_funcionan_con_la_revision_en_el_cuerpo_como_lo_envia_el_bff(): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $revision = $this->revision($curso);
-        $this->put(route('admin.cursos.publicacion.update', $curso), $this->datos() + ['_revision' => $revision])->assertRedirect();
+        $revision = $this->revisionFichaCursoPanel($curso);
+
+        $this->panelCursos('PUT', $curso->id.'/publicacion', $this->datos() + ['_revision' => $revision])->assertOk();
         $this->assertDatabaseHas('curso_publicaciones', ['titulo' => 'Redes públicas', 'publicada' => true]);
-        $editor = $this->get(route('admin.cursos.publicacion.edit', $curso))->assertOk();
-        $revision = $editor->headers->get('ETag');
-        $this->assertSame(2, substr_count($editor->getContent(), 'name="_revision"'));
-        $this->delete(route('admin.cursos.publicacion.destroy', $curso), ['_revision' => $revision])->assertRedirect();
+
+        $editor = $this->fichaCursoPanel($curso)->assertOk();
+        $this->assertSame($editor->headers->get('ETag'), $editor->json('data.revision'));
+        $this->panelCursos('POST', $curso->id.'/publicacion/retirar', ['_revision' => $editor->headers->get('ETag')])->assertOk();
         $this->assertFalse(CursoPublicacion::firstOrFail()->publicada);
         Http::assertNothingSent();
     }
 
-    public function test_stale_native_form_keeps_draft_and_old_revision_until_explicit_reload(): void
+    public function test_una_revision_obsoleta_no_pisa_la_version_de_otro_administrador_ni_se_revalida_sola(): void
     {
         $admin = $this->adminUser();
         $curso = $this->curso();
         $this->actingAs($admin);
-        $revision = $this->revision($curso);
+        $revision = $this->revisionFichaCursoPanel($curso);
         $otro = User::factory()->create();
         $otro->assignRole('admin');
-        $this->actingAs($otro)->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Versión de otro administrador']))->assertRedirect();
-        $url = route('admin.cursos.publicacion.edit', $curso);
-        $this->actingAs($admin)->from($url)->put(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Mi borrador conservado']) + ['_revision' => $revision])
-            ->assertRedirect($url)->assertSessionHasErrors('revision')->assertSessionHasInput('titulo', 'Mi borrador conservado')->assertSessionHasInput('_revision', $revision);
-        $editor = $this->get($url)->assertOk()->assertSee('Mi borrador conservado')->assertSee('Cargar versión actual')->assertSee('La ficha cambió');
-        $this->assertStringContainsString('value="'.e($revision).'"', $editor->getContent());
+        $this->actingAs($otro)->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Versión de otro administrador']))->assertOk();
+
+        $this->actingAs($admin);
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Mi borrador']), $revision)->assertStatus(412);
         $this->assertDatabaseHas('curso_publicaciones', ['titulo' => 'Versión de otro administrador', 'autorizado_por' => $otro->id]);
-        // Reenviar el mismo borrador no lo revalida automáticamente.
-        $this->put(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Mi borrador conservado']) + ['_revision' => $revision])->assertSessionHasErrors('revision');
-        $this->get($url)->assertOk();
-        $this->get($url)->assertOk()->assertSee('Versión de otro administrador')->assertDontSee('Mi borrador conservado');
+        // Reenviar el mismo borrador con la misma revisión no lo revalida automáticamente.
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Mi borrador']), $revision)->assertStatus(412);
+        $this->assertDatabaseMissing('curso_publicaciones', ['titulo' => 'Mi borrador']);
+        // Con la revisión actual sí se guarda.
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Mi borrador']))->assertOk();
+        $this->assertDatabaseHas('curso_publicaciones', ['titulo' => 'Mi borrador', 'autorizado_por' => $admin->id]);
     }
 
-    public function test_stale_withdrawal_preserves_current_publication_and_author(): void
+    public function test_un_retiro_obsoleto_conserva_la_publicacion_vigente_y_a_su_autor(): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos())->assertRedirect();
-        $vieja = $this->revision($curso);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Edición posterior']))->assertRedirect();
+        $this->publicarFichaCursoPanel($curso, $this->datos())->assertOk();
+        $vieja = $this->revisionFichaCursoPanel($curso);
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Edición posterior']))->assertOk();
         $antes = CursoPublicacion::firstOrFail()->getAttributes();
-        $this->delete(route('admin.cursos.publicacion.destroy', $curso), ['_revision' => $vieja])->assertSessionHasErrors('revision');
+
+        $this->panelCursos('POST', $curso->id.'/publicacion/retirar', ['_revision' => $vieja])->assertStatus(412);
         $this->assertSame($antes, CursoPublicacion::firstOrFail()->getAttributes());
     }
 
@@ -117,42 +127,53 @@ class EditorPublicacionPanelTest extends TestCase
     }
 
     #[DataProvider('revisionesInvalidas')]
-    public function test_present_invalid_form_revision_cannot_fall_back_to_unconditional_write(mixed $revision): void
+    public function test_una_revision_presente_pero_invalida_nunca_cae_en_una_escritura_incondicional(mixed $revision): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos() + ['_revision' => $revision])->assertUnprocessable()->assertJsonValidationErrors('revision');
+
+        $this->panelCursos('PUT', $curso->id.'/publicacion', $this->datos() + ['_revision' => $revision])
+            ->assertUnprocessable()->assertJsonValidationErrors('revision');
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
 
-    public function test_json_form_revision_and_existing_header_contract_return_412_on_conflict(): void
+    public function test_sin_ninguna_revision_el_panel_no_escribe(): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $revision = $this->revision($curso);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(), ['If-Match' => $revision])->assertRedirect();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(), ['If-Match' => $revision])->assertStatus(412);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos() + ['_revision' => $revision])->assertStatus(412);
-        $actual = $this->revision($curso);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos() + ['_revision' => $revision], ['If-Match' => $actual])->assertUnprocessable();
+        $this->publicarFichaCursoPanel($curso, $this->datos())->assertOk();
+        $antes = CursoPublicacion::firstOrFail()->getAttributes();
+
+        $this->panelCursos('PUT', $curso->id.'/publicacion', $this->datos(['titulo' => 'Sin precondición']))
+            ->assertUnprocessable()->assertJsonValidationErrors('revision');
+        $this->panelCursos('POST', $curso->id.'/publicacion/retirar')->assertUnprocessable()->assertJsonValidationErrors('revision');
+        $this->assertSame($antes, CursoPublicacion::firstOrFail()->getAttributes());
     }
 
-    public function test_validation_error_does_not_refresh_hidden_revision_after_an_intervening_change(): void
+    public function test_cabecera_y_campo_del_cuerpo_se_comprueban_y_devuelven_412_ante_un_conflicto(): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $vieja = $this->revision($curso);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Cambio externo']))->assertRedirect();
-        $url = route('admin.cursos.publicacion.edit', $curso);
-        $this->from($url)->put(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => '']) + ['_revision' => $vieja])->assertSessionHasErrors('titulo');
-        $editor = $this->get($url)->assertOk();
-        $this->assertStringContainsString('value="'.e($vieja).'"', $editor->getContent());
-        $this->assertNotSame($vieja, $editor->headers->get('ETag'));
+        $revision = $this->revisionFichaCursoPanel($curso);
+
+        $this->publicarFichaCursoPanel($curso, $this->datos(), $revision)->assertOk();
+        $this->publicarFichaCursoPanel($curso, $this->datos(), $revision)->assertStatus(412);
+        $this->panelCursos('PUT', $curso->id.'/publicacion', $this->datos() + ['_revision' => $revision])->assertStatus(412);
+        $actual = $this->revisionFichaCursoPanel($curso);
+        // Una cabecera y un campo que no coinciden son ambiguos: se rechazan sin escribir.
+        $this->panelCursos('PUT', $curso->id.'/publicacion', $this->datos() + ['_revision' => $revision], ['If-Match' => $actual])->assertUnprocessable();
     }
 
-    private function revision(Curso $curso): string
+    public function test_un_error_de_validacion_no_renueva_la_revision_tras_un_cambio_intermedio(): void
     {
-        return $this->get(route('admin.cursos.publicacion.edit', $curso))->assertOk()->headers->get('ETag');
+        $this->actingAs($this->adminUser());
+        $curso = $this->curso();
+        $vieja = $this->revisionFichaCursoPanel($curso);
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Cambio externo']))->assertOk();
+
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => '']), $vieja)->assertUnprocessable()->assertJsonValidationErrors('titulo');
+        $this->assertNotSame($vieja, $this->revisionFichaCursoPanel($curso));
+        $this->assertDatabaseHas('curso_publicaciones', ['titulo' => 'Cambio externo']);
     }
 
     private function curso(): Curso

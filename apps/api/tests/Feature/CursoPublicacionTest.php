@@ -20,10 +20,12 @@ use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 class CursoPublicacionTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -42,9 +44,10 @@ class CursoPublicacionTest extends TestCase
     {
         $course = $this->course();
         $this->actingAs($this->adminUser());
-        $this->get(route('admin.cursos.publicacion.edit', $course))->assertOk()->assertDontSee('Nombre interno secreto');
+        // El editor del panel nombra el curso que se edita, pero la ficha parte vacía: no copia datos administrativos.
+        $this->fichaCursoPanel($course)->assertOk()->assertJsonPath('data.ficha', null)->assertJsonPath('data.publicable', true);
         $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Nombre interno secreto');
-        $this->putJson(route('admin.cursos.publicacion.update', $course), $this->data() + ['precio' => 1, 'estado' => 'inactivo', 'autorizado_por' => 999, 'publicada' => false])->assertRedirect();
+        $this->publicarFichaCursoPanel($course, $this->data() + ['precio' => 1, 'estado' => 'inactivo', 'autorizado_por' => 999, 'publicada' => false])->assertOk();
         $publication = CursoPublicacion::firstOrFail();
         $this->assertTrue($publication->publicada);
         $this->assertSame(auth()->id(), $publication->autorizado_por);
@@ -138,11 +141,11 @@ class CursoPublicacionTest extends TestCase
         $service = app(AsistenteVirtualService::class);
         $question = 'Horario del curso Python inicial';
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
-        $this->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), ['horario' => 'Horario oficial actualizado']))->assertRedirect();
+        $this->publicarFichaCursoPanel($course, array_replace($this->data(), ['horario' => 'Horario oficial actualizado']))->assertOk();
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $course))->assertRedirect();
+        $this->retirarFichaCursoPanel($course)->assertOk();
         $this->assertStringNotContainsString('Horario oficial actualizado', $service->procesarMensaje($question, 'cache')['respuesta']);
-        $this->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), ['horario' => 'Horario oficial actualizado', 'vigente_hasta' => '2026-10-28']))->assertRedirect();
+        $this->publicarFichaCursoPanel($course, array_replace($this->data(), ['horario' => 'Horario oficial actualizado', 'vigente_hasta' => '2026-10-28']))->assertOk();
         $this->travelTo(Carbon::parse('2026-10-28 23:59:50', 'America/Lima'));
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         $this->travel(11)->seconds();
@@ -163,9 +166,9 @@ class CursoPublicacionTest extends TestCase
         $course = $this->publish();
         $user = User::factory()->create();
         $user->assignRole($role);
-        $this->actingAs($user)->get(route('admin.cursos.publicacion.edit', $course))->assertForbidden();
-        $this->putJson(route('admin.cursos.publicacion.update', $course), $this->data())->assertForbidden();
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $course))->assertForbidden();
+        $this->actingAs($user)->fichaCursoPanel($course)->assertForbidden();
+        $this->publicarFichaCursoPanel($course, $this->data())->assertForbidden();
+        $this->retirarFichaCursoPanel($course)->assertForbidden();
         $this->assertTrue(CursoPublicacion::firstOrFail()->publicada);
     }
 
@@ -175,10 +178,10 @@ class CursoPublicacionTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('coordinador');
         $user->givePermissionTo('cursos.publicar');
-        $this->actingAs($user)->putJson(route('admin.cursos.publicacion.update', $course), $this->data())->assertRedirect();
+        $this->actingAs($user)->publicarFichaCursoPanel($course, $this->data())->assertOk();
         $course->delete();
-        $this->get(route('admin.cursos.publicacion.edit', $course))->assertOk();
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $course))->assertRedirect();
+        $this->fichaCursoPanel($course)->assertOk();
+        $this->retirarFichaCursoPanel($course)->assertOk();
         $this->assertFalse(CursoPublicacion::firstOrFail()->publicada);
         $this->assertSoftDeleted($course);
     }
@@ -198,7 +201,7 @@ class CursoPublicacionTest extends TestCase
     public function test_invalid_editorial_data_never_publishes(string $field, mixed $value): void
     {
         $course = $this->course();
-        $this->actingAs($this->adminUser())->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), [$field => $value]))
+        $this->actingAs($this->adminUser())->publicarFichaCursoPanel($course, array_replace($this->data(), [$field => $value]))
             ->assertUnprocessable()->assertJsonValidationErrors($field === 'vigente_desde' ? 'vigente_hasta' : $field);
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
@@ -208,7 +211,7 @@ class CursoPublicacionTest extends TestCase
         $course = $this->course();
         $this->actingAs($this->adminUser());
         $this->app->afterResolving(PublicarCursoRequest::class, fn () => $course->update(['estado' => 'inactivo']));
-        $this->putJson(route('admin.cursos.publicacion.update', $course), $this->data())->assertUnprocessable();
+        $this->publicarFichaCursoPanel($course, $this->data())->assertUnprocessable();
         $this->assertDatabaseCount('curso_publicaciones', 0);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'curso_publicado']);
     }
@@ -223,7 +226,7 @@ class CursoPublicacionTest extends TestCase
         });
         $this->withoutExceptionHandling();
         try {
-            $this->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), ['titulo' => 'Cambio fallido']));
+            $this->publicarFichaCursoPanel($course, array_replace($this->data(), ['titulo' => 'Cambio fallido']));
             $this->fail('Expected rollback');
         } catch (RuntimeException $e) {
             $this->assertSame('Failure after publication write', $e->getMessage());
@@ -261,7 +264,8 @@ class CursoPublicacionTest extends TestCase
     public function test_editorial_content_is_escaped_in_the_editor_and_does_not_modify_the_public_page(): void
     {
         $course = $this->publish(['resumen' => '<script>alert("private")</script>']);
-        $this->get(route('admin.cursos.publicacion.edit', $course))->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert("private")</script>', false);
+        // El panel entrega el texto literal (JSON): quien lo muestra, la UI de Next, lo escapa como texto.
+        $this->fichaCursoPanel($course)->assertOk()->assertJsonPath('data.ficha.resumen', '<script>alert("private")</script>');
         $this->get(route('educacion.cursos'))->assertDontSee('Python inicial')->assertDontSee('&lt;script&gt;', false);
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'local-comparison');
         $this->assertSame('respaldo', $answer['fuente']);
@@ -311,12 +315,15 @@ class CursoPublicacionTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_malformed_old_input_does_not_break_the_editor_and_anonymous_writes_are_rejected(): void
+    public function test_array_shaped_input_is_rejected_and_anonymous_writes_are_rejected(): void
     {
         $course = $this->course();
-        $this->putJson(route('admin.cursos.publicacion.update', $course), $this->data())->assertUnauthorized();
-        $this->actingAs($this->adminUser())->withSession(['_old_input' => ['titulo' => ['array'], 'vigente_desde' => ['array']]])
-            ->get(route('admin.cursos.publicacion.edit', $course))->assertOk()->assertSee('confirmacion_publica');
+        $this->publicarFichaCursoPanel($course, $this->data())->assertUnauthorized();
+        // Un `titulo` con forma de array no se interpreta como contenido: se rechaza con 422 y no escribe nada.
+        $this->actingAs($this->adminUser());
+        $this->publicarFichaCursoPanel($course, ['titulo' => ['array'], 'vigente_desde' => ['array']] + $this->data())
+            ->assertUnprocessable()->assertJsonValidationErrors(['titulo', 'vigente_desde']);
+        $this->assertDatabaseCount('curso_publicaciones', 0);
     }
 
     private function course(): Curso
@@ -339,7 +346,7 @@ class CursoPublicacionTest extends TestCase
     {
         $course = $this->course();
         $admin = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))->first() ?? $this->adminUser();
-        $this->actingAs($admin)->putJson(route('admin.cursos.publicacion.update', $course), array_replace($this->data(), $overrides))->assertRedirect();
+        $this->actingAs($admin)->publicarFichaCursoPanel($course, array_replace($this->data(), $overrides))->assertOk();
 
         return $course;
     }

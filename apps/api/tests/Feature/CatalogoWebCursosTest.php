@@ -18,10 +18,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 class CatalogoWebCursosTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -247,15 +249,15 @@ class CatalogoWebCursosTest extends TestCase
         [$autor, $curso] = $this->ficha();
         config(['catalogo-publico.enabled' => true, 'horus-advisor.signing_key' => str_repeat('k', 32)]);
         $this->actingAs($autor);
-        $revision = $this->get(route('admin.cursos.publicacion.edit', $curso))->headers->get('ETag');
-        $this->put(route('admin.cursos.publicacion.update', $curso), [
+        $revision = $this->fichaCursoPanel($curso)->headers->get('ETag');
+        $this->publicarFichaCursoPanel($curso, [
             '_revision' => $revision, 'titulo' => 'Curso revisado', 'resumen' => 'Información editorial autorizada.',
             'modalidad' => 'presencial', 'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-10-30', 'confirmacion_publica' => '1',
-        ])->assertRedirect();
+        ])->assertOk();
         $this->assertSame('Curso revisado', app(ExportadorCatalogoAdvisor::class)->construir($autor)['items'][0]['title']);
         auth()->forgetGuards();
         $this->get(route('educacion.cursos'))->assertOk()->assertSee('Curso revisado');
-        $this->actingAs($autor)->delete(route('admin.cursos.publicacion.destroy', $curso))->assertRedirect();
+        $this->actingAs($autor)->retirarFichaCursoPanel($curso)->assertOk();
         $this->assertSame([], app(ExportadorCatalogoAdvisor::class)->construir($autor)['items']);
         auth()->forgetGuards();
         $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Curso revisado');

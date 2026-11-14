@@ -18,6 +18,10 @@ class PublicarCursoRequest extends FormRequest
     /** @return array<string, list<string|In>> */
     public function rules(): array
     {
+        // `after_or_equal:vigente_desde` no tolera que ese campo llegue como array (TypeError y 500): solo se compara
+        // contra un texto; si no lo es, ya lo rechaza la regla propia de `vigente_desde` con un 422.
+        $comparaConDesde = is_string($this->input('vigente_desde')) ? ['after_or_equal:vigente_desde'] : [];
+
         return [
             'titulo' => ['required', 'string', 'max:120'],
             'resumen' => ['required', 'string', 'max:500'],
@@ -25,7 +29,7 @@ class PublicarCursoRequest extends FormRequest
             'horario' => ['nullable', 'string', 'max:200'],
             'inscripcion' => ['nullable', 'string', 'max:400'],
             'vigente_desde' => ['required', 'date_format:Y-m-d'],
-            'vigente_hasta' => ['required', 'date_format:Y-m-d', 'after_or_equal:vigente_desde', 'after_or_equal:'.now('America/Lima')->toDateString()],
+            'vigente_hasta' => ['required', 'date_format:Y-m-d', ...$comparaConDesde, 'after_or_equal:'.now('America/Lima')->toDateString()],
             'confirmacion_publica' => ['accepted'],
         ];
     }

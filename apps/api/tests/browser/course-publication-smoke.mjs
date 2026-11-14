@@ -82,15 +82,7 @@ try {
   await waitFor(() => evaluate(`document.querySelector('.hc-log').textContent.includes('no publica un calendario vigente') && !document.querySelector('#mensaje-chat').disabled`));
   const chat = await evaluate(`({ focus: document.activeElement.id, width: document.querySelector('#horus-chat-panel').getBoundingClientRect().width, viewport: innerWidth, target: document.querySelector('[aria-label="Enviar consulta"]').getBoundingClientRect().height })`);
   if (chat.focus !== 'mensaje-chat' || chat.width > chat.viewport || chat.target < 44) throw new Error(`Chat accessibility failed: ${JSON.stringify(chat)}`);
-  await command('Page.navigate', { url: `${base}/admin/cursos/1/publicacion` });
-  await waitFor(() => evaluate('!!document.querySelector("[name=confirmacion_publica]")'));
-  const editor = await evaluate(`(async () => {
-    await document.fonts.ready;
-    const controls = [...document.querySelectorAll('textarea, select, input[type=date]')];
-    return { noOverflow: document.documentElement.scrollWidth <= innerWidth, labeled: controls.every((el) => document.querySelector('label[for="' + el.id + '"]')), consent: document.querySelector('[name=confirmacion_publica]').required && !document.querySelector('[name=confirmacion_publica]').checked, title: document.querySelector('#titulo').value };
-  })()`);
-  if (!editor.noOverflow || !editor.labeled || !editor.consent || editor.title !== 'Python inicial') throw new Error(`Editorial form failed: ${JSON.stringify(editor)}`);
-  process.stdout.write(`${JSON.stringify({ sqlite: ':memory:', catalog, chat, editor })}\n`);
+  process.stdout.write(`${JSON.stringify({ sqlite: ':memory:', catalog, chat })}\n`);
 } finally {
   socket?.close(); browser.kill(); server.kill();
   const root = await realpath(tmpdir());

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
@@ -24,6 +25,7 @@ use Tests\TestCase;
  */
 class AdminAuthorizationTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
@@ -48,8 +50,6 @@ class AdminAuthorizationTest extends TestCase
         return [
             'dashboard' => ['admin.dashboard', self::ALL],
             'busqueda' => ['admin.busqueda.index', self::ALL],
-            'cursos.index' => ['admin.cursos.index', self::ALL],
-            'cursos.create' => ['admin.cursos.create', ['admin', 'coordinador']],
             'matriculas.index' => ['admin.matriculas.index', self::ALL],
             'matriculas.create' => ['admin.matriculas.create', self::ALL],
             'usuarios.index' => ['admin.usuarios.index', ['admin']],
@@ -141,8 +141,8 @@ class AdminAuthorizationTest extends TestCase
 
         $this->actingAs($coordinador);
         $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertForbidden();
-        $this->delete(route('admin.cursos.destroy', $curso))->assertForbidden();
-        $this->patch(route('admin.cursos.restaurar', $cursoEliminado->id))->assertForbidden();
+        $this->panelCursos('DELETE', (string) $curso->id)->assertForbidden();
+        $this->panelCursos('POST', $cursoEliminado->id.'/restaurar')->assertForbidden();
 
         $this->assertNotSoftDeleted($estudiante);
         $this->assertNotSoftDeleted($curso);
@@ -154,9 +154,9 @@ class AdminAuthorizationTest extends TestCase
         $secretaria = $this->staff('secretaria');
         $curso = $this->makeCourse();
 
-        $this->actingAs($secretaria)->post(route('admin.cursos.store'), [])->assertForbidden();
-        $this->get(route('admin.cursos.edit', $curso))->assertForbidden();
-        $this->put(route('admin.cursos.update', $curso), [])->assertForbidden();
+        $this->actingAs($secretaria);
+        $this->panelCursos('POST', '', [])->assertForbidden();
+        $this->panelCursos('PUT', (string) $curso->id, [])->assertForbidden();
     }
 
     public function test_enrollment_destructive_operations_require_specific_permissions(): void

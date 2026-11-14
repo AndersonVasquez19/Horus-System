@@ -15,6 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -24,6 +25,7 @@ use Tests\TestCase;
  */
 class AuditoriaCursosTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     private const ACCIONES = ['curso_creado', 'curso_actualizado', 'curso_archivado', 'curso_restaurado'];
@@ -125,9 +127,9 @@ class AuditoriaCursosTest extends TestCase
         $otro = $this->usuario('admin');
 
         $this->actingAs($admin)
-            ->post(route('admin.cursos.store'), $this->datos())
-            ->assertRedirect(route('admin.cursos.show', Curso::query()->firstOrNew()))
-            ->assertSessionHas('success', 'El curso se registró correctamente.');
+            ->panelCursos('POST', '', $this->datos())
+            ->assertCreated()
+            ->assertJsonPath('message', 'El curso se registró correctamente.');
         $curso = Curso::where('codigo', self::CODIGO)->firstOrFail();
 
         $log = $this->auditorias()->sole();
@@ -150,8 +152,8 @@ class AuditoriaCursosTest extends TestCase
     public function test_crear_con_validacion_fallida_no_audita_ni_crea(): void
     {
         $this->actingAs($this->usuario('admin'))
-            ->post(route('admin.cursos.store'), $this->datos(['precio' => 'texto', 'cupos_maximos' => 0]))
-            ->assertSessionHasErrors(['precio', 'cupos_maximos']);
+            ->panelCursos('POST', '', $this->datos(['precio' => 'texto', 'cupos_maximos' => 0]))
+            ->assertUnprocessable()->assertJsonValidationErrors(['precio', 'cupos_maximos']);
 
         $this->assertSame(0, Curso::count());
         $this->assertCount(0, $this->auditorias());
@@ -162,7 +164,7 @@ class AuditoriaCursosTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->postJson(route('admin.cursos.store'), $this->datos())->assertStatus(500);
+        $this->panelCursos('POST', '', $this->datos())->assertStatus(500);
 
         $this->assertDatabaseMissing('cursos', ['codigo' => self::CODIGO]);
         $this->assertSame(0, AuditLog::count());
@@ -176,7 +178,7 @@ class AuditoriaCursosTest extends TestCase
         $curso = $this->curso();
 
         $this->actingAs($admin)
-            ->put(route('admin.cursos.update', $curso), $this->datos([
+            ->panelCursos('PUT', (string) $curso->id, $this->datos([
                 'precio' => 300,
                 'cupos_maximos' => 40,
                 'nombre' => 'OTRO-NOMBRE-MARCA-7731',
@@ -187,8 +189,8 @@ class AuditoriaCursosTest extends TestCase
                 'estado' => 'archivado',
                 'duracion_horas' => 8842,
             ]))
-            ->assertRedirect(route('admin.cursos.show', $curso))
-            ->assertSessionHas('success', 'Los datos del curso se actualizaron correctamente.');
+            ->assertOk()
+            ->assertJsonPath('message', 'Los datos del curso se actualizaron correctamente.');
 
         $log = $this->auditorias()->sole();
         $this->assertSame('curso_actualizado', $log->action);
@@ -213,8 +215,8 @@ class AuditoriaCursosTest extends TestCase
         $curso = $this->curso();
 
         $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.cursos.update', $curso), $this->datos(['precio' => 199.5]))
-            ->assertRedirect(route('admin.cursos.show', $curso));
+            ->panelCursos('PUT', (string) $curso->id, $this->datos(['precio' => 199.5]))
+            ->assertOk();
 
         $cambios = $this->cambios($this->auditorias()->sole());
         $this->assertSame(['precio'], $cambios['campos']);
@@ -232,8 +234,8 @@ class AuditoriaCursosTest extends TestCase
         ]);
 
         $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.cursos.update', $curso), $this->datos(['cupos_maximos' => 5]))
-            ->assertRedirect(route('admin.cursos.show', $curso));
+            ->panelCursos('PUT', (string) $curso->id, $this->datos(['cupos_maximos' => 5]))
+            ->assertOk();
 
         $log = $this->auditorias()->sole();
         $cambios = $this->cambios($log);
@@ -248,8 +250,8 @@ class AuditoriaCursosTest extends TestCase
         $curso = $this->curso();
 
         $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.cursos.update', $curso), $this->datos(['nombre' => 'CAMBIO-MARCA-7731', 'horario' => 'CAMBIO-HORARIO-MARCA-7731']))
-            ->assertRedirect(route('admin.cursos.show', $curso));
+            ->panelCursos('PUT', (string) $curso->id, $this->datos(['nombre' => 'CAMBIO-MARCA-7731', 'horario' => 'CAMBIO-HORARIO-MARCA-7731']))
+            ->assertOk();
 
         $log = $this->auditorias()->sole();
         $cambios = $this->cambios($log);
@@ -266,9 +268,9 @@ class AuditoriaCursosTest extends TestCase
 
         // 250 frente a «250.00» almacenado y los mismos cupos: no hay diferencia.
         $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.cursos.update', $curso), $this->datos())
-            ->assertRedirect(route('admin.cursos.show', $curso))
-            ->assertSessionHas('success');
+            ->panelCursos('PUT', (string) $curso->id, $this->datos())
+            ->assertOk()
+            ->assertJsonStructure(['message']);
 
         $this->assertCount(0, $this->auditorias());
         $this->assertEquals($actualizado, $curso->fresh()->updated_at);
@@ -286,8 +288,8 @@ class AuditoriaCursosTest extends TestCase
         }
 
         $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.cursos.update', $curso), $this->datos(['cupos_maximos' => 1, 'precio' => 999]))
-            ->assertSessionHasErrors(['cupos_maximos']);
+            ->panelCursos('PUT', (string) $curso->id, $this->datos(['cupos_maximos' => 1, 'precio' => 999]))
+            ->assertUnprocessable()->assertJsonValidationErrors(['cupos_maximos']);
 
         $this->assertCount(0, $this->auditorias());
         $this->assertDatabaseHas('cursos', ['id' => $curso->id, 'cupos_maximos' => 2, 'cupos_disponibles' => 0, 'precio' => '250.00']);
@@ -299,7 +301,7 @@ class AuditoriaCursosTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->putJson(route('admin.cursos.update', $curso), $this->datos(['precio' => 300, 'cupos_maximos' => 40]))->assertStatus(500);
+        $this->panelCursos('PUT', (string) $curso->id, $this->datos(['precio' => 300, 'cupos_maximos' => 40]))->assertStatus(500);
 
         $this->assertDatabaseHas('cursos', ['id' => $curso->id, 'precio' => '250.00', 'cupos_maximos' => 20, 'cupos_disponibles' => 20]);
         $this->assertSame(0, AuditLog::count());
@@ -313,9 +315,9 @@ class AuditoriaCursosTest extends TestCase
         $curso = $this->curso();
 
         $this->actingAs($admin)
-            ->delete(route('admin.cursos.destroy', $curso))
-            ->assertRedirect(route('admin.cursos.index'))
-            ->assertSessionHas('success', 'El curso se archivó correctamente.');
+            ->panelCursos('DELETE', (string) $curso->id)
+            ->assertOk()
+            ->assertJsonPath('message', 'El curso se archivó correctamente.');
 
         $this->assertSoftDeleted('cursos', ['id' => $curso->id]);
         $log = $this->auditorias()->sole();
@@ -332,9 +334,9 @@ class AuditoriaCursosTest extends TestCase
         $curso = $this->curso();
         $this->actingAs($this->usuario('admin'));
 
-        $this->delete(route('admin.cursos.destroy', $curso))->assertRedirect();
-        $this->delete(route('admin.cursos.destroy', $curso->id))->assertNotFound();
-        $this->delete(route('admin.cursos.destroy', 999999))->assertNotFound();
+        $this->panelCursos('DELETE', (string) $curso->id)->assertOk();
+        $this->panelCursos('DELETE', (string) $curso->id)->assertNotFound();
+        $this->panelCursos('DELETE', (string) 999999)->assertNotFound();
 
         $this->assertCount(1, $this->auditorias());
     }
@@ -345,7 +347,7 @@ class AuditoriaCursosTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->deleteJson(route('admin.cursos.destroy', $curso))->assertStatus(500);
+        $this->panelCursos('DELETE', (string) $curso->id)->assertStatus(500);
 
         $this->assertNotSoftDeleted('cursos', ['id' => $curso->id]);
         $this->assertSame(0, AuditLog::count());
@@ -360,9 +362,9 @@ class AuditoriaCursosTest extends TestCase
         $curso->delete();
 
         $this->actingAs($admin)
-            ->patch(route('admin.cursos.restaurar', $curso->id))
-            ->assertRedirect(route('admin.cursos.index', ['eliminados' => 1]))
-            ->assertSessionHas('success', 'El curso se restauró correctamente.');
+            ->panelCursos('POST', $curso->id.'/restaurar')
+            ->assertOk()
+            ->assertJsonPath('message', 'El curso se restauró correctamente.');
 
         $this->assertNotSoftDeleted('cursos', ['id' => $curso->id]);
         $log = $this->auditorias()->sole();
@@ -381,13 +383,13 @@ class AuditoriaCursosTest extends TestCase
         $archivado->delete();
         $this->actingAs($this->usuario('admin'));
 
-        $this->patch(route('admin.cursos.restaurar', $vigente->id))
-            ->assertRedirect(route('admin.cursos.index', ['eliminados' => 1]))
-            ->assertSessionHas('success');
+        $this->panelCursos('POST', $vigente->id.'/restaurar')
+            ->assertOk()
+            ->assertJsonStructure(['message']);
         $this->assertCount(0, $this->auditorias());
 
-        $this->patch(route('admin.cursos.restaurar', $archivado->id))->assertRedirect();
-        $this->patch(route('admin.cursos.restaurar', $archivado->id))->assertRedirect();
+        $this->panelCursos('POST', $archivado->id.'/restaurar')->assertOk();
+        $this->panelCursos('POST', $archivado->id.'/restaurar')->assertOk();
 
         $this->assertCount(1, $this->auditorias());
     }
@@ -395,7 +397,7 @@ class AuditoriaCursosTest extends TestCase
     public function test_restaurar_un_id_inexistente_responde_404_sin_auditar(): void
     {
         $this->actingAs($this->usuario('admin'))
-            ->patch(route('admin.cursos.restaurar', 999999))
+            ->panelCursos('POST', '999999/restaurar')
             ->assertNotFound();
 
         $this->assertCount(0, $this->auditorias());
@@ -408,7 +410,7 @@ class AuditoriaCursosTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->patchJson(route('admin.cursos.restaurar', $curso->id))->assertStatus(500);
+        $this->panelCursos('POST', $curso->id.'/restaurar')->assertStatus(500);
 
         $this->assertSoftDeleted('cursos', ['id' => $curso->id]);
         $this->assertSame(0, AuditLog::count());
@@ -423,14 +425,14 @@ class AuditoriaCursosTest extends TestCase
         $archivado->delete();
 
         $this->actingAs($this->usuario('secretaria'))
-            ->post(route('admin.cursos.store'), $this->datos(['codigo' => 'COD-NUEVO-7731']))->assertForbidden();
-        $this->put(route('admin.cursos.update', $vigente), $this->datos(['precio' => 999]))->assertForbidden();
-        $this->delete(route('admin.cursos.destroy', $vigente))->assertForbidden();
-        $this->patch(route('admin.cursos.restaurar', $archivado->id))->assertForbidden();
+            ->panelCursos('POST', '', $this->datos(['codigo' => 'COD-NUEVO-7731']))->assertForbidden();
+        $this->panelCursos('PUT', (string) $vigente->id, $this->datos(['precio' => 999]))->assertForbidden();
+        $this->panelCursos('DELETE', (string) $vigente->id)->assertForbidden();
+        $this->panelCursos('POST', $archivado->id.'/restaurar')->assertForbidden();
 
         $this->actingAs($this->usuario('coordinador'))
-            ->delete(route('admin.cursos.destroy', $vigente))->assertForbidden();
-        $this->patch(route('admin.cursos.restaurar', $archivado->id))->assertForbidden();
+            ->panelCursos('DELETE', (string) $vigente->id)->assertForbidden();
+        $this->panelCursos('POST', $archivado->id.'/restaurar')->assertForbidden();
 
         $this->assertCount(0, $this->auditorias());
         $this->assertDatabaseMissing('cursos', ['codigo' => 'COD-NUEVO-7731']);

@@ -23,10 +23,12 @@ use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 class Sprint17PublicacionTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -43,13 +45,13 @@ class Sprint17PublicacionTest extends TestCase
         [$admin, $curso] = $this->publicar();
         $antes = CursoPublicacion::firstOrFail()->getAttributes();
         $this->travel(1)->minute();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos())->assertRedirect();
+        $this->publicarFichaCursoPanel($curso, $this->datos())->assertOk();
         $this->assertSame($antes, CursoPublicacion::firstOrFail()->getAttributes());
         $this->assertSame(1, AuditLog::where('action', 'curso_publicado')->count());
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso))->assertRedirect();
+        $this->retirarFichaCursoPanel($curso)->assertOk();
         $retirada = CursoPublicacion::firstOrFail()->getAttributes();
         $this->travel(1)->minute();
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso))->assertRedirect();
+        $this->retirarFichaCursoPanel($curso)->assertOk();
         $this->assertSame($retirada, CursoPublicacion::firstOrFail()->getAttributes());
         $this->assertSame(1, AuditLog::where('action', 'curso_despublicado')->count());
         $this->assertSame([], app(ExportadorCatalogoAdvisor::class)->construir($admin)['items']);
@@ -59,7 +61,7 @@ class Sprint17PublicacionTest extends TestCase
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso))->assertRedirect();
+        $this->retirarFichaCursoPanel($curso)->assertOk();
         $this->assertDatabaseCount('curso_publicaciones', 0);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'curso_despublicado']);
     }
@@ -67,27 +69,27 @@ class Sprint17PublicacionTest extends TestCase
     public function test_editor_returns_a_private_revision_and_stale_updates_or_withdrawals_fail(): void
     {
         [, $curso] = $this->publicar();
-        $url = route('admin.cursos.publicacion.edit', $curso);
-        $editor = $this->get($url)->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        $editor = $this->fichaCursoPanel($curso)->assertOk()->assertHeader('Cache-Control', 'no-store, private');
         $revision = $editor->headers->get('ETag');
+        $this->assertSame($revision, $editor->json('data.revision'));
         $this->assertMatchesRegularExpression('/\A"[a-f0-9]{64}"\z/', $revision);
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Redes revisadas']), ['If-Match' => $revision])->assertRedirect();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Edición obsoleta']), ['If-Match' => $revision])->assertStatus(412);
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso), [], ['If-Match' => $revision])->assertStatus(412);
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Redes revisadas']), $revision)->assertOk();
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Edición obsoleta']), $revision)->assertStatus(412);
+        $this->retirarFichaCursoPanel($curso, $revision)->assertStatus(412);
         $this->assertDatabaseHas('curso_publicaciones', ['titulo' => 'Redes revisadas', 'publicada' => true]);
         $this->assertSame(2, AuditLog::where('action', 'curso_publicado')->count());
-        $actual = $this->get($url)->headers->get('ETag');
+        $actual = $this->fichaCursoPanel($curso)->headers->get('ETag');
         $this->assertNotSame($revision, $actual);
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso), [], ['If-Match' => $actual])->assertRedirect();
+        $this->retirarFichaCursoPanel($curso, $actual)->assertOk();
     }
 
     public function test_revision_for_absent_publication_detects_an_intervening_first_publish(): void
     {
         $this->actingAs($this->adminUser());
         $curso = $this->curso();
-        $revision = $this->get(route('admin.cursos.publicacion.edit', $curso))->headers->get('ETag');
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(), ['If-Match' => $revision])->assertRedirect();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Obsoleto']), ['If-Match' => $revision])->assertStatus(412);
+        $revision = $this->fichaCursoPanel($curso)->headers->get('ETag');
+        $this->publicarFichaCursoPanel($curso, $this->datos(), $revision)->assertOk();
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Obsoleto']), $revision)->assertStatus(412);
         $this->assertDatabaseCount('curso_publicaciones', 1);
     }
 
@@ -104,8 +106,8 @@ class Sprint17PublicacionTest extends TestCase
     {
         [, $curso] = $this->publicar();
         $antes = CursoPublicacion::firstOrFail()->getAttributes();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(), ['If-Match' => $revision])->assertUnprocessable()->assertJsonValidationErrors('revision');
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso), [], ['If-Match' => $revision])->assertUnprocessable();
+        $this->publicarFichaCursoPanel($curso, $this->datos(), $revision)->assertUnprocessable()->assertJsonValidationErrors('revision');
+        $this->retirarFichaCursoPanel($curso, $revision)->assertUnprocessable();
         $this->assertSame($antes, CursoPublicacion::firstOrFail()->getAttributes());
     }
 
@@ -113,11 +115,11 @@ class Sprint17PublicacionTest extends TestCase
     {
         [, $uno] = $this->publicar();
         $dos = $this->curso();
-        $revision = $this->get(route('admin.cursos.publicacion.edit', $uno))->headers->get('ETag');
-        $this->putJson(route('admin.cursos.publicacion.update', $dos), $this->datos(), ['If-Match' => $revision])->assertStatus(412);
+        $revision = $this->fichaCursoPanel($uno)->headers->get('ETag');
+        $this->publicarFichaCursoPanel($dos, $this->datos(), $revision)->assertStatus(412);
         $user = User::factory()->create();
         $user->assignRole('coordinador');
-        $this->actingAs($user)->putJson(route('admin.cursos.publicacion.update', $uno), $this->datos(), ['If-Match' => $revision])->assertForbidden();
+        $this->actingAs($user)->publicarFichaCursoPanel($uno, $this->datos(), $revision)->assertForbidden();
         $this->assertDatabaseCount('curso_publicaciones', 1);
     }
 
@@ -129,7 +131,7 @@ class Sprint17PublicacionTest extends TestCase
             // Simula un cambio entre la autorización HTTP y la escritura; no mide concurrencia PG.
             User::findOrFail($admin->id)->removeRole('admin');
         });
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Sin permiso actual']))->assertForbidden();
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Sin permiso actual']))->assertForbidden();
         $this->assertSame($antes, CursoPublicacion::firstOrFail()->getAttributes());
     }
 
@@ -138,7 +140,7 @@ class Sprint17PublicacionTest extends TestCase
         [$admin, $curso] = $this->publicar();
         $admin->givePermissionTo('cursos.publicar');
         $this->app->afterResolving(PublicarCursoRequest::class, fn () => User::findOrFail($admin->id)->removeRole('admin'));
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Sin rol actual']))->assertForbidden();
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Sin rol actual']))->assertForbidden();
         $this->assertDatabaseHas('curso_publicaciones', ['titulo' => 'Redes iniciales']);
     }
 
@@ -146,6 +148,8 @@ class Sprint17PublicacionTest extends TestCase
     {
         [$admin, $curso] = $this->publicar();
         $disparado = false;
+        // La revisión se obtiene antes de armar el disparador, para que este actúe dentro de la escritura.
+        $revision = $this->revisionFichaCursoPanel($curso);
         Event::listen('eloquent.retrieved: '.Curso::class, function () use ($admin, &$disparado): void {
             if (! $disparado && DB::transactionLevel() > 0) {
                 $disparado = true;
@@ -153,7 +157,7 @@ class Sprint17PublicacionTest extends TestCase
             }
         });
         try {
-            $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso))->assertForbidden();
+            $this->retirarFichaCursoPanel($curso, $revision)->assertForbidden();
             $this->assertTrue($disparado);
             $this->assertTrue(CursoPublicacion::firstOrFail()->publicada);
         } finally {
@@ -191,7 +195,7 @@ class Sprint17PublicacionTest extends TestCase
             $this->assertStringNotContainsString($privado, json_encode($antes));
         }
         $this->get(route('educacion.cursos'))->assertOk()->assertSee('Cursos Disponibles.')->assertSee('Alfabetización digital');
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $uno))->assertRedirect();
+        $this->retirarFichaCursoPanel($uno)->assertOk();
         $this->assertSame(1, $service->paraWeb()['total']);
         $export = app(ExportadorCatalogoAdvisor::class)->construir($admin);
         $this->assertCount(1, $export['items']);
@@ -233,8 +237,12 @@ class Sprint17PublicacionTest extends TestCase
             }
             $this->actingAs($user);
         }
-        $url = '/admin/cursos/'.$curso->id.'/publicacion';
-        $response = $this->json($metodo, $url, $metodo === 'PUT' ? $this->datos() : []);
+        // Panel: el editor es GET `…/publicacion`, guardar es PUT y retirar es POST `…/publicacion/retirar`.
+        $response = match ($metodo) {
+            'GET' => $this->fichaCursoPanel($curso),
+            'PUT' => $this->publicarFichaCursoPanel($curso, $this->datos()),
+            'DELETE' => $this->retirarFichaCursoPanel($curso),
+        };
         $response->assertStatus($usuario === 'guest' ? 401 : 403);
         $this->assertFalse($response->headers->has('ETag'));
         $this->assertDatabaseCount('curso_publicaciones', 0);
@@ -275,9 +283,9 @@ class Sprint17PublicacionTest extends TestCase
         $antesCurso = $curso->fresh()->getAttributes();
         $antesMatricula = $matricula->fresh()->getAttributes();
         $avisos = DB::table('matricula_notifications')->get()->map(fn ($r) => (array) $r)->all();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos(['titulo' => 'Ficha actualizada', 'curso_id' => 999, 'autorizado_por' => 999, 'precio' => 1, 'cupos_disponibles' => 0]))->assertRedirect();
-        $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso))->assertRedirect();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos())->assertRedirect();
+        $this->publicarFichaCursoPanel($curso, $this->datos(['titulo' => 'Ficha actualizada', 'curso_id' => 999, 'autorizado_por' => 999, 'precio' => 1, 'cupos_disponibles' => 0]))->assertOk();
+        $this->retirarFichaCursoPanel($curso)->assertOk();
+        $this->publicarFichaCursoPanel($curso, $this->datos())->assertOk();
         $this->assertSame($antesCurso, $curso->fresh()->getAttributes());
         $this->assertSame($antesMatricula, $matricula->fresh()->getAttributes());
         $this->assertSame($avisos, DB::table('matricula_notifications')->get()->map(fn ($r) => (array) $r)->all());
@@ -294,7 +302,7 @@ class Sprint17PublicacionTest extends TestCase
         });
         $this->withoutExceptionHandling();
         try {
-            $this->deleteJson(route('admin.cursos.publicacion.destroy', $curso));
+            $this->retirarFichaCursoPanel($curso);
             $this->fail('Se esperaba rollback');
         } catch (RuntimeException $e) {
             $this->assertSame('fallo simulado', $e->getMessage());
@@ -318,7 +326,7 @@ class Sprint17PublicacionTest extends TestCase
     {
         $admin ??= $this->adminUser();
         $curso = $this->curso();
-        $this->actingAs($admin)->putJson(route('admin.cursos.publicacion.update', $curso), $this->datos($cambios))->assertRedirect();
+        $this->actingAs($admin)->publicarFichaCursoPanel($curso, $this->datos($cambios))->assertOk();
 
         return [$admin, $curso];
     }

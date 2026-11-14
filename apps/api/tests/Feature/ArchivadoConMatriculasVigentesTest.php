@@ -10,6 +10,7 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 class ArchivadoConMatriculasVigentesTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
@@ -81,13 +83,13 @@ class ArchivadoConMatriculasVigentesTest extends TestCase
         }
     }
 
-    public function test_no_se_archiva_un_curso_con_matricula_vigente_y_json_responde_422(): void
+    public function test_no_se_archiva_un_curso_con_matricula_vigente_y_responde_409(): void
     {
         [, $curso] = $this->matricula('pagada');
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->deleteJson(route('admin.cursos.destroy', $curso))
-            ->assertStatus(422)
+        $this->actingAs($admin)->panelCursos('DELETE', (string) $curso->id)
+            ->assertStatus(409)
             ->assertJsonStructure(['message']);
 
         $this->assertNull($curso->fresh()->deleted_at);
@@ -101,8 +103,7 @@ class ArchivadoConMatriculasVigentesTest extends TestCase
 
         $this->actingAs($admin);
         $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertOk();
-        $this->actingAs($admin)->delete(route('admin.cursos.destroy', $curso))
-            ->assertRedirect(route('admin.cursos.index'));
+        $this->panelCursos('DELETE', (string) $curso->id)->assertOk();
 
         $this->assertNotNull(Estudiante::withTrashed()->find($estudiante->id)->deleted_at);
         $this->assertNotNull(Curso::withTrashed()->find($curso->id)->deleted_at);

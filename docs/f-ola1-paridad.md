@@ -141,6 +141,48 @@ Código retirado: `Admin\EstudianteController`, las 5 vistas `admin/estudiantes/
 ### Coste real del cuarto módulo
 Portar 12 archivos de prueba con un helper y dos scripts; los tests de auditoría pasaron 17/17 sin cambiar una afirmación. Un cambio de código de producción: parámetros en `RedirigirAWebController` (necesario porque otras vistas Blade enlazan a la ficha).
 
+## Cursos y su ficha pública (quinto módulo retirado)
+
+| Ruta Blade | Qué pasa | Endpoint del panel | Página Next |
+| --- | --- | --- | --- |
+| `GET /admin/cursos` | 302 (se conserva el nombre `admin.cursos.index`) | `GET /api/panel/v1/academico/cursos` | `/admin/academico/cursos` |
+| `GET /admin/cursos/{id}` | 302 con el id (nombre `admin.cursos.show`, lo usa la búsqueda global Blade) | `GET …/cursos/{id}` | `/admin/academico/cursos/[id]` |
+| `GET …/create` y `…/{id}/edit` | **Desaparecen** (404): en Next son diálogos | — | formulario de curso |
+| `POST/PUT/DELETE /admin/cursos[/{id}]` | Desaparecen | `POST/PUT/DELETE …/cursos[/{id}]` | alta, edición, archivar |
+| `PATCH …/{id}/restaurar` | Desaparece | `POST …/{id}/restaurar` | restaurar |
+| `GET /admin/cursos/{id}/publicacion` (editor, con eliminados) | Desaparece | `GET …/{id}/publicacion` (`data.revision`, `data.ficha`, `data.publicable`, `ETag`) | panel de publicación |
+| `PUT …/publicacion` | Desaparece | `PUT …/{id}/publicacion` | guardar y autorizar |
+| `DELETE …/publicacion` | Desaparece | `POST …/{id}/publicacion/retirar` | retirar |
+
+**Permisos:** idénticos (`cursos.ver|crear|editar|eliminar|restaurar|publicar`, la ficha con permiso propio). **Diferencias aceptadas:**
+- **La revisión de la ficha es obligatoria en el panel.** Blade seguía aceptando clientes sin precondición («compatibilidad con clientes anteriores»); el panel responde 422 `revision` sin `If-Match`/`_revision`, y 412 si está obsoleta. Es más estricto, no más laxo. Las pruebas portadas obtienen la revisión vigente con un helper (`Tests\Support\LlamaCursosDelPanel`) para preparar escenarios, y la precondición se prueba aparte.
+- Archivar con matrículas vigentes: 409 en vez de 422.
+- El editor del panel nombra el curso (`data.curso`), pero la ficha parte vacía: sigue sin copiar datos administrativos.
+- Listado: 20 por página por defecto, `per_page` hasta 100 (Blade, 15); filtro fuera de contrato se ignora.
+
+**Defecto de servidor hallado y corregido en esta paridad (anterior a la migración, también en Blade):** enviar `vigente_desde` como array (`vigente_desde[]=x`) provocaba un **500** (`TypeError` en la regla `after_or_equal:vigente_desde`) en `PublicarCursoRequest`, y lo mismo en `PrepararServicioPublicacionRequest` (ficha del catálogo de servicios, ya migrada). Ahora la comparación con `vigente_desde` solo se aplica cuando es texto; si es un array lo rechaza su propia regla con 422. Pruebas de regresión: `CursoPublicacionTest::test_array_shaped_input_is_rejected…` y `ServiciosContratoPanelTest::test_fechas_de_la_ficha_con_forma_de_array_dan_422_y_nunca_500`. No debilita ninguna validación.
+
+**Seguridad:** sin brecha; el panel es igual o más estricto. El detalle del curso lista estudiantes solo con nombre y estado de la matrícula, sin documento, contacto ni montos.
+
+Código retirado: `Admin\CursoController`, `Admin\CursoPublicacionController`, las 6 vistas `admin/cursos/*`, `AdminCursoTest`, `FormularioPublicacionCursoTest`, el smoke `editor-panel-smoke.mjs` y su router. Se conservan `GestionCursos`, `PublicacionCursos`, los Form Requests y los modelos. Ajustes: el layout deja de listar los formularios de cursos como modales; `course-publication-smoke.mjs` ya no abre el editor Blade; `formularios-modal-smoke.mjs` queda con un **aviso de pendiente** (sus pasos sobre cursos hay que adaptarlos a matrículas o usuarios y verificarlos con Edge).
+
+| Prueba que tocaba la ruta Blade | Qué probaba | Destino |
+| --- | --- | --- |
+| `AuditoriaCursosTest` (18) | auditoría de crear/actualizar/archivar/restaurar: precio y cupos, derivados, sin datos sensibles, idempotencia, rollback, permisos | **Misma prueba** contra el panel (18/18, mismas afirmaciones) |
+| `Sprint17PublicacionTest` (16 + proveedores), `CursoPublicacionTest` (18 + proveedores) | publicación/retiro idempotentes, revisión (412, malformada, otro curso), permisos revocados en pleno request, rollback, proyección pública, catálogo del chat | **Portadas** con el helper; se retira solo el `assertSee` del editor HTML y el «old input» (sustituido por 422 con arrays) |
+| `EditorPublicacionPanelTest` (8) | enlace del listado, revisión en los dos formularios, borrador conservado en sesión, retiro obsoleto, revisiones inválidas, cabecera + cuerpo, validación sin renovar revisión | **Reescrita** (9 métodos): permiso propio, guardar y retirar con revisión en el cuerpo (BFF), revisión obsoleta no pisa a otro administrador, retiro obsoleto, revisiones inválidas, sin revisión, cabecera ≠ cuerpo, validación sin renovar revisión. El enlace, los campos ocultos y el borrador en sesión son de la UI de Next |
+| `FormularioPublicacionCursoTest` (7) | fechas sugeridas, avisos de ficha programada/vencida, opciones abiertas tras un error, detalles opcionales, último día de vigencia en Lima | **Solo HTML de Blade; no tienen equivalente de servidor.** **Brecha de UX anotada:** el formulario de Next (`panel-publicacion.tsx`) no sugiere fechas ni muestra avisos de «programada» o «vencida»; decidir si se añade antes de la Ola 5 |
+| `AdminCursoTest` (7) | alta/edición, código/precio/cupos, formularios, cupos mínimos y recalculados, filtros y restaurar, detalle con estudiantes | **Retirada**, cubierta por `Panel\CursosPanelTest` (11): alta, validaciones, edición con cupos, archivar/restaurar, historial, permisos, ficha y, nuevas, listado con filtros/eliminados y detalle con estudiantes sin datos personales |
+| `OldInputRenderingTest` (11 → 9) | un campo como array no rompe el formulario | Cursos: sustituida por `CursosPanelTest::test_un_campo_con_forma_de_array_se_rechaza_con_422_y_nunca_con_500` (10 casos, alta y edición). El «redibujado» del formulario era solo HTML |
+| `AdminAuthorizationTest`, `ArchivadoConMatriculasVigentesTest`, `AdminSearchTest`, `BusquedaLikeEscapeTest`, `AuditoriaRobustezPanelFase2Test`, `AdminListFilterInputTest`, `BackendRobustnessTest`, `LimitesTextoLargoTest`, `AdvisorCatalogoTest`, `CatalogoAdvisorSincronizacionTest`, `CatalogoWebCursosTest`, `CursosPorModalidadTest` | permisos, 409, búsqueda literal de `%` y `_`, filtros con arrays, límites numéricos y de texto, publicar para el catálogo | Portadas al panel; los tramos de HTML (botones, selectores, «Publicación web») retirados |
+| `AdminMatriculaContextTest`, `AccesibilidadPanelTest`, `PaginasErrorTest`, `ConfiguracionEfectivaTest` | usaban páginas Blade de cursos como ejemplo de enlace, título, `<h1>`, 404 o moneda | Enlaces «Nueva matrícula» desde cursos: UI de Next. Las demás cambian de página de ejemplo: usuarios (accesibilidad y 404) y matrículas (título, nombre de la empresa y moneda). **Cuando se retire matrículas hay que volver a mover `ConfiguracionEfectivaTest`** |
+| (ampliada) `AdminModulosRetiradosTest` | redirección, ficha con id, operaciones Blade inexistentes | `cursos` |
+
+### Coste real del quinto módulo
+El más grande hasta ahora: 20 archivos de prueba tocados, un conversor automático de llamadas (con análisis de paréntesis) para no reescribir a mano y un helper con revisión automática. Un cambio de producción de endurecimiento (los dos Form Requests de fechas).
+
 ## Siguiente
 
-Ola 1 en curso (plan maestro acelerado): retirados reportes, cotizaciones, servicios y estudiantes. Faltan **cursos (+publicación)**, **matrículas** y **dashboard `/admin`**, y la **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`): mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin`. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`). Pendiente de próxima pasada PostgreSQL (con autorización): `MatriculaRulesPostgresTest`.
+Ola 1 en curso (plan maestro acelerado): retirados reportes, cotizaciones, servicios, estudiantes y cursos. Faltan **matrículas** y **dashboard `/admin`**, y la **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`): mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin`. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`).
+
+Pendientes anotados: `MatriculaRulesPostgresTest` (próxima pasada PostgreSQL, con autorización); adaptar `formularios-modal-smoke.mjs` (necesita Edge); decidir la brecha de UX del formulario de publicación de cursos en Next (fechas sugeridas y avisos de vigencia); mover `ConfiguracionEfectivaTest` fuera de matrículas cuando esta se retire.

@@ -11,10 +11,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 class CursosPorModalidadTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -48,24 +50,20 @@ class CursosPorModalidadTest extends TestCase
     public function test_crear_revisar_publicar_filtrar_y_retirar_un_curso(string $modalidad): void
     {
         $admin = $this->adminUser();
-        $this->actingAs($admin)->get(route('admin.cursos.create'))->assertOk()
-            ->assertSee('value="'.$modalidad.'"', false);
-        $this->post(route('admin.cursos.store'), $this->datosCurso($modalidad))->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($admin);
+        $this->panelCursos('POST', '', $this->datosCurso($modalidad))->assertCreated();
         $curso = Curso::firstOrFail();
         $this->assertSame($modalidad, $curso->modalidad);
         $this->assertDatabaseCount('curso_publicaciones', 0);
-        $this->get(route('admin.cursos.show', $curso))->assertOk()
-            ->assertSee('Publicación web')
-            ->assertSee(route('admin.cursos.publicacion.edit', $curso));
+        // El editor de la ficha parte vacío y conoce la modalidad del curso.
+        $this->fichaCursoPanel($curso)->assertOk()->assertJsonPath('data.ficha', null)->assertJsonPath('data.curso.modalidad', $modalidad);
 
         Auth::logout();
         $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()
             ->assertDontSee('Curso público de prueba')->assertDontSee('Nombre administrativo reservado');
 
-        $editor = $this->actingAs($admin)->get(route('admin.cursos.publicacion.edit', $curso))->assertOk();
-        $this->put(route('admin.cursos.publicacion.update', $curso), [
-            ...$this->datosPublicos($modalidad), '_revision' => $editor->headers->get('ETag'),
-        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($admin);
+        $this->publicarFichaCursoPanel($curso, $this->datosPublicos($modalidad))->assertOk();
         $this->assertTrue(CursoPublicacion::firstOrFail()->publicada);
 
         Auth::logout();
@@ -77,10 +75,8 @@ class CursosPorModalidadTest extends TestCase
         $this->get(route('educacion.cursos', ['modalidad' => $otraModalidad]))->assertOk()
             ->assertDontSee('Curso público de prueba');
 
-        $editor = $this->actingAs($admin)->get(route('admin.cursos.publicacion.edit', $curso))->assertOk();
-        $this->delete(route('admin.cursos.publicacion.destroy', $curso), [
-            '_revision' => $editor->headers->get('ETag'),
-        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($admin);
+        $this->retirarFichaCursoPanel($curso)->assertOk();
         Auth::logout();
         $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()->assertDontSee('Curso público de prueba');
         $this->assertDatabaseCount('matriculas', 0);
@@ -91,22 +87,21 @@ class CursosPorModalidadTest extends TestCase
     public function test_editar_un_curso_conserva_la_modalidad_elegida_en_el_formulario(string $modalidad): void
     {
         $curso = $this->curso('hibrido');
-        $this->actingAs($this->adminUser())->put(route('admin.cursos.update', $curso), $this->datosCurso($modalidad))
-            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($this->adminUser())->panelCursos('PUT', (string) $curso->id, $this->datosCurso($modalidad))
+            ->assertOk();
         $this->assertSame($modalidad, $curso->fresh()->modalidad);
-        $this->get(route('admin.cursos.edit', $curso))->assertOk()
-            ->assertSee('value="'.$modalidad.'" selected', false);
+        $this->panelCursos('GET', (string) $curso->id)->assertOk()->assertJsonPath('data.modalidad', $modalidad);
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
 
     public function test_hibrido_sigue_siendo_valido_y_no_se_reclasifica_automaticamente(): void
     {
-        $this->actingAs($this->adminUser())->post(route('admin.cursos.store'), $this->datosCurso('hibrido'))
-            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($this->adminUser())->panelCursos('POST', '', $this->datosCurso('hibrido'))
+            ->assertCreated();
         $curso = Curso::firstOrFail();
-        $this->put(route('admin.cursos.update', $curso), $this->datosCurso('hibrido'))
-            ->assertSessionHasNoErrors()->assertRedirect();
-        $this->get(route('admin.cursos.edit', $curso))->assertOk()->assertSee('value="hibrido" selected', false);
+        $this->panelCursos('PUT', (string) $curso->id, $this->datosCurso('hibrido'))
+            ->assertOk();
+        $this->panelCursos('GET', (string) $curso->id)->assertOk()->assertJsonPath('data.modalidad', 'hibrido');
         $this->assertSame('hibrido', $curso->fresh()->modalidad);
     }
 
@@ -115,7 +110,7 @@ class CursosPorModalidadTest extends TestCase
         $curso = $this->curso('semipresencial');
         $datos = $this->datosPublicos('semipresencial');
         unset($datos['confirmacion_publica']);
-        $this->actingAs($this->adminUser())->putJson(route('admin.cursos.publicacion.update', $curso), $datos)
+        $this->actingAs($this->adminUser())->publicarFichaCursoPanel($curso, $datos)
             ->assertUnprocessable()->assertJsonValidationErrors('confirmacion_publica');
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
@@ -125,18 +120,18 @@ class CursosPorModalidadTest extends TestCase
         $this->adminUser();
         $coordinador = User::factory()->create()->assignRole('coordinador');
         $curso = $this->curso('semipresencial');
-        $this->actingAs($coordinador)->get(route('admin.cursos.show', $curso))->assertOk()->assertDontSee('Publicación web');
-        $this->get(route('admin.cursos.publicacion.edit', $curso))->assertForbidden();
-        $this->putJson(route('admin.cursos.publicacion.update', $curso), $this->datosPublicos('semipresencial'))->assertForbidden();
+        $this->actingAs($coordinador);
+        $this->fichaCursoPanel($curso)->assertForbidden();
+        $this->publicarFichaCursoPanel($curso, $this->datosPublicos('semipresencial'))->assertForbidden();
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
 
     public function test_una_modalidad_desconocida_se_rechaza_en_creacion_y_edicion(): void
     {
         $curso = $this->curso('semipresencial');
-        $this->actingAs($this->adminUser())->postJson(route('admin.cursos.store'), $this->datosCurso('desconocida', ['codigo' => 'OTRO']))
+        $this->actingAs($this->adminUser())->panelCursos('POST', '', $this->datosCurso('desconocida', ['codigo' => 'OTRO']))
             ->assertUnprocessable()->assertJsonValidationErrors('modalidad');
-        $this->putJson(route('admin.cursos.update', $curso), $this->datosCurso('desconocida'))
+        $this->panelCursos('PUT', (string) $curso->id, $this->datosCurso('desconocida'))
             ->assertUnprocessable()->assertJsonValidationErrors('modalidad');
         $this->assertDatabaseCount('cursos', 1);
         $this->assertSame('semipresencial', $curso->fresh()->modalidad);

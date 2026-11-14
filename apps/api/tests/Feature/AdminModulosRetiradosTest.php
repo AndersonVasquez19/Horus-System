@@ -34,6 +34,7 @@ class AdminModulosRetiradosTest extends TestCase
             'cotizaciones' => ['admin.cotizaciones.index', '/admin/servicios/cotizaciones'],
             'servicios' => ['admin.servicios.index', '/admin/servicios/catalogo'],
             'estudiantes' => ['admin.estudiantes.index', '/admin/academico/estudiantes'],
+            'cursos' => ['admin.cursos.index', '/admin/academico/cursos'],
         ];
     }
 
@@ -79,6 +80,28 @@ class AdminModulosRetiradosTest extends TestCase
             ->assertRedirect(self::WEB.'/admin/academico/estudiantes/42');
         $this->get('/admin/estudiantes/abc')->assertNotFound();
         $this->get('/admin/estudiantes/1;DROP')->assertNotFound();
+    }
+
+    public function test_la_ficha_antigua_de_un_curso_redirige_a_su_ficha_en_next(): void
+    {
+        $this->actingAs($this->adminUser())->get(route('admin.cursos.show', 7))
+            ->assertRedirect(self::WEB.'/admin/academico/cursos/7');
+        $this->get('/admin/cursos/abc')->assertNotFound();
+        $this->get('/admin/cursos/1;DROP')->assertNotFound();
+    }
+
+    public function test_las_operaciones_de_cursos_y_de_su_ficha_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+        $this->get('/admin/cursos/create')->assertNotFound();
+        $this->get('/admin/cursos/1/edit')->assertNotFound();
+        $this->postJson('/admin/cursos', [])->assertStatus(405);
+        $this->putJson('/admin/cursos/1', [])->assertStatus(405);
+        $this->deleteJson('/admin/cursos/1')->assertStatus(405);
+        $this->patchJson('/admin/cursos/1/restaurar')->assertNotFound();
+        $this->getJson('/admin/cursos/1/publicacion')->assertNotFound();
+        $this->putJson('/admin/cursos/1/publicacion', [])->assertNotFound();
+        $this->deleteJson('/admin/cursos/1/publicacion')->assertNotFound();
     }
 
     public function test_las_operaciones_de_estudiantes_ya_no_existen_en_blade(): void

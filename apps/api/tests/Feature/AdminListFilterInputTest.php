@@ -27,7 +27,6 @@ class AdminListFilterInputTest extends TestCase
     public static function listFilters(): iterable
     {
         foreach ([
-            'admin.cursos.index' => ['busqueda', 'estado', 'categoria'],
             'admin.matriculas.index' => ['busqueda', 'estado', 'curso_id'],
             'admin.aprobaciones.index' => ['busqueda', 'estado'],
             'admin.usuarios.index' => ['busqueda'],

@@ -14,12 +14,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 class AuditoriaRobustezPanelFase2Test extends TestCase
 {
+    use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use LlamaServiciosDelPanel;
     use RefreshDatabase;
@@ -181,9 +183,8 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         $this->assertSame(200, mb_strlen(ListFilter::text($reqLargo, 'busqueda')));
         $this->assertSame('', ListFilter::in($reqLargo, 'estado', ['activo', 'inactivo']));
 
-        $this->actingAs($this->admin)
-            ->get(route('admin.cursos.index', ['estado' => ['activo'], 'categoria' => ['tecnologia']]))
-            ->assertOk();
+        $this->actingAs($this->admin);
+        $this->panelCursos('GET', '', ['estado' => ['activo'], 'categoria' => ['tecnologia']])->assertOk()->assertJsonPath('meta.filtros', []);
 
         // Una URL manipulada (`estado[]=activo`) no rompe el listado del panel: se ignora el filtro.
         $this->actingAs($this->admin);
@@ -228,15 +229,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
             'cupos_disponibles' => 10,
             'estado' => 'activo',
         ]);
-
-        $htmlCursos = (string) $this->actingAs($secretaria)
-            ->get(route('admin.cursos.index'))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringNotContainsString('Nuevo curso', $htmlCursos);
-        $this->assertStringNotContainsString('Editar curso CUR-SEC-01', $htmlCursos);
-        $this->assertStringNotContainsString('Desactivar curso CUR-SEC-01', $htmlCursos);
 
         $htmlCrearMatricula = (string) $this->actingAs($secretaria)
             ->get(route('admin.matriculas.create'))

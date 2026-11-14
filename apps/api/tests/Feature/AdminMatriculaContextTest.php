@@ -21,11 +21,7 @@ class AdminMatriculaContextTest extends TestCase
         [$estudiante, $curso] = $this->records();
         $this->actingAs($this->adminUser());
 
-        // La ficha del estudiante la sirve ahora apps/web; aquí solo queda la del curso (Blade).
-        $this->get(route('admin.cursos.show', $curso))
-            ->assertOk()
-            ->assertSee('href="'.route('admin.matriculas.create', ['curso_id' => $curso->id]).'"', false);
-
+        // Las fichas de estudiante y de curso las sirve apps/web: sus enlaces «Nueva matrícula» son de la UI de Next.
         $this->get(route('admin.matriculas.create', [
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
         ]))->assertOk()
@@ -53,7 +49,6 @@ class AdminMatriculaContextTest extends TestCase
         $lector->roles()->firstOrFail()->syncPermissions(['estudiantes.ver', 'cursos.ver']);
         $this->actingAs($lector);
 
-        $this->get(route('admin.cursos.show', $curso))->assertOk()->assertDontSee('Nueva matrícula');
         $this->get(route('admin.matriculas.create', ['estudiante_id' => $estudiante->id]))->assertForbidden();
     }
 
@@ -67,19 +62,6 @@ class AdminMatriculaContextTest extends TestCase
         $this->assertStringContainsString('<input type="hidden" name="curso_id" value="'.$curso->id.'"', $response->getContent());
         $this->assertDatabaseCount('matriculas', 0);
         $this->assertSame(2, $curso->fresh()->cupos_disponibles);
-    }
-
-    public function test_inactive_students_and_unavailable_courses_have_no_enrollment_action(): void
-    {
-        [$estudiante, $curso] = $this->records();
-        $this->actingAs($this->adminUser());
-        $estudiante->update(['estado' => 'inactivo']);
-        $curso->update(['cupos_disponibles' => 0]);
-
-        $this->get(route('admin.cursos.show', $curso))->assertOk()->assertDontSee('Nueva matrícula');
-
-        $curso->update(['cupos_disponibles' => 2, 'estado' => 'archivado']);
-        $this->get(route('admin.cursos.show', $curso))->assertOk()->assertDontSee('Nueva matrícula');
     }
 
     /** @return iterable<string, array{mixed}> */

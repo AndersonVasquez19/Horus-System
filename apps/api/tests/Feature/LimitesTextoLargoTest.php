@@ -8,6 +8,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\LlamaCursosDelPanel;
 use Tests\TestCase;
 
 /**
@@ -16,6 +17,7 @@ use Tests\TestCase;
  */
 class LimitesTextoLargoTest extends TestCase
 {
+    use LlamaCursosDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -59,8 +61,8 @@ class LimitesTextoLargoTest extends TestCase
             'estado' => 'activo',
         ];
 
-        $this->actingAs($admin)->post(route('admin.cursos.store'), $datos + ['descripcion' => str_repeat('a', 5001)])
-            ->assertSessionHasErrors('descripcion');
+        $this->actingAs($admin)->panelCursos('POST', '', $datos + ['descripcion' => str_repeat('a', 5001)])
+            ->assertUnprocessable()->assertJsonValidationErrors('descripcion');
         $this->assertDatabaseMissing('cursos', ['codigo' => 'COD-LIM-2']);
     }
 }

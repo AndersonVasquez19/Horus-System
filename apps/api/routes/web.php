@@ -6,8 +6,6 @@ use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
-use App\Http\Controllers\Admin\CursoController;
-use App\Http\Controllers\Admin\CursoPublicacionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
@@ -96,7 +94,11 @@ Route::prefix('admin')
         Route::get('estudiantes/{estudiante}', RedirigirAWebController::class)->defaults('destino', '/admin/academico/estudiantes/{estudiante}')
             ->whereNumber('estudiante')->name('estudiantes.show');
 
-        Route::resource('cursos', CursoController::class);
+        // Cursos y su ficha pública (retirados de Blade el 14/11/2026): los atiende apps/web con /api/panel/v1/academico/cursos.
+        // Se conservan `index` y `show` solo por sus nombres (búsqueda global, barra lateral); responden 302 a Next.
+        Route::get('cursos', RedirigirAWebController::class)->defaults('destino', '/admin/academico/cursos')->name('cursos.index');
+        Route::get('cursos/{curso}', RedirigirAWebController::class)->defaults('destino', '/admin/academico/cursos/{curso}')
+            ->whereNumber('curso')->name('cursos.show');
         // Expedientes comerciales privados (retirados de Blade el 14/11/2026): la bandeja es la de apps/web con
         // /api/panel/v1/servicios/cotizaciones. Se conserva el nombre para la barra lateral Blade; responde 302 a Next.
         Route::get('cotizaciones', RedirigirAWebController::class)->defaults('destino', '/admin/servicios/cotizaciones')->name('cotizaciones.index');
@@ -118,11 +120,6 @@ Route::prefix('admin')
         // Catálogo de servicios tecnológicos (retirado de Blade el 14/11/2026): lo atiende apps/web con
         // /api/panel/v1/servicios/servicios. Se conserva el nombre para la barra lateral Blade; responde 302 a Next.
         Route::get('servicios', RedirigirAWebController::class)->defaults('destino', '/admin/servicios/catalogo')->name('servicios.index');
-        Route::get('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'edit'])->withTrashed()->name('cursos.publicacion.edit');
-        Route::put('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'update'])->name('cursos.publicacion.update');
-        Route::delete('cursos/{curso}/publicacion', [CursoPublicacionController::class, 'destroy'])->withTrashed()->name('cursos.publicacion.destroy');
-        Route::patch('cursos/{curso}/restaurar', [CursoController::class, 'restaurar'])
-            ->name('cursos.restaurar');
 
         Route::post('matriculas/exportar/csv', [MatriculaController::class, 'exportarCsv'])
             ->middleware('throttle:admin-export')
