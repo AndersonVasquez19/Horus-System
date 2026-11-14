@@ -4874,4 +4874,6 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 
 **Etapa B (14/11/2026, autorizada):** pruebas PostgreSQL de la recepción pública de cotizaciones: carrera por la misma marca (dos sesiones) y dos procesos reales del sistema operativo; validadas en 55433 (Integridad 126, 2 omitidas: D9 y el trabajador). D9 sigue omitida por diseño. Detalle en `docs/fase-5-2-validacion-postgresql.md` §6f.
 
+**Etapa C (14/11/2026, autorizada):** planes `EXPLAIN` con 375 855 matrículas sintéticas sesgadas en PostgreSQL 55433: ninguna consulta supera 1 s (peor: búsqueda `LIKE '%x%'`, ≈ 0,7 s); sin índice ni migración propuestos. Detalle en `docs/fase-5-2-validacion-postgresql.md` §6g.
+
 **No ejecutado (compatibilidad PostgreSQL NO declarada total):** recepción pública de cotizaciones por HTTP; concurrencia con procesos paralelos del sistema operativo.

@@ -153,6 +153,24 @@ Límites: los lotes L–O y E–I se completaron reejecutando solo las clases af
 
 **Validación en 55433:** clase de dos sesiones 3/3; procesos reales 1/1 en tres ejecuciones; Integridad completa 126 (124 pasan, 2 omitidas: D9 y el trabajador). Cierre: recuentos exactos 0 salvo `migrations` (37); clúster detenido; 5432 y 55432 intactos. No se repitió toda la suite aislada (Etapa D).
 
+## 6g. Etapa C: planes con datos sesgados (14/11/2026, autorizada)
+
+`ExplainListadosSesgadoPostgresTest`: 375 855 matrículas sintéticas (curso 1 con 250 000, curso 2 con 125 000, quince con 50, uno con 5; estado `pagada` ≈ 90 %, `anulada` 0,1 %; 80 % de las fechas en el último mes; papelera 0,1 %), `ANALYZE` y 13 consultas con `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`. La carga va en tandas porque la conexión protegida limita cada sentencia a 5 s (`statement_timeout`; no se tocó). Dos ejecuciones coherentes (28 aserciones):
+
+| Consulta | Tiempo | Plan |
+| --- | --- | --- |
+| curso concentrado / mediano, página 1 | 5–8 ms | Index Scan `matriculas_fecha_matricula_index` + Incremental Sort |
+| curso raro (5 filas), con o sin estado | 0,05 ms | Index Scan `matriculas_curso_id_index` |
+| estado raro / dominante, global | 5–21 ms | Index Scan por fecha + Incremental Sort |
+| curso concentrado + estado raro | 36–38 ms | Index Scan por fecha + Incremental Sort |
+| página profunda (offset 100 000) | 65–67 ms | Index Scan por fecha |
+| total del curso concentrado / global | 44–57 / 53–146 ms | Seq Scan paralelo |
+| un estudiante | 0,05 ms | Index Scan `matriculas_estudiante_id_curso_id_index` |
+| papelera | 15–17 ms | Index Scan por fecha |
+| búsqueda `LIKE '%x%'` por DNI/nombre | 688–713 ms | Nested Loop con Index Scan por fecha y `estudiantes_pkey` |
+
+**Conclusión:** ninguna consulta supera 1 s con este volumen y sesgo; el planificador no elige mal con el estado raro. **No se propone índice ni migración.** El único coste visible es la búsqueda con comodín inicial (≈ 0,7 s con 250 000 estudiantes): `pg_trgm` solo se justificaría si el volumen real creciera por encima de este orden o la búsqueda se volviera crítica; decisión del propietario y, en tal caso, migración con ensayo y autorización aparte. Los totales (`count(*)`) son recorridos secuenciales, lineales con el volumen. Cierre: recuentos exactos 0 salvo `migrations` (37) y `permissions` (20); clúster detenido; 5432 y 55432 intactos.
+
 ## 6b. No ejecutado (la compatibilidad no es total)
 
 - Suite «PostgreSQL isolated»: ejecutada en el Paso 4 (§6c); 79 pruebas dependen de migraciones suspendidas y no son ejecutables.
