@@ -139,6 +139,20 @@ Límites: los lotes L–O y E–I se completaron reejecutando solo las clases af
 
 **Validación en PostgreSQL 55433 sin el gancho:** `NotificacionAudienciaPostgresTest` 31 de 31; las cinco clases con `DatabaseMigrations` (`migrate:fresh` antes de cada prueba) 86 de 86; dos clases con `RefreshDatabase` 11 de 11; Integridad 121 (120 pasan y 1 omitida, la D9). SQLite: 3 842 pasan y 1 omitida. No se repitió toda la suite aislada. Cierre: recuentos exactos 0 salvo `migrations` (37); clúster detenido; 5432 y 55432 intactos.
 
+## 6f. Etapa B: recepción pública de cotizaciones en PostgreSQL (14/11/2026, autorizada)
+
+**Aclaración:** `POST /api/public/v1/cotizaciones` no usa una cabecera `Idempotency-Key`; la clave de idempotencia es el identificador de la marca cifrada del formulario (`creacion_clave_hash`, único `cotizaciones_creacion_unica`).
+
+**Pruebas nuevas (`tests/PostgresIntegrity/`):** `CotizacionPublicaConcurrenciaPostgresTest` (3: repetición secuencial; carrera por la misma marca, con rollback completo de la perdedora y reconciliación 200; carrera con otro contenido, 422 sin crear nada) y `CotizacionPublicaProcesosPostgresTest` + `CotizacionPublicaTrabajadorPostgresTest` (dos procesos `php` reales del sistema operativo lanzados por `scripts/pgsql-test.php test`, con las mismas salvaguardas, barrera por archivo: un 201, un 200, misma solicitud, una sola fila). El trabajador se omite siempre fuera de su director (+1 omisión en Integridad).
+
+**Hallazgo de la medición:** en PostgreSQL real la sesión ganadora que inserta tras el `FOR UPDATE` del servicio espera ese bloqueo (FK `KEY SHARE`, 55P03); la carrera determinista se provoca por tanto justo antes de ese bloqueo. En la realidad la perdedora espera en él y, al confirmar la ganadora, termina en 23505 y se reconcilia. Es consistente con el diseño; sin defecto de producto.
+
+**Límite:** la prueba de procesos reales no garantiza el cruce exacto de las transacciones en cada ejecución (planificador del sistema operativo); lo determinista es la carrera de dos sesiones.
+
+**D9 (`ReclamacionesReconstruccionD9Test`):** se mantiene omitida por diseño. Exige un ejecutor desechable con identidad física verificada y el ensayo de restauración en `horus_l2_restore_test`, hoy prohibido sin autorización específica.
+
+**Validación en 55433:** clase de dos sesiones 3/3; procesos reales 1/1 en tres ejecuciones; Integridad completa 126 (124 pasan, 2 omitidas: D9 y el trabajador). Cierre: recuentos exactos 0 salvo `migrations` (37); clúster detenido; 5432 y 55432 intactos. No se repitió toda la suite aislada (Etapa D).
+
 ## 6b. No ejecutado (la compatibilidad no es total)
 
 - Suite «PostgreSQL isolated»: ejecutada en el Paso 4 (§6c); 79 pruebas dependen de migraciones suspendidas y no son ejecutables.

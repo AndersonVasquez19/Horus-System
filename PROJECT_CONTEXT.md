@@ -4872,4 +4872,6 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 
 **Opción B de la 000032 (14/11/2026, autorizada):** la migración acepta como residuo de `db:wipe` solo su propia función idéntica (sin columna, CHECK ni trigger) y la reemplaza; cualquier otro residuo o una función ajena sigue deteniendo `up()`. Se retiró el gancho `TestCase::setUpTraits()`. Validado en PostgreSQL 55433 sin el gancho (000032 31/31, `DatabaseMigrations` 86/86, `RefreshDatabase` 11/11, Integridad 121 con 1 omitida) y en SQLite (3 842 pasan, 1 omitida). Detalle en `docs/fase-5-2-validacion-postgresql.md` §6e.
 
+**Etapa B (14/11/2026, autorizada):** pruebas PostgreSQL de la recepción pública de cotizaciones: carrera por la misma marca (dos sesiones) y dos procesos reales del sistema operativo; validadas en 55433 (Integridad 126, 2 omitidas: D9 y el trabajador). D9 sigue omitida por diseño. Detalle en `docs/fase-5-2-validacion-postgresql.md` §6f.
+
 **No ejecutado (compatibilidad PostgreSQL NO declarada total):** recepción pública de cotizaciones por HTTP; concurrencia con procesos paralelos del sistema operativo.
