@@ -557,6 +557,46 @@ class NotificacionAudienciaPostgresTest extends TestCase
         });
     }
 
+    public function test_10b_residuo_de_wipe_solo_funcion_propia_se_reconstruye(): void
+    {
+        $this->enTransaccion(function (): void {
+            // Lo que deja migrate:fresh/db:wipe: borran la tabla (y con ella columna, CHECK y trigger) pero no la función.
+            DB::statement('ALTER TABLE '.self::TABLA.' DROP COLUMN audiencia');
+            DB::statement('DROP TRIGGER '.self::FUNCION.' ON '.self::TABLA);
+            $inventario = $this->inventario();
+            $this->assertFalse($inventario['columna']);
+            $this->assertSame([self::FUNCION.'()'], $inventario['presentes']);
+
+            $this->migracion()->up();
+
+            $this->assertTrue(DB::getSchemaBuilder()->hasColumn(self::TABLA, 'audiencia'));
+            $this->assertSame([], $this->inventario()['faltan'], 'up() reconstruyó el esquema completo y verificable');
+            $this->assertSame([self::FUNCION], $this->funcionesPublicas(), 'la función se reemplazó, no se duplicó');
+        });
+    }
+
+    public function test_10c_funcion_residual_ajena_o_distinta_sigue_deteniendo_up(): void
+    {
+        $this->enTransaccion(function (): void {
+            DB::statement('ALTER TABLE '.self::TABLA.' DROP COLUMN audiencia');
+            DB::statement('DROP TRIGGER '.self::FUNCION.' ON '.self::TABLA);
+            $ajena = 'BEGIN RETURN NEW; END;';
+            DB::unprepared('CREATE OR REPLACE FUNCTION '.self::FUNCION.'() RETURNS trigger AS $x$ '.$ajena.' $x$ LANGUAGE plpgsql');
+
+            try {
+                $this->migracion()->up();
+                $this->fail('up() debió detenerse ante una función ajena con el mismo nombre');
+            } catch (RuntimeException $e) {
+                $this->assertRuntimeExceptionPropia($e);
+                $this->assertStringContainsString('la columna audiencia no existe pero ya hay objetos', $e->getMessage());
+            }
+
+            $this->assertFalse(DB::getSchemaBuilder()->hasColumn(self::TABLA, 'audiencia'), 'up() no creó nada');
+            $cuerpo = (string) DB::selectOne('SELECT prosrc FROM pg_proc WHERE proname = ? AND pronamespace = ?::regnamespace', [self::FUNCION, 'public'])->prosrc;
+            $this->assertStringContainsString($ajena, $cuerpo, 'up() no reemplazó la función ajena');
+        });
+    }
+
     public function test_11_tabla_ausente(): void
     {
         $this->enTransaccion(function (): void {

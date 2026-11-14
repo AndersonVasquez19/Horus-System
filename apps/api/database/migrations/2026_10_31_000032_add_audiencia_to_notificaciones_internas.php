@@ -29,7 +29,10 @@ use Illuminate\Support\Facades\Schema;
  *
  * up() es idempotente solo sobre un esquema completo: si encuentra la columna sin todos sus objetos (o
  * con definiciones distintas), u objetos con estos nombres sin la columna, se detiene con una excepción y
- * no crea, borra ni reconstruye nada.
+ * no crea, borra ni reconstruye nada. Única excepción, solo en PostgreSQL: sin la columna, si el ÚNICO objeto
+ * presente es la función de este módulo y su firma y cuerpo son idénticos a los de esta migración (el residuo
+ * que deja migrate:fresh/db:wipe, que borran tablas pero no funciones), se acepta y se reemplaza por la idéntica.
+ * Una función ajena o distinta, o cualquier otro objeto residual (CHECK, trigger), sigue deteniendo up().
  *
  * Inventario PostgreSQL (tabla resuelta una vez por OID): columna NOT NULL y character varying(20); cada
  * CHECK por nombre, contype 'c', convalidated, conenforced (PostgreSQL 18) y pg_get_constraintdef() frente a
@@ -95,7 +98,7 @@ return new class extends Migration
                 .implode(', ', $faltan).'. No se ha modificado nada; revise la instalación manualmente.');
         }
 
-        if ($presentes !== []) {
+        if ($presentes !== [] && ! $this->esSoloFuncionResidualPropia($presentes, $faltan)) {
             throw new RuntimeException('Esquema incompleto en '.self::TABLA.': la columna audiencia no existe pero ya hay objetos '
                 .'con los nombres de esta migración ('.implode(', ', $presentes).'). No se ha modificado nada.');
         }
@@ -571,6 +574,31 @@ return new class extends Migration
         return ['columna' => $columna, 'faltan' => $faltan, 'presentes' => $presentes];
     }
 
+    /**
+     * ¿El único residuo es la función de este módulo, idéntica a la que crea esta migración? Es lo que deja
+     * migrate:fresh/db:wipe en PostgreSQL (borran las tablas y con ellas CHECK y trigger, pero no las funciones).
+     * Recibe lo que devuelve evaluarCatalogoPostgres(): «presentes» debe ser exactamente la función y «faltan» no
+     * puede describir ninguna diferencia de firma o de cuerpo de esa función. Cualquier otro objeto, una función
+     * ajena con el mismo nombre o una sobrecarga ambigua devuelve false.
+     *
+     * @param  list<string>  $presentes
+     * @param  list<string>  $faltan
+     */
+    public function esSoloFuncionResidualPropia(array $presentes, array $faltan): bool
+    {
+        $funcion = self::FUNCION_PG.'()';
+        if ($presentes !== [$funcion]) {
+            return false;
+        }
+        foreach ($faltan as $diferencia) {
+            if (str_starts_with($diferencia, $funcion)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /** PDO puede devolver booleanos de PostgreSQL como bool o como 't'/'f'; NULL o ausente no es verdadero. */
     private function verdadero(mixed $valor): bool
     {
@@ -589,8 +617,9 @@ return new class extends Migration
             DB::statement('ALTER TABLE '.self::TABLA." ADD CONSTRAINT $nombre CHECK ($condicion)");
         }
 
-        // CREATE (no OR REPLACE): nunca sustituye una función ajena con el mismo nombre.
-        DB::unprepared('CREATE FUNCTION '.self::FUNCION_PG.'() RETURNS trigger AS $fn$'.self::CUERPO_FUNCION_PG.'$fn$ LANGUAGE plpgsql');
+        // OR REPLACE solo es alcanzable con una función preexistente idéntica (esSoloFuncionResidualPropia): una
+        // función ajena o distinta con este nombre ya detuvo up() en el inventario y nunca llega aquí.
+        DB::unprepared('CREATE OR REPLACE FUNCTION '.self::FUNCION_PG.'() RETURNS trigger AS $fn$'.self::CUERPO_FUNCION_PG.'$fn$ LANGUAGE plpgsql');
         DB::unprepared('CREATE TRIGGER '.self::FUNCION_PG.' BEFORE INSERT OR UPDATE ON '
             .self::TABLA.' FOR EACH ROW EXECUTE FUNCTION '.self::FUNCION_PG.'()');
     }

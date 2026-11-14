@@ -20,6 +20,7 @@ Línea base: HEAD `8b03c6e`, rama `monorepo/base`. Sin cambios funcionales, sin 
 `migrate:fresh` (usado por `RefreshDatabase` y `DatabaseTruncation`) no podía repetirse en PostgreSQL: `db:wipe` elimina tablas, vistas y tipos, pero **no funciones**. Sobrevivía `notificaciones_internas_audiencia_coherente()` y la migración `2026_10_31_000032` (up, líneas 98-101) se negaba a continuar por su salvaguarda («la columna audiencia no existe pero ya hay objetos con los nombres de esta migración»), fijada por `test_10_columna_ausente_con_objetos_residuales` (función **y** trigger). La 000032 es posterior a las ejecuciones PostgreSQL anteriores, por eso no se había visto. Todas las pruebas con `RefreshDatabase`/`DatabaseTruncation` fallaban en el `setUp` sin llegar a ninguna aserción.
 
 - Alcance: producción e instalaciones nuevas no se ven afectadas; sí cualquier `migrate:fresh` repetido en PostgreSQL (pruebas y desarrollo). Precedente: la 000030 ya tolera el residuo de su función con `CREATE OR REPLACE`.
+- **Superada el 14/11/2026:** la 000032 pasó a tolerar el residuo «solo su función propia e idéntica» (§6e) y el gancho que se describe a continuación se retiró de `tests/TestCase.php`. Se conserva la descripción como historia.
 - **Mitigación aplicada (solo código de pruebas):** `tests/TestCase.php` sobrescribe `setUpTraits()`; bajo el perfil PostgreSQL, solo si la clase usa esos traits y antes del único `migrate:fresh` del proceso (`RefreshDatabaseState::$migrated` falso), ejecuta `DROP FUNCTION IF EXISTS … CASCADE` de `notificaciones_internas_audiencia_coherente` y `reclamacion_historial_inmutable` tras `assertIsolatedTestDatabase()`. Los ganchos `beforeRefreshingDatabase`/`beforeTruncatingDatabase` no sirven: el método del trait prevalece sobre el de la clase base.
 - **Decisión pendiente (no necesaria para validar):** hacer la 000032 tolerante al residuo «solo función» (opción B) solo si se usa `migrate:fresh` en PostgreSQL de desarrollo; implicaría ajustar `test_10` y reprobar en SQLite y PostgreSQL. Hoy queda la opción A: mitigado y documentado.
 
@@ -129,6 +130,14 @@ Límites: los lotes L–O y E–I se completaron reejecutando solo las clases af
 **Nota (13/11/2026):** el propietario eliminó la migración `000022`; con ella se retiró `Sprint14EmailVerificationTest` (28 de las 79 no ejecutables). Las cifras de arriba son la medición del 12/11/2026; el mismo día se eliminaron también `000035`/`000036` y sus pruebas (`ApiPublicaMatriculasTest` 23 y `SolicitudMatriculaTest` 28): ya no hay pruebas no ejecutables y la suite aislada tiene 3 779 pruebas.
 
 **Cierre:** recuentos exactos 0 salvo `migrations` (37) y `permissions` (20); clúster 55433 detenido (`apagado`, mismo identificador, sin listener ni `postmaster.pid`); consentimiento solo como variable de proceso; 5432 y 55432 intactos.
+
+## 6e. Opción B de la 000032 (14/11/2026, autorizada)
+
+**Cambio en la migración** (`2026_10_31_000032_add_audiencia_to_notificaciones_internas.php`): sin la columna `audiencia`, si el **único** objeto presente es `notificaciones_internas_audiencia_coherente()` y su firma y cuerpo son idénticos a los de la migración, `up()` continúa y la reemplaza (`CREATE OR REPLACE`). Es el residuo que deja `migrate:fresh`/`db:wipe`. Función ajena o distinta, sobrecarga ambigua, o cualquier otro objeto residual (CHECK, trigger) siguen deteniendo `up()` sin modificar nada (`test_10` se conserva intacto). La decisión es el método público `esSoloFuncionResidualPropia()`, que consume el inventario que ya existía. `TestCase::setUpTraits()` y su lista de funciones se retiraron.
+
+**Pruebas nuevas:** `test_10b` (reconstruye con la función propia sola) y `test_10c` (una función ajena sigue deteniendo y no se reemplaza) en `NotificacionAudienciaPostgresTest`; 9 pruebas sintéticas en `NotificacionAudienciaInventarioPostgresTest` (corren en SQLite).
+
+**Validación en PostgreSQL 55433 sin el gancho:** `NotificacionAudienciaPostgresTest` 31 de 31; las cinco clases con `DatabaseMigrations` (`migrate:fresh` antes de cada prueba) 86 de 86; dos clases con `RefreshDatabase` 11 de 11; Integridad 121 (120 pasan y 1 omitida, la D9). SQLite: 3 842 pasan y 1 omitida. No se repitió toda la suite aislada. Cierre: recuentos exactos 0 salvo `migrations` (37); clúster detenido; 5432 y 55432 intactos.
 
 ## 6b. No ejecutado (la compatibilidad no es total)
 

@@ -252,7 +252,89 @@ class NotificacionAudienciaInventarioPostgresTest extends TestCase
         $this->assertContains('trigger '.self::FUNCION, $this->evaluar($catalogo)['faltan']);
     }
 
+    // --- Residuo de db:wipe: solo la función propia e idéntica ---------------------------------
+
+    public function test_only_the_identical_own_function_left_by_a_wipe_is_an_accepted_residue(): void
+    {
+        $inventario = $this->evaluar($this->catalogoSoloFuncion());
+
+        $this->assertFalse($inventario['columna']);
+        $this->assertSame([self::FUNCION.'()'], $inventario['presentes']);
+        $this->assertTrue($this->migracion()->esSoloFuncionResidualPropia($inventario['presentes'], $inventario['faltan']));
+    }
+
+    /** @return array<string, array{0: string, 1: mixed}> */
+    public static function funcionesResidualesNoAceptadas(): array
+    {
+        return [
+            'cuerpo distinto' => ['prosrc', 'BEGIN RETURN NEW; END;'],
+            'firma distinta (RETURNS void)' => ['retorno', 'void'],
+            'lenguaje distinto' => ['lenguaje', 'sql'],
+            'con argumentos' => ['pronargs', 1],
+            'procedimiento y no función' => ['prokind', 'p'],
+        ];
+    }
+
+    #[DataProvider('funcionesResidualesNoAceptadas')]
+    public function test_a_foreign_or_different_residual_function_is_not_accepted(string $campo, mixed $valor): void
+    {
+        $catalogo = $this->catalogoSoloFuncion();
+        $catalogo['funciones'][0][$campo] = $valor;
+        $inventario = $this->evaluar($catalogo);
+
+        $this->assertSame([self::FUNCION.'()'], $inventario['presentes']);
+        $this->assertFalse($this->migracion()->esSoloFuncionResidualPropia($inventario['presentes'], $inventario['faltan']));
+    }
+
+    public function test_an_ambiguous_residual_overload_is_not_accepted(): void
+    {
+        $catalogo = $this->catalogoSoloFuncion();
+        $catalogo['funciones'][] = $catalogo['funciones'][0];
+        $inventario = $this->evaluar($catalogo);
+
+        $this->assertFalse($this->migracion()->esSoloFuncionResidualPropia($inventario['presentes'], $inventario['faltan']));
+    }
+
+    public function test_any_other_residual_object_next_to_the_function_is_not_accepted(): void
+    {
+        // Función y trigger sin columna: es el escenario de test_10 de la prueba PostgreSQL real y sigue deteniendo up().
+        $conTrigger = $this->catalogoSoloFuncion();
+        $conTrigger['triggers'] = $this->catalogo()['triggers'];
+        $inventario = $this->evaluar($conTrigger);
+        $this->assertSame([self::FUNCION.'()', 'trigger '.self::FUNCION], $inventario['presentes']);
+        $this->assertFalse($this->migracion()->esSoloFuncionResidualPropia($inventario['presentes'], $inventario['faltan']));
+
+        // Función y un CHECK propio sin columna.
+        $conCheck = $this->catalogoSoloFuncion();
+        $conCheck['checks'] = [array_values($this->catalogo()['checks'])[0]];
+        $inventario = $this->evaluar($conCheck);
+        $this->assertContains(self::CHECKS[0], $inventario['presentes']);
+        $this->assertFalse($this->migracion()->esSoloFuncionResidualPropia($inventario['presentes'], $inventario['faltan']));
+    }
+
+    public function test_no_residue_or_a_residue_without_the_function_is_not_an_accepted_function_residue(): void
+    {
+        $this->assertFalse($this->migracion()->esSoloFuncionResidualPropia([], ['columna audiencia']));
+        $this->assertFalse($this->migracion()->esSoloFuncionResidualPropia(['trigger '.self::FUNCION], []));
+    }
+
     // --- Utilidades ------------------------------------------------------------------------
+
+    /**
+     * Lo que queda tras migrate:fresh/db:wipe: la tabla sin la columna ni sus CHECK ni el trigger, y la función intacta.
+     *
+     * @return array<string, mixed>
+     */
+    private function catalogoSoloFuncion(): array
+    {
+        $catalogo = $this->catalogo();
+        $catalogo['columna'] = null;
+        $catalogo['checks'] = [];
+        $catalogo['referencias'] = [];
+        $catalogo['triggers'] = [];
+
+        return $catalogo;
+    }
 
     /**
      * Catálogo completo sintético, con la forma que devuelve catalogoPostgres(). Las definiciones son
