@@ -43,7 +43,6 @@ class ExportacionesPostTest extends TestCase
     public static function exportaciones(): array
     {
         return [
-            'auditoria.exportar' => ['admin.auditoria.exportar', 'auditoria/exportar'],
             'respaldo.exportar' => ['admin.respaldo.exportar', 'respaldo/exportar'],
         ];
     }
@@ -125,16 +124,11 @@ class ExportacionesPostTest extends TestCase
         $this->assertStringNotContainsString('pagada', (string) json_encode($registro->changes));
     }
 
-    public function test_la_pantalla_de_auditoria_y_la_de_respaldo_exportan_con_un_formulario_post_con_token(): void
+    // La exportación de auditoría se retiró de Blade el 14/11/2026: su ruta POST con límite de velocidad y sus permisos
+    // están en Panel\AuditoriaPanelTest (solo POST, `auditoria.exportar`) y ExportacionesPanelRobustezTest (cupo compartido).
+    public function test_la_pantalla_de_respaldo_exporta_con_un_formulario_post_con_token(): void
     {
-        $admin = $this->staff('admin');
-
-        $auditoria = (string) $this->actingAs($admin)->get(route('admin.auditoria.index'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression(
-            '#<form method="POST" action="'.preg_quote(e(route('admin.auditoria.exportar')), '#').'">\s*<input type="hidden" name="_token"#',
-            $auditoria,
-        );
-        $this->assertStringNotContainsString('href="'.route('admin.auditoria.exportar'), $auditoria);
+        $this->actingAs($this->staff('admin'));
 
         $respaldo = (string) $this->get(route('admin.respaldo.index'))->assertOk()->getContent();
         $this->assertMatchesRegularExpression(

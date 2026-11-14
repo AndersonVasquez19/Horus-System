@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AprobacionInterna;
-use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,7 +30,6 @@ class AdminListFilterInputTest extends TestCase
         foreach ([
             'admin.aprobaciones.index' => ['busqueda', 'estado'],
             'admin.usuarios.index' => ['busqueda'],
-            'admin.auditoria.index' => ['accion', 'modelo', 'usuario'],
             'admin.busqueda.index' => ['q'],
         ] as $route => $params) {
             foreach ($params as $param) {
@@ -100,11 +98,9 @@ class AdminListFilterInputTest extends TestCase
         $admin = $this->adminUser();
         User::factory()->create(['name' => 'ROSA FICTICIA', 'email' => 'rosa.ficticia@example.invalid']);
         AprobacionInterna::create(['titulo' => 'COMPRA DE PROYECTOR', 'tipo' => 'compra', 'estado' => 'pendiente']);
-        AuditLog::record('EXPORTACION_FICTICIA', null, null, [], $admin->id);
 
         $this->actingAs($admin)->get(route('admin.usuarios.index', ['busqueda' => 'rosa']))->assertOk()->assertSee('ROSA FICTICIA');
         $this->get(route('admin.aprobaciones.index', ['busqueda' => 'proyector']))->assertOk()->assertSee('COMPRA DE PROYECTOR');
-        $this->get(route('admin.auditoria.index', ['accion' => 'exportacion']))->assertOk()->assertSee('EXPORTACION_FICTICIA');
     }
 
     /**

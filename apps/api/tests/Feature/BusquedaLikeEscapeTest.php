@@ -15,6 +15,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
@@ -26,6 +27,7 @@ use Tests\TestCase;
  */
 class BusquedaLikeEscapeTest extends TestCase
 {
+    use LlamaAuditoriaDelPanel;
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
@@ -204,14 +206,12 @@ class BusquedaLikeEscapeTest extends TestCase
         $this->registro('login', 'App\\Models\\User', $usuario->id);
         $admin = $this->adminUser();
 
-        $acciones = fn (array $filtros): array => $this->actingAs($admin)
-            ->get(route('admin.auditoria.index', $filtros))
-            ->assertOk()
-            ->viewData('registros')
-            ->pluck('action')
-            ->sort()
-            ->values()
-            ->all();
+        $acciones = function (array $filtros) use ($admin): array {
+            $acciones = $this->actingAs($admin)->panelAuditoria('GET', '', $filtros)->assertOk()->json('data.*.accion');
+            sort($acciones);
+
+            return $acciones;
+        };
 
         $this->assertSame(['descuento_30%'], $acciones(['accion' => '%']));
         $this->assertSame(['descuento_30%'], $acciones(['accion' => '_30']));

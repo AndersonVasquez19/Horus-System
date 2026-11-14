@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
+use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 use ZipArchive;
@@ -29,6 +30,7 @@ use ZipArchive;
  */
 class AuditoriaExportacionMatriculasTest extends TestCase
 {
+    use LlamaAuditoriaDelPanel;
     use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
@@ -215,8 +217,8 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $antes = (array) DB::table('audit_logs')->where('id', $id)->first();
 
         $admin = $this->adminUser();
-        $this->actingAs($admin)->get(route('admin.auditoria.index'))->assertOk();
-        $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $this->actingAs($admin)->panelAuditoria('GET')->assertOk();
+        $this->actingAs($admin)->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
         $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
 
         $despues = (array) DB::table('audit_logs')->where('id', $id)->first();
@@ -225,11 +227,11 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'matriculas_csv_exported')->count());
     }
 
-    public function test_la_pantalla_de_auditoria_muestra_la_busqueda_historica_enmascarada(): void
+    public function test_el_listado_de_auditoria_muestra_la_busqueda_historica_enmascarada(): void
     {
         $this->insertarHistorico();
 
-        $html = $this->actingAs($this->adminUser())->get(route('admin.auditoria.index'))->assertOk()->getContent();
+        $html = $this->actingAs($this->adminUser())->panelAuditoria('GET')->assertOk()->getContent();
 
         $this->assertStringNotContainsString('71000001', (string) $html);
         $this->assertStringNotContainsString('Ana Prueba', (string) $html);
@@ -241,7 +243,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
     {
         $this->insertarHistorico();
 
-        $json = $this->actingAs($this->adminUser())->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $json = $this->actingAs($this->adminUser())->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
 
         $this->assertStringNotContainsString('71000001', $json);
         $this->assertStringNotContainsString('Ana Prueba', $json);

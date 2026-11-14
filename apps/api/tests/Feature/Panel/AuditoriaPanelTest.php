@@ -202,4 +202,15 @@ final class AuditoriaPanelTest extends PanelApiTestCase
         $this->assertStringContainsString('REDACTADO', $json);
         $this->assertSame([], glob(storage_path('app/private/exports/auditoria_*')) ?: []);
     }
+
+    public function test_los_filtros_con_forma_de_arreglo_nunca_provocan_un_error_del_servidor(): void
+    {
+        $admin = $this->admin();
+        $this->registro('exportacion_ficticia', '2026-11-03 05:00:00');
+
+        foreach (['accion', 'modelo', 'usuario', 'desde', 'hasta'] as $filtro) {
+            $this->como($admin, 'GET', '?'.http_build_query([$filtro => ['x']]))->assertOk();
+        }
+        $this->assertSame(['exportacion_ficticia'], $this->acciones($admin, '?accion=EXPORTACION'));
+    }
 }

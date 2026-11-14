@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 
@@ -18,6 +19,7 @@ use Tests\TestCase;
  */
 class ExportacionesPanelRobustezTest extends TestCase
 {
+    use LlamaAuditoriaDelPanel;
     use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
@@ -48,7 +50,7 @@ class ExportacionesPanelRobustezTest extends TestCase
             DB::table('audit_logs')->insert($bloque);
         }
 
-        $json = $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $json = $this->actingAs($admin)->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
 
         $datos = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         $this->assertIsArray($datos);
@@ -66,7 +68,7 @@ class ExportacionesPanelRobustezTest extends TestCase
 
     public function test_la_exportacion_de_auditoria_vacia_sigue_siendo_json_valido(): void
     {
-        $json = $this->actingAs($this->adminUser())->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $json = $this->actingAs($this->adminUser())->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
 
         $this->assertSame([], json_decode($json, true, flags: JSON_THROW_ON_ERROR));
     }
@@ -107,10 +109,10 @@ class ExportacionesPanelRobustezTest extends TestCase
         $admin = $this->adminUser();
 
         for ($i = 0; $i < 6; $i++) {
-            $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+            $this->actingAs($admin)->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
         }
 
-        $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertTooManyRequests();
+        $this->actingAs($admin)->panelAuditoria('POST', 'exportar')->assertTooManyRequests();
         // Otra exportación del mismo usuario comparte el cupo.
         $this->actingAs($admin)->panelMatriculas('POST', 'exportar', [])->assertTooManyRequests();
     }

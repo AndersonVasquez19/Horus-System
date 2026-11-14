@@ -36,6 +36,7 @@ class AdminModulosRetiradosTest extends TestCase
             'estudiantes' => ['admin.estudiantes.index', '/admin/academico/estudiantes'],
             'cursos' => ['admin.cursos.index', '/admin/academico/cursos'],
             'matriculas' => ['admin.matriculas.index', '/admin/academico/matriculas'],
+            'auditoria' => ['admin.auditoria.index', '/admin/auditoria'],
         ];
     }
 
@@ -64,6 +65,12 @@ class AdminModulosRetiradosTest extends TestCase
         $this->actingAs($this->adminUser());
         $this->post('/admin/reportes/exportar/excel')->assertNotFound();
         $this->post('/admin/reportes/exportar/pdf')->assertNotFound();
+    }
+
+    public function test_la_exportacion_de_auditoria_ya_no_existe_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+        $this->post('/admin/auditoria/exportar')->assertNotFound();
     }
 
     public function test_las_operaciones_json_de_cotizaciones_ya_no_existen_en_blade(): void

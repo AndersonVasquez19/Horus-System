@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
+use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
 use ZipArchive;
@@ -30,6 +31,7 @@ use ZipArchive;
  */
 class SecretsAndExportsTest extends TestCase
 {
+    use LlamaAuditoriaDelPanel;
     use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
@@ -165,13 +167,13 @@ class SecretsAndExportsTest extends TestCase
         $admin = $this->staff('admin');
 
         $this->actingAs($admin)
-            ->get(route('admin.auditoria.index'))
+            ->panelAuditoria('GET')
             ->assertOk()
             ->assertSee('settings_updated')
             ->assertDontSee(self::LEGACY_SECRET)
             ->assertSee(SensitiveData::MASK);
 
-        $respuesta = $this->post(route('admin.auditoria.exportar'))->assertOk();
+        $respuesta = $this->panelAuditoria('POST', 'exportar')->assertOk();
         $json = $respuesta->streamedContent();
 
         $this->assertStringNotContainsString(self::LEGACY_SECRET, $json);
@@ -188,7 +190,7 @@ class SecretsAndExportsTest extends TestCase
     {
         $admin = $this->staff('admin');
 
-        $this->actingAs($admin)->post(route('admin.auditoria.exportar'))->assertOk()->streamedContent();
+        $this->actingAs($admin)->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
 
         $this->assertSame([], Storage::disk('local')->allFiles());
         $log = AuditLog::where('action', 'audit_exported')->firstOrFail();
@@ -383,7 +385,7 @@ class SecretsAndExportsTest extends TestCase
     {
         foreach (['coordinador', 'secretaria'] as $rol) {
             $this->actingAs($this->staff($rol))->post(route('admin.respaldo.exportar'))->assertForbidden();
-            $this->post(route('admin.auditoria.exportar'))->assertForbidden();
+            $this->panelAuditoria('POST', 'exportar')->assertForbidden();
         }
 
         $this->assertSame(0, AuditLog::whereIn('action', ['data_export_generated', 'audit_exported'])->count());

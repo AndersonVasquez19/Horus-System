@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\AprobacionController;
 use App\Http\Controllers\Admin\AsistenteController;
-use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
@@ -144,8 +143,9 @@ Route::prefix('admin')
         Route::get('reportes', RedirigirAWebController::class)->defaults('destino', '/admin/academico/reportes')->name('reportes.index');
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
-        Route::get('auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
-        Route::post('auditoria/exportar', [AuditoriaController::class, 'exportar'])->middleware('throttle:admin-export')->name('auditoria.exportar');
+        // Auditoría retirada de Blade (14/11/2026): la sirve apps/web con /api/panel/v1/compartido/auditoria. `/admin/auditoria`
+        // de Next elige el panel al que la persona tiene acceso. La exportación POST ya no existe aquí.
+        Route::get('auditoria', RedirigirAWebController::class)->defaults('destino', '/admin/auditoria')->name('auditoria.index');
         Route::get('respaldo', [RespaldoController::class, 'index'])->name('respaldo.index');
         Route::post('respaldo/exportar', [RespaldoController::class, 'exportar'])->middleware('throttle:admin-export')->name('respaldo.exportar');
         Route::get('asistente', [AsistenteController::class, 'index'])->name('asistente.index');

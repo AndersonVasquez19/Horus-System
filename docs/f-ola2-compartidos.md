@@ -179,3 +179,30 @@ reintento solo desde su reclamación. Las pruebas Blade (`AdminReclamacionesTest
 
 **Next:** «Reclamaciones» en la navegación de ambos paneles (`reclamaciones.ver`); las operaciones solo se ofrecen según
 `meta.puede_gestionar` y `meta.puede_responder` (ayuda visual: Laravel vuelve a comprobar).
+
+## Retiro del Blade compartido (decisión del propietario: opción A, accesos separados)
+
+Con la Ola 2 completa se retiran de Blade los módulos compartidos, de menor a mayor riesgo: auditoría, reclamaciones,
+perfil y notificaciones, roles y usuarios. **El dashboard `/admin` y los endpoints de la campana de notificaciones
+(`recientes`, `leida`, `leidas`) se quedan** mientras existan aprobaciones, configuración, respaldo, asistente y
+búsqueda en Blade (Ola 4): son su inicio y su campana.
+
+Receta: la ruta GET conserva su nombre y responde 302 a Next (`RedirigirAWebController`), las escrituras, el controlador
+y las vistas se borran, las pruebas de reglas de negocio se portan a la API del panel (helper `Llama*DelPanel`) y las que
+solo comprobaban HTML se retiran con su fila de paridad. Los 302 apuntan a `/admin/<módulo>` (sin panel): la entrada
+`app/(admin)/admin/[modulo]/[[...resto]]` de Next lleva a la persona al panel al que tiene acceso (académico primero) y
+conserva el resto de la ruta, también para los vínculos guardados en notificaciones. Con la opción A, quien llegó por
+el Blade debe iniciar sesión en Next al cruzar (cookies distintas, ver «Ola 0.3»).
+
+### Auditoría (retirada)
+
+| Blade | Ahora |
+| --- | --- |
+| `GET /admin/auditoria` | 302 a `/admin/auditoria` de Next (nombre `admin.auditoria.index` conservado) |
+| `POST /admin/auditoria/exportar` | eliminada (404); `POST /api/panel/v1/compartido/auditoria/exportar` |
+
+Pruebas: `AuditoriaFiltrosTest` se elimina (duplicada por `Panel\AuditoriaPanelTest`: días completos de Lima, fechas
+inválidas, hora de Lima y constancia de filtros usados). Se portaron a `panelAuditoria()` las de exportación robusta y
+límite compartido, historial enmascarado, permisos de exportación y escape de comodines; `Panel\AuditoriaPanelTest`
+gana la prueba de filtros con forma de arreglo. Se retiraron solo comprobaciones de HTML (formulario POST con token,
+campos ocultos de filtros).

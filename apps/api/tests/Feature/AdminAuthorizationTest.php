@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
@@ -26,6 +27,7 @@ use Tests\TestCase;
  */
 class AdminAuthorizationTest extends TestCase
 {
+    use LlamaAuditoriaDelPanel;
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
@@ -58,7 +60,6 @@ class AdminAuthorizationTest extends TestCase
             'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
             'notificaciones.index' => ['admin.notificaciones.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
-            'auditoria.index' => ['admin.auditoria.index', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
             'asistente.index' => ['admin.asistente.index', ['admin', 'coordinador']],
         ];
@@ -210,7 +211,7 @@ class AdminAuthorizationTest extends TestCase
 
         foreach (['coordinador', 'secretaria'] as $role) {
             $this->actingAs($this->staff($role))->post(route('admin.respaldo.exportar'))->assertForbidden();
-            $this->post(route('admin.auditoria.exportar'))->assertForbidden();
+            $this->panelAuditoria('POST', 'exportar')->assertForbidden();
         }
 
         // La descarga permitida (200) del coordinador se comprueba en ReportExcelExportTest, sin la
