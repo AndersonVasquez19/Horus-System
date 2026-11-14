@@ -171,6 +171,12 @@ Límites: los lotes L–O y E–I se completaron reejecutando solo las clases af
 
 **Conclusión:** ninguna consulta supera 1 s con este volumen y sesgo; el planificador no elige mal con el estado raro. **No se propone índice ni migración.** El único coste visible es la búsqueda con comodín inicial (≈ 0,7 s con 250 000 estudiantes): `pg_trgm` solo se justificaría si el volumen real creciera por encima de este orden o la búsqueda se volviera crítica; decisión del propietario y, en tal caso, migración con ensayo y autorización aparte. Los totales (`count(*)`) son recorridos secuenciales, lineales con el volumen. Cierre: recuentos exactos 0 salvo `migrations` (37) y `permissions` (20); clúster detenido; 5432 y 55432 intactos.
 
+## 6h. Etapa D: pasada completa de la suite aislada (14/11/2026, autorizada)
+
+Una sola pasada, 10 lotes en PostgreSQL 55433 (PostgreSQL 18.6, identidad verificada antes y después): **3 915 pruebas, 3 870 pasan, 45 omitidas con motivo, 0 fallos, 0 errores, 0 no ejecutables**. Lotes: Integridad 127 (2 omitidas: D9 y el trabajador), Unit 1 192, Feature A–D 279, Ae–Z 306, B–C 281 (8), E–I 818, L–O 379 (33), P 172 (1), R 162 (1), S–W 199. No reapareció el rechazo transitorio de la sonda (0 ocurrencias en la pasada; causa sin determinar). Cierre: recuentos exactos 0 salvo `migrations` (37) y `permissions` (20); clúster detenido; consentimiento vacío; 5432 y 55432 intactos.
+
+Esta medición sustituye a las reejecuciones parciales de la Pista 1. Las 45 omisiones son pruebas que no aplican a PostgreSQL o están bloqueadas por diseño; la declaración de compatibilidad total sigue siendo decisión del propietario.
+
 ## 6b. No ejecutado (la compatibilidad no es total)
 
 - Suite «PostgreSQL isolated»: ejecutada en el Paso 4 (§6c); 79 pruebas dependen de migraciones suspendidas y no son ejecutables.
