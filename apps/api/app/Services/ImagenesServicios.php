@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -24,6 +25,11 @@ class ImagenesServicios
     public const DISCO = 'public';
 
     public const MAX_KB = 3072;
+
+    /** Tope de píxeles a decodificar (≈ 100 MB de memoria en GD): protege contra imágenes diminutas en bytes pero enormes decodificadas. */
+    private const MAX_PIXELES = 25000000;
+
+    private const CALIDAD = 85;
 
     /** @var array<string, string> */
     private const EXTENSIONES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
@@ -54,19 +60,83 @@ class ImagenesServicios
         return Storage::disk(self::DISCO)->url($ruta);
     }
 
-    /** Guarda con nombre generado por el servidor; el tipo se toma del contenido real, no del nombre del cliente. */
+    /**
+     * Guarda con nombre generado por el servidor; el tipo se toma del contenido real, no del nombre del cliente.
+     * La imagen se DECODIFICA Y VUELVE A CODIFICAR (GD): el archivo guardado es siempre una imagen nueva, sin EXIF/GPS
+     * ni otros metadatos, sin bytes añadidos tras el final del formato (cargas «polyglot») y con la orientación aplicada.
+     * Una imagen corrupta, truncada o que GD no puede decodificar se rechaza con 422 y no se guarda nada.
+     */
     public function guardar(UploadedFile $archivo): string
     {
         $extension = self::EXTENSIONES[(string) $archivo->getMimeType()] ?? null;
         if ($extension === null) {
             throw new RuntimeException('Formato de imagen no permitido.');
         }
-        $ruta = Storage::disk(self::DISCO)->putFileAs('servicios', $archivo, Str::uuid()->toString().'.'.$extension);
-        if (! is_string($ruta) || ! self::rutaValida($ruta)) {
+        $original = (string) file_get_contents((string) $archivo->getRealPath());
+        $limpia = $this->recodificar($original, (string) $archivo->getMimeType());
+        $ruta = 'servicios/'.Str::uuid()->toString().'.'.$extension;
+        if (! Storage::disk(self::DISCO)->put($ruta, $limpia) || ! self::rutaValida($ruta)) {
             throw new RuntimeException('No se pudo guardar la imagen.');
         }
 
         return $ruta;
+    }
+
+    /** Decodifica y vuelve a codificar; devuelve solo los bytes de la imagen nueva. */
+    private function recodificar(string $bytes, string $tipo): string
+    {
+        $invalida = fn (): ValidationException => ValidationException::withMessages(['imagen' => 'La imagen está dañada o no se puede procesar. Sube otra.']);
+        $info = @getimagesizefromstring($bytes);
+        if ($info === false || $info[0] < 1 || $info[1] < 1 || $info['mime'] !== $tipo || $info[0] * $info[1] > self::MAX_PIXELES) {
+            throw $invalida();
+        }
+        $imagen = @imagecreatefromstring($bytes);
+        if ($imagen === false) {
+            throw $invalida();
+        }
+        if ($tipo === 'image/jpeg') {
+            $imagen = $this->aplicarOrientacion($imagen, $bytes);
+        } else {
+            imagepalettetotruecolor($imagen);
+            imagealphablending($imagen, false);
+            imagesavealpha($imagen, true);
+        }
+        ob_start();
+        try {
+            $ok = match ($tipo) {
+                'image/jpeg' => imagejpeg($imagen, null, self::CALIDAD),
+                'image/png' => imagepng($imagen, null, 6),
+                default => imagewebp($imagen, null, self::CALIDAD),
+            };
+        } finally {
+            $salida = (string) ob_get_clean();
+        }
+        if (! $ok || $salida === '') {
+            throw $invalida();
+        }
+
+        return $salida;
+    }
+
+    /** Aplica la orientación EXIF antes de descartar los metadatos (si no, las fotos de móvil quedarían giradas). */
+    private function aplicarOrientacion(\GdImage $imagen, string $bytes): \GdImage
+    {
+        if (! function_exists('exif_read_data')) {
+            return $imagen;
+        }
+        $exif = @exif_read_data('data://image/jpeg;base64,'.base64_encode($bytes), 'IFD0');
+        $giro = match ((int) (is_array($exif) ? ($exif['Orientation'] ?? 1) : 1)) {
+            3 => 180,
+            6 => -90,
+            8 => 90,
+            default => 0,
+        };
+        if ($giro === 0) {
+            return $imagen;
+        }
+        $girada = imagerotate($imagen, $giro, 0);
+
+        return $girada === false ? $imagen : $girada;
     }
 
     /**

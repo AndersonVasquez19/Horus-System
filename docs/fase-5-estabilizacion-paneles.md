@@ -44,6 +44,8 @@ Hoy la imagen principal y las tarjetas de la ficha de servicios siguen en el mó
 - *Respuestas de error*: 413 (tamaño), 415 (tipo), 422 (dimensiones o imagen ilegible, mensajes en español), 412/428 (revisión), 429 (limitador `admin-write`, más uno propio de subidas), siempre con `{ message, code }`; sin rutas ni nombres internos.
 - *Pruebas previas a activar*: archivos con extensión falsa, polyglot, SVG con script, EXIF con GPS, gran resolución, truncado, doble extensión, nombre con `../`, reemplazo concurrente, fallo a mitad de la transacción y limpieza de huérfanos.
 
+> **Implementado el 14/11/2026 (Etapa E):** `ImagenesServicios::guardar` decodifica y vuelve a codificar con GD (JPEG/PNG/WebP, calidad 85, orientación EXIF aplicada antes de descartar metadatos); el archivo guardado no conserva EXIF/GPS, chunks de texto ni bytes tras el final del formato. Imagen ilegible o de más de 25 000 000 de píxeles: 422 sin guardar nada. Una imagen truncada pero decodificable por GD se guarda como imagen nueva y válida (parcial). Cubierto en `ServiciosImagenesPanelTest` (EXIF con GPS, polyglot JPEG y PNG, orientación, ilegible, cabecera 8000×8000, doble extensión y `../`). Pendiente: reemplazo concurrente de la misma imagen.
+
 **Decisiones que requiere el propietario**: tamaño y dimensiones máximos, formatos admitidos, disco y política de copias de seguridad de los archivos, y si las URLs públicas pasan por CDN.
 
 ## 6. Plan de validación en PostgreSQL (no ejecutado)

@@ -128,6 +128,147 @@ final class ServiciosImagenesPanelTest extends PanelApiTestCase
         $this->assertNull($servicio->publicacion()->first()->imagen_principal_ruta);
     }
 
+    // Recodificación (Etapa E, 14/11/2026): la imagen guardada es una imagen NUEVA -------------------------------
+
+    private function bytesJpeg(int $ancho = 200, int $alto = 200): string
+    {
+        $im = imagecreatetruecolor($ancho, $alto);
+        imagefill($im, 0, 0, (int) imagecolorallocate($im, 30, 120, 200));
+        ob_start();
+        imagejpeg($im);
+
+        return (string) ob_get_clean();
+    }
+
+    /** Inserta un segmento APP1 (EXIF) justo tras SOI. */
+    private function conApp1(string $jpeg, string $carga): string
+    {
+        return substr($jpeg, 0, 2).hex2bin('FFE1').pack('n', strlen($carga) + 2).$carga.substr($jpeg, 2);
+    }
+
+    private function bytesPng(int $ancho = 200, int $alto = 200): string
+    {
+        $im = imagecreatetruecolor($ancho, $alto);
+        imagefill($im, 0, 0, (int) imagecolorallocate($im, 200, 60, 60));
+        ob_start();
+        imagepng($im);
+
+        return (string) ob_get_clean();
+    }
+
+    private function trozoPng(string $tipo, string $datos): string
+    {
+        return pack('N', strlen($datos)).$tipo.$datos.pack('N', crc32($tipo.$datos));
+    }
+
+    private function subirBytes(User $admin, ServicioTecnologico $servicio, string $nombre, string $bytes): TestResponse
+    {
+        return $this->enviar($admin, "servicios/{$servicio->id}/imagen", [
+            'imagen' => UploadedFile::fake()->createWithContent($nombre, $bytes), '_revision' => $this->revision($servicio),
+        ]);
+    }
+
+    private function guardada(ServicioTecnologico $servicio): string
+    {
+        return (string) Storage::disk('public')->get((string) $servicio->publicacion()->first()->imagen_principal_ruta);
+    }
+
+    public function test_jpeg_se_recodifica_sin_exif_gps_ni_bytes_tras_el_final(): void
+    {
+        $admin = $this->admin();
+        $servicio = $this->servicioConFicha();
+        $peligroso = $this->conApp1($this->bytesJpeg(), 'Exif'.hex2bin('0000').'GPS-LATITUD-SECRETA-4.1234')."<?php echo 'CARGA-POLYGLOT'; ?>";
+        $this->assertStringContainsString('SECRETA', $peligroso);
+
+        $this->subirBytes($admin, $servicio, 'foto.jpg', $peligroso)->assertOk();
+
+        $guardada = $this->guardada($servicio);
+        $this->assertStringNotContainsString('SECRETA', $guardada);
+        $this->assertStringNotContainsString('POLYGLOT', $guardada);
+        $this->assertStringNotContainsString('<?php', $guardada);
+        $info = getimagesizefromstring($guardada);
+        $this->assertIsArray($info);
+        $this->assertSame([200, 200, 'image/jpeg'], [$info[0], $info[1], $info['mime']]);
+        $this->assertSame('FFD9', strtoupper(bin2hex(substr($guardada, -2))), 'El archivo termina exactamente en el marcador EOI.');
+    }
+
+    public function test_png_se_recodifica_sin_chunks_de_texto_ni_bytes_tras_iend(): void
+    {
+        $admin = $this->admin();
+        $servicio = $this->servicioConFicha();
+        $png = $this->bytesPng();
+        $texto = $this->trozoPng('tEXt', 'Comment'.hex2bin('00').'DATO-PRIVADO-EN-TEXT');
+        $peligroso = substr($png, 0, -12).$texto.substr($png, -12)."<?php system('id'); ?>CARGA-POLYGLOT";
+
+        $this->subirBytes($admin, $servicio, 'logo.png', $peligroso)->assertOk();
+
+        $guardada = $this->guardada($servicio);
+        $this->assertStringNotContainsString('DATO-PRIVADO', $guardada);
+        $this->assertStringNotContainsString('POLYGLOT', $guardada);
+        $this->assertStringNotContainsString('<?php', $guardada);
+        $this->assertSame('0000000049454e44ae426082', bin2hex(substr($guardada, -12)), 'Termina exactamente en IEND.');
+        $this->assertSame([200, 200], array_slice((array) getimagesizefromstring($guardada), 0, 2));
+    }
+
+    public function test_aplica_la_orientacion_exif_antes_de_descartar_los_metadatos(): void
+    {
+        $admin = $this->admin();
+        $servicio = $this->servicioConFicha();
+        // TIFF big-endian, un solo campo: Orientation (0x0112) = 6 (girar 90° a la derecha).
+        $tiff = hex2bin('4d4d002a00000008'.'0001'.'0112'.'0003'.'00000001'.'00060000'.'00000000');
+        $original = $this->conApp1($this->bytesJpeg(200, 120), 'Exif'.hex2bin('0000').$tiff);
+
+        $this->subirBytes($admin, $servicio, 'movil.jpg', $original)->assertOk();
+
+        $info = getimagesizefromstring($this->guardada($servicio));
+        $this->assertIsArray($info);
+        $this->assertSame([120, 200], [$info[0], $info[1]], 'La foto apaisada con orientación 6 queda vertical.');
+    }
+
+    public function test_imagen_ilegible_da_422_y_no_guarda_nada(): void
+    {
+        $admin = $this->admin();
+        $servicio = $this->servicioConFicha();
+        $revision = $this->revision($servicio);
+        // Cabecera válida (pasa las reglas de tipo y dimensiones) con datos de imagen inservibles.
+        $ihdr = pack('N', 300).pack('N', 300).hex2bin('0802000000');
+        $casos = [
+            'png sin datos de imagen' => ['a.png', hex2bin('89504e470d0a1a0a').$this->trozoPng('IHDR', $ihdr).$this->trozoPng('IEND', '')],
+            'png con datos corruptos' => ['b.png', hex2bin('89504e470d0a1a0a').$this->trozoPng('IHDR', $ihdr).$this->trozoPng('IDAT', 'no-es-zlib').$this->trozoPng('IEND', '')],
+        ];
+        foreach ($casos as $nombre => [$archivo, $bytes]) {
+            $this->subirBytes($admin, $servicio, $archivo, $bytes)->assertStatus(422, "Debe rechazar: {$nombre}");
+        }
+
+        $this->assertSame(0, $this->archivos());
+        $this->assertSame($revision, $this->revision($servicio));
+    }
+
+    public function test_cabecera_de_ocho_mil_por_ocho_mil_se_rechaza_sin_decodificarla(): void
+    {
+        $admin = $this->admin();
+        $servicio = $this->servicioConFicha();
+        // Firma PNG + IHDR 8000×8000 + IEND: pocos bytes, 64 millones de píxeles al decodificar.
+        $ihdr = pack('N', 8000).pack('N', 8000).hex2bin('0802000000');
+        $bomba = hex2bin('89504e470d0a1a0a').$this->trozoPng('IHDR', $ihdr).$this->trozoPng('IEND', '');
+
+        $this->subirBytes($admin, $servicio, 'bomba.png', $bomba)->assertStatus(422);
+
+        $this->assertSame(0, $this->archivos());
+    }
+
+    public function test_doble_extension_y_nombre_con_recorrido_no_influyen_en_la_ruta_guardada(): void
+    {
+        $admin = $this->admin();
+        $servicio = $this->servicioConFicha();
+
+        $this->subirBytes($admin, $servicio, '../../public/shell.php.png', $this->bytesPng())->assertOk();
+
+        $ruta = (string) $servicio->publicacion()->first()->imagen_principal_ruta;
+        $this->assertMatchesRegularExpression('#\Aservicios/[0-9a-f-]{36}\.png\z#', $ruta);
+        $this->assertSame([$ruta], Storage::disk('public')->allFiles());
+    }
+
     public function test_no_acepta_rutas_enviadas_por_el_cliente_ni_varios_archivos(): void
     {
         $admin = $this->admin();
