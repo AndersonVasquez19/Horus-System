@@ -4868,4 +4868,6 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 
 **Pista 1 (autorizada, 12/11/2026):** solo código de pruebas. En PostgreSQL 55433 la suite aislada queda en 3 736 pasan, 43 omitidas con motivo escrito y 79 no ejecutables (migraciones suspendidas); 0 fallos y 0 defectos de producto. Las clases corregidas se reejecutaron (392 pruebas) en lugar de repetir toda la suite. Detalle en `docs/fase-5-2-validacion-postgresql.md` §6d. La compatibilidad PostgreSQL sigue sin declararse total.
 
+**Migración 000022 eliminada (13/11/2026, decisión del propietario):** `registros_pendientes` (verificación de correo) ya no es necesaria; nunca se aplicó a `horus_group`. Se borraron el archivo y `Sprint14EmailVerificationTest` (28 pruebas). El código de verificación sigue inactivo en `app/` (`REGISTRO_VERIFICACION_ENABLED=false`; no activar: no hay tabla). Quedan apartadas `000035` y `000036`; las no ejecutables en PostgreSQL bajan de 79 a 51. Las referencias anteriores a la 000022 en este documento son históricas.
+
 **No ejecutado (compatibilidad PostgreSQL NO declarada total):** recepción pública de cotizaciones por HTTP; concurrencia con procesos paralelos del sistema operativo.

@@ -228,11 +228,9 @@
     {
       "file": "database/migraciones-suspendidas/2026_10_28_000022_create_registros_pendientes_table.php",
       "sha256": "ed2b564c187531269cad4ee7f165476d0195fcb448b22cc3ab79645c0d1095bd",
-      "status": "excluida",
-      "reason": "Suspendida; verificacion de correo no autorizada.",
-      "tests": [
-        "tests/Feature/Sprint14EmailVerificationTest.php"
-      ],
+      "status": "retirada",
+      "reason": "Eliminada el 13/11/2026 por decision del propietario (verificacion de correo ya no necesaria); la entrada conserva el SHA-256 como evidencia historica de Fase 4 y el archivo ya no existe.",
+      "tests": [],
       "postgres_tests": [],
       "coverage": "Preparada o indirecta; no ejecutada en Fase 4. Consultar matriz y limitaciones del documento."
     },

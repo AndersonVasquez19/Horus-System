@@ -1,14 +1,15 @@
 # Migraciones suspendidas
 
-Laravel solo ejecuta las migraciones de `database/migrations/`. Estas tres se **apartaron el 10/11/2026 por decisión del propietario** y no están aplicadas en `horus_group`:
+Laravel solo ejecuta las migraciones de `database/migrations/`. Estas dos se **apartaron el 10/11/2026 por decisión del propietario** y no están aplicadas en `horus_group`:
 
 | Archivo | Qué haría | Función que depende de ella |
 | --- | --- | --- |
-| `2026_10_28_000022_create_registros_pendientes_table.php` | Crea `registros_pendientes` | Verificación de correo del registro (apagada: `config/registro-verificacion.php`) |
 | `2026_11_09_000035_create_solicitudes_matricula_table.php` | Crea `solicitudes_matricula` | Formulario público `/solicitar-matricula` y panel `/admin/solicitudes-matricula` |
 | `2026_11_09_000036_add_solicitudes_matricula_permissions.php` | Crea y concede a `admin` los permisos `solicitudes-matricula.ver\|gestionar` (su `down()` no hace nada) | Panel de solicitudes |
 
-Mientras estén aquí, el código de esas funciones permanece **inactivo**: la verificación está apagada, el formulario público responde 503, el panel responde 403 y el enlace del menú no aparece.
+Mientras estén aquí, el código de esas funciones permanece **inactivo**: el formulario público responde 503, el panel responde 403 y el enlace del menú no aparece.
+
+**Retirada de la 000022 (13/11/2026).** El propietario eliminó `2026_10_28_000022_create_registros_pendientes_table.php` (tabla `registros_pendientes` de la verificación de correo) porque ya no es necesaria; nunca se aplicó a `horus_group`. Se retiró también `Sprint14EmailVerificationTest`. El código de la verificación (`VerificacionRegistroService`, `RegistroPendiente`, `VerificacionRegistroController`, middleware y las ramas `enabled()`) sigue en `app/` **inactivo**: `REGISTRO_VERIFICACION_ENABLED` debe permanecer en `false`, porque sin la tabla activarlo fallaría. Su eliminación completa queda como paso aparte. Quedó en el historial de Git.
 
 **Pruebas.** Usan `Tests\Support\InstalaMigracionesSuspendidas`, que ejecuta estos archivos solo en SQLite `:memory:`.
 

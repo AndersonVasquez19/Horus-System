@@ -19,7 +19,7 @@ trait InstalaMigracionesSuspendidas
         return database_path('migraciones-suspendidas/'.$archivo.'.php');
     }
 
-    /** @param list<string> $archivos nombres sin extensión, p. ej. 2026_10_28_000022_create_registros_pendientes_table */
+    /** @param list<string> $archivos nombres sin extensión, p. ej. 2026_11_09_000035_create_solicitudes_matricula_table */
     protected function instalarMigracionesSuspendidas(array $archivos): void
     {
         if (DB::connection()->getDriverName() !== 'sqlite' || DB::connection()->getDatabaseName() !== ':memory:') {

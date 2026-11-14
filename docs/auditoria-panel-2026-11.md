@@ -222,6 +222,7 @@ Aprobado por el propietario, incluidas las vistas y el módulo de JavaScript. An
 - El **código de ambas funciones sigue en el repositorio, inactivo**: verificación apagada (`config/registro-verificacion.php`), formulario público 503, panel de solicitudes 403, enlace del menú oculto. `README.md` de la carpeta explica cómo reactivarlas (`git mv` de vuelta y autorización expresa; la `000036` pide copia reciente).
 - **Pruebas:** `InstalaMigracionesSuspendidas` (tests/Support) ejecuta esos archivos solo en SQLite `:memory:` para `SolicitudMatriculaTest`, `Sprint14EmailVerificationTest` y el router del smoke de solicitudes. El manifiesto de Fase 4 apunta a la nueva ruta de la `000022` (el hash no cambia; los instaladores ya la saltan por regex).
 - `SOLICITUDES_MATRICULA_PERMISSIONS` sigue dentro de `RolesAndPermissionsSeeder::PERMISSIONS` (sin cambio en instalaciones nuevas); decidir su destino cuando se reactive el módulo.
+- **Actualización (13/11/2026):** el propietario eliminó la `000022` por innecesaria (nunca se aplicó a `horus_group`) y se retiró `Sprint14EmailVerificationTest`. Quedan apartadas `000035` y `000036`. El código de la verificación sigue en `app/` inactivo; mantener `REGISTRO_VERIFICACION_ENABLED=false`.
 - **Riesgo no medible desde aquí:** si alguna se aplicó en otro entorno, su fila queda en `migrations` sin archivo; `migrate` lo tolera, `migrate:rollback` de ese lote fallaría.
 - **Coherencia de pagos (`monto_pagado` ↔ estado): suspendida por decisión del propietario.** Sin cambios.
 - Nada se escribió en PostgreSQL.

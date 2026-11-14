@@ -72,7 +72,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 1. `GET /up` responde 200.
 2. Inicio de sesión del panel, listado de matrículas y la campana de notificaciones.
 3. Una exportación desde su botón (son `POST` con CSRF) y comprobar que queda el registro de auditoría correspondiente.
-4. `php artisan migrate:status` sin pendientes. Las apartadas (`000022`, `000035`, `000036`) no aparecen y no se aplican sin autorización expresa.
+4. `php artisan migrate:status` sin pendientes. Las apartadas (`000035`, `000036`; la `000022` se eliminó el 13/11/2026) no aparecen y no se aplican sin autorización expresa.
 5. `php artisan schedule:list` muestra las tareas esperadas.
 6. Revisar `storage/logs` en busca de errores nuevos.
 

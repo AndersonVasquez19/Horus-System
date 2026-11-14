@@ -126,6 +126,8 @@ Solo cambió código de pruebas (`apps/api/tests/`); ni la aplicación ni las mi
 
 Límites: los lotes L–O y E–I se completaron reejecutando solo las clases afectadas (392 pruebas: 384 pasan y 8 omitidas), no una nueva pasada de toda la suite tras la última corrección. Las 79 siguen sin ejecutarse hasta decidir qué hacer con 000022/000035/000036. El rechazo transitorio de la sonda se observó otra vez (2 casos en una clase con cientos de datasets); no se determinó la causa. La compatibilidad PostgreSQL sigue sin declararse total.
 
+**Nota (13/11/2026):** el propietario eliminó la migración `000022`; con ella se retiró `Sprint14EmailVerificationTest` (28 de las 79 no ejecutables). Las cifras de arriba son la medición del 12/11/2026; hoy quedan 51 no ejecutables (`ApiPublicaMatriculasTest` 23 y `SolicitudMatriculaTest` 28, por `000035`/`000036`) y la suite aislada tiene 3 830 pruebas.
+
 **Cierre:** recuentos exactos 0 salvo `migrations` (37) y `permissions` (20); clúster 55433 detenido (`apagado`, mismo identificador, sin listener ni `postmaster.pid`); consentimiento solo como variable de proceso; 5432 y 55432 intactos.
 
 ## 6b. No ejecutado (la compatibilidad no es total)
