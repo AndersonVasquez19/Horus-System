@@ -28,3 +28,17 @@ export interface SesionActiva {
   ultima_actividad: string;
   actual: boolean;
 }
+
+export interface RegistroAuditoria {
+  id: number;
+  fecha: string;
+  /** Fecha y hora en Lima (`dd/mm/aaaa hh:mm:ss`), ya formateada por Laravel. */
+  fecha_local: string;
+  usuario: { nombre: string; email: string } | null;
+  accion: string;
+  modelo: string | null;
+  modelo_id: number | null;
+  ip: string | null;
+  /** Cambios ya enmascarados por Laravel (secretos y texto de búsqueda). */
+  cambios: Record<string, unknown> | null;
+}

@@ -57,6 +57,7 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: /^compartido\/notificaciones\/leidas$/ },
   { metodo: 'POST', patron: new RegExp(`^compartido/notificaciones/${ID}/leida$`) },
   { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
+  { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta'], archivo: ['application/json'] },
   { metodo: 'POST', patron: /^compartido\/perfil\/sesiones\/cerrar-otras$/, campos: ['current_password'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/perfil/sesiones/${SESION}/cerrar$`), campos: ['current_password'] },
 

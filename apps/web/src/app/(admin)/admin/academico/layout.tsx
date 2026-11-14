@@ -19,6 +19,11 @@ const NAVEGACION: ModeloNavegacion = [
     ],
   },
   {
+    id: 'sistema',
+    etiqueta: 'Sistema',
+    elementos: [{ id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/academico/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] }],
+  },
+  {
     id: 'cuenta',
     etiqueta: 'Mi cuenta',
     elementos: [

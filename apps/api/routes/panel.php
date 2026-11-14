@@ -44,6 +44,11 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         Route::get('perfil', [Compartido\PerfilController::class, 'show'])->name('perfil.show');
         Route::get('perfil/sesiones', [Compartido\PerfilController::class, 'sesiones'])->name('perfil.sesiones');
 
+        // Auditoría: solo lectura y exportación; el permiso lo declara el controlador.
+        Route::get('auditoria', [Compartido\AuditoriaController::class, 'index'])->name('auditoria.index');
+        Route::post('auditoria/exportar', [Compartido\AuditoriaController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('auditoria.exportar');
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('notificaciones/leidas', [Compartido\NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
             Route::post('notificaciones/{notificacion}/leida', [Compartido\NotificacionController::class, 'marcarLeida'])

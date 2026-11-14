@@ -56,3 +56,28 @@ sesiones. Las pruebas Blade existentes (`AdminNotificacionTest`, `NotificacionLe
 
 **Pendiente de este módulo:** la campana de notificaciones en el shell de Next (hoy solo la bandeja) y el aviso de
 sin-leer en la navegación.
+
+## 2.2 Auditoría
+
+| Blade (se mantiene) | API del panel | Página Next |
+| --- | --- | --- |
+| `GET /admin/auditoria` (`auditoria.ver`) | `GET /compartido/auditoria` (`accion`, `modelo`, `usuario`, `desde`, `hasta`, `page`, `per_page`, `sort=±fecha`) | `/admin/{panel}/auditoria` |
+| `POST /admin/auditoria/exportar` (`auditoria.exportar`) | `POST /compartido/auditoria/exportar` (mismos filtros; JSON más reciente primero, sin copia en el servidor) | «Exportar JSON (filtros actuales)» |
+
+**Una sola implementación de los filtros:** `App\Support\ConsultaAuditoria` (filtros, días completos en hora de Lima,
+fechas inválidas o con forma de array ignoradas, búsqueda sin comodines) la usan el Blade y el panel, así que no pueden
+divergir. El controlador Blade se redujo a usarla; sus pruebas (`AuditoriaFiltrosTest`, `SecretsAndExportsTest`,
+`ExportacionesPostTest`) siguen en verde sin cambios.
+
+**Seguridad (iguales o más estrictas):** `auditoria.ver` y `auditoria.exportar` son permisos independientes (exportar sin
+ver no entra al listado y al revés); los `cambios` salen siempre por `redactedChanges()` (contraseñas, tokens y texto de
+búsqueda enmascarados) tanto en el listado como en la exportación; la exportación solo acepta POST, va con
+`throttle:admin-export` y `Cache-Control: no-store`, se audita sin guardar el texto buscado por usuario y su tope por
+`id` máximo evita que crezca mientras se transmite.
+
+**Pruebas:** `Panel\AuditoriaPanelTest` (11): permisos propios, solo POST para exportar, rango en días completos de Lima,
+fechas inválidas, hora de Lima, filtros sin distinguir mayúsculas ni tratar comodines, paginación y orden, cambios
+enmascarados en listado y exportación, y registro de los filtros usados en la auditoría de la exportación.
+
+**Next:** la navegación de ambos paneles muestra «Auditoría» solo con `auditoria.ver`; el botón de exportar solo con
+`auditoria.exportar` (ayuda visual: Laravel vuelve a comprobar).
