@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { COOKIE_SESION, llamarLaravel } from './laravel';
+import { COOKIE_NAVEGADOR, llamarLaravel } from './laravel';
 import { ipDelCliente } from './red';
 import { urlLogin } from './redireccion';
 
@@ -18,7 +18,7 @@ export type ResultadoConsulta<T> =
  * un estado que la página muestra. Lee cookies: debe ejecutarse dentro de un `<Suspense>`.
  */
 export async function consultarPanel<T>(ruta: string, volverA: string): Promise<ResultadoConsulta<T>> {
-  const cookieSesion = (await cookies()).get(COOKIE_SESION)?.value;
+  const cookieSesion = (await cookies()).get(COOKIE_NAVEGADOR)?.value;
   if (!cookieSesion) redirect(urlLogin(volverA));
 
   const respuesta = await llamarLaravel<T>(ruta, { cookieSesion, ipCliente: ipDelCliente(await headers()) });

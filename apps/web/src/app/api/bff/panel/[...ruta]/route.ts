@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { aplicarCookieSesion, borrarCookieSesion, errorJson, jsonSinCache, leerMultipart, leerMutacion, origenPermitido } from '@/lib/panel/bff';
-import { COOKIE_SESION, descargarDeLaravel, llamarLaravel } from '@/lib/panel/laravel';
+import { COOKIE_NAVEGADOR, descargarDeLaravel, llamarLaravel } from '@/lib/panel/laravel';
 import { buscarOperacion, consultaPermitida, cuerpoPermitido, type Metodo } from '@/lib/panel/operaciones-panel';
 import { ipDelCliente } from '@/lib/panel/red';
 
@@ -39,7 +39,7 @@ async function atender(request: NextRequest, metodo: Metodo, { params }: Context
     cuerpo = leido;
   }
 
-  const cookieSesion = request.cookies.get(COOKIE_SESION)?.value;
+  const cookieSesion = request.cookies.get(COOKIE_NAVEGADOR)?.value;
   if (!cookieSesion) return errorJson(401, { message: 'Inicia sesión para continuar.', code: 'no_autenticado' });
 
   const destino = `${ruta}${consultaPermitida(operacion, request.nextUrl.searchParams)}`;

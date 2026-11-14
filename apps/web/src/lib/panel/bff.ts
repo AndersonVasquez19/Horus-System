@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { COOKIE_SESION, type CookieSesionLaravel, type ErrorApi } from './laravel';
+import { COOKIE_NAVEGADOR, COOKIE_SESION, type CookieSesionLaravel, type ErrorApi } from './laravel';
 import { MAX_IMAGEN, type Operacion } from './operaciones-panel';
 
 /**
@@ -181,31 +181,36 @@ export function campos(cuerpo: Record<string, unknown>, nombres: readonly string
  * Traslada al navegador la cookie de sesión emitida por Laravel con atributos fijados por el BFF: HttpOnly,
  * SameSite=Lax, Path=/, sin Domain (host-only) y Secure en producción, sea cual sea la configuración de Laravel.
  */
+/** `Secure` en producción y siempre con el prefijo `__Host-` (que el navegador solo acepta con `Secure`). */
+const COOKIE_SEGURA = process.env.NODE_ENV === 'production' || COOKIE_NAVEGADOR.startsWith('__Host-');
+
 export function aplicarCookieSesion(respuesta: NextResponse, cookie: CookieSesionLaravel | null): NextResponse {
   if (cookie === null) return respuesta;
   const maxAge = cookie.maxAge ?? (cookie.expiraEn === undefined ? undefined : Math.max(0, Math.floor((cookie.expiraEn - Date.now()) / 1000)));
   if (maxAge === 0) return borrarCookieSesion(respuesta);
 
   respuesta.cookies.set({
-    name: COOKIE_SESION,
+    name: COOKIE_NAVEGADOR,
     value: cookie.valor,
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    secure: process.env.NODE_ENV === 'production',
+    secure: COOKIE_SEGURA,
     ...(maxAge === undefined ? {} : { maxAge }),
   });
   return respuesta;
 }
 
 export function borrarCookieSesion(respuesta: NextResponse): NextResponse {
+  // Sesiones anteriores al prefijo `__Host-` guardaban la cookie con el nombre de Laravel: se retira también.
+  if (COOKIE_SESION !== COOKIE_NAVEGADOR) respuesta.cookies.set({ name: COOKIE_SESION, value: '', httpOnly: true, sameSite: 'lax', path: '/', maxAge: 0 });
   respuesta.cookies.set({
-    name: COOKIE_SESION,
+    name: COOKIE_NAVEGADOR,
     value: '',
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    secure: process.env.NODE_ENV === 'production',
+    secure: COOKIE_SEGURA,
     maxAge: 0,
   });
   return respuesta;

@@ -14,6 +14,14 @@ const TIMEOUT_MS = 8000;
 /** Nombre de la cookie de sesión de Laravel (SESSION_COOKIE). Por defecto, el de Laravel con APP_NAME=Laravel. */
 export const COOKIE_SESION = process.env.HORUS_SESSION_COOKIE?.trim() || 'laravel-session';
 
+/**
+ * Nombre de la cookie que ve el NAVEGADOR (la emite el BFF; no es la de Laravel). En producción lleva el prefijo
+ * `__Host-`: el navegador solo la acepta con `Secure`, `Path=/` y sin `Domain`, de modo que un subdominio o un
+ * canal sin TLS no puede fijarla ni sobrescribirla. En desarrollo (http) el prefijo se omite porque exige `Secure`.
+ * `HORUS_BROWSER_COOKIE` permite fijarlo; Laravel sigue usando `COOKIE_SESION` en su lado.
+ */
+export const COOKIE_NAVEGADOR = process.env.HORUS_BROWSER_COOKIE?.trim() || (process.env.NODE_ENV === 'production' ? '__Host-horus-sesion' : 'horus-sesion');
+
 export interface ErrorApi {
   message: string;
   code: string;

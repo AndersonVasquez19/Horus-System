@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { aplicarCookieSesion, borrarCookieSesion, errorJson, jsonSinCache } from '@/lib/panel/bff';
-import { COOKIE_SESION, llamarLaravel } from '@/lib/panel/laravel';
+import { COOKIE_NAVEGADOR, llamarLaravel } from '@/lib/panel/laravel';
 import { ipDelCliente } from '@/lib/panel/red';
 import type { SesionPanel } from '@/lib/panel/tipos';
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     return errorJson(403, { message: 'Solicitud no permitida.', code: 'origen_no_permitido' });
   }
 
-  const cookieSesion = request.cookies.get(COOKIE_SESION)?.value;
+  const cookieSesion = request.cookies.get(COOKIE_NAVEGADOR)?.value;
   if (!cookieSesion) return errorJson(401, { message: 'Inicia sesión para continuar.', code: 'no_autenticado' });
 
   const resultado = await llamarLaravel<{ data: SesionPanel }>('auth/sesion', {

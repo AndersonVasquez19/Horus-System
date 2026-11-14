@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { cookies, headers } from 'next/headers';
-import { COOKIE_SESION, llamarLaravel } from './laravel';
+import { COOKIE_NAVEGADOR, llamarLaravel } from './laravel';
 import { ipDelCliente } from './red';
 import type { SesionPanel } from './tipos';
 
@@ -17,7 +17,7 @@ export type EstadoSesion =
  */
 export async function obtenerSesion(): Promise<EstadoSesion> {
   const almacen = await cookies();
-  const cookieSesion = almacen.get(COOKIE_SESION)?.value;
+  const cookieSesion = almacen.get(COOKIE_NAVEGADOR)?.value;
   if (!cookieSesion) return { estado: 'anonimo' };
 
   const respuesta = await llamarLaravel<{ data: SesionPanel }>('auth/sesion', {
@@ -32,5 +32,5 @@ export async function obtenerSesion(): Promise<EstadoSesion> {
 
 /** Lee la cookie de sesión en un route handler. */
 export async function cookieSesionActual(): Promise<string | null> {
-  return (await cookies()).get(COOKIE_SESION)?.value ?? null;
+  return (await cookies()).get(COOKIE_NAVEGADOR)?.value ?? null;
 }

@@ -39,6 +39,10 @@ No duplica lo ya escrito; lo enlaza:
 
 Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego `php artisan config:cache`.
 
+**Valores que decide el propietario (no se versionan ni se tocan desde el repositorio):** `SESSION_SECURE_COOKIE=true`, `SESSION_DOMAIN` (vacío = host-only; no lo fijes si usas el prefijo `__Host-`), `TRUSTED_PROXIES` (IPs reales del balanceador) y `HORUS_WEB_ORIGIN` (origen exacto de `apps/web`, con `https`).
+
+**`apps/web` (BFF), desde el 14/11/2026:** en producción el navegador recibe la cookie de sesión como `__Host-horus-sesion` (solo se acepta con `Secure`, `Path=/` y sin `Domain`), distinta de la cookie de Laravel (`HORUS_SESSION_COOKIE`, por defecto `laravel-session`), que el BFF sigue usando hacia Laravel. `HORUS_BROWSER_COOKIE` fija otro nombre. **Efecto del primer despliegue:** las sesiones abiertas con el nombre anterior dejan de reconocerse y los usuarios deben iniciar sesión de nuevo; el BFF retira la cookie antigua al cerrar sesión. Exige HTTPS de extremo a extremo hasta el navegador (el prefijo no funciona sobre http). La CSP del panel fija `frame-ancestors`, `object-src`, `base-uri` y `form-action`; no incluye `script-src` con nonces (ver `fase-5-1-multimedia-y-produccion.md`).
+
 ## 3. Orden de despliegue
 
 1. **Antes de empezar:** copia verificable de la base de datos (el panel de «Respaldo» exporta tablas minimizadas y **no** es una copia de seguridad), revisar `php artisan migrate:status` y confirmar que existe el rol `admin`.

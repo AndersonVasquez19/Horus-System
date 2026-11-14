@@ -4880,6 +4880,8 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 
 **Etapa E.1 (14/11/2026):** las imágenes de servicios se recodifican con GD al guardarse (sin EXIF/GPS ni bytes añadidos; 422 si son ilegibles o superan 25 Mpx). 6 pruebas nuevas; SQLite 3 848 pasan y 1 omitida. Detalle en `docs/fase-5-estabilizacion-paneles.md`.
 
+**Etapa E.2 (14/11/2026):** cookie de sesión del navegador `__Host-horus-sesion` en producción (cambio de nombre: el primer despliegue cierra las sesiones abiertas); CSP del panel con `object-src`, `base-uri` y `form-action`; la CSP con nonces no se implementó (rutas estáticas/PPR), ver `docs/fase-5-1-multimedia-y-produccion.md` y `docs/guia-despliegue.md`. `tsc` y `next build` correctos; ESLint con los mismos 6 errores previos.
+
 **Declaración de compatibilidad (14/11/2026, decisión del propietario):** Horus System es compatible con PostgreSQL 18 según la evidencia de `docs/fase-5-2-validacion-postgresql.md` §6h: suite aislada completa en un clúster de pruebas (3 915 pruebas, 0 fallos, 45 omitidas con motivo), carreras reales de dos sesiones y de dos procesos, y planes con datos sesgados sin consultas lentas. **Salvedades:** medido solo en el clúster aislado 55433 (Windows, datos sintéticos), no en la base de producción ni con su volumen real; D9 (reconstrucción) y el ensayo de restauración siguen sin ejecutarse; las 45 omisiones están justificadas pero no son cobertura; las migraciones nuevas sobre bases con datos reales exigen revisión y autorización aparte.
 
 **No ejecutado (compatibilidad PostgreSQL NO declarada total):** recepción pública de cotizaciones por HTTP; concurrencia con procesos paralelos del sistema operativo.

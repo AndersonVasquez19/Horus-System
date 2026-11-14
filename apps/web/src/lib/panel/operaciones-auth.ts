@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { NextRequest, NextResponse } from 'next/server';
 import { aplicarCookieSesion, errorJson, jsonSinCache } from './bff';
-import { COOKIE_SESION, llamarLaravel, type CookieSesionLaravel } from './laravel';
+import { COOKIE_NAVEGADOR, llamarLaravel, type CookieSesionLaravel } from './laravel';
 import { ipDelCliente } from './red';
 
 /**
@@ -16,7 +16,7 @@ export async function operacionConCsrf(
   cuerpo: Record<string, string>,
 ): Promise<NextResponse> {
   const ipCliente = ipDelCliente(request.headers);
-  let cookieSesion = request.cookies.get(COOKIE_SESION)?.value ?? null;
+  let cookieSesion = request.cookies.get(COOKIE_NAVEGADOR)?.value ?? null;
 
   const csrf = await llamarLaravel<{ csrf_token: string }>('auth/csrf', { cookieSesion, ipCliente });
   if (!csrf.ok) return errorJson(csrf.estado, csrf.error);
