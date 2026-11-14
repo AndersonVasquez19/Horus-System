@@ -39,6 +39,26 @@ final class InventarioRutasPanelTest extends TestCase
         'api/panel/v1/servicios/resumen',
     ];
 
+    /**
+     * Módulos compartidos de la cuenta propia (notificaciones y perfil): sin permiso de módulo, porque el usuario sale
+     * siempre de la sesión. Exigen el permiso de entrada a cualquiera de los dos paneles.
+     */
+    private const CUENTA_PROPIA_PREFIJOS = [
+        'api/panel/v1/compartido/notificaciones',
+        'api/panel/v1/compartido/perfil',
+    ];
+
+    private function esCuentaPropia(string $uri): bool
+    {
+        foreach (self::CUENTA_PROPIA_PREFIJOS as $prefijo) {
+            if (str_starts_with($uri, $prefijo)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return list<Route> */
     private function rutasPanel(): array
     {
@@ -82,7 +102,7 @@ final class InventarioRutasPanelTest extends TestCase
             $entrada = array_filter($permisos, fn (string $m): bool => str_starts_with($m, 'permission:panel.'));
             $this->assertNotEmpty($entrada, "{$ruta->uri()} no exige permiso de entrada al panel");
 
-            if (in_array($ruta->uri(), self::SOLO_ENTRADA, true)) {
+            if (in_array($ruta->uri(), self::SOLO_ENTRADA, true) || $this->esCuentaPropia($ruta->uri())) {
                 continue;
             }
 
@@ -105,6 +125,10 @@ final class InventarioRutasPanelTest extends TestCase
             if (str_starts_with($ruta->uri(), 'api/panel/v1/servicios/')) {
                 $this->assertContains('permission:panel.servicios.acceder', $middleware, $ruta->uri());
                 $this->assertNotContains('permission:panel.academico.acceder', $middleware, $ruta->uri());
+            }
+            if (str_starts_with($ruta->uri(), 'api/panel/v1/compartido/')) {
+                // Basta cualquiera de los dos permisos de entrada (nunca uno solo de ellos).
+                $this->assertContains('permission:panel.academico.acceder|panel.servicios.acceder', $middleware, $ruta->uri());
             }
         }
     }

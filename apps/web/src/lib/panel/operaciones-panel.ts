@@ -49,7 +49,17 @@ const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_ema
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
+const SESION = '[a-f0-9]{32}';
+
 export const OPERACIONES: readonly Operacion[] = [
+  // Cuenta propia compartida por los dos paneles: notificaciones, perfil y sesiones
+  { metodo: 'GET', patron: /^compartido\/notificaciones\/recientes$/ },
+  { metodo: 'POST', patron: /^compartido\/notificaciones\/leidas$/ },
+  { metodo: 'POST', patron: new RegExp(`^compartido/notificaciones/${ID}/leida$`) },
+  { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
+  { metodo: 'POST', patron: /^compartido\/perfil\/sesiones\/cerrar-otras$/, campos: ['current_password'] },
+  { metodo: 'POST', patron: new RegExp(`^compartido/perfil/sesiones/${SESION}/cerrar$`), campos: ['current_password'] },
+
   // Estudiantes
   { metodo: 'POST', patron: /^academico\/estudiantes$/, campos: CAMPOS_ESTUDIANTE },
   { metodo: 'PUT', patron: new RegExp(`^academico/estudiantes/${ID}$`), campos: CAMPOS_ESTUDIANTE },

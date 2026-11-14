@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Api\Panel\Compartido;
+
+use App\Http\Controllers\Controller;
+use App\Models\NotificacionInterna;
+use App\Models\NotificacionLectura;
+use App\Models\User;
+use App\Support\HoraLocal;
+use App\Support\NotificacionesPendientes;
+use App\Support\Panel\Listado;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/**
+ * Notificaciones internas del usuario del panel (compartidas por los dos paneles). No requieren un permiso de módulo:
+ * el usuario sale siempre de la sesión y solo ve lo suyo (personales propias y generales). Misma regla de visibilidad
+ * y de lectura por usuario que el Blade retirado el 14/11/2026.
+ */
+final class NotificacionController extends Controller
+{
+    /** Notificaciones que muestra el desplegable de la campana. */
+    public const RECIENTES = 5;
+
+    private const ORDENABLES = ['fecha' => 'created_at'];
+
+    public function index(Request $request): JsonResponse
+    {
+        $usuario = $this->usuario($request);
+
+        $consulta = NotificacionInterna::query()->visiblePara($usuario)->conLecturaDe($usuario);
+        $orden = Listado::ordenar($consulta, $request, self::ORDENABLES, '-fecha');
+        $respuesta = Listado::responder(
+            Listado::paginar($consulta, $request),
+            fn (NotificacionInterna $notificacion): array => [
+                ...self::resumen($notificacion),
+                'leida' => $notificacion->estaLeidaPara($usuario),
+            ],
+            $orden,
+        );
+
+        $cuerpo = $respuesta->getData(true);
+        $cuerpo['meta']['pendientes'] = NotificacionesPendientes::para($usuario);
+
+        return response()->json($cuerpo);
+    }
+
+    /** Desplegable de la campana: las últimas no leídas del usuario y el total pendiente. */
+    public function recientes(Request $request): JsonResponse
+    {
+        $usuario = $this->usuario($request);
+
+        $items = NotificacionInterna::query()
+            ->visiblePara($usuario)
+            ->noLeidasPara($usuario)
+            ->latest()
+            ->latest('id')
+            ->limit(self::RECIENTES)
+            ->get()
+            ->map(fn (NotificacionInterna $notificacion): array => [
+                ...self::resumen($notificacion),
+                'mensaje' => Str::limit((string) $notificacion->mensaje, 140),
+            ])
+            ->values();
+
+        return response()->json(['data' => $items, 'meta' => ['pendientes' => NotificacionesPendientes::para($usuario)]]);
+    }
+
+    /**
+     * Solo el destinatario de una personal o cualquier miembro del personal en una general. Personales ajenas o
+     * huérfanas e indeterminadas: 403. Una general queda leída solo para quien la marca.
+     */
+    public function marcarLeida(Request $request, NotificacionInterna $notificacion): JsonResponse
+    {
+        $usuario = $this->usuario($request);
+        abort_unless($notificacion->esVisiblePara($usuario), 403);
+
+        $notificacion->marcarLeidaPara($usuario);
+
+        return response()->json(['message' => 'La notificación se marcó como leída.', 'meta' => ['pendientes' => NotificacionesPendientes::para($usuario)]]);
+    }
+
+    /** Marca como leídas todas las visibles y no leídas del usuario; no afecta a lo que ven los demás. */
+    public function marcarTodas(Request $request): JsonResponse
+    {
+        $usuario = $this->usuario($request);
+
+        $marcadas = DB::transaction(function () use ($usuario): int {
+            $pendientes = NotificacionInterna::query()
+                ->visiblePara($usuario)
+                ->noLeidasPara($usuario)
+                ->get(['id', 'audiencia', 'user_id', 'leida']);
+
+            $personales = $pendientes->where('audiencia', NotificacionInterna::AUDIENCIA_PERSONAL)->modelKeys();
+            if ($personales !== []) {
+                NotificacionInterna::query()->whereKey($personales)->update(['leida' => true]);
+            }
+
+            $ahora = now();
+            $lecturas = $pendientes->where('audiencia', NotificacionInterna::AUDIENCIA_GENERAL)
+                ->map(fn (NotificacionInterna $general): array => [
+                    'notificacion_id' => $general->getKey(),
+                    'user_id' => $usuario->getKey(),
+                    'leida_at' => $ahora,
+                ])->values()->all();
+            if ($lecturas !== []) {
+                NotificacionLectura::query()->insertOrIgnore($lecturas);
+            }
+
+            return $pendientes->count();
+        });
+
+        NotificacionesPendientes::olvidar($usuario);
+
+        return response()->json([
+            'message' => match ($marcadas) {
+                0 => 'No había notificaciones pendientes.',
+                1 => 'Se marcó 1 notificación como leída.',
+                default => "Se marcaron {$marcadas} notificaciones como leídas.",
+            },
+            'data' => ['marcadas' => $marcadas],
+            'meta' => ['pendientes' => 0],
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    private static function resumen(NotificacionInterna $notificacion): array
+    {
+        return [
+            'id' => $notificacion->getKey(),
+            'titulo' => $notificacion->titulo,
+            'mensaje' => $notificacion->mensaje,
+            'tipo' => $notificacion->tipo,
+            'fecha' => $notificacion->created_at?->toIso8601String(),
+            'fecha_local' => HoraLocal::formato($notificacion->created_at),
+            'vinculo' => $notificacion->vinculoSeguro(),
+        ];
+    }
+
+    private function usuario(Request $request): User
+    {
+        $usuario = $request->user();
+        abort_unless($usuario instanceof User, 403);
+
+        return $usuario;
+    }
+}

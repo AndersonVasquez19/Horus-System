@@ -17,6 +17,14 @@ const NAVEGACION: ModeloNavegacion = [
       { id: 'cotizaciones', etiqueta: 'Cotizaciones', href: '/admin/servicios/cotizaciones', icono: 'documentos', permisosRequeridos: ['cotizaciones.ver'] },
     ],
   },
+  {
+    id: 'cuenta',
+    etiqueta: 'Mi cuenta',
+    elementos: [
+      { id: 'notificaciones', etiqueta: 'Notificaciones', href: '/admin/servicios/notificaciones', icono: 'avisos' },
+      { id: 'perfil', etiqueta: 'Mi perfil', href: '/admin/servicios/perfil', icono: 'personas' },
+    ],
+  },
 ];
 
 export default function ServiciosLayout({ children }: { children: ReactNode }) {

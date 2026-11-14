@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Panel\Academico;
 use App\Http\Controllers\Api\Panel\AutenticacionController;
+use App\Http\Controllers\Api\Panel\Compartido;
 use App\Http\Controllers\Api\Panel\Servicios;
 use App\Http\Middleware\SesionPanelVigente;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -30,6 +31,31 @@ Route::prefix('auth')->name('auth.')->group(function (): void {
         Route::post('logout', [AutenticacionController::class, 'logout'])->name('logout');
     });
 });
+
+// Módulos compartidos por los dos paneles (/admin): basta el permiso de entrada a cualquiera de ellos. Cada módulo
+// declara su propio permiso (o, si es de la cuenta propia, ninguno: el usuario sale siempre de la sesión).
+Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|', RolesAndPermissionsSeeder::PANEL_PERMISSIONS)])
+    ->prefix('compartido')
+    ->name('compartido.')
+    ->group(function (): void {
+        // Notificaciones y perfil: cuenta propia.
+        Route::get('notificaciones', [Compartido\NotificacionController::class, 'index'])->name('notificaciones.index');
+        Route::get('notificaciones/recientes', [Compartido\NotificacionController::class, 'recientes'])->name('notificaciones.recientes');
+        Route::get('perfil', [Compartido\PerfilController::class, 'show'])->name('perfil.show');
+        Route::get('perfil/sesiones', [Compartido\PerfilController::class, 'sesiones'])->name('perfil.sesiones');
+
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('notificaciones/leidas', [Compartido\NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
+            Route::post('notificaciones/{notificacion}/leida', [Compartido\NotificacionController::class, 'marcarLeida'])
+                ->whereNumber('notificacion')->name('notificaciones.leida');
+        });
+        Route::middleware('throttle:perfil')->group(function (): void {
+            Route::put('perfil', [Compartido\PerfilController::class, 'update'])->name('perfil.update');
+            Route::post('perfil/sesiones/cerrar-otras', [Compartido\PerfilController::class, 'cerrarOtras'])->name('perfil.sesiones.cerrar-otras');
+            Route::post('perfil/sesiones/{identificador}/cerrar', [Compartido\PerfilController::class, 'cerrarUna'])
+                ->where('identificador', '[a-f0-9]{32}')->name('perfil.sesiones.cerrar');
+        });
+    });
 
 // Panel académico (/admin/academico). El permiso de módulo de cada acción lo declara su controlador.
 Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPermissionsSeeder::PANEL_ACADEMICO])

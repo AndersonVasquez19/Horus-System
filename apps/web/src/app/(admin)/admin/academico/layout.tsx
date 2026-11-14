@@ -18,6 +18,14 @@ const NAVEGACION: ModeloNavegacion = [
       { id: 'reportes', etiqueta: 'Reportes', href: '/admin/academico/reportes', icono: 'documentos', permisosRequeridos: ['reportes.ver'] },
     ],
   },
+  {
+    id: 'cuenta',
+    etiqueta: 'Mi cuenta',
+    elementos: [
+      { id: 'notificaciones', etiqueta: 'Notificaciones', href: '/admin/academico/notificaciones', icono: 'avisos' },
+      { id: 'perfil', etiqueta: 'Mi perfil', href: '/admin/academico/perfil', icono: 'personas' },
+    ],
+  },
 ];
 
 export default function AcademicoLayout({ children }: { children: ReactNode }) {
