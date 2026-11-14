@@ -4876,4 +4876,8 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 
 **Etapa C (14/11/2026, autorizada):** planes `EXPLAIN` con 375 855 matrículas sintéticas sesgadas en PostgreSQL 55433: ninguna consulta supera 1 s (peor: búsqueda `LIKE '%x%'`, ≈ 0,7 s); sin índice ni migración propuestos. Detalle en `docs/fase-5-2-validacion-postgresql.md` §6g.
 
+**Etapa D (14/11/2026, autorizada):** pasada completa de la suite aislada en 55433: 3 915 pruebas, 0 fallos, 45 omitidas con motivo, 0 no ejecutables (§6h).
+
+**Declaración de compatibilidad (14/11/2026, decisión del propietario):** Horus System es compatible con PostgreSQL 18 según la evidencia de `docs/fase-5-2-validacion-postgresql.md` §6h: suite aislada completa en un clúster de pruebas (3 915 pruebas, 0 fallos, 45 omitidas con motivo), carreras reales de dos sesiones y de dos procesos, y planes con datos sesgados sin consultas lentas. **Salvedades:** medido solo en el clúster aislado 55433 (Windows, datos sintéticos), no en la base de producción ni con su volumen real; D9 (reconstrucción) y el ensayo de restauración siguen sin ejecutarse; las 45 omisiones están justificadas pero no son cobertura; las migraciones nuevas sobre bases con datos reales exigen revisión y autorización aparte.
+
 **No ejecutado (compatibilidad PostgreSQL NO declarada total):** recepción pública de cotizaciones por HTTP; concurrencia con procesos paralelos del sistema operativo.

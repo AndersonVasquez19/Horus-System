@@ -2,7 +2,7 @@
 
 Línea base: HEAD `8b03c6e`, rama `monorepo/base`. Sin cambios funcionales, sin migraciones nuevas, sin push. Sustituye el estado «no iniciado» de `docs/fase-5-1-multimedia-y-produccion.md` §5.
 
-**Alcance autorizado:** solo el clúster aislado `horus_pgt_55433` (`127.0.0.1:55433`, `system_identifier` `7702263743609677164`), base `horus_l2_test`, rol `horus_l2_test_runner`, datos desechables. Fuera de uso: 5432, 55432, `horus_l2_restore_test` y las migraciones suspendidas 000035/000036. La compatibilidad PostgreSQL **no se declara total**: ver §6.
+**Alcance autorizado:** solo el clúster aislado `horus_pgt_55433` (`127.0.0.1:55433`, `system_identifier` `7702263743609677164`), base `horus_l2_test`, rol `horus_l2_test_runner`, datos desechables. Fuera de uso: 5432, 55432, `horus_l2_restore_test` y las migraciones suspendidas 000035/000036. La compatibilidad PostgreSQL **se declaró el 14/11/2026** con salvedades: ver §6i.
 
 ## 1. Entorno y arranque
 
@@ -177,7 +177,11 @@ Una sola pasada, 10 lotes en PostgreSQL 55433 (PostgreSQL 18.6, identidad verifi
 
 Esta medición sustituye a las reejecuciones parciales de la Pista 1. Las 45 omisiones son pruebas que no aplican a PostgreSQL o están bloqueadas por diseño; la declaración de compatibilidad total sigue siendo decisión del propietario.
 
-## 6b. No ejecutado (la compatibilidad no es total)
+## 6i. Declaración de compatibilidad
+
+**Declaración de compatibilidad (14/11/2026, decisión del propietario):** Horus System es compatible con PostgreSQL 18 según la evidencia de `docs/fase-5-2-validacion-postgresql.md` §6h: suite aislada completa en un clúster de pruebas (3 915 pruebas, 0 fallos, 45 omitidas con motivo), carreras reales de dos sesiones y de dos procesos, y planes con datos sesgados sin consultas lentas. **Salvedades:** medido solo en el clúster aislado 55433 (Windows, datos sintéticos), no en la base de producción ni con su volumen real; D9 (reconstrucción) y el ensayo de restauración siguen sin ejecutarse; las 45 omisiones están justificadas pero no son cobertura; las migraciones nuevas sobre bases con datos reales exigen revisión y autorización aparte.
+
+## 6b. Lo que no se ejecutó (histórico; superado salvo lo indicado en §6i)
 
 - Suite «PostgreSQL isolated»: ejecutada en el Paso 4 (§6c); 79 pruebas dependen de migraciones suspendidas y no son ejecutables.
 - Recepción pública de cotizaciones (`/api/public/v1/cotizaciones`, marca firmada y catálogo publicado): su reconciliación de `23505` usa el mismo patrón que la creación administrativa, pero no se ejecutó por HTTP.
