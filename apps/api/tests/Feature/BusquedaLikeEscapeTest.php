@@ -15,6 +15,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
  */
 class BusquedaLikeEscapeTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
     public function test_termino_escapa_los_caracteres_especiales_de_like(): void
@@ -78,24 +80,13 @@ class BusquedaLikeEscapeTest extends TestCase
         $this->crearEstudiante('70000004', 'Beto', 'Quispe');
         $admin = $this->adminUser();
 
-        $porcentaje = $this->actingAs($admin)->get(route('admin.estudiantes.index', ['busqueda' => '%']))->assertOk()->getContent();
-        $this->assertStringContainsString('Soto', $porcentaje);
-        foreach (['Rojas', 'Vega', 'Quispe'] as $ajeno) {
-            $this->assertStringNotContainsString($ajeno, $porcentaje);
-        }
+        $this->actingAs($admin);
+        $buscar = fn (string $texto): array => $this->panelEstudiantes('GET', '', ['busqueda' => $texto])->assertOk()->json('data.*.apellidos');
 
-        $guion = $this->get(route('admin.estudiantes.index', ['busqueda' => '_']))->assertOk()->getContent();
-        $this->assertStringContainsString('Rojas', $guion);
-        foreach (['Soto', 'Vega', 'Quispe'] as $ajeno) {
-            $this->assertStringNotContainsString($ajeno, $guion);
-        }
-
-        $exacto = $this->get(route('admin.estudiantes.index', ['busqueda' => 'Cris_T']))->assertOk()->getContent();
-        $this->assertStringContainsString('Rojas', $exacto);
-        $this->assertStringNotContainsString('Vega', $exacto);
-
-        $signo = $this->get(route('admin.estudiantes.index', ['busqueda' => '!']))->assertOk()->getContent();
-        $this->assertStringNotContainsString('Quispe', $signo);
+        $this->assertSame(['Soto'], $buscar('%'));
+        $this->assertSame(['Rojas'], $buscar('_'));
+        $this->assertSame(['Rojas'], $buscar('Cris_T'));
+        $this->assertNotContains('Quispe', $buscar('!'));
     }
 
     public function test_las_busquedas_normales_siguen_funcionando_en_parcial_y_sin_distinguir_mayusculas(): void
@@ -104,13 +95,11 @@ class BusquedaLikeEscapeTest extends TestCase
         $this->crearEstudiante('70000002', 'Rosa', 'Vega');
         $admin = $this->adminUser();
 
-        $html = $this->actingAs($admin)->get(route('admin.estudiantes.index', ['busqueda' => 'uan']))->assertOk()->getContent();
-        $this->assertStringContainsString('PEREZ', $html);
-        $this->assertStringNotContainsString('Vega', $html);
+        $this->actingAs($admin);
+        $this->assertSame(['PEREZ'], $this->panelEstudiantes('GET', '', ['busqueda' => 'uan'])->assertOk()->json('data.*.apellidos'));
 
-        $html = $this->get(route('admin.estudiantes.index', ['busqueda' => '7000000']))->assertOk()->getContent();
-        $this->assertStringContainsString('PEREZ', $html);
-        $this->assertStringContainsString('Vega', $html);
+        $apellidos = $this->panelEstudiantes('GET', '', ['busqueda' => '7000000'])->assertOk()->json('data.*.apellidos');
+        $this->assertEqualsCanonicalizing(['PEREZ', 'Vega'], $apellidos);
     }
 
     public function test_cursos_busca_el_porcentaje_y_el_guion_bajo_como_texto(): void

@@ -78,7 +78,7 @@
                         </a>
                     @endcan
                     @can('estudiantes.crear')
-                        <a href="{{ route('admin.estudiantes.create') }}" class="admin-btn-outline">
+                        <a href="{{ route('admin.estudiantes.index') }}" class="admin-btn-outline">
                             <i class="fa-solid fa-user-plus text-xs text-[#176B9A]" aria-hidden="true"></i>
                             <span>Nuevo estudiante</span>
                         </a>

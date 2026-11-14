@@ -7,6 +7,7 @@ namespace Tests\Feature\Panel;
 use App\Models\AuditLog;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Estudiantes en /api/panel/v1/academico/estudiantes: mismas reglas, permisos y auditoría que el Blade.
@@ -125,6 +126,42 @@ final class EstudiantesPanelTest extends PanelApiTestCase
 
         $this->assertSame(1, Estudiante::query()->count());
         $this->assertSame(0, AuditLog::query()->where('action', 'estudiante_creado')->count());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function camposDelFormulario(): iterable
+    {
+        foreach (['dni', 'estado', 'nombres', 'apellidos', 'email', 'telefono', 'fecha_nacimiento', 'direccion'] as $campo) {
+            yield $campo => [$campo];
+        }
+    }
+
+    /**
+     * Sustituye a las pruebas de «old input» del Blade retirado: un campo escalar enviado como array (`campo[]=x`) lo
+     * rechaza la validación con 422 y el campo señalado, nunca con un error 500, tanto al crear como al editar.
+     */
+    #[DataProvider('camposDelFormulario')]
+    public function test_un_campo_con_forma_de_array_se_rechaza_con_422_y_nunca_con_500(string $campo): void
+    {
+        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
+        $existente = $this->estudiante('70000001');
+
+        $this->como($admin, 'POST', 'estudiantes', $this->datosValidos([$campo => ['x']]))
+            ->assertUnprocessable()->assertJsonValidationErrors([$campo]);
+        $this->como($admin, 'PUT', "estudiantes/{$existente->id}", $this->datosValidos(['dni' => '70000001', $campo => ['x']]))
+            ->assertUnprocessable()->assertJsonValidationErrors([$campo]);
+        $this->assertSame(1, Estudiante::query()->count());
+    }
+
+    public function test_filtros_con_forma_de_array_o_demasiado_largos_se_ignoran_sin_error(): void
+    {
+        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
+        $this->estudiante('11111111');
+
+        $this->como($admin, 'GET', 'estudiantes?estado[]=activo&busqueda[]=x&eliminados[]=1')
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('meta.filtros', []);
+        $buscado = $this->como($admin, 'GET', 'estudiantes?busqueda='.str_repeat('a', 350))->assertOk();
+        $this->assertSame(200, mb_strlen((string) $buscado->json('meta.filtros.busqueda')));
     }
 
     public function test_permisos_por_accion(): void

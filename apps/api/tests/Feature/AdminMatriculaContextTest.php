@@ -21,9 +21,7 @@ class AdminMatriculaContextTest extends TestCase
         [$estudiante, $curso] = $this->records();
         $this->actingAs($this->adminUser());
 
-        $this->get(route('admin.estudiantes.show', $estudiante))
-            ->assertOk()
-            ->assertSee('href="'.route('admin.matriculas.create', ['estudiante_id' => $estudiante->id]).'"', false);
+        // La ficha del estudiante la sirve ahora apps/web; aquí solo queda la del curso (Blade).
         $this->get(route('admin.cursos.show', $curso))
             ->assertOk()
             ->assertSee('href="'.route('admin.matriculas.create', ['curso_id' => $curso->id]).'"', false);
@@ -55,7 +53,6 @@ class AdminMatriculaContextTest extends TestCase
         $lector->roles()->firstOrFail()->syncPermissions(['estudiantes.ver', 'cursos.ver']);
         $this->actingAs($lector);
 
-        $this->get(route('admin.estudiantes.show', $estudiante))->assertOk()->assertDontSee('Nueva matrícula');
         $this->get(route('admin.cursos.show', $curso))->assertOk()->assertDontSee('Nueva matrícula');
         $this->get(route('admin.matriculas.create', ['estudiante_id' => $estudiante->id]))->assertForbidden();
     }
@@ -79,7 +76,6 @@ class AdminMatriculaContextTest extends TestCase
         $estudiante->update(['estado' => 'inactivo']);
         $curso->update(['cupos_disponibles' => 0]);
 
-        $this->get(route('admin.estudiantes.show', $estudiante))->assertOk()->assertDontSee('Nueva matrícula');
         $this->get(route('admin.cursos.show', $curso))->assertOk()->assertDontSee('Nueva matrícula');
 
         $curso->update(['cupos_disponibles' => 2, 'estado' => 'archivado']);

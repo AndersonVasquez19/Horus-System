@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Estudiante;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -13,6 +14,7 @@ use Tests\TestCase;
  */
 class EstudianteFechaNacimientoLimaTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
     protected function tearDown(): void
@@ -39,14 +41,13 @@ class EstudianteFechaNacimientoLimaTest extends TestCase
         // 20:00 del 9/11 en Lima = 01:00 UTC del 10/11.
         Carbon::setTestNow('2026-11-10 01:00:00 UTC');
 
-        $this->actingAs($this->adminUser())
-            ->post(route('admin.estudiantes.store'), $this->datos('2026-11-10'))
-            ->assertSessionHasErrors('fecha_nacimiento');
+        $this->actingAs($this->adminUser());
+        $this->panelEstudiantes('POST', '', $this->datos('2026-11-10'))
+            ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
 
         $this->assertDatabaseCount('estudiantes', 0);
 
-        $this->post(route('admin.estudiantes.store'), $this->datos('2026-11-09'))
-            ->assertSessionHasNoErrors();
+        $this->panelEstudiantes('POST', '', $this->datos('2026-11-09'))->assertCreated();
 
         $this->assertDatabaseHas('estudiantes', ['dni' => '70123456']);
     }
@@ -55,12 +56,11 @@ class EstudianteFechaNacimientoLimaTest extends TestCase
     {
         Carbon::setTestNow('2026-11-10 17:00:00 UTC');
 
-        $this->actingAs($this->adminUser())
-            ->post(route('admin.estudiantes.store'), $this->datos('2026-11-10'))
-            ->assertSessionHasNoErrors();
+        $this->actingAs($this->adminUser());
+        $this->panelEstudiantes('POST', '', $this->datos('2026-11-10'))->assertCreated();
 
-        $this->post(route('admin.estudiantes.store'), $this->datos('2026-11-11', '70123457'))
-            ->assertSessionHasErrors('fecha_nacimiento');
+        $this->panelEstudiantes('POST', '', $this->datos('2026-11-11', '70123457'))
+            ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
     }
 
     public function test_update_rejects_tomorrow_in_lima_even_when_utc_already_is_tomorrow(): void
@@ -74,12 +74,11 @@ class EstudianteFechaNacimientoLimaTest extends TestCase
             'estado' => 'activo',
         ]);
 
-        $this->actingAs($this->adminUser())
-            ->put(route('admin.estudiantes.update', $estudiante), $this->datos('2026-11-10'))
-            ->assertSessionHasErrors('fecha_nacimiento');
+        $this->actingAs($this->adminUser());
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos('2026-11-10'))
+            ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
 
-        $this->put(route('admin.estudiantes.update', $estudiante), $this->datos('2026-11-09'))
-            ->assertSessionHasNoErrors();
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos('2026-11-09'))->assertOk();
 
         $this->assertSame('2026-11-09', $estudiante->fresh()->fecha_nacimiento->toDateString());
     }

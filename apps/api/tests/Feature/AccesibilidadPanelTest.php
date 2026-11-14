@@ -56,7 +56,6 @@ class AccesibilidadPanelTest extends TestCase
         ]);
 
         $rutas = [
-            route('admin.estudiantes.create'), route('admin.estudiantes.edit', $estudiante),
             route('admin.cursos.create'), route('admin.cursos.edit', $curso), route('admin.cursos.publicacion.edit', $curso),
             route('admin.matriculas.create'), route('admin.matriculas.edit', $matricula),
             route('admin.usuarios.create'), route('admin.usuarios.edit', $this->admin),

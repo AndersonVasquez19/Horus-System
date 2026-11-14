@@ -14,11 +14,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
 class AuditoriaRobustezPanelFase2Test extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
@@ -183,9 +185,9 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
             ->get(route('admin.cursos.index', ['estado' => ['activo'], 'categoria' => ['tecnologia']]))
             ->assertOk();
 
-        $this->actingAs($this->admin)
-            ->get(route('admin.estudiantes.index', ['estado' => ['activo']]))
-            ->assertOk();
+        // Una URL manipulada (`estado[]=activo`) no rompe el listado del panel: se ignora el filtro.
+        $this->actingAs($this->admin);
+        $this->panelEstudiantes('GET', '', ['estado' => ['activo']])->assertOk()->assertJsonPath('meta.filtros', []);
 
         $this->actingAs($this->admin)
             ->get(route('admin.matriculas.index', ['estado' => ['pendiente']]))

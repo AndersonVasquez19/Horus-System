@@ -11,6 +11,7 @@ use Illuminate\Database\PostgresConnection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class AdminSearchTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
     public function test_global_search_keeps_partial_matching_by_enrollment_id(): void
@@ -91,10 +93,10 @@ class AdminSearchTest extends TestCase
         $this->makeEnrollment($this->makeStudent('20000201', 'JUAN', 'PEREZ'), $curso);
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)
-            ->get(route('admin.estudiantes.index', ['busqueda' => 'juan']))
+        $this->actingAs($admin);
+        $this->panelEstudiantes('GET', '', ['busqueda' => 'juan'])
             ->assertOk()
-            ->assertSee('PEREZ');
+            ->assertJsonPath('data.0.apellidos', 'PEREZ');
 
         $this->actingAs($admin)
             ->get(route('admin.cursos.index', ['busqueda' => 'redes']))
@@ -114,11 +116,13 @@ class AdminSearchTest extends TestCase
      */
     public function test_module_searches_use_the_portable_case_insensitive_like(): void
     {
-        foreach (['Busqueda', 'Estudiante', 'Curso', 'Matricula'] as $modulo) {
-            $codigo = file_get_contents(app_path("Http/Controllers/Admin/{$modulo}Controller.php"));
+        // Estudiantes ya no vive en Blade: su buscador es el del controlador del panel.
+        $controladores = ['Admin/BusquedaController', 'Api/Panel/Academico/EstudianteController', 'Admin/CursoController', 'Admin/MatriculaController'];
+        foreach ($controladores as $modulo) {
+            $codigo = file_get_contents(app_path("Http/Controllers/{$modulo}.php"));
 
             $this->assertIsString($codigo);
-            $this->assertDoesNotMatchRegularExpression('/,\s*[\'"]like[\'"]\s*,/i', $codigo, "{$modulo}Controller usa 'like' literal.");
+            $this->assertDoesNotMatchRegularExpression('/,\s*[\'"]like[\'"]\s*,/i', $codigo, "{$modulo} usa 'like' literal.");
         }
     }
 

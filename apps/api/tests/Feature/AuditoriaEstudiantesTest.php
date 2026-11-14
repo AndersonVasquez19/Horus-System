@@ -13,14 +13,17 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
  * Sprint 20, Fase 2a: auditoría de estudiantes (crear, actualizar, eliminar lógicamente, restaurar).
- * SQLite en memoria: no mide bloqueos ni concurrencia de PostgreSQL.
+ * SQLite en memoria: no mide bloqueos ni concurrencia de PostgreSQL. Se ejercita por la API del panel
+ * (`/api/panel/v1/academico/estudiantes`); el módulo Blade se retiró el 14/11/2026.
  */
 class AuditoriaEstudiantesTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
     private const ACCIONES = ['estudiante_creado', 'estudiante_actualizado', 'estudiante_eliminado', 'estudiante_restaurado'];
@@ -114,10 +117,10 @@ class AuditoriaEstudiantesTest extends TestCase
         $admin = $this->usuario('admin');
         $otro = $this->usuario('admin');
 
-        $this->actingAs($admin)
-            ->post(route('admin.estudiantes.store'), $this->datos())
-            ->assertRedirect(route('admin.estudiantes.index'))
-            ->assertSessionHas('success', 'El estudiante se registró correctamente.');
+        $this->actingAs($admin);
+        $this->panelEstudiantes('POST', '', $this->datos())
+            ->assertCreated()
+            ->assertJsonPath('message', 'El estudiante se registró correctamente.');
 
         $estudiante = Estudiante::where('dni', self::DNI)->firstOrFail();
         $logs = $this->auditorias();
@@ -143,9 +146,10 @@ class AuditoriaEstudiantesTest extends TestCase
 
     public function test_crear_con_validacion_fallida_no_audita_ni_crea(): void
     {
-        $this->actingAs($this->usuario('admin'))
-            ->post(route('admin.estudiantes.store'), $this->datos(['dni' => '123']))
-            ->assertSessionHasErrors(['dni']);
+        $this->actingAs($this->usuario('admin'));
+        $this->panelEstudiantes('POST', '', $this->datos(['dni' => '123']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['dni']);
 
         $this->assertSame(0, Estudiante::count());
         $this->assertCount(0, $this->auditorias());
@@ -156,7 +160,7 @@ class AuditoriaEstudiantesTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->postJson(route('admin.estudiantes.store'), $this->datos())->assertStatus(500);
+        $this->panelEstudiantes('POST', '', $this->datos())->assertStatus(500);
 
         $this->assertDatabaseMissing('estudiantes', ['dni' => self::DNI]);
         $this->assertSame(0, AuditLog::count());
@@ -169,15 +173,15 @@ class AuditoriaEstudiantesTest extends TestCase
         $admin = $this->usuario('admin');
         $estudiante = $this->estudiante();
 
-        $this->actingAs($admin)
-            ->put(route('admin.estudiantes.update', $estudiante), $this->datos([
-                'dni' => '81726355',
-                'nombres' => 'OTRO-NOMBRE-MARCA-7731',
-                'email' => 'otra7731@example.test',
-                'estado' => 'inactivo',
-            ]))
-            ->assertRedirect(route('admin.estudiantes.show', $estudiante))
-            ->assertSessionHas('success', 'Los datos del estudiante se actualizaron correctamente.');
+        $this->actingAs($admin);
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos([
+            'dni' => '81726355',
+            'nombres' => 'OTRO-NOMBRE-MARCA-7731',
+            'email' => 'otra7731@example.test',
+            'estado' => 'inactivo',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('message', 'Los datos del estudiante se actualizaron correctamente.');
 
         $logs = $this->auditorias();
         $this->assertCount(1, $logs);
@@ -203,9 +207,9 @@ class AuditoriaEstudiantesTest extends TestCase
     {
         $estudiante = $this->estudiante();
 
-        $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.estudiantes.update', $estudiante), $this->datos(['direccion' => 'NUEVA-DIRECCION-MARCA-7731']))
-            ->assertRedirect(route('admin.estudiantes.show', $estudiante));
+        $this->actingAs($this->usuario('admin'));
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos(['direccion' => 'NUEVA-DIRECCION-MARCA-7731']))
+            ->assertOk();
 
         $log = $this->auditorias()->sole();
         $cambios = $this->cambios($log);
@@ -221,10 +225,10 @@ class AuditoriaEstudiantesTest extends TestCase
         $estudiante = $this->estudiante();
         $actualizado = $estudiante->fresh()->updated_at;
 
-        $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.estudiantes.update', $estudiante), $this->datos())
-            ->assertRedirect(route('admin.estudiantes.show', $estudiante))
-            ->assertSessionHas('success');
+        $this->actingAs($this->usuario('admin'));
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos())
+            ->assertOk()
+            ->assertJsonPath('message', 'Los datos del estudiante se actualizaron correctamente.');
 
         $this->assertCount(0, $this->auditorias());
         $this->assertEquals($actualizado, $estudiante->fresh()->updated_at);
@@ -234,9 +238,10 @@ class AuditoriaEstudiantesTest extends TestCase
     {
         $estudiante = $this->estudiante();
 
-        $this->actingAs($this->usuario('admin'))
-            ->put(route('admin.estudiantes.update', $estudiante), $this->datos(['estado' => 'invalido', 'nombres' => 'CAMBIO-MARCA-7731']))
-            ->assertSessionHasErrors(['estado']);
+        $this->actingAs($this->usuario('admin'));
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos(['estado' => 'invalido', 'nombres' => 'CAMBIO-MARCA-7731']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['estado']);
 
         $this->assertCount(0, $this->auditorias());
         $this->assertDatabaseHas('estudiantes', ['id' => $estudiante->id, 'nombres' => self::NOMBRES, 'estado' => 'activo']);
@@ -248,7 +253,7 @@ class AuditoriaEstudiantesTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->putJson(route('admin.estudiantes.update', $estudiante), $this->datos(['estado' => 'inactivo']))->assertStatus(500);
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos(['estado' => 'inactivo']))->assertStatus(500);
 
         $this->assertDatabaseHas('estudiantes', ['id' => $estudiante->id, 'estado' => 'activo']);
         $this->assertSame(0, AuditLog::count());
@@ -261,10 +266,10 @@ class AuditoriaEstudiantesTest extends TestCase
         $admin = $this->usuario('admin');
         $estudiante = $this->estudiante();
 
-        $this->actingAs($admin)
-            ->delete(route('admin.estudiantes.destroy', $estudiante))
-            ->assertRedirect(route('admin.estudiantes.index'))
-            ->assertSessionHas('success', 'El estudiante se desactivó correctamente.');
+        $this->actingAs($admin);
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)
+            ->assertOk()
+            ->assertJsonPath('message', 'El estudiante se desactivó correctamente.');
 
         $this->assertSoftDeleted('estudiantes', ['id' => $estudiante->id]);
         $log = $this->auditorias()->sole();
@@ -281,8 +286,9 @@ class AuditoriaEstudiantesTest extends TestCase
         $estudiante = $this->estudiante();
         $admin = $this->usuario('admin');
 
-        $this->actingAs($admin)->delete(route('admin.estudiantes.destroy', $estudiante))->assertRedirect();
-        $this->delete(route('admin.estudiantes.destroy', $estudiante->id))->assertNotFound();
+        $this->actingAs($admin);
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertOk();
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertNotFound();
 
         $this->assertCount(1, $this->auditorias());
     }
@@ -293,7 +299,7 @@ class AuditoriaEstudiantesTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->deleteJson(route('admin.estudiantes.destroy', $estudiante))->assertStatus(500);
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertStatus(500);
 
         $this->assertNotSoftDeleted('estudiantes', ['id' => $estudiante->id]);
         $this->assertSame(0, AuditLog::count());
@@ -307,10 +313,10 @@ class AuditoriaEstudiantesTest extends TestCase
         $estudiante = $this->estudiante();
         $estudiante->delete();
 
-        $this->actingAs($admin)
-            ->patch(route('admin.estudiantes.restaurar', $estudiante->id))
-            ->assertRedirect(route('admin.estudiantes.index', ['eliminados' => 1]))
-            ->assertSessionHas('success', 'El estudiante se restauró correctamente.');
+        $this->actingAs($admin);
+        $this->panelEstudiantes('POST', $estudiante->id.'/restaurar')
+            ->assertOk()
+            ->assertJsonPath('message', 'El estudiante se restauró correctamente.');
 
         $this->assertNotSoftDeleted('estudiantes', ['id' => $estudiante->id]);
         $log = $this->auditorias()->sole();
@@ -330,22 +336,21 @@ class AuditoriaEstudiantesTest extends TestCase
         $this->actingAs($this->usuario('admin'));
 
         // Un estudiante vigente: mismo comportamiento HTTP, sin operación efectiva.
-        $this->patch(route('admin.estudiantes.restaurar', $vigente->id))
-            ->assertRedirect(route('admin.estudiantes.index', ['eliminados' => 1]))
-            ->assertSessionHas('success');
+        $this->panelEstudiantes('POST', $vigente->id.'/restaurar')
+            ->assertOk()
+            ->assertJsonPath('message', 'El estudiante se restauró correctamente.');
         $this->assertCount(0, $this->auditorias());
 
-        $this->patch(route('admin.estudiantes.restaurar', $eliminado->id))->assertRedirect();
-        $this->patch(route('admin.estudiantes.restaurar', $eliminado->id))->assertRedirect();
+        $this->panelEstudiantes('POST', $eliminado->id.'/restaurar')->assertOk();
+        $this->panelEstudiantes('POST', $eliminado->id.'/restaurar')->assertOk();
 
         $this->assertCount(1, $this->auditorias());
     }
 
     public function test_restaurar_un_id_inexistente_responde_404_sin_auditar(): void
     {
-        $this->actingAs($this->usuario('admin'))
-            ->patch(route('admin.estudiantes.restaurar', 999999))
-            ->assertNotFound();
+        $this->actingAs($this->usuario('admin'));
+        $this->panelEstudiantes('POST', '999999/restaurar')->assertNotFound();
 
         $this->assertCount(0, $this->auditorias());
     }
@@ -357,7 +362,7 @@ class AuditoriaEstudiantesTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->patchJson(route('admin.estudiantes.restaurar', $estudiante->id))->assertStatus(500);
+        $this->panelEstudiantes('POST', $estudiante->id.'/restaurar')->assertStatus(500);
 
         $this->assertSoftDeleted('estudiantes', ['id' => $estudiante->id]);
         $this->assertSame(0, AuditLog::count());
@@ -373,14 +378,14 @@ class AuditoriaEstudiantesTest extends TestCase
         $secretaria = $this->usuario('secretaria');
         $coordinador = $this->usuario('coordinador');
 
-        $this->actingAs($secretaria)
-            ->put(route('admin.estudiantes.update', $vigente), $this->datos(['estado' => 'inactivo']))->assertForbidden();
-        $this->delete(route('admin.estudiantes.destroy', $vigente))->assertForbidden();
-        $this->patch(route('admin.estudiantes.restaurar', $eliminado->id))->assertForbidden();
+        $this->actingAs($secretaria);
+        $this->panelEstudiantes('PUT', (string) $vigente->id, $this->datos(['estado' => 'inactivo']))->assertForbidden();
+        $this->panelEstudiantes('DELETE', (string) $vigente->id)->assertForbidden();
+        $this->panelEstudiantes('POST', $eliminado->id.'/restaurar')->assertForbidden();
 
-        $this->actingAs($coordinador)
-            ->delete(route('admin.estudiantes.destroy', $vigente))->assertForbidden();
-        $this->patch(route('admin.estudiantes.restaurar', $eliminado->id))->assertForbidden();
+        $this->actingAs($coordinador);
+        $this->panelEstudiantes('DELETE', (string) $vigente->id)->assertForbidden();
+        $this->panelEstudiantes('POST', $eliminado->id.'/restaurar')->assertForbidden();
 
         $this->assertCount(0, $this->auditorias());
         $this->assertDatabaseHas('estudiantes', ['id' => $vigente->id, 'estado' => 'activo', 'deleted_at' => null]);
@@ -390,9 +395,8 @@ class AuditoriaEstudiantesTest extends TestCase
     public function test_sin_permiso_de_crear_no_se_audita(): void
     {
         // Usuario sin rol administrativo: el grupo /admin lo rechaza antes del controlador.
-        $this->actingAs(User::factory()->create())
-            ->post(route('admin.estudiantes.store'), $this->datos())
-            ->assertForbidden();
+        $this->actingAs(User::factory()->create());
+        $this->panelEstudiantes('POST', '', $this->datos())->assertForbidden();
 
         $this->assertSame(0, Estudiante::count());
         $this->assertCount(0, $this->auditorias());

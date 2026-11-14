@@ -33,6 +33,7 @@ class AdminModulosRetiradosTest extends TestCase
             'reportes' => ['admin.reportes.index', '/admin/academico/reportes'],
             'cotizaciones' => ['admin.cotizaciones.index', '/admin/servicios/cotizaciones'],
             'servicios' => ['admin.servicios.index', '/admin/servicios/catalogo'],
+            'estudiantes' => ['admin.estudiantes.index', '/admin/academico/estudiantes'],
         ];
     }
 
@@ -70,6 +71,25 @@ class AdminModulosRetiradosTest extends TestCase
         $this->postJson('/admin/cotizaciones', [])->assertStatus(405);
         $this->getJson('/admin/cotizaciones/'.$uuid)->assertNotFound();
         $this->patchJson('/admin/cotizaciones/'.$uuid.'/estado', [])->assertNotFound();
+    }
+
+    public function test_la_ficha_antigua_de_un_estudiante_redirige_a_su_ficha_en_next(): void
+    {
+        $this->actingAs($this->adminUser())->get(route('admin.estudiantes.show', 42))
+            ->assertRedirect(self::WEB.'/admin/academico/estudiantes/42');
+        $this->get('/admin/estudiantes/abc')->assertNotFound();
+        $this->get('/admin/estudiantes/1;DROP')->assertNotFound();
+    }
+
+    public function test_las_operaciones_de_estudiantes_ya_no_existen_en_blade(): void
+    {
+        $this->actingAs($this->adminUser());
+        $this->get('/admin/estudiantes/create')->assertNotFound();
+        $this->get('/admin/estudiantes/1/edit')->assertNotFound();
+        $this->postJson('/admin/estudiantes', [])->assertStatus(405);
+        $this->putJson('/admin/estudiantes/1', [])->assertStatus(405);
+        $this->deleteJson('/admin/estudiantes/1')->assertStatus(405);
+        $this->patchJson('/admin/estudiantes/1/restaurar')->assertNotFound();
     }
 
     public function test_las_operaciones_del_catalogo_de_servicios_ya_no_existen_en_blade(): void

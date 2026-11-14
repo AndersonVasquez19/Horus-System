@@ -9,7 +9,6 @@ use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\CursoController;
 use App\Http\Controllers\Admin\CursoPublicacionController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\MatriculaController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\PerfilController;
@@ -91,9 +90,11 @@ Route::prefix('admin')
         Route::delete('perfil/sesiones/{identificador}', [PerfilSesionesController::class, 'destroy'])
             ->where('identificador', '[a-f0-9]{32}')->middleware('throttle:perfil')->name('perfil.sesiones.destroy');
 
-        Route::resource('estudiantes', EstudianteController::class);
-        Route::patch('estudiantes/{estudiante}/restaurar', [EstudianteController::class, 'restaurar'])
-            ->name('estudiantes.restaurar');
+        // Estudiantes (retirados de Blade el 14/11/2026): los atiende apps/web con /api/panel/v1/academico/estudiantes.
+        // Se conservan `index` y `show` solo por sus nombres (búsqueda global, barra lateral); responden 302 a Next.
+        Route::get('estudiantes', RedirigirAWebController::class)->defaults('destino', '/admin/academico/estudiantes')->name('estudiantes.index');
+        Route::get('estudiantes/{estudiante}', RedirigirAWebController::class)->defaults('destino', '/admin/academico/estudiantes/{estudiante}')
+            ->whereNumber('estudiante')->name('estudiantes.show');
 
         Route::resource('cursos', CursoController::class);
         // Expedientes comerciales privados (retirados de Blade el 14/11/2026): la bandeja es la de apps/web con

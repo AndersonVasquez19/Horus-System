@@ -26,29 +26,11 @@ class OldInputRenderingTest extends TestCase
     private const MALFORMED = ['x'];
 
     /** @return iterable<string, array{string}> */
-    public static function estudianteFields(): iterable
-    {
-        foreach (['dni', 'estado', 'nombres', 'apellidos', 'email', 'telefono', 'fecha_nacimiento', 'direccion'] as $f) {
-            yield $f => [$f];
-        }
-    }
-
-    /** @return iterable<string, array{string}> */
     public static function cursoFields(): iterable
     {
         foreach (['codigo', 'nombre', 'categoria', 'modalidad', 'descripcion', 'duracion_horas', 'precio', 'horario', 'cupos_maximos', 'estado'] as $f) {
             yield $f => [$f];
         }
-    }
-
-    #[DataProvider('estudianteFields')]
-    public function test_estudiante_forms_survive_array_input(string $campo): void
-    {
-        $existente = $this->estudiante('70000001');
-        $this->actingAs($this->adminUser());
-
-        $this->assertSurvives('post', route('admin.estudiantes.store'), route('admin.estudiantes.create'), $this->estudianteData(), $campo);
-        $this->assertSurvives('put', route('admin.estudiantes.update', $existente), route('admin.estudiantes.edit', $existente), $this->estudianteData(), $campo);
     }
 
     #[DataProvider('cursoFields')]
@@ -166,13 +148,6 @@ class OldInputRenderingTest extends TestCase
             ->assertSee('name="precio" type="number" min="0" step="0.01" value="0"', false)
             ->assertSee('name="horario" type="text" maxlength="100" value=""', false)
             ->assertSee('Línea &lt;b&gt;1&lt;/b&gt;', false); // el escape de Blade se conserva
-
-        $this->from(route('admin.estudiantes.create'))
-            ->post(route('admin.estudiantes.store'), $this->estudianteData(['nombres' => 'Ana', 'direccion' => '0', 'estado' => 'x']))
-            ->assertSessionHasErrors('estado');
-        $this->get(route('admin.estudiantes.create'))
-            ->assertSee('value="Ana"', false)
-            ->assertSee('value="0"', false);
 
     }
 

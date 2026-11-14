@@ -150,7 +150,7 @@ try {
     check(await evaluate('location.pathname === "/admin/cursos/create"'), 'Forward failed');
     report.widths.push(view);
   }
-  for (const module of ['estudiantes', 'cursos', 'matriculas', 'usuarios']) {
+  for (const module of ['cursos', 'matriculas', 'usuarios']) {
     for (const action of ['create', '1/edit']) {
       await navigate('/admin/' + module + '/' + action, 'dialog[data-admin-page-form]');
       await waitFor(modalOpen);

@@ -10,6 +10,7 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
  */
 class ArchivadoConMatriculasVigentesTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -64,9 +66,10 @@ class ArchivadoConMatriculasVigentesTest extends TestCase
             [$estudiante] = $this->matricula($estado);
             $admin = $this->adminUser();
 
-            $this->actingAs($admin)->delete(route('admin.estudiantes.destroy', $estudiante))
-                ->assertRedirect(route('admin.estudiantes.show', $estudiante))
-                ->assertSessionHas('error');
+            $this->actingAs($admin);
+            $this->panelEstudiantes('DELETE', (string) $estudiante->id)
+                ->assertStatus(409)
+                ->assertJsonStructure(['message']);
 
             $this->assertNull($estudiante->fresh()->deleted_at);
             $this->assertDatabaseMissing('audit_logs', ['action' => 'estudiante_eliminado', 'model_id' => $estudiante->id]);
@@ -96,8 +99,8 @@ class ArchivadoConMatriculasVigentesTest extends TestCase
         [$estudiante, $curso] = $this->matricula('anulada');
         $admin = $this->adminUser();
 
-        $this->actingAs($admin)->delete(route('admin.estudiantes.destroy', $estudiante))
-            ->assertRedirect(route('admin.estudiantes.index'));
+        $this->actingAs($admin);
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertOk();
         $this->actingAs($admin)->delete(route('admin.cursos.destroy', $curso))
             ->assertRedirect(route('admin.cursos.index'));
 

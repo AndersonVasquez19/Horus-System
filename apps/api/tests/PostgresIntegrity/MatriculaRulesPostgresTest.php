@@ -7,6 +7,7 @@ namespace Tests\PostgresIntegrity;
 use App\Models\Matricula;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class MatriculaRulesPostgresTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
     use RequiresIsolatedPostgres;
 
@@ -111,7 +113,8 @@ class MatriculaRulesPostgresTest extends TestCase
         $this->actingAs($admin)->post(route('admin.matriculas.store'), $this->enrollmentPayload($estudiante, $curso));
 
         // PostgreSQL distingue mayúsculas con LIKE; whereLike() usa ILIKE.
-        $this->get(route('admin.estudiantes.index', ['busqueda' => 'JUAN']))->assertOk()->assertSee('Pérez');
+        // El listado de estudiantes lo sirve la API del panel (Blade retirado el 14/11/2026): ILIKE sobre `apellidos`.
+        $this->assertContains('Pérez', $this->panelEstudiantes('GET', '', ['busqueda' => 'JUAN'])->assertOk()->json('data.*.apellidos'));
         $this->get(route('admin.cursos.index', ['busqueda' => 'redes']))->assertOk()->assertSee('Redes y Servidores');
         $this->assertCount(1, $this->get(route('admin.matriculas.index', ['busqueda' => 'juan']))->viewData('matriculas'));
 

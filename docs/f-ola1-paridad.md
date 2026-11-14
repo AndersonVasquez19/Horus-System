@@ -99,6 +99,48 @@ Código retirado: `Admin\ServicioTecnologicoController`, `admin/servicios/index.
 ### Coste real del tercer módulo
 Más ligero que cotizaciones: la lógica ya estaba cubierta por `ServiciosEscrituraPanelTest` y `ServiciosImagenesPanelTest`; el trabajo fue portar ~80 pruebas con un helper común y reajustar 5 archivos que preparaban datos por Blade. Sin cambios de código de producción.
 
+## Estudiantes (cuarto módulo retirado)
+
+| Ruta Blade | Qué pasa | Endpoint del panel | Página Next |
+| --- | --- | --- | --- |
+| `GET /admin/estudiantes` | 302 (se conserva el nombre `admin.estudiantes.index`) | `GET /api/panel/v1/academico/estudiantes` | `/admin/academico/estudiantes` |
+| `GET /admin/estudiantes/{id}` | 302 con el id (nombre `admin.estudiantes.show`, lo usa la búsqueda global Blade); id no alfanumérico → 404 | `GET …/estudiantes/{id}` | `/admin/academico/estudiantes/[id]` |
+| `GET …/create` y `…/{id}/edit` | **Desaparecen** (404): en Next son diálogos del listado y de la ficha | — | `formulario-estudiante` |
+| `POST /admin/estudiantes` | Desaparece | `POST …/estudiantes` | «Nuevo estudiante» |
+| `PUT /admin/estudiantes/{id}` | Desaparece | `PUT …/estudiantes/{id}` | edición |
+| `DELETE /admin/estudiantes/{id}` | Desaparece | `DELETE …/estudiantes/{id}` | desactivar |
+| `PATCH …/{id}/restaurar` | Desaparece | `POST …/{id}/restaurar` (el verbo pasa a POST) | restaurar |
+
+`RedirigirAWebController` ahora admite parámetros en el destino (`/admin/academico/estudiantes/{estudiante}`): solo sustituye valores `[A-Za-z0-9-]` y los codifica; otro valor responde 404, igual que sin `HORUS_WEB_URL`.
+
+**Permisos:** idénticos (`estudiantes.ver|crear|editar|eliminar|restaurar` + `role`/entrada `panel.academico.acceder`). **Diferencias aceptadas:**
+- Desactivar con matrículas vigentes: Blade devolvía 422 (JSON) o redirección con error; el panel responde **409** `conflicto` con el mismo mensaje.
+- La ficha del panel puede abrir un estudiante eliminado (la lista «eliminados» lo necesita); Blade respondía 404.
+- Listado: 20 por página por defecto y `per_page` hasta 100 (Blade, 15 fijas); un filtro fuera de contrato se ignora; los errores de validación son 422 JSON en vez de redirección con errores.
+- Restaurar un estudiante no eliminado responde 200 sin auditar (Blade, redirección con éxito).
+
+**Seguridad: sin brecha; el panel es más estricto.** La ficha Blade mostraba matrículas **con monto** a todo el que tuviera `estudiantes.ver`; el panel solo las incluye con `matriculas.ver` y nunca el monto ni las observaciones (eso es del detalle de la matrícula). Revisión de las otras reglas «escribir no concede leer»: `store` devuelve la ficha sin historial ni matrículas, `update` las incluye solo con `matriculas.ver`.
+
+Código retirado: `Admin\EstudianteController`, las 5 vistas `admin/estudiantes/*` y `AdminEstudianteTest`. Se conservan `GestionEstudiantes`, `StoreEstudianteRequest`, `UpdateEstudianteRequest`, `AuditoriaAcademica` y el modelo. Otros ajustes: el enlace «Nuevo estudiante» del dashboard Blade apunta ahora al listado, el layout deja de listar `estudiantes.create|edit` como formularios modales y el smoke `formularios-modal-smoke.mjs` ya no abre las páginas Blade de estudiantes.
+
+| Prueba que tocaba la ruta Blade | Qué probaba | Destino |
+| --- | --- | --- |
+| `AuditoriaEstudiantesTest` (17) | auditoría de crear/actualizar/eliminar/restaurar: actor, sin datos personales, valores solo para estado, idempotencia, rollback si falla la auditoría, permisos denegados | **Misma prueba**, llamando al panel con `Tests\Support\LlamaEstudiantesDelPanel` (17/17, mismas afirmaciones) |
+| `AdminEstudianteTest` (6) | alta y edición, DNI único de 8 dígitos, búsqueda y restaurar eliminados, desactivar es lógico, ficha con matrículas, paginación de 15 | **Retirada**: ya cubierta por `Panel\EstudiantesPanelTest` (listado/búsqueda/orden/paginación, detalle con matrículas solo con permiso, alta con auditoría, validaciones, edición, desactivar y restaurar). Lo exclusivo de la vista (texto «Información personal», monto «S/ 150.00») no tiene equivalente de servidor |
+| `AdminAuthorizationTest` | matriz de páginas (index/create), invitado, secretaria sin editar/borrar/restaurar, secretaria sí crea, coordinador no borra | Las dos filas de páginas se retiran (`AdminModulosRetiradosTest` cubre redirección, sesión y rol); invitado, secretaria y coordinador pasan al panel (401/403/201) |
+| `AdminListFilterInputTest`, `AuditoriaRobustezPanelFase2Test` | filtros con forma de array no dan 500 | Panel: `test_filtros_con_forma_de_array_o_demasiado_largos_se_ignoran_sin_error` y la afirmación de `meta.filtros` |
+| `OldInputRenderingTest` (8 casos + 1 tramo) | un campo enviado como array no rompe el formulario Blade | **Sustituida** por `EstudiantesPanelTest::test_un_campo_con_forma_de_array_se_rechaza_con_422_y_nunca_con_500` (8 casos, alta y edición). El «redibujado» del formulario era solo HTML |
+| `BusquedaLikeEscapeTest` (2), `AdminSearchTest` (2) | `%`, `_` y `!` como texto, mayúsculas, parcial por DNI; ausencia de `like` literal | Portadas al JSON del panel (`data.*.apellidos`); la comprobación estática ahora lee el controlador del panel |
+| `ArchivadoConMatriculasVigentesTest` | no se desactiva con matrícula vigente; con todas anuladas sí | Panel: 409 sin escribir ni auditar; 200 con anuladas. La parte de cursos sigue en Blade |
+| `EstudianteFechaNacimientoLimaTest` (3) | fecha de nacimiento futura según el día de Lima, no UTC | Panel: 422 con `fecha_nacimiento`, mismos instantes |
+| `AdminEstudianteResumenMatriculasTest` | tres matrículas, una eliminada excluida; contadores | Panel (`data.matriculas`); se conserva `DatabaseMigrations`. Los contadores los calcula la UI a partir de esa lista |
+| `AdminMatriculaContextTest`, `AccesibilidadPanelTest` | enlaces «Nueva matrícula» y `<h1>` de la ficha/formularios de estudiante | Solo HTML de Blade: retirados los tramos de estudiantes; lo cubre la UI de Next. Los de curso siguen |
+| `MatriculaRulesPostgresTest::test_searches_are_case_insensitive_on_postgresql` | ILIKE en PostgreSQL | Misma clase y base; ahora llama al panel. **No se ha ejecutado en PostgreSQL** (requiere autorización): solo `php -l` y la ejecución SQLite (omitida por el perfil). Queda pendiente de la próxima pasada PG |
+| (ampliada) `AdminModulosRetiradosTest` | redirección, sesión/rol, 404 sin URL | `estudiantes` + ficha con id + operaciones inexistentes |
+
+### Coste real del cuarto módulo
+Portar 12 archivos de prueba con un helper y dos scripts; los tests de auditoría pasaron 17/17 sin cambiar una afirmación. Un cambio de código de producción: parámetros en `RedirigirAWebController` (necesario porque otras vistas Blade enlazan a la ficha).
+
 ## Siguiente
 
-Pendiente de decisión del propietario tras el piloto: continuar con cotizaciones → servicios → estudiantes → cursos → matrículas, o pausar la Etapa F aquí. La **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`) no se ejecutó: mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin` Blade. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`).
+Ola 1 en curso (plan maestro acelerado): retirados reportes, cotizaciones, servicios y estudiantes. Faltan **cursos (+publicación)**, **matrículas** y **dashboard `/admin`**, y la **Ola 0.3** (acceso `/login`, `/forgot-password`, `/reset-password`): mientras existan módulos en Blade, el login Blade es necesario salvo que se demuestre que el login de Next crea una sesión válida también para `/admin`. El enlace del correo de restablecimiento ya apunta a Next (`RestablecerContrasenaWebNotification`, `HORUS_WEB_URL`). Pendiente de próxima pasada PostgreSQL (con autorización): `MatriculaRulesPostgresTest`.

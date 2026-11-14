@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
  */
 class AdminAuthorizationTest extends TestCase
 {
+    use LlamaEstudiantesDelPanel;
     use RefreshDatabase;
 
     private const ALL = ['admin', 'coordinador', 'secretaria'];
@@ -46,8 +48,6 @@ class AdminAuthorizationTest extends TestCase
         return [
             'dashboard' => ['admin.dashboard', self::ALL],
             'busqueda' => ['admin.busqueda.index', self::ALL],
-            'estudiantes.index' => ['admin.estudiantes.index', self::ALL],
-            'estudiantes.create' => ['admin.estudiantes.create', self::ALL],
             'cursos.index' => ['admin.cursos.index', self::ALL],
             'cursos.create' => ['admin.cursos.create', ['admin', 'coordinador']],
             'matriculas.index' => ['admin.matriculas.index', self::ALL],
@@ -99,7 +99,7 @@ class AdminAuthorizationTest extends TestCase
     {
         $estudiante = $this->makeStudent('70000001');
 
-        $this->delete(route('admin.estudiantes.destroy', $estudiante))->assertRedirect(route('login'));
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertUnauthorized();
         $this->post(route('admin.respaldo.exportar'))->assertRedirect(route('login'));
         $this->post(route('admin.usuarios.store'), [])->assertRedirect(route('login'));
 
@@ -113,11 +113,11 @@ class AdminAuthorizationTest extends TestCase
         $eliminado = $this->makeStudent('70000003');
         $eliminado->delete();
 
-        $this->actingAs($secretaria)->get(route('admin.estudiantes.edit', $estudiante))->assertForbidden();
-        $this->put(route('admin.estudiantes.update', $estudiante), $this->studentPayload('70000002', 'Cambiado'))
+        $this->actingAs($secretaria);
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->studentPayload('70000002', 'Cambiado'))
             ->assertForbidden();
-        $this->delete(route('admin.estudiantes.destroy', $estudiante))->assertForbidden();
-        $this->patch(route('admin.estudiantes.restaurar', $eliminado->id))->assertForbidden();
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertForbidden();
+        $this->panelEstudiantes('POST', $eliminado->id.'/restaurar')->assertForbidden();
 
         $this->assertDatabaseHas('estudiantes', ['id' => $estudiante->id, 'nombres' => 'Estudiante', 'deleted_at' => null]);
         $this->assertSoftDeleted($eliminado);
@@ -125,9 +125,8 @@ class AdminAuthorizationTest extends TestCase
 
     public function test_secretaria_can_create_students(): void
     {
-        $this->actingAs($this->staff('secretaria'))
-            ->post(route('admin.estudiantes.store'), $this->studentPayload('70000004', 'Nueva'))
-            ->assertRedirect(route('admin.estudiantes.index'));
+        $this->actingAs($this->staff('secretaria'));
+        $this->panelEstudiantes('POST', '', $this->studentPayload('70000004', 'Nueva'))->assertCreated();
 
         $this->assertDatabaseHas('estudiantes', ['dni' => '70000004']);
     }
@@ -140,7 +139,8 @@ class AdminAuthorizationTest extends TestCase
         $cursoEliminado = $this->makeCourse(['codigo' => 'CUR-DEL']);
         $cursoEliminado->delete();
 
-        $this->actingAs($coordinador)->delete(route('admin.estudiantes.destroy', $estudiante))->assertForbidden();
+        $this->actingAs($coordinador);
+        $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertForbidden();
         $this->delete(route('admin.cursos.destroy', $curso))->assertForbidden();
         $this->patch(route('admin.cursos.restaurar', $cursoEliminado->id))->assertForbidden();
 
