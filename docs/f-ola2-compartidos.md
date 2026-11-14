@@ -206,3 +206,23 @@ inválidas, hora de Lima y constancia de filtros usados). Se portaron a `panelAu
 límite compartido, historial enmascarado, permisos de exportación y escape de comodines; `Panel\AuditoriaPanelTest`
 gana la prueba de filtros con forma de arreglo. Se retiraron solo comprobaciones de HTML (formulario POST con token,
 campos ocultos de filtros).
+
+### Reclamaciones (retiradas)
+
+| Blade | Ahora |
+| --- | --- |
+| `GET /admin/reclamaciones` | 302 a `/admin/reclamaciones` de Next (nombre `admin.reclamaciones.index` conservado) |
+| `GET /admin/reclamaciones/{uuid}` y `/hoja` | 302 a `/admin/reclamaciones/{uuid}` y `/hoja` (nombres `.show` y `.hoja` conservados; UUID inválido, 404) |
+| `POST /admin/reclamaciones/{uuid}/gestion` | eliminada (404); `POST /api/panel/v1/compartido/reclamaciones/{uuid}/gestion` |
+
+Se eliminan el controlador Blade, las 6 vistas (incluida la hoja) y `public/assets/js/hoja-imprimir.js`. El alta pública
+(`/libro-reclamaciones`, `/api/public/v1/reclamaciones`) no se toca. Los vínculos a `/admin/reclamaciones/{uuid}`
+guardados en notificaciones siguen funcionando por el 302 y la entrada `/admin/[modulo]` de Next.
+
+Pruebas: `AdminReclamacionesTest` (40) se sustituye por `Panel\ReclamacionesConsultaPanelTest` (26: acceso, búsqueda con
+escape literal y límite de 120 caracteres, filtros, paginación, alta pública hacia bandeja y detalle, historial y envíos
+sin cuerpos ni datos técnicos, hoja del expediente correcto, auditoría de lecturas sin datos personales, GET sin
+efectos sobre una propuesta vencida y sin N+1). `ReclamacionGestionPanelTest` (21) pasa a
+`Panel\ReclamacionesGestionPanelTest` (16, contra JSON 422/409). Se retiraron solo las comprobaciones de HTML (textos de
+pantalla, escapado, formularios, modales y secciones de gestión por estado), que ahora son del componente de Next. Lo que
+queda **sin cobertura automática** es la vista de impresión A4 de Next: está pendiente de revisión visual en un navegador.

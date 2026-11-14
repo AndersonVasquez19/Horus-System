@@ -9,7 +9,6 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\PerfilController;
 use App\Http\Controllers\Admin\PerfilSesionesController;
-use App\Http\Controllers\Admin\ReclamacionController;
 use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -101,18 +100,15 @@ Route::prefix('admin')
         // /api/panel/v1/servicios/cotizaciones. Se conserva el nombre para la barra lateral Blade; responde 302 a Next.
         Route::get('cotizaciones', RedirigirAWebController::class)->defaults('destino', '/admin/servicios/cotizaciones')->name('cotizaciones.index');
 
-        // Libro de Reclamaciones: consulta e impresión (E3) y gestión del caso (E4).
-        Route::get('reclamaciones', [ReclamacionController::class, 'index'])->name('reclamaciones.index');
-        Route::get('reclamaciones/{reclamacion:identificador}', [ReclamacionController::class, 'show'])
+        // Libro de Reclamaciones retirado de Blade (14/11/2026): lo sirve apps/web con /api/panel/v1/compartido/reclamaciones.
+        // Se conservan los nombres de consulta para la barra lateral y los vínculos de las notificaciones; responden 302 a
+        // `/admin/reclamaciones` de Next, que elige el panel de la persona. La gestión POST ya no existe aquí.
+        Route::get('reclamaciones', RedirigirAWebController::class)->defaults('destino', '/admin/reclamaciones')->name('reclamaciones.index');
+        Route::get('reclamaciones/{reclamacion}', RedirigirAWebController::class)->defaults('destino', '/admin/reclamaciones/{reclamacion}')
             ->name('reclamaciones.show')
             ->whereUuid('reclamacion');
-        Route::get('reclamaciones/{reclamacion:identificador}/hoja', [ReclamacionController::class, 'hoja'])
+        Route::get('reclamaciones/{reclamacion}/hoja', RedirigirAWebController::class)->defaults('destino', '/admin/reclamaciones/{reclamacion}/hoja')
             ->name('reclamaciones.hoja')
-            ->whereUuid('reclamacion');
-        // Gestión del caso (E4): una sola entrada; `operacion` elige la acción y su permiso (GestionarReclamacionRequest).
-        Route::post('reclamaciones/{reclamacion:identificador}/gestion', [ReclamacionController::class, 'gestionar'])
-            ->middleware('throttle:admin-write')
-            ->name('reclamaciones.gestionar')
             ->whereUuid('reclamacion');
 
         // Catálogo de servicios tecnológicos (retirado de Blade el 14/11/2026): lo atiende apps/web con

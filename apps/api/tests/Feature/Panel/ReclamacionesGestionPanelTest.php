@@ -2,29 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
+namespace Tests\Feature\Panel;
 
 use App\Jobs\EnviarReclamacionCorreo;
 use App\Models\AuditLog;
 use App\Models\Reclamacion;
 use App\Models\ReclamacionEnvio;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\PreparaReclamaciones;
-use Tests\TestCase;
 
 /**
- * E4 — Gestión de reclamaciones desde el panel (`POST admin/reclamaciones/{uuid}/gestion`), SQLite en memoria.
+ * E4 — Gestión de reclamaciones por la API del panel (`POST /api/panel/v1/compartido/reclamaciones/{uuid}/gestion`), SQLite en
+ * memoria. Sustituye a las pruebas de `admin.reclamaciones.gestionar`, retirada de Blade el 14/11/2026.
  * El servicio ya tiene sus pruebas de reglas (GestionReclamacionesTest); aquí se mide la capa HTTP: acceso,
- * despacho a la operación correcta, retorno con errores, confirmación del correo real y la sección del detalle.
+ * despacho a la operación correcta, errores 422/409 en JSON y confirmación del correo real.
  * No mide bloqueos ni concurrencia de PostgreSQL. No envía correos: la cola y el correo están simulados.
  */
-class ReclamacionGestionPanelTest extends TestCase
+final class ReclamacionesGestionPanelTest extends PanelApiTestCase
 {
     use PreparaReclamaciones;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -39,11 +38,10 @@ class ReclamacionGestionPanelTest extends TestCase
     }
 
     /** @param array<string, mixed> $datos */
-    private function gestionar(User $usuario, Reclamacion $r, array $datos)
+    private function gestionar(User $usuario, Reclamacion $r, array $datos): TestResponse
     {
         return $this->actingAs($usuario)
-            ->from(route('admin.reclamaciones.show', $r))
-            ->post(route('admin.reclamaciones.gestionar', $r), $datos);
+            ->json('POST', '/api/panel/v1/compartido/reclamaciones/'.$r->identificador.'/gestion', $datos, ['X-Horus-Web-Token' => self::TOKEN]);
     }
 
     private function auditado(string $accion, Reclamacion $r): bool
@@ -54,19 +52,20 @@ class ReclamacionGestionPanelTest extends TestCase
     private function conPropuesta(Reclamacion $r): Reclamacion
     {
         $this->gestionar($this->admin, $r, ['operacion' => 'propuesta', 'asunto' => 'Propuesta', 'cuerpo' => 'Texto de la propuesta.'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
 
         return $r->fresh();
     }
 
     // --- Acceso ------------------------------------------------------------------------------------------------
 
-    public function test_visitante_va_al_login_y_el_personal_sin_permiso_recibe_403(): void
+    public function test_el_visitante_recibe_401_y_el_personal_sin_permiso_403(): void
     {
         $r = $this->nueva();
         $datos = ['operacion' => 'nota', 'nota' => 'Nota'];
 
-        $this->post(route('admin.reclamaciones.gestionar', $r), $datos)->assertRedirect(route('login'));
+        $this->withHeaders(['X-Horus-Web-Token' => self::TOKEN])
+            ->postJson('/api/panel/v1/compartido/reclamaciones/'.$r->identificador.'/gestion', $datos)->assertUnauthorized();
 
         foreach (['coordinador', 'secretaria'] as $rol) {
             $this->gestionar($this->usuarioConPermisos($rol), $r, $datos)->assertForbidden();
@@ -81,7 +80,7 @@ class ReclamacionGestionPanelTest extends TestCase
         $r = $this->nueva();
 
         $this->gestionar($gestor, $r, ['operacion' => 'nota', 'nota' => 'Revisado por coordinación.'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
         $this->assertTrue($this->auditado('nota', $r));
 
         $this->gestionar($gestor, $r, ['operacion' => 'respuesta', 'respuesta' => 'Texto', 'canal' => 'carta', 'constancia' => 'Cargo 1'])
@@ -100,11 +99,13 @@ class ReclamacionGestionPanelTest extends TestCase
 
     public function test_uuid_malformado_o_inexistente_responde_404_y_get_responde_405(): void
     {
-        $this->actingAs($this->admin)->post('/admin/reclamaciones/no-es-uuid/gestion', ['operacion' => 'nota', 'nota' => 'x'])->assertNotFound();
-        $this->actingAs($this->admin)->post('/admin/reclamaciones/6f1b7f9e-2c1a-4b8e-9d1f-1a2b3c4d5e6f/gestion', ['operacion' => 'nota', 'nota' => 'x'])->assertNotFound();
+        $base = '/api/panel/v1/compartido/reclamaciones/';
+        $cabeceras = ['X-Horus-Web-Token' => self::TOKEN];
+        $this->actingAs($this->admin)->json('POST', $base.'no-es-uuid/gestion', ['operacion' => 'nota', 'nota' => 'x'], $cabeceras)->assertNotFound();
+        $this->actingAs($this->admin)->json('POST', $base.'6f1b7f9e-2c1a-4b8e-9d1f-1a2b3c4d5e6f/gestion', ['operacion' => 'nota', 'nota' => 'x'], $cabeceras)->assertNotFound();
 
         $r = $this->nueva();
-        $this->actingAs($this->admin)->get(route('admin.reclamaciones.gestionar', $r))->assertStatus(405);
+        $this->actingAs($this->admin)->json('GET', $base.$r->identificador.'/gestion', [], $cabeceras)->assertStatus(405);
     }
 
     // --- Operaciones -------------------------------------------------------------------------------------------
@@ -115,13 +116,13 @@ class ReclamacionGestionPanelTest extends TestCase
         $otro = $this->usuarioConPermisos('coordinador', ['reclamaciones.ver']);
 
         $this->gestionar($this->admin, $r, ['operacion' => 'responsable', 'responsable_id' => $otro->id])
-            ->assertRedirect(route('admin.reclamaciones.show', $r))
-            ->assertSessionHas('success', 'Responsable actualizado.');
+            ->assertOk()
+            ->assertJsonPath('message', 'Responsable actualizado.');
         $this->assertSame($otro->id, $r->fresh()->responsable_id);
         $this->assertTrue($this->auditado('responsable', $r));
 
-        $this->gestionar($this->admin, $r, ['operacion' => 'responsable', 'responsable_id' => ''])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+        $this->gestionar($this->admin, $r, ['operacion' => 'responsable', 'responsable_id' => null])
+            ->assertOk();
         $this->assertNull($r->fresh()->responsable_id);
     }
 
@@ -131,8 +132,7 @@ class ReclamacionGestionPanelTest extends TestCase
         $sinPermiso = $this->usuarioConPermisos('secretaria');
 
         $this->gestionar($this->admin, $r, ['operacion' => 'responsable', 'responsable_id' => $sinPermiso->id])
-            ->assertRedirect(route('admin.reclamaciones.show', $r))
-            ->assertSessionHasErrors('responsable_id');
+            ->assertUnprocessable()->assertJsonValidationErrors('responsable_id');
         $this->assertNull($r->fresh()->responsable_id);
     }
 
@@ -140,26 +140,28 @@ class ReclamacionGestionPanelTest extends TestCase
     {
         $r = $this->nueva();
         $this->gestionar($this->admin, $r, ['operacion' => 'tipo', 'tipo' => 'queja'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
         $this->assertSame('queja', $r->fresh()->tipo);
         $this->assertTrue($this->auditado('tipo', $r));
 
         $queja = $this->nueva(['tipo' => 'queja', 'bien_tipo' => null, 'bien_descripcion' => null, 'monto_bien' => null]);
         $this->gestionar($this->admin, $queja, ['operacion' => 'tipo', 'tipo' => 'reclamo'])
-            ->assertSessionHasErrors('tipo');
+            ->assertUnprocessable()->assertJsonValidationErrors('tipo');
         $this->assertSame('queja', $queja->fresh()->tipo);
     }
 
-    public function test_nota_queda_en_el_historial_y_se_muestra_escapada(): void
+    public function test_nota_queda_en_el_historial_tal_cual_se_escribio(): void
     {
         $r = $this->nueva();
         $this->gestionar($this->admin, $r, ['operacion' => 'nota', 'nota' => '<script>alert(1)</script> revisar'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
 
         $this->assertDatabaseHas('reclamacion_historial', ['reclamacion_id' => $r->id, 'evento' => 'nota_interna']);
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.reclamaciones.show', $r))->getContent();
-        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
-        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt; revisar', $html);
+        // La API devuelve el texto sin tocar; el escapado al mostrarlo es de React (no hay HTML en la respuesta).
+        $notas = $this->actingAs($this->admin)
+            ->json('GET', '/api/panel/v1/compartido/reclamaciones/'.$r->identificador, [], ['X-Horus-Web-Token' => self::TOKEN])
+            ->assertOk()->json('data.historial.*.nota');
+        $this->assertContains('<script>alert(1)</script> revisar', $notas);
     }
 
     public function test_propuesta_suspende_el_plazo_y_no_despacha_con_el_correo_apagado(): void
@@ -177,24 +179,12 @@ class ReclamacionGestionPanelTest extends TestCase
         $queja = $this->nueva(['tipo' => 'queja', 'bien_tipo' => null, 'bien_descripcion' => null, 'monto_bien' => null]);
 
         $this->gestionar($this->admin, $queja, ['operacion' => 'propuesta', 'asunto' => 'A', 'cuerpo' => 'B'])
-            ->assertRedirect(route('admin.reclamaciones.show', $queja))
-            ->assertSessionHasErrors(['gestion' => 'Las propuestas de solución solo aplican a reclamos.'])
-            ->assertSessionHasInput('operacion', 'propuesta');
+            ->assertStatus(409)->assertJson(['message' => 'Las propuestas de solución solo aplican a reclamos.']);
 
         $this->assertNull($queja->fresh()->suspension_desde);
         // El alta pública ya deja la copia al consumidor; lo que no debe existir es un envío de propuesta.
         $this->assertSame(0, ReclamacionEnvio::query()->where('reclamacion_id', $queja->id)->where('tipo', 'propuesta')->count());
         $this->assertFalse($this->auditado('propuesta', $queja));
-    }
-
-    public function test_el_409_responde_json_cuando_se_pide(): void
-    {
-        $queja = $this->nueva(['tipo' => 'queja', 'bien_tipo' => null, 'bien_descripcion' => null, 'monto_bien' => null]);
-
-        $this->actingAs($this->admin)
-            ->postJson(route('admin.reclamaciones.gestionar', $queja), ['operacion' => 'propuesta', 'asunto' => 'A', 'cuerpo' => 'B'])
-            ->assertStatus(409)
-            ->assertJson(['message' => 'Las propuestas de solución solo aplican a reclamos.']);
     }
 
     public function test_rechazo_reanuda_el_plazo(): void
@@ -203,7 +193,7 @@ class ReclamacionGestionPanelTest extends TestCase
         $limiteAntes = $r->fecha_limite->toDateString();
 
         $this->gestionar($this->admin, $r, ['operacion' => 'rechazo', 'fecha_recepcion' => $r->suspension_desde->toDateString()])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
 
         $r->refresh();
         $this->assertNull($r->suspension_desde);
@@ -217,11 +207,11 @@ class ReclamacionGestionPanelTest extends TestCase
         $datos = ['operacion' => 'aceptacion', 'medio' => 'correo', 'constancia' => 'Acepto la propuesta.'];
 
         $this->gestionar($this->admin, $r, $datos + ['fecha_recepcion' => '2026-10-01'])
-            ->assertSessionHasErrors(['gestion' => 'La fecha de recepción está fuera de la ventana de la propuesta.']);
+            ->assertStatus(409)->assertJson(['message' => 'La fecha de recepción está fuera de la ventana de la propuesta.']);
         $this->assertSame('abierto', $r->fresh()->estado);
 
         $this->gestionar($this->admin, $r, $datos + ['fecha_recepcion' => $r->suspension_desde->toDateString()])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
         $this->assertSame('concluido_por_acuerdo', $r->fresh()->estado);
         $this->assertTrue($this->auditado('propuesta_aceptada', $r));
     }
@@ -231,11 +221,11 @@ class ReclamacionGestionPanelTest extends TestCase
         $r = $this->nueva();
 
         $this->gestionar($this->admin, $r, ['operacion' => 'respuesta', 'respuesta' => 'Respuesta formal.', 'canal' => 'carta'])
-            ->assertSessionHasErrors('constancia');
+            ->assertUnprocessable()->assertJsonValidationErrors('constancia');
         $this->assertSame('abierto', $r->fresh()->estado);
 
         $this->gestionar($this->admin, $r, ['operacion' => 'respuesta', 'respuesta' => 'Respuesta formal.', 'canal' => 'carta', 'constancia' => '27/10/2026, Olva, guía 123'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
         $r->refresh();
         $this->assertSame('respondido', $r->estado);
         $this->assertSame('Respuesta formal.', $r->respuesta);
@@ -247,7 +237,7 @@ class ReclamacionGestionPanelTest extends TestCase
         $r = $this->conPropuesta($this->nueva());
 
         $this->gestionar($this->admin, $r, ['operacion' => 'respuesta', 'respuesta' => 'T', 'canal' => 'carta', 'constancia' => 'Cargo'])
-            ->assertSessionHasErrors(['gestion' => 'Resuelve primero la propuesta pendiente.']);
+            ->assertStatus(409)->assertJson(['message' => 'Resuelve primero la propuesta pendiente.']);
         $this->assertSame('abierto', $r->fresh()->estado);
     }
 
@@ -260,17 +250,17 @@ class ReclamacionGestionPanelTest extends TestCase
         Queue::fake();
 
         $this->gestionar($this->admin, $r, ['operacion' => 'respuesta', 'respuesta' => 'Texto', 'canal' => 'correo'])
-            ->assertSessionHasErrors('confirmar_envio');
+            ->assertUnprocessable()->assertJsonValidationErrors('confirmar_envio');
         $this->gestionar($this->admin, $r, ['operacion' => 'propuesta', 'asunto' => 'A', 'cuerpo' => 'B'])
-            ->assertSessionHasErrors('confirmar_envio');
+            ->assertUnprocessable()->assertJsonValidationErrors('confirmar_envio');
         Queue::assertNothingPushed();
         $this->assertSame(0, ReclamacionEnvio::query()->where('reclamacion_id', $r->id)->whereIn('tipo', ['propuesta', 'respuesta'])->count());
 
         // La carta no envía correo: no exige confirmación aunque el correo esté activo.
-        $this->gestionar($this->admin, $r, ['operacion' => 'nota', 'nota' => 'Sin confirmación'])->assertSessionHasNoErrors();
+        $this->gestionar($this->admin, $r, ['operacion' => 'nota', 'nota' => 'Sin confirmación'])->assertOk();
 
         $this->gestionar($this->admin, $r, ['operacion' => 'respuesta', 'respuesta' => 'Texto', 'canal' => 'correo', 'confirmar_envio' => '1'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
         Queue::assertPushed(EnviarReclamacionCorreo::class);
         $this->assertSame('abierto', $r->fresh()->estado, 'Por correo el caso pasa a respondido solo cuando el correo se envía');
     }
@@ -288,72 +278,14 @@ class ReclamacionGestionPanelTest extends TestCase
         $this->habilitarReclamaciones(envio: true);
         Queue::fake();
         $this->gestionar($this->admin, $r, ['operacion' => 'reintento', 'envio_id' => $envio->id])
-            ->assertSessionHasErrors('confirmar_envio');
+            ->assertUnprocessable()->assertJsonValidationErrors('confirmar_envio');
         $this->assertSame('fallido', $envio->fresh()->estado);
 
         $this->gestionar($this->admin, $r, ['operacion' => 'reintento', 'envio_id' => $envio->id, 'confirmar_envio' => '1'])
-            ->assertRedirect(route('admin.reclamaciones.show', $r));
+            ->assertOk();
         $this->assertSame('pendiente', $envio->fresh()->estado);
         $this->assertSame(0, $envio->fresh()->intentos);
         Queue::assertPushed(EnviarReclamacionCorreo::class);
         $this->assertTrue($this->auditado('reintento', $r));
-    }
-
-    // --- Vista -------------------------------------------------------------------------------------------------
-
-    public function test_el_detalle_muestra_la_gestion_segun_el_estado(): void
-    {
-        $r = $this->nueva();
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.reclamaciones.show', $r))->assertOk()->getContent();
-
-        $this->assertStringContainsString('H. Gestión del caso', $html);
-        foreach (['gestion-responsable', 'gestion-tipo', 'gestion-nota', 'gestion-propuesta', 'gestion-respuesta'] as $modal) {
-            $this->assertStringContainsString('id="'.$modal.'"', $html, $modal);
-        }
-        foreach (['gestion-rechazo', 'gestion-aceptacion'] as $modal) {
-            $this->assertStringNotContainsString('id="'.$modal.'"', $html, "{$modal} solo con propuesta pendiente");
-        }
-        $this->assertStringContainsString('data-aviso-correo-inactivo', $html);
-        $this->assertStringNotContainsString('data-aviso-correo-real', $html);
-
-        $this->conPropuesta($r);
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.reclamaciones.show', $r))->getContent();
-        foreach (['gestion-rechazo', 'gestion-aceptacion'] as $modal) {
-            $this->assertStringContainsString('id="'.$modal.'"', $html, $modal);
-        }
-        foreach (['gestion-propuesta', 'gestion-respuesta'] as $modal) {
-            $this->assertStringNotContainsString('id="'.$modal.'"', $html, "{$modal} no con propuesta pendiente");
-        }
-    }
-
-    public function test_con_el_correo_activo_se_avisa_del_envio_real(): void
-    {
-        $this->habilitarReclamaciones(envio: true);
-        $r = $this->nueva();
-
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.reclamaciones.show', $r))->getContent();
-        $this->assertStringContainsString('data-aviso-correo-real', $html);
-        $this->assertStringContainsString('Se enviará un correo real', $html);
-        $this->assertStringContainsString('name="confirmar_envio"', $html);
-    }
-
-    public function test_quien_solo_ve_no_recibe_la_seccion_de_gestion(): void
-    {
-        $lector = $this->usuarioConPermisos('coordinador', ['reclamaciones.ver']);
-        $r = $this->nueva();
-
-        $html = (string) $this->actingAs($lector)->get(route('admin.reclamaciones.show', $r))->assertOk()->getContent();
-        $this->assertStringNotContainsString('H. Gestión del caso', $html);
-        $this->assertStringNotContainsString(route('admin.reclamaciones.gestionar', $r), $html);
-    }
-
-    public function test_un_error_reabre_el_modal_de_su_operacion(): void
-    {
-        $r = $this->nueva();
-        $this->gestionar($this->admin, $r, ['operacion' => 'nota', 'nota' => ''])->assertSessionHasErrors('nota');
-
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.reclamaciones.show', $r))->getContent();
-        $this->assertMatchesRegularExpression('#<dialog\s+id="gestion-nota"\s+data-admin-modal\s+data-auto-open#', $html);
-        $this->assertDoesNotMatchRegularExpression('#<dialog\s+id="gestion-tipo"\s+data-admin-modal\s+data-auto-open#', $html);
     }
 }

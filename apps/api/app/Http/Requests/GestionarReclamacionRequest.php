@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Validación de las operaciones de gestión del panel sobre una reclamación (E4,
- * `POST admin/reclamaciones/{uuid}/gestion`). El campo `operacion` selecciona las reglas y el permiso; una
+ * `POST /api/panel/v1/compartido/reclamaciones/{uuid}/gestion`). El campo `operacion` selecciona las reglas y el permiso; una
  * operación desconocida no se autoriza (403). No existen operaciones de edición ni eliminación: los datos del
  * consumidor son inmutables. El servicio {@see GestionReclamaciones} vuelve a comprobar permiso,
  * estado y reglas bajo bloqueo: este request solo filtra la entrada.

@@ -37,6 +37,7 @@ class AdminModulosRetiradosTest extends TestCase
             'cursos' => ['admin.cursos.index', '/admin/academico/cursos'],
             'matriculas' => ['admin.matriculas.index', '/admin/academico/matriculas'],
             'auditoria' => ['admin.auditoria.index', '/admin/auditoria'],
+            'reclamaciones' => ['admin.reclamaciones.index', '/admin/reclamaciones'],
         ];
     }
 
@@ -65,6 +66,17 @@ class AdminModulosRetiradosTest extends TestCase
         $this->actingAs($this->adminUser());
         $this->post('/admin/reportes/exportar/excel')->assertNotFound();
         $this->post('/admin/reportes/exportar/pdf')->assertNotFound();
+    }
+
+    public function test_el_expediente_y_la_hoja_antiguos_redirigen_a_next_y_la_gestion_ya_no_existe(): void
+    {
+        $uuid = '6f1b7f9e-2c1a-4b8e-9d1f-1a2b3c4d5e6f';
+        $this->actingAs($this->adminUser());
+
+        $this->get(route('admin.reclamaciones.show', $uuid))->assertRedirect(self::WEB.'/admin/reclamaciones/'.$uuid);
+        $this->get(route('admin.reclamaciones.hoja', $uuid))->assertRedirect(self::WEB.'/admin/reclamaciones/'.$uuid.'/hoja');
+        $this->get('/admin/reclamaciones/no-es-uuid')->assertNotFound();
+        $this->post('/admin/reclamaciones/'.$uuid.'/gestion', ['operacion' => 'nota', 'nota' => 'x'])->assertNotFound();
     }
 
     public function test_la_exportacion_de_auditoria_ya_no_existe_en_blade(): void
