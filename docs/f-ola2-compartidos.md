@@ -131,3 +131,51 @@ la extracción no cambió nada.
 **Next:** la navegación de ambos paneles añade «Usuarios» (`usuarios.ver`) y «Roles y permisos» (`roles.ver`) en
 «Sistema»; los botones solo aparecen con el permiso correspondiente (ayuda visual: Laravel vuelve a comprobar). La
 sección de roles del formulario de usuario aparece con `usuarios.asignar-roles`.
+
+## 2.4 Reclamaciones (Libro de Reclamaciones)
+
+| Blade (se mantiene) | API del panel | Página Next |
+| --- | --- | --- |
+| `GET /admin/reclamaciones` (`reclamaciones.ver`) | `GET /compartido/reclamaciones` (`busqueda`, `tipo`, `estado`, `desde`, `hasta`, `page`, `per_page`, `sort=±recibida\|limite\|numero`; `meta.metricas`) | `/admin/{panel}/reclamaciones` |
+| `GET /admin/reclamaciones/{uuid}` | `GET /compartido/reclamaciones/{uuid}` (`data` + `meta`: aviso de plazo, responsables, permisos) | `/admin/{panel}/reclamaciones/{uuid}` |
+| `GET /admin/reclamaciones/{uuid}/hoja` | `GET /compartido/reclamaciones/{uuid}/hoja` (texto oficial y respuesta) | `/admin/{panel}/reclamaciones/{uuid}/hoja` |
+| `POST /admin/reclamaciones/{uuid}/gestion` (`reclamaciones.gestionar` o `.responder`) | `POST /compartido/reclamaciones/{uuid}/gestion` | formulario «Gestión del caso» y «Reintentar» |
+
+**Una sola implementación.** Se extrajo, sin cambiar su comportamiento, lo que vivía en el controlador Blade:
+
+- `App\Support\ConsultaReclamaciones`: validación de filtros, búsqueda sin comodines, días completos en hora de Lima,
+  nombres de filtros usados para la constancia y métricas de la bandeja.
+- `App\Services\OperacionesReclamacion`: despacho de la operación de gestión, mensajes, comprobación de que un envío
+  pertenece a la reclamación y lista de responsables.
+
+Las reglas del libro siguen en `GestionReclamaciones`, que no se tocó. El Blade quedó delgado y sus 153 pruebas siguen en
+verde sin cambios.
+
+**Datos personales.** Toda respuesta va con `Cache-Control: no-store, private`. La representación es una lista cerrada:
+el id interno no sale (el identificador público es el UUID), nunca el `token_envio`, cuerpos de correo, claves de
+idempotencia ni identificadores del proveedor, y el destinatario de un correo se muestra enmascarado. El listado no
+incluye contacto, documento ni domicilio del consumidor: solo el expediente, con `reclamaciones.ver`. Cada acceso deja su
+constancia con la misma acción que el Blade (`consultada`, `impresa`, `bandeja_consultada`); la de la bandeja guarda los
+nombres de los filtros y nunca lo buscado. Una denegación no deja constancia de lectura.
+
+**Permisos finos.** `reclamaciones.gestionar` (responsable, tipo, nota, propuesta, rechazo, reintento) y
+`reclamaciones.responder` (aceptación y respuesta formal) son independientes; el request y el servicio los vuelven a
+comprobar. Con el correo del libro activo, propuesta, respuesta por correo y reintento exigen `confirmar_envio`. Un 409
+(el caso ya no admite la operación) se devuelve con el mensaje fijo del servicio.
+
+**Hoja imprimible.** El texto oficial lo compone `HojaReclamacion::cuerpo()` (el mismo que se guarda como copia al
+consumidor) y Next lo muestra con escape normal. La vista de impresión es A4 con `@page`: oculta todo salvo la hoja, repite
+el número de expediente desde la segunda página y numera «Página X de Y». Pendiente de revisión visual en un navegador
+real; el Blade conserva su hoja independiente.
+
+**BFF:** una sola entrada nueva en `OPERACIONES` (`POST compartido/reclamaciones/{uuid}/gestion`, 13 campos escalares).
+
+**Pruebas:** `Panel\ReclamacionesPanelTest` (16): acceso y permisos sin constancia si se deniega, gestionar frente a
+responder, UUID inválido, filtros y métricas, rango de fechas, listado sin datos personales ni id interno, constancia de
+bandeja sin valores, expediente completo, correo enmascarado y sin cuerpos, representante del menor, hoja con su
+constancia, respuesta por carta y 409, propuesta a una queja, responsable, validaciones, confirmación del correo y
+reintento solo desde su reclamación. Las pruebas Blade (`AdminReclamacionesTest`, `GestionReclamacionesTest`,
+`ReclamacionGestionPanelTest`) se conservan.
+
+**Next:** «Reclamaciones» en la navegación de ambos paneles (`reclamaciones.ver`); las operaciones solo se ofrecen según
+`meta.puede_gestionar` y `meta.puede_responder` (ayuda visual: Laravel vuelve a comprobar).

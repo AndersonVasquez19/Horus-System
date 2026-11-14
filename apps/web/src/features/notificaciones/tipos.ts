@@ -61,3 +61,96 @@ export interface RolPanel {
   permisos: string[];
   usuarios: number;
 }
+
+export interface ReclamacionFila {
+  /** UUID público (el id interno no sale de Laravel). */
+  id: string;
+  numero: string;
+  tipo: 'queja' | 'reclamo';
+  estado: 'abierto' | 'respondido' | 'concluido_por_acuerdo';
+  consumidor: string;
+  recibida_local: string;
+  /** AAAA-MM-DD. */
+  fecha_limite: string;
+  plazo_suspendido: boolean;
+}
+
+export interface ActuacionReclamacion {
+  evento: string;
+  etiqueta: string;
+  fecha_local: string;
+  actor: string;
+  transicion: { de: string; a: string } | null;
+  detalles: string[];
+  nota: string | null;
+}
+
+export interface EnvioReclamacion {
+  id: number;
+  tipo: string;
+  canal: string;
+  /** Correo ya enmascarado por Laravel. */
+  destinatario: string;
+  fecha_local: string | null;
+  fecha_es_de_envio: boolean;
+  estado: string;
+  estado_etiqueta: string;
+  intentos: number;
+  error_codigo: string | null;
+  constancia: string | null;
+  reintentable: boolean;
+}
+
+export interface ExpedienteReclamacion {
+  id: string;
+  numero: string;
+  tipo: 'queja' | 'reclamo';
+  estado: 'abierto' | 'respondido' | 'concluido_por_acuerdo';
+  canal: string;
+  numero_hoja_respaldo: string | null;
+  canal_respuesta: string;
+  recibida_local: string;
+  fecha_limite: string;
+  suspension_desde: string | null;
+  suspension_hasta: string | null;
+  respondida_local: string | null;
+  respuesta: string | null;
+  responsable: { id: number; nombre: string | null } | null;
+  consumidor: {
+    nombres: string;
+    apellidos: string;
+    tipo_documento: string;
+    numero_documento: string;
+    domicilio: string;
+    telefono: string;
+    email: string;
+    es_menor: boolean;
+    representante: { nombre: string | null; domicilio: string | null; telefono: string | null; email: string | null } | null;
+  };
+  bien: { tipo: string | null; descripcion: string | null; monto: string | null };
+  detalle: string;
+  pedido: string;
+  historial: ActuacionReclamacion[];
+  envios: EnvioReclamacion[];
+}
+
+export interface MetaExpediente {
+  aviso_plazo: 'por_vencer' | 'vence' | null;
+  propuesta_vencida: boolean;
+  correo_activo: boolean;
+  responsables: { id: number; name: string }[];
+  puede_gestionar: boolean;
+  puede_responder: boolean;
+}
+
+export interface HojaReclamacionDatos {
+  id: string;
+  numero: string;
+  tipo: 'queja' | 'reclamo';
+  canal: string;
+  canal_etiqueta: string;
+  texto_oficial: string;
+  respuesta: string | null;
+  respondida_local: string | null;
+  impresa_local: string;
+}

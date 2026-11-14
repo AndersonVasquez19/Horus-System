@@ -49,6 +49,15 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         Route::post('auditoria/exportar', [Compartido\AuditoriaController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('auditoria.exportar');
 
+        // Libro de Reclamaciones: datos personales; el permiso lo declara el controlador y la lógica es la del Blade.
+        Route::get('reclamaciones', [Compartido\ReclamacionController::class, 'index'])->name('reclamaciones.index');
+        Route::get('reclamaciones/{reclamacion:identificador}', [Compartido\ReclamacionController::class, 'show'])
+            ->whereUuid('reclamacion')->name('reclamaciones.show');
+        Route::get('reclamaciones/{reclamacion:identificador}/hoja', [Compartido\ReclamacionController::class, 'hoja'])
+            ->whereUuid('reclamacion')->name('reclamaciones.hoja');
+        Route::post('reclamaciones/{reclamacion:identificador}/gestion', [Compartido\ReclamacionController::class, 'gestionar'])
+            ->middleware('throttle:admin-write')->whereUuid('reclamacion')->name('reclamaciones.gestionar');
+
         // Usuarios y roles: el permiso lo declara cada controlador; la lógica (R1 a R4, último administrador) es la de
         // `GestionUsuarios` y `GestionRoles`, compartida con el Blade.
         Route::get('usuarios', [Compartido\UsuarioController::class, 'index'])->name('usuarios.index');

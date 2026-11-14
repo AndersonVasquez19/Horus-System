@@ -55,6 +55,7 @@ const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estad
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
 const SESION = '[a-f0-9]{32}';
+const CAMPOS_GESTION_RECLAMACION = ['operacion', 'responsable_id', 'tipo', 'nota', 'asunto', 'cuerpo', 'fecha_recepcion', 'medio', 'constancia', 'respuesta', 'canal', 'envio_id', 'confirmar_envio'] as const;
 const CAMPOS_USUARIO = ['name', 'email', 'password', 'password_confirmation'] as const;
 
 export const OPERACIONES: readonly Operacion[] = [
@@ -64,6 +65,7 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^compartido/notificaciones/${ID}/leida$`) },
   { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
   { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta'], archivo: ['application/json'] },
+  { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones/${UUID}/gestion$`), campos: CAMPOS_GESTION_RECLAMACION },
   { metodo: 'POST', patron: /^compartido\/usuarios$/, campos: CAMPOS_USUARIO, listas: ['roles'] },
   { metodo: 'PUT', patron: new RegExp(`^compartido/usuarios/${ID}$`), campos: CAMPOS_USUARIO, listas: ['roles'] },
   { metodo: 'DELETE', patron: new RegExp(`^compartido/usuarios/${ID}$`) },

@@ -21,6 +21,7 @@ const NAVEGACION: ModeloNavegacion = [
     id: 'sistema',
     etiqueta: 'Sistema',
     elementos: [
+      { id: 'reclamaciones', etiqueta: 'Reclamaciones', href: '/admin/servicios/reclamaciones', icono: 'registros', permisosRequeridos: ['reclamaciones.ver'] },
       { id: 'usuarios', etiqueta: 'Usuarios', href: '/admin/servicios/usuarios', icono: 'personas', permisosRequeridos: ['usuarios.ver'] },
       { id: 'roles', etiqueta: 'Roles y permisos', href: '/admin/servicios/roles', icono: 'seguridad', permisosRequeridos: ['roles.ver'] },
       { id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/servicios/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] },
