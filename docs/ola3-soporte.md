@@ -42,7 +42,7 @@ añadió una nota y si era interna, nunca su texto.
 Migración `000052` (permisos `soporte.ver|crear|gestionar`, solo `admin`; no resincroniza roles) y `000053` (`tickets_soporte` y
 `ticket_notas`; sin cascadas: un cliente con tickets no se elimina y las notas no se borran). El código usa `secuencias_codigo`
 (`App\Support\CodigoSecuencial`, compartido con Proyectos). Los `CHECK` de estado, prioridad, canal y la coherencia de
-`resuelto_at` y `cerrado_at` **solo se crean en PostgreSQL y están sin ejecutar**; en SQLite los valida el servicio.
+`resuelto_at` y `cerrado_at` **solo se crean en PostgreSQL y se validaron allí el 15/11/2026** (`docs/ola3-postgresql.md`); en SQLite los valida el servicio.
 
 **Auditoría sin datos personales:** `ticket_creado` (revisión y prioridad), `ticket_actualizado`, `ticket_estado_cambiado` (revisión,
 estado anterior y nuevo), `ticket_asignado` y `ticket_nota_agregada` (solo si es interna): nunca asunto, descripción, notas ni datos del cliente.
@@ -62,7 +62,7 @@ privacidad) y `Panel\SoporteMigracionTest` (4).
 
 ## Pendiente de este módulo
 
-- **PostgreSQL:** `CHECK`, claves foráneas y la concurrencia del contador de códigos, sin ejecutar.
+- **PostgreSQL:** validado el 15/11/2026 en el clúster aislado; ver `docs/ola3-postgresql.md`.
 - **SLA configurable:** el diseño lo prevé en `system_settings`; queda como constante hasta decidirlo.
 - **Next:** sin runner de pruebas; revisar en un navegador con sesión real.
 - **Defaults aplicados sin consultar:** un ticket nace sin asignar; no hay cancelación (un ticket inválido se resuelve con nota); el cliente ve nada: no hay portal.

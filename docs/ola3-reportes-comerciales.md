@@ -64,7 +64,7 @@ opciones de responsable) y `Panel\ReportesComercialesMigracionTest` (1: permisos
 ## Pendiente de este módulo
 
 - **PDF** de los reportes (ver arriba).
-- **PostgreSQL:** las consultas agregadas (`whereDate`, sumas y `GROUP BY`) se probaron solo en SQLite; el tiempo medio se calcula en PHP.
+- **PostgreSQL:** validado el 15/11/2026 en el clúster aislado; ver `docs/ola3-postgresql.md`.
 - **Next:** sin runner de pruebas; revisar en un navegador con sesión real.
 - **Sin gráficos:** solo tarjetas y repartos; si se quieren barras (hay `grafico-barras`), es un añadido de presentación.
 - **Defaults aplicados sin consultar:** el valor abierto es de hoy y no del periodo; el periodo por defecto son 30 días; no hay comparación con el periodo anterior.

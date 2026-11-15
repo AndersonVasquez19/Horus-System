@@ -39,7 +39,7 @@ empresa, con la persona de contacto como contacto principal) o vincula uno exist
 
 Migración `000046` (permisos `prospectos.ver|crear|editar|convertir`, solo `admin`; no resincroniza roles) y `000047` (tabla
 `prospectos`; la solicitud de cotización es `UNIQUE`: una solicitud, un prospecto; sin cascadas). Los `CHECK` de origen, estado, la
-coherencia «motivo si y solo si descartado» y «convertido tiene cliente» **solo se crean en PostgreSQL y están sin ejecutar**; en
+coherencia «motivo si y solo si descartado» y «convertido tiene cliente» **solo se crean en PostgreSQL y se validaron allí el 15/11/2026** (`docs/ola3-postgresql.md`); en
 SQLite los valida el servicio.
 
 **Auditoría sin datos personales:** `prospecto_creado` (revisión y origen), `prospecto_actualizado`, `prospecto_estado_actualizado`
@@ -60,6 +60,6 @@ todo o nada—, cotización idempotente y origen reservado) y `Panel\ProspectosM
 
 ## Pendiente de este módulo
 
-- **PostgreSQL:** `CHECK`, la restricción única con la cotización y la conversión concurrente, sin ejecutar.
+- **PostgreSQL:** validado el 15/11/2026 en el clúster aislado; ver `docs/ola3-postgresql.md`.
 - **Oportunidad al convertir:** con Pipeline (módulo 3).
 - **Next:** sin runner de pruebas; revisar en un navegador con sesión real.

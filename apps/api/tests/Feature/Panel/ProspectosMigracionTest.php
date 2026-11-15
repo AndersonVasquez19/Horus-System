@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RevierteCadenaCrm;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 final class ProspectosMigracionTest extends TestCase
 {
     use RefreshDatabase;
+    use RevierteCadenaCrm;
 
     private function permisos(): Migration
     {
@@ -83,10 +85,7 @@ final class ProspectosMigracionTest extends TestCase
 
     public function test_el_down_quita_la_tabla(): void
     {
-        $tabla = require database_path('migrations/2026_11_15_000047_create_prospectos_table.php');
-        $tabla->down();
-        $this->assertFalse(Schema::hasTable('prospectos'));
-        $tabla->up();
+        $this->revertirYRestaurar('2026_11_15_000047_create_prospectos_table', fn () => $this->assertFalse(Schema::hasTable('prospectos')));
         $this->assertTrue(Schema::hasTable('prospectos'));
     }
 }

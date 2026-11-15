@@ -47,7 +47,7 @@ proyecto cerrado no se tocan hitos (409). Los hitos se identifican por UUID; el 
 
 Migración `000050` (permisos `proyectos.ver|crear|editar`, solo `admin`; no resincroniza roles) y `000051` (`secuencias_codigo`,
 `proyectos` y `proyecto_hitos`; sin cascadas: un cliente con proyectos no se elimina). Los `CHECK` de estado, presupuesto ≥ 0, fechas
-coherentes y «fin real si y solo si completado» **solo se crean en PostgreSQL y están sin ejecutar**; en SQLite los valida el
+coherentes y «fin real si y solo si completado» **solo se crean en PostgreSQL y se validaron allí el 15/11/2026** (`docs/ola3-postgresql.md`); en SQLite los valida el
 servicio. La moneda es `PEN`.
 
 **Auditoría sin datos personales:** `proyecto_creado` (revisión e indicador de origen), `proyecto_actualizado`,
@@ -76,6 +76,6 @@ privacidad) y `Panel\ProyectosMigracionTest` (4: permisos, forma de las tablas, 
 
 ## Pendiente de este módulo
 
-- **PostgreSQL:** `CHECK`, claves foráneas, unicidad y la concurrencia del contador de códigos, sin ejecutar.
+- **PostgreSQL:** validado el 15/11/2026 en el clúster aislado; ver `docs/ola3-postgresql.md`.
 - **Next:** sin runner de pruebas; revisar en un navegador con sesión real.
 - **Defaults aplicados sin consultar:** moneda única `PEN`; completar un proyecto no exige hitos terminados; los hitos no se reordenan.

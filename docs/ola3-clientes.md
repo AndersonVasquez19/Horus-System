@@ -32,8 +32,7 @@ Toda respuesta lleva `Cache-Control: no-store, private`.
 
 Migración `000043` (permisos `clientes.ver|crear|editar`, solo `admin`; no resincroniza roles) y `000044` (`clientes` y
 `cliente_contactos`; responsable con `ON DELETE SET NULL`, contactos con `RESTRICT`). Los `CHECK` de tipo, estado, documento y
-«un solo contacto principal» (índice parcial) **solo se crean en PostgreSQL** y están **sin ejecutar** (requieren autorización y
-el clúster aislado); en SQLite los valida el servicio.
+«un solo contacto principal» (índice parcial) **solo se crean en PostgreSQL** y se validaron allí el 15/11/2026 (`docs/ola3-postgresql.md`); en SQLite los valida el servicio.
 
 ## Next
 
@@ -69,5 +68,5 @@ el expediente.
 
 - **Archivado** (`softDeletes` ya está en la tabla): llega con Proyectos y Soporte, cuando existan dependencias que comprobar;
   mientras tanto un cliente se inactiva.
-- **PostgreSQL:** `CHECK`, índice parcial, la clave foránea de cotizaciones y el bloqueo de concurrencia, sin ejecutar.
+- **PostgreSQL:** validado el 15/11/2026 en el clúster aislado; ver `docs/ola3-postgresql.md`.
 - **Next:** sin runner de pruebas; revisar en un navegador con sesión real.

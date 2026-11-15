@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RevierteCadenaCrm;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 final class ProyectosMigracionTest extends TestCase
 {
     use RefreshDatabase;
+    use RevierteCadenaCrm;
 
     private function permisos(): Migration
     {
@@ -69,7 +71,7 @@ final class ProyectosMigracionTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $oportunidad = DB::table('oportunidades')->insertGetId([
-            'identificador' => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'cliente_id' => $cliente, 'titulo' => 'x', 'etapa' => 'ganada', 'revision' => 1,
+            'identificador' => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'cliente_id' => $cliente, 'titulo' => 'x', 'etapa' => 'ganada', 'cerrada_at' => now(), 'revision' => 1,
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $fila = fn (string $uuid, string $codigo, ?int $op): array => [
@@ -83,13 +85,13 @@ final class ProyectosMigracionTest extends TestCase
         DB::table('proyectos')->insert($fila('ffffffff-ffff-4fff-8fff-ffffffffffff', 'PRY-2026-0003', null));
 
         try {
-            DB::table('proyectos')->insert($fila('11111111-1111-4111-8111-111111111111', 'PRY-2026-0004', $oportunidad));
+            DB::transaction(fn () => DB::table('proyectos')->insert($fila('11111111-1111-4111-8111-111111111111', 'PRY-2026-0004', $oportunidad)));
             $this->fail('Una oportunidad solo da un proyecto.');
         } catch (QueryException) {
             $this->assertSame(3, DB::table('proyectos')->count());
         }
         try {
-            DB::table('proyectos')->insert($fila('22222222-2222-4222-8222-222222222222', 'PRY-2026-0001', null));
+            DB::transaction(fn () => DB::table('proyectos')->insert($fila('22222222-2222-4222-8222-222222222222', 'PRY-2026-0001', null)));
             $this->fail('El código es único.');
         } catch (QueryException) {
             $this->assertSame(3, DB::table('proyectos')->count());
@@ -102,12 +104,11 @@ final class ProyectosMigracionTest extends TestCase
 
     public function test_el_down_quita_las_tablas(): void
     {
-        $tablas = require database_path('migrations/2026_11_15_000051_create_proyectos_tables.php');
-        $tablas->down();
-        foreach (['proyectos', 'proyecto_hitos', 'secuencias_codigo'] as $tabla) {
-            $this->assertFalse(Schema::hasTable($tabla));
-        }
-        $tablas->up();
+        $this->revertirYRestaurar('2026_11_15_000051_create_proyectos_tables', function (): void {
+            foreach (['proyectos', 'proyecto_hitos', 'secuencias_codigo'] as $tabla) {
+                $this->assertFalse(Schema::hasTable($tabla));
+            }
+        });
         $this->assertTrue(Schema::hasTable('proyectos'));
     }
 }

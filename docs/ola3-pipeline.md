@@ -39,7 +39,7 @@ cliente, oportunidad ni cambio de estado. Repetir la conversión no abre una seg
 
 Migración `000048` (permisos `pipeline.ver|gestionar`, solo `admin`; no resincroniza roles) y `000049` (`oportunidades` y
 `oportunidad_historial`; sin cascadas: un cliente con oportunidades no se elimina). Los `CHECK` de etapa, probabilidad 0–100, monto
-≥ 0, «motivo si y solo si perdida» y «`cerrada_at` si y solo si cerrada» **solo se crean en PostgreSQL y están sin ejecutar**; en
+≥ 0, «motivo si y solo si perdida» y «`cerrada_at` si y solo si cerrada» **solo se crean en PostgreSQL y se validaron allí el 15/11/2026** (`docs/ola3-postgresql.md`); en
 SQLite los valida el servicio. La moneda es `PEN`.
 
 **Auditoría sin datos personales:** `oportunidad_creada`, `oportunidad_actualizada`, `oportunidad_etapa_cambiada`, `oportunidad_ganada`,
@@ -63,6 +63,6 @@ permiso y con validación) y `Panel\OportunidadesMigracionTest` (4: permisos, fo
 
 ## Pendiente de este módulo
 
-- **PostgreSQL:** `CHECK`, claves foráneas y la concurrencia de cambios de etapa, sin ejecutar.
+- **PostgreSQL:** validado el 15/11/2026 en el clúster aislado; ver `docs/ola3-postgresql.md`.
 - **Next:** sin runner de pruebas; revisar el arrastre y el tablero en un navegador con sesión real.
 - **Sin decidir (defaults aplicados):** moneda única `PEN`; no se retrocede de etapa; reabrir vuelve a `nueva`.

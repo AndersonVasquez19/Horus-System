@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RevierteCadenaCrm;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 final class SoporteMigracionTest extends TestCase
 {
     use RefreshDatabase;
+    use RevierteCadenaCrm;
 
     private function permisos(): Migration
     {
@@ -73,16 +75,18 @@ final class SoporteMigracionTest extends TestCase
         ];
         $ticket = DB::table('tickets_soporte')->insertGetId($fila('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'SOP-2026-0001'));
         DB::table('ticket_notas')->insert(['ticket_id' => $ticket, 'interna' => true, 'texto' => 'x', 'created_at' => now()]);
-        DB::statement('PRAGMA foreign_keys = ON');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
 
         try {
-            DB::table('tickets_soporte')->insert($fila('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'SOP-2026-0001'));
+            DB::transaction(fn () => DB::table('tickets_soporte')->insert($fila('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'SOP-2026-0001')));
             $this->fail('El código es único.');
         } catch (QueryException) {
             $this->assertSame(1, DB::table('tickets_soporte')->count());
         }
         try {
-            DB::table('tickets_soporte')->where('id', $ticket)->delete();
+            DB::transaction(fn () => DB::table('tickets_soporte')->where('id', $ticket)->delete());
             $this->fail('Las notas deben impedir borrar el ticket.');
         } catch (QueryException) {
             $this->assertSame(1, DB::table('ticket_notas')->count());
@@ -93,11 +97,10 @@ final class SoporteMigracionTest extends TestCase
 
     public function test_el_down_quita_las_tablas(): void
     {
-        $tablas = require database_path('migrations/2026_11_15_000053_create_tickets_soporte_tables.php');
-        $tablas->down();
-        $this->assertFalse(Schema::hasTable('tickets_soporte'));
-        $this->assertFalse(Schema::hasTable('ticket_notas'));
-        $tablas->up();
+        $this->revertirYRestaurar('2026_11_15_000053_create_tickets_soporte_tables', function (): void {
+            $this->assertFalse(Schema::hasTable('tickets_soporte'));
+            $this->assertFalse(Schema::hasTable('ticket_notas'));
+        });
         $this->assertTrue(Schema::hasTable('tickets_soporte'));
     }
 }

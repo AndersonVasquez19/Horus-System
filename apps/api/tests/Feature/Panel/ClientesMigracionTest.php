@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RevierteCadenaCrm;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 final class ClientesMigracionTest extends TestCase
 {
     use RefreshDatabase;
+    use RevierteCadenaCrm;
 
     private function permisos(): Migration
     {
@@ -77,11 +79,10 @@ final class ClientesMigracionTest extends TestCase
         $this->assertTrue(Schema::hasColumns('clientes', ['identificador', 'tipo', 'nombre', 'documento_tipo', 'documento_numero', 'email', 'estado', 'responsable_id', 'revision', 'deleted_at']));
         $this->assertTrue(Schema::hasColumns('cliente_contactos', ['cliente_id', 'nombre', 'cargo', 'email', 'telefono', 'principal']));
 
-        $this->tablas()->down();
-        $this->assertFalse(Schema::hasTable('clientes'));
-        $this->assertFalse(Schema::hasTable('cliente_contactos'));
-
-        $this->tablas()->up();
+        $this->revertirYRestaurar('2026_11_15_000044_create_clientes_tables', function (): void {
+            $this->assertFalse(Schema::hasTable('clientes'));
+            $this->assertFalse(Schema::hasTable('cliente_contactos'));
+        });
         $this->assertTrue(Schema::hasTable('clientes'));
     }
 
@@ -108,7 +109,9 @@ final class ClientesMigracionTest extends TestCase
         ]);
         DB::table('cliente_contactos')->insert(['cliente_id' => $id, 'nombre' => 'Contacto', 'principal' => true, 'created_at' => now(), 'updated_at' => now()]);
 
-        DB::statement('PRAGMA foreign_keys = ON');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
         $this->expectException(QueryException::class);
         DB::table('clientes')->where('id', $id)->delete();
     }

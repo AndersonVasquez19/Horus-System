@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RevierteCadenaCrm;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 final class OportunidadesMigracionTest extends TestCase
 {
     use RefreshDatabase;
+    use RevierteCadenaCrm;
 
     private function permisos(): Migration
     {
@@ -72,16 +74,18 @@ final class OportunidadesMigracionTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('oportunidad_historial')->insert(['oportunidad_id' => $oportunidad, 'etapa_nueva' => 'nueva', 'created_at' => now()]);
-        DB::statement('PRAGMA foreign_keys = ON');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
 
         try {
-            DB::table('oportunidades')->where('id', $oportunidad)->delete();
+            DB::transaction(fn () => DB::table('oportunidades')->where('id', $oportunidad)->delete());
             $this->fail('El historial debe impedir borrar la oportunidad.');
         } catch (QueryException) {
             $this->assertSame(1, DB::table('oportunidad_historial')->count());
         }
         try {
-            DB::table('clientes')->where('id', $cliente)->delete();
+            DB::transaction(fn () => DB::table('clientes')->where('id', $cliente)->delete());
             $this->fail('Las oportunidades deben impedir borrar el cliente.');
         } catch (QueryException) {
             $this->assertSame(1, DB::table('oportunidades')->count());
@@ -90,11 +94,10 @@ final class OportunidadesMigracionTest extends TestCase
 
     public function test_el_down_quita_las_tablas(): void
     {
-        $tablas = require database_path('migrations/2026_11_15_000049_create_oportunidades_tables.php');
-        $tablas->down();
-        $this->assertFalse(Schema::hasTable('oportunidades'));
-        $this->assertFalse(Schema::hasTable('oportunidad_historial'));
-        $tablas->up();
+        $this->revertirYRestaurar('2026_11_15_000049_create_oportunidades_tables', function (): void {
+            $this->assertFalse(Schema::hasTable('oportunidades'));
+            $this->assertFalse(Schema::hasTable('oportunidad_historial'));
+        });
         $this->assertTrue(Schema::hasTable('oportunidades'));
     }
 }
