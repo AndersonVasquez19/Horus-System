@@ -164,6 +164,14 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-opciones')->name('clientes.opciones.responsables');
         Route::get('clientes/{identificador}', [Servicios\ClienteController::class, 'show'])->name('clientes.show');
 
+        // Prospectos (Ola 3): datos personales; rol admin y permisos `prospectos.*` los declara el controlador.
+        Route::get('prospectos', [Servicios\ProspectoController::class, 'index'])->name('prospectos.index');
+        Route::get('prospectos/opciones/responsables', [Servicios\ProspectoController::class, 'opcionesResponsables'])
+            ->middleware('throttle:admin-opciones')->name('prospectos.opciones.responsables');
+        Route::get('prospectos/opciones/servicios', [Servicios\ProspectoController::class, 'opcionesServicios'])
+            ->middleware('throttle:admin-opciones')->name('prospectos.opciones.servicios');
+        Route::get('prospectos/{identificador}', [Servicios\ProspectoController::class, 'show'])->name('prospectos.show');
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
             Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
@@ -185,6 +193,13 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::post('cotizaciones/{identificador}/responsable', [Servicios\CotizacionController::class, 'responsable'])->name('cotizaciones.responsable');
             Route::post('cotizaciones/{identificador}/seguimientos', [Servicios\CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento');
             Route::post('cotizaciones/{identificador}/cliente', [Servicios\CotizacionController::class, 'cliente'])->name('cotizaciones.cliente');
+
+            Route::post('prospectos', [Servicios\ProspectoController::class, 'store'])->name('prospectos.store');
+            Route::put('prospectos/{identificador}', [Servicios\ProspectoController::class, 'update'])->name('prospectos.update');
+            Route::post('prospectos/{identificador}/estado', [Servicios\ProspectoController::class, 'estado'])->name('prospectos.estado');
+            Route::post('prospectos/{identificador}/responsable', [Servicios\ProspectoController::class, 'responsable'])->name('prospectos.responsable');
+            Route::post('prospectos/{identificador}/convertir', [Servicios\ProspectoController::class, 'convertir'])->name('prospectos.convertir');
+            Route::post('cotizaciones/{identificador}/prospecto', [Servicios\ProspectoController::class, 'desdeCotizacion'])->name('cotizaciones.prospecto');
 
             Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
             Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');

@@ -144,3 +144,35 @@ export interface ClienteDetalle {
   creado_en: string | null;
   revision: string;
 }
+
+export interface ProspectoResumen {
+  identificador: string;
+  nombre_contacto: string;
+  empresa: string | null;
+  /** Correo enmascarado. */
+  email: string | null;
+  origen: 'web' | 'cotizacion' | 'referido' | 'evento' | 'llamada' | 'otro';
+  estado: 'nuevo' | 'contactado' | 'calificado' | 'descartado' | 'convertido';
+  servicio_interes: string | null;
+  responsable: string | null;
+  proximo_seguimiento: string | null;
+}
+
+export interface ProspectoDetalle {
+  identificador: string;
+  nombre_contacto: string;
+  empresa: string | null;
+  email: string | null;
+  telefono: string | null;
+  origen: ProspectoResumen['origen'];
+  estado: ProspectoResumen['estado'];
+  motivo_descarte: string | null;
+  servicio_interes: { identificador: string; nombre: string } | null;
+  responsable: { id: number; nombre: string } | null;
+  proximo_seguimiento: string | null;
+  /** Solo se entrega a quien puede consultar clientes. */
+  cliente: { identificador: string; nombre: string } | null;
+  desde_cotizacion: boolean;
+  creado_en: string | null;
+  revision: string;
+}

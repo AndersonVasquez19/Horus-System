@@ -26,16 +26,21 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'pagada':
     case 'aprobado':
     case 'publicada':
+    case 'calificado':
+    case 'convertido':
       return 'verde';
     case 'pendiente':
     case 'inactivo':
     case 'borrador':
     case 'recibida':
+    case 'contactado':
       return 'ambar';
     case 'en_revision':
+    case 'nuevo':
       return 'azul';
     case 'anulada':
     case 'rechazado':
+    case 'descartado':
       return 'rojo';
     default:
       return 'gris';

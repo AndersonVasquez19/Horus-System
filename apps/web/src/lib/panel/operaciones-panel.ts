@@ -67,6 +67,7 @@ const CAMPOS_TARJETA = ['titulo', 'descripcion', 'caracteristicas', 'variante_im
 const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_email', 'contacto_telefono', 'servicio_uuid', '_revision', '_clave'] as const;
 const CAMPOS_CLIENTE = ['tipo', 'nombre', 'documento_tipo', 'documento_numero', 'email', 'telefono', 'direccion', '_revision'] as const;
+const CAMPOS_PROSPECTO = ['nombre_contacto', 'empresa', 'email', 'telefono', 'origen', 'servicio_interes', 'proximo_seguimiento', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -145,6 +146,15 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: new RegExp(`^servicios/clientes/${UUID}$`), campos: CAMPOS_CLIENTE, contactos: true },
   { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/estado$`), campos: ['estado', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
+
+  // Prospectos (CRM)
+  { metodo: 'GET', patron: /^servicios\/prospectos\/opciones\/(responsables|servicios)$/ },
+  { metodo: 'POST', patron: /^servicios\/prospectos$/, campos: CAMPOS_PROSPECTO },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/prospectos/${UUID}$`), campos: CAMPOS_PROSPECTO },
+  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/estado$`), campos: ['estado', 'motivo_descarte', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/convertir$`), campos: ['cliente', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/prospecto$`) },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },

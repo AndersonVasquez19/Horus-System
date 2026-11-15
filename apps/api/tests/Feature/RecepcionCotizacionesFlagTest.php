@@ -158,7 +158,7 @@ class RecepcionCotizacionesFlagTest extends TestCase
         $antiguas = $rutas->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'admin/cotizaciones'));
         $this->assertCount(1, $antiguas, 'Solo queda la redirección a Next.');
         $this->assertSame(['GET', 'HEAD'], $antiguas->first()->methods());
-        // 9 + `POST …/{id}/cliente` (vínculo con clientes, Ola 3).
-        $this->assertCount(10, $rutas->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'api/panel/v1/servicios/cotizaciones')));
+        // 9 + `POST …/{id}/cliente` (clientes) + `POST …/{id}/prospecto` (prospectos), Ola 3.
+        $this->assertCount(11, $rutas->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'api/panel/v1/servicios/cotizaciones')));
     }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardPlus, Link2, MessageSquarePlus, Pencil, Search, UserCheck } from 'lucide-react';
+import { ClipboardPlus, Link2, MessageSquarePlus, Pencil, Search, UserCheck, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -158,6 +158,7 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
   const puedeGestionar = usePuede('cotizaciones.gestionar');
   const puedeVerClientes = usePuede('clientes.ver');
   const puedeCrearClientes = usePuede('clientes.crear');
+  const puedeCrearProspectos = usePuede('prospectos.crear');
   const router = useRouter();
   const { mostrar } = useAvisos();
   const { ejecutar } = useOperacionPanel();
@@ -187,6 +188,20 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
     setClave(nuevaClave());
     setSeguimiento({ nota: '', proximo: '' });
     router.refresh();
+  }
+
+  /** Prospecto a partir de esta solicitud (una solicitud da uno solo: repetirlo lleva al mismo). */
+  async function crearProspecto() {
+    setOcupado(true);
+    setError(null);
+    const resultado = await ejecutar<{ message: string; data: { identificador: string } }>(`servicios/cotizaciones/${cotizacion.identificador}/prospecto`, 'POST', {});
+    setOcupado(false);
+    if (!resultado.ok) {
+      setError(resultado.error);
+      return;
+    }
+    mostrar('exito', resultado.datos.message);
+    router.push(`/admin/servicios/prospectos/${resultado.datos.data.identificador}`);
   }
 
   async function buscarClientes(evento: FormEvent<HTMLFormElement>) {
@@ -231,6 +246,9 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
       ) : null}
       {puedeGestionar && cotizacion.cliente === null && (puedeVerClientes || puedeCrearClientes) ? (
         <Boton tono="servicios" variante="secundario" icono={<Link2 className="h-4 w-4" aria-hidden="true" />} onClick={() => abrir('cliente')}>Cliente</Boton>
+      ) : null}
+      {puedeCrearProspectos ? (
+        <Boton tono="servicios" variante="secundario" icono={<UserPlus className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void crearProspecto()}>Crear prospecto</Boton>
       ) : null}
       {puedeEditar ? (
         <Boton tono="servicios" variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => abrir('editar')}>Editar</Boton>

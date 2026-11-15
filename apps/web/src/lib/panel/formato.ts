@@ -98,6 +98,8 @@ export const ETIQUETAS = {
   estadoCotizacion: { recibida: 'Recibida', en_revision: 'En revisión' },
   origenCotizacion: { publico: 'Web', administrativo: 'Interna' },
   estadoCliente: { activo: 'Activo', inactivo: 'Inactivo' },
+  estadoProspecto: { nuevo: 'Nuevo', contactado: 'Contactado', calificado: 'Calificado', descartado: 'Descartado', convertido: 'Convertido' },
+  origenProspecto: { web: 'Web', cotizacion: 'Cotización', referido: 'Referido', evento: 'Evento', llamada: 'Llamada', otro: 'Otro' },
   tipoCliente: { persona: 'Persona', empresa: 'Empresa' },
   documentoCliente: { dni: 'DNI', ruc: 'RUC', ce: 'Carné de extranjería', otro: 'Otro' },
   estadoEditorial: {
