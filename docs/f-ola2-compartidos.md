@@ -317,6 +317,6 @@ no leyó). La etiqueta accesible dice el número («Notificaciones, 3 sin leer»
 encima de 99. Vive en su propio `<Suspense>` y, si Laravel no responde, queda el enlace sin número: un fallo aquí no afecta al
 panel. Al marcar como leída o «marcar todas» la bandeja ya hace `router.refresh()`, que también refresca el conteo.
 
-Con esto Next cubre lo que daba la campana del shell Blade, salvo el desplegable de las últimas avisos: aquí es un enlace a la
+Con esto Next cubre lo que daba la campana del shell Blade, salvo el desplegable de los últimos avisos: aquí es un enlace a la
 bandeja. Cuando se retire el shell Blade (Ola 4) podrán eliminarse `notificaciones.recientes` y `notificaciones.leidas`.
 Sin cobertura automática (Next no tiene runner de pruebas): revisar en un navegador con sesión real.
