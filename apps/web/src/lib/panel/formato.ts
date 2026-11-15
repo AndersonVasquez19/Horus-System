@@ -100,6 +100,7 @@ export const ETIQUETAS = {
   estadoCliente: { activo: 'Activo', inactivo: 'Inactivo' },
   estadoProspecto: { nuevo: 'Nuevo', contactado: 'Contactado', calificado: 'Calificado', descartado: 'Descartado', convertido: 'Convertido' },
   origenProspecto: { web: 'Web', cotizacion: 'Cotización', referido: 'Referido', evento: 'Evento', llamada: 'Llamada', otro: 'Otro' },
+  etapaOportunidad: { nueva: 'Nueva', calificada: 'Calificada', propuesta: 'Propuesta', negociacion: 'Negociación', ganada: 'Ganada', perdida: 'Perdida' },
   tipoCliente: { persona: 'Persona', empresa: 'Empresa' },
   documentoCliente: { dni: 'DNI', ruc: 'RUC', ce: 'Carné de extranjería', otro: 'Otro' },
   estadoEditorial: {

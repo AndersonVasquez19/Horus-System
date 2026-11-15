@@ -185,10 +185,15 @@ class GestionProspectos
      * Convierte un prospecto calificado en cliente: vincula uno existente (`$clienteUuid`, hace falta `clientes.ver`) o
      * crea uno con sus datos (hace falta `clientes.crear`). Idempotente: sobre un prospecto ya convertido devuelve el
      * mismo resultado sin cambiar nada. Nunca se fusiona con un cliente existente por coincidencia de correo.
+     *
+     * Con `$oportunidad` (`titulo` y opcionales `monto_estimado`, `fecha_cierre_estimada`) abre además una oportunidad
+     * del cliente en el pipeline, en la misma transacción: hace falta `pipeline.gestionar`. Si algo falla, no queda nada.
+     *
+     * @param  array<string, mixed>|null  $oportunidad
      */
-    public function convertir(Request $request, string $identificador, ?string $clienteUuid): Prospecto
+    public function convertir(Request $request, string $identificador, ?string $clienteUuid, ?array $oportunidad = null): Prospecto
     {
-        return DB::transaction(function () use ($request, $identificador, $clienteUuid): Prospecto {
+        return DB::transaction(function () use ($request, $identificador, $clienteUuid, $oportunidad): Prospecto {
             $prospecto = $this->bloquear($identificador);
             $autor = $this->autorizar($request, 'prospectos.convertir');
 
@@ -210,13 +215,23 @@ class GestionProspectos
                 $creado = true;
             }
 
+            if ($oportunidad !== null) {
+                $prospecto->loadMissing(['servicioInteres:id,identificador_publico', 'solicitudCotizacion:id,identificador']);
+                app(GestionOportunidades::class)->crear($request, [
+                    ...$oportunidad,
+                    'cliente' => $cliente->identificador,
+                    'servicio' => $prospecto->servicioInteres?->identificador_publico,
+                    'cotizacion' => $autor->can('cotizaciones.ver') ? $prospecto->solicitudCotizacion?->identificador : null,
+                ], $prospecto);
+            }
+
             $prospecto->cliente_id = $cliente->id;
             $prospecto->estado = 'convertido';
             $prospecto->motivo_descarte = null;
             $prospecto->revision++;
             $prospecto->save();
             AuditLog::record('prospecto_convertido', Prospecto::class, $prospecto->id,
-                ['revision' => $prospecto->revision, 'cliente_creado' => $creado], $autor->id);
+                ['revision' => $prospecto->revision, 'cliente_creado' => $creado, 'oportunidad_creada' => $oportunidad !== null], $autor->id);
 
             return $prospecto;
         });

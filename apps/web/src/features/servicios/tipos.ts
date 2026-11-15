@@ -176,3 +176,49 @@ export interface ProspectoDetalle {
   creado_en: string | null;
   revision: string;
 }
+
+export type EtapaOportunidad = 'nueva' | 'calificada' | 'propuesta' | 'negociacion' | 'ganada' | 'perdida';
+
+export interface OportunidadResumen {
+  identificador: string;
+  titulo: string;
+  etapa: EtapaOportunidad;
+  /** Importe con dos decimales (cadena). */
+  monto_estimado: string;
+  moneda: string;
+  probabilidad: number;
+  fecha_cierre_estimada: string | null;
+  /** Solo se entrega a quien puede consultar clientes. */
+  cliente: { identificador: string; nombre: string } | null;
+  responsable: string | null;
+  revision: string;
+}
+
+export interface ColumnaTablero {
+  etapa: EtapaOportunidad;
+  total: number;
+  monto: string;
+  tarjetas: OportunidadResumen[];
+}
+
+export interface OportunidadDetalle extends Omit<OportunidadResumen, 'responsable'> {
+  motivo_perdida: string | null;
+  servicio: { identificador: string; nombre: string } | null;
+  /** Solo a quien puede consultar cotizaciones. */
+  cotizacion: string | null;
+  desde_prospecto: boolean;
+  responsable: { id: number; nombre: string } | null;
+  cerrada_en: string | null;
+  creado_en: string | null;
+  historial: { anterior: EtapaOportunidad | null; etapa: EtapaOportunidad; autor: string | null; fecha: string | null }[];
+}
+
+/** Etapas a las que se puede pasar con la tarjeta (espejo de `Oportunidad::TRANSICIONES`; Laravel es la autoridad). */
+export const TRANSICIONES_OPORTUNIDAD: Record<EtapaOportunidad, readonly EtapaOportunidad[]> = {
+  nueva: ['calificada', 'perdida'],
+  calificada: ['propuesta', 'perdida'],
+  propuesta: ['negociacion', 'perdida'],
+  negociacion: ['ganada', 'perdida'],
+  ganada: ['nueva'],
+  perdida: ['nueva'],
+};

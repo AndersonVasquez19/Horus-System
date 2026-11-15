@@ -148,8 +148,15 @@ final class ProspectoController extends Controller implements HasMiddleware
     public function convertir(Request $request, string $identificador): JsonResponse
     {
         PrecondicionesPanel::aplicar($request);
-        $datos = $request->validate(['cliente' => ['nullable', 'uuid']]);
-        $this->gestion->convertir($request, $this->buscar($identificador)->identificador, $datos['cliente'] ?? null);
+        $datos = $request->validate([
+            'cliente' => ['nullable', 'uuid'],
+            // Oportunidad opcional en el pipeline: exige además `pipeline.gestionar` (lo comprueba el servicio).
+            'oportunidad' => ['nullable', 'array:titulo,monto_estimado,fecha_cierre_estimada'],
+            'oportunidad.titulo' => ['required_with:oportunidad', 'string', 'max:160', 'not_regex:/[<>]/u'],
+            'oportunidad.monto_estimado' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99', 'decimal:0,2'],
+            'oportunidad.fecha_cierre_estimada' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+        $this->gestion->convertir($request, $this->buscar($identificador)->identificador, $datos['cliente'] ?? null, $datos['oportunidad'] ?? null);
 
         return $this->detalle($this->buscar($identificador), 200, 'El prospecto se convirtió en cliente.');
     }

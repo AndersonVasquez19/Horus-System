@@ -172,6 +172,13 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-opciones')->name('prospectos.opciones.servicios');
         Route::get('prospectos/{identificador}', [Servicios\ProspectoController::class, 'show'])->name('prospectos.show');
 
+        // Pipeline (Ola 3): rol admin y permisos `pipeline.*` los declara el controlador. `tablero` y `opciones` van antes del comodín.
+        Route::get('oportunidades', [Servicios\OportunidadController::class, 'index'])->name('oportunidades.index');
+        Route::get('oportunidades/tablero', [Servicios\OportunidadController::class, 'tablero'])->name('oportunidades.tablero');
+        Route::get('oportunidades/opciones/responsables', [Servicios\OportunidadController::class, 'opcionesResponsables'])
+            ->middleware('throttle:admin-opciones')->name('oportunidades.opciones.responsables');
+        Route::get('oportunidades/{identificador}', [Servicios\OportunidadController::class, 'show'])->name('oportunidades.show');
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
             Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
@@ -200,6 +207,11 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::post('prospectos/{identificador}/responsable', [Servicios\ProspectoController::class, 'responsable'])->name('prospectos.responsable');
             Route::post('prospectos/{identificador}/convertir', [Servicios\ProspectoController::class, 'convertir'])->name('prospectos.convertir');
             Route::post('cotizaciones/{identificador}/prospecto', [Servicios\ProspectoController::class, 'desdeCotizacion'])->name('cotizaciones.prospecto');
+
+            Route::post('oportunidades', [Servicios\OportunidadController::class, 'store'])->name('oportunidades.store');
+            Route::put('oportunidades/{identificador}', [Servicios\OportunidadController::class, 'update'])->name('oportunidades.update');
+            Route::post('oportunidades/{identificador}/etapa', [Servicios\OportunidadController::class, 'etapa'])->name('oportunidades.etapa');
+            Route::post('oportunidades/{identificador}/responsable', [Servicios\OportunidadController::class, 'responsable'])->name('oportunidades.responsable');
 
             Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
             Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');

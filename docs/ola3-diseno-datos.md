@@ -208,12 +208,12 @@ de campos de texto ni datos de contacto.
 | --- | --- | --- | --- |
 | 1 | Clientes (+ contactos, vínculo con cotizaciones) | — | 000043 permisos, 000044 `clientes` y `cliente_contactos` (**hecho**); `solicitudes_cotizacion.cliente_id` pendiente; `secuencias_codigo` pasa a Proyectos |
 | 2 | Prospectos | 1 | 000046 permisos y 000047 tabla (**hecho**) |
-| 3 | Pipeline | 1, 2 | 000048 |
-| 4 | Proyectos | 1, 3 | 000049 (`secuencias_codigo`), 000050 |
-| 5 | Soporte técnico | 1, 4 (opcional) | 000051 |
+| 3 | Pipeline | 1, 2 | 000048 permisos y 000049 tablas (**hecho**) |
+| 4 | Proyectos | 1, 3 | 000050 (`secuencias_codigo`), 000051 |
+| 5 | Soporte técnico | 1, 4 (opcional) | 000052 |
 | 6 | Reportes comerciales | 1 a 5 | ninguna |
-| 7 | Convocatorias y horarios | — (independiente del CRM) | 000050, `matriculas.convocatoria_id` |
-| 8 | Calificaciones | 7 | 000051, `matriculas.nota_final` y `resultado` |
+| 7 | Convocatorias y horarios | — (independiente del CRM) | 000053, `matriculas.convocatoria_id` |
+| 8 | Calificaciones | 7 | 000054, `matriculas.nota_final` y `resultado` |
 | 9 | Permisos nuevos | con cada módulo | datos, una por panel |
 
 Un commit por módulo (más el de permisos al inicio de cada panel). **Cada módulo se da por hecho solo si** tiene: migración

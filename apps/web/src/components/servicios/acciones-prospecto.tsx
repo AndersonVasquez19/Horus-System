@@ -30,7 +30,7 @@ interface ClienteOpcion {
 const ORIGENES_MANUALES = { web: 'Web', referido: 'Referido', evento: 'Evento', llamada: 'Llamada', otro: 'Otro' } as const;
 
 /** Opciones de un selector cargadas del servidor mientras `activo`. */
-function useOpciones(ruta: string, activo: boolean): Opcion[] | null {
+export function useOpciones(ruta: string, activo: boolean): Opcion[] | null {
   const { ejecutar } = useOperacionPanel();
   const [opciones, setOpciones] = useState<Opcion[] | null>(null);
 
@@ -184,6 +184,10 @@ export function AccionesProspecto({ prospecto }: { prospecto: ProspectoDetalle }
   const [busquedaCliente, setBusquedaCliente] = useState('');
   const [clientes, setClientes] = useState<ClienteOpcion[] | null>(null);
   const [clienteElegido, setClienteElegido] = useState('');
+  const [conOportunidad, setConOportunidad] = useState(false);
+  const [tituloOportunidad, setTituloOportunidad] = useState('');
+  const [montoOportunidad, setMontoOportunidad] = useState('');
+  const puedeGestionarPipeline = usePuede('pipeline.gestionar');
   const responsables = useOpciones('servicios/prospectos/opciones/responsables', modo === 'responsable');
 
   const convertido = prospecto.estado === 'convertido';
@@ -226,11 +230,18 @@ export function AccionesProspecto({ prospecto }: { prospecto: ProspectoDetalle }
     setBusquedaCliente('');
     setClientes(null);
     setClienteElegido('');
+    setConOportunidad(false);
+    setTituloOportunidad(prospecto.empresa ?? prospecto.nombre_contacto);
+    setMontoOportunidad('');
     setResponsable(prospecto.responsable === null ? '' : String(prospecto.responsable.id));
     setModo(siguiente);
   };
   const siguiente = SIGUIENTE[prospecto.estado];
   const cerrar = () => setModo(null);
+  // Con la casilla marcada, la conversión abre también una oportunidad (Laravel exige `pipeline.gestionar`).
+  const extraOportunidad: Record<string, unknown> = conOportunidad && puedeGestionarPipeline
+    ? { oportunidad: { titulo: tituloOportunidad.trim(), monto_estimado: montoOportunidad.trim() === '' ? null : montoOportunidad.trim() } }
+    : {};
 
   return (
     <>
@@ -291,7 +302,22 @@ export function AccionesProspecto({ prospecto }: { prospecto: ProspectoDetalle }
 
       <Dialogo abierto={modo === 'convertir'} titulo="Convertir en cliente" descripcion={prospecto.nombre_contacto} onCerrar={cerrar} bloqueado={ocupado}>
         <div className="space-y-5">
-          {error ? <Alerta tipo="error">{errorDeCampo(error, 'cliente') ?? error.message}</Alerta> : null}
+          {error ? <Alerta tipo="error">{errorDeCampo(error, 'cliente') ?? errorDeCampo(error, 'oportunidad.titulo') ?? error.message}</Alerta> : null}
+          {puedeGestionarPipeline ? (
+            <section aria-labelledby="titulo-convertir-oportunidad" className="space-y-3 rounded-lg border border-panel-border p-3">
+              <h3 id="titulo-convertir-oportunidad" className="sr-only">Oportunidad</h3>
+              <label className="flex items-center gap-2 text-sm font-medium text-panel-text">
+                <input type="checkbox" checked={conOportunidad} onChange={(evento) => setConOportunidad(evento.target.checked)} className="h-4 w-4 accent-servicios-700" />
+                Abrir también una oportunidad en el pipeline
+              </label>
+              {conOportunidad ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Campo tono="servicios" etiqueta="Título de la oportunidad" value={tituloOportunidad} onChange={(evento) => setTituloOportunidad(evento.target.value)} maxLength={160} required />
+                  <Campo tono="servicios" etiqueta="Monto estimado (S/)" type="number" inputMode="decimal" min="0" step="0.01" value={montoOportunidad} onChange={(evento) => setMontoOportunidad(evento.target.value)} />
+                </div>
+              ) : null}
+            </section>
+          ) : null}
           {puedeCrearClientes ? (
             <section aria-labelledby="titulo-convertir-nuevo" className="space-y-2">
               <h3 id="titulo-convertir-nuevo" className="text-sm font-semibold text-panel-text">Cliente nuevo</h3>
@@ -300,7 +326,7 @@ export function AccionesProspecto({ prospecto }: { prospecto: ProspectoDetalle }
                 Si ya existe un cliente con ese correo, vincúlalo desde «Cliente existente».
               </p>
               <div className="flex justify-end">
-                <Boton tono="servicios" cargando={ocupado} onClick={() => void operar('convertir', {}, true)}>Crear cliente</Boton>
+                <Boton tono="servicios" cargando={ocupado} onClick={() => void operar('convertir', extraOportunidad, true)}>Crear cliente</Boton>
               </div>
             </section>
           ) : null}
@@ -326,7 +352,7 @@ export function AccionesProspecto({ prospecto }: { prospecto: ProspectoDetalle }
                 </fieldset>
               )}
               <div className="flex justify-end">
-                <Boton tono="servicios" variante="secundario" cargando={ocupado} disabled={clienteElegido === ''} onClick={() => void operar('convertir', { cliente: clienteElegido }, true)}>Vincular cliente seleccionado</Boton>
+                <Boton tono="servicios" variante="secundario" cargando={ocupado} disabled={clienteElegido === ''} onClick={() => void operar('convertir', { cliente: clienteElegido, ...extraOportunidad }, true)}>Vincular cliente seleccionado</Boton>
               </div>
             </section>
           ) : null}

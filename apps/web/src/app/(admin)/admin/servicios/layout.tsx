@@ -16,6 +16,7 @@ const NAVEGACION: ModeloNavegacion = [
       { id: 'servicios', etiqueta: 'Servicios', href: '/admin/servicios/catalogo', icono: 'servicios', permisosRequeridos: ['servicios.ver'] },
       { id: 'cotizaciones', etiqueta: 'Cotizaciones', href: '/admin/servicios/cotizaciones', icono: 'documentos', permisosRequeridos: ['cotizaciones.ver'] },
       { id: 'prospectos', etiqueta: 'Prospectos', href: '/admin/servicios/prospectos', icono: 'registros', permisosRequeridos: ['prospectos.ver'] },
+      { id: 'oportunidades', etiqueta: 'Pipeline', href: '/admin/servicios/oportunidades', icono: 'documentos', permisosRequeridos: ['pipeline.ver'] },
       { id: 'clientes', etiqueta: 'Clientes', href: '/admin/servicios/clientes', icono: 'personas', permisosRequeridos: ['clientes.ver'] },
     ],
   },

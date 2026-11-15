@@ -20,6 +20,8 @@ export interface Operacion {
   listas?: readonly string[];
   /** El cuerpo trae `contactos`: hasta `MAX_CONTACTOS` objetos con campos de texto acotados (clientes). */
   contactos?: boolean;
+  /** Campos de un único objeto anidado `oportunidad` (conversión de un prospecto): solo escalares, texto acotado. */
+  oportunidad?: readonly string[];
   /** Parámetros de consulta que se reenvían. */
   consulta?: readonly string[];
   /** La respuesta es un archivo con alguno de estos tipos MIME. */
@@ -50,7 +52,7 @@ export interface ContactoReenviado {
   principal: boolean;
 }
 
-export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[];
+export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | Record<string, string | number | boolean | null>;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
@@ -68,6 +70,8 @@ const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_email', 'contacto_telefono', 'servicio_uuid', '_revision', '_clave'] as const;
 const CAMPOS_CLIENTE = ['tipo', 'nombre', 'documento_tipo', 'documento_numero', 'email', 'telefono', 'direccion', '_revision'] as const;
 const CAMPOS_PROSPECTO = ['nombre_contacto', 'empresa', 'email', 'telefono', 'origen', 'servicio_interes', 'proximo_seguimiento', '_revision'] as const;
+const CAMPOS_OPORTUNIDAD = ['cliente', 'titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', 'servicio', 'cotizacion', '_revision'] as const;
+const CAMPOS_OPORTUNIDAD_EDICION = ['titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -153,8 +157,15 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: new RegExp(`^servicios/prospectos/${UUID}$`), campos: CAMPOS_PROSPECTO },
   { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/estado$`), campos: ['estado', 'motivo_descarte', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/convertir$`), campos: ['cliente', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/convertir$`), campos: ['cliente', '_revision'], oportunidad: ['titulo', 'monto_estimado', 'fecha_cierre_estimada'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/prospecto$`) },
+
+  // Pipeline de oportunidades (CRM). El tablero y el listado son lecturas de las páginas de servidor; el navegador solo escribe.
+  { metodo: 'GET', patron: /^servicios\/oportunidades\/opciones\/responsables$/ },
+  { metodo: 'POST', patron: /^servicios\/oportunidades$/, campos: CAMPOS_OPORTUNIDAD },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/oportunidades/${UUID}$`), campos: CAMPOS_OPORTUNIDAD_EDICION },
+  { metodo: 'POST', patron: new RegExp(`^servicios/oportunidades/${UUID}/etapa$`), campos: ['etapa', 'motivo_perdida', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/oportunidades/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
@@ -185,6 +196,17 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
     if (Array.isArray(valor) && valor.length <= MAX_LISTA && valor.every((elemento) => typeof elemento === 'string')) {
       resultado[campo] = valor.map((elemento: string) => elemento.slice(0, 100));
     }
+  }
+  const oportunidad = cuerpo.oportunidad;
+  if (operacion.oportunidad && esObjeto(oportunidad)) {
+    const anidada: Record<string, string | number | boolean | null> = {};
+    for (const campo of operacion.oportunidad) {
+      const valor = oportunidad[campo];
+      if (valor === null || typeof valor === 'string' || typeof valor === 'number' || typeof valor === 'boolean') {
+        anidada[campo] = typeof valor === 'string' ? valor.slice(0, 200) : valor;
+      }
+    }
+    resultado.oportunidad = anidada;
   }
   const contactos = cuerpo.contactos;
   if (operacion.contactos && Array.isArray(contactos) && contactos.length <= MAX_CONTACTOS && contactos.every(esObjeto)) {
