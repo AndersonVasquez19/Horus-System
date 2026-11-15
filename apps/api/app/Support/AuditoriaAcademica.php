@@ -90,7 +90,7 @@ final class AuditoriaAcademica
             'nombres' => ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'modalidad', 'horario', 'estado'],
         ],
         self::MATRICULA => [
-            'valores' => ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado'],
+            'valores' => ['estudiante_id', 'curso_id', 'convocatoria_id', 'fecha_matricula', 'estado', 'monto_pagado'],
             'nombres' => ['observaciones'],
         ],
     ];

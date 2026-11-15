@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RevierteCadenaCrm;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 final class ConvocatoriasMigracionTest extends TestCase
 {
     use RefreshDatabase;
+    use RevierteCadenaCrm;
 
     private function permisos(): Migration
     {
@@ -112,11 +114,54 @@ final class ConvocatoriasMigracionTest extends TestCase
 
     public function test_el_down_quita_las_tablas(): void
     {
-        $tablas = require database_path('migrations/2026_11_15_000056_create_convocatorias_tables.php');
-        $tablas->down();
-        $this->assertFalse(Schema::hasTable('convocatorias'));
-        $this->assertFalse(Schema::hasTable('convocatoria_horarios'));
-        $tablas->up();
+        $this->revertirYRestaurar('2026_11_15_000056_create_convocatorias_tables', function (): void {
+            $this->assertFalse(Schema::hasTable('convocatorias'));
+            $this->assertFalse(Schema::hasTable('convocatoria_horarios'));
+        });
         $this->assertTrue(Schema::hasTable('convocatorias'));
+        $this->assertTrue(Schema::hasTable('convocatoria_horarios'));
+    }
+
+    public function test_las_matriculas_ganan_una_convocatoria_opcional_sin_perder_las_existentes(): void
+    {
+        $this->assertTrue(Schema::hasColumn('matriculas', 'convocatoria_id'));
+
+        $curso = DB::table('cursos')->insertGetId([
+            'codigo' => 'CUR-V', 'nombre' => 'Curso', 'descripcion' => 'x', 'categoria' => 'tecnologia', 'duracion_horas' => 1, 'precio' => 1,
+            'modalidad' => 'virtual', 'horario' => 'Lunes', 'cupos_maximos' => 1, 'cupos_disponibles' => 1, 'estado' => 'activo', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $estudiante = DB::table('estudiantes')->insertGetId([
+            'dni' => '12345678', 'nombres' => 'Ana', 'apellidos' => 'Pérez', 'email' => 'ana@correo.test', 'telefono' => '999999999',
+            'estado' => 'activo', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $convocatoria = DB::table('convocatorias')->insertGetId([
+            'identificador' => 'ffffffff-ffff-4fff-8fff-ffffffffffff', 'codigo' => 'CNV-2026-0001', 'curso_id' => $curso, 'modalidad' => 'virtual',
+            'fecha_inicio' => '2026-12-01', 'fecha_fin' => '2026-12-31', 'cupos_maximos' => 5, 'cupos_disponibles' => 5, 'estado' => 'borrador',
+            'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $fila = ['estudiante_id' => $estudiante, 'curso_id' => $curso, 'fecha_matricula' => '2026-11-10', 'estado' => 'pendiente', 'created_at' => now(), 'updated_at' => now()];
+        $sin = DB::table('matriculas')->insertGetId($fila);
+        $this->assertNull(DB::table('matriculas')->where('id', $sin)->value('convocatoria_id'));
+
+        DB::table('matriculas')->insert([...$fila, 'estado' => 'anulada', 'convocatoria_id' => $convocatoria]);
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
+        $this->expectException(QueryException::class);
+        DB::table('convocatorias')->where('id', $convocatoria)->delete();
+    }
+
+    public function test_el_down_de_la_columna_de_matriculas_es_reversible(): void
+    {
+        // SQLite no puede quitar una columna con clave foránea sin reconstruir la tabla (y perder sus triggers): su
+        // `down()` solo retira el índice y volver a aplicar `up()` repetiría la columna. Se prueba en PostgreSQL.
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('El down de la columna solo se ejercita en PostgreSQL.');
+        }
+
+        $this->revertirYRestaurar('2026_11_15_000057_add_convocatoria_id_to_matriculas', function (): void {
+            $this->assertFalse(Schema::hasColumn('matriculas', 'convocatoria_id'));
+        });
+        $this->assertTrue(Schema::hasColumn('matriculas', 'convocatoria_id'));
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
@@ -16,7 +17,8 @@ use Illuminate\Validation\ValidationException;
  * Operaciones transaccionales del módulo de Matrículas.
  *
  * Centraliza la máquina de estados (`pendiente`, `pagada`, `anulada`), el protocolo de bloqueo
- * pesimista en orden fijo (cursos por id -> estudiantes por id -> matrícula), la verificación de
+ * pesimista en orden fijo (cursos por id -> convocatoria -> estudiantes por id -> matrícula; una matrícula con
+ * convocatoria descuenta el cupo de ella y no del curso), la verificación de
  * elegibilidad y duplicados vigentes, y el registro de auditoría fail-closed.
  */
 final class GestionMatriculas
@@ -28,7 +30,11 @@ final class GestionMatriculas
     {
         $datos = $this->conIdentificadoresEnteros($datos);
 
-        return DB::transaction(function () use ($datos, $actor): Matricula {
+        // La convocatoria llega por su identificador público; se resuelve bajo bloqueo, nunca desde la lectura previa.
+        $identificador = $datos['convocatoria'] ?? null;
+        unset($datos['convocatoria']);
+
+        return DB::transaction(function () use ($datos, $actor, $identificador): Matricula {
             $curso = Curso::withTrashed()
                 ->lockForUpdate()
                 ->findOrFail($datos['curso_id']);
@@ -38,6 +44,18 @@ final class GestionMatriculas
                 throw ValidationException::withMessages([
                     'curso_id' => 'El curso seleccionado no está disponible.',
                 ]);
+            }
+
+            // Orden de bloqueo: cursos -> convocatorias -> estudiantes -> matrícula.
+            $convocatoria = null;
+            if (is_string($identificador) && $identificador !== '') {
+                $convocatoria = Convocatoria::withTrashed()->lockForUpdate()->where('identificador', strtolower($identificador))->first();
+                if ($convocatoria === null || $convocatoria->trashed() || (int) $convocatoria->curso_id !== (int) $curso->id) {
+                    throw ValidationException::withMessages([
+                        'convocatoria' => 'La convocatoria no pertenece al curso seleccionado.',
+                    ]);
+                }
+                $datos['convocatoria_id'] = $convocatoria->id;
             }
 
             $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
@@ -50,13 +68,17 @@ final class GestionMatriculas
             if ($datos['estado'] !== 'anulada') {
                 $this->assertNoActiveDuplicate((int) $datos['estudiante_id'], (int) $curso->id);
 
-                if ($curso->cupos_disponibles <= 0) {
-                    throw ValidationException::withMessages([
-                        'curso_id' => 'El curso no tiene cupos disponibles.',
-                    ]);
-                }
+                if ($convocatoria !== null) {
+                    $this->ocuparCupoConvocatoria($convocatoria);
+                } else {
+                    if ($curso->cupos_disponibles <= 0) {
+                        throw ValidationException::withMessages([
+                            'curso_id' => 'El curso no tiene cupos disponibles.',
+                        ]);
+                    }
 
-                $curso->decrement('cupos_disponibles');
+                    $curso->decrement('cupos_disponibles');
+                }
             }
 
             $matricula = Matricula::create($datos);
@@ -122,6 +144,16 @@ final class GestionMatriculas
                 );
             }
 
+            // Una matrícula con convocatoria descuenta de ella (ya bloqueada en lockMatricula) y no cambia de curso.
+            $convocatoria = $matricula->convocatoria_id === null
+                ? null
+                : Convocatoria::withTrashed()->findOrFail($matricula->convocatoria_id);
+            if ($convocatoria !== null && $cursoAnteriorId !== $cursoNuevoId) {
+                throw ValidationException::withMessages([
+                    'curso_id' => 'La matrícula pertenece a una convocatoria: no se puede cambiar de curso.',
+                ]);
+            }
+
             $requiereCupoNuevo = $nuevaActiva
                 && (! $anteriorActiva || $cursoAnteriorId !== $cursoNuevoId);
 
@@ -129,18 +161,26 @@ final class GestionMatriculas
                 $this->assertEligibleForOccupation($estudiante, $cursoNuevo);
             }
 
-            if ($requiereCupoNuevo && $cursoNuevo->cupos_disponibles <= 0) {
+            if ($requiereCupoNuevo && $convocatoria === null && $cursoNuevo->cupos_disponibles <= 0) {
                 throw ValidationException::withMessages([
                     'curso_id' => 'El curso no tiene cupos disponibles.',
                 ]);
             }
 
-            if ($anteriorActiva && (! $nuevaActiva || $cursoAnteriorId !== $cursoNuevoId) && $cursoAnterior !== null) {
-                $cursoAnterior->increment('cupos_disponibles');
+            if ($anteriorActiva && (! $nuevaActiva || $cursoAnteriorId !== $cursoNuevoId)) {
+                if ($convocatoria !== null) {
+                    $convocatoria->increment('cupos_disponibles');
+                } elseif ($cursoAnterior !== null) {
+                    $cursoAnterior->increment('cupos_disponibles');
+                }
             }
 
             if ($requiereCupoNuevo) {
-                $cursoNuevo->decrement('cupos_disponibles');
+                if ($convocatoria !== null) {
+                    $this->ocuparCupoConvocatoria($convocatoria);
+                } else {
+                    $cursoNuevo->decrement('cupos_disponibles');
+                }
             }
 
             // Las diferencias se calculan sobre la fila bloqueada, antes de guardar. Anular mediante PUT produce
@@ -167,10 +207,7 @@ final class GestionMatriculas
             $matricula = $this->lockMatricula($matricula->id);
 
             if ($matricula->estado !== 'anulada') {
-                $curso = Curso::withTrashed()
-                    ->lockForUpdate()
-                    ->findOrFail($matricula->curso_id);
-                $curso->increment('cupos_disponibles');
+                $this->liberarCupo($matricula);
             }
 
             $matricula->delete();
@@ -194,10 +231,7 @@ final class GestionMatriculas
 
             // Repetir la anulación no cambia nada, no devuelve cupo otra vez y no genera otro evento.
             if ($matricula->estado !== 'anulada') {
-                $curso = Curso::withTrashed()
-                    ->lockForUpdate()
-                    ->findOrFail($matricula->curso_id);
-                $curso->increment('cupos_disponibles');
+                $curso = $this->liberarCupo($matricula);
 
                 $estadoAnterior = (string) $matricula->estado;
                 $matricula->fill(['estado' => 'anulada']);
@@ -235,13 +269,18 @@ final class GestionMatriculas
                     (int) $curso->id,
                 );
 
-                if ($curso->cupos_disponibles <= 0) {
-                    throw ValidationException::withMessages([
-                        'curso_id' => 'El curso no tiene cupos disponibles para restaurar esta matrícula.',
-                    ]);
-                }
+                if ($matricula->convocatoria_id !== null) {
+                    $convocatoria = Convocatoria::withTrashed()->lockForUpdate()->findOrFail($matricula->convocatoria_id);
+                    $this->ocuparCupoConvocatoria($convocatoria);
+                } else {
+                    if ($curso->cupos_disponibles <= 0) {
+                        throw ValidationException::withMessages([
+                            'curso_id' => 'El curso no tiene cupos disponibles para restaurar esta matrícula.',
+                        ]);
+                    }
 
-                $curso->decrement('cupos_disponibles');
+                    $curso->decrement('cupos_disponibles');
+                }
             }
 
             $matricula->restore();
@@ -288,6 +327,10 @@ final class GestionMatriculas
         Curso::withTrashed()
             ->whereIn('id', array_unique([$snapshot->curso_id, $cursoDestino ?? $snapshot->curso_id]))
             ->orderBy('id')->lockForUpdate()->get();
+        if ($snapshot->convocatoria_id !== null) {
+            // Después de los cursos y antes de los estudiantes. La convocatoria de una matrícula no cambia nunca.
+            Convocatoria::withTrashed()->lockForUpdate()->findOrFail($snapshot->convocatoria_id);
+        }
         Estudiante::withTrashed()
             ->whereIn('id', array_unique([$snapshot->estudiante_id, $estudianteDestino ?? $snapshot->estudiante_id]))
             ->orderBy('id')->lockForUpdate()->get();
@@ -300,6 +343,42 @@ final class GestionMatriculas
         }
 
         return $matricula;
+    }
+
+    /**
+     * Devuelve el cupo de una matrícula vigente: a su convocatoria si la tiene y, si no, al curso. Devuelve el curso
+     * (ya bloqueado) para que quien llama pueda auditar.
+     */
+    private function liberarCupo(Matricula $matricula): Curso
+    {
+        $curso = Curso::withTrashed()
+            ->lockForUpdate()
+            ->findOrFail($matricula->curso_id);
+
+        if ($matricula->convocatoria_id !== null) {
+            Convocatoria::withTrashed()->lockForUpdate()->findOrFail($matricula->convocatoria_id)->increment('cupos_disponibles');
+        } else {
+            $curso->increment('cupos_disponibles');
+        }
+
+        return $curso;
+    }
+
+    /** Ocupa un cupo de la convocatoria (ya bloqueada): solo si admite matrículas y le queda alguno. */
+    private function ocuparCupoConvocatoria(Convocatoria $convocatoria): void
+    {
+        if ($convocatoria->trashed() || ! in_array($convocatoria->estado, Convocatoria::MATRICULABLES, true)) {
+            throw ValidationException::withMessages([
+                'convocatoria' => 'La convocatoria no admite matrículas en su estado actual.',
+            ]);
+        }
+        if ($convocatoria->cupos_disponibles <= 0) {
+            throw ValidationException::withMessages([
+                'convocatoria' => 'La convocatoria no tiene cupos disponibles.',
+            ]);
+        }
+
+        $convocatoria->decrement('cupos_disponibles');
     }
 
     private function assertEligibleForOccupation(Estudiante $estudiante, Curso $curso): void

@@ -153,7 +153,8 @@ class AuditoriaAcademicaTest extends TestCase
     public function test_lista_permitida_de_matricula(): void
     {
         $this->assertEqualsCanonicalizing(
-            ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'],
+            // `convocatoria_id` (Ola 3, módulo 7 parte B) es un identificador interno, como `curso_id`: sin datos personales.
+            ['estudiante_id', 'curso_id', 'convocatoria_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'],
             AuditoriaAcademica::camposPermitidos(AuditoriaAcademica::MATRICULA),
         );
     }

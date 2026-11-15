@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
@@ -9,7 +9,7 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { Campo, CampoArea, CampoSeleccion } from '@/components/shared/ui/campo';
 import { SelectorRemoto, type OpcionRemota } from '@/components/shared/ui/selector-remoto';
-import type { MatriculaDetalle, OpcionSelector } from '@/features/academico/tipos';
+import type { ConvocatoriaResumen, MatriculaDetalle, OpcionSelector } from '@/features/academico/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import { ETIQUETAS } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
@@ -51,6 +51,27 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
   const [observaciones, setObservaciones] = useState(matricula?.observaciones ?? '');
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Convocatorias matriculables del curso elegido (solo al registrar; después la convocatoria queda fija).
+  const [convocatorias, setConvocatorias] = useState<ConvocatoriaResumen[]>([]);
+  const [convocatoria, setConvocatoria] = useState('');
+
+  const cursoId = curso?.id;
+  // Sin curso elegido no se ofrece ninguna (la lista cargada para un curso anterior no se reutiliza).
+  const convocatoriasOfrecidas = cursoId === undefined ? [] : convocatorias;
+  useEffect(() => {
+    if (matricula || cursoId === undefined) return;
+    let vigente = true;
+    void ejecutar<{ data: ConvocatoriaResumen[] }>(`academico/convocatorias?curso_id=${encodeURIComponent(String(cursoId))}&vigentes=1`).then((resultado) => {
+      if (!vigente) return;
+      // Sin permiso (403) o con error, el selector no se ofrece y el cupo sigue siendo el del curso.
+      const lista = resultado.ok ? resultado.datos.data : [];
+      setConvocatorias(lista.filter((c) => (c.estado === 'abierta' || c.estado === 'en_curso') && c.cupos.disponibles > 0));
+      setConvocatoria('');
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [matricula, cursoId, ejecutar]);
 
   const buscarOpciones = useCallback(
     (tipo: 'estudiantes' | 'cursos') => async (texto: string): Promise<OpcionRemota[] | null> => {
@@ -77,6 +98,8 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
     const cuerpo = {
       estudiante_id: estudiante ? String(estudiante.id) : null,
       curso_id: curso ? String(curso.id) : null,
+      // Solo al registrar: la edición no admite cambiar de convocatoria.
+      ...(matricula ? {} : { convocatoria: convocatoria === '' || cursoId === undefined ? null : convocatoria }),
       fecha_matricula: fechaMatricula || null,
       estado,
       monto_pagado: monto.trim() === '' ? null : monto.trim(),
@@ -123,6 +146,23 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
           ayuda={matricula ? undefined : 'Solo cursos activos con cupos disponibles.'}
           error={err('curso_id')}
         />
+        {matricula ? (
+          matricula.convocatoria ? (
+            <Campo etiqueta="Convocatoria" value={matricula.convocatoria.codigo} readOnly ayuda="Queda fija desde el registro; el curso tampoco cambia." />
+          ) : null
+        ) : convocatoriasOfrecidas.length > 0 ? (
+          <CampoSeleccion
+            etiqueta="Convocatoria (opcional)"
+            value={convocatoria}
+            onChange={(e) => setConvocatoria(e.target.value)}
+            opciones={{
+              '': 'Sin convocatoria (cupo del curso)',
+              ...Object.fromEntries(convocatoriasOfrecidas.map((c) => [c.identificador, `${c.codigo} · ${c.cupos.disponibles} de ${c.cupos.maximos} cupos`])),
+            }}
+            error={err('convocatoria')}
+            ayuda="Si eliges una, el cupo se descuenta de la convocatoria y no del curso."
+          />
+        ) : null}
         <Campo etiqueta="Fecha de matrícula" type="date" value={fechaMatricula} onChange={(e) => setFechaMatricula(e.target.value)} error={err('fecha_matricula')} required />
         <CampoSeleccion
           etiqueta="Estado"

@@ -23,6 +23,8 @@ trait RevierteCadenaCrm
         '2026_11_15_000049_create_oportunidades_tables',
         '2026_11_15_000051_create_proyectos_tables',
         '2026_11_15_000053_create_tickets_soporte_tables',
+        '2026_11_15_000056_create_convocatorias_tables',
+        '2026_11_15_000057_add_convocatoria_id_to_matriculas',
     ];
 
     /**

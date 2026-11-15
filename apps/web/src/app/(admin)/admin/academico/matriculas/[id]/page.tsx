@@ -88,6 +88,14 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
                   </Link>
                 ) : '—',
               ],
+              [
+                'Convocatoria',
+                matricula.convocatoria ? (
+                  <Link href={`/admin/academico/convocatorias/${matricula.convocatoria.identificador}`} className="font-mono text-academico-800 hover:underline">
+                    {matricula.convocatoria.codigo}
+                  </Link>
+                ) : 'Sin convocatoria (el cupo es el del curso)',
+              ],
               ['Cupos libres del curso', numero(matricula.curso_cupos_disponibles)],
               ['Fecha', fecha(matricula.fecha)],
               ['Monto pagado', moneda(matricula.monto_pagado)],

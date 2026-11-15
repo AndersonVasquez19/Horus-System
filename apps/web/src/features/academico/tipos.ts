@@ -97,6 +97,8 @@ export interface MatriculaResumen {
   id: number;
   estudiante: { id: number; dni: string; nombre: string; eliminado: boolean } | null;
   curso: { id: number; codigo: string; nombre: string; eliminado: boolean } | null;
+  /** Convocatoria de la que sale el cupo; sin ella, el cupo es el del curso. */
+  convocatoria: { identificador: string; codigo: string } | null;
   estado: 'pendiente' | 'pagada' | 'anulada';
   fecha: string;
   monto_pagado: string | null;

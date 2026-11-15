@@ -30,6 +30,8 @@ class UpdateMatriculaRequest extends FormRequest
                 'integer',
                 Rule::exists('cursos', 'id')->whereNull('deleted_at'),
             ],
+            // La convocatoria queda fija desde el alta: no se cambia ni se quita al editar.
+            'convocatoria' => ['prohibited'],
             'fecha_matricula' => ['required', 'date'],
             'estado' => ['required', Rule::in(['pendiente', 'pagada', 'anulada'])],
             'monto_pagado' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
@@ -75,6 +77,7 @@ class UpdateMatriculaRequest extends FormRequest
             'curso_id.required' => 'Debes seleccionar un curso.',
             'curso_id.integer' => 'El curso seleccionado no es válido.',
             'curso_id.exists' => 'El curso seleccionado no está disponible.',
+            'convocatoria.prohibited' => 'La convocatoria de una matrícula no se puede cambiar.',
             'fecha_matricula.required' => 'La fecha de matrícula es obligatoria.',
             'fecha_matricula.date' => 'La fecha de matrícula no es válida.',
             'estado.required' => 'Debes seleccionar el estado de la matrícula.',

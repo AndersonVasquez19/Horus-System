@@ -85,7 +85,7 @@ final class MatriculaController extends Controller implements HasMiddleware
 
     public function show(Request $request, int $matricula): JsonResponse
     {
-        $modelo = Matricula::withTrashed()->with(['estudiante', 'curso'])->findOrFail($matricula);
+        $modelo = Matricula::withTrashed()->with(['estudiante', 'curso', 'convocatoria'])->findOrFail($matricula);
 
         return response()->json(['data' => $this->detalle($modelo, true)]);
     }
@@ -96,7 +96,7 @@ final class MatriculaController extends Controller implements HasMiddleware
 
         return response()->json([
             'message' => 'La matrícula se registró correctamente.',
-            'data' => $this->detalle($matricula->refresh()->load(['estudiante', 'curso']), false),
+            'data' => $this->detalle($matricula->refresh()->load(['estudiante', 'curso', 'convocatoria']), false),
         ], 201);
     }
 
@@ -111,7 +111,7 @@ final class MatriculaController extends Controller implements HasMiddleware
 
         return response()->json([
             'message' => 'La matrícula se actualizó correctamente.',
-            'data' => $this->detalle($actualizada->refresh()->load(['estudiante', 'curso']), false),
+            'data' => $this->detalle($actualizada->refresh()->load(['estudiante', 'curso', 'convocatoria']), false),
         ]);
     }
 
@@ -220,6 +220,7 @@ final class MatriculaController extends Controller implements HasMiddleware
         $query = Matricula::query()->with([
             'estudiante:id,dni,nombres,apellidos,deleted_at',
             'curso:id,codigo,nombre,deleted_at',
+            'convocatoria:id,identificador,codigo,deleted_at',
         ]);
 
         $cursoId = $request->input('curso_id');
@@ -281,6 +282,7 @@ final class MatriculaController extends Controller implements HasMiddleware
     {
         $estudiante = $matricula->estudiante;
         $curso = $matricula->curso;
+        $convocatoria = $matricula->convocatoria;
 
         return [
             'id' => $matricula->id,
@@ -295,6 +297,10 @@ final class MatriculaController extends Controller implements HasMiddleware
                 'codigo' => $curso->codigo,
                 'nombre' => $curso->nombre,
                 'eliminado' => $curso->trashed(),
+            ],
+            'convocatoria' => $convocatoria === null ? null : [
+                'identificador' => $convocatoria->identificador,
+                'codigo' => $convocatoria->codigo,
             ],
             'estado' => $matricula->estado,
             'fecha' => $matricula->fecha_matricula->toDateString(),

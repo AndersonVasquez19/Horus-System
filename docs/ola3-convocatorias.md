@@ -1,7 +1,7 @@
 # Ola 3, módulo 7: Convocatorias y horarios (panel académico)
 
-15/11/2026. Implementa `docs/ola3-diseno-datos.md` §4.1. Sin push. Este documento cubre la **parte A** (convocatorias, horarios y estados);
-la **parte B** (matrículas que descuentan de la convocatoria) se documenta al final cuando esté hecha.
+15/11/2026. Implementa `docs/ola3-diseno-datos.md` §4.1. Sin push. Este documento cubre la **parte A** (convocatorias, horarios y estados)
+y, al final, la **parte B** (matrículas que descuentan de la convocatoria).
 
 ## API (`/api/panel/v1/academico/convocatorias`)
 
@@ -58,3 +58,41 @@ menú. Sin cobertura automática de Next.
 validaciones, revisión 428/412, cupos y su mínimo, ciclo de estados, periodo vencido, repetición, horarios y su reemplazo atómico,
 horarios inválidos o solapados, revisión y convocatoria vigente, listado y filtros) y `Panel\ConvocatoriasMigracionTest` (5: permisos por
 rol sin resincronizar, forma de las tablas, unicidad y restricciones, `down`).
+
+# Parte B: matrículas con convocatoria
+
+Migración `000057`: `matriculas.convocatoria_id`, **opcional**, FK `RESTRICT` e índice. Las matrículas existentes y las que se registran sin
+convocatoria no cambian: siguen descontando del cupo del curso. En SQLite se añade con `ALTER TABLE … ADD COLUMN` en bruto (como la
+`000045`), porque `Schema::table` reconstruiría la tabla y perdería los triggers que emulan los `CHECK`.
+
+## Reglas (`GestionMatriculas`, única implementación)
+
+- **Alta.** `POST /matriculas` acepta `convocatoria` (identificador público, uuid). Debe pertenecer al curso elegido y estar `abierta` o
+  `en_curso`; si es así, el cupo se descuenta de la convocatoria y **no** del curso. La validación HTTP lo comprueba y el servicio lo vuelve a
+  comprobar bajo bloqueo (carrera: 422 `convocatoria`). Una matrícula que nace `anulada` solo exige que la convocatoria sea del curso.
+- **Fija desde el alta.** `PUT /matriculas/{id}` **rechaza** `convocatoria` (422) y, si la matrícula tiene una, tampoco deja cambiar de curso.
+- **Anular, eliminar y restaurar** devuelven u ocupan el cupo de la convocatoria (repetir la anulación no lo devuelve dos veces). Restaurar o
+  reactivar una `anulada` exige que la convocatoria siga siendo matriculable y tenga cupo.
+- **Orden de bloqueo:** cursos → convocatoria → estudiantes → matrícula.
+- **Cancelar una convocatoria con matrículas vigentes es 409** (`cupos_maximos − cupos_disponibles > 0`): primero se anulan. `cerrada`
+  sí se admite con matrículas, y la anulación posterior sigue devolviendo el cupo.
+- **Auditoría.** `convocatoria_id` entra en los valores auditados de la matrícula (id interno, igual que `curso_id`).
+- **API.** El resumen y el detalle de la matrícula traen `convocatoria: {identificador, codigo}` o `null`.
+
+## Next
+
+El formulario de registro ofrece «Convocatoria (opcional)» al elegir curso, con las convocatorias `abierta` o `en_curso` con cupos
+(`GET academico/convocatorias?curso_id&vigentes=1`; sin permiso `convocatorias.ver` no se ofrece y el cupo es el del curso). En la edición se
+muestra fija y de solo lectura. La ficha de la matrícula enlaza a su convocatoria. El BFF acepta `convocatoria` solo en el alta.
+
+## Pruebas (parte B)
+
+`Panel\MatriculasConvocatoriaPanelTest` (9): descuento de la convocatoria y no del curso, sin convocatoria sigue con el curso, convocatoria
+ajena, en borrador, cerrada, agotada o inexistente, carrera con cupo agotado bajo bloqueo, anular y eliminar devuelven el cupo una sola vez,
+restaurar respeta la disponibilidad, edición sin cambio de curso ni de convocatoria (anular y reactivar por `PUT`), reactivación en una
+convocatoria cerrada y cancelación con matrículas vigentes (409). `ConvocatoriasMigracionTest` suma la columna opcional, su `RESTRICT` y el
+`down` (este último solo en PostgreSQL; `RevierteCadenaCrm` incluye `000056` y `000057`).
+
+**PostgreSQL: sin ejecutar** para convocatorias y matrículas con convocatoria. Quedan pendientes los `CHECK` de cupos
+(`0 ≤ disponibles ≤ máximos`), el `RESTRICT` de `matriculas.convocatoria_id` y la carrera de dos altas simultáneas sobre el último cupo
+(protocolo 55P03). Se ejecutan solo con autorización nueva y en el clúster aislado.

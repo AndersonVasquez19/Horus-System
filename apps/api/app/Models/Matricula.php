@@ -18,6 +18,7 @@ class Matricula extends Model
     protected $fillable = [
         'estudiante_id',
         'curso_id',
+        'convocatoria_id',
         'fecha_matricula',
         'estado',
         'monto_pagado',
@@ -42,5 +43,11 @@ class Matricula extends Model
     public function curso(): BelongsTo
     {
         return $this->belongsTo(Curso::class)->withTrashed();
+    }
+
+    /** @return BelongsTo<Convocatoria, $this> */
+    public function convocatoria(): BelongsTo
+    {
+        return $this->belongsTo(Convocatoria::class)->withTrashed();
     }
 }

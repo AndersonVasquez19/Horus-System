@@ -90,6 +90,8 @@ const CAMPOS_PROYECTO_EDICION = ['nombre', 'descripcion', 'fecha_inicio', 'fecha
 const CAMPOS_TICKET = ['cliente', 'proyecto', 'asunto', 'descripcion', 'prioridad', 'canal', '_revision'] as const;
 const CAMPOS_CONVOCATORIA = ['curso_id', 'nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
+/** La convocatoria solo se elige al registrar: queda fija y la edición no la acepta. */
+const CAMPOS_MATRICULA_ALTA = [...CAMPOS_MATRICULA, 'convocatoria'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
 const SESION = '[a-f0-9]{32}';
@@ -209,6 +211,8 @@ export const OPERACIONES: readonly Operacion[] = [
 
   // Convocatorias y horarios (Ola 3). Los horarios se sustituyen juntos y llevan la `_revision` de la convocatoria.
   { metodo: 'GET', patron: /^academico\/cursos$/, consulta: ['busqueda', 'estado'] },
+  // Selector de convocatoria del formulario de matrícula (las vigentes de un curso)
+  { metodo: 'GET', patron: /^academico\/convocatorias$/, consulta: ['curso_id', 'vigentes'] },
   { metodo: 'POST', patron: /^academico\/convocatorias$/, campos: CAMPOS_CONVOCATORIA },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}$`), campos: CAMPOS_CONVOCATORIA },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/estado$`), campos: ['estado', '_revision'] },
@@ -216,7 +220,7 @@ export const OPERACIONES: readonly Operacion[] = [
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
-  { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA },
+  { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA_ALTA },
   { metodo: 'PUT', patron: new RegExp(`^academico/matriculas/${ID}$`), campos: CAMPOS_MATRICULA },
   { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/(anular|restaurar)$`) },
   { metodo: 'DELETE', patron: new RegExp(`^academico/matriculas/${ID}$`) },

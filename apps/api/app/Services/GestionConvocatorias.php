@@ -100,6 +100,10 @@ class GestionConvocatorias
                 throw ValidationException::withMessages(['estado' => 'No se abre una convocatoria cuyo periodo ya terminó.']);
             }
 
+            // Cancelar con matrículas vigentes dejaría estudiantes matriculados en una convocatoria inexistente.
+            abort_if($estado === 'cancelada' && $convocatoria->cuposOcupados() > 0, 409,
+                'La convocatoria tiene matrículas vigentes: anúlalas o cámbialas antes de cancelarla.');
+
             $anterior = $convocatoria->estado;
             $convocatoria->estado = $estado;
             $convocatoria->revision++;
