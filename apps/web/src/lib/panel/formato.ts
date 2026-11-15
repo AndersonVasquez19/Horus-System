@@ -102,6 +102,9 @@ export const ETIQUETAS = {
   origenProspecto: { web: 'Web', cotizacion: 'Cotización', referido: 'Referido', evento: 'Evento', llamada: 'Llamada', otro: 'Otro' },
   etapaOportunidad: { nueva: 'Nueva', calificada: 'Calificada', propuesta: 'Propuesta', negociacion: 'Negociación', ganada: 'Ganada', perdida: 'Perdida' },
   estadoProyecto: { planificado: 'Planificado', en_curso: 'En curso', pausado: 'Pausado', completado: 'Completado', cancelado: 'Cancelado' },
+  estadoTicket: { abierto: 'Abierto', en_progreso: 'En progreso', en_espera_cliente: 'En espera del cliente', resuelto: 'Resuelto', cerrado: 'Cerrado' },
+  prioridadTicket: { baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica' },
+  canalTicket: { telefono: 'Teléfono', correo: 'Correo', presencial: 'Presencial', web: 'Web' },
   tipoCliente: { persona: 'Persona', empresa: 'Empresa' },
   documentoCliente: { dni: 'DNI', ruc: 'RUC', ce: 'Carné de extranjería', otro: 'Otro' },
   estadoEditorial: {

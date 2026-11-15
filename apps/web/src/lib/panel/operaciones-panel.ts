@@ -74,6 +74,7 @@ const CAMPOS_OPORTUNIDAD = ['cliente', 'titulo', 'monto_estimado', 'probabilidad
 const CAMPOS_OPORTUNIDAD_EDICION = ['titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', '_revision'] as const;
 const CAMPOS_PROYECTO = ['cliente', 'oportunidad', 'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
 const CAMPOS_PROYECTO_EDICION = ['nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
+const CAMPOS_TICKET = ['cliente', 'proyecto', 'asunto', 'descripcion', 'prioridad', 'canal', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -180,6 +181,14 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}$`), campos: ['nombre', 'fecha_objetivo', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}/completar$`), campos: ['completado', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}/eliminar$`), campos: ['_revision'] },
+
+  // Soporte técnico (CRM). Las notas solo se añaden y no llevan revisión.
+  { metodo: 'GET', patron: /^servicios\/tickets\/opciones\/asignados$/ },
+  { metodo: 'POST', patron: /^servicios\/tickets$/, campos: CAMPOS_TICKET },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/tickets/${UUID}$`), campos: CAMPOS_TICKET },
+  { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/asignar$`), campos: ['asignado_a', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/notas$`), campos: ['texto', 'interna'] },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },

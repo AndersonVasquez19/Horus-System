@@ -34,6 +34,9 @@ class RolesAndPermissionsSeeder extends Seeder
     /** CRM, Ola 3: proyectos. Solo admin por defecto (restricción comercial vigente). @var list<string> */
     public const PROYECTOS_PERMISSIONS = ['proyectos.ver', 'proyectos.crear', 'proyectos.editar'];
 
+    /** CRM, Ola 3: soporte técnico. Solo admin por defecto (restricción comercial vigente). @var list<string> */
+    public const SOPORTE_PERMISSIONS = ['soporte.ver', 'soporte.crear', 'soporte.gestionar'];
+
     /** Libro de Reclamaciones (Sprint 20). Solo admin por defecto; ampliar a otros roles es decisión del propietario. @var list<string> */
     public const RECLAMACIONES_PERMISSIONS = ['reclamaciones.ver', 'reclamaciones.gestionar', 'reclamaciones.responder'];
 
@@ -60,6 +63,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::PROSPECTOS_PERMISSIONS,
         ...self::PIPELINE_PERMISSIONS,
         ...self::PROYECTOS_PERMISSIONS,
+        ...self::SOPORTE_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',

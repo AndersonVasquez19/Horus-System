@@ -177,6 +177,53 @@ export interface ProspectoDetalle {
   revision: string;
 }
 
+export type EstadoTicket = 'abierto' | 'en_progreso' | 'en_espera_cliente' | 'resuelto' | 'cerrado';
+export type PrioridadTicket = 'baja' | 'media' | 'alta' | 'critica';
+export type CanalTicket = 'telefono' | 'correo' | 'presencial' | 'web';
+
+export interface TicketResumen {
+  identificador: string;
+  codigo: string;
+  asunto: string;
+  prioridad: PrioridadTicket;
+  estado: EstadoTicket;
+  canal: CanalTicket;
+  /** Solo se entrega a quien puede consultar clientes. */
+  cliente: { identificador: string; nombre: string } | null;
+  asignado: string | null;
+  vence_en: string;
+  /** Pasó el límite del SLA y sigue sin resolverse. */
+  vencido: boolean;
+}
+
+export interface NotaTicket {
+  texto: string;
+  interna: boolean;
+  autor: string | null;
+  fecha: string;
+}
+
+export interface TicketDetalle extends Omit<TicketResumen, 'asignado'> {
+  descripcion: string | null;
+  asignado: { id: number; nombre: string } | null;
+  /** Solo a quien puede consultar proyectos. */
+  proyecto: { identificador: string; codigo: string; nombre: string } | null;
+  resuelto_en: string | null;
+  cerrado_en: string | null;
+  creado_en: string | null;
+  notas: NotaTicket[];
+  revision: string;
+}
+
+/** Estados a los que se puede pasar (espejo de `TicketSoporte::TRANSICIONES`; Laravel es la autoridad y limita la reapertura a 7 días). */
+export const TRANSICIONES_TICKET: Record<EstadoTicket, readonly EstadoTicket[]> = {
+  abierto: ['en_progreso'],
+  en_progreso: ['en_espera_cliente', 'resuelto'],
+  en_espera_cliente: ['en_progreso'],
+  resuelto: ['en_progreso', 'cerrado'],
+  cerrado: [],
+};
+
 export type EstadoProyecto = 'planificado' | 'en_curso' | 'pausado' | 'completado' | 'cancelado';
 
 export interface AvanceProyecto {

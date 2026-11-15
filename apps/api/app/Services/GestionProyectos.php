@@ -10,6 +10,7 @@ use App\Models\Oportunidad;
 use App\Models\Proyecto;
 use App\Models\ProyectoHito;
 use App\Models\User;
+use App\Support\CodigoSecuencial;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -71,7 +72,7 @@ class GestionProyectos
                 }
 
                 $proyecto->identificador = (string) Str::uuid();
-                $proyecto->codigo = $this->siguienteCodigo();
+                $proyecto->codigo = CodigoSecuencial::siguiente('PRY');
                 $proyecto->estado = 'planificado';
                 $proyecto->responsable_id = $autor->id;
                 $proyecto->revision = 1;
@@ -243,18 +244,6 @@ class GestionProyectos
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $uuid) === 1, 404);
 
         return $proyecto->hitos()->where('identificador', strtolower($uuid))->firstOrFail();
-    }
-
-    /** Siguiente `PRY-AAAA-NNNN` del año de Lima, con la fila del contador bloqueada hasta el final de la transacción. */
-    private function siguienteCodigo(): string
-    {
-        $anio = (int) CarbonImmutable::now('America/Lima')->format('Y');
-        DB::table('secuencias_codigo')->insertOrIgnore(['tipo' => 'PRY', 'anio' => $anio, 'ultimo' => 0]);
-        $fila = DB::table('secuencias_codigo')->where('tipo', 'PRY')->where('anio', $anio)->lockForUpdate()->first();
-        $numero = ((int) $fila->ultimo) + 1;
-        DB::table('secuencias_codigo')->where('id', $fila->id)->update(['ultimo' => $numero]);
-
-        return sprintf('PRY-%d-%04d', $anio, $numero);
     }
 
     /** Bloquea el proyecto, autoriza la edición, comprueba la revisión y exige que siga activo. */

@@ -30,6 +30,7 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'convertido':
     case 'ganada':
     case 'completado':
+    case 'resuelto':
       return 'verde';
     case 'pendiente':
     case 'inactivo':
@@ -39,6 +40,8 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'propuesta':
     case 'negociacion':
     case 'pausado':
+    case 'en_espera_cliente':
+    case 'alta':
       return 'ambar';
     case 'en_revision':
     case 'nuevo':
@@ -46,12 +49,16 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'calificada':
     case 'planificado':
     case 'en_curso':
+    case 'abierto':
+    case 'en_progreso':
+    case 'media':
       return 'azul';
     case 'anulada':
     case 'rechazado':
     case 'descartado':
     case 'perdida':
     case 'cancelado':
+    case 'critica':
       return 'rojo';
     default:
       return 'gris';

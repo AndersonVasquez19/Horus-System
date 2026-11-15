@@ -185,6 +185,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-opciones')->name('proyectos.opciones.responsables');
         Route::get('proyectos/{identificador}', [Servicios\ProyectoController::class, 'show'])->name('proyectos.show');
 
+        // Soporte técnico (Ola 3): rol admin y permisos `soporte.*` los declara el controlador.
+        Route::get('tickets', [Servicios\TicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/opciones/asignados', [Servicios\TicketController::class, 'opcionesAsignados'])
+            ->middleware('throttle:admin-opciones')->name('tickets.opciones.asignados');
+        Route::get('tickets/{identificador}', [Servicios\TicketController::class, 'show'])->name('tickets.show');
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
             Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
@@ -227,6 +233,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('proyectos/{identificador}/hitos/{hito}', [Servicios\ProyectoController::class, 'hitoUpdate'])->name('proyectos.hitos.update');
             Route::post('proyectos/{identificador}/hitos/{hito}/completar', [Servicios\ProyectoController::class, 'hitoCompletar'])->name('proyectos.hitos.completar');
             Route::post('proyectos/{identificador}/hitos/{hito}/eliminar', [Servicios\ProyectoController::class, 'hitoEliminar'])->name('proyectos.hitos.eliminar');
+
+            Route::post('tickets', [Servicios\TicketController::class, 'store'])->name('tickets.store');
+            Route::put('tickets/{identificador}', [Servicios\TicketController::class, 'update'])->name('tickets.update');
+            Route::post('tickets/{identificador}/estado', [Servicios\TicketController::class, 'estado'])->name('tickets.estado');
+            Route::post('tickets/{identificador}/asignar', [Servicios\TicketController::class, 'asignar'])->name('tickets.asignar');
+            Route::post('tickets/{identificador}/notas', [Servicios\TicketController::class, 'nota'])->name('tickets.nota');
 
             Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
             Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');
