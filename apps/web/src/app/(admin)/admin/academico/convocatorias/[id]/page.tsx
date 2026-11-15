@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesConvocatoria, EditorHorarios } from '@/components/academico/acciones-convocatoria';
+import { PanelCalificaciones } from '@/components/academico/acciones-calificaciones';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
-import { TRANSICIONES_CONVOCATORIA, type ConvocatoriaDetalle } from '@/features/academico/tipos';
+import { TRANSICIONES_CONVOCATORIA, type ActaCalificaciones, type ConvocatoriaDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { etiqueta, fecha } from '@/lib/panel/formato';
 
@@ -76,6 +77,25 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           </Seccion>
         </div>
       </div>
+
+      <Suspense fallback={<div className="mt-6 h-40 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando calificaciones" />}>
+        <Calificaciones identificador={id} codigo={c.codigo} />
+      </Suspense>
     </>
+  );
+}
+
+/** Notas y acta: solo se muestra a quien tiene `calificaciones.ver` (Laravel responde 403 al resto). */
+async function Calificaciones({ identificador, codigo }: { identificador: string; codigo: string }) {
+  const resultado = await consultarPanel<{ data: ActaCalificaciones }>(`academico/convocatorias/${identificador}/calificaciones`, `${LISTADO}/${identificador}#calificaciones`);
+  if (resultado.estado === 'prohibido') return null;
+  if (resultado.estado !== 'ok') return <EstadoError texto="No se pudieron cargar las calificaciones. Inténtalo de nuevo en unos minutos." />;
+
+  return (
+    <div className="mt-6">
+      <Seccion id="calificaciones" titulo="Calificaciones" descripcion={`Evaluaciones, notas y acta de ${codigo}. Las notas son datos personales: no se comparten fuera del panel.`}>
+        <PanelCalificaciones acta={resultado.datos.data} />
+      </Seccion>
+    </div>
   );
 }

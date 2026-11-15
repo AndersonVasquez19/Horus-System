@@ -100,6 +100,10 @@ class GestionConvocatorias
                 throw ValidationException::withMessages(['estado' => 'No se abre una convocatoria cuyo periodo ya terminó.']);
             }
 
+            // Con evaluaciones, el cierre calcula notas finales y resultados: solo lo hace el cierre de acta.
+            abort_if($estado === 'cerrada' && $convocatoria->evaluaciones()->exists(), 409,
+                'Esta convocatoria tiene evaluaciones: usa el cierre de acta.');
+
             // Cancelar con matrículas vigentes dejaría estudiantes matriculados en una convocatoria inexistente.
             abort_if($estado === 'cancelada' && $convocatoria->cuposOcupados() > 0, 409,
                 'La convocatoria tiene matrículas vigentes: anúlalas o cámbialas antes de cancelarla.');
@@ -172,14 +176,15 @@ class GestionConvocatorias
         }
     }
 
-    private function bloquear(string $identificador): Convocatoria
+    /** Bloquea la fila de la convocatoria (dentro de una transacción). Lo reutiliza {@see GestionCalificaciones}. */
+    public function bloquear(string $identificador): Convocatoria
     {
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
 
         return Convocatoria::query()->lockForUpdate()->where('identificador', strtolower($identificador))->firstOrFail();
     }
 
-    private function autorizar(Request $request, string $permiso): User
+    public function autorizar(Request $request, string $permiso): User
     {
         $actor = $request->user()?->fresh();
         abort_unless($actor instanceof User && $actor->can($permiso), 403);
@@ -187,7 +192,7 @@ class GestionConvocatorias
         return $actor;
     }
 
-    private function comprobarRevision(Request $request, Convocatoria $convocatoria): void
+    public function comprobarRevision(Request $request, Convocatoria $convocatoria): void
     {
         $revision = $request->header('If-Match');
         abort_if($revision === null, 428, 'Envía If-Match obtenido del detalle de la convocatoria.');

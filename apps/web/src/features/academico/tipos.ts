@@ -147,6 +147,34 @@ export interface ConvocatoriaResumen {
   cupos: { maximos: number; disponibles: number; ocupados: number };
 }
 
+export interface EvaluacionActa {
+  identificador: string;
+  nombre: string;
+  peso: string;
+  fecha: string | null;
+  /** Con notas registradas, la evaluación no se elimina (solo se corrige su peso). */
+  con_notas: boolean;
+}
+
+export interface FilaActa {
+  /** Id de la matrícula (ya expuesto por el módulo de matrículas). */
+  id: number;
+  estudiante: { dni: string | null; nombre: string };
+  /** Nota por identificador de evaluación; falta la clave si todavía no se registró. */
+  notas: Record<string, string>;
+  nota_final: string | null;
+  resultado: 'aprobado' | 'desaprobado' | null;
+}
+
+/** Evaluaciones y matriz de notas de una convocatoria (`convocatorias/{id}/calificaciones`). */
+export interface ActaCalificaciones {
+  convocatoria: { identificador: string; codigo: string; curso: string | null; estado: EstadoConvocatoria; revision: string };
+  nota_aprobatoria: number;
+  peso_total: string;
+  evaluaciones: EvaluacionActa[];
+  matriculas: FilaActa[];
+}
+
 export interface HorarioConvocatoria {
   /** 1 = lunes … 7 = domingo. */
   dia_semana: number;

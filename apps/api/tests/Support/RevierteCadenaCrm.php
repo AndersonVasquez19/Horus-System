@@ -25,6 +25,8 @@ trait RevierteCadenaCrm
         '2026_11_15_000053_create_tickets_soporte_tables',
         '2026_11_15_000056_create_convocatorias_tables',
         '2026_11_15_000057_add_convocatoria_id_to_matriculas',
+        '2026_11_15_000059_create_evaluaciones_calificaciones_tables',
+        '2026_11_15_000060_add_nota_final_to_matriculas',
     ];
 
     /**

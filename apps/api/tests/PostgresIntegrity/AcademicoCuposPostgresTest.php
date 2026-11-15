@@ -130,6 +130,85 @@ class AcademicoCuposPostgresTest extends TestCase
         $this->assertViolation(self::RESTRICT_VIOLATION, fn () => DB::table('cursos')->where('id', $curso->id)->delete(), 'curso con convocatorias');
     }
 
+    public function test_los_check_de_evaluaciones_notas_y_resultado(): void
+    {
+        $admin = $this->admin();
+        $curso = $this->curso();
+        $estudiante = $this->estudiante('11111111');
+        $convocatoria = DB::table('convocatorias')->insertGetId($this->filaConvocatoria($curso, ['estado' => 'en_curso']));
+        $matricula = DB::table('matriculas')->insertGetId([
+            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'convocatoria_id' => $convocatoria, 'fecha_matricula' => '2026-11-10',
+            'estado' => 'pagada', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $fila = fn (array $cambios = []): array => [
+            'identificador' => (string) Str::uuid(), 'convocatoria_id' => $convocatoria, 'nombre' => 'Examen', 'peso' => 50, 'orden' => 1,
+            'created_at' => now(), 'updated_at' => now(), ...$cambios,
+        ];
+
+        foreach (['cero' => 0, 'sobre 100' => 100.01, 'negativo' => -5] as $caso => $peso) {
+            $this->assertViolation(self::CHECK_VIOLATION, fn () => DB::table('evaluaciones')->insert($fila(['peso' => $peso])), "peso {$caso}");
+        }
+        $evaluacion = DB::table('evaluaciones')->insertGetId($fila());
+        $nota = fn (float $valor): array => [
+            'matricula_id' => $matricula, 'evaluacion_id' => $evaluacion, 'nota' => $valor, 'registrado_por' => $admin->id,
+            'created_at' => now(), 'updated_at' => now(),
+        ];
+        foreach (['negativa' => -0.01, 'sobre 20' => 20.01] as $caso => $valor) {
+            $this->assertViolation(self::CHECK_VIOLATION, fn () => DB::table('calificaciones')->insert($nota($valor)), "nota {$caso}");
+        }
+        DB::table('calificaciones')->insert($nota(20));
+
+        $this->assertViolation(self::CHECK_VIOLATION, fn () => DB::table('matriculas')->where('id', $matricula)->update(['nota_final' => 21, 'resultado' => 'aprobado']), 'nota final fuera de rango');
+        $this->assertViolation(self::CHECK_VIOLATION, fn () => DB::table('matriculas')->where('id', $matricula)->update(['nota_final' => 15, 'resultado' => 'inventado']), 'resultado inválido');
+        $this->assertViolation(self::CHECK_VIOLATION, fn () => DB::table('matriculas')->where('id', $matricula)->update(['nota_final' => 15]), 'nota final sin resultado');
+        $this->assertViolation(self::CHECK_VIOLATION, fn () => DB::table('matriculas')->where('id', $matricula)->update(['resultado' => 'aprobado']), 'resultado sin nota final');
+        DB::table('matriculas')->where('id', $matricula)->update(['nota_final' => 15, 'resultado' => 'aprobado']);
+
+        $this->assertViolation(self::RESTRICT_VIOLATION, fn () => DB::table('evaluaciones')->where('id', $evaluacion)->delete(), 'evaluación con notas');
+        $this->assertViolation(self::RESTRICT_VIOLATION, fn () => DB::table('matriculas')->where('id', $matricula)->delete(), 'matrícula con notas');
+    }
+
+    public function test_una_nota_espera_el_bloqueo_de_la_convocatoria_y_luego_decide_con_el_estado_confirmado(): void
+    {
+        $admin = $this->admin();
+        $curso = $this->curso();
+        $estudiante = $this->estudiante('11111111');
+        $convocatoria = Convocatoria::query()->findOrFail(DB::table('convocatorias')->insertGetId($this->filaConvocatoria($curso, ['estado' => 'en_curso'])));
+        $matricula = Matricula::create([
+            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'convocatoria_id' => $convocatoria->id,
+            'fecha_matricula' => '2026-11-10', 'estado' => 'pagada',
+        ]);
+        $evaluacion = (string) Str::uuid();
+        DB::table('evaluaciones')->insert([
+            'identificador' => $evaluacion, 'convocatoria_id' => $convocatoria->id, 'nombre' => 'Examen', 'peso' => 100, 'orden' => 1,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $datos = ['evaluacion' => $evaluacion, 'matricula_id' => $matricula->id, 'nota' => 15];
+        $b = $this->secondSession();
+
+        // B: el cierre de acta de otra petición ya tomó la convocatoria y la deja cerrada (aún sin confirmar).
+        $b->beginTransaction();
+        $b->select('select id from convocatorias where id = ? for update', [$convocatoria->id]);
+        $b->update("update convocatorias set estado = 'cerrada', revision = revision + 1 where id = ?", [$convocatoria->id]);
+
+        DB::statement("SET lock_timeout = '2s'");
+        $this->withoutExceptionHandling();
+        try {
+            $this->como($admin, 'PUT', "convocatorias/{$convocatoria->identificador}/calificaciones", $datos);
+            $this->fail('La petición debía quedar bloqueada por la transacción de la otra sesión.');
+        } catch (QueryException $e) {
+            $this->assertSame(self::LOCK_NOT_AVAILABLE, $e->getCode(), 'Debe esperar el bloqueo (55P03), no fallar por otra causa.');
+        } finally {
+            $this->withExceptionHandling();
+        }
+        $this->assertSame(0, DB::table('calificaciones')->count(), 'La nota bloqueada no deja rastro.');
+
+        $b->commit();
+
+        $this->como($admin, 'PUT', "convocatorias/{$convocatoria->identificador}/calificaciones", $datos)->assertStatus(409);
+        $this->assertSame(0, DB::table('calificaciones')->count(), 'Con el acta cerrada ya no se registran notas.');
+    }
+
     public function test_la_ultima_plaza_espera_el_bloqueo_y_luego_decide_con_el_estado_confirmado(): void
     {
         $admin = $this->admin();

@@ -30,6 +30,7 @@ class Matricula extends Model
         return [
             'fecha_matricula' => 'date',
             'monto_pagado' => 'decimal:2',
+            'nota_final' => 'decimal:2',
         ];
     }
 

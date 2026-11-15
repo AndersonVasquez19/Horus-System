@@ -107,6 +107,17 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         // Convocatorias y horarios (Ola 3): el permiso de cada acción lo declara el controlador.
         Route::get('convocatorias', [Academico\ConvocatoriaController::class, 'index'])->name('convocatorias.index');
         Route::get('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'show'])->name('convocatorias.show');
+        // Calificaciones (Ola 3): evaluaciones, notas y acta de una convocatoria.
+        Route::get('convocatorias/{identificador}/calificaciones', [Academico\CalificacionController::class, 'index'])->name('calificaciones.index');
+        Route::post('convocatorias/{identificador}/acta/exportar', [Academico\CalificacionController::class, 'exportarActa'])
+            ->middleware('throttle:admin-export')->name('calificaciones.acta.exportar');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('convocatorias/{identificador}/evaluaciones', [Academico\CalificacionController::class, 'crearEvaluacion'])->name('calificaciones.evaluaciones.store');
+            Route::put('convocatorias/{identificador}/evaluaciones/{evaluacion}', [Academico\CalificacionController::class, 'actualizarEvaluacion'])->name('calificaciones.evaluaciones.update');
+            Route::post('convocatorias/{identificador}/evaluaciones/{evaluacion}/eliminar', [Academico\CalificacionController::class, 'eliminarEvaluacion'])->name('calificaciones.evaluaciones.destroy');
+            Route::put('convocatorias/{identificador}/calificaciones', [Academico\CalificacionController::class, 'nota'])->name('calificaciones.nota');
+            Route::post('convocatorias/{identificador}/acta/cerrar', [Academico\CalificacionController::class, 'cerrarActa'])->name('calificaciones.acta.cerrar');
+        });
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('convocatorias', [Academico\ConvocatoriaController::class, 'store'])->name('convocatorias.store');
             Route::put('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'update'])->name('convocatorias.update');

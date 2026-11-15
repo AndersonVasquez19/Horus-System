@@ -43,6 +43,14 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Académico, Ola 3: convocatorias y horarios. Admin y coordinador todos; secretaria solo `ver`. @var list<string> */
     public const CONVOCATORIAS_PERMISSIONS = ['convocatorias.ver', 'convocatorias.crear', 'convocatorias.editar', 'convocatorias.cerrar'];
 
+    /**
+     * Académico, Ola 3: calificaciones. `registrar` carga una nota nueva; `corregir` cambia una ya registrada (con motivo) y
+     * gestiona las evaluaciones; `exportar` baja el acta. Admin y coordinador todos; secretaria `ver` y `registrar`.
+     *
+     * @var list<string>
+     */
+    public const CALIFICACIONES_PERMISSIONS = ['calificaciones.ver', 'calificaciones.registrar', 'calificaciones.corregir', 'calificaciones.exportar'];
+
     /** Libro de Reclamaciones (Sprint 20). Solo admin por defecto; ampliar a otros roles es decisión del propietario. @var list<string> */
     public const RECLAMACIONES_PERMISSIONS = ['reclamaciones.ver', 'reclamaciones.gestionar', 'reclamaciones.responder'];
 
@@ -72,6 +80,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::SOPORTE_PERMISSIONS,
         ...self::REPORTES_COMERCIALES_PERMISSIONS,
         ...self::CONVOCATORIAS_PERMISSIONS,
+        ...self::CALIFICACIONES_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',
@@ -135,6 +144,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'asistente.ver',
         'respaldo.ver',
         ...self::CONVOCATORIAS_PERMISSIONS,
+        ...self::CALIFICACIONES_PERMISSIONS,
     ];
 
     /** @var list<string> */
@@ -148,6 +158,8 @@ class RolesAndPermissionsSeeder extends Seeder
         'aprobaciones.ver',
         'reportes.ver',
         'convocatorias.ver',
+        'calificaciones.ver',
+        'calificaciones.registrar',
     ];
 
     /** Roles con acceso al panel /admin (ver routes/web.php). */
