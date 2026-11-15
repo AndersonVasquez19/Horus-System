@@ -158,6 +158,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-opciones')->name('cotizaciones.opciones.servicios');
         Route::get('cotizaciones/{identificador}', [Servicios\CotizacionController::class, 'show'])->name('cotizaciones.show');
 
+        // Clientes (Ola 3): datos personales; rol admin y permisos `clientes.*` los declara el controlador.
+        Route::get('clientes', [Servicios\ClienteController::class, 'index'])->name('clientes.index');
+        Route::get('clientes/opciones/responsables', [Servicios\ClienteController::class, 'opcionesResponsables'])
+            ->middleware('throttle:admin-opciones')->name('clientes.opciones.responsables');
+        Route::get('clientes/{identificador}', [Servicios\ClienteController::class, 'show'])->name('clientes.show');
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
             Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
@@ -178,5 +184,10 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::post('cotizaciones/{identificador}/estado', [Servicios\CotizacionController::class, 'estado'])->name('cotizaciones.estado');
             Route::post('cotizaciones/{identificador}/responsable', [Servicios\CotizacionController::class, 'responsable'])->name('cotizaciones.responsable');
             Route::post('cotizaciones/{identificador}/seguimientos', [Servicios\CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento');
+
+            Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
+            Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');
+            Route::post('clientes/{identificador}/estado', [Servicios\ClienteController::class, 'estado'])->name('clientes.estado');
+            Route::post('clientes/{identificador}/responsable', [Servicios\ClienteController::class, 'responsable'])->name('clientes.responsable');
         });
     });
