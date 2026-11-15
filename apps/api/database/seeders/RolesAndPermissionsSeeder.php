@@ -40,6 +40,9 @@ class RolesAndPermissionsSeeder extends Seeder
     /** CRM, Ola 3: reportes comerciales (consulta y exportación). Solo admin por defecto. @var list<string> */
     public const REPORTES_COMERCIALES_PERMISSIONS = ['reportes-comerciales.ver', 'reportes-comerciales.exportar'];
 
+    /** Académico, Ola 3: convocatorias y horarios. Admin y coordinador todos; secretaria solo `ver`. @var list<string> */
+    public const CONVOCATORIAS_PERMISSIONS = ['convocatorias.ver', 'convocatorias.crear', 'convocatorias.editar', 'convocatorias.cerrar'];
+
     /** Libro de Reclamaciones (Sprint 20). Solo admin por defecto; ampliar a otros roles es decisión del propietario. @var list<string> */
     public const RECLAMACIONES_PERMISSIONS = ['reclamaciones.ver', 'reclamaciones.gestionar', 'reclamaciones.responder'];
 
@@ -68,6 +71,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::PROYECTOS_PERMISSIONS,
         ...self::SOPORTE_PERMISSIONS,
         ...self::REPORTES_COMERCIALES_PERMISSIONS,
+        ...self::CONVOCATORIAS_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',
@@ -130,6 +134,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'reportes.exportar.pdf',
         'asistente.ver',
         'respaldo.ver',
+        ...self::CONVOCATORIAS_PERMISSIONS,
     ];
 
     /** @var list<string> */
@@ -142,6 +147,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'matriculas.crear',
         'aprobaciones.ver',
         'reportes.ver',
+        'convocatorias.ver',
     ];
 
     /** Roles con acceso al panel /admin (ver routes/web.php). */

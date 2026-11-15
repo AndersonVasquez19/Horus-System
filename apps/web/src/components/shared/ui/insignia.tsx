@@ -31,6 +31,7 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'ganada':
     case 'completado':
     case 'resuelto':
+    case 'abierta':
       return 'verde';
     case 'pendiente':
     case 'inactivo':
@@ -58,6 +59,7 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'descartado':
     case 'perdida':
     case 'cancelado':
+    case 'cancelada':
     case 'critica':
       return 'rojo';
     default:

@@ -22,6 +22,8 @@ export interface Operacion {
   contactos?: boolean;
   /** Campos de un único objeto anidado `oportunidad` (conversión de un prospecto): solo escalares, texto acotado. */
   oportunidad?: readonly string[];
+  /** El cuerpo trae `horarios`: hasta `MAX_HORARIOS` bloques de horario de una convocatoria (campos acotados). */
+  horarios?: boolean;
   /** Parámetros de consulta que se reenvían. */
   consulta?: readonly string[];
   /** La respuesta es un archivo con alguno de estos tipos MIME. */
@@ -44,6 +46,17 @@ export const MAX_LISTA = 100;
 /** Contactos admitidos por cliente (igual que `GuardarClienteRequest::MAX_CONTACTOS` en Laravel). */
 export const MAX_CONTACTOS = 10;
 
+/** Bloques de horario admitidos por convocatoria (igual que `Convocatoria::MAX_HORARIOS` en Laravel). */
+export const MAX_HORARIOS = 20;
+
+export interface HorarioReenviado {
+  dia_semana: number | null;
+  hora_inicio: string | null;
+  hora_fin: string | null;
+  lugar: string | null;
+  docente: string | null;
+}
+
 export interface ContactoReenviado {
   nombre: string | null;
   cargo: string | null;
@@ -52,7 +65,7 @@ export interface ContactoReenviado {
   principal: boolean;
 }
 
-export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | Record<string, string | number | boolean | null>;
+export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | HorarioReenviado[] | Record<string, string | number | boolean | null>;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
@@ -75,6 +88,7 @@ const CAMPOS_OPORTUNIDAD_EDICION = ['titulo', 'monto_estimado', 'probabilidad', 
 const CAMPOS_PROYECTO = ['cliente', 'oportunidad', 'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
 const CAMPOS_PROYECTO_EDICION = ['nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
 const CAMPOS_TICKET = ['cliente', 'proyecto', 'asunto', 'descripcion', 'prioridad', 'canal', '_revision'] as const;
+const CAMPOS_CONVOCATORIA = ['curso_id', 'nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -193,6 +207,13 @@ export const OPERACIONES: readonly Operacion[] = [
   // Reportes comerciales (CRM). La lectura (y la lista de responsables) la hace la página de servidor; el navegador solo exporta.
   { metodo: 'POST', patron: /^servicios\/reportes-comerciales\/exportar$/, consulta: ['desde', 'hasta', 'responsable_id'], archivo: [XLSX] },
 
+  // Convocatorias y horarios (Ola 3). Los horarios se sustituyen juntos y llevan la `_revision` de la convocatoria.
+  { metodo: 'GET', patron: /^academico\/cursos$/, consulta: ['busqueda', 'estado'] },
+  { metodo: 'POST', patron: /^academico\/convocatorias$/, campos: CAMPOS_CONVOCATORIA },
+  { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}$`), campos: CAMPOS_CONVOCATORIA },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/horarios$`), campos: ['_revision'], horarios: true },
+
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
   { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA },
@@ -233,6 +254,17 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
       }
     }
     resultado.oportunidad = anidada;
+  }
+  const horarios = cuerpo.horarios;
+  if (operacion.horarios && Array.isArray(horarios) && horarios.length <= MAX_HORARIOS && horarios.every(esObjeto)) {
+    const texto = (valor: unknown): string | null => (typeof valor === 'string' ? valor.slice(0, 120) : null);
+    resultado.horarios = horarios.map((h) => ({
+      dia_semana: typeof h.dia_semana === 'number' ? h.dia_semana : null,
+      hora_inicio: texto(h.hora_inicio),
+      hora_fin: texto(h.hora_fin),
+      lugar: texto(h.lugar),
+      docente: texto(h.docente),
+    }));
   }
   const contactos = cuerpo.contactos;
   if (operacion.contactos && Array.isArray(contactos) && contactos.length <= MAX_CONTACTOS && contactos.every(esObjeto)) {

@@ -104,6 +104,16 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::post('cursos/{curso}/publicacion/retirar', [Academico\CursoPublicacionController::class, 'retirar'])->whereNumber('curso')->name('cursos.publicacion.retirar');
         });
 
+        // Convocatorias y horarios (Ola 3): el permiso de cada acción lo declara el controlador.
+        Route::get('convocatorias', [Academico\ConvocatoriaController::class, 'index'])->name('convocatorias.index');
+        Route::get('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'show'])->name('convocatorias.show');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('convocatorias', [Academico\ConvocatoriaController::class, 'store'])->name('convocatorias.store');
+            Route::put('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'update'])->name('convocatorias.update');
+            Route::post('convocatorias/{identificador}/estado', [Academico\ConvocatoriaController::class, 'estado'])->name('convocatorias.estado');
+            Route::put('convocatorias/{identificador}/horarios', [Academico\ConvocatoriaController::class, 'horarios'])->name('convocatorias.horarios');
+        });
+
         // Estudiantes: mismas reglas que /admin/estudiantes (GestionEstudiantes). Las escrituras, con throttle de panel.
         Route::get('estudiantes', [Academico\EstudianteController::class, 'index'])->name('estudiantes.index');
         Route::get('estudiantes/{estudiante}', [Academico\EstudianteController::class, 'show'])->whereNumber('estudiante')->name('estudiantes.show');

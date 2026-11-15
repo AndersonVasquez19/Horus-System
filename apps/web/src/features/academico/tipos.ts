@@ -128,3 +128,43 @@ export interface OpcionSelector {
   texto: string;
   eliminado: boolean;
 }
+
+export type EstadoConvocatoria = 'borrador' | 'abierta' | 'en_curso' | 'cerrada' | 'cancelada';
+
+export interface ConvocatoriaResumen {
+  identificador: string;
+  codigo: string;
+  /** Nombre propio o, si no tiene, el del curso. */
+  nombre: string | null;
+  nombre_propio: string | null;
+  curso: { id: number; codigo: string; nombre: string } | null;
+  modalidad: string;
+  estado: EstadoConvocatoria;
+  fecha_inicio: string;
+  fecha_fin: string;
+  cupos: { maximos: number; disponibles: number; ocupados: number };
+}
+
+export interface HorarioConvocatoria {
+  /** 1 = lunes … 7 = domingo. */
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+  lugar: string | null;
+  docente: string | null;
+}
+
+export interface ConvocatoriaDetalle extends ConvocatoriaResumen {
+  horarios: HorarioConvocatoria[];
+  creado_en: string | null;
+  revision: string;
+}
+
+/** Estados a los que se puede pasar (espejo de `Convocatoria::TRANSICIONES`; Laravel es la autoridad). */
+export const TRANSICIONES_CONVOCATORIA: Record<EstadoConvocatoria, readonly EstadoConvocatoria[]> = {
+  borrador: ['abierta', 'cancelada'],
+  abierta: ['en_curso', 'cancelada'],
+  en_curso: ['cerrada', 'cancelada'],
+  cerrada: [],
+  cancelada: [],
+};
