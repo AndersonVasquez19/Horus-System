@@ -190,6 +190,9 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/asignar$`), campos: ['asignado_a', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/notas$`), campos: ['texto', 'interna'] },
 
+  // Reportes comerciales (CRM). La lectura (y la lista de responsables) la hace la página de servidor; el navegador solo exporta.
+  { metodo: 'POST', patron: /^servicios\/reportes-comerciales\/exportar$/, consulta: ['desde', 'hasta', 'responsable_id'], archivo: [XLSX] },
+
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
   { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA },

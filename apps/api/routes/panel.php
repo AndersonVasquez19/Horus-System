@@ -185,6 +185,13 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-opciones')->name('proyectos.opciones.responsables');
         Route::get('proyectos/{identificador}', [Servicios\ProyectoController::class, 'show'])->name('proyectos.show');
 
+        // Reportes comerciales (Ola 3): rol admin y permisos `reportes-comerciales.*` los declara el controlador.
+        Route::get('reportes-comerciales', [Servicios\ReporteComercialController::class, 'index'])->name('reportes-comerciales.index');
+        Route::get('reportes-comerciales/opciones/responsables', [Servicios\ReporteComercialController::class, 'opcionesResponsables'])
+            ->middleware('throttle:admin-opciones')->name('reportes-comerciales.opciones.responsables');
+        Route::post('reportes-comerciales/exportar', [Servicios\ReporteComercialController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('reportes-comerciales.exportar');
+
         // Soporte técnico (Ola 3): rol admin y permisos `soporte.*` los declara el controlador.
         Route::get('tickets', [Servicios\TicketController::class, 'index'])->name('tickets.index');
         Route::get('tickets/opciones/asignados', [Servicios\TicketController::class, 'opcionesAsignados'])

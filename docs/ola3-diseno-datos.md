@@ -211,7 +211,7 @@ de campos de texto ni datos de contacto.
 | 3 | Pipeline | 1, 2 | 000048 permisos y 000049 tablas (**hecho**) |
 | 4 | Proyectos | 1, 3 | 000050 permisos y 000051 `secuencias_codigo`, `proyectos`, `proyecto_hitos` (**hecho**) |
 | 5 | Soporte técnico | 1, 4 (opcional) | 000052 permisos y 000053 `tickets_soporte`, `ticket_notas` (**hecho**) |
-| 6 | Reportes comerciales | 1 a 5 | ninguna |
+| 6 | Reportes comerciales | 1 a 5 | 000054 permisos, sin tablas (**hecho**) |
 | 7 | Convocatorias y horarios | — (independiente del CRM) | 000053, `matriculas.convocatoria_id` |
 | 8 | Calificaciones | 7 | 000054, `matriculas.nota_final` y `resultado` |
 | 9 | Permisos nuevos | con cada módulo | datos, una por panel |
