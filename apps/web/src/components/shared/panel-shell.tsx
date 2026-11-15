@@ -5,6 +5,7 @@ import { Suspense, type ReactNode } from 'react';
 import { obtenerSesion } from '@/lib/panel/sesion';
 import { urlLogin } from '@/lib/panel/redireccion';
 import { BotonCerrarSesion } from './boton-cerrar-sesion';
+import { CampanaNotificaciones, CampanaSinConteo } from './campana-notificaciones';
 import { MarcaPanel } from './marca-panel';
 import { PanelNavegacion } from './panel-navegacion';
 import { filtrarNavegacion, type ModeloNavegacion, type TonoPanel } from './panel-tipos';
@@ -123,6 +124,9 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
                   {t.otroTitulo}
                 </Link>
               ) : null}
+              <Suspense fallback={<CampanaSinConteo tono={tono} />}>
+                <CampanaNotificaciones tono={tono} />
+              </Suspense>
               <span className="hidden max-w-48 truncate text-sm text-white/90 md:inline" title={sesion.usuario.email}>
                 {sesion.usuario.nombre}
               </span>

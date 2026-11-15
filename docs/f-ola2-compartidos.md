@@ -307,3 +307,16 @@ intactos.
 Auditoría, reclamaciones, perfil y notificaciones, roles y usuarios ya no existen en Blade. Quedan en Blade, hasta la Ola 4:
 inicio (`/admin`), campana de notificaciones (`recientes` y `leidas`), aprobaciones, configuración, respaldo, asistente y
 búsqueda global.
+
+### Campana de notificaciones en Next
+
+La franja de cada panel (`PanelShell`) muestra ahora una campana que enlaza a la bandeja del propio panel
+(`/admin/<panel>/notificaciones`) con una insignia de «sin leer» (`CampanaNotificaciones`, componente de servidor). El conteo
+es `meta.pendientes` de `GET /compartido/notificaciones`, calculado por Laravel para el usuario (lo suyo más lo general que aún
+no leyó). La etiqueta accesible dice el número («Notificaciones, 3 sin leer»); la insignia es decorativa y muestra «99+» por
+encima de 99. Vive en su propio `<Suspense>` y, si Laravel no responde, queda el enlace sin número: un fallo aquí no afecta al
+panel. Al marcar como leída o «marcar todas» la bandeja ya hace `router.refresh()`, que también refresca el conteo.
+
+Con esto Next cubre lo que daba la campana del shell Blade, salvo el desplegable de las últimas avisos: aquí es un enlace a la
+bandeja. Cuando se retire el shell Blade (Ola 4) podrán eliminarse `notificaciones.recientes` y `notificaciones.leidas`.
+Sin cobertura automática (Next no tiene runner de pruebas): revisar en un navegador con sesión real.
