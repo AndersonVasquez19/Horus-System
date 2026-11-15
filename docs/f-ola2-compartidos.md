@@ -291,10 +291,16 @@ inventario de páginas y los formularios de usuario de `AccesibilidadPanelTest`.
 (`formularios-modal-smoke.mjs`) pierde sus recorridos de usuarios y roles y conserva aprobaciones y configuración (no se
 ejecutó en esta sesión).
 
-**PostgreSQL, sin ejecutar:** `tests/ConsolidacionPostgres/IntegridadExistenteTest` y `tests/PostgresIntegrity/ConcurrencyPostgresTest`
-llaman ahora a `actualizarUsuarioPanel`. Se comprobó la sintaxis (`php -l`), pero no se corrieron (requieren autorización
-explícita y el clúster aislado). Hay que ejecutarlas antes de dar por cerrada la Ola 2 en PostgreSQL: el cambio es solo el punto de
-entrada HTTP (Blade a API del panel); la sección exclusiva y el bloqueo son los mismos servicios.
+**PostgreSQL (ejecutado el 14/11/2026, autorizado):** `tests/PostgresIntegrity/ConcurrencyPostgresTest` (3 pruebas, 23
+aserciones) y `tests/ConsolidacionPostgres/IntegridadExistenteTest` (8 pruebas, 105 aserciones) llaman ahora a
+`actualizarUsuarioPanel` y pasan, con el mismo bloqueo `FOR UPDATE` y la misma sección exclusiva de `AdminProtection`: solo
+cambió el punto de entrada HTTP (Blade a API del panel). Solo se usó el clúster aislado `horus_pgt_55433` (`127.0.0.1:55433`,
+`system_identifier` `7702263743609677164`, base `horus_l2_test`), sin migraciones pendientes (37 aplicadas). Identidad leída con
+`pg_controldata` antes de arrancar y con `pgsql-test.php probe` antes y después; consentimiento destructivo solo como variable
+de cada comando (`.env.pgsql-testing.local` sin tocar y con el consentimiento vacío). Limpieza con
+`pgsql-test.php artisan migrate:fresh`: quedan solo `migrations` (37) y `permissions` (20), sin usuarios ni datos. Cierre con
+`pg_ctl stop -m fast`: estado «apagado», sin listener en 55433, sin `postmaster.pid`; 5432 (PID 5948) y 55432 (PID 5984)
+intactos.
 
 ### Cierre del retiro compartido
 
