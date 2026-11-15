@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\LlamaAprobacionesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class AprobacionesRespaldoPermissionsMigrationTest extends TestCase
 {
+    use LlamaAprobacionesDelPanel;
     use RefreshDatabase;
 
     private const MIGRATION = '2026_10_28_000024_add_aprobaciones_respaldo_permissions.php';
@@ -36,13 +38,13 @@ class AprobacionesRespaldoPermissionsMigrationTest extends TestCase
         $this->simulateLegacyDatabase();
         $admin = $this->staff('admin');
 
-        $this->actingAs($admin)->get(route('admin.aprobaciones.index'))->assertForbidden();
+        $this->actingAs($admin)->panelAprobaciones('GET')->assertForbidden();
         $this->actingAs($admin)->get(route('admin.respaldo.index'))->assertForbidden();
 
         $this->migration()->up();
 
         $admin = $admin->fresh();
-        $this->actingAs($admin)->get(route('admin.aprobaciones.index'))->assertOk();
+        $this->actingAs($admin)->panelAprobaciones('GET')->assertOk();
         $this->actingAs($admin)->get(route('admin.respaldo.index'))->assertOk();
     }
 

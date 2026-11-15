@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\AprobacionController;
 use App\Http\Controllers\Admin\AsistenteController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusquedaController;
@@ -120,12 +119,10 @@ Route::prefix('admin')
         // Roles retirados de Blade (14/11/2026): los sirve apps/web con /api/panel/v1/compartido/roles. Se conserva el nombre
         // `roles.index` (barra lateral, panel) y responde 302 a Next; crear, editar y eliminar ya no existen aquí.
         Route::get('roles', RedirigirAWebController::class)->defaults('destino', '/admin/roles')->name('roles.index');
-        Route::resource('aprobaciones', AprobacionController::class)
-            ->only(['index', 'store', 'update', 'destroy'])
-            ->parameters(['aprobaciones' => 'aprobacion']);
-        Route::post('aprobaciones/{aprobacion}/aprobar', [AprobacionController::class, 'aprobar'])->name('aprobaciones.aprobar');
-        Route::post('aprobaciones/{aprobacion}/rechazar', [AprobacionController::class, 'rechazar'])->name('aprobaciones.rechazar');
-        Route::post('aprobaciones/{aprobacion}/reabrir', [AprobacionController::class, 'reabrir'])->name('aprobaciones.reabrir');
+        // Aprobaciones internas retiradas de Blade (15/11/2026): las sirve apps/web con /api/panel/v1/compartido/aprobaciones.
+        // Se conserva el nombre `aprobaciones.index` (barra lateral, panel, enlaces de las notificaciones) y responde 302 a
+        // `/admin/aprobaciones` de Next, que elige el panel de la persona. Registrar, editar, decidir y eliminar ya no existen aquí.
+        Route::get('aprobaciones', RedirigirAWebController::class)->defaults('destino', '/admin/aprobaciones')->name('aprobaciones.index');
         // Bandeja de notificaciones retirada de Blade (14/11/2026): la sirve apps/web con /api/panel/v1/compartido/notificaciones.
         // `notificaciones.index` responde 302 a Next. Se conservan `recientes` y `leidas` (JSON) porque la campana del shell
         // Blade, que sigue en pie hasta la Ola 4, las consume; «marcar una» ya no existe aquí.

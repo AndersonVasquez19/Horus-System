@@ -10,6 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
+use Tests\Support\LlamaAprobacionesDelPanel;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
 class AprobacionesConcurrenciaPostgresTest extends TestCase
 {
     use DatabaseTruncation;
+    use LlamaAprobacionesDelPanel;
     use RequiresIsolatedPostgres;
 
     private const LOCK_NOT_AVAILABLE = '55P03';
@@ -62,7 +64,7 @@ class AprobacionesConcurrenciaPostgresTest extends TestCase
         // Sesión principal: intenta resolver. Con lock_timeout corto debe quedar BLOQUEADA (55P03).
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->post(route('admin.aprobaciones.aprobar', $solicitud)));
+            ->panelAprobaciones('POST', $solicitud->id.'/aprobar'));
 
         // Sesión B confirma su decisión en PostgreSQL.
         $b->commit();
@@ -70,7 +72,7 @@ class AprobacionesConcurrenciaPostgresTest extends TestCase
         // Sesión principal repite la petición tras liberarse el bloqueo: lee el estado 'aprobado' bajo bloqueo y responde 409.
         $this->withExceptionHandling()
             ->actingAs($admin)
-            ->post(route('admin.aprobaciones.aprobar', $solicitud))
+            ->panelAprobaciones('POST', $solicitud->id.'/aprobar')
             ->assertStatus(409);
 
         $this->assertSame(AprobacionInterna::ESTADO_APROBADO, $solicitud->fresh()->estado);
@@ -98,7 +100,7 @@ class AprobacionesConcurrenciaPostgresTest extends TestCase
 
         $this->limitLockWait();
         $this->assertBlocked(fn () => $this->actingAs($admin)->withoutExceptionHandling()
-            ->post(route('admin.aprobaciones.aprobar', $solicitud)));
+            ->panelAprobaciones('POST', $solicitud->id.'/aprobar'));
 
         // B aborta / revierte su transacción.
         $b->rollBack();
@@ -106,8 +108,8 @@ class AprobacionesConcurrenciaPostgresTest extends TestCase
         // La sesión principal puede ahora adquirir el bloqueo, encontrar la solicitud aún 'pendiente' y aprobarla.
         $this->withExceptionHandling()
             ->actingAs($admin)
-            ->post(route('admin.aprobaciones.aprobar', $solicitud))
-            ->assertRedirect(route('admin.aprobaciones.index'));
+            ->panelAprobaciones('POST', $solicitud->id.'/aprobar')
+            ->assertOk();
 
         $this->assertSame(AprobacionInterna::ESTADO_APROBADO, $solicitud->fresh()->estado);
         $this->assertSame($admin->id, $solicitud->fresh()->aprobador_id);

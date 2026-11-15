@@ -60,15 +60,6 @@ class PaginasErrorTest extends TestCase
             ->assertDontSee('does not have the right permissions');
     }
 
-    public function test_un_404_de_modelo_no_revela_nombres_internos(): void
-    {
-        $this->actingAs($this->adminUser())->put('/admin/aprobaciones/999999', [])
-            ->assertNotFound()
-            ->assertSee('Página no encontrada')
-            ->assertDontSee('No query results')
-            ->assertDontSee('App\\Models', false);
-    }
-
     public function test_419_429_y_503_tienen_su_pagina_sin_el_mensaje_tecnico(): void
     {
         foreach ([419 => 'La sesión expiró', 429 => 'Demasiadas solicitudes', 503 => 'Sitio en mantenimiento'] as $codigo => $titulo) {

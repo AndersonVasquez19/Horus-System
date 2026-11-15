@@ -57,14 +57,14 @@ class AccesibilidadPanelTest extends TestCase
 
     public function test_un_listado_tiene_un_solo_h1(): void
     {
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.aprobaciones.index'))->assertOk()->getContent();
+        $html = (string) $this->actingAs($this->admin)->get(route('admin.configuracion.index'))->assertOk()->getContent();
 
         $this->assertSame(1, substr_count($html, '<h1'));
     }
 
     public function test_la_confirmacion_es_un_dialogo_nativo_con_titulo_y_descripcion(): void
     {
-        $html = (string) $this->actingAs($this->admin)->get(route('admin.aprobaciones.index'))->assertOk()->getContent();
+        $html = (string) $this->actingAs($this->admin)->get(route('admin.configuracion.index'))->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression('/<dialog\s+x-data="confirmModal"/', $html);
         $this->assertStringContainsString('aria-labelledby="confirm-modal-title"', $html);

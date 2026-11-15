@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Tests\Support\LlamaAprobacionesDelPanel;
 use Tests\Support\LlamaRolesDelPanel;
 use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 class OldInputRenderingTest extends TestCase
 {
+    use LlamaAprobacionesDelPanel;
     use LlamaRolesDelPanel;
     use LlamaUsuariosDelPanel;
     use RefreshDatabase;
@@ -144,15 +146,15 @@ class OldInputRenderingTest extends TestCase
         $this->actingAs($admin);
         $datos = ['titulo' => 'Solicitud', 'tipo' => 'compra', 'estado' => 'pendiente', $campo => [(string) $admin->id]];
 
-        $this->post(route('admin.aprobaciones.store'), $datos)->assertSessionHasErrors($campo);
+        $this->panelAprobaciones('POST', '', $datos)->assertUnprocessable()->assertJsonValidationErrors($campo);
         $this->assertSame(0, AprobacionInterna::count());
 
         $datos[$campo] = (string) $admin->id;
-        $this->post(route('admin.aprobaciones.store'), $datos)->assertSessionHasNoErrors();
+        $this->panelAprobaciones('POST', '', $datos)->assertCreated();
         $this->assertSame(1, AprobacionInterna::count());
 
-        $this->put(route('admin.aprobaciones.update', AprobacionInterna::firstOrFail()), [$campo => [(string) $admin->id]] + $datos)
-            ->assertSessionHasErrors($campo);
+        $this->panelAprobaciones('PUT', (string) AprobacionInterna::firstOrFail()->id, [$campo => [(string) $admin->id]] + $datos)
+            ->assertUnprocessable()->assertJsonValidationErrors($campo);
     }
 
     /** @return iterable<string, array{string}> */

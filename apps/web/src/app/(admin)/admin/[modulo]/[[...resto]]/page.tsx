@@ -10,7 +10,7 @@ export const instant = false;
 
 // Módulos compartidos por los dos paneles. Laravel (el Blade retirado y las notificaciones guardadas) enlaza a
 // `/admin/<módulo>` sin saber qué panel usa la persona: esta entrada la lleva al suyo conservando el resto de la ruta.
-const MODULOS_COMPARTIDOS = new Set(['auditoria', 'reclamaciones', 'usuarios', 'roles', 'notificaciones', 'perfil']);
+const MODULOS_COMPARTIDOS = new Set(['auditoria', 'reclamaciones', 'usuarios', 'roles', 'notificaciones', 'perfil', 'aprobaciones']);
 const SEGMENTO = /^[A-Za-z0-9-]{1,64}$/;
 
 export default function ModuloCompartidoPage({ params }: { params: Promise<{ modulo: string; resto?: string[] }> }) {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\AprobacionInterna;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
@@ -162,20 +161,6 @@ class BusquedaLikeEscapeTest extends TestCase
 
         // Búsqueda normal por nombre de curso: las dos matrículas del «Curso común».
         $admin->panelMatriculas('GET', '', ['busqueda' => 'común'])->assertOk()->assertJsonPath('meta.total', 2);
-    }
-
-    public function test_aprobaciones_busca_el_porcentaje_como_texto(): void
-    {
-        AprobacionInterna::create(['titulo' => 'Descuento del 30% ficticio', 'tipo' => 'compra', 'estado' => 'pendiente']);
-        AprobacionInterna::create(['titulo' => 'Compra de sillas', 'tipo' => 'compra', 'estado' => 'pendiente']);
-
-        $html = $this->actingAs($this->adminUser())
-            ->get(route('admin.aprobaciones.index', ['busqueda' => '%']))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringContainsString('Descuento del 30% ficticio', $html);
-        $this->assertStringNotContainsString('Compra de sillas', $html);
     }
 
     public function test_la_busqueda_global_no_trata_los_comodines_como_tales(): void

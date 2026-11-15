@@ -73,6 +73,18 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
             Route::delete('roles/{role}', [Compartido\RolController::class, 'destroy'])->whereNumber('role')->name('roles.destroy');
         });
 
+        // Aprobaciones internas: el permiso lo declara el controlador y la lógica es la de `GestionAprobaciones`, compartida
+        // con el Blade que se retira.
+        Route::get('aprobaciones', [Compartido\AprobacionController::class, 'index'])->name('aprobaciones.index');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('aprobaciones', [Compartido\AprobacionController::class, 'store'])->name('aprobaciones.store');
+            Route::put('aprobaciones/{aprobacion}', [Compartido\AprobacionController::class, 'update'])->whereNumber('aprobacion')->name('aprobaciones.update');
+            Route::delete('aprobaciones/{aprobacion}', [Compartido\AprobacionController::class, 'destroy'])->whereNumber('aprobacion')->name('aprobaciones.destroy');
+            Route::post('aprobaciones/{aprobacion}/aprobar', [Compartido\AprobacionController::class, 'aprobar'])->whereNumber('aprobacion')->name('aprobaciones.aprobar');
+            Route::post('aprobaciones/{aprobacion}/rechazar', [Compartido\AprobacionController::class, 'rechazar'])->whereNumber('aprobacion')->name('aprobaciones.rechazar');
+            Route::post('aprobaciones/{aprobacion}/reabrir', [Compartido\AprobacionController::class, 'reabrir'])->whereNumber('aprobacion')->name('aprobaciones.reabrir');
+        });
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('notificaciones/leidas', [Compartido\NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
             Route::post('notificaciones/{notificacion}/leida', [Compartido\NotificacionController::class, 'marcarLeida'])

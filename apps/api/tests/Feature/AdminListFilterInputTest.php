@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\AprobacionInterna;
 use App\Models\Curso;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,7 +29,6 @@ class AdminListFilterInputTest extends TestCase
     public static function listFilters(): iterable
     {
         foreach ([
-            'admin.aprobaciones.index' => ['busqueda', 'estado'],
             'admin.busqueda.index' => ['q'],
         ] as $route => $params) {
             foreach ($params as $param) {
@@ -87,28 +85,12 @@ class AdminListFilterInputTest extends TestCase
         }
     }
 
-    public function test_approval_status_filters_still_work(): void
-    {
-        $admin = $this->adminUser();
-        AprobacionInterna::create(['titulo' => 'Solicitud aprobada ficticia', 'tipo' => 'compra', 'estado' => 'aprobado']);
-        AprobacionInterna::create(['titulo' => 'Solicitud rechazada ficticia', 'tipo' => 'compra', 'estado' => 'rechazado']);
-
-        $this->actingAs($admin)->get(route('admin.aprobaciones.index', ['estado' => 'aprobado']))
-            ->assertOk()->assertSee('Solicitud aprobada ficticia')->assertDontSee('Solicitud rechazada ficticia');
-
-        // Comportamiento actual conservado: un estado desconocido filtra por ese valor (lista vacía).
-        $this->get(route('admin.aprobaciones.index', ['estado' => 'inexistente']))
-            ->assertOk()->assertDontSee('Solicitud aprobada ficticia')->assertDontSee('Solicitud rechazada ficticia');
-    }
-
     public function test_text_searches_in_remaining_modules_ignore_ascii_case(): void
     {
         $admin = $this->adminUser();
         User::factory()->create(['name' => 'ROSA FICTICIA', 'email' => 'rosa.ficticia@example.invalid']);
-        AprobacionInterna::create(['titulo' => 'COMPRA DE PROYECTOR', 'tipo' => 'compra', 'estado' => 'pendiente']);
 
         $this->actingAs($admin)->llamarUsuariosPanel('GET', '', ['busqueda' => 'rosa'])->assertOk()->assertJsonPath('data.0.nombre', 'ROSA FICTICIA');
-        $this->get(route('admin.aprobaciones.index', ['busqueda' => 'proyector']))->assertOk()->assertSee('COMPRA DE PROYECTOR');
     }
 
     /**

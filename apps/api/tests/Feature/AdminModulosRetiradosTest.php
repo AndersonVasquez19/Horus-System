@@ -42,6 +42,7 @@ class AdminModulosRetiradosTest extends TestCase
             'notificaciones' => ['admin.notificaciones.index', '/admin/notificaciones'],
             'roles' => ['admin.roles.index', '/admin/roles'],
             'usuarios' => ['admin.usuarios.index', '/admin/usuarios'],
+            'aprobaciones' => ['admin.aprobaciones.index', '/admin/aprobaciones'],
         ];
     }
 

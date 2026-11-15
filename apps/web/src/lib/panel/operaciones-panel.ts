@@ -107,6 +107,11 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
   { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta'], archivo: ['application/json'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones/${UUID}/gestion$`), campos: CAMPOS_GESTION_RECLAMACION },
+  // Aprobaciones internas: el servidor decide quién puede qué; aquí solo viajan los campos de cada operación
+  { metodo: 'POST', patron: /^compartido\/aprobaciones$/, campos: ['titulo', 'tipo', 'descripcion', 'referencia', 'comentario'] },
+  { metodo: 'POST', patron: new RegExp(`^compartido/aprobaciones/${ID}/aprobar$`), campos: ['comentario'] },
+  { metodo: 'POST', patron: new RegExp(`^compartido/aprobaciones/${ID}/(rechazar|reabrir)$`), campos: ['motivo'] },
+  { metodo: 'DELETE', patron: new RegExp(`^compartido/aprobaciones/${ID}$`) },
   { metodo: 'POST', patron: /^compartido\/usuarios$/, campos: CAMPOS_USUARIO, listas: ['roles'] },
   { metodo: 'PUT', patron: new RegExp(`^compartido/usuarios/${ID}$`), campos: CAMPOS_USUARIO, listas: ['roles'] },
   { metodo: 'DELETE', patron: new RegExp(`^compartido/usuarios/${ID}$`) },

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\AprobacionInterna;
 use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
@@ -58,7 +57,6 @@ class AdminAuthorizationTest extends TestCase
         return [
             'dashboard' => ['admin.dashboard', self::ALL],
             'busqueda' => ['admin.busqueda.index', self::ALL],
-            'aprobaciones.index' => ['admin.aprobaciones.index', self::ALL],
             'configuracion.index' => ['admin.configuracion.index', ['admin']],
             'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
             'asistente.index' => ['admin.asistente.index', ['admin', 'coordinador']],
@@ -244,17 +242,10 @@ class AdminAuthorizationTest extends TestCase
         $this->assertDatabaseMissing('system_settings', ['key' => 'moneda', 'value' => 'X']);
     }
 
-    public function test_secretaria_cannot_manage_approvals_or_use_the_assistant(): void
+    public function test_secretaria_cannot_use_the_assistant(): void
     {
-        $aprobacion = AprobacionInterna::create(['titulo' => 'Solicitud', 'tipo' => 'general', 'estado' => 'pendiente']);
-
         $this->actingAs($this->staff('secretaria'));
-        $this->post(route('admin.aprobaciones.store'), [])->assertForbidden();
-        $this->put(route('admin.aprobaciones.update', $aprobacion), [])->assertForbidden();
-        $this->delete(route('admin.aprobaciones.destroy', $aprobacion))->assertForbidden();
         $this->postJson(route('admin.asistente.mensaje'), ['mensaje' => 'hola', 'session_id' => 's'])->assertForbidden();
-
-        $this->assertModelExists($aprobacion);
     }
 
     public function test_admin_user_update_changes_the_bound_user_instead_of_creating_one(): void
@@ -335,29 +326,6 @@ class AdminAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseMissing('users', ['email' => 'nuevo@example.com']);
-    }
-
-    public function test_admin_approval_update_and_delete_act_on_the_bound_record(): void
-    {
-        // Editar o eliminar una solicitud pendiente queda reservado a su solicitante o a Gerencia.
-        $coordinador = $this->staff('coordinador');
-        $aprobacion = AprobacionInterna::create(['titulo' => 'Solicitud', 'tipo' => 'general', 'estado' => 'pendiente',
-            'solicitante_id' => $coordinador->id]);
-        $total = AprobacionInterna::count();
-
-        $this->actingAs($coordinador)
-            ->put(route('admin.aprobaciones.update', $aprobacion), [
-                'titulo' => 'Solicitud revisada',
-                'tipo' => 'general',
-            ])
-            ->assertRedirect(route('admin.aprobaciones.index'));
-
-        $this->assertSame($total, AprobacionInterna::count());
-        $this->assertSame('Solicitud revisada', $aprobacion->fresh()->titulo);
-        $this->assertSame('pendiente', $aprobacion->fresh()->estado);
-
-        $this->delete(route('admin.aprobaciones.destroy', $aprobacion))->assertRedirect(route('admin.aprobaciones.index'));
-        $this->assertModelMissing($aprobacion);
     }
 
     public function test_dashboard_hides_audit_activity_without_audit_permission(): void

@@ -15,12 +15,14 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Resend\Laravel\Events\EmailDelivered;
 use RuntimeException;
+use Tests\Support\LlamaAprobacionesDelPanel;
 use Tests\Support\LlamaRolesDelPanel;
 use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
 class Sprint12AtomicityTest extends TestCase
 {
+    use LlamaAprobacionesDelPanel;
     use LlamaRolesDelPanel;
     use LlamaUsuariosDelPanel;
     use RefreshDatabase;
@@ -74,8 +76,7 @@ class Sprint12AtomicityTest extends TestCase
         // Destinatario del aviso de creación: otro usuario con autoridad sobre «compra» (Gerencia).
         User::factory()->create()->assignRole('admin');
         $this->failNotification();
-        $this->postJson(route('admin.aprobaciones.store'), ['titulo' => 'Ficticia', 'tipo' => 'compra',
-            'aprobador_id' => $actor->id, 'estado' => 'pendiente'])->assertStatus(500);
+        $this->panelAprobaciones('POST', '', ['titulo' => 'Ficticia', 'tipo' => 'compra'])->assertStatus(500);
         $this->assertDatabaseCount('aprobaciones_internas', 0);
         $this->assertDatabaseCount('notificaciones_internas', 0);
     }
@@ -88,7 +89,7 @@ class Sprint12AtomicityTest extends TestCase
         $approval = AprobacionInterna::create(['titulo' => 'Ficticia', 'tipo' => 'compra',
             'solicitante_id' => $solicitante->id, 'estado' => 'pendiente']);
         $this->failNotification();
-        $this->postJson(route('admin.aprobaciones.aprobar', $approval))->assertStatus(500);
+        $this->panelAprobaciones('POST', $approval->id.'/aprobar')->assertStatus(500);
         $this->assertSame('pendiente', $approval->fresh()->estado);
         $this->assertDatabaseCount('notificaciones_internas', 0);
     }

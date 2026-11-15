@@ -62,6 +62,40 @@ export interface RolPanel {
   usuarios: number;
 }
 
+export type EstadoAprobacion = 'pendiente' | 'aprobado' | 'rechazado';
+
+export interface EventoAprobacion {
+  accion: string;
+  usuario: string | null;
+  fecha_local: string;
+  estado_anterior: string | null;
+  estado_nuevo: string | null;
+  motivo: string | null;
+  comentario: string | null;
+}
+
+/** Solicitud de aprobación interna. Las banderas `puede_*` son las mismas reglas que Laravel aplica al ejecutar. */
+export interface AprobacionFila {
+  id: number;
+  titulo: string;
+  tipo: string;
+  estado: EstadoAprobacion;
+  descripcion: string | null;
+  comentario: string | null;
+  referencia: string | null;
+  /** `admin` (Gerencia), `coordinador` (Coordinación) o null si el tipo no tiene autoridad asignada. */
+  rol_autorizado: string | null;
+  solicitante: { id: number; nombre: string } | null;
+  aprobador: { id: number; nombre: string } | null;
+  creada_local: string;
+  actualizada_local: string;
+  es_propia: boolean;
+  puede_resolver: boolean;
+  puede_reabrir: boolean;
+  puede_eliminar: boolean;
+  historial: EventoAprobacion[];
+}
+
 export interface ReclamacionFila {
   /** UUID público (el id interno no sale de Laravel). */
   id: string;
