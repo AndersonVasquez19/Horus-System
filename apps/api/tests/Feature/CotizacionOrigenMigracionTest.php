@@ -139,7 +139,10 @@ class CotizacionOrigenMigracionTest extends TestCase
 
         $migracion->up();
         $migracion->up(); // repetible
-        $this->assertSame($original, $this->columnas('solicitudes_cotizacion'));
+        // Mismas columnas: `origen` se vuelve a añadir al final, así que el orden puede cambiar si hay columnas posteriores
+        // (p. ej. `cliente_id`, migración 000045); el orden de columnas no es parte del contrato.
+        $this->assertEqualsCanonicalizing($original, $this->columnas('solicitudes_cotizacion'));
+        $this->assertCount(count($original), $this->columnas('solicitudes_cotizacion'));
         $despues = (array) DB::table('solicitudes_cotizacion')->first();
         $this->assertSame('administrativo', $despues['origen']);
         unset($despues['origen']);
