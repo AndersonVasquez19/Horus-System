@@ -6,6 +6,7 @@ import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
 import { AccionesOportunidad } from '@/components/servicios/acciones-oportunidad';
+import { BotonProyectoDeOportunidad } from '@/components/servicios/acciones-proyecto';
 import type { OportunidadDetalle } from '@/features/servicios/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { etiqueta, fecha, moneda } from '@/lib/panel/formato';
@@ -55,6 +56,10 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         '—'
       ),
     ],
+    [
+      'Proyecto',
+      o.proyecto ? <Link href={`/admin/servicios/proyectos/${o.proyecto.identificador}`} className="font-semibold text-servicios-700 hover:underline">{o.proyecto.codigo}</Link> : '—',
+    ],
     ['Registrada', fecha(o.creado_en)],
   ];
   if (o.cerrada_en) filas.push(['Cerrada', fecha(o.cerrada_en)]);
@@ -65,7 +70,12 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         titulo={o.titulo}
         descripcion={o.cliente ? `Cliente: ${o.cliente.nombre}` : 'Oportunidad comercial.'}
         migas={[{ etiqueta: 'Inicio', href: '/admin/servicios' }, { etiqueta: 'Pipeline', href: LISTADO }, { etiqueta: o.titulo }]}
-        acciones={<AccionesOportunidad oportunidad={o} />}
+        acciones={
+          <>
+            {o.etapa === 'ganada' && !o.proyecto ? <BotonProyectoDeOportunidad oportunidad={o.identificador} /> : null}
+            <AccionesOportunidad oportunidad={o} />
+          </>
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-3">

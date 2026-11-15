@@ -179,6 +179,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-opciones')->name('oportunidades.opciones.responsables');
         Route::get('oportunidades/{identificador}', [Servicios\OportunidadController::class, 'show'])->name('oportunidades.show');
 
+        // Proyectos (Ola 3): rol admin y permisos `proyectos.*` los declara el controlador.
+        Route::get('proyectos', [Servicios\ProyectoController::class, 'index'])->name('proyectos.index');
+        Route::get('proyectos/opciones/responsables', [Servicios\ProyectoController::class, 'opcionesResponsables'])
+            ->middleware('throttle:admin-opciones')->name('proyectos.opciones.responsables');
+        Route::get('proyectos/{identificador}', [Servicios\ProyectoController::class, 'show'])->name('proyectos.show');
+
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
             Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
@@ -212,6 +218,15 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('oportunidades/{identificador}', [Servicios\OportunidadController::class, 'update'])->name('oportunidades.update');
             Route::post('oportunidades/{identificador}/etapa', [Servicios\OportunidadController::class, 'etapa'])->name('oportunidades.etapa');
             Route::post('oportunidades/{identificador}/responsable', [Servicios\OportunidadController::class, 'responsable'])->name('oportunidades.responsable');
+
+            Route::post('proyectos', [Servicios\ProyectoController::class, 'store'])->name('proyectos.store');
+            Route::put('proyectos/{identificador}', [Servicios\ProyectoController::class, 'update'])->name('proyectos.update');
+            Route::post('proyectos/{identificador}/estado', [Servicios\ProyectoController::class, 'estado'])->name('proyectos.estado');
+            Route::post('proyectos/{identificador}/responsable', [Servicios\ProyectoController::class, 'responsable'])->name('proyectos.responsable');
+            Route::post('proyectos/{identificador}/hitos', [Servicios\ProyectoController::class, 'hitoStore'])->name('proyectos.hitos.store');
+            Route::put('proyectos/{identificador}/hitos/{hito}', [Servicios\ProyectoController::class, 'hitoUpdate'])->name('proyectos.hitos.update');
+            Route::post('proyectos/{identificador}/hitos/{hito}/completar', [Servicios\ProyectoController::class, 'hitoCompletar'])->name('proyectos.hitos.completar');
+            Route::post('proyectos/{identificador}/hitos/{hito}/eliminar', [Servicios\ProyectoController::class, 'hitoEliminar'])->name('proyectos.hitos.eliminar');
 
             Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
             Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');

@@ -72,6 +72,8 @@ const CAMPOS_CLIENTE = ['tipo', 'nombre', 'documento_tipo', 'documento_numero', 
 const CAMPOS_PROSPECTO = ['nombre_contacto', 'empresa', 'email', 'telefono', 'origen', 'servicio_interes', 'proximo_seguimiento', '_revision'] as const;
 const CAMPOS_OPORTUNIDAD = ['cliente', 'titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', 'servicio', 'cotizacion', '_revision'] as const;
 const CAMPOS_OPORTUNIDAD_EDICION = ['titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', '_revision'] as const;
+const CAMPOS_PROYECTO = ['cliente', 'oportunidad', 'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
+const CAMPOS_PROYECTO_EDICION = ['nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -166,6 +168,18 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: new RegExp(`^servicios/oportunidades/${UUID}$`), campos: CAMPOS_OPORTUNIDAD_EDICION },
   { metodo: 'POST', patron: new RegExp(`^servicios/oportunidades/${UUID}/etapa$`), campos: ['etapa', 'motivo_perdida', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/oportunidades/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
+
+  // Proyectos (CRM). Los hitos no tienen revisión propia: cada cambio viaja con la `_revision` del proyecto.
+  { metodo: 'GET', patron: /^servicios\/proyectos\/opciones\/responsables$/ },
+  { metodo: 'GET', patron: /^servicios\/oportunidades$/, consulta: ['etapa', 'abiertas', 'busqueda'] },
+  { metodo: 'POST', patron: /^servicios\/proyectos$/, campos: CAMPOS_PROYECTO },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/proyectos/${UUID}$`), campos: CAMPOS_PROYECTO_EDICION },
+  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos$`), campos: ['nombre', 'fecha_objetivo', '_revision'] },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}$`), campos: ['nombre', 'fecha_objetivo', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}/completar$`), campos: ['completado', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}/eliminar$`), campos: ['_revision'] },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },

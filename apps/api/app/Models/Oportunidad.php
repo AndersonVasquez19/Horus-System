@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -100,6 +101,12 @@ class Oportunidad extends Model
     public function responsable(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsable_id');
+    }
+
+    /** @return HasOne<Proyecto, $this> */
+    public function proyecto(): HasOne
+    {
+        return $this->hasOne(Proyecto::class);
     }
 
     /** @return HasMany<OportunidadHistorial, $this> */

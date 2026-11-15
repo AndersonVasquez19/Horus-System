@@ -177,6 +177,60 @@ export interface ProspectoDetalle {
   revision: string;
 }
 
+export type EstadoProyecto = 'planificado' | 'en_curso' | 'pausado' | 'completado' | 'cancelado';
+
+export interface AvanceProyecto {
+  total: number;
+  completados: number;
+  /** Porcentaje calculado; `null` si aún no hay hitos. */
+  avance: number | null;
+}
+
+export interface ProyectoResumen {
+  identificador: string;
+  codigo: string;
+  nombre: string;
+  estado: EstadoProyecto;
+  /** Solo se entrega a quien puede consultar clientes. */
+  cliente: { identificador: string; nombre: string } | null;
+  responsable: string | null;
+  fecha_inicio: string | null;
+  fecha_fin_estimada: string | null;
+  hitos: AvanceProyecto;
+}
+
+export interface HitoProyecto {
+  identificador: string;
+  nombre: string;
+  orden: number;
+  fecha_objetivo: string | null;
+  completado_en: string | null;
+}
+
+export interface ProyectoDetalle extends Omit<ProyectoResumen, 'responsable'> {
+  descripcion: string | null;
+  /** Importe con dos decimales (cadena). */
+  presupuesto: string | null;
+  moneda: string;
+  fecha_fin_real: string | null;
+  responsable: { id: number; nombre: string } | null;
+  /** Solo a quien puede consultar el pipeline. */
+  oportunidad: { identificador: string; titulo: string } | null;
+  desde_oportunidad: boolean;
+  creado_en: string | null;
+  hitos_detalle: HitoProyecto[];
+  revision: string;
+}
+
+/** Estados a los que se puede pasar (espejo de `Proyecto::TRANSICIONES`; Laravel es la autoridad). */
+export const TRANSICIONES_PROYECTO: Record<EstadoProyecto, readonly EstadoProyecto[]> = {
+  planificado: ['en_curso', 'cancelado'],
+  en_curso: ['completado', 'pausado', 'cancelado'],
+  pausado: ['en_curso', 'cancelado'],
+  completado: [],
+  cancelado: [],
+};
+
 export type EtapaOportunidad = 'nueva' | 'calificada' | 'propuesta' | 'negociacion' | 'ganada' | 'perdida';
 
 export interface OportunidadResumen {
@@ -207,6 +261,8 @@ export interface OportunidadDetalle extends Omit<OportunidadResumen, 'responsabl
   /** Solo a quien puede consultar cotizaciones. */
   cotizacion: string | null;
   desde_prospecto: boolean;
+  /** Solo a quien puede consultar proyectos. */
+  proyecto: { identificador: string; codigo: string } | null;
   responsable: { id: number; nombre: string } | null;
   cerrada_en: string | null;
   creado_en: string | null;

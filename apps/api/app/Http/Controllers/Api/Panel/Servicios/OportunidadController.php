@@ -163,7 +163,7 @@ final class OportunidadController extends Controller implements HasMiddleware
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
 
         return Oportunidad::query()
-            ->with(['responsable:id,name', 'cliente:id,identificador,nombre', 'servicio:id,identificador_publico,nombre', 'cotizacion:id,identificador'])
+            ->with(['responsable:id,name', 'cliente:id,identificador,nombre', 'servicio:id,identificador_publico,nombre', 'cotizacion:id,identificador', 'proyecto:id,oportunidad_id,identificador,codigo'])
             ->where('identificador', strtolower($identificador))->firstOrFail();
     }
 
@@ -193,6 +193,8 @@ final class OportunidadController extends Controller implements HasMiddleware
             'servicio' => $o->servicio === null ? null : ['identificador' => $o->servicio->identificador_publico, 'nombre' => $o->servicio->nombre],
             'cotizacion' => $o->cotizacion !== null && $request->user()?->can('cotizaciones.ver') === true ? $o->cotizacion->identificador : null,
             'desde_prospecto' => $o->prospecto_id !== null,
+            // Una oportunidad ganada da un solo proyecto; el enlace solo sale a quien puede consultar proyectos.
+            'proyecto' => $o->proyecto !== null && $request->user()?->can('proyectos.ver') === true ? ['identificador' => $o->proyecto->identificador, 'codigo' => $o->proyecto->codigo] : null,
             'responsable' => $o->responsable === null ? null : ['id' => $o->responsable->id, 'nombre' => $o->responsable->name],
             'cerrada_en' => $o->cerrada_at?->toIso8601String(),
             'creado_en' => $o->created_at?->toIso8601String(),

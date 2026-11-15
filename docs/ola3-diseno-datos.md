@@ -209,7 +209,7 @@ de campos de texto ni datos de contacto.
 | 1 | Clientes (+ contactos, vínculo con cotizaciones) | — | 000043 permisos, 000044 `clientes` y `cliente_contactos` (**hecho**); `solicitudes_cotizacion.cliente_id` pendiente; `secuencias_codigo` pasa a Proyectos |
 | 2 | Prospectos | 1 | 000046 permisos y 000047 tabla (**hecho**) |
 | 3 | Pipeline | 1, 2 | 000048 permisos y 000049 tablas (**hecho**) |
-| 4 | Proyectos | 1, 3 | 000050 (`secuencias_codigo`), 000051 |
+| 4 | Proyectos | 1, 3 | 000050 permisos y 000051 `secuencias_codigo`, `proyectos`, `proyecto_hitos` (**hecho**) |
 | 5 | Soporte técnico | 1, 4 (opcional) | 000052 |
 | 6 | Reportes comerciales | 1 a 5 | ninguna |
 | 7 | Convocatorias y horarios | — (independiente del CRM) | 000053, `matriculas.convocatoria_id` |
