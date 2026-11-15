@@ -105,3 +105,40 @@ export interface CotizacionDetalle {
   revision: string;
   historial: EventoCotizacion[];
 }
+
+export interface ClienteResumen {
+  identificador: string;
+  tipo: 'persona' | 'empresa';
+  nombre: string;
+  documento_tipo: 'dni' | 'ruc' | 'ce' | 'otro' | null;
+  /** Documento enmascarado: solo los últimos 3 caracteres. */
+  documento: string | null;
+  /** Correo enmascarado. */
+  email: string | null;
+  estado: 'activo' | 'inactivo';
+  responsable: string | null;
+}
+
+export interface ContactoCliente {
+  nombre: string;
+  cargo: string | null;
+  email: string | null;
+  telefono: string | null;
+  principal: boolean;
+}
+
+export interface ClienteDetalle {
+  identificador: string;
+  tipo: 'persona' | 'empresa';
+  nombre: string;
+  documento_tipo: 'dni' | 'ruc' | 'ce' | 'otro' | null;
+  documento_numero: string | null;
+  email: string | null;
+  telefono: string | null;
+  direccion: string | null;
+  estado: 'activo' | 'inactivo';
+  responsable: { id: number; nombre: string } | null;
+  contactos: ContactoCliente[];
+  creado_en: string | null;
+  revision: string;
+}

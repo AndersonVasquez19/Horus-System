@@ -206,10 +206,10 @@ de campos de texto ni datos de contacto.
 
 | # | Módulo | Depende de | Migraciones |
 | --- | --- | --- | --- |
-| 1 | Clientes (+ contactos, vínculo con cotizaciones) | — | 000043 `secuencias_codigo`, 000044 `clientes`, 000045 `cliente_contactos` y `solicitudes_cotizacion.cliente_id` |
-| 2 | Prospectos | 1 | 000046 |
-| 3 | Pipeline | 1, 2 | 000047 |
-| 4 | Proyectos | 1, 3 | 000048 |
+| 1 | Clientes (+ contactos, vínculo con cotizaciones) | — | 000043 permisos, 000044 `clientes` y `cliente_contactos` (**hecho**); `solicitudes_cotizacion.cliente_id` pendiente; `secuencias_codigo` pasa a Proyectos |
+| 2 | Prospectos | 1 | 000045 |
+| 3 | Pipeline | 1, 2 | 000046 |
+| 4 | Proyectos | 1, 3 | 000047 (`secuencias_codigo`), 000048 |
 | 5 | Soporte técnico | 1, 4 (opcional) | 000049 |
 | 6 | Reportes comerciales | 1 a 5 | ninguna |
 | 7 | Convocatorias y horarios | — (independiente del CRM) | 000050, `matriculas.convocatoria_id` |

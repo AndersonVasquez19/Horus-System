@@ -97,6 +97,9 @@ export const ETIQUETAS = {
   estadoPublicacion: { sin_ficha: 'Sin ficha', borrador: 'Borrador', publicada: 'Publicada', retirada: 'Retirada' },
   estadoCotizacion: { recibida: 'Recibida', en_revision: 'En revisión' },
   origenCotizacion: { publico: 'Web', administrativo: 'Interna' },
+  estadoCliente: { activo: 'Activo', inactivo: 'Inactivo' },
+  tipoCliente: { persona: 'Persona', empresa: 'Empresa' },
+  documentoCliente: { dni: 'DNI', ruc: 'RUC', ce: 'Carné de extranjería', otro: 'Otro' },
   estadoEditorial: {
     sin_ficha: 'Sin ficha',
     borrador: 'Borrador',

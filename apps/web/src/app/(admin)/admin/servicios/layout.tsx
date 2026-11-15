@@ -15,6 +15,7 @@ const NAVEGACION: ModeloNavegacion = [
     elementos: [
       { id: 'servicios', etiqueta: 'Servicios', href: '/admin/servicios/catalogo', icono: 'servicios', permisosRequeridos: ['servicios.ver'] },
       { id: 'cotizaciones', etiqueta: 'Cotizaciones', href: '/admin/servicios/cotizaciones', icono: 'documentos', permisosRequeridos: ['cotizaciones.ver'] },
+      { id: 'clientes', etiqueta: 'Clientes', href: '/admin/servicios/clientes', icono: 'personas', permisosRequeridos: ['clientes.ver'] },
     ],
   },
   {

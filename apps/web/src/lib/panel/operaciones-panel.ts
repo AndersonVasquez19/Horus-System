@@ -18,6 +18,8 @@ export interface Operacion {
   campos?: readonly string[];
   /** Campos del cuerpo que son listas de textos (roles o permisos): hasta `MAX_LISTA` elementos de texto acotado. */
   listas?: readonly string[];
+  /** El cuerpo trae `contactos`: hasta `MAX_CONTACTOS` objetos con campos de texto acotados (clientes). */
+  contactos?: boolean;
   /** Parámetros de consulta que se reenvían. */
   consulta?: readonly string[];
   /** La respuesta es un archivo con alguno de estos tipos MIME. */
@@ -37,6 +39,19 @@ export const MAX_IMAGEN = 3 * 1024 * 1024;
 /** Elementos admitidos en un campo de lista (Laravel limita roles a 20 y permisos a 100). */
 export const MAX_LISTA = 100;
 
+/** Contactos admitidos por cliente (igual que `GuardarClienteRequest::MAX_CONTACTOS` en Laravel). */
+export const MAX_CONTACTOS = 10;
+
+export interface ContactoReenviado {
+  nombre: string | null;
+  cargo: string | null;
+  email: string | null;
+  telefono: string | null;
+  principal: boolean;
+}
+
+export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[];
+
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 
@@ -51,6 +66,7 @@ const CAMPOS_IMAGEN = ['imagen_principal_alt', '_revision'] as const;
 const CAMPOS_TARJETA = ['titulo', 'descripcion', 'caracteristicas', 'variante_imagen', 'imagen_alt', 'activo', 'orden', 'quitar_imagen', '_revision'] as const;
 const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_email', 'contacto_telefono', 'servicio_uuid', '_revision', '_clave'] as const;
+const CAMPOS_CLIENTE = ['tipo', 'nombre', 'documento_tipo', 'documento_numero', 'email', 'telefono', 'direccion', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 
@@ -120,6 +136,13 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/seguimientos$`), campos: ['nota', 'proximo_seguimiento', '_revision', '_clave'] },
 
+  // Clientes (CRM). Los contactos son una lista de objetos acotada: se reenvían por `contactos` (ver `cuerpoPermitido`).
+  { metodo: 'GET', patron: /^servicios\/clientes\/opciones\/responsables$/ },
+  { metodo: 'POST', patron: /^servicios\/clientes$/, campos: CAMPOS_CLIENTE, contactos: true },
+  { metodo: 'PUT', patron: new RegExp(`^servicios/clientes/${UUID}$`), campos: CAMPOS_CLIENTE, contactos: true },
+  { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
+
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
   { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA },
@@ -134,9 +157,9 @@ export function buscarOperacion(metodo: string, ruta: string): Operacion | null 
 }
 
 /** Cuerpo reenviado: solo los campos declarados y con valores escalares. */
-export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unknown>): Record<string, string | number | boolean | null | string[]> | undefined {
+export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unknown>): Record<string, ValorCuerpo> | undefined {
   if (operacion.metodo === 'GET' || operacion.metodo === 'DELETE') return undefined;
-  const resultado: Record<string, string | number | boolean | null | string[]> = {};
+  const resultado: Record<string, ValorCuerpo> = {};
   for (const campo of operacion.campos ?? []) {
     const valor = cuerpo[campo];
     if (valor === null || typeof valor === 'string' || typeof valor === 'number' || typeof valor === 'boolean') {
@@ -150,7 +173,22 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
       resultado[campo] = valor.map((elemento: string) => elemento.slice(0, 100));
     }
   }
+  const contactos = cuerpo.contactos;
+  if (operacion.contactos && Array.isArray(contactos) && contactos.length <= MAX_CONTACTOS && contactos.every(esObjeto)) {
+    const texto = (valor: unknown): string | null => (typeof valor === 'string' ? valor.slice(0, 200) : null);
+    resultado.contactos = contactos.map((c) => ({
+      nombre: texto(c.nombre),
+      cargo: texto(c.cargo),
+      email: texto(c.email),
+      telefono: texto(c.telefono),
+      principal: c.principal === true,
+    }));
+  }
   return resultado;
+}
+
+function esObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
 }
 
 /** Cadena de consulta con solo los parámetros declarados (texto acotado). */
