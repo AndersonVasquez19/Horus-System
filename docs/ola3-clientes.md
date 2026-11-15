@@ -48,10 +48,26 @@ caracteres). Sin cobertura automática de Next: revisar en un navegador con sesi
 y filtros, comodines `%`, detalle, validaciones, documento único, revisión 428/412, sin cambios, contactos, estado y
 responsable) y `Panel\ClientesMigracionTest` (6: permisos repetibles y reversibles, tablas, unicidad con nulos, sin cascada).
 
+## Vínculo con cotizaciones (hecho)
+
+`POST /api/panel/v1/servicios/cotizaciones/{uuid}/cliente` (permiso `cotizaciones.gestionar`, con `_revision`):
+
+- `cliente`: UUID de un cliente existente (exige además `clientes.ver`), o
+- `crear_cliente: true`: crea una **persona** con el nombre, correo y teléfono de la solicitud (exige además `clientes.crear`).
+
+Reglas: el vínculo **no se sustituye ni se quita** (otro cliente o una segunda creación dan 409); repetir el mismo vínculo no
+avanza la revisión; **nunca se fusiona** con un cliente existente por coincidencia de correo (se responde 422 pidiendo vincular
+ese cliente). El historial de la solicitud reutiliza el evento `informacion_actualizada` con `campos: ['cliente_id']`, porque su
+columna `evento` es un enum cerrado y no se altera. El detalle de la cotización entrega `cliente` solo a quien tiene
+`clientes.ver`. La migración `000045` añade `solicitudes_cotizacion.cliente_id` (nulo, `RESTRICT`); en SQLite usa
+`ALTER TABLE … ADD COLUMN` porque `Schema::table` con clave foránea reconstruye la tabla y borra los triggers que hacen de `CHECK`
+(su `down()` en SQLite solo quita el índice: la base de pruebas se recrea entera). Las solicitudes existentes no se tocan.
+Pruebas: `Panel\CotizacionClientePanelTest` (7). En Next: botón «Cliente» (buscar y vincular, o crear) y enlace al cliente en
+el expediente.
+
 ## Pendiente de este módulo
 
-- **Vínculo con cotizaciones** (`solicitudes_cotizacion.cliente_id` y la acción «vincular o crear cliente», con constancia en el
-  historial): se hace en un commit aparte porque toca `GestionCotizaciones`.
 - **Archivado** (`softDeletes` ya está en la tabla): llega con Proyectos y Soporte, cuando existan dependencias que comprobar;
   mientras tanto un cliente se inactiva.
-- **PostgreSQL:** `CHECK`, índice parcial y bloqueo de concurrencia sin ejecutar.
+- **PostgreSQL:** `CHECK`, índice parcial, la clave foránea de cotizaciones y el bloqueo de concurrencia, sin ejecutar.
+- **Next:** sin runner de pruebas; revisar en un navegador con sesión real.

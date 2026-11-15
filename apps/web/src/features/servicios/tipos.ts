@@ -100,6 +100,8 @@ export interface CotizacionDetalle {
   contacto: { nombre: string; email: string | null; telefono: string | null };
   necesidad: string;
   responsable: { id: number; nombre: string } | null;
+  /** Solo se entrega a quien puede consultar clientes; es null si no hay vínculo o no hay permiso. */
+  cliente: { identificador: string; nombre: string } | null;
   ultimo_seguimiento: string | null;
   proximo_seguimiento: string | null;
   revision: string;

@@ -138,6 +138,9 @@ export const OPERACIONES: readonly Operacion[] = [
 
   // Clientes (CRM). Los contactos son una lista de objetos acotada: se reenvían por `contactos` (ver `cuerpoPermitido`).
   { metodo: 'GET', patron: /^servicios\/clientes\/opciones\/responsables$/ },
+  // Selector de «vincular cliente» en una cotización: búsqueda acotada del listado (correo y documento ya van enmascarados).
+  { metodo: 'GET', patron: /^servicios\/clientes$/, consulta: ['busqueda', 'estado'] },
+  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/cliente$`), campos: ['cliente', 'crear_cliente', '_revision'] },
   { metodo: 'POST', patron: /^servicios\/clientes$/, campos: CAMPOS_CLIENTE, contactos: true },
   { metodo: 'PUT', patron: new RegExp(`^servicios/clientes/${UUID}$`), campos: CAMPOS_CLIENTE, contactos: true },
   { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/estado$`), campos: ['estado', '_revision'] },

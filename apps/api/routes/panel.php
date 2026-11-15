@@ -184,6 +184,7 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::post('cotizaciones/{identificador}/estado', [Servicios\CotizacionController::class, 'estado'])->name('cotizaciones.estado');
             Route::post('cotizaciones/{identificador}/responsable', [Servicios\CotizacionController::class, 'responsable'])->name('cotizaciones.responsable');
             Route::post('cotizaciones/{identificador}/seguimientos', [Servicios\CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento');
+            Route::post('cotizaciones/{identificador}/cliente', [Servicios\CotizacionController::class, 'cliente'])->name('cotizaciones.cliente');
 
             Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
             Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');

@@ -75,6 +75,16 @@ async function Expediente({ params }: { params: Promise<{ id: string }> }) {
               ['Servicio', cotizacion.servicio ?? 'Sin servicio asociado'],
               ['Recibida', fecha(cotizacion.recibida_en)],
               ['Responsable', cotizacion.responsable?.nombre ?? 'Sin asignar'],
+              [
+                'Cliente',
+                cotizacion.cliente ? (
+                  <Link href={`/admin/servicios/clientes/${cotizacion.cliente.identificador}`} className="font-semibold text-servicios-700 hover:underline">
+                    {cotizacion.cliente.nombre}
+                  </Link>
+                ) : (
+                  'Sin vincular'
+                ),
+              ],
               ['Último seguimiento', fecha(cotizacion.ultimo_seguimiento)],
               ['Próximo seguimiento', fecha(cotizacion.proximo_seguimiento)],
             ]}

@@ -46,7 +46,7 @@ final class CotizacionController extends Controller implements HasMiddleware
             new Middleware('permission:cotizaciones.ver', only: ['index', 'show']),
             new Middleware('permission:cotizaciones.crear', only: ['store', 'opcionesServicios']),
             new Middleware('permission:cotizaciones.editar', only: ['update']),
-            new Middleware('permission:cotizaciones.gestionar', only: ['estado', 'responsable', 'seguimiento']),
+            new Middleware('permission:cotizaciones.gestionar', only: ['estado', 'responsable', 'seguimiento', 'cliente']),
             new Middleware('permission:cotizaciones.ver', only: ['opcionesResponsables']),
         ];
     }
@@ -132,6 +132,12 @@ final class CotizacionController extends Controller implements HasMiddleware
         return $this->gestionar($request, $identificador, 'responsable', 'El responsable de la solicitud se actualizó.');
     }
 
+    /** Vincula la solicitud a un cliente existente o crea uno desde sus datos de contacto. */
+    public function cliente(GestionarCotizacionRequest $request, string $identificador): JsonResponse
+    {
+        return $this->gestionar($request, $identificador, 'cliente', 'La solicitud se vinculó al cliente.');
+    }
+
     public function seguimiento(GestionarCotizacionRequest $request, string $identificador): JsonResponse
     {
         return $this->gestionar($request, $identificador, 'seguimiento', 'El seguimiento se registró.');
@@ -186,7 +192,7 @@ final class CotizacionController extends Controller implements HasMiddleware
     {
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
 
-        return SolicitudCotizacion::query()->with('responsable:id,name')->where('identificador', strtolower($identificador))->firstOrFail();
+        return SolicitudCotizacion::query()->with(['responsable:id,name', 'cliente:id,identificador,nombre'])->where('identificador', strtolower($identificador))->firstOrFail();
     }
 
     private function detalle(SolicitudCotizacion $solicitud, int $estado = 200, ?string $mensaje = null): JsonResponse
@@ -223,6 +229,10 @@ final class CotizacionController extends Controller implements HasMiddleware
             ],
             'necesidad' => $solicitud->necesidad_cliente,
             'responsable' => $solicitud->responsable === null ? null : ['id' => $solicitud->responsable->id, 'nombre' => $solicitud->responsable->name],
+            // Solo a quien puede consultar clientes: vincular una solicitud no concede leer al cliente.
+            'cliente' => $solicitud->cliente !== null && request()->user()?->can('clientes.ver') === true
+                ? ['identificador' => $solicitud->cliente->identificador, 'nombre' => $solicitud->cliente->nombre]
+                : null,
             'ultimo_seguimiento' => $solicitud->ultimo_seguimiento_at?->toIso8601String(),
             'proximo_seguimiento' => $solicitud->proximo_seguimiento?->toDateString(),
             'revision' => $solicitud->etag(),

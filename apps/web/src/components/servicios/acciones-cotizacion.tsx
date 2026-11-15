@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardPlus, MessageSquarePlus, Pencil, Search, UserCheck } from 'lucide-react';
+import { ClipboardPlus, Link2, MessageSquarePlus, Pencil, Search, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -143,12 +143,21 @@ export function BotonNuevaSolicitud() {
   );
 }
 
-type Modo = 'editar' | 'responsable' | 'seguimiento' | null;
+type Modo = 'editar' | 'responsable' | 'seguimiento' | 'cliente' | null;
+
+interface ClienteOpcion {
+  identificador: string;
+  nombre: string;
+  documento: string | null;
+  documento_tipo: string | null;
+}
 
 /** Acciones del expediente: editar datos, pasar a revisión, asignar responsable y registrar seguimientos. */
 export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetalle }) {
   const puedeEditar = usePuede('cotizaciones.editar');
   const puedeGestionar = usePuede('cotizaciones.gestionar');
+  const puedeVerClientes = usePuede('clientes.ver');
+  const puedeCrearClientes = usePuede('clientes.crear');
   const router = useRouter();
   const { mostrar } = useAvisos();
   const { ejecutar } = useOperacionPanel();
@@ -158,6 +167,9 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
   const [responsable, setResponsable] = useState('');
   const [clave, setClave] = useState(nuevaClave);
   const [seguimiento, setSeguimiento] = useState({ nota: '', proximo: '' });
+  const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [clientes, setClientes] = useState<ClienteOpcion[] | null>(null);
+  const [clienteElegido, setClienteElegido] = useState('');
   const responsables = useOpciones('servicios/cotizaciones/opciones/responsables', modo === 'responsable');
 
   async function operar(ruta: string, cuerpo: Record<string, unknown>, cerrar = true) {
@@ -177,8 +189,28 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
     router.refresh();
   }
 
+  async function buscarClientes(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    setOcupado(true);
+    setError(null);
+    const consulta = new URLSearchParams({ busqueda: busquedaCliente.trim() }).toString();
+    const resultado = await ejecutar<{ data: ClienteOpcion[] }>(`servicios/clientes?${consulta}`);
+    setOcupado(false);
+    if (!resultado.ok) {
+      setError(resultado.error);
+      return;
+    }
+    setClienteElegido('');
+    setClientes(resultado.datos.data);
+  }
+
   const abrir = (siguiente: Modo) => {
     setError(null);
+    if (siguiente === 'cliente') {
+      setBusquedaCliente('');
+      setClientes(null);
+      setClienteElegido('');
+    }
     setResponsable(cotizacion.responsable === null ? '' : String(cotizacion.responsable.id));
     setModo(siguiente);
   };
@@ -196,6 +228,9 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
           <Boton tono="servicios" variante="secundario" icono={<UserCheck className="h-4 w-4" aria-hidden="true" />} onClick={() => abrir('responsable')}>Responsable</Boton>
           <Boton tono="servicios" variante="secundario" icono={<MessageSquarePlus className="h-4 w-4" aria-hidden="true" />} onClick={() => abrir('seguimiento')}>Seguimiento</Boton>
         </>
+      ) : null}
+      {puedeGestionar && cotizacion.cliente === null && (puedeVerClientes || puedeCrearClientes) ? (
+        <Boton tono="servicios" variante="secundario" icono={<Link2 className="h-4 w-4" aria-hidden="true" />} onClick={() => abrir('cliente')}>Cliente</Boton>
       ) : null}
       {puedeEditar ? (
         <Boton tono="servicios" variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => abrir('editar')}>Editar</Boton>
@@ -224,6 +259,47 @@ export function AccionesCotizacion({ cotizacion }: { cotizacion: CotizacionDetal
             <Boton tono="servicios" type="submit" cargando={ocupado}>Guardar</Boton>
           </div>
         </form>
+      </Dialogo>
+
+      <Dialogo abierto={modo === 'cliente'} titulo="Vincular cliente" descripcion={cotizacion.codigo} onCerrar={() => setModo(null)} bloqueado={ocupado}>
+        <div className="space-y-5">
+          {error ? <Alerta tipo="error">{errorDeCampo(error, 'cliente') ?? error.message}</Alerta> : null}
+          {puedeVerClientes ? (
+            <section aria-labelledby="titulo-vincular-existente" className="space-y-3">
+              <h3 id="titulo-vincular-existente" className="text-sm font-semibold text-panel-text">Cliente existente</h3>
+              <form onSubmit={(evento) => void buscarClientes(evento)} noValidate className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <Campo tono="servicios" etiqueta="Buscar por nombre, correo o documento" value={busquedaCliente} onChange={(evento) => setBusquedaCliente(evento.target.value)} maxLength={200} autoComplete="off" className="flex-1" />
+                <Boton tono="servicios" variante="secundario" type="submit" cargando={ocupado}>Buscar</Boton>
+              </form>
+              {clientes === null ? null : clientes.length === 0 ? (
+                <p className="text-sm text-panel-muted">Ningún cliente coincide.</p>
+              ) : (
+                <fieldset className="space-y-1">
+                  <legend className="sr-only">Resultados</legend>
+                  {clientes.map((c) => (
+                    <label key={c.identificador} className="flex cursor-pointer items-center gap-2 rounded-md border border-panel-border px-3 py-2 text-sm text-panel-text">
+                      <input type="radio" name="cliente-elegido" value={c.identificador} checked={clienteElegido === c.identificador} onChange={() => setClienteElegido(c.identificador)} className="h-4 w-4 accent-servicios-700" />
+                      <span className="font-medium">{c.nombre}</span>
+                      {c.documento ? <span className="text-panel-muted">{c.documento_tipo?.toUpperCase()} {c.documento}</span> : null}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+              <div className="flex justify-end">
+                <Boton tono="servicios" cargando={ocupado} disabled={clienteElegido === ''} onClick={() => void operar('cliente', { cliente: clienteElegido })}>Vincular cliente seleccionado</Boton>
+              </div>
+            </section>
+          ) : null}
+          {puedeCrearClientes ? (
+            <section aria-labelledby="titulo-vincular-nuevo" className="space-y-2 border-t border-panel-border pt-4">
+              <h3 id="titulo-vincular-nuevo" className="text-sm font-semibold text-panel-text">Cliente nuevo</h3>
+              <p className="text-sm text-panel-muted">Se crea una persona con el nombre, el correo y el teléfono de esta solicitud. Si ya existe un cliente con ese correo, se te pedirá vincularlo.</p>
+              <div className="flex justify-end">
+                <Boton tono="servicios" variante="secundario" cargando={ocupado} onClick={() => void operar('cliente', { crear_cliente: true })}>Crear cliente desde esta solicitud</Boton>
+              </div>
+            </section>
+          ) : null}
+        </div>
       </Dialogo>
 
       <Dialogo abierto={modo === 'seguimiento'} titulo="Registrar seguimiento" descripcion={cotizacion.codigo} onCerrar={() => setModo(null)} bloqueado={ocupado}>

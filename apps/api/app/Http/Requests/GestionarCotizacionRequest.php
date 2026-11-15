@@ -22,6 +22,10 @@ class GestionarCotizacionRequest extends FormRequest
         return match ($this->route()?->getActionMethod()) {
             'estado' => ['estado' => ['required', Rule::in(['recibida', 'en_revision'])]],
             'responsable' => ['responsable_id' => ['present', 'nullable', 'integer', 'min:1', 'max:2147483647']],
+            'cliente' => [
+                'cliente' => ['nullable', 'uuid', 'required_without:crear_cliente'],
+                'crear_cliente' => ['sometimes', 'boolean'],
+            ],
             'seguimiento' => ['nota' => ['required', 'string', 'max:3000', 'not_regex:/[<>]/u'],
                 'proximo_seguimiento' => ['sometimes', 'nullable', 'date_format:Y-m-d']],
             default => [],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Cliente;
 use App\Models\CotizacionHistorial;
 use App\Models\ServicioTecnologico;
 use App\Models\SolicitudCotizacion;
@@ -114,6 +115,12 @@ class GestionCotizaciones
                     $solicitud->proximo_seguimiento = $datos['proximo_seguimiento'];
                 }
                 $evento = 'seguimiento_registrado';
+            } elseif ($operacion === 'cliente') {
+                $cliente = $this->clienteParaVincular($request, $solicitud, $datos);
+                $solicitud->cliente_id = $cliente->id;
+                // El historial reutiliza «informacion_actualizada» (su `evento` es un enum cerrado): solo el nombre del campo.
+                $evento = 'informacion_actualizada';
+                $metadatos = ['campos' => ['cliente_id']];
             } else {
                 throw new \InvalidArgumentException('Operación desconocida.');
             }
@@ -127,6 +134,41 @@ class GestionCotizaciones
 
             return $solicitud;
         });
+    }
+
+    /**
+     * Cliente al que se vincula la solicitud: uno existente (`cliente`: UUID, hace falta `clientes.ver`) o uno nuevo
+     * creado con los datos de contacto de la solicitud (`crear_cliente`, hace falta `clientes.crear`). Un vínculo no se
+     * sustituye ni se quita. Nunca se fusiona con un cliente existente por coincidencia de correo: se pide vincularlo.
+     *
+     * @param  array<string, mixed>  $datos
+     */
+    private function clienteParaVincular(Request $request, SolicitudCotizacion $solicitud, array $datos): Cliente
+    {
+        if (filter_var($datos['crear_cliente'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            abort_if($solicitud->cliente_id !== null, 409, 'La solicitud ya está vinculada a un cliente.');
+            $correo = is_string($solicitud->contacto_email) ? strtolower(trim($solicitud->contacto_email)) : null;
+            if ($correo !== null && $correo !== '' && Cliente::query()->withTrashed()->where('email', $correo)->exists()) {
+                throw ValidationException::withMessages(['cliente' => 'Ya existe un cliente con ese correo: vincula la solicitud a ese cliente.']);
+            }
+
+            return app(GestionClientes::class)->crear($request, array_filter([
+                'tipo' => 'persona',
+                'nombre' => $solicitud->contacto_nombre,
+                'email' => $correo,
+                'telefono' => $solicitud->contacto_telefono,
+            ], fn (mixed $valor): bool => $valor !== null && $valor !== ''));
+        }
+
+        $actor = $request->user()?->fresh();
+        abort_unless($actor instanceof User && $actor->can('clientes.ver'), 403);
+        $cliente = Cliente::query()->lockForUpdate()->where('identificador', strtolower((string) ($datos['cliente'] ?? '')))->first();
+        if ($cliente === null) {
+            throw ValidationException::withMessages(['cliente' => 'Selecciona un cliente existente.']);
+        }
+        abort_if($solicitud->cliente_id !== null && $solicitud->cliente_id !== $cliente->id, 409, 'La solicitud ya está vinculada a otro cliente.');
+
+        return $cliente;
     }
 
     private function autorizar(Request $request, string $permiso): User
