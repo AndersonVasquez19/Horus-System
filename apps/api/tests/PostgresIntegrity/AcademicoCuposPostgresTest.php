@@ -23,7 +23,7 @@ use Tests\TestCase;
  * Datos ficticios; solo la base desechable del perfil aislado (127.0.0.1:55433, horus_l2_test). Usan DatabaseTruncation
  * (con RefreshDatabase la segunda sesión no vería los datos).
  *
- * ESCRITAS PERO SIN EJECUTAR: requieren una autorización explícita nueva (ver docs/ola3-convocatorias.md).
+ * Ejecutadas en PostgreSQL el 15/11/2026 con autorización expresa (ver docs/ola3-postgresql.md).
  *
  * Protocolo de carrera (igual que CrmPostgresTest): la sesión B toma el bloqueo; la petición real, con lock_timeout
  * corto, debe quedar BLOQUEADA (55P03); al confirmar B se repite y decide con el estado ya confirmado.

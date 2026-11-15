@@ -49,8 +49,8 @@ celdas se escriben como texto o número literal (`SafeSpreadsheet`). Acciones: `
 
 `000058` (permisos), `000059` (`evaluaciones` y `calificaciones`, sin cascadas; único `(matricula_id, evaluacion_id)`) y `000060`
 (`matriculas.nota_final` decimal(5,2) y `resultado`, ambas nulas; `ALTER TABLE` en bruto en SQLite). Los `CHECK` de PostgreSQL (peso,
-nota, rango de la nota final, valores de `resultado` y que ambas columnas vayan juntas) **solo se crean en PostgreSQL** y están **sin
-ejecutar** hasta nueva autorización; en SQLite los valida el servicio.
+nota, rango de la nota final, valores de `resultado` y que ambas columnas vayan juntas) **solo se crean en PostgreSQL** y están **validados allí**
+(`docs/ola3-postgresql.md`); en SQLite los valida el servicio.
 
 ## Next
 
@@ -72,4 +72,4 @@ pesos en 100) y «Exportar acta» una vez cerrada. El BFF suma 6 operaciones. Si
 vigente, rango y decimales, corrección con motivo, cierre con ponderación, resultado e idempotencia, redondeo sin coma flotante,
 requisitos del cierre, estado genérico, exportación con constancia y respuesta sin caché ni ids) y `Panel\CalificacionesMigracionTest`
 (5: permisos por rol sin resincronizar, forma de las tablas, unicidad y restricciones, `down`). `AcademicoCuposPostgresTest` suma los
-`CHECK` de evaluaciones, notas y resultado, el `RESTRICT` y la carrera entre una nota y el cierre (**escritas, sin ejecutar**).
+`CHECK` de evaluaciones, notas y resultado, el `RESTRICT` y la carrera entre una nota y el cierre (**ejecutadas en PostgreSQL, OK**).

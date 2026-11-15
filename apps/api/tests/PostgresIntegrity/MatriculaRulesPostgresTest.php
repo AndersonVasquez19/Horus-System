@@ -67,7 +67,7 @@ class MatriculaRulesPostgresTest extends TestCase
         $admin = $this->adminUser();
 
         $this->actingAs($admin)->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
-        $this->panelMatriculas('DELETE', (string) Matricula::query()->sole())->assertOk();
+        $this->panelMatriculas('DELETE', (string) Matricula::query()->sole()->id)->assertOk();
 
         $this->panelMatriculas('POST', '', $this->enrollmentPayload($estudiante, $curso));
 

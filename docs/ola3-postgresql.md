@@ -50,6 +50,40 @@ Ningún control falló. Los 8 errores de la primera pasada eran supuestos de SQL
 - En `CrmPostgresTest`, el borrado de un padre con hijos da `restrict_violation` (23001), no 23503; se corrigió el código esperado, sin
   cambiar la comprobación.
 
+## Bloque académico (convocatorias, matrículas con convocatoria y calificaciones)
+
+15/11/2026, con una segunda autorización expresa del propietario («Sí, autorizo», para este bloque). Migraciones 000055 a 000060.
+Mismo protocolo: solo `127.0.0.1:55433`, identidad por `pg_controldata` antes (`7702263743609677164`, «apagado», sin `postmaster.pid`) y por
+`pgsql-test.php probe` antes y después, consentimiento solo como variable de cada comando, `migrate:fresh` al final y `pg_ctl stop -m fast`.
+Los puertos 5432 (PID 5948) y 55432 (PID 5984) quedaron como estaban.
+
+| Ejecución | Pruebas | Aserciones | Resultado |
+| --- | --- | --- | --- |
+| Bloque nuevo: `AcademicoCuposPostgresTest` (5), pruebas de panel y de migración de convocatorias, matrículas con convocatoria y calificaciones | 54 | 503 | OK, ninguna omitida |
+| Regresión: todas las pruebas de matrículas, concurrencia de panel, `CHECK` de estados y CRM | 448 | 3781 | OK tras corregir 3 pruebas antiguas (1 omitida por diseño) |
+
+`AcademicoCuposPostgresTest` comprueba en PostgreSQL real:
+
+- **`CHECK`:** estado, modalidad, fechas y cupos de las convocatorias (`0 ≤ disponibles ≤ máximos`, máximo ≥ 1); día y horas de los horarios; peso de
+  la evaluación (`0 < peso ≤ 100`); nota (`0 ≤ nota ≤ 20`); y en la matrícula, rango de `nota_final`, valores de `resultado` y que ambas columnas
+  vayan juntas.
+- **`RESTRICT`:** una convocatoria con matrículas o con horarios no se elimina, un curso con convocatorias tampoco, y una evaluación o una matrícula con
+  notas tampoco.
+- **Carreras con bloqueo de fila (dos sesiones):** la última plaza de una convocatoria — la matrícula espera el bloqueo (55P03), no deja rastro y, al
+  confirmar la otra sesión, se rechaza sin dejar el cupo por debajo de cero ni tocar el del curso — y una nota frente al cierre del acta (espera el
+  bloqueo y, con el acta ya cerrada, responde 409 sin registrar nada).
+- **Cadena de migraciones:** el `down()` de `000056` a `000060` revierte y vuelve a aplicar en orden (`RevierteCadenaCrm`), incluido el de la columna de
+  matrículas que en SQLite no se ejerce.
+
+### Tres pruebas antiguas corregidas (no eran de este bloque)
+
+Fallaban por supuestos que quedaron desfasados cuando se retiró de Blade el módulo de matrículas; ningún control falló. Se alinearon con el contrato que
+ya fija la suite de SQLite (`MatriculasPanelTest`):
+
+- `MatriculaOperacionesConcurrenciaPostgresTest` (2 pruebas): anular y eliminar responden **200**, no 201.
+- `MatriculaRulesPostgresTest::test_after_soft_delete_a_new_enrollment_is_allowed`: pasaba el modelo convertido a texto (JSON) como identificador de la
+  ruta; ahora pasa el `id`.
+
 ## Qué no cubre
 
 No se ejecutó la suite completa de PostgreSQL (más de 3900 pruebas), solo los módulos nuevos y las pruebas existentes que tocan lo que

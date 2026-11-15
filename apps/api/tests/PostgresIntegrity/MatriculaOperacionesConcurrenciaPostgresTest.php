@@ -88,7 +88,7 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         $this->withExceptionHandling()->actingAs($admin)
             ->panelMatriculas('POST', $matricula->id.'/anular')
-            ->assertCreated();
+            ->assertOk();
 
         $this->assertSame(3, $curso->fresh()->cupos_disponibles, 'El cupo no puede devolverse dos veces.');
         $this->assertSame('anulada', $matricula->fresh()->estado);
@@ -141,7 +141,7 @@ class MatriculaOperacionesConcurrenciaPostgresTest extends TestCase
 
         $this->withExceptionHandling()->actingAs($admin)
             ->panelMatriculas('DELETE', (string) $matricula->id)
-            ->assertCreated();
+            ->assertOk();
 
         $this->assertSame(3, $curso->fresh()->cupos_disponibles);
         $this->assertTrue(Matricula::withTrashed()->findOrFail($matricula->id)->trashed());

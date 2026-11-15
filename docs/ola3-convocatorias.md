@@ -43,7 +43,7 @@ convocatoria. `cursos.horario` (texto) sigue siendo la descripción pública.
 horarios no se borran con su convocatoria). El código sale de `secuencias_codigo` (`CodigoSecuencial`, tipo `CNV`). Las modalidades son las
 del catálogo de cursos (`presencial`, `semipresencial`, `virtual`, `hibrido`; el diseño proponía `mixta`, se unificó para no tener dos
 vocabularios). Los `CHECK` de estado, modalidad, fechas, cupos (`0 ≤ disponibles ≤ máximos`), día y horas **solo se crean en PostgreSQL**
-y están **sin ejecutar** hasta nueva autorización; en SQLite los valida el servicio.
+y están **validados en PostgreSQL** (`docs/ola3-postgresql.md`); en SQLite los valida el servicio.
 
 ## Next
 
@@ -93,6 +93,5 @@ restaurar respeta la disponibilidad, edición sin cambio de curso ni de convocat
 convocatoria cerrada y cancelación con matrículas vigentes (409). `ConvocatoriasMigracionTest` suma la columna opcional, su `RESTRICT` y el
 `down` (este último solo en PostgreSQL; `RevierteCadenaCrm` incluye `000056` y `000057`).
 
-**PostgreSQL: sin ejecutar** para convocatorias y matrículas con convocatoria. Quedan pendientes los `CHECK` de cupos
-(`0 ≤ disponibles ≤ máximos`), el `RESTRICT` de `matriculas.convocatoria_id` y la carrera de dos altas simultáneas sobre el último cupo
-(protocolo 55P03). Se ejecutan solo con autorización nueva y en el clúster aislado.
+**PostgreSQL: validado** el 15/11/2026 (ver `docs/ola3-postgresql.md`): los `CHECK` de cupos (`0 ≤ disponibles ≤ máximos`), el `RESTRICT` de
+`matriculas.convocatoria_id` y la carrera por el último cupo (protocolo 55P03), sin fallos en las pruebas de este módulo.
