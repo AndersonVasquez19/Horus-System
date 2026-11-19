@@ -36,6 +36,7 @@ Las rutas de la tabla son relativas a `apps/api/` salvo `apps/web/`, `apps/ai/`,
 | `apps/ai/` | **Horus AI** (Python, FastAPI): servicio del asistente. Su `.venv`, `.env` y `models/` no se versionan; ver su `README.md`. |
 | `packages/contracts/` | Contratos HTTP existentes (OpenAPI), documentados a partir del código. Sin clientes generados. |
 | `.github/workflows/` | `ci-api.yml`, `ci-web.yml` y `ci-ai.yml`, todos **suspendidos** (solo ejecución manual). |
+| `ops/gateway/` | **Gateway local**: `npm run gateway` levanta Laravel, Next.js y Horus AI a la vez detrás de un solo origen (`http://127.0.0.1:8080`). Ver `ops/gateway/README.md`. |
 
 **Monorepo.** `apps/api` (Laravel), `apps/web` (Next.js) y `apps/ai` (Horus AI) son proyectos independientes. No hay workspaces de npm: `apps/api` (Composer) y `apps/web` (npm) mantienen sus dependencias y lockfiles separados; la API no usa Node. Detalle y decisiones en `PROJECT_CONTEXT.md`.
 
