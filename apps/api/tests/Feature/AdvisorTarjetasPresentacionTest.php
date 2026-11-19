@@ -14,12 +14,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
 /** Datos públicos ficticios; FastAPI simulado, SQLite memoria. No reservas restringidas. */
 class AdvisorTarjetasPresentacionTest extends TestCase
 {
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     /** @var array<string, mixed> */
     private array $catalogo;
@@ -51,7 +53,7 @@ class AdvisorTarjetasPresentacionTest extends TestCase
 
     public function test_valid_recommendations_reach_the_public_controller_as_current_cards(): void
     {
-        $response = $this->postJson('/chat/mensaje', ['mensaje' => 'Me interesa estudiar Python', 'session_id' => 'cards']);
+        $response = $this->postChatPublico(['mensaje' => 'Me interesa estudiar Python', 'session_id' => 'cards']);
         $response->assertOk()->assertJsonPath('fuente', 'advisor')->assertJsonPath('tarjetas.0.id', 'cat_curso_datos')
             ->assertJsonPath('tarjetas.0.titulo', 'Analisis de datos con Python')
             ->assertJsonPath('tarjetas.0.descripcion', 'Aprende analisis de datos con Python.')
@@ -116,7 +118,7 @@ class AdvisorTarjetasPresentacionTest extends TestCase
 
     public function test_privacy_blocked_input_still_has_no_http_or_cards(): void
     {
-        $response = $this->postJson('/chat/mensaje', ['mensaje' => 'Mi correo es prueba@example.invalid', 'session_id' => 'private']);
+        $response = $this->postChatPublico(['mensaje' => 'Mi correo es prueba@example.invalid', 'session_id' => 'private']);
         $response->assertOk()->assertJsonPath('fuente', 'respaldo');
         $this->assertArrayNotHasKey('tarjetas', $response->json());
         Http::assertNothingSent();

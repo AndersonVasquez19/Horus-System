@@ -11,11 +11,13 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
 class ChatbotHybridTest extends TestCase
 {
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     protected function setUp(): void
     {
@@ -198,13 +200,14 @@ class ChatbotHybridTest extends TestCase
 
     public function test_input_limits_and_public_throttle(): void
     {
-        $this->postJson(route('chat.mensaje'), ['mensaje' => str_repeat('a', 2001), 'session_id' => 'limits'])->assertUnprocessable();
-        $this->postJson(route('chat.mensaje'), ['mensaje' => 'hola', 'session_id' => str_repeat('a', 65)])->assertUnprocessable();
-        $this->postJson(route('chat.mensaje'), ['mensaje' => '  ', 'session_id' => 'limits'])->assertUnprocessable();
-        for ($i = 0; $i < 27; $i++) {
-            $this->postJson(route('chat.mensaje'), ['mensaje' => 'hola', 'session_id' => 'limits'])->assertOk();
+        $this->postChatPublico(['mensaje' => str_repeat('a', 2001), 'session_id' => 'limits'])->assertUnprocessable();
+        $this->postChatPublico(['mensaje' => 'hola', 'session_id' => str_repeat('a', 65)])->assertUnprocessable();
+        $this->postChatPublico(['mensaje' => '  ', 'session_id' => 'limits'])->assertUnprocessable();
+        // Límite propio del chat del BFF: 20 por minuto y por visitante; las tres peticiones inválidas anteriores también cuentan.
+        for ($i = 0; $i < 17; $i++) {
+            $this->postChatPublico(['mensaje' => 'hola', 'session_id' => 'limits'])->assertOk();
         }
-        $this->postJson(route('chat.mensaje'), ['mensaje' => 'hola', 'session_id' => 'limits'])->assertTooManyRequests();
+        $this->postChatPublico(['mensaje' => 'hola', 'session_id' => 'limits'])->assertTooManyRequests();
         Http::assertNothingSent();
     }
 }

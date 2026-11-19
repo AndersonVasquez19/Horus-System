@@ -105,10 +105,9 @@ class ApiPublicaCatalogoTest extends TestCase
         $this->getJson('/api/public/v1/paginas/market', $this->cabecera())->assertNotFound();
     }
 
-    public function test_las_rutas_blade_y_el_resto_de_la_api_no_cambian(): void
+    public function test_el_resto_de_la_api_no_cambia(): void
     {
         $this->getJson('/api/auth/me')->assertUnauthorized();
-        $this->get('/educacion/cursos')->assertOk();
         $this->assertCount(8, collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn ($ruta) => str_starts_with($ruta->uri(), 'api/public/v1')));
     }

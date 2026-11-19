@@ -194,7 +194,6 @@ class Sprint17PublicacionTest extends TestCase
         foreach (['Nombre interno', '9876', 'autorizado_por', 'cupos', 'curso_id'] as $privado) {
             $this->assertStringNotContainsString($privado, json_encode($antes));
         }
-        $this->get(route('educacion.cursos'))->assertOk()->assertSee('Cursos Disponibles.')->assertSee('Alfabetización digital');
         $this->retirarFichaCursoPanel($uno)->assertOk();
         $this->assertSame(1, $service->paraWeb()['total']);
         $export = app(ExportadorCatalogoAdvisor::class)->construir($admin);

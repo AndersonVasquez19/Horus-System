@@ -113,9 +113,10 @@ class ApiPublicaChatTest extends TestCase
         $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff('no-es-hmac'))->assertOk();
     }
 
-    public function test_el_chat_publico_de_blade_no_cambia(): void
+    public function test_la_ruta_de_blade_del_chat_ya_no_existe(): void
     {
-        $this->assertTrue(app('router')->getRoutes()->hasNamedRoute('chat.mensaje'));
-        $this->postJson('/chat/mensaje', ['mensaje' => ''])->assertStatus(422);
+        // Retirada en la Fase 1 del retiro de Blade: el chat público solo se atiende por la ruta del BFF.
+        $this->assertFalse(app('router')->getRoutes()->hasNamedRoute('chat.mensaje'));
+        $this->postJson('/chat/mensaje', ['mensaje' => 'hola', 'session_id' => 'sesion-de-prueba-0123'])->assertNotFound();
     }
 }

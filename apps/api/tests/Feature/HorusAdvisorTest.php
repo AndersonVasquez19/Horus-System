@@ -17,11 +17,13 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
 class HorusAdvisorTest extends TestCase
 {
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     protected function setUp(): void
     {
@@ -440,15 +442,15 @@ class HorusAdvisorTest extends TestCase
     public function test_public_route_validation_throttle_and_contract_are_unchanged(): void
     {
         $this->fake();
-        $this->postJson('/chat/mensaje', ['mensaje' => '', 'session_id' => 'test'])->assertUnprocessable();
+        $this->postChatPublico(['mensaje' => '', 'session_id' => 'test'])->assertUnprocessable();
         Http::assertNothingSent();
-        $this->postJson('/chat/mensaje', ['mensaje' => 'Orientame sobre cursos', 'session_id' => 'test'])
-            ->assertOk()->assertExactJson(['respuesta' => $this->reply()['answer'], 'intent' => null, 'fuente' => 'advisor']);
-        $route = app('router')->getRoutes()->getByName('chat.mensaje');
-        // El límite sigue siendo 30/min, ahora con limitador propio para no compartir contador con otras rutas.
-        $this->assertContains('throttle:chat', $route->gatherMiddleware());
-        $limite = \Illuminate\Support\Facades\RateLimiter::limiter('chat')(request());
-        $this->assertSame(30, $limite->maxAttempts);
+        $this->postChatPublico(['mensaje' => 'Orientame sobre cursos', 'session_id' => 'test'])
+            ->assertOk()->assertExactJson(['respuesta' => $this->reply()['answer'], 'fuente' => 'advisor']);
+        $route = app('router')->getRoutes()->getByName('api.publico.chat');
+        // Límite propio del chat del BFF: 20/min y por visitante, con limitador propio para no compartir contador.
+        $this->assertContains('throttle:chat-bff', $route->gatherMiddleware());
+        $limite = \Illuminate\Support\Facades\RateLimiter::limiter('chat-bff')(request());
+        $this->assertSame(20, $limite->maxAttempts);
         $this->assertSame(60, $limite->decaySeconds);
     }
 

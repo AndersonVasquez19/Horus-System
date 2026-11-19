@@ -231,14 +231,14 @@ final class ReclamacionesConsultaPanelTest extends PanelApiTestCase
         $token = (string) Str::uuid();
         $marca = AntispamReclamaciones::emitirMarca(time() - 30);
 
-        $envio = $this->postJson('/libro-reclamaciones', [
+        $envio = $this->postJson('/api/public/v1/reclamaciones', [
             'tipo' => 'reclamo', 'nombres' => 'Gabriel', 'apellidos' => 'Vargas', 'tipo_documento' => 'dni',
             'numero_documento' => '99887766', 'domicilio' => 'Calle San Martin 123, Cajamarca', 'telefono' => '+51 976 543 210',
             'email' => 'gabriel.vargas@ejemplo.test', 'canal_respuesta' => 'correo', 'es_menor' => false,
             'bien_tipo' => 'servicio', 'bien_descripcion' => 'Diplomado en Gestión Pública', 'monto_bien' => '450.00',
             'detalle' => 'Detalle del reclamo real sobre la plataforma de clases.', 'pedido' => 'Reprogramación o devolución del módulo 2.',
-            'politica' => '1', 'marca' => $marca, 'token_envio' => $token,
-        ]);
+            'acepta_privacidad' => true, 'marca' => $marca, 'token_envio' => $token,
+        ], ['X-Horus-Web-Token' => self::TOKEN]);
         $envio->assertStatus(201);
         $numero = $envio->json('numero');
         $this->assertNotEmpty($numero);

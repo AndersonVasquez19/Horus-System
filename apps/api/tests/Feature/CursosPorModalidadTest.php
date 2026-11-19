@@ -12,11 +12,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\LlamaCursosDelPanel;
+use Tests\Concerns\CursosPublicosBff;
 use Tests\TestCase;
 
 class CursosPorModalidadTest extends TestCase
 {
     use LlamaCursosDelPanel;
+    use CursosPublicosBff;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -39,9 +41,7 @@ class CursosPorModalidadTest extends TestCase
     {
         $this->assertTrue(config('catalogo-publico.enabled'));
         $this->assertFalse(config('chatbot.public_catalog_enabled'));
-        $this->get(route('educacion.cursos'))->assertOk()
-            ->assertSee('CURSOS PUBLICADOS')
-            ->assertSee('No hay fichas de cursos publicadas vigentes.');
+        $this->cursosWeb()->assertOk()->assertJsonPath('habilitado', true)->assertJsonPath('cursos', [])->assertJsonPath('total', 0);
         $this->assertDatabaseCount('curso_publicaciones', 0);
         Http::assertNothingSent();
     }
@@ -59,26 +59,28 @@ class CursosPorModalidadTest extends TestCase
         $this->fichaCursoPanel($curso)->assertOk()->assertJsonPath('data.ficha', null)->assertJsonPath('data.curso.modalidad', $modalidad);
 
         Auth::logout();
-        $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()
-            ->assertDontSee('Curso público de prueba')->assertDontSee('Nombre administrativo reservado');
+        $web = $this->textoCursosWeb('?modalidad='.$modalidad);
+        $this->assertStringNotContainsString('Curso público de prueba', $web);
+        $this->assertStringNotContainsString('Nombre administrativo reservado', $web);
 
         $this->actingAs($admin);
         $this->publicarFichaCursoPanel($curso, $this->datosPublicos($modalidad))->assertOk();
         $this->assertTrue(CursoPublicacion::firstOrFail()->publicada);
 
         Auth::logout();
-        $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()
-            ->assertSee('Curso público de prueba')->assertSee('Horario público confirmado')
-            ->assertDontSee('Nombre administrativo reservado')->assertDontSee('Descripción administrativa reservada')
-            ->assertDontSee('Horario administrativo reservado')->assertDontSee('9876.54');
+        $web = $this->textoCursosWeb('?modalidad='.$modalidad);
+        $this->assertStringContainsString('Curso público de prueba', $web);
+        $this->assertStringContainsString('Horario público confirmado', $web);
+        foreach (['Nombre administrativo reservado', 'Descripción administrativa reservada', 'Horario administrativo reservado', '9876.54'] as $reservado) {
+            $this->assertStringNotContainsString($reservado, $web);
+        }
         $otraModalidad = $modalidad === 'virtual' ? 'presencial' : 'virtual';
-        $this->get(route('educacion.cursos', ['modalidad' => $otraModalidad]))->assertOk()
-            ->assertDontSee('Curso público de prueba');
+        $this->assertStringNotContainsString('Curso público de prueba', $this->textoCursosWeb('?modalidad='.$otraModalidad));
 
         $this->actingAs($admin);
         $this->retirarFichaCursoPanel($curso)->assertOk();
         Auth::logout();
-        $this->get(route('educacion.cursos', ['modalidad' => $modalidad]))->assertOk()->assertDontSee('Curso público de prueba');
+        $this->assertStringNotContainsString('Curso público de prueba', $this->textoCursosWeb('?modalidad='.$modalidad));
         $this->assertDatabaseCount('matriculas', 0);
         Http::assertNothingSent();
     }

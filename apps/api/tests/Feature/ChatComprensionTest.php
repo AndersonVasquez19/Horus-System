@@ -11,11 +11,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
 class ChatComprensionTest extends TestCase
 {
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     /** @var list<array{query: string, reply: array<string, mixed>}> */
     private array $cases;
@@ -33,7 +35,7 @@ class ChatComprensionTest extends TestCase
     {
         foreach (array_slice($this->cases, 0, 2) as $case) {
             Http::fake(['*/ready' => $this->ready(), '*/api/v1/chat' => Http::response($case['reply'])]);
-            $this->postJson(route('chat.mensaje'), ['mensaje' => $case['query'], 'session_id' => 'camara-prueba'])
+            $this->postChatPublico(['mensaje' => $case['query'], 'session_id' => 'camara-prueba'])
                 ->assertOk()->assertJsonPath('respuesta', $case['reply']['answer'])->assertJsonPath('fuente', 'advisor');
         }
     }

@@ -21,12 +21,16 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Tests\Support\LlamaCursosDelPanel;
+use Tests\Concerns\ChatPublicoBff;
+use Tests\Concerns\CursosPublicosBff;
 use Tests\TestCase;
 
 class CursoPublicacionTest extends TestCase
 {
     use LlamaCursosDelPanel;
+    use CursosPublicosBff;
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     protected function setUp(): void
     {
@@ -46,15 +50,17 @@ class CursoPublicacionTest extends TestCase
         $this->actingAs($this->adminUser());
         // El editor del panel nombra el curso que se edita, pero la ficha parte vacía: no copia datos administrativos.
         $this->fichaCursoPanel($course)->assertOk()->assertJsonPath('data.ficha', null)->assertJsonPath('data.publicable', true);
-        $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Nombre interno secreto');
+        $this->assertStringNotContainsString('Nombre interno secreto', $this->textoCursosWeb());
         $this->publicarFichaCursoPanel($course, $this->data() + ['precio' => 1, 'estado' => 'inactivo', 'autorizado_por' => 999, 'publicada' => false])->assertOk();
         $publication = CursoPublicacion::firstOrFail();
         $this->assertTrue($publication->publicada);
         $this->assertSame(auth()->id(), $publication->autorizado_por);
         $this->assertSame('activo', $course->fresh()->estado);
         $this->assertSame('9876.54', $course->fresh()->precio);
-        $this->get(route('educacion.cursos'))->assertOk()->assertSee('Cursos Disponibles.')->assertDontSee('Python inicial')
-            ->assertDontSee('Nombre interno secreto')->assertDontSee('9876.54')->assertDontSee('Horario privado')->assertDontSee('Descripción administrativa');
+        $web = $this->textoCursosWeb();
+        foreach (['Python inicial', 'Nombre interno secreto', '9876.54', 'Horario privado', 'Descripción administrativa'] as $oculto) {
+            $this->assertStringNotContainsString($oculto, $web);
+        }
         $row = app(CatalogoPublicoCursos::class)->vigentes()[0];
         $this->assertSame('Python inicial', $row['titulo']);
         $this->assertSame(['titulo', 'resumen', 'modalidad', 'horario', 'inscripcion', 'vigente_desde', 'vigente_hasta'], array_keys($row));
@@ -80,7 +86,7 @@ class CursoPublicacionTest extends TestCase
             'expired' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-20', 'vigente_hasta' => '2026-10-27']),
             'future' => CursoPublicacion::query()->update(['vigente_desde' => '2026-10-29']),
         };
-        $this->get(route('educacion.cursos'))->assertOk()->assertDontSee('Python inicial');
+        $this->assertStringNotContainsString('Python inicial', $this->textoCursosWeb());
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Qué cursos ofrecen', 'hidden');
         $this->assertStringNotContainsString('Python inicial', $answer['respuesta']);
         $this->assertSame([], app(CatalogoPublicoCursos::class)->vigentes());
@@ -150,7 +156,7 @@ class CursoPublicacionTest extends TestCase
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
         $this->travel(11)->seconds();
         $this->assertStringNotContainsString('Horario oficial actualizado', $service->procesarMensaje($question, 'midnight')['respuesta']);
-        $this->get(route('educacion.cursos'))->assertDontSee('Python inicial');
+        $this->assertStringNotContainsString('Python inicial', $this->textoCursosWeb());
         Http::assertNothingSent();
     }
 
@@ -244,7 +250,7 @@ class CursoPublicacionTest extends TestCase
         $this->assertStringNotContainsString('Python inicial', $service->procesarMensaje('cursos', 'scheduled')['respuesta']);
         $this->travel(11)->seconds();
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $service->procesarMensaje('cursos', 'catalog-independent')['respuesta']);
-        $this->get(route('educacion.cursos'))->assertDontSee('Python inicial');
+        $this->assertStringNotContainsString('Python inicial', $this->textoCursosWeb());
         Http::assertNothingSent();
     }
 
@@ -266,7 +272,8 @@ class CursoPublicacionTest extends TestCase
         $course = $this->publish(['resumen' => '<script>alert("private")</script>']);
         // El panel entrega el texto literal (JSON): quien lo muestra, la UI de Next, lo escapa como texto.
         $this->fichaCursoPanel($course)->assertOk()->assertJsonPath('data.ficha.resumen', '<script>alert("private")</script>');
-        $this->get(route('educacion.cursos'))->assertDontSee('Python inicial')->assertDontSee('&lt;script&gt;', false);
+        $this->assertStringNotContainsString('Python inicial', $this->textoCursosWeb());
+        $this->assertStringNotContainsString('<script>', $this->textoCursosWeb());
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'local-comparison');
         $this->assertSame('respaldo', $answer['fuente']);
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
@@ -287,11 +294,11 @@ class CursoPublicacionTest extends TestCase
     public function test_catalog_flag_does_not_enable_php_conversation_or_change_public_page(): void
     {
         $this->publish(['horario' => 'Miércoles de 18 a 20 horas']);
-        $this->postJson(route('chat.mensaje'), ['mensaje' => 'Horario del curso Python inicial', 'session_id' => 'public-course'])
-            ->assertOk()->assertJsonPath('fuente', 'respaldo')->assertJsonPath('intent', null)
+        $this->postChatPublico(['mensaje' => 'Horario del curso Python inicial', 'session_id' => 'public-course'])
+            ->assertOk()->assertJsonPath('fuente', 'respaldo')
             ->assertJsonPath('respuesta', AsistenteVirtualService::RESPUESTA_FALLBACK)
             ->assertDontSee('Horario privado');
-        $this->get(route('educacion.cursos'))->assertDontSee('Miércoles de 18 a 20 horas')->assertSee('Cursos Disponibles.');
+        $this->assertStringNotContainsString('Miércoles de 18 a 20 horas', $this->textoCursosWeb());
         Http::assertNothingSent();
     }
 
@@ -310,8 +317,8 @@ class CursoPublicacionTest extends TestCase
         $this->assertSame(AsistenteVirtualService::RESPUESTA_FALLBACK, $answer['respuesta']);
         $this->assertStringNotContainsString('curso_publicaciones', implode(' ', $queries));
         $this->assertStringNotContainsString('Python inicial', $answer['respuesta']);
-        $this->get(route('educacion.cursos'))->assertSee('Horarios Adaptables.')->assertSee('Cursos Disponibles.')
-            ->assertDontSee('Python inicial')->assertDontSee('Horario editorial reservado');
+        $this->assertStringNotContainsString('Python inicial', $this->textoCursosWeb());
+        $this->assertStringNotContainsString('Horario editorial reservado', $this->textoCursosWeb());
         Http::assertNothingSent();
     }
 

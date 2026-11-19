@@ -15,6 +15,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,7 @@ use Tests\TestCase;
 class HorusCierreFuncionalTest extends TestCase
 {
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     /** @var array{items: list<array<string, mixed>>, cases: list<array{query: string, reply: array<string, mixed>}>} */
     private array $fixture;
@@ -92,7 +94,7 @@ class HorusCierreFuncionalTest extends TestCase
     {
         $case = collect($this->fixture['cases'])->firstWhere('query', 'Quiero aprender Excel y también necesito cableado para mi oficina');
         $this->fakePython($case['reply']);
-        $respuesta = $this->postJson('/chat/mensaje', ['mensaje' => $case['query'], 'session_id' => 'cierre-tarjetas'])
+        $respuesta = $this->postChatPublico(['mensaje' => $case['query'], 'session_id' => 'cierre-tarjetas'])
             ->assertOk()->json();
         $this->assertSame('advisor', $respuesta['fuente']);
         $this->assertArrayNotHasKey('recomendaciones', $respuesta);

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\PaginaTecnologicaController;
-use App\Http\Controllers\ServiciosPublicosController;
 use App\Models\AuditLog;
 use App\Models\ServicioPublicacion;
 use App\Models\ServicioPublicacionElemento;
@@ -419,21 +417,39 @@ class ServiciosContenidoTest extends TestCase
     }
 
     // ---------------------------------------------------------------- Páginas públicas
+    // Las páginas Blade `/tecnologias/*` se retiraron en la Fase 1 del retiro de Blade: el contenido administrable se entrega
+    // por `GET /api/public/v1/paginas/{pagina}` y lo pinta apps/web. La regla de qué ficha se muestra es la misma.
 
-    public function test_rutas_y_nombres_de_las_tres_paginas_se_conservan(): void
+    private const SLUGS = ['CABLEADO' => 'cableado-estructurado', 'VIDEOVIGILANCIA' => 'camaras-seguridad', 'SOPORTE' => 'soporte-mantenimiento'];
+
+    private function paginaWeb(string $slug): TestResponse
     {
-        $esperadas = ['tecnologias.cableado' => ['/tecnologias/cableado-estructurado', PaginaTecnologicaController::class],
-            'tecnologias.camaras' => ['/tecnologias/camaras-seguridad', PaginaTecnologicaController::class],
-            'tecnologias.soporte' => ['/tecnologias/soporte-mantenimiento', ServiciosPublicosController::class]];
-        foreach ($esperadas as $nombre => [$uri, $controlador]) {
-            $ruta = app('router')->getRoutes()->getByName($nombre);
-            $this->assertSame(['GET', 'HEAD'], $ruta->methods());
-            $this->assertSame(url($uri), route($nombre));
-            $this->assertStringStartsWith($controlador, $ruta->getActionName());
-        }
+        $token = 'token-de-prueba-bff-0123456789abcdefghij';
+        config(['horus-web.service_token' => $token]);
+
+        return $this->getJson('/api/public/v1/paginas/'.$slug, ['X-Horus-Web-Token' => $token]);
     }
 
-    public function test_catalogo_apagado_sirve_el_html_estatico_sin_consultar_la_base(): void
+    /** Títulos de las tarjetas que entrega la API, o null cuando la página no tiene contenido dinámico. */
+    private function tarjetasWeb(string $slug): ?array
+    {
+        $contenido = $this->paginaWeb($slug)->assertOk()->json('contenido');
+
+        return $contenido === null ? null : array_column($contenido['tarjetas'], 'titulo');
+    }
+
+    public function test_las_tres_paginas_se_atienden_por_la_api_y_no_por_blade(): void
+    {
+        foreach (self::SLUGS as $slug) {
+            $this->paginaWeb($slug)->assertOk()->assertJsonPath('pagina', $slug);
+        }
+        foreach (['tecnologias.cableado', 'tecnologias.camaras', 'tecnologias.soporte'] as $nombre) {
+            $this->assertFalse(app('router')->getRoutes()->hasNamedRoute($nombre), $nombre);
+        }
+        $this->paginaWeb('market')->assertNotFound();
+    }
+
+    public function test_catalogo_apagado_no_entrega_contenido_dinamico_ni_consulta_la_base(): void
     {
         $this->assertFalse(config('catalogo-servicios.enabled'));
         $id = $this->servicio();
@@ -441,7 +457,7 @@ class ServiciosContenidoTest extends TestCase
         $this->activarYPublicar($id);
         DB::enableQueryLog();
         DB::flushQueryLog();
-        $this->get(route('tecnologias.cableado'))->assertOk()->assertSee('Categoría 6')->assertDontSee('TARJETA DINAMICA');
+        $this->paginaWeb('cableado-estructurado')->assertOk()->assertJsonPath('contenido', null)->assertDontSee('TARJETA DINAMICA');
         $this->assertSame([], DB::getQueryLog());
     }
 
@@ -454,16 +470,18 @@ class ServiciosContenidoTest extends TestCase
         $this->tarjeta($id, ['titulo' => 'OCULTA', 'orden' => 5, 'activo' => '0'])->assertCreated();
 
         // Borrador: nada.
-        $this->get(route('tecnologias.cableado'))->assertOk()->assertDontSee('PRIMERA')->assertSee('Categoría 6');
+        $this->assertNull($this->tarjetasWeb('cableado-estructurado'));
 
         $this->activarYPublicar($id);
-        $html = $this->get(route('tecnologias.cableado'))->assertOk()->assertSee('Título principal CABLEADO')->assertSee('Sección de tarjetas')
-            ->assertSee('Primer párrafo.')->assertSee('Segundo párrafo.')->assertDontSee('OCULTA')->assertDontSee('Categoría 6')->getContent();
-        $this->assertLessThan(strpos($html, 'SEGUNDA'), strpos($html, 'PRIMERA'), 'Debe respetar el orden configurado.');
+        $this->paginaWeb('cableado-estructurado')->assertOk()->assertJsonPath('contenido.titulo', 'Título principal CABLEADO')
+            ->assertJsonPath('contenido.titulo_tarjetas', 'Sección de tarjetas')
+            ->assertJsonPath('contenido.parrafos', ['Primer párrafo.', 'Segundo párrafo.'])
+            ->assertDontSee('OCULTA');
+        $this->assertSame(['PRIMERA', 'SEGUNDA'], $this->tarjetasWeb('cableado-estructurado'), 'Debe respetar el orden configurado y omitir lo inactivo.');
 
-        // Retirada: vuelve al contenido estático; el borrador no se expone.
+        // Retirada: sin contenido dinámico; el borrador no se expone.
         $this->retirar($id);
-        $this->get(route('tecnologias.cableado'))->assertDontSee('PRIMERA')->assertSee('Categoría 6');
+        $this->assertNull($this->tarjetasWeb('cableado-estructurado'));
     }
 
     public function test_vigencia_servicio_inactivo_y_autor_sin_permiso(): void
@@ -472,31 +490,31 @@ class ServiciosContenidoTest extends TestCase
         $id = $this->servicio('VIDEOVIGILANCIA');
         $this->tarjeta($id, ['titulo' => 'CAMARA NUEVA'])->assertCreated();
         $this->activarYPublicar($id);
-        $this->get(route('tecnologias.camaras'))->assertSee('CAMARA NUEVA');
+        $this->assertSame(['CAMARA NUEVA'], $this->tarjetasWeb('camaras-seguridad'));
 
         $this->travelTo(Carbon::parse('2027-01-05 12:00:00', 'America/Lima'));
-        $this->get(route('tecnologias.camaras'))->assertDontSee('CAMARA NUEVA');
+        $this->assertNull($this->tarjetasWeb('camaras-seguridad'));
         $this->travelTo(Carbon::parse('2026-11-02 12:00:00', 'America/Lima'));
-        $this->get(route('tecnologias.camaras'))->assertSee('CAMARA NUEVA');
+        $this->assertSame(['CAMARA NUEVA'], $this->tarjetasWeb('camaras-seguridad'));
 
         // Programada: aún no vigente.
         DB::table('servicio_publicaciones')->update(['vigente_desde' => '2026-11-03', 'vigente_hasta' => '2026-12-31']);
-        $this->get(route('tecnologias.camaras'))->assertDontSee('CAMARA NUEVA');
+        $this->assertNull($this->tarjetasWeb('camaras-seguridad'));
         DB::table('servicio_publicaciones')->update(['vigente_desde' => '2026-11-01']);
 
         // Autor que perdió el permiso de publicar.
         $autor = User::find(ServicioPublicacion::firstOrFail()->autorizado_por);
         $autor->removeRole('admin');
-        $this->get(route('tecnologias.camaras'))->assertDontSee('CAMARA NUEVA');
+        $this->assertNull($this->tarjetasWeb('camaras-seguridad'));
         $autor->assignRole('admin');
-        $this->get(route('tecnologias.camaras'))->assertSee('CAMARA NUEVA');
+        $this->assertSame(['CAMARA NUEVA'], $this->tarjetasWeb('camaras-seguridad'));
 
         // Inactivar retira.
         $this->cambiarEstadoServicioPanel($id, 'inactivo')->assertOk();
-        $this->get(route('tecnologias.camaras'))->assertDontSee('CAMARA NUEVA')->assertSee('CÁMARAS IP');
+        $this->assertNull($this->tarjetasWeb('camaras-seguridad'));
     }
 
-    public function test_contenido_escapado_y_sin_exponer_datos_administrativos(): void
+    public function test_contenido_literal_para_que_lo_escape_el_cliente_y_sin_exponer_datos_administrativos(): void
     {
         config(['catalogo-servicios.enabled' => true]);
         $id = $this->servicio('SOPORTE');
@@ -504,8 +522,14 @@ class ServiciosContenidoTest extends TestCase
         DB::table('servicio_publicacion_elementos')->update(['descripcion' => '<script>alert(1)</script>', 'imagen_alt' => '"><img src=x>']);
         $this->activarYPublicar($id);
         $uuid = (string) DB::table('servicios_tecnologicos')->where('id', $id)->value('identificador_publico');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('<script>alert(1)</script>', false)->assertSee('Tarjeta &amp; &quot;comillas&quot;', false)
-            ->assertDontSee($uuid)->assertDontSee('Servicio SOPORTE')->assertDontSee('"><img', false)->assertSee('fas fa-cogs');
+
+        $r = $this->paginaWeb('soporte-mantenimiento')->assertOk()
+            ->assertJsonPath('contenido.tarjetas.0.titulo', 'Tarjeta & "comillas"')
+            ->assertJsonPath('contenido.tarjetas.0.descripcion', '<script>alert(1)</script>')
+            ->assertJsonPath('contenido.tarjetas.0.icono', 'fas fa-cogs');
+        $texto = (string) $r->getContent();
+        $this->assertStringNotContainsString($uuid, $texto);
+        $this->assertStringNotContainsString('Servicio SOPORTE', $texto);
     }
 
     public function test_una_ficha_de_categoria_no_aparece_ademas_en_el_catalogo_generico(): void
@@ -519,24 +543,25 @@ class ServiciosContenidoTest extends TestCase
         $this->assertSame(['Título principal OTRO-SERVICIO'], $titulos);
     }
 
-    public function test_pagina_mal_provisionada_cae_al_contenido_estatico(): void
+    public function test_pagina_mal_provisionada_no_entrega_contenido(): void
     {
         config(['catalogo-servicios.enabled' => true]);
         $id = $this->servicio();
         $this->activarYPublicar($id);
         DB::statement('DROP TABLE servicio_publicacion_elementos');
-        $this->get(route('tecnologias.cableado'))->assertOk()->assertSee('Categoría 6');
+        $this->paginaWeb('cableado-estructurado')->assertOk()->assertJsonPath('contenido', null);
     }
 
-    public function test_error_al_comprobar_esquema_conserva_pagina_estatica_sin_filtrar_sql(): void
+    public function test_error_al_comprobar_esquema_no_entrega_contenido_ni_filtra_sql(): void
     {
         config(['catalogo-servicios.enabled' => true]);
         Schema::shouldReceive('hasTable')->once()->with('servicio_publicaciones')
             ->andThrow(new QueryException('sqlite', 'consulta privada', [], new \RuntimeException('detalle privado')));
         Log::shouldReceive('warning')->once()->with('servicios_paginas_lectura_fallida');
 
-        $this->withoutExceptionHandling()->get(route('tecnologias.cableado'))
-            ->assertOk()->assertSee('Categoría 6')->assertDontSee('consulta privada')->assertDontSee('detalle privado');
+        $this->withoutExceptionHandling();
+        $this->paginaWeb('cableado-estructurado')->assertOk()->assertJsonPath('contenido', null)
+            ->assertDontSee('consulta privada')->assertDontSee('detalle privado');
     }
 
     // ---------------------------------------------------------------- Contenido inicial
@@ -585,20 +610,13 @@ class ServiciosContenidoTest extends TestCase
     /** @return iterable<string, array{string, string}> */
     public static function paginas(): iterable
     {
-        yield 'cableado' => [PaginasServicios::CABLEADO, 'pages.tecnologias.cableado-estructurado'];
-        yield 'videovigilancia' => [PaginasServicios::VIDEOVIGILANCIA, 'pages.tecnologias.camaras-seguridad'];
-        yield 'soporte' => [PaginasServicios::SOPORTE, 'pages.tecnologias.soporte-mantenimiento'];
-    }
-
-    private function normalizar(string $html): string
-    {
-        $html = str_replace('&quot;', '"', (string) preg_replace('/<!--.*?-->/s', '', $html));
-
-        return trim((string) preg_replace('/\s*(<[^>]+>)\s*/', '$1', (string) preg_replace('/\s+/', ' ', $html)));
+        yield 'cableado' => [PaginasServicios::CABLEADO, 'cableado-estructurado'];
+        yield 'videovigilancia' => [PaginasServicios::VIDEOVIGILANCIA, 'camaras-seguridad'];
+        yield 'soporte' => [PaginasServicios::SOPORTE, 'soporte-mantenimiento'];
     }
 
     #[DataProvider('paginas')]
-    public function test_contenido_inicial_publicado_reproduce_el_html_estatico_actual(string $codigo, string $vista): void
+    public function test_contenido_inicial_publicado_se_entrega_por_la_api_igual_que_el_servicio(string $codigo, string $slug): void
     {
         $this->seed(ServiciosTecnologicosContenidoSeeder::class);
         $id = (int) ServicioTecnologico::where('codigo', $codigo)->value('id');
@@ -607,12 +625,7 @@ class ServiciosContenidoTest extends TestCase
 
         $contenido = app(ContenidoPublicoServicios::class)->pagina($codigo);
         $this->assertNotNull($contenido);
-        $dinamico = view($vista, ['contenidoServicio' => $contenido])->renderSections()['content'];
-        $estatico = view($vista)->renderSections()['content'];
-        $this->assertSame($this->normalizar($estatico), $this->normalizar($dinamico));
-
-        // Y el HTTP real sirve esa misma versión dinámica, con el diseño y el CSS existentes.
-        $ruta = ['CABLEADO' => 'tecnologias.cableado', 'VIDEOVIGILANCIA' => 'tecnologias.camaras', 'SOPORTE' => 'tecnologias.soporte'][$codigo];
-        $this->get(route($ruta))->assertOk()->assertSee('assets/css/tecnologias/', false)->assertSee('legacy-showcase', false);
+        $this->assertNotSame([], $contenido['tarjetas'], 'El contenido inicial importado trae tarjetas.');
+        $this->assertSame($contenido, $this->paginaWeb($slug)->assertOk()->json('contenido'));
     }
 }

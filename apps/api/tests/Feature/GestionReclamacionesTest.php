@@ -108,11 +108,11 @@ class GestionReclamacionesTest extends TestCase
     }
 
     /**
-     * E1: la única escritura pública es POST /libro-reclamaciones, con sesión y CSRF (grupo web), la compuerta del
-     * módulo y el límite «reclamaciones». No existe ninguna otra ruta web que reciba reclamaciones (la gestión del panel
-     * es `POST /api/panel/v1/compartido/reclamaciones/{uuid}/gestion`).
+     * E1: ninguna ruta web (Blade) recibe reclamaciones: el alta pública es la del BFF (`api/public/v1/reclamaciones`) y la
+     * gestión del panel es `POST /api/panel/v1/compartido/reclamaciones/{uuid}/gestion`. Solo quedan las tres rutas GET
+     * del panel; `/libro-reclamaciones` y las rutas `/admin/reclamaciones*` ya no existen aquí (retiro de Blade).
      */
-    public function test_solo_existe_la_ruta_publica_de_alta_con_compuerta_csrf_y_limite(): void
+    public function test_ninguna_ruta_web_recibe_reclamaciones(): void
     {
         $rutas = [];
         foreach (app('router')->getRoutes()->getRoutes() as $ruta) {
@@ -127,24 +127,9 @@ class GestionReclamacionesTest extends TestCase
                 $rutas[$ruta->getName()] = $ruta;
             }
         }
-        // El Blade del panel se retiró el 14/11/2026: sus rutas solo redirigen a Next y la gestión POST ya no existe.
-        $this->assertSame(['legales.reclamaciones', 'legales.reclamaciones.store', 'admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'], array_keys($rutas));
-        foreach (['admin.reclamaciones.index', 'admin.reclamaciones.show', 'admin.reclamaciones.hoja'] as $consulta) {
-            $this->assertSame(['GET', 'HEAD'], $rutas[$consulta]->methods(), "Solo redirige a Next: {$consulta}");
-            $this->assertContains('auth', $rutas[$consulta]->gatherMiddleware());
-        }
-        $this->assertSame(['GET', 'HEAD'], $rutas['legales.reclamaciones']->methods());
-        $this->assertSame(['POST'], $rutas['legales.reclamaciones.store']->methods());
-        $this->assertSame('libro-reclamaciones', $rutas['legales.reclamaciones.store']->uri());
-
-        $middleware = $rutas['legales.reclamaciones.store']->gatherMiddleware();
-        $this->assertContains('web', $middleware, 'Sin el grupo web no hay sesión ni verificación CSRF.');
-        $this->assertSame(
-            [RecepcionReclamacionesHabilitada::class, 'throttle:reclamaciones'],
-            array_values(array_diff($middleware, ['web'])),
-            'La compuerta debe ir antes del límite de envíos.',
-        );
-        $this->assertNotContains(RecepcionReclamacionesHabilitada::class, $rutas['legales.reclamaciones']->gatherMiddleware(), 'La página se muestra aunque el módulo esté apagado.');
+        // Blade se retiró por completo (Fases 1 y 2): ya no queda ninguna ruta web con «reclamacion».
+        $this->assertSame([], array_keys($rutas));
+        $this->postJson('/libro-reclamaciones', [])->assertNotFound();
     }
 
     // --- Alta pública, numeración, idempotencia ----------------------------------------------------------

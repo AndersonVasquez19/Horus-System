@@ -396,86 +396,10 @@ class ApiPublicaCotizacionesTest extends TestCase
 
     // --- Sin consulta pública y recepción en el panel -------------------------------------------------------
 
-    public function test_no_existe_ninguna_ruta_publica_para_consultar_solicitudes(): void
+    public function test_el_formulario_blade_de_cotizacion_ya_no_existe(): void
     {
-        $r = $this->enviar($this->cuerpo())->assertCreated();
-        $uuid = (string) SolicitudCotizacion::sole()->identificador;
-
-        foreach (['/api/public/v1/cotizaciones', '/api/public/v1/cotizaciones/'.$uuid, '/api/public/v1/cotizaciones/'.$r->json('codigo')] as $ruta) {
-            $this->assertContains($this->getJson($ruta, $this->bff())->getStatusCode(), [404, 405], $ruta);
-        }
-        // El panel exige sesión y rol de administrador.
-        $this->bandeja('GET', 'cotizaciones/'.$uuid)->assertUnauthorized();
-        $this->actingAs(User::factory()->create());
-        $this->bandeja('GET', 'cotizaciones/'.$uuid)->assertForbidden();
-        $this->bandeja('GET', 'cotizaciones')->assertForbidden();
-    }
-
-    public function test_el_formulario_blade_de_cotizacion_sigue_sin_recibir_nada(): void
-    {
-        $this->postJson('/solicitudes-cotizacion', $this->cuerpo())->assertStatus(503);
+        // Retirado en la Fase 1 del retiro de Blade: la solicitud solo entra por `/api/public/v1/cotizaciones`.
+        $this->postJson('/solicitudes-cotizacion', $this->cuerpo())->assertNotFound();
         $this->assertDatabaseCount('solicitudes_cotizacion', 0);
-    }
-
-    public function test_la_solicitud_recibida_se_gestiona_en_la_bandeja_existente(): void
-    {
-        $codigo = $this->enviar($this->cuerpo(['servicios' => [$this->uuids['GENERICO']]]))->assertCreated()->json('codigo');
-        $this->enviar($this->cuerpo(['email' => 'otro@example.test', 'necesidad' => 'Cotización distinta para el servicio de cableado.']))->assertCreated();
-        $uuid = (string) SolicitudCotizacion::query()->where('codigo', $codigo)->value('identificador');
-        // Una solicitud registrada por el personal convive en la misma bandeja.
-        $this->actingAs($this->admin);
-        $this->bandeja('POST', 'cotizaciones', ['contacto_nombre' => 'Operador', 'contacto_email' => 'op@example.test', 'necesidad_cliente' => 'Alta manual de prueba.'],
-            ['Idempotency-Key' => (string) Str::uuid()])->assertCreated();
-
-        // Búsqueda por código, filtros por servicio, estado y origen.
-        $this->bandeja('GET', 'cotizaciones?codigo='.$codigo)->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.origen', 'publico')
-            ->assertJsonMissingPath('data.0.contacto_email')->assertJsonMissingPath('data.0.contacto');
-        $this->bandeja('GET', 'cotizaciones?servicio='.$this->uuids['GENERICO'])->assertOk()->assertJsonPath('meta.total', 1);
-        $this->bandeja('GET', 'cotizaciones?origen=publico')->assertOk()->assertJsonPath('meta.total', 2);
-        $this->bandeja('GET', 'cotizaciones?origen=administrativo')->assertOk()->assertJsonPath('meta.total', 1);
-        $this->bandeja('GET', 'cotizaciones?estado=recibida&origen=publico')->assertOk()->assertJsonPath('meta.total', 2);
-        // Un origen fuera de lista se ignora (convención del panel): no filtra ni expone nada distinto.
-        $this->bandeja('GET', 'cotizaciones?origen=otro')->assertOk()->assertJsonPath('meta.total', 3)->assertJsonMissingPath('meta.filtros.origen');
-        $this->assertStringNotContainsString('cliente.ficticio@example.test', (string) $this->bandeja('GET', 'cotizaciones?origen=publico')->getContent());
-
-        // Detalle con datos del solicitante y la necesidad (solo personal autorizado).
-        $detalle = $this->bandeja('GET', 'cotizaciones/'.$uuid)->assertOk()
-            ->assertJsonPath('data.contacto.email', 'cliente.ficticio@example.test')->assertJsonPath('data.origen', 'publico')
-            ->assertJsonPath('data.estado', 'recibida');
-        $this->assertNull(SolicitudCotizacion::query()->where('identificador', $uuid)->value('creado_por'));
-        $this->assertStringContainsString('30 puntos de red', (string) $detalle->json('data.necesidad'));
-        $etag = (string) $detalle->headers->get('ETag');
-
-        // Estado, responsable y seguimiento con las reglas existentes (ETag, permisos) y su historial.
-        $this->bandeja('POST', "cotizaciones/$uuid/estado", ['estado' => 'en_revision'])->assertStatus(428);
-        $this->bandeja('POST', "cotizaciones/$uuid/estado", ['estado' => 'en_revision'], ['If-Match' => $etag])->assertOk();
-        $etag = (string) $this->bandeja('GET', 'cotizaciones/'.$uuid)->headers->get('ETag');
-        $this->bandeja('POST', "cotizaciones/$uuid/responsable", ['responsable_id' => $this->admin->id], ['If-Match' => $etag])->assertOk();
-        $etag = (string) $this->bandeja('GET', 'cotizaciones/'.$uuid)->headers->get('ETag');
-        $this->bandeja('POST', "cotizaciones/$uuid/seguimientos", ['nota' => 'Se llamó al cliente para coordinar la visita.', 'proximo_seguimiento' => '2026-11-10'],
-            ['If-Match' => $etag, 'Idempotency-Key' => (string) Str::uuid()])->assertOk();
-
-        // El historial del detalle va del evento más reciente al más antiguo; el actor se publica por nombre, no por id.
-        $eventos = $this->bandeja('GET', 'cotizaciones/'.$uuid)->assertOk()->json('data.historial');
-        $this->assertSame(['seguimiento_registrado', 'responsable_asignado', 'estado_modificado', 'creada'], array_column($eventos, 'evento'));
-        $this->assertNull($eventos[3]['actor']);
-        $this->assertSame($this->admin->name, $eventos[2]['actor']);
-        $final = SolicitudCotizacion::query()->where('codigo', $codigo)->sole();
-        $this->assertSame(['en_revision', $this->admin->id, 4], [$final->estado, $final->responsable_id, $final->revision]);
-        $this->assertSame('publico', $final->origen);
-    }
-
-    public function test_un_usuario_sin_permiso_de_gestion_no_puede_cambiar_una_solicitud_publica(): void
-    {
-        $this->enviar($this->cuerpo())->assertCreated();
-        $uuid = (string) SolicitudCotizacion::sole()->identificador;
-        $this->actingAs($this->admin);
-        $etag = (string) $this->bandeja('GET', 'cotizaciones/'.$uuid)->headers->get('ETag');
-
-        // Admin pero sin `cotizaciones.gestionar`: puede leer, no gestionar.
-        Role::findByName('admin', 'web')->revokePermissionTo('cotizaciones.gestionar');
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->bandeja('POST', "cotizaciones/$uuid/estado", ['estado' => 'en_revision'], ['If-Match' => $etag])->assertForbidden();
-        $this->assertSame('recibida', SolicitudCotizacion::sole()->estado);
     }
 }

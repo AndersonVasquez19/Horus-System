@@ -411,9 +411,6 @@ class ServiciosContratoPanelTest extends TestCase
         $this->panelServicios('DELETE', (string) $id)->assertStatus(405);
         $this->assertDatabaseCount('curso_publicaciones', 0);
         $this->assertSame([], app(CatalogoPublicoCursos::class)->paraWeb()['cursos']);
-        foreach (['cableado-estructurado', 'camaras-seguridad', 'soporte-mantenimiento'] as $pagina) {
-            $this->get("/tecnologias/$pagina")->assertOk()->assertDontSee('Servicio de demostración');
-        }
     }
 
     public function test_migracion_permisos_en_base_sembrada_preserva_concesiones(): void

@@ -275,16 +275,16 @@ class ApiPublicaReclamacionesTest extends TestCase
             $this->assertContains($this->getJson($ruta, $this->bff())->getStatusCode(), [404, 405], $ruta);
         }
         $this->assertContains($this->getJson('/api/public/v1/reclamaciones/'.$fila->identificador)->getStatusCode(), [401, 404]);
-        // La consulta del panel sigue exigiendo sesión.
-        $this->get('/admin/reclamaciones/'.$fila->identificador)->assertRedirect();
     }
 
-    public function test_el_alta_del_sitio_blade_sigue_funcionando(): void
+    public function test_el_alta_del_sitio_blade_ya_no_existe(): void
     {
         $this->habilitarReclamaciones();
 
+        // Retirada en la Fase 1 del retiro de Blade: el libro solo recibe reclamaciones por `/api/public/v1/reclamaciones`.
         $this->postJson('/libro-reclamaciones', $this->datosReclamacion() + [
             'marca' => AntispamReclamaciones::emitirMarca(time() - 30), 'token_envio' => (string) Str::uuid(),
-        ])->assertCreated()->assertJson(['repetida' => false]);
+        ])->assertNotFound();
+        $this->assertDatabaseCount('reclamaciones', 0);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use App\Models\Curso;
 use App\Models\CursoPublicacion;
 use App\Models\ServicioPublicacion;
@@ -9,7 +10,6 @@ use App\Models\ServicioTecnologico;
 use App\Observers\PublicacionCatalogoAdvisorObserver;
 use App\Support\Email;
 use Illuminate\Cache\RateLimiting\Limit;
-use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -46,7 +46,6 @@ class AppServiceProvider extends ServiceProvider
         // Registro web y API comparten cupo a propósito (Sprint 13).
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(5)->by('register:'.$request->ip()));
         RateLimiter::for('password-recovery', fn (Request $request) => Limit::perMinute(5)->by('password-recovery:'.$request->ip()));
-        RateLimiter::for('cotizacion-publica', fn (Request $request) => Limit::perMinutes(10, 5)->by('cotizacion-publica:'.$request->ip()));
         // Perfil propio: la contraseña actual se comprueba en cada intento, así que se limita por usuario
         // para que una sesión robada no sirva para adivinarla.
         RateLimiter::for('perfil', fn (Request $request) => Limit::perMinute(5)->by('perfil:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
@@ -67,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('publico-web', fn (Request $request) => Limit::perMinute(300)->by('publico-web'));
         // Chat del BFF: el visitante lo identifica el servidor de Next con un HMAC de su IP (opaco, sin IP en claro).
         RateLimiter::for('chat-bff', fn (Request $request) => Limit::perMinute(20)->by('chat-bff:'.ChatPublicoController::visitante($request)));
-        RateLimiter::for('chat',fn (Request $request) => Limit::perMinute(30)->by(
+        RateLimiter::for('chat', fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
         ));
 

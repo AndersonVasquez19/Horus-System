@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\ServiciosPublicosController;
 use App\Models\ServicioPublicacion;
 use App\Models\ServicioTecnologico;
 use App\Models\User;
@@ -23,20 +22,33 @@ use Spatie\Permission\Models\Permission;
 use Tests\Support\LlamaServiciosDelPanel;
 use Tests\TestCase;
 
-class CatalogoWebServiciosTest extends TestCase
+/**
+ * Defensas del catálogo público de servicios en `GET /api/public/v1/servicios`: qué fichas se excluyen, cómo falla sin
+ * exponer SQL ni datos internos y cómo pagina. Sustituye a las pruebas que ejercitaban la página Blade
+ * `/tecnologias/soporte-mantenimiento` (retirada en la Fase 1 del retiro de Blade); la regla es la misma.
+ */
+class ApiPublicaServiciosDefensasTest extends TestCase
 {
     use LlamaServiciosDelPanel;
     use RefreshDatabase;
 
+    private const TOKEN = 'token-de-prueba-bff-0123456789abcdefghij';
+
     protected function setUp(): void
     {
         parent::setUp();
-        // SQLite :memory: fuera del perfil; conexión protegida de la lista fija dentro de PostgreSQL Testing.
         $this->assertIsolatedTestDatabase();
         $this->travelTo(Carbon::parse('2026-10-29 12:00:00', 'America/Lima'));
+        config(['horus-web.service_token' => self::TOKEN, 'catalogo-servicios.enabled' => false]);
         Http::preventStrayRequests();
     }
 
+    private function servicios(string $consulta = ''): \Illuminate\Testing\TestResponse
+    {
+        return $this->getJson('/api/public/v1/servicios'.$consulta, ['X-Horus-Web-Token' => self::TOKEN]);
+    }
+
+    /** @return array{0: User, 1: ServicioTecnologico, 2: ServicioPublicacion} */
     private function ficha(?User $autor = null, string $titulo = 'Servicio autorizado ficticio'): array
     {
         $autor ??= $this->adminUser();
@@ -50,43 +62,15 @@ class CatalogoWebServiciosTest extends TestCase
         return [$autor, $servicio, $ficha];
     }
 
-    public function test_ruta_original_flag_apagado_y_html_original_sin_consultas(): void
+    public function test_apagado_no_consulta_el_catalogo_ni_la_base(): void
     {
         $this->assertFalse(config('catalogo-servicios.enabled'));
-        $ruta = app('router')->getRoutes()->getByName('tecnologias.soporte');
-        $this->assertSame(['GET', 'HEAD'], $ruta->methods());
-        $this->assertSame(ServiciosPublicosController::class, $ruta->getActionName());
-        $this->assertSame(url('/tecnologias/soporte-mantenimiento'), route('tecnologias.soporte'));
-        Schema::dropIfExists('servicio_publicacion_elementos');
-        Schema::drop('servicio_publicaciones');
-        Schema::drop('cotizacion_historial');
-        Schema::drop('solicitudes_cotizacion');
-        Schema::drop('servicios_tecnologicos');
         $this->mock(CatalogoPublicoServicios::class)->shouldNotReceive('pagina');
         DB::enableQueryLog();
         DB::flushQueryLog();
-        $respuesta = $this->get(route('tecnologias.soporte', ['servicios_pagina' => ['invalida']]));
-        $respuesta->assertOk()->assertSee('MANTENIMIENTO PREVENTIVO')->assertDontSee('id="catalogo-servicios"', false);
-        foreach (['CONFIGURACIÓN E INSTALACIÓN', 'MANTENIMIENTO PREVENTIVO', 'ASESORÍA Y CAPACITACIÓN'] as $servicio) {
-            $respuesta->assertSee('aria-label="Solicitar cotización de '.$servicio.'"', false)
-                ->assertSee('data-servicio="'.$servicio.'"', false);
-        }
+
+        $this->servicios()->assertOk()->assertExactJson(['habilitado' => false, 'total' => 0, 'pagina' => 1, 'por_pagina' => 12, 'servicios' => []]);
         $this->assertSame([], DB::getQueryLog());
-        $this->assertStringContainsString('no-store', $respuesta->headers->get('Cache-Control'));
-        $original = view('pages.tecnologias.soporte-mantenimiento')->render();
-        $this->assertSame($original, $respuesta->getContent());
-        Http::assertNothingSent();
-    }
-
-    public function test_boton_de_cotizacion_escapa_el_titulo_editorial_sin_interpolarlo_en_javascript(): void
-    {
-        $titulo = 'Servicio "especial" <img src=x onerror=alert(1)> & prueba';
-        $html = view('components.public.solicitar-cotizacion', ['servicio' => $titulo])->render();
-
-        $this->assertStringContainsString('data-servicio="'.e($titulo).'"', $html);
-        $this->assertStringNotContainsString('<img', $html);
-        $this->assertStringContainsString('servicio: $el.dataset.servicio', $html);
-        Http::assertNothingSent();
     }
 
     public function test_habilitado_proyecta_solo_textos_publicos_y_no_escribe(): void
@@ -95,16 +79,19 @@ class CatalogoWebServiciosTest extends TestCase
         config(['catalogo-servicios.enabled' => true]);
         DB::enableQueryLog();
         DB::flushQueryLog();
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('Servicio autorizado ficticio')
-            ->assertSee('Descripción autorizada de ejemplo')->assertSee(route('contactos'))->assertSee('Consultar servicio')
-            ->assertDontSee('NOMBRE INTERNO SECRETO')->assertDontSee('CATEGORIA INTERNA')
-            ->assertDontSee($servicio->codigo)->assertDontSee($servicio->identificador_publico)
-            ->assertDontSee('autorizado_por')->assertDontSee('servicio_tecnologico_id');
+
+        $r = $this->servicios()->assertOk();
+        $r->assertJsonPath('servicios.0.titulo', 'Servicio autorizado ficticio')->assertJsonPath('servicios.0.descripcion', 'Descripción autorizada de ejemplo');
+        $texto = (string) $r->getContent();
+        // El identificador público es parte del contrato (lo usa Next como clave); el código interno y la autoría no.
+        $r->assertJsonPath('servicios.0.identificador_publico', $servicio->identificador_publico);
+        foreach (['NOMBRE INTERNO SECRETO', 'CATEGORIA INTERNA', $servicio->codigo, 'autorizado_por', 'servicio_tecnologico_id'] as $privado) {
+            $this->assertStringNotContainsString($privado, $texto);
+        }
         foreach (DB::getQueryLog() as $consulta) {
             $this->assertDoesNotMatchRegularExpression('/^\s*(insert|update|delete|replace|alter|create|drop)\b/i', $consulta['query']);
         }
         $this->assertDatabaseCount('audit_logs', 0);
-        Http::assertNothingSent();
     }
 
     public static function excluidas(): iterable
@@ -129,29 +116,29 @@ class CatalogoWebServiciosTest extends TestCase
             'autorizacion_futura' => $ficha->forceFill(['autorizado_at' => now()->addDay()])->save(),
         };
         config(['catalogo-servicios.enabled' => true]);
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Servicio autorizado ficticio')
-            ->assertSee('No hay fichas de servicios publicadas vigentes.');
+
+        $this->servicios()->assertOk()->assertJsonPath('servicios', [])->assertJsonPath('total', 0);
     }
 
-    public function test_vacio_no_inventa_fichas_y_mantiene_tarjetas(): void
+    public function test_vacio_no_inventa_fichas(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         config(['catalogo-servicios.enabled' => true]);
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No hay fichas de servicios publicadas vigentes.')
-            ->assertSee('CONFIGURACIÓN E INSTALACIÓN')->assertSee('ASESORÍA Y CAPACITACIÓN')->assertSee('Contactar con Horus Group');
+
+        $this->servicios()->assertOk()->assertJsonPath('servicios', [])->assertJsonPath('habilitado', true);
     }
 
-    public function test_textos_html_escapados_categoria_opcional_y_sin_enlaces_derivados(): void
+    public function test_el_texto_llega_tal_cual_para_que_lo_escape_el_cliente_y_no_se_derivan_enlaces(): void
     {
         [, , $ficha] = $this->ficha();
         $ficha->update(['titulo' => '<script>alert(1)</script>', 'resumen' => '<img src=x onerror=alert(2)>',
             'descripcion' => 'javascript:alert(3)', 'categoria' => '<b>Ejemplo</b>']);
         config(['catalogo-servicios.enabled' => true]);
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('<script>alert(1)</script>')
-            ->assertSee('<img src=x onerror=alert(2)>')->assertSee('<b>Ejemplo</b>')
-            ->assertDontSee('<script>alert(1)</script>', false)->assertDontSee('href="javascript:', false);
-        $ficha->update(['categoria' => null]);
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Categoría:');
+
+        $r = $this->servicios()->assertOk();
+        $r->assertJsonPath('servicios.0.titulo', '<script>alert(1)</script>')->assertJsonPath('servicios.0.categoria', '<b>Ejemplo</b>');
+        $this->assertArrayNotHasKey('url', $r->json('servicios.0'));
+        $this->assertArrayNotHasKey('enlace', $r->json('servicios.0'));
     }
 
     public function test_esquema_ausente_habilitado_falla_controlado(): void
@@ -160,15 +147,17 @@ class CatalogoWebServiciosTest extends TestCase
         Schema::dropIfExists('servicio_publicacion_elementos');
         Schema::drop('servicio_publicaciones');
         Log::shouldReceive('warning')->once()->with('servicios_web_esquema_incompleto');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No podemos mostrar los servicios publicados')
-            ->assertSee('MANTENIMIENTO PREVENTIVO')->assertDontSee('servicio_publicaciones')->assertDontSee('SQLSTATE');
+
+        $this->servicios()->assertStatus(503)->assertJsonPath('error.code', 'catalogo_no_disponible')
+            ->assertDontSee('servicio_publicaciones')->assertDontSee('SQLSTATE');
     }
 
     public function test_roles_sin_provision_fallan_controlados_sin_sembrar_desde_lectura(): void
     {
         config(['catalogo-servicios.enabled' => true]);
         Log::shouldReceive('warning')->once()->with('servicios_web_provision_incompleta');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No podemos mostrar los servicios publicados');
+
+        $this->servicios()->assertStatus(503)->assertJsonPath('error.code', 'catalogo_no_disponible');
         $this->assertDatabaseCount('roles', 0);
     }
 
@@ -178,7 +167,8 @@ class CatalogoWebServiciosTest extends TestCase
         Permission::findByName('servicios.publicar')->delete();
         config(['catalogo-servicios.enabled' => true]);
         Log::shouldReceive('warning')->once()->with('servicios_web_provision_incompleta');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No podemos mostrar los servicios publicados');
+
+        $this->servicios()->assertStatus(503);
         $this->assertDatabaseMissing('permissions', ['name' => 'servicios.publicar']);
     }
 
@@ -188,7 +178,8 @@ class CatalogoWebServiciosTest extends TestCase
         config(['catalogo-servicios.enabled' => true]);
         Schema::table('servicio_publicaciones', fn ($tabla) => $tabla->dropColumn('descripcion'));
         Log::shouldReceive('warning')->once()->with('servicios_web_lectura_fallida');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No podemos mostrar los servicios publicados')->assertDontSee('SQLSTATE');
+
+        $this->servicios()->assertStatus(503)->assertDontSee('SQLSTATE');
     }
 
     public function test_errores_sql_solo_codigo_seguro(): void
@@ -197,8 +188,8 @@ class CatalogoWebServiciosTest extends TestCase
         $this->mock(CatalogoPublicoServicios::class)->shouldReceive('pagina')->once()
             ->andThrow(new QueryException('sqlite', 'SQL SECRETO', ['DATO PRIVADO'], new \RuntimeException('credencial')));
         Log::shouldReceive('warning')->once()->with('servicios_web_lectura_fallida');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('No podemos mostrar los servicios publicados')
-            ->assertDontSee('SECRETO')->assertDontSee('PRIVADO')->assertDontSee('credencial');
+
+        $this->servicios()->assertStatus(503)->assertDontSee('SECRETO')->assertDontSee('PRIVADO')->assertDontSee('credencial');
     }
 
     public function test_errores_de_programacion_no_se_ocultan(): void
@@ -207,7 +198,8 @@ class CatalogoWebServiciosTest extends TestCase
         $this->withoutExceptionHandling();
         $this->mock(CatalogoPublicoServicios::class)->shouldReceive('pagina')->andThrow(new \LogicException('fallo de contrato ficticio'));
         $this->expectException(\LogicException::class);
-        $this->get(route('tecnologias.soporte'));
+
+        $this->servicios();
     }
 
     public function test_fichas_heredadas_invalidas_se_omiten_sin_rellenar_fuera_de_pagina(): void
@@ -216,60 +208,59 @@ class CatalogoWebServiciosTest extends TestCase
         $ficha->update(['resumen' => '   ']);
         config(['catalogo-servicios.enabled' => true]);
         Log::shouldReceive('warning')->once()->with('servicios_web_ficha_invalida');
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Servicio autorizado ficticio')
-            ->assertSee('Fichas presentadas: 0')->assertSee('No hay fichas disponibles en esta página.');
+
+        $this->servicios()->assertOk()->assertJsonPath('servicios', []);
     }
 
-    public function test_paginacion_sql_orden_estable_consultas_constantes_y_limite(): void
+    public function test_paginacion_de_12_en_12_con_orden_estable_y_consultas_constantes(): void
     {
         [$autor] = $this->ficha(null, 'Ficha 01');
         config(['catalogo-servicios.enabled' => true]);
-        $this->get(route('tecnologias.soporte'))->assertOk(); // Calentar caché de roles/permisos en ambos tamaños.
+        $this->servicios()->assertOk(); // Calentar la caché de roles y permisos.
         DB::enableQueryLog();
         DB::flushQueryLog();
-        $this->get(route('tecnologias.soporte'))->assertOk();
+        $this->servicios()->assertOk();
         $consultasUna = count(DB::getQueryLog());
         for ($i = 2; $i <= 25; $i++) {
             $this->ficha($autor, sprintf('Ficha %02d', $i));
         }
         DB::flushQueryLog();
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('Ficha 01')->assertSee('Ficha 12')
-            ->assertDontSee('Ficha 13')->assertSee('Página 1 de 3')->assertSee('Total de fichas autorizadas vigentes: 25')
-            ->assertSee('servicios_pagina=2')->assertSee('Rango consultado: 1–12');
-        $this->assertSame($consultasUna, count(DB::getQueryLog()));
-        $filas = array_filter(DB::getQueryLog(), fn ($q) => str_contains($q['query'], '"p"."titulo"') && ! str_contains($q['query'], '"s"."codigo" = '));  // Excluye la lectura del contenido propio de la página.
+
+        $primera = $this->servicios()->assertOk()->assertJsonPath('total', 25)->assertJsonPath('por_pagina', 12);
+        $this->assertSame(12, count($primera->json('servicios')));
+        $this->assertSame('Ficha 01', $primera->json('servicios.0.titulo'));
+        $this->assertSame('Ficha 12', $primera->json('servicios.11.titulo'));
+        $this->assertSame($consultasUna, count(DB::getQueryLog()), 'Las consultas no crecen con el número de fichas.');
+        $filas = array_filter(DB::getQueryLog(), fn ($q) => str_contains($q['query'], '"p"."titulo"') && ! str_contains($q['query'], '"s"."codigo" = '));
         $this->assertCount(1, $filas);
         $this->assertStringContainsString('limit 12 offset 0', array_values($filas)[0]['query']);
-        $this->get(route('tecnologias.soporte', ['servicios_pagina' => 2, 'secreto' => 'NO_PROPAGAR']))->assertOk()
-            ->assertSee('Ficha 13')->assertSee('Ficha 24')->assertDontSee('Ficha 12')->assertDontSee('Ficha 25')
-            ->assertSee('servicios_pagina=1')->assertSee('servicios_pagina=3')->assertDontSee('NO_PROPAGAR');
-        $this->get(route('tecnologias.soporte', ['servicios_pagina' => 3]))->assertOk()->assertSee('Ficha 25')->assertDontSee('Página siguiente');
-        $this->get(route('tecnologias.soporte', ['servicios_pagina' => 999]))->assertOk()->assertSee('No hay fichas disponibles en esta página.');
+
+        $this->assertSame('Ficha 13', $this->servicios('?pagina=2&secreto=NO_PROPAGAR')->assertOk()->json('servicios.0.titulo'));
+        $this->assertSame(['Ficha 25'], array_column($this->servicios('?pagina=3')->assertOk()->json('servicios'), 'titulo'));
+        $this->servicios('?pagina=999')->assertOk()->assertJsonPath('servicios', []);
     }
 
     public function test_pagina_malformada_rechazada_sin_sql_del_catalogo(): void
     {
         config(['catalogo-servicios.enabled' => true]);
         $this->mock(CatalogoPublicoServicios::class)->shouldNotReceive('pagina');
-        foreach (['0', '-1', '1000001', 'abc', ['1']] as $valor) {
-            $this->getJson(route('tecnologias.soporte', ['servicios_pagina' => $valor]))->assertUnprocessable();
+        foreach (['0', '-1', '1000001', 'abc'] as $valor) {
+            $this->servicios('?pagina='.$valor)->assertUnprocessable();
         }
+        $this->servicios('?pagina[]=1')->assertUnprocessable();
     }
 
-    public function test_retiro_revalidado_y_otras_paginas_no_consultan_catalogo(): void
+    public function test_retiro_revalidado_en_cada_lectura(): void
     {
         [, , $ficha] = $this->ficha();
         config(['catalogo-servicios.enabled' => true]);
-        $this->get(route('tecnologias.soporte'))->assertSee('Servicio autorizado ficticio');
+        $this->servicios()->assertJsonPath('servicios.0.titulo', 'Servicio autorizado ficticio');
         $ficha->forceFill(['estado' => 'retirada'])->save();
-        $this->get(route('tecnologias.soporte'))->assertDontSee('Servicio autorizado ficticio');
-        $this->mock(CatalogoPublicoServicios::class)->shouldNotReceive('pagina');
-        foreach (['tecnologias.cableado', 'tecnologias.camaras', 'educacion.cursos'] as $ruta) {
-            $this->get(route($ruta))->assertOk()->assertDontSee('id="catalogo-servicios"', false);
-        }
+
+        $this->servicios()->assertJsonPath('servicios', []);
     }
 
-    public function test_gestion_publicacion_y_retiro_se_reflejan_en_web_sin_cache(): void
+    public function test_gestion_publicacion_y_retiro_se_reflejan_en_la_api_sin_cache(): void
     {
         $autor = $this->adminUser();
         config(['catalogo-servicios.enabled' => true]);
@@ -279,15 +270,15 @@ class CatalogoWebServiciosTest extends TestCase
             'resumen' => 'Información sintética', 'descripcion' => 'Detalle público sintético',
             'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-11-01'])->assertOk();
         auth()->forgetGuards();
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Servicio del flujo de prueba');
+        $this->servicios()->assertOk()->assertJsonPath('servicios', []);
         $this->actingAs($autor);
         $this->autorizarFichaPanel($id)->assertOk();
         auth()->forgetGuards();
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertSee('Servicio del flujo de prueba');
+        $this->servicios()->assertOk()->assertJsonPath('servicios.0.titulo', 'Servicio del flujo de prueba');
         $this->actingAs($autor);
         $this->retirarFichaPanel($id)->assertOk();
         auth()->forgetGuards();
-        $this->get(route('tecnologias.soporte'))->assertOk()->assertDontSee('Servicio del flujo de prueba');
+        $this->servicios()->assertOk()->assertJsonPath('servicios', []);
         $this->assertDatabaseCount('audit_logs', 4);
     }
 }
