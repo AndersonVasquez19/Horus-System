@@ -62,6 +62,10 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
 
         // Libro de Reclamaciones: datos personales; el permiso lo declara el controlador y la lógica es la del Blade.
         Route::get('reclamaciones', [Compartido\ReclamacionController::class, 'index'])->name('reclamaciones.index');
+        // Mensajes de «Contáctanos»: misma bandeja y mismos permisos del libro (ver: reclamaciones.ver; atender: reclamaciones.gestionar).
+        Route::get('reclamaciones-mensajes', [Compartido\MensajeContactoController::class, 'index'])->name('mensajes-contacto.index');
+        Route::post('reclamaciones-mensajes/{mensaje:identificador}/atender', [Compartido\MensajeContactoController::class, 'atender'])
+            ->middleware('throttle:admin-write')->whereUuid('mensaje')->name('mensajes-contacto.atender');
         Route::get('reclamaciones/{reclamacion:identificador}', [Compartido\ReclamacionController::class, 'show'])
             ->whereUuid('reclamacion')->name('reclamaciones.show');
         Route::get('reclamaciones/{reclamacion:identificador}/hoja', [Compartido\ReclamacionController::class, 'hoja'])

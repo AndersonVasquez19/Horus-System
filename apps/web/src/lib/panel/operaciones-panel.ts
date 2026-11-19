@@ -114,6 +114,8 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: /^compartido\/respaldo\/exportar$/, archivo: ['application/zip'] },
   { metodo: 'POST', patron: /^compartido\/asistente\/mensaje$/, campos: ['mensaje', 'session_id'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones/${UUID}/gestion$`), campos: CAMPOS_GESTION_RECLAMACION },
+  // Mensajes de «Contáctanos»: marcar como atendido (el listado lo pide el servidor de Next)
+  { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones-mensajes/${UUID}/atender$`) },
   // Aprobaciones internas: el servidor decide quién puede qué; aquí solo viajan los campos de cada operación
   { metodo: 'POST', patron: /^compartido\/aprobaciones$/, campos: ['titulo', 'tipo', 'descripcion', 'referencia', 'comentario'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/aprobaciones/${ID}/aprobar$`), campos: ['comentario'] },

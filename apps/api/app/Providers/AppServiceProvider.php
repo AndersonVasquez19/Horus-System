@@ -92,6 +92,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('reclamaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('reclamaciones-bff-formulario:'.ChatPublicoController::visitante($request)));
         // Fase 2c.3 (BFF): solicitud de cotización. Topes amplios por visitante; los estrictos los aplica el controlador tras validar.
         RateLimiter::for('cotizaciones-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 20)->by('cotizaciones-bff-intentos:'.ChatPublicoController::visitante($request)));
+        // «Contáctanos» del BFF: tope amplio por visitante; los estrictos los aplica el controlador tras validar.
+        RateLimiter::for('contacto-bff-intentos', fn (Request $request) => Limit::perMinutes(10, 15)->by('contacto-bff-intentos:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('cotizaciones-bff-formulario', fn (Request $request) => Limit::perMinute(30)->by('cotizaciones-bff-formulario:'.ChatPublicoController::visitante($request)));
     }
 }

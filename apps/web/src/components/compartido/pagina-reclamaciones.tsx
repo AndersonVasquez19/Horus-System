@@ -10,6 +10,7 @@ import type { TonoUi } from '@/components/shared/ui/boton';
 import type { ReclamacionFila } from '@/features/notificaciones/tipos';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 import { fecha } from '@/lib/panel/formato';
+import { MensajesContacto } from './pagina-mensajes-contacto';
 
 type Parametros = Record<string, string | string[] | undefined>;
 
@@ -31,7 +32,7 @@ export function PaginaReclamaciones({ tono, searchParams }: { tono: TonoUi; sear
     <>
       <EncabezadoPagina
         titulo="Libro de reclamaciones"
-        descripcion="Quejas y reclamos recibidos, con su plazo legal de respuesta. Contienen datos personales: úsalos solo para atender el caso."
+        descripcion="Quejas y reclamos recibidos, con su plazo legal de respuesta, y los mensajes enviados desde «Contáctanos». Contienen datos personales: úsalos solo para atender el caso."
         migas={[{ etiqueta: 'Inicio', href: `/admin/${tono}` }, { etiqueta: 'Reclamaciones' }]}
       />
       <Suspense fallback={<EsqueletoListado etiqueta="Cargando las reclamaciones" />}>
@@ -44,6 +45,27 @@ export function PaginaReclamaciones({ tono, searchParams }: { tono: TonoUi; sear
 async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Promise<Parametros> }) {
   const ruta = `/admin/${tono}/reclamaciones`;
   const parametros = await searchParams;
+  const vista = parametro(parametros, 'vista') === 'mensajes' ? 'mensajes' : 'reclamaciones';
+  // Cuántos mensajes de contacto esperan respuesta (para la pestaña); si falla, la pestaña sale sin número.
+  const nuevos = await consultarPanel<{ meta: { nuevos?: number } }>('compartido/reclamaciones-mensajes?estado=nuevo&per_page=1', `${ruta}?vista=mensajes`);
+  const pendientes = nuevos.estado === 'ok' ? (nuevos.datos.meta.nuevos ?? 0) : 0;
+  const pestanas = (
+    <nav aria-label="Vistas" className="flex gap-2 border-b border-panel-border">
+      {([['reclamaciones', 'Reclamaciones', ruta], ['mensajes', pendientes > 0 ? `Mensajes de contacto (${pendientes} nuevos)` : 'Mensajes de contacto', `${ruta}?vista=mensajes`]] as const).map(([clave, texto, href]) => (
+        <Link key={clave} href={href} aria-current={vista === clave ? 'page' : undefined} className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${vista === clave ? 'border-panel-text text-panel-text' : 'border-transparent text-panel-muted hover:text-panel-text'}`}>
+          {texto}
+        </Link>
+      ))}
+    </nav>
+  );
+  if (vista === 'mensajes') {
+    return (
+      <div className="space-y-4">
+        {pestanas}
+        <MensajesContacto tono={tono} parametros={parametros} />
+      </div>
+    );
+  }
   const cadena = consulta(parametros, PARAMETROS);
   const resultado = await consultarPanel<{ data: ReclamacionFila[]; meta: MetaBandeja }>(`compartido/reclamaciones${cadena}`, `${ruta}${cadena}`);
 
@@ -58,6 +80,7 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
 
   return (
     <div className="space-y-4">
+      {pestanas}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {([['Total', meta.metricas.total], ['Abiertas', meta.metricas.abiertos], ['Reclamos', meta.metricas.reclamos], ['Quejas', meta.metricas.quejas]] as const).map(([titulo, valor]) => (
           <div key={titulo} className="rounded-xl border border-panel-border bg-panel-surface p-4 shadow-sm">

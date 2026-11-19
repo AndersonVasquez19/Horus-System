@@ -23,7 +23,50 @@ export default function ContactosPage() {
     email: '',
     asunto: '',
     mensaje: '',
+    sitio_web: '', // trampa para robots: una persona nunca lo ve ni lo llena
   });
+  const [estado, setEstado] = useState<'inactivo' | 'enviando' | 'enviado' | 'error'>('inactivo');
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const enviarMensaje = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEstado('enviando');
+    setErrores({});
+    setAviso(null);
+    try {
+      const respuesta = await fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: formValues.nombre,
+          telefono: formValues.telefono,
+          correo: formValues.email,
+          asunto: formValues.asunto,
+          mensaje: formValues.mensaje,
+          sitio_web: formValues.sitio_web,
+        }),
+      });
+      if (respuesta.status === 201) {
+        setEstado('enviado');
+        setFormValues({ nombre: '', telefono: '', email: '', asunto: '', mensaje: '', sitio_web: '' });
+        return;
+      }
+      const cuerpo = (await respuesta.json().catch(() => null)) as { message?: string; errors?: Record<string, string[]> } | null;
+      if (respuesta.status === 422 && cuerpo?.errors) {
+        const porCampo: Record<string, string> = {};
+        for (const [campo, mensajes] of Object.entries(cuerpo.errors)) porCampo[campo === 'correo' ? 'email' : campo] = mensajes[0] ?? '';
+        setErrores(porCampo);
+        setAviso('Revisa los campos marcados.');
+      } else {
+        setAviso(cuerpo?.message ?? 'No pudimos enviar tu mensaje. Inténtalo más tarde o escríbenos por WhatsApp.');
+      }
+      setEstado('error');
+    } catch {
+      setAviso('No pudimos enviar tu mensaje. Revisa tu conexión e inténtalo de nuevo.');
+      setEstado('error');
+    }
+  };
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -53,14 +96,6 @@ export default function ContactosPage() {
   const getWhatsAppUrl = () => {
     const text = buildMessage() || 'Hola Horus Group, deseo comunicarme con ustedes.';
     return `https://wa.me/${CONTACT_INFO.phoneClean}?text=${encodeURIComponent(text)}`;
-  };
-
-  const getMailtoUrl = () => {
-    const subject = formValues.asunto
-      ? `Consulta Horus Group: ${formValues.asunto}`
-      : 'Consulta a Horus Group SRL';
-    const body = buildMessage();
-    return `mailto:${CONTACT_INFO.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return (
@@ -248,10 +283,15 @@ export default function ContactosPage() {
                 Envíanos un mensaje
               </h2>
               <p className="mt-2 text-sm text-slate-600 mb-6">
-                Elige cómo enviarlo: por WhatsApp o desde tu correo. El mensaje se arma con lo que escribas aquí.
+                Escríbenos y te responderemos por teléfono o correo. También puedes enviarlo por WhatsApp.
               </p>
 
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+              <form onSubmit={enviarMensaje} className="space-y-4" noValidate>
+                <div aria-hidden="true" className="hidden">
+                  <label htmlFor="sitio_web">No completar</label>
+                  <input type="text" id="sitio_web" name="sitio_web" tabIndex={-1} autoComplete="off" value={formValues.sitio_web} onChange={handleChange} />
+                </div>
+
                 <div>
                   <label htmlFor="nombre" className="block text-xs font-bold text-slate-700 uppercase mb-1">
                     Nombre completo
@@ -263,8 +303,11 @@ export default function ContactosPage() {
                     value={formValues.nombre}
                     onChange={handleChange}
                     placeholder="Ej. María Pérez"
+                    required
+                    maxLength={120}
                     className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
                   />
+                  {errores.nombre ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.nombre}</p> : null}
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -279,8 +322,10 @@ export default function ContactosPage() {
                       value={formValues.telefono}
                       onChange={handleChange}
                       placeholder="Ej. 927 000 000"
+                      maxLength={30}
                       className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
                     />
+                    {errores.telefono ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.telefono}</p> : null}
                   </div>
 
                   <div>
@@ -294,8 +339,10 @@ export default function ContactosPage() {
                       value={formValues.email}
                       onChange={handleChange}
                       placeholder="nombre@correo.com"
+                      maxLength={160}
                       className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
                     />
+                    {errores.email ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.email}</p> : null}
                   </div>
                 </div>
 
@@ -318,6 +365,7 @@ export default function ContactosPage() {
                     <option value="Cursos">Cursos</option>
                     <option value="Otro">Otro</option>
                   </select>
+                  {errores.asunto ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.asunto}</p> : null}
                 </div>
 
                 <div>
@@ -331,11 +379,31 @@ export default function ContactosPage() {
                     value={formValues.mensaje}
                     onChange={handleChange}
                     placeholder="Cuéntanos qué necesitas"
+                    maxLength={1500}
                     className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none resize-none"
                   ></textarea>
+                  {errores.mensaje ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.mensaje}</p> : null}
                 </div>
 
+                {estado === 'enviado' ? (
+                  <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                    ¡Gracias! Recibimos tu mensaje y te responderemos a la brevedad.
+                  </p>
+                ) : null}
+                {estado === 'error' && aviso ? (
+                  <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{aviso}</p>
+                ) : null}
+
                 <div className="grid sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={estado === 'enviando'}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#0A2540] hover:bg-slate-800 disabled:opacity-60 text-white font-semibold text-sm transition-colors shadow-sm"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span>{estado === 'enviando' ? 'Enviando…' : 'Enviar mensaje'}</span>
+                  </button>
+
                   <a
                     href={getWhatsAppUrl()}
                     target="_blank"
@@ -345,18 +413,10 @@ export default function ContactosPage() {
                     <MessageCircle className="h-4 w-4" />
                     <span>Enviar por WhatsApp</span>
                   </a>
-
-                  <a
-                    href={getMailtoUrl()}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#0A2540] hover:bg-slate-800 text-white font-semibold text-sm transition-colors shadow-sm"
-                  >
-                    <Mail className="h-4 w-4" />
-                    <span>Enviar por correo</span>
-                  </a>
                 </div>
 
                 <p className="text-xs text-slate-500 pt-2 text-center sm:text-left">
-                  Se abre WhatsApp o tu aplicación de correo con el mensaje listo. No guardamos lo que escribes aquí.
+                  Indica al menos un teléfono o un correo para poder responderte. Si prefieres WhatsApp, se abre con el mensaje listo.
                 </p>
               </form>
             </div>
