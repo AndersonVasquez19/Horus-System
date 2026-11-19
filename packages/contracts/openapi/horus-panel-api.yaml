@@ -106,7 +106,7 @@ paths:
                 password_confirmation: { type: string }
                 terms: { type: boolean, description: Debe ser true (aviso de privacidad) }
       responses:
-        '201': { description: Cuenta creada sin acceso al panel }
+        '201': { description: Cuenta creada sin acceso al panel. Un correo ya registrado recibe la misma respuesta 201 y no se modifica la cuenta existente (no revela si existe) }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
   /auth/contrasena/solicitar:

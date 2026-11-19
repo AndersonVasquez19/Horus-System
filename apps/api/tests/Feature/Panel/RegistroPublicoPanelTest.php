@@ -44,7 +44,7 @@ final class RegistroPublicoPanelTest extends PanelApiTestCase
         $this->panel('GET', 'auth/sesion')->assertUnauthorized();
     }
 
-    public function test_exige_csrf_terminos_contrasena_valida_y_correo_unico(): void
+    public function test_exige_csrf_terminos_y_contrasena_valida(): void
     {
         $this->exigirCsrf();
         $this->panel('POST', 'auth/registro', $this->datos())->assertStatus(419);
@@ -53,10 +53,19 @@ final class RegistroPublicoPanelTest extends PanelApiTestCase
         $this->registrar(['password' => 'corta', 'password_confirmation' => 'corta'])->assertUnprocessable()->assertJsonValidationErrors('password');
         $this->registrar(['password_confirmation' => 'otra'])->assertUnprocessable()->assertJsonValidationErrors('password');
         $this->registrar(['email' => 'no-es-correo'])->assertUnprocessable()->assertJsonValidationErrors('email');
+    }
 
-        User::factory()->create(['email' => 'ya@example.test']);
-        $this->registrar(['email' => 'YA@example.test'])->assertUnprocessable()->assertJsonValidationErrors('email');
+    public function test_un_correo_ya_registrado_recibe_la_misma_respuesta_y_no_se_toca_la_cuenta(): void
+    {
+        $existente = User::factory()->create(['email' => 'ya@example.test', 'name' => 'Titular', 'password' => Hash::make('ClaveOriginal123')]);
+        $nueva = $this->registrar(['email' => 'otra@example.test'])->assertCreated();
+        $repetida = $this->registrar(['email' => 'YA@example.test', 'name' => 'Intruso', 'password' => 'OtraClave12345', 'password_confirmation' => 'OtraClave12345'])->assertCreated();
+
+        $this->assertSame($nueva->json(), $repetida->json(), 'Misma respuesta exista o no la cuenta.');
         $this->assertSame(1, User::where('email', 'ya@example.test')->count());
+        $existente->refresh();
+        $this->assertSame('Titular', $existente->name);
+        $this->assertTrue(Hash::check('ClaveOriginal123', $existente->password), 'El registro repetido no cambia la contraseña.');
     }
 
     public function test_el_limite_de_registro_se_aplica_por_visitante(): void

@@ -13,6 +13,7 @@ use App\Support\Email;
 use App\Support\PasswordPolicy;
 use App\Support\RestablecimientoContrasena;
 use App\Support\SesionPanel;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -113,7 +114,8 @@ final class AutenticacionController extends Controller
         Email::normalizeRequest($request);
         $datos = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
+            // Sin regla de unicidad: un correo ya usado recibe la MISMA respuesta que uno nuevo (no revela si la cuenta existe).
+            'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'confirmed', PasswordPolicy::rule()],
             'terms' => ['accepted'],
         ], [
@@ -123,11 +125,15 @@ final class AutenticacionController extends Controller
             'terms.accepted' => 'Debes aceptar el aviso de privacidad para crear tu cuenta.',
         ] + PasswordPolicy::messages());
 
-        User::create([
-            'name' => $datos['name'],
-            'email' => $datos['email'],
-            'password' => Hash::make($datos['password']),
-        ]);
+        // El hash se calcula siempre, exista o no la cuenta, para que el tiempo de respuesta no delate el correo.
+        $hash = Hash::make($datos['password']);
+        if (! User::query()->where('email', $datos['email'])->exists()) {
+            try {
+                User::create(['name' => $datos['name'], 'email' => $datos['email'], 'password' => $hash]);
+            } catch (UniqueConstraintViolationException) {
+                // Otra petición creó la misma cuenta a la vez: se responde igual y no se modifica la existente.
+            }
+        }
 
         return response()->json(['message' => 'Cuenta creada. Un administrador te dará acceso al panel cuando corresponda.'], 201);
     }
