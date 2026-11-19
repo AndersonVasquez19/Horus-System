@@ -15,14 +15,11 @@ use Illuminate\Support\Facades\DB;
  */
 trait RevierteCadenaCrm
 {
-    /** Migraciones del CRM que crean tablas o columnas con claves foráneas, en el orden en que se aplican. */
+    /**
+     * Migraciones con claves foráneas que se revierten en cadena, en el orden en que se aplican. Las del CRM comercial (000044 a
+     * 000053) ya no figuran: la 000079 elimina esas tablas.
+     */
     private const CADENA_CRM = [
-        '2026_11_15_000044_create_clientes_tables',
-        '2026_11_15_000045_add_cliente_id_to_solicitudes_cotizacion',
-        '2026_11_15_000047_create_prospectos_table',
-        '2026_11_15_000049_create_oportunidades_tables',
-        '2026_11_15_000051_create_proyectos_tables',
-        '2026_11_15_000053_create_tickets_soporte_tables',
         '2026_11_15_000056_create_convocatorias_tables',
         '2026_11_15_000057_add_convocatoria_id_to_matriculas',
         '2026_11_15_000059_create_evaluaciones_calificaciones_tables',

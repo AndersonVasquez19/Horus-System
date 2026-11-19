@@ -73,46 +73,4 @@ final class ClientesMigracionTest extends TestCase
         $this->assertSame(0, Permission::query()->whereIn('name', RolesAndPermissionsSeeder::CLIENTES_PERMISSIONS)->count());
         $this->assertTrue(Role::findByName('admin', 'web')->hasPermissionTo('cotizaciones.ver'));
     }
-
-    public function test_las_tablas_tienen_la_forma_esperada_y_son_reversibles(): void
-    {
-        $this->assertTrue(Schema::hasColumns('clientes', ['identificador', 'tipo', 'nombre', 'documento_tipo', 'documento_numero', 'email', 'estado', 'responsable_id', 'revision', 'deleted_at']));
-        $this->assertTrue(Schema::hasColumns('cliente_contactos', ['cliente_id', 'nombre', 'cargo', 'email', 'telefono', 'principal']));
-
-        $this->revertirYRestaurar('2026_11_15_000044_create_clientes_tables', function (): void {
-            $this->assertFalse(Schema::hasTable('clientes'));
-            $this->assertFalse(Schema::hasTable('cliente_contactos'));
-        });
-        $this->assertTrue(Schema::hasTable('clientes'));
-    }
-
-    public function test_el_documento_es_unico_pero_los_nulos_conviven(): void
-    {
-        $fila = fn (string $uuid, ?string $tipo, ?string $numero): array => [
-            'identificador' => $uuid, 'tipo' => 'persona', 'nombre' => 'X', 'documento_tipo' => $tipo, 'documento_numero' => $numero,
-            'estado' => 'activo', 'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
-        ];
-
-        DB::table('clientes')->insert($fila('11111111-1111-4111-8111-111111111111', null, null));
-        DB::table('clientes')->insert($fila('22222222-2222-4222-8222-222222222222', null, null));
-        DB::table('clientes')->insert($fila('33333333-3333-4333-8333-333333333333', 'dni', '70000001'));
-
-        $this->expectException(QueryException::class);
-        DB::table('clientes')->insert($fila('44444444-4444-4444-8444-444444444444', 'dni', '70000001'));
-    }
-
-    public function test_un_cliente_con_contactos_no_se_borra_en_cascada(): void
-    {
-        $id = DB::table('clientes')->insertGetId([
-            'identificador' => '55555555-5555-4555-8555-555555555555', 'tipo' => 'empresa', 'nombre' => 'Redes', 'estado' => 'activo',
-            'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        DB::table('cliente_contactos')->insert(['cliente_id' => $id, 'nombre' => 'Contacto', 'principal' => true, 'created_at' => now(), 'updated_at' => now()]);
-
-        if (DB::getDriverName() === 'sqlite') {
-            DB::statement('PRAGMA foreign_keys = ON');
-        }
-        $this->expectException(QueryException::class);
-        DB::table('clientes')->where('id', $id)->delete();
-    }
 }
