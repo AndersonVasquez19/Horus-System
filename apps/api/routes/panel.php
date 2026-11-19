@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::get('csrf', [AutenticacionController::class, 'csrf'])->name('csrf');
     Route::post('login', [AutenticacionController::class, 'login'])->middleware('throttle:login')->name('login');
+    Route::post('registro', [AutenticacionController::class, 'registrar'])->middleware('throttle:register')->name('registro');
     Route::post('contrasena/solicitar', [AutenticacionController::class, 'solicitarRestablecimiento'])
         ->middleware('throttle:password-recovery')->name('contrasena.solicitar');
     Route::post('contrasena/restablecer', [AutenticacionController::class, 'restablecer'])
@@ -48,6 +49,16 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         Route::get('auditoria', [Compartido\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::post('auditoria/exportar', [Compartido\AuditoriaController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('auditoria.exportar');
+
+        // Exportación administrativa de tablas (ZIP de CSV minimizados; no es un respaldo restaurable).
+        Route::get('respaldo', [Compartido\RespaldoController::class, 'index'])->name('respaldo.index');
+        Route::post('respaldo/exportar', [Compartido\RespaldoController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('respaldo.exportar');
+
+        // Probador y registros del asistente virtual (Horus AI con contingencia institucional).
+        Route::get('asistente', [Compartido\AsistenteController::class, 'index'])->name('asistente.index');
+        Route::post('asistente/mensaje', [Compartido\AsistenteController::class, 'mensaje'])
+            ->middleware('throttle:chat')->name('asistente.mensaje');
 
         // Libro de Reclamaciones: datos personales; el permiso lo declara el controlador y la lógica es la del Blade.
         Route::get('reclamaciones', [Compartido\ReclamacionController::class, 'index'])->name('reclamaciones.index');
@@ -104,6 +115,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
     ->name('academico.')
     ->group(function (): void {
         Route::get('resumen', Academico\ResumenController::class)->name('resumen');
+        // Búsqueda global: cada grupo (estudiantes, docentes, matrículas, ediciones) solo con el permiso de su módulo.
+        Route::get('busqueda', Academico\BusquedaController::class)->middleware('throttle:admin-opciones')->name('busqueda');
         Route::get('cursos', [Academico\CursoController::class, 'index'])->name('cursos.index');
         Route::get('cursos/{curso}', [Academico\CursoController::class, 'show'])->whereNumber('curso')->name('cursos.show');
         Route::get('cursos/{curso}/publicacion', [Academico\CursoPublicacionController::class, 'show'])->whereNumber('curso')->name('cursos.publicacion.show');
@@ -135,9 +148,86 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'update'])->name('convocatorias.update');
             Route::post('convocatorias/{identificador}/estado', [Academico\ConvocatoriaController::class, 'estado'])->name('convocatorias.estado');
             Route::put('convocatorias/{identificador}/horarios', [Academico\ConvocatoriaController::class, 'horarios'])->name('convocatorias.horarios');
+            Route::put('convocatorias/{identificador}/infraestructura', [Academico\ConvocatoriaController::class, 'infraestructura'])->name('convocatorias.infraestructura');
         });
 
+        // Infraestructura académica (Horus Academic, Fase 3): sedes, aulas y plataformas virtuales. No se eliminan: se desactivan.
+        // El permiso (`infraestructura.ver|gestionar`) lo declara cada controlador.
+        Route::get('sedes', [Academico\SedeController::class, 'index'])->name('sedes.index');
+        Route::get('sedes/{sede}', [Academico\SedeController::class, 'show'])->name('sedes.show');
+        Route::get('aulas', [Academico\AulaController::class, 'index'])->name('aulas.index');
+        Route::get('aulas/{aula}', [Academico\AulaController::class, 'show'])->name('aulas.show');
+        Route::get('plataformas-virtuales', [Academico\PlataformaVirtualController::class, 'index'])->name('plataformas.index');
+        Route::get('plataformas-virtuales/{plataforma}', [Academico\PlataformaVirtualController::class, 'show'])->name('plataformas.show');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('sedes', [Academico\SedeController::class, 'store'])->name('sedes.store');
+            Route::put('sedes/{sede}', [Academico\SedeController::class, 'update'])->name('sedes.update');
+            Route::post('sedes/{sede}/estado', [Academico\SedeController::class, 'estado'])->name('sedes.estado');
+            Route::post('aulas', [Academico\AulaController::class, 'store'])->name('aulas.store');
+            Route::put('aulas/{aula}', [Academico\AulaController::class, 'update'])->name('aulas.update');
+            Route::post('aulas/{aula}/estado', [Academico\AulaController::class, 'estado'])->name('aulas.estado');
+            Route::post('plataformas-virtuales', [Academico\PlataformaVirtualController::class, 'store'])->name('plataformas.store');
+            Route::put('plataformas-virtuales/{plataforma}', [Academico\PlataformaVirtualController::class, 'update'])->name('plataformas.update');
+            Route::post('plataformas-virtuales/{plataforma}/estado', [Academico\PlataformaVirtualController::class, 'estado'])->name('plataformas.estado');
+        });
+
+        // Docentes (Horus Academic, Fase 4): identificados solo por DNI. El permiso (`docentes.*`) lo declara el controlador;
+        // asignar docentes a una edición exige `convocatorias.editar` y la revisión de la edición.
+        Route::get('docentes', [Academico\DocenteController::class, 'index'])->name('docentes.index');
+        Route::get('docentes/{docente}', [Academico\DocenteController::class, 'show'])->name('docentes.show');
+        Route::get('convocatorias/{identificador}/docentes', [Academico\ConvocatoriaDocenteController::class, 'show'])->name('convocatorias.docentes.show');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('docentes', [Academico\DocenteController::class, 'store'])->name('docentes.store');
+            Route::put('docentes/{docente}', [Academico\DocenteController::class, 'update'])->name('docentes.update');
+            Route::delete('docentes/{docente}', [Academico\DocenteController::class, 'destroy'])->name('docentes.destroy');
+            Route::post('docentes/{docente}/restaurar', [Academico\DocenteController::class, 'restaurar'])->name('docentes.restaurar');
+            Route::put('convocatorias/{identificador}/docentes', [Academico\ConvocatoriaDocenteController::class, 'update'])->name('convocatorias.docentes.update');
+        });
+
+        // Sesiones de clase (Horus Academic, Fase 5). El permiso (`sesiones.*`) lo declara el controlador. El enlace virtual solo
+        // sale por `sesiones/{sesion}/enlace` (permiso propio, auditado, sin caché).
+        Route::get('convocatorias/{identificador}/sesiones', [Academico\SesionController::class, 'index'])->name('sesiones.index');
+        Route::get('sesiones/{sesion}', [Academico\SesionController::class, 'show'])->name('sesiones.show');
+        Route::get('sesiones/{sesion}/enlace', [Academico\SesionController::class, 'enlace'])->middleware('throttle:30,1')->name('sesiones.enlace');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('convocatorias/{identificador}/sesiones', [Academico\SesionController::class, 'store'])->name('sesiones.store');
+            Route::post('convocatorias/{identificador}/sesiones/generar', [Academico\SesionController::class, 'generar'])->name('sesiones.generar');
+            Route::put('sesiones/{sesion}', [Academico\SesionController::class, 'update'])->name('sesiones.update');
+            Route::post('sesiones/{sesion}/cancelar', [Academico\SesionController::class, 'cancelar'])->name('sesiones.cancelar');
+            Route::post('sesiones/{sesion}/realizada', [Academico\SesionController::class, 'realizada'])->name('sesiones.realizada');
+        });
+
+        // Asistencia (Horus Academic, Fase 6). El permiso (`asistencias.*`) lo declara el controlador.
+        Route::get('sesiones/{sesion}/asistencias', [Academico\AsistenciaController::class, 'lista'])->name('asistencias.lista');
+        Route::get('convocatorias/{identificador}/asistencias/resumen', [Academico\AsistenciaController::class, 'resumen'])->name('asistencias.resumen');
+        Route::post('convocatorias/{identificador}/asistencias/exportar', [Academico\AsistenciaController::class, 'exportar'])->middleware('throttle:admin-export')->name('asistencias.exportar');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::put('sesiones/{sesion}/asistencias', [Academico\AsistenciaController::class, 'registrar'])->name('asistencias.registrar');
+            Route::put('sesiones/{sesion}/asistencias/{matricula}', [Academico\AsistenciaController::class, 'corregir'])->whereNumber('matricula')->name('asistencias.corregir');
+        });
+
+        // Finanzas (Horus Academic, Fase 7): libro de pagos inmutable. El permiso (`pagos.*`) lo declara el controlador.
+        Route::get('pagos/metodos', [Academico\PagoController::class, 'metodos'])->name('pagos.metodos');
+        Route::get('pagos/obligaciones', [Academico\PagoController::class, 'index'])->name('pagos.obligaciones.index');
+        Route::get('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'verComprobante'])->middleware('throttle:60,1')->name('pagos.comprobante.ver');
+        Route::post('pagos/exportar', [Academico\PagoController::class, 'exportar'])->middleware('throttle:admin-export')->name('pagos.exportar');
+        Route::get('pagos/obligaciones/{obligacion}',[Academico\PagoController::class, 'show'])->name('pagos.obligaciones.show');
+        Route::get('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'deMatricula'])->whereNumber('matricula')->name('pagos.obligaciones.matricula');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'crearObligacion'])->whereNumber('matricula')->name('pagos.obligaciones.store');
+            Route::post('pagos/obligaciones/{obligacion}/pagos', [Academico\PagoController::class, 'registrar'])->name('pagos.registrar');
+            Route::post('pagos/obligaciones/{obligacion}/anular', [Academico\PagoController::class, 'anular'])->name('pagos.obligaciones.anular');
+            Route::post('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'adjuntarComprobante'])->name('pagos.comprobante.adjuntar');
+            Route::post('pagos/transacciones/{transaccion}/confirmar', [Academico\PagoController::class, 'confirmar'])->name('pagos.confirmar');
+            Route::post('pagos/transacciones/{transaccion}/rechazar', [Academico\PagoController::class, 'rechazar'])->name('pagos.rechazar');
+            Route::post('pagos/transacciones/{transaccion}/reversar', [Academico\PagoController::class, 'reversar'])->name('pagos.reversar');
+        });
+
+        // Consulta de DNI (JSON.pe) para el alta de personas: solo consulta, limitada por usuario; el permiso lo declara el controlador.
+        Route::post('consultas/dni', Academico\ConsultaDniController::class)->middleware('throttle:10,1')->name('consultas.dni');
+
         // Estudiantes: mismas reglas que /admin/estudiantes (GestionEstudiantes). Las escrituras, con throttle de panel.
+
         Route::get('estudiantes', [Academico\EstudianteController::class, 'index'])->name('estudiantes.index');
         Route::get('estudiantes/{estudiante}', [Academico\EstudianteController::class, 'show'])->whereNumber('estudiante')->name('estudiantes.show');
         Route::middleware('throttle:admin-write')->group(function (): void {
@@ -156,6 +246,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
 
         // Matrículas: mismas reglas que /admin/matriculas (GestionMatriculas, protocolo de bloqueo incluido).
         Route::get('matriculas', [Academico\MatriculaController::class, 'index'])->name('matriculas.index');
+        // Caja del administrador: matrícula + obligación + pago Yape + captura + confirmación en un solo paso atómico.
+        Route::post('matriculas/con-pago', [Academico\MatriculaConPagoController::class, 'store'])->middleware('throttle:admin-write')->name('matriculas.con-pago');
         Route::get('matriculas/opciones/estudiantes', [Academico\MatriculaController::class, 'opcionesEstudiantes'])
             ->middleware('throttle:admin-opciones')->name('matriculas.opciones.estudiantes');
         Route::get('matriculas/opciones/cursos', [Academico\MatriculaController::class, 'opcionesCursos'])
@@ -172,64 +264,18 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         });
     });
 
-// Panel de servicios tecnológicos (/admin/servicios).
+// Catálogo de servicios tecnológicos: SOLO la edición de fichas públicas (el panel comercial se retiró). Sin pantalla en apps/web;
+// la API se conserva porque es la única vía de autoría del catálogo público y de Horus AI.
 Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPermissionsSeeder::PANEL_SERVICIOS])
     ->prefix('servicios')
     ->name('servicios.')
     ->group(function (): void {
-        Route::get('resumen', Servicios\ResumenController::class)->name('resumen');
         Route::get('servicios', [Servicios\ServicioController::class, 'index'])->name('servicios.index');
         Route::get('servicios/{servicio}', [Servicios\ServicioController::class, 'show'])->whereNumber('servicio')->name('servicios.show');
         Route::get('servicios/{servicio}/imagen', [Servicios\ServicioContenidoController::class, 'verImagenPrincipal'])
             ->whereNumber('servicio')->middleware('throttle:admin-opciones')->name('servicios.imagen.ver');
         Route::get('servicios/{servicio}/elementos/{elemento}/imagen', [Servicios\ServicioContenidoController::class, 'verImagenElemento'])
             ->whereNumber(['servicio', 'elemento'])->middleware('throttle:admin-opciones')->name('servicios.elementos.imagen.ver');
-        Route::get('cotizaciones', [Servicios\CotizacionController::class, 'index'])->name('cotizaciones.index');
-        Route::get('cotizaciones/opciones/responsables', [Servicios\CotizacionController::class, 'opcionesResponsables'])
-            ->middleware('throttle:admin-opciones')->name('cotizaciones.opciones.responsables');
-        Route::get('cotizaciones/opciones/servicios', [Servicios\CotizacionController::class, 'opcionesServicios'])
-            ->middleware('throttle:admin-opciones')->name('cotizaciones.opciones.servicios');
-        Route::get('cotizaciones/{identificador}', [Servicios\CotizacionController::class, 'show'])->name('cotizaciones.show');
-
-        // Clientes (Ola 3): datos personales; rol admin y permisos `clientes.*` los declara el controlador.
-        Route::get('clientes', [Servicios\ClienteController::class, 'index'])->name('clientes.index');
-        Route::get('clientes/opciones/responsables', [Servicios\ClienteController::class, 'opcionesResponsables'])
-            ->middleware('throttle:admin-opciones')->name('clientes.opciones.responsables');
-        Route::get('clientes/{identificador}', [Servicios\ClienteController::class, 'show'])->name('clientes.show');
-
-        // Prospectos (Ola 3): datos personales; rol admin y permisos `prospectos.*` los declara el controlador.
-        Route::get('prospectos', [Servicios\ProspectoController::class, 'index'])->name('prospectos.index');
-        Route::get('prospectos/opciones/responsables', [Servicios\ProspectoController::class, 'opcionesResponsables'])
-            ->middleware('throttle:admin-opciones')->name('prospectos.opciones.responsables');
-        Route::get('prospectos/opciones/servicios', [Servicios\ProspectoController::class, 'opcionesServicios'])
-            ->middleware('throttle:admin-opciones')->name('prospectos.opciones.servicios');
-        Route::get('prospectos/{identificador}', [Servicios\ProspectoController::class, 'show'])->name('prospectos.show');
-
-        // Pipeline (Ola 3): rol admin y permisos `pipeline.*` los declara el controlador. `tablero` y `opciones` van antes del comodín.
-        Route::get('oportunidades', [Servicios\OportunidadController::class, 'index'])->name('oportunidades.index');
-        Route::get('oportunidades/tablero', [Servicios\OportunidadController::class, 'tablero'])->name('oportunidades.tablero');
-        Route::get('oportunidades/opciones/responsables', [Servicios\OportunidadController::class, 'opcionesResponsables'])
-            ->middleware('throttle:admin-opciones')->name('oportunidades.opciones.responsables');
-        Route::get('oportunidades/{identificador}', [Servicios\OportunidadController::class, 'show'])->name('oportunidades.show');
-
-        // Proyectos (Ola 3): rol admin y permisos `proyectos.*` los declara el controlador.
-        Route::get('proyectos', [Servicios\ProyectoController::class, 'index'])->name('proyectos.index');
-        Route::get('proyectos/opciones/responsables', [Servicios\ProyectoController::class, 'opcionesResponsables'])
-            ->middleware('throttle:admin-opciones')->name('proyectos.opciones.responsables');
-        Route::get('proyectos/{identificador}', [Servicios\ProyectoController::class, 'show'])->name('proyectos.show');
-
-        // Reportes comerciales (Ola 3): rol admin y permisos `reportes-comerciales.*` los declara el controlador.
-        Route::get('reportes-comerciales', [Servicios\ReporteComercialController::class, 'index'])->name('reportes-comerciales.index');
-        Route::get('reportes-comerciales/opciones/responsables', [Servicios\ReporteComercialController::class, 'opcionesResponsables'])
-            ->middleware('throttle:admin-opciones')->name('reportes-comerciales.opciones.responsables');
-        Route::post('reportes-comerciales/exportar', [Servicios\ReporteComercialController::class, 'exportar'])
-            ->middleware('throttle:admin-export')->name('reportes-comerciales.exportar');
-
-        // Soporte técnico (Ola 3): rol admin y permisos `soporte.*` los declara el controlador.
-        Route::get('tickets', [Servicios\TicketController::class, 'index'])->name('tickets.index');
-        Route::get('tickets/opciones/asignados', [Servicios\TicketController::class, 'opcionesAsignados'])
-            ->middleware('throttle:admin-opciones')->name('tickets.opciones.asignados');
-        Route::get('tickets/{identificador}', [Servicios\TicketController::class, 'show'])->name('tickets.show');
 
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
@@ -245,44 +291,5 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::post('servicios/{servicio}/elementos', [Servicios\ServicioContenidoController::class, 'elementoStore'])->whereNumber('servicio')->name('servicios.elementos.store');
             Route::post('servicios/{servicio}/elementos/{elemento}', [Servicios\ServicioContenidoController::class, 'elementoUpdate'])->whereNumber(['servicio', 'elemento'])->name('servicios.elementos.update');
             Route::post('servicios/{servicio}/elementos/{elemento}/eliminar', [Servicios\ServicioContenidoController::class, 'elementoDestroy'])->whereNumber(['servicio', 'elemento'])->name('servicios.elementos.destroy');
-
-            Route::post('cotizaciones', [Servicios\CotizacionController::class, 'store'])->name('cotizaciones.store');
-            Route::put('cotizaciones/{identificador}', [Servicios\CotizacionController::class, 'update'])->name('cotizaciones.update');
-            Route::post('cotizaciones/{identificador}/estado', [Servicios\CotizacionController::class, 'estado'])->name('cotizaciones.estado');
-            Route::post('cotizaciones/{identificador}/responsable', [Servicios\CotizacionController::class, 'responsable'])->name('cotizaciones.responsable');
-            Route::post('cotizaciones/{identificador}/seguimientos', [Servicios\CotizacionController::class, 'seguimiento'])->name('cotizaciones.seguimiento');
-            Route::post('cotizaciones/{identificador}/cliente', [Servicios\CotizacionController::class, 'cliente'])->name('cotizaciones.cliente');
-
-            Route::post('prospectos', [Servicios\ProspectoController::class, 'store'])->name('prospectos.store');
-            Route::put('prospectos/{identificador}', [Servicios\ProspectoController::class, 'update'])->name('prospectos.update');
-            Route::post('prospectos/{identificador}/estado', [Servicios\ProspectoController::class, 'estado'])->name('prospectos.estado');
-            Route::post('prospectos/{identificador}/responsable', [Servicios\ProspectoController::class, 'responsable'])->name('prospectos.responsable');
-            Route::post('prospectos/{identificador}/convertir', [Servicios\ProspectoController::class, 'convertir'])->name('prospectos.convertir');
-            Route::post('cotizaciones/{identificador}/prospecto', [Servicios\ProspectoController::class, 'desdeCotizacion'])->name('cotizaciones.prospecto');
-
-            Route::post('oportunidades', [Servicios\OportunidadController::class, 'store'])->name('oportunidades.store');
-            Route::put('oportunidades/{identificador}', [Servicios\OportunidadController::class, 'update'])->name('oportunidades.update');
-            Route::post('oportunidades/{identificador}/etapa', [Servicios\OportunidadController::class, 'etapa'])->name('oportunidades.etapa');
-            Route::post('oportunidades/{identificador}/responsable', [Servicios\OportunidadController::class, 'responsable'])->name('oportunidades.responsable');
-
-            Route::post('proyectos', [Servicios\ProyectoController::class, 'store'])->name('proyectos.store');
-            Route::put('proyectos/{identificador}', [Servicios\ProyectoController::class, 'update'])->name('proyectos.update');
-            Route::post('proyectos/{identificador}/estado', [Servicios\ProyectoController::class, 'estado'])->name('proyectos.estado');
-            Route::post('proyectos/{identificador}/responsable', [Servicios\ProyectoController::class, 'responsable'])->name('proyectos.responsable');
-            Route::post('proyectos/{identificador}/hitos', [Servicios\ProyectoController::class, 'hitoStore'])->name('proyectos.hitos.store');
-            Route::put('proyectos/{identificador}/hitos/{hito}', [Servicios\ProyectoController::class, 'hitoUpdate'])->name('proyectos.hitos.update');
-            Route::post('proyectos/{identificador}/hitos/{hito}/completar', [Servicios\ProyectoController::class, 'hitoCompletar'])->name('proyectos.hitos.completar');
-            Route::post('proyectos/{identificador}/hitos/{hito}/eliminar', [Servicios\ProyectoController::class, 'hitoEliminar'])->name('proyectos.hitos.eliminar');
-
-            Route::post('tickets', [Servicios\TicketController::class, 'store'])->name('tickets.store');
-            Route::put('tickets/{identificador}', [Servicios\TicketController::class, 'update'])->name('tickets.update');
-            Route::post('tickets/{identificador}/estado', [Servicios\TicketController::class, 'estado'])->name('tickets.estado');
-            Route::post('tickets/{identificador}/asignar', [Servicios\TicketController::class, 'asignar'])->name('tickets.asignar');
-            Route::post('tickets/{identificador}/notas', [Servicios\TicketController::class, 'nota'])->name('tickets.nota');
-
-            Route::post('clientes', [Servicios\ClienteController::class, 'store'])->name('clientes.store');
-            Route::put('clientes/{identificador}', [Servicios\ClienteController::class, 'update'])->name('clientes.update');
-            Route::post('clientes/{identificador}/estado', [Servicios\ClienteController::class, 'estado'])->name('clientes.estado');
-            Route::post('clientes/{identificador}/responsable', [Servicios\ClienteController::class, 'responsable'])->name('clientes.responsable');
         });
     });

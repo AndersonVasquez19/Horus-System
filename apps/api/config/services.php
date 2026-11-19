@@ -22,6 +22,12 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    // Consulta de DNI (RENIEC) mediante JSON.pe. El token solo vive en el servidor: nunca llega al navegador ni a los logs.
+    'jsonpe' => [
+        'token' => env('JSONPE_TOKEN'),
+        'url' => env('JSONPE_URL', 'https://api.json.pe/api/dni'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

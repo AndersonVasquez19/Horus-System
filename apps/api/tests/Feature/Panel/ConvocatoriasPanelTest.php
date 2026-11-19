@@ -7,9 +7,11 @@ namespace Tests\Feature\Panel;
 use App\Models\AuditLog;
 use App\Models\Convocatoria;
 use App\Models\Curso;
+use App\Models\PlataformaVirtual;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Permission\Models\Role;
 
@@ -60,6 +62,22 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         return Convocatoria::query()->where('identificador', $respuesta->json('data.identificador'))->firstOrFail();
     }
 
+    /**
+     * Desde Horus Academic (Fase 3) una edición NUEVA no se abre sin su infraestructura (virtual: plataforma). Se asigna
+     * directamente, sin pasar por la API, para no alterar la revisión ni la secuencia de auditoría que estas pruebas comprueban;
+     * la asignación por la API se prueba en tests/Academic/Infraestructura.
+     */
+    private function conInfraestructura(Convocatoria $c): Convocatoria
+    {
+        $plataforma = new PlataformaVirtual(['nombre' => 'Meet '.random_int(1000, 9999), 'tipo' => 'meet']);
+        $plataforma->identificador = (string) Str::uuid();
+        $plataforma->estado = 'activo';
+        $plataforma->save();
+        $c->forceFill(['plataforma_virtual_id' => $plataforma->id])->save();
+
+        return $c;
+    }
+
     private function estado(User $usuario, Convocatoria $c, string $estado): TestResponse
     {
         return $this->como($usuario, 'POST', $c->identificador.'/estado', ['estado' => $estado, '_revision' => $c->fresh()->etag()]);
@@ -86,7 +104,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     {
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $coordinador = $this->coordinador();
-        $c = $this->crear($admin);
+        $c = $this->conInfraestructura($this->crear($admin));
         $this->estado($coordinador, $c, 'abierta')->assertOk();
         $this->estado($coordinador, $c, 'en_curso')->assertOk();
 
@@ -210,7 +228,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     public function test_el_ciclo_de_estados_y_sus_auditorias(): void
     {
         $coordinador = $this->coordinador();
-        $c = $this->crear($coordinador);
+        $c = $this->conInfraestructura($this->crear($coordinador));
 
         $this->estado($coordinador, $c, 'en_curso')->assertStatus(409);
         $this->estado($coordinador, $c, 'cerrada')->assertStatus(409);
@@ -239,8 +257,8 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     public function test_repetir_el_estado_no_cambia_nada_y_la_revision_obsoleta_es_412(): void
     {
         $coordinador = $this->coordinador();
-        $c = $this->crear($coordinador);
-        $vieja = $c->etag();
+        $c = $this->conInfraestructura($this->crear($coordinador));
+        $vieja = $c->fresh()->etag();
 
         $this->estado($coordinador, $c, 'borrador')->assertOk();
         $this->assertSame(1, $c->fresh()->revision);

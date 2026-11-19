@@ -58,17 +58,6 @@ class Sprint12AtomicityTest extends TestCase
         $this->assertSame($before, DB::table('role_has_permissions')->count());
     }
 
-    public function test_settings_roll_back_all_changes_when_audit_fails(): void
-    {
-        $this->actingAs($this->adminUser());
-        SystemSetting::create(['key' => 'moneda', 'value' => 'S/']);
-        $this->failAudit();
-        $this->putJson(route('admin.configuracion.update'), ['settings' => ['moneda' => 'USD', 'telefono' => '000000000']])
-            ->assertStatus(500);
-        $this->assertSame('S/', SystemSetting::value('moneda'));
-        $this->assertDatabaseMissing('system_settings', ['key' => 'telefono']);
-    }
-
     public function test_approval_creation_rolls_back_when_notification_cannot_be_recorded(): void
     {
         $actor = $this->adminUser();

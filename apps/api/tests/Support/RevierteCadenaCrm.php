@@ -27,6 +27,14 @@ trait RevierteCadenaCrm
         '2026_11_15_000057_add_convocatoria_id_to_matriculas',
         '2026_11_15_000059_create_evaluaciones_calificaciones_tables',
         '2026_11_15_000060_add_nota_final_to_matriculas',
+        // Horus Academic: dependen de convocatorias, matrículas, evaluaciones o sesiones (en PostgreSQL impiden eliminarlas).
+        '2026_11_16_000063_add_infraestructura_to_convocatorias',
+        '2026_11_16_000066_create_docentes_tables',
+        '2026_11_16_000068_create_sesiones_clase_table',
+        '2026_11_17_000070_create_asistencias_table',
+        '2026_11_17_000072_create_finanzas_tables',
+        '2026_11_17_000074_add_evaluaciones_peso_total_guard',
+        '2026_11_17_000075_create_comprobantes_pago_table',
     ];
 
     /**

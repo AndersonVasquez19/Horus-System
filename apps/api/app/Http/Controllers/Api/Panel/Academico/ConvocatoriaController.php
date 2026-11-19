@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\GuardarConvocatoriaRequest;
 use App\Models\Convocatoria;
 use App\Services\GestionConvocatorias;
+use App\Services\GestionInfraestructura;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
 use App\Support\Panel\Listado;
@@ -28,7 +29,7 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
 {
     private const ORDENABLES = ['inicio' => 'fecha_inicio', 'codigo' => 'codigo', 'creado' => 'created_at'];
 
-    public function __construct(private readonly GestionConvocatorias $gestion) {}
+    public function __construct(private readonly GestionConvocatorias $gestion, private readonly GestionInfraestructura $infraestructura) {}
 
     /** @return list<Middleware> */
     public static function middleware(): array
@@ -38,7 +39,7 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
             new Middleware('permission:convocatorias.crear', only: ['store']),
             // `estado` exige además `convocatorias.cerrar` para cerrar o cancelar: lo comprueba el servicio.
             new Middleware('permission:convocatorias.editar|convocatorias.cerrar', only: ['estado']),
-            new Middleware('permission:convocatorias.editar', only: ['update', 'horarios']),
+            new Middleware('permission:convocatorias.editar', only: ['update', 'horarios', 'infraestructura']),
         ];
     }
 
@@ -122,11 +123,32 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
         return $this->detalle($this->buscar($identificador), 200, 'El horario se actualizó.');
     }
 
+    /**
+     * Asigna sede y aula (presencial) o plataforma virtual (virtual). Los identificadores públicos (UUID) de cada catálogo;
+     * `null` o ausente quita la asignación de ese tipo.
+     */
+    public function infraestructura(Request $request, string $identificador): JsonResponse
+    {
+        PrecondicionesPanel::aplicar($request);
+        $datos = $request->validate([
+            'sede' => ['nullable', 'string', 'uuid'],
+            'aula' => ['nullable', 'string', 'uuid'],
+            'plataforma_virtual' => ['nullable', 'string', 'uuid'],
+        ], [
+            'sede.uuid' => 'La sede seleccionada no es válida.',
+            'aula.uuid' => 'El aula seleccionada no es válida.',
+            'plataforma_virtual.uuid' => 'La plataforma seleccionada no es válida.',
+        ]);
+        $this->infraestructura->asignarAEdicion($request, $this->buscar($identificador)->identificador, $datos);
+
+        return $this->detalle($this->buscar($identificador), 200, 'La infraestructura de la edición se actualizó.');
+    }
+
     private function buscar(string $identificador): Convocatoria
     {
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
 
-        return Convocatoria::query()->with(['curso:id,codigo,nombre', 'horarios'])
+        return Convocatoria::query()->with(['curso:id,codigo,nombre', 'horarios', 'sede:id,identificador,codigo,nombre', 'aula:id,identificador,codigo,nombre,capacidad', 'plataformaVirtual:id,identificador,nombre,tipo'])
             ->where('identificador', strtolower($identificador))->firstOrFail();
     }
 
@@ -158,6 +180,13 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
                 'lugar' => $h->lugar,
                 'docente' => $h->docente,
             ])->all(),
+            'infraestructura' => [
+                'exigida' => (bool) $c->exige_infraestructura,
+                'completa' => $c->tieneInfraestructuraCompleta(),
+                'sede' => $c->sede === null ? null : ['identificador' => $c->sede->identificador, 'codigo' => $c->sede->codigo, 'nombre' => $c->sede->nombre],
+                'aula' => $c->aula === null ? null : ['identificador' => $c->aula->identificador, 'codigo' => $c->aula->codigo, 'nombre' => $c->aula->nombre, 'capacidad' => $c->aula->capacidad],
+                'plataforma_virtual' => $c->plataformaVirtual === null ? null : ['identificador' => $c->plataformaVirtual->identificador, 'nombre' => $c->plataformaVirtual->nombre, 'tipo' => $c->plataformaVirtual->tipo],
+            ],
             'creado_en' => $c->created_at?->toIso8601String(),
             'revision' => $c->etag(),
         ];

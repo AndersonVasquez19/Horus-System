@@ -16,6 +16,7 @@ use App\Support\SesionPanel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -100,6 +101,35 @@ final class AutenticacionController extends Controller
         SesionPanel::cerrar($request);
 
         return response()->json(['message' => 'Sesión cerrada.']);
+    }
+
+    /**
+     * Registro público desde apps/web. Mismas reglas que el registro Blade y que `POST /api/auth/register`.
+     * La cuenta se crea SIN roles ni permisos: no da acceso al panel (eso lo concede un administrador por consola o desde
+     * Usuarios y roles) y la respuesta no lleva token ni datos de la cuenta.
+     */
+    public function registrar(Request $request): JsonResponse
+    {
+        Email::normalizeRequest($request);
+        $datos = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
+            'password' => ['required', 'confirmed', PasswordPolicy::rule()],
+            'terms' => ['accepted'],
+        ], [
+            'name.required' => 'Escribe tu nombre para continuar.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
+            'terms.accepted' => 'Debes aceptar el aviso de privacidad para crear tu cuenta.',
+        ] + PasswordPolicy::messages());
+
+        User::create([
+            'name' => $datos['name'],
+            'email' => $datos['email'],
+            'password' => Hash::make($datos['password']),
+        ]);
+
+        return response()->json(['message' => 'Cuenta creada. Un administrador te dará acceso al panel cuando corresponda.'], 201);
     }
 
     /** Siempre la misma respuesta, exista o no la cuenta (incluido el límite del broker). */

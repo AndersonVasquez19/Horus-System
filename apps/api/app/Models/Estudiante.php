@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -22,11 +23,25 @@ class Estudiante extends Model
         'estado',
     ];
 
+    /** Defensa en profundidad: el vínculo con la cuenta no sale en una serialización accidental del modelo. */
+    protected $hidden = ['user_id'];
+
     protected function casts(): array
     {
         return [
             'fecha_nacimiento' => 'date',
         ];
+    }
+
+    /**
+     * Cuenta de usuario vinculada (opcional y única). `user_id` NO es asignable en masa a propósito: ningún formulario ni
+     * petición puede vincular una cuenta; el vínculo lo fijará una acción de dominio explícita cuando se autorice el portal.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /** @return HasMany<Matricula, $this> */

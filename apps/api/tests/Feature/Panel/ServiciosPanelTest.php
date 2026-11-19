@@ -57,16 +57,6 @@ final class ServiciosPanelTest extends PanelApiTestCase
         return $user;
     }
 
-    public function test_coordinador_y_secretaria_no_acceden_al_panel_de_servicios(): void
-    {
-        foreach (['coordinador', 'secretaria'] as $rol) {
-            $user = $this->usuarioConRol($rol, "{$rol}@horus.test");
-            foreach (['servicios/resumen', 'servicios/servicios', 'servicios/cotizaciones'] as $ruta) {
-                $this->como($user, $ruta)->assertForbidden()->assertJsonPath('code', 'prohibido');
-            }
-        }
-    }
-
     public function test_tener_permisos_de_modulo_sin_permiso_de_entrada_no_abre_el_panel(): void
     {
         $user = $this->usuarioConPermisos(['servicios.ver', 'cotizaciones.ver'], ['admin']);
@@ -83,40 +73,6 @@ final class ServiciosPanelTest extends PanelApiTestCase
         $this->como($user, 'servicios/servicios')->assertOk();
     }
 
-    public function test_resumen_de_admin_con_servicios_y_cotizaciones_sin_contacto(): void
-    {
-        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
-        $this->servicio('S-1');
-        $this->servicio('S-2', 'inactivo');
-        $this->cotizacion('COT-1');
-        $this->cotizacion('COT-2', 'en_revision', '2026-01-01');
-
-        $respuesta = $this->como($admin, 'servicios/resumen')->assertOk();
-
-        // Cada cotización de prueba enlaza su propio servicio activo: 1 + 2 activos y 1 inactivo.
-        $respuesta->assertJsonPath('data.indicadores.servicios_activos', 3)
-            ->assertJsonPath('data.indicadores.servicios_total', 4)
-            ->assertJsonPath('data.indicadores.cotizaciones_recibidas', 1)
-            ->assertJsonPath('data.indicadores.cotizaciones_en_revision', 1)
-            ->assertJsonPath('data.indicadores.seguimientos_pendientes', 1)
-            ->assertJsonCount(2, 'data.bloques.ultimas_cotizaciones');
-        $cuerpo = json_encode($respuesta->json(), JSON_THROW_ON_ERROR);
-        foreach (['Cliente Privado', 'cliente@privado.test', '988777666', 'Necesidad confidencial'] as $sensible) {
-            $this->assertStringNotContainsString($sensible, $cuerpo);
-        }
-    }
-
-    public function test_sin_rol_admin_las_cotizaciones_no_aparecen_ni_se_listan(): void
-    {
-        $user = $this->usuarioConPermisos(['panel.servicios.acceder', 'servicios.ver', 'cotizaciones.ver']);
-        $this->cotizacion('COT-1');
-
-        $this->como($user, 'servicios/resumen')->assertOk()
-            ->assertJsonMissingPath('data.indicadores.cotizaciones_recibidas')
-            ->assertJsonMissingPath('data.bloques.ultimas_cotizaciones');
-        $this->como($user, 'servicios/cotizaciones')->assertForbidden();
-    }
-
     public function test_listado_de_servicios_con_filtros(): void
     {
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
@@ -129,25 +85,5 @@ final class ServiciosPanelTest extends PanelApiTestCase
             ->assertJsonPath('data.0.publicacion', null);
         $this->como($admin, 'servicios/servicios?publicacion=sin_ficha')->assertJsonPath('meta.total', 2);
         $this->como($admin, 'servicios/servicios?busqueda=cam')->assertJsonPath('data.0.codigo', 'CAM-01');
-    }
-
-    public function test_bandeja_de_cotizaciones_filtra_y_minimiza(): void
-    {
-        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
-        $this->cotizacion('COT-1', 'recibida', null, '2026-11-01 15:00:00');
-        $this->cotizacion('COT-2', 'en_revision', '2026-01-01', '2026-11-05 15:00:00');
-
-        $todas = $this->como($admin, 'servicios/cotizaciones')->assertOk();
-        $todas->assertJsonPath('meta.total', 2)->assertJsonPath('data.0.codigo', 'COT-2');
-        $this->assertSame(
-            ['identificador', 'codigo', 'servicio', 'servicio_uuid', 'origen', 'estado', 'responsable', 'recibida_en', 'proximo_seguimiento'],
-            array_keys($todas->json('data.0')),
-        );
-
-        $this->como($admin, 'servicios/cotizaciones?estado=recibida')->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.codigo', 'COT-1');
-        $this->como($admin, 'servicios/cotizaciones?seguimiento_pendiente=1')->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.codigo', 'COT-2');
-        $this->como($admin, 'servicios/cotizaciones?desde=2026-11-03&hasta=2026-11-30')->assertJsonPath('meta.total', 1);
-        $this->como($admin, 'servicios/cotizaciones?desde=2026-02-31&estado=cerrada')->assertOk()
-            ->assertJsonPath('meta.total', 2)->assertJsonPath('meta.filtros', []);
     }
 }

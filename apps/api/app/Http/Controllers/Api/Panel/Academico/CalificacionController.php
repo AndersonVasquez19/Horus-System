@@ -203,6 +203,10 @@ final class CalificacionController extends Controller implements HasMiddleware
             ->whereIn('evaluacion_id', $evaluaciones->pluck('id'))->get()->groupBy('matricula_id');
 
         $total = $evaluaciones->sum(fn (Evaluacion $e): int => GestionCalificaciones::centesimas($e->peso));
+        // El porcentaje de asistencia solo se incluye para quien puede ver la asistencia (mismo cálculo que el resumen de asistencia).
+        $asistencia = auth()->user()?->can('asistencias.ver') === true
+            ? collect(app(\App\Services\GestionAsistencias::class)->resumen($convocatoria)['matriculas'])->keyBy('matricula_id')
+            : null;
 
         return [
             'convocatoria' => [
@@ -214,6 +218,7 @@ final class CalificacionController extends Controller implements HasMiddleware
             ],
             'nota_aprobatoria' => Calificacion::NOTA_APROBATORIA,
             'peso_total' => number_format($total / 100, 2, '.', ''),
+            'asistencia_visible' => $asistencia !== null,
             'evaluaciones' => $evaluaciones->map(fn (Evaluacion $e): array => [
                 'identificador' => $e->identificador,
                 'nombre' => $e->nombre,
@@ -229,6 +234,7 @@ final class CalificacionController extends Controller implements HasMiddleware
                 )->all(),
                 'nota_final' => $m->nota_final === null ? null : number_format((float) $m->nota_final, 2, '.', ''),
                 'resultado' => $m->resultado,
+                'asistencia' => $asistencia?->get($m->id)['porcentaje'] ?? null,
             ])->all(),
         ];
     }

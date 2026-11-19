@@ -15,11 +15,9 @@ final class MensajesEspanolPanelTest extends PanelApiTestCase
     public function test_los_errores_de_validacion_del_panel_no_exponen_nombres_internos_de_campo(): void
     {
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
-        $uuid = (string) Str::uuid();
         $rutas = [
             ['POST', 'academico/estudiantes'], ['POST', 'academico/cursos'], ['POST', 'academico/matriculas'],
             ['PUT', 'academico/cursos/1/publicacion'], ['POST', 'servicios/servicios'], ['PUT', 'servicios/servicios/1/publicacion'],
-            ['POST', 'servicios/cotizaciones'], ['POST', "servicios/cotizaciones/{$uuid}/seguimientos"],
         ];
 
         foreach ($rutas as [$metodo, $ruta]) {
@@ -33,15 +31,5 @@ final class MensajesEspanolPanelTest extends PanelApiTestCase
                 }
             }
         }
-    }
-
-    public function test_los_nombres_legibles_aparecen_en_los_mensajes(): void
-    {
-        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
-
-        $this->actingAs($admin)->withHeaders(['X-Horus-Web-Token' => self::TOKEN])
-            ->json('POST', '/api/panel/v1/servicios/cotizaciones', [])
-            ->assertJsonPath('errors.contacto_nombre.0', 'El campo nombre del solicitante es obligatorio.')
-            ->assertJsonPath('errors.necesidad_cliente.0', 'El campo necesidad del cliente es obligatorio.');
     }
 }

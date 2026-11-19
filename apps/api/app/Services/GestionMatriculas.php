@@ -111,6 +111,12 @@ final class GestionMatriculas
             $nuevaActiva = $datos['estado'] !== 'anulada';
             if ($anteriorActiva && ! $nuevaActiva) {
                 abort_unless($usuario?->can('matriculas.anular') === true, 403);
+                // Una matrícula con pagos no se anula: primero se reversan (o rechazan) en el libro de pagos.
+                $obligacion = \App\Models\ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->first();
+                if ($obligacion !== null) {
+                    $saldos = app(GestionPagos::class)->saldos($obligacion);
+                    abort_if($saldos['confirmado'] > 0 || $saldos['pendiente'] > 0, 409, 'La matrícula tiene pagos: reviértelos o recházalos antes de anularla.');
+                }
             }
             $cursoAnteriorId = (int) $matricula->curso_id;
             $cursoNuevoId = (int) $datos['curso_id'];

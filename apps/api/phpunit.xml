@@ -11,6 +11,13 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!-- Horus Academic: pruebas nuevas en Pest (ver tests/Pest.php). PHPUnit y Pest conviven; las suites anteriores no cambian. -->
+        <testsuite name="Academic">
+            <directory>tests/Academic</directory>
+        </testsuite>
+        <testsuite name="Contract">
+            <directory>tests/Contract</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

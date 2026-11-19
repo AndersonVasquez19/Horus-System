@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Estudiante;
 use App\Support\AuditoriaAcademica;
+use App\Support\DniUnico;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,6 +29,8 @@ final class GestionEstudiantes
     public function crear(array $datos, int $actor): Estudiante
     {
         return DB::transaction(function () use ($datos, $actor): Estudiante {
+            // Un mismo DNI no puede ser estudiante y docente a la vez (decisión del propietario).
+            DniUnico::comprobar((string) ($datos['dni'] ?? ''), DniUnico::COMO_ESTUDIANTE);
             $estudiante = Estudiante::create($datos);
 
             AuditoriaAcademica::registrarCreacion('estudiante_creado', $estudiante, AuditoriaAcademica::ESTUDIANTE, $actor);
@@ -45,6 +48,9 @@ final class GestionEstudiantes
             // Se relee la fila bajo bloqueo para que «antes» sea el valor real y no el del enlace de ruta.
             $bloqueado = Estudiante::query()->lockForUpdate()->findOrFail($estudiante->getKey());
             $bloqueado->fill($datos);
+            if ($bloqueado->isDirty('dni')) {
+                DniUnico::comprobar((string) $bloqueado->dni, DniUnico::COMO_ESTUDIANTE);
+            }
             $diferencias = AuditoriaAcademica::diferencias($bloqueado, AuditoriaAcademica::ESTUDIANTE);
             $bloqueado->save();
 

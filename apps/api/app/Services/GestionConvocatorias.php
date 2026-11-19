@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Aula;
 use App\Models\Convocatoria;
 use App\Models\ConvocatoriaHorario;
 use App\Models\Curso;
@@ -31,6 +32,11 @@ class GestionConvocatorias
         return DB::transaction(function () use ($request, $datos): Convocatoria {
             $autor = $this->autorizar($request, 'convocatorias.crear');
 
+            // Las ediciones nuevas son presenciales o virtuales; semipresencial e híbrido solo existen como datos históricos.
+            if (! in_array($datos['modalidad'] ?? null, Convocatoria::MODALIDADES_NUEVAS, true)) {
+                throw ValidationException::withMessages(['modalidad' => 'Las ediciones nuevas son presenciales o virtuales.']);
+            }
+
             $curso = Curso::withTrashed()->lockForUpdate()->find((int) ($datos['curso_id'] ?? 0));
             if ($curso === null || $curso->trashed() || $curso->estado !== 'activo') {
                 throw ValidationException::withMessages(['curso_id' => 'El curso seleccionado no está disponible.']);
@@ -41,6 +47,8 @@ class GestionConvocatorias
             $convocatoria->codigo = CodigoSecuencial::siguiente('CNV');
             $convocatoria->curso_id = $curso->id;
             $convocatoria->estado = 'borrador';
+            // Obligada a tener sede y aula (presencial) o plataforma (virtual) antes de abrirse; las heredadas no lo están.
+            $convocatoria->exige_infraestructura = true;
             $convocatoria->cupos_disponibles = $convocatoria->cupos_maximos;
             $convocatoria->revision = 1;
             $convocatoria->save();
@@ -60,6 +68,7 @@ class GestionConvocatorias
             abort_unless($convocatoria->estaVigente(), 409, 'Una convocatoria cerrada o cancelada no se edita.');
 
             $maximoAnterior = $convocatoria->cupos_maximos;
+            $modalidadAnterior = $convocatoria->modalidad;
             $convocatoria->fill(array_intersect_key($datos, array_flip(['nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos'])));
             if ($convocatoria->cupos_maximos !== $maximoAnterior) {
                 // Los cupos disponibles se mueven con el máximo; nunca quedan por debajo de los ya ocupados.
@@ -71,6 +80,15 @@ class GestionConvocatorias
             }
             if (! $convocatoria->isDirty()) {
                 return $convocatoria;
+            }
+
+            if ($convocatoria->isDirty('modalidad') && ! in_array($convocatoria->modalidad, Convocatoria::MODALIDADES_NUEVAS, true)) {
+                throw ValidationException::withMessages(['modalidad' => 'No se puede cambiar una edición a una modalidad histórica (semipresencial o híbrida).']);
+            }
+            if ($convocatoria->isDirty('modalidad') && in_array($modalidadAnterior, Convocatoria::MODALIDADES_NUEVAS, true)) {
+                $this->comprobarCoherenciaInfraestructura($convocatoria);
+            } elseif ($convocatoria->isDirty('cupos_maximos')) {
+                $this->comprobarCoherenciaInfraestructura($convocatoria);
             }
 
             $convocatoria->revision++;
@@ -98,6 +116,11 @@ class GestionConvocatorias
             abort_unless(in_array($estado, Convocatoria::TRANSICIONES[$convocatoria->estado] ?? [], true), 409, 'Transición no permitida desde el estado actual.');
             if ($estado === 'abierta' && $convocatoria->fecha_fin->toDateString() < HoraLocal::hoy()) {
                 throw ValidationException::withMessages(['estado' => 'No se abre una convocatoria cuyo periodo ya terminó.']);
+            }
+
+            // Una edición nueva no se abre sin la infraestructura que exige su modalidad.
+            if ($estado === 'abierta') {
+                $this->comprobarCoherenciaInfraestructura($convocatoria, exigirCompleta: true);
             }
 
             // Con evaluaciones, el cierre calcula notas finales y resultados: solo lo hace el cierre de acta.
@@ -154,6 +177,35 @@ class GestionConvocatorias
 
             return $convocatoria;
         });
+    }
+
+    /**
+     * La infraestructura asignada debe ser coherente con la modalidad y la capacidad del aula con los cupos. Con
+     * `$exigirCompleta`, una edición nueva (`exige_infraestructura`) debe además tener toda la que su modalidad pide.
+     */
+    private function comprobarCoherenciaInfraestructura(Convocatoria $convocatoria, bool $exigirCompleta = false): void
+    {
+        if ($convocatoria->aula_id !== null) {
+            $capacidad = Aula::query()->whereKey($convocatoria->aula_id)->value('capacidad');
+            if ($capacidad !== null && $convocatoria->cupos_maximos > (int) $capacidad) {
+                throw ValidationException::withMessages(['cupos_maximos' => "El aula asignada tiene capacidad para {$capacidad}: reduce los cupos o cambia de aula."]);
+            }
+        }
+
+        $incoherente = match ($convocatoria->modalidad) {
+            'presencial' => $convocatoria->plataforma_virtual_id !== null,
+            'virtual' => $convocatoria->sede_id !== null || $convocatoria->aula_id !== null,
+            default => false,
+        };
+        if ($incoherente) {
+            throw ValidationException::withMessages(['modalidad' => 'La infraestructura asignada no corresponde a la nueva modalidad: reasígnala primero.']);
+        }
+
+        if ($exigirCompleta && $convocatoria->exige_infraestructura && ! $convocatoria->tieneInfraestructuraCompleta()) {
+            throw ValidationException::withMessages(['estado' => $convocatoria->modalidad === 'presencial'
+                ? 'Asigna sede y aula antes de abrir una edición presencial.'
+                : 'Asigna una plataforma virtual antes de abrir una edición virtual.']);
+        }
     }
 
     /** @param list<array<string, mixed>> $horarios */

@@ -1,9 +1,14 @@
 openapi: 3.1.0
 info:
   title: Horus Group - API de los paneles administrativos (/api/panel/v1)
-  version: 1.2.0
+  version: 1.3.0-propuesta
   description: |
     Contrato verificado contra `apps/api/routes/panel.php` y `app/Http/Controllers/Api/Panel/**` (12/11/2026).
+
+    **16/11/2026 (Fase 1 de Horus Academic):** se documentan las rutas vigentes de convocatorias y calificaciones, antes
+    ausentes de este contrato, y se añaden las rutas **propuestas** (`x-estado: propuesto`) de docentes, infraestructura,
+    períodos, sesiones, asistencias, y pagos. Las propuestas **no existen** en el servidor ni en `panel.php`.
+    Ver `docs/horus-academic/06-contratos-openapi.md`.
 
     Solo la consume el BFF de `apps/web` (servidor a servidor). Toda petición lleva `X-Horus-Web-Token`; sin token
     configurado en Laravel las rutas responden 404, y con token incorrecto 401 `servicio_no_autorizado`.
@@ -17,7 +22,7 @@ info:
     permiso de entrada al panel (`panel.academico.acceder` / `panel.servicios.acceder`) y permiso por acción (se indica
     en cada operación). Las cotizaciones son además solo del rol `admin`.
 
-    Concurrencia: las escrituras sobre servicios, fichas y cotizaciones exigen la revisión (`If-Match`; el BFF la envía
+    Concurrencia: las escrituras sobre servicios y fichas exigen la revisión (`If-Match`; el BFF la envía
     como `_revision`) y responden 428 si falta y 412 si está obsoleta. Las creaciones y seguimientos de cotizaciones
     son idempotentes con `Idempotency-Key` (el BFF envía `_clave`). Mensajes de validación en español.
 
@@ -34,6 +39,7 @@ tags:
   - name: auth
   - name: academico
   - name: servicios
+    description: Se retira en la Fase 7 de Horus Academic (decisión del propietario, 16/11/2026)
 paths:
   /auth/csrf:
     get:
@@ -81,6 +87,28 @@ paths:
         '200': { description: Sesión cerrada }
         '401': { $ref: '#/components/responses/Error' }
         '419': { $ref: '#/components/responses/Error' }
+  /auth/registro:
+    post:
+      tags: [auth]
+      summary: Registro público (crea una cuenta SIN roles ni acceso al panel; no devuelve token ni datos)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation, terms]
+              properties:
+                name: { type: string, maxLength: 120 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10, maxLength: 72 }
+                password_confirmation: { type: string }
+                terms: { type: boolean, description: Debe ser true (aviso de privacidad) }
+      responses:
+        '201': { description: Cuenta creada sin acceso al panel }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /auth/contrasena/solicitar:
     post:
       tags: [auth]
@@ -116,12 +144,25 @@ paths:
   /academico/resumen:
     get:
       tags: [academico]
-      summary: "Dashboard académico (bloques según permisos de módulo; ingresos solo rol admin)"
+      summary: "Dashboard académico: indicadores, acciones pendientes, negocio y calidad académica (cada bloque solo con el permiso de su módulo; el dinero sale del libro de pagos y solo con `pagos.ver`)"
       description: "Permiso: `panel.academico.acceder`."
       responses:
         '200': { description: Indicadores y bloques, content: { application/json: { schema: { type: object } } } }
         '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/busqueda:
+    get:
+      tags: [academico]
+      summary: "Búsqueda global (estudiantes, docentes, matrículas y ediciones; cada grupo solo con el permiso de su módulo)"
+      description: "Permiso: `panel.academico.acceder`. Mínimo 2 y máximo 100 caracteres; hasta 5 resultados por grupo con lo mínimo para identificar y enlazar. Limitador `admin-opciones`."
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/cursos:
     get:
       tags: [academico]
@@ -277,6 +318,32 @@ paths:
         '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/consultas/dni:
+    post:
+      tags: [academico]
+      summary: "Consulta un DNI peruano en RENIEC (vía JSON.pe, desde el servidor) para completar el alta de una persona"
+      description: "Permiso: `estudiantes.crear|docentes.crear`. Sirve al alta de estudiantes y de docentes. Solo consulta, no registra a nadie; el frontend muestra los datos y la persona los confirma. Limitada a 10 consultas por minuto y usuario. El token del proveedor nunca sale del servidor; el resultado correcto se guarda 10 minutos en caché. Los errores del proveedor se traducen a códigos propios y no se reenvía ningún texto suyo."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsultaDniEntrada' }
+      responses:
+        '200':
+          description: "Persona encontrada (solo campos necesarios). `ya_registrado_como_estudiante` solo se incluye si la persona usuaria tiene `estudiantes.ver`, y `ya_registrado_como_docente` solo con `docentes.ver` (un mismo DNI no puede ser estudiante y docente)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsultaDniRespuesta' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { description: "DNI no encontrado (`dni_no_encontrado`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { description: "Límite del panel (`demasiadas_solicitudes`) o del proveedor (`dni_limite_proveedor`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '502': { description: "Respuesta incompleta del proveedor (`dni_respuesta_incompleta`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '503': { description: "Servicio no configurado, no autorizado o no disponible (`dni_servicio_no_configurado`, `dni_servicio_no_autorizado`, `dni_servicio_no_disponible`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/estudiantes:
     get:
       tags: [academico]
@@ -413,7 +480,7 @@ paths:
     get:
       tags: [academico]
       summary: "Estudiantes elegibles para el selector (`q`, `contexto`)"
-      description: "Permiso: `matriculas.ver|crear|editar`."
+      description: "Permiso: `matriculas.ver|matriculas.crear|matriculas.editar`."
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 200 } }
         - { name: contexto, in: query, schema: { type: string } }
@@ -426,7 +493,7 @@ paths:
     get:
       tags: [academico]
       summary: "Cursos elegibles para el selector (`q`, `contexto`)"
-      description: "Permiso: `matriculas.ver|crear|editar`."
+      description: "Permiso: `matriculas.ver|matriculas.crear|matriculas.editar`."
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 200 } }
         - { name: contexto, in: query, schema: { type: string } }
@@ -575,15 +642,6 @@ paths:
         '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/resumen:
-    get:
-      tags: [servicios]
-      summary: "Dashboard tecnológico (cotizaciones solo rol admin + `cotizaciones.ver`)"
-      description: "Permiso: `panel.servicios.acceder`."
-      responses:
-        '200': { description: Indicadores y bloques, content: { application/json: { schema: { type: object } } } }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /servicios/servicios:
     get:
       tags: [servicios]
@@ -747,174 +805,6 @@ paths:
         '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/cotizaciones:
-    get:
-      tags: [servicios]
-      summary: "Bandeja de cotizaciones sin datos de contacto (rol admin)"
-      description: "Permiso: `cotizaciones.ver`."
-      parameters:
-        - { $ref: '#/components/parameters/Pagina' }
-        - { $ref: '#/components/parameters/PorPagina' }
-        - { name: sort, in: query, schema: { type: string, enum: [recibida, -recibida, codigo, -codigo, seguimiento, -seguimiento] } }
-        - { name: estado, in: query, schema: { type: string, enum: [recibida, en_revision] } }
-        - { name: origen, in: query, description: 'publico = web, administrativo = alta manual', schema: { type: string, enum: [publico, administrativo] } }
-        - { name: servicio, in: query, schema: { type: string, format: uuid } }
-        - { name: codigo, in: query, schema: { type: string, maxLength: 40 } }
-        - { name: desde, in: query, schema: { type: string, format: date } }
-        - { name: hasta, in: query, schema: { type: string, format: date } }
-        - { name: seguimiento_pendiente, in: query, schema: { type: boolean } }
-      responses:
-        '200': { $ref: '#/components/responses/Listado' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    post:
-      tags: [servicios]
-      summary: "Alta manual (origen administrativo), idempotente por `Idempotency-Key` / `_clave`"
-      description: "Permiso: `cotizaciones.crear`."
-      parameters:
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IdempotencyKey' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CotizacionEntrada' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '200': { description: "Repetición con la misma clave y los mismos datos: devuelve el recurso ya creado", content: { application/json: { schema: { type: object } } } }
-  /servicios/cotizaciones/opciones/responsables:
-    get:
-      tags: [servicios]
-      summary: "Responsables asignables"
-      description: "Permiso: `cotizaciones.ver`."
-      responses:
-        '200': { $ref: '#/components/responses/Listado' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/cotizaciones/opciones/servicios:
-    get:
-      tags: [servicios]
-      summary: "Servicios ofrecidos para asociar"
-      description: "Permiso: `cotizaciones.crear`."
-      responses:
-        '200': { $ref: '#/components/responses/Listado' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/cotizaciones/{identificador}:
-    get:
-      tags: [servicios]
-      summary: "Expediente con datos del solicitante, necesidad e historial (cabecera `ETag`)"
-      description: "Permiso: `cotizaciones.ver`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    put:
-      tags: [servicios]
-      summary: "Edita los datos de la solicitud"
-      description: "Permiso: `cotizaciones.editar`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CotizacionEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/cotizaciones/{identificador}/estado:
-    post:
-      tags: [servicios]
-      summary: "Pasa a revisión (`recibida` no se recupera desde `en_revision`)"
-      description: "Permiso: `cotizaciones.gestionar`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/EstadoCotizacion' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/cotizaciones/{identificador}/responsable:
-    post:
-      tags: [servicios]
-      summary: "Asigna responsable"
-      description: "Permiso: `cotizaciones.gestionar`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ResponsableCotizacion' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/cotizaciones/{identificador}/seguimientos:
-    post:
-      tags: [servicios]
-      summary: "Registra un seguimiento (idempotente por `Idempotency-Key` / `_clave`)"
-      description: "Permiso: `cotizaciones.gestionar`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-        - { $ref: '#/components/parameters/IdempotencyKey' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SeguimientoEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /servicios/servicios/{servicio}/imagen:
     get:
       tags: [servicios]
@@ -1051,6 +941,1253 @@ paths:
         '401': { description: "No autenticado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: "Sin permiso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: "La tarjeta no tiene imagen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/convocatorias:
+    get:
+      tags: [academico]
+      summary: "Listado de convocatorias (ediciones de un curso)"
+      description: "Permiso: `convocatorias.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea una convocatoria (edición)"
+      description: "Permiso: `convocatorias.crear`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EdicionEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}:
+    get:
+      tags: [academico]
+      summary: "Detalle de la convocatoria con horarios"
+      description: "Permiso: `convocatorias.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita la convocatoria (control optimista por `revision`)"
+      description: "Permiso: `convocatorias.editar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EdicionEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/estado:
+    post:
+      tags: [academico]
+      summary: "Cambia el estado (abrir, iniciar, cerrar, cancelar)"
+      description: "Permiso: `convocatorias.editar | convocatorias.cerrar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CambioEstadoEdicion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/horarios:
+    put:
+      tags: [academico]
+      summary: "Reemplaza los bloques de horario semanal"
+      description: "Permiso: `convocatorias.editar`. `docente` y `lugar` son texto libre heredado: ver docs/horus-academic/04-normalizacion-infraestructura-docentes.md."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HorariosEdicion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/calificaciones:
+    get:
+      tags: [academico]
+      summary: "Acta: evaluaciones, matrículas y notas de la edición"
+      description: "Permiso: `calificaciones.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Registra o corrige una nota (corregir exige motivo)"
+      description: "Permiso: `calificaciones.registrar | calificaciones.corregir`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotaEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/evaluaciones:
+    post:
+      tags: [academico]
+      summary: "Crea una evaluación (la suma de pesos de la edición no puede superar 100)"
+      description: "Permiso: `calificaciones.corregir`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EvaluacionEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/evaluaciones/{evaluacion}:
+    put:
+      tags: [academico]
+      summary: "Edita una evaluación"
+      description: "Permiso: `calificaciones.corregir`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: evaluacion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EvaluacionEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/evaluaciones/{evaluacion}/eliminar:
+    post:
+      tags: [academico]
+      summary: "Elimina una evaluación sin notas"
+      description: "Permiso: `calificaciones.corregir`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: evaluacion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/acta/cerrar:
+    post:
+      tags: [academico]
+      summary: "Cierra el acta (calcula nota final y resultado de cada matrícula)"
+      description: "Permiso: `convocatorias.cerrar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/acta/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta el acta en Excel"
+      description: "Permiso: `calificaciones.exportar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo de descarga (no se conserva en el servidor) }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/docentes:
+    get:
+      tags: [academico]
+      summary: "Listado de docentes"
+      description: "Permiso: `docentes.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea docente"
+      description: "Permiso: `docentes.crear`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocenteEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/docentes/{docente}:
+    get:
+      tags: [academico]
+      summary: "Detalle"
+      description: "Permiso: `docentes.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: docente, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita (control optimista por `revision` o `If-Match`)"
+      description: "Permiso: `docentes.editar`."
+      x-estado: vigente
+      parameters:
+        - { name: docente, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocenteEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '412': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [academico]
+      summary: "Elimina lógicamente"
+      description: "Permiso: `docentes.eliminar`."
+      x-estado: vigente
+      parameters:
+        - { name: docente, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/docentes/{docente}/restaurar:
+    post:
+      tags: [academico]
+      summary: "Restaura un registro eliminado"
+      description: "Permiso: `docentes.restaurar`."
+      x-estado: vigente
+      parameters:
+        - { name: docente, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sedes:
+    get:
+      tags: [academico]
+      summary: "Listado de sedes"
+      description: "Permiso: `infraestructura.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea sede"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SedeEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sedes/{sede}:
+    get:
+      tags: [academico]
+      summary: "Detalle"
+      description: "Permiso: `infraestructura.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: sede, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita (control optimista por `revision` o `If-Match`)"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { name: sede, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SedeEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '412': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sedes/{sede}/estado:
+    post:
+      tags: [academico]
+      summary: "Activa o desactiva (no se borra)"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { name: sede, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CambioEstadoSimple' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/aulas:
+    get:
+      tags: [academico]
+      summary: "Listado de aulas"
+      description: "Permiso: `infraestructura.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea aula"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AulaEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/aulas/{aula}:
+    get:
+      tags: [academico]
+      summary: "Detalle"
+      description: "Permiso: `infraestructura.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: aula, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita (control optimista por `revision` o `If-Match`)"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { name: aula, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AulaEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '412': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/aulas/{aula}/estado:
+    post:
+      tags: [academico]
+      summary: "Activa o desactiva (no se borra)"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { name: aula, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CambioEstadoSimple' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/plataformas-virtuales:
+    get:
+      tags: [academico]
+      summary: "Listado de plataformas virtuales"
+      description: "Permiso: `infraestructura.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea plataformas virtuale"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlataformaEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/plataformas-virtuales/{plataforma}:
+    get:
+      tags: [academico]
+      summary: "Detalle"
+      description: "Permiso: `infraestructura.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: plataforma, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita (control optimista por `revision` o `If-Match`)"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { name: plataforma, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlataformaEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '412': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/plataformas-virtuales/{plataforma}/estado:
+    post:
+      tags: [academico]
+      summary: "Activa o desactiva (no se borra)"
+      description: "Permiso: `infraestructura.gestionar`."
+      x-estado: vigente
+      parameters:
+        - { name: plataforma, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CambioEstadoSimple' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/periodos-academicos:
+    get:
+      tags: [academico]
+      summary: "Listado de períodos académicos"
+      description: "Permiso: `periodos.ver`."
+      x-estado: propuesto
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea períodos académico"
+      description: "Permiso: `periodos.gestionar`."
+      x-estado: propuesto
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeriodoEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/periodos-academicos/{periodo}:
+    get:
+      tags: [academico]
+      summary: "Detalle"
+      description: "Permiso: `periodos.ver`."
+      x-estado: propuesto
+      parameters:
+        - { name: periodo, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita (control optimista por `revision` o `If-Match`)"
+      description: "Permiso: `periodos.gestionar`."
+      x-estado: propuesto
+      parameters:
+        - { name: periodo, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeriodoEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '412': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/periodos-academicos/{periodo}/cerrar:
+    post:
+      tags: [academico]
+      summary: "Cierra el período (no admite ediciones nuevas)"
+      description: "Permiso: `periodos.gestionar`."
+      x-estado: propuesto
+      parameters:
+        - { name: periodo, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/infraestructura:
+    put:
+      tags: [academico]
+      summary: "Asigna sede/aula (presencial) o plataforma virtual según la modalidad"
+      description: "Permiso: `convocatorias.editar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InfraestructuraEdicion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/docentes:
+    get:
+      tags: [academico]
+      summary: "Docentes asignados a la edición"
+      description: "Permiso: `docentes.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Reemplaza los docentes asignados (a lo sumo un principal)"
+      description: "Permiso: `convocatorias.editar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocentesEdicion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/sesiones:
+    get:
+      tags: [academico]
+      summary: "Sesiones de la edición (sin enlaces virtuales)"
+      description: "Permiso: `sesiones.ver`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Programa una sesión (valida cruces de aula y docente bajo bloqueo)"
+      description: "Permiso: `sesiones.crear`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SesionEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sesiones/{sesion}:
+    get:
+      tags: [academico]
+      summary: "Detalle de la sesión (sin enlace)"
+      description: "Permiso: `sesiones.ver`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Edita o reprograma la sesión (audita el cambio)"
+      description: "Permiso: `sesiones.editar`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SesionEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '412': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sesiones/{sesion}/cancelar:
+    post:
+      tags: [academico]
+      summary: "Cancela la sesión con motivo"
+      description: "Permiso: `sesiones.cancelar`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CancelarSesion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sesiones/{sesion}/realizada:
+    post:
+      tags: [academico]
+      summary: "Marca la sesión como realizada"
+      description: "Permiso: `sesiones.editar`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sesiones/{sesion}/enlace:
+    get:
+      tags: [academico]
+      summary: "Enlace privado de la clase virtual (cifrado en reposo; cada lectura se audita sin guardar el enlace)"
+      description: "Permiso: `sesiones.ver-enlace`. Nunca figura en listados, API pública, catálogo del asistente, auditoría ni exportaciones."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/sesiones/generar:
+    post:
+      tags: [academico]
+      summary: "Genera sesiones desde el horario semanal de la edición (omite las existentes o con cruce e informa el motivo)"
+      description: "Permiso: `sesiones.crear`. Usa la infraestructura de la edición y su docente principal; máximo 200 sesiones por llamada."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                desde: { type: [string, 'null'], format: date }
+                hasta: { type: [string, 'null'], format: date }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sesiones/{sesion}/asistencias:
+    get:
+      tags: [academico]
+      summary: "Lista de asistencia de la sesión (matrículas vigentes de la edición)"
+      description: "Permiso: `asistencias.ver`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [academico]
+      summary: "Registra la asistencia de varias matrículas (idempotente por sesión y matrícula)"
+      description: "Permiso: `asistencias.registrar`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AsistenciaLote' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/sesiones/{sesion}/asistencias/{matricula}:
+    put:
+      tags: [academico]
+      summary: "Corrige una asistencia ya registrada (motivo obligatorio)"
+      description: "Permiso: `asistencias.corregir`."
+      parameters:
+        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AsistenciaCorreccion' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/asistencias/resumen:
+    get:
+      tags: [academico]
+      summary: "Porcentaje de asistencia por matrícula"
+      description: "Permiso: `asistencias.ver`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/asistencias/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta la asistencia (Excel)"
+      description: "Permiso: `asistencias.exportar`."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo de descarga (no se conserva en el servidor) }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/metodos:
+    get:
+      tags: [academico]
+      summary: "Métodos de pago activos"
+      description: "Permiso: `pagos.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/pagos/obligaciones:
+    get:
+      tags: [academico]
+      summary: "Listado de obligaciones con saldo"
+      description: "Permiso: `pagos.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, parcial, pagada, anulada] } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/con-pago:
+    post:
+      tags: [academico]
+      summary: "Matricula con pago: crea matrícula, obligación (pago completo), pago Yape, captura y confirmación en un solo paso atómico"
+      description: "Permiso: `matriculas.crear`. Exige además `pagos.registrar` y `pagos.confirmar` (hoy solo admin). Idempotente por `Idempotency-Key` (el BFF la envía como `_clave`). Si algo falla no queda nada creado."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [estudiante_id, convocatoria, fecha_pago, imagen]
+              properties:
+                estudiante_id: { type: integer }
+                convocatoria: { type: string, format: uuid }
+                monto: { type: string, description: "Opcional: por defecto, el precio del curso (PEN)" }
+                fecha_pago: { type: string, format: date }
+                referencia: { type: [string, 'null'], maxLength: 80 }
+                imagen: { type: string, format: binary, description: "Captura del comprobante de Yape (JPG, PNG o WebP, hasta 3 MB)" }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '428': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/{matricula}/obligacion:
+    get:
+      tags: [academico]
+      summary: "Obligación de pago vigente de la matrícula (`data: null` si no tiene)"
+      description: "Permiso: `pagos.ver`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Crea la obligación de pago (completo o fraccionado) de una matrícula con edición"
+      description: "Permiso: `pagos.planificar`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ObligacionEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/obligaciones/{obligacion}:
+    get:
+      tags: [academico]
+      summary: "Obligación con cuotas, saldo e historial inmutable (pagos y reversos enlazados)"
+      description: "Permiso: `pagos.ver`."
+      parameters:
+        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/obligaciones/{obligacion}/pagos:
+    post:
+      tags: [academico]
+      summary: "Registra un pago o abono (idempotente por `Idempotency-Key`; sin sobrepagos)"
+      description: "Permiso: `pagos.registrar`."
+      parameters:
+        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PagoEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/obligaciones/{obligacion}/anular:
+    post:
+      tags: [academico]
+      summary: "Anula una obligación sin pagos netos"
+      description: "Permiso: `pagos.planificar`."
+      parameters:
+        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/transacciones/{transaccion}/confirmar:
+    post:
+      tags: [academico]
+      summary: "Confirma un pago pendiente (aplica las asignaciones)"
+      description: "Permiso: `pagos.confirmar`."
+      parameters:
+        - { name: transaccion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/transacciones/{transaccion}/rechazar:
+    post:
+      tags: [academico]
+      summary: "Rechaza un pago pendiente con motivo"
+      description: "Permiso: `pagos.confirmar`."
+      parameters:
+        - { name: transaccion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MotivoEntrada' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/transacciones/{transaccion}/reversar:
+    post:
+      tags: [academico]
+      summary: "Reversa un pago confirmado con otra transacción compensatoria (nunca edita ni borra)"
+      description: "Permiso: `pagos.reversar`."
+      parameters:
+        - { name: transaccion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MotivoEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/transacciones/{transaccion}/comprobante:
+    get:
+      tags: [academico]
+      summary: "Captura del comprobante de pago (imagen privada; cada consulta se audita)"
+      description: "Permiso: `pagos.ver`. Se sirve con su tipo real, sin caché y nunca desde una URL pública."
+      parameters:
+        - { name: transaccion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: "Imagen JPEG, PNG o WebP" }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Adjunta o reemplaza la captura del comprobante de un pago por confirmar"
+      description: "Permiso: `pagos.registrar`. Campo `imagen` (JPG, PNG o WebP, hasta 3 MB); se vuelve a codificar sin metadatos. Confirmar el pago exige haberla adjuntado."
+      parameters:
+        - { name: transaccion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagen]
+              properties:
+                imagen: { type: string, format: binary }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta pagos (sin datos de tarjeta; protegido contra inyección de fórmulas)"
+      description: "Permiso: `pagos.exportar`."
+
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo de descarga (no se conserva en el servidor) }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     tokenServicio: { type: apiKey, in: header, name: X-Horus-Web-Token }
@@ -1234,6 +2371,166 @@ components:
         proximo_seguimiento: { type: [string, 'null'], format: date }
         _revision: { type: string }
         _clave: { type: string, format: uuid }
+    EdicionEntrada:
+      type: object
+      description: "Entidad existente `convocatorias` (en la UI, «Edición»). Campos nuevos de infraestructura: ver `InfraestructuraEdicion`."
+      required: [curso_id, modalidad, fecha_inicio, fecha_fin, cupos_maximos]
+      properties:
+        curso_id: { type: integer, minimum: 1 }
+        nombre: { type: [string, 'null'], maxLength: 160 }
+        modalidad: { type: string, enum: [presencial, virtual], description: "Solo `presencial` y `virtual` para ediciones nuevas; `semipresencial` e `hibrido` se conservan en datos heredados" }
+        periodo_academico_id: { type: [string, 'null'], format: uuid }
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date }
+        cupos_maximos: { type: integer, minimum: 1, maximum: 32767 }
+        _revision: { type: string }
+    CambioEstadoEdicion:
+      type: object
+      required: [estado]
+      properties: { estado: { type: string, enum: [abierta, en_curso, cerrada, cancelada] }, _revision: { type: string } }
+    HorariosEdicion:
+      type: object
+      required: [horarios]
+      properties:
+        horarios:
+          type: array
+          items:
+            type: object
+            required: [dia_semana, hora_inicio, hora_fin]
+            properties:
+              dia_semana: { type: integer, minimum: 1, maximum: 7 }
+              hora_inicio: { type: string, example: '18:00' }
+              hora_fin: { type: string, example: '20:00' }
+              lugar: { type: [string, 'null'], maxLength: 120, deprecated: true }
+              docente: { type: [string, 'null'], maxLength: 120, deprecated: true }
+        _revision: { type: string }
+    NotaEntrada:
+      type: object
+      required: [matricula_id, evaluacion, nota]
+      properties:
+        matricula_id: { type: integer }
+        evaluacion: { type: string, format: uuid }
+        nota: { type: string, description: "decimal(5,2)" }
+        motivo: { type: string, maxLength: 200, description: "Obligatorio al corregir una nota ya registrada" }
+    EvaluacionEntrada:
+      type: object
+      required: [nombre, peso]
+      properties:
+        nombre: { type: string, maxLength: 120 }
+        peso: { type: string, description: "decimal(5,2); la suma por edición no puede superar 100.00" }
+        fecha: { type: [string, 'null'], format: date }
+        orden: { type: integer, minimum: 1 }
+    DocenteEntrada:
+      type: object
+      description: "Docente identificado solo por DNI peruano. El DNI solo se envía al crear (no cambia después); `estado` solo al editar."
+      required: [nombres, apellidos]
+      properties:
+        dni: { type: string, pattern: '^[0-9]{8}$', description: "Exactamente 8 dígitos, como texto; solo al crear. No puede coincidir con el de un estudiante." }
+        nombres: { type: string, maxLength: 100 }
+        apellidos: { type: string, maxLength: 100 }
+        email: { type: [string, 'null'], format: email, maxLength: 150 }
+        telefono: { type: [string, 'null'], maxLength: 20 }
+        especialidad: { type: [string, 'null'], maxLength: 150 }
+        estado: { type: string, enum: [activo, inactivo], description: "Solo al editar" }
+    SedeEntrada:
+      type: object
+      required: [codigo, nombre, direccion]
+      properties: { codigo: { type: string, maxLength: 20 }, nombre: { type: string, maxLength: 120 }, direccion: { type: string, maxLength: 200 }, ciudad: { type: string, maxLength: 80 } }
+    AulaEntrada:
+      type: object
+      required: [sede, codigo, nombre, capacidad]
+      properties: { sede: { type: string, format: uuid }, codigo: { type: string, maxLength: 20 }, nombre: { type: string, maxLength: 120 }, capacidad: { type: integer, minimum: 1, maximum: 32767 } }
+    PlataformaEntrada:
+      type: object
+      required: [nombre, tipo]
+      description: "Cataloga la herramienta externa (Meet, Zoom…). No guarda credenciales ni claves de API."
+      properties: { nombre: { type: string, maxLength: 80 }, tipo: { type: string, enum: [meet, zoom, teams, otra] } }
+    PeriodoEntrada:
+      type: object
+      required: [codigo, nombre, fecha_inicio, fecha_fin]
+      properties: { codigo: { type: string, maxLength: 20 }, nombre: { type: string, maxLength: 100 }, fecha_inicio: { type: string, format: date }, fecha_fin: { type: string, format: date }, _revision: { type: string } }
+    CambioEstadoSimple:
+      type: object
+      required: [estado]
+      properties: { estado: { type: string, enum: [activo, inactivo] } }
+    InfraestructuraEdicion:
+      type: object
+      description: "Presencial: `sede` y `aula` (del mismo campus) y sin plataforma. Virtual: `plataforma_virtual` y sin sede ni aula."
+      properties: { sede: { type: [string, 'null'], format: uuid }, aula: { type: [string, 'null'], format: uuid }, plataforma_virtual: { type: [string, 'null'], format: uuid }, _revision: { type: string } }
+    DocentesEdicion:
+      type: object
+      required: [docentes]
+      properties:
+        docentes: { type: array, items: { type: object, required: [docente, rol], properties: { docente: { type: string, format: uuid }, rol: { type: string, enum: [principal, apoyo] } } } }
+        _revision: { type: string }
+    SesionEntrada:
+      type: object
+      required: [fecha, hora_inicio, hora_fin]
+      properties:
+        numero: { type: [integer, 'null'], minimum: 1, description: "Opcional: si se omite, se asigna el siguiente de la edición" }
+        fecha: { type: string, format: date }
+        hora_inicio: { type: string, example: '18:00' }
+        hora_fin: { type: string, example: '20:00' }
+        tema: { type: [string, 'null'], maxLength: 200 }
+        docente: { type: [string, 'null'], format: uuid }
+        aula: { type: [string, 'null'], format: uuid }
+        plataforma_virtual: { type: [string, 'null'], format: uuid }
+        enlace_virtual: { type: [string, 'null'], format: uri, writeOnly: true, description: "Solo escritura; se guarda cifrado y no vuelve en ninguna respuesta salvo `GET …/enlace`" }
+        _revision: { type: string }
+    CancelarSesion:
+      type: object
+      required: [motivo]
+      properties: { motivo: { type: string, maxLength: 200 }, _revision: { type: string } }
+    AsistenciaLote:
+      type: object
+      required: [asistencias]
+      properties:
+        asistencias:
+          type: array
+          items: { type: object, required: [matricula_id, estado], properties: { matricula_id: { type: integer }, estado: { type: string, enum: [presente, ausente, tardanza, justificada] }, observacion: { type: [string, 'null'], maxLength: 200 } } }
+    AsistenciaCorreccion:
+      type: object
+      required: [estado, motivo]
+      properties: { estado: { type: string, enum: [presente, ausente, tardanza, justificada] }, motivo: { type: string, maxLength: 200 } }
+    ObligacionEntrada:
+      type: object
+      required: [concepto, plan, monto_total]
+      properties:
+        concepto: { type: string, maxLength: 120 }
+        plan: { type: string, enum: [completo, fraccionado] }
+        monto_total: { type: string, description: "decimal(12,2), moneda PEN" }
+        cuotas: { type: array, description: "Obligatorio si `plan = fraccionado`; la suma debe igualar `monto_total`", items: { type: object, required: [monto, vence], properties: { monto: { type: string }, vence: { type: string, format: date } } } }
+    PagoEntrada:
+      type: object
+      required: [metodo, monto, fecha_pago]
+      properties:
+        metodo: { type: string, description: "Código del método de pago activo" }
+        monto: { type: string, description: "decimal(12,2); no puede exceder el saldo" }
+        fecha_pago: { type: string, format: date }
+        referencia: { type: [string, 'null'], maxLength: 80 }
+        confirmar: { type: boolean, description: "Registra y confirma en un paso; exige `pagos.confirmar` (dos eventos de auditoría)" }
+    MotivoEntrada:
+      type: object
+      required: [motivo]
+      properties: { motivo: { type: string, minLength: 10, maxLength: 200 } }
+    ConsultaDniEntrada:
+      type: object
+      required: [dni]
+      properties: { dni: { type: string, pattern: '^[0-9]{8}$', description: "Exactamente 8 dígitos (DNI peruano), como texto" } }
+    ConsultaDniRespuesta:
+      type: object
+      properties:
+        data:
+          type: object
+          required: [dni, nombres, apellido_paterno, apellido_materno, apellidos]
+          properties:
+            dni: { type: string }
+            nombres: { type: string }
+            apellido_paterno: { type: string }
+            apellido_materno: { type: string, description: "Puede ser vacío" }
+            apellidos: { type: string }
+            ya_registrado_como_estudiante: { type: boolean }
+            ya_registrado_como_docente: { type: boolean }
     Error:
       type: object
       required: [message, code]

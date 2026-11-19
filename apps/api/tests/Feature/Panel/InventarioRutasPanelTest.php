@@ -20,6 +20,7 @@ final class InventarioRutasPanelTest extends TestCase
     private const PUBLICAS = [
         'api/panel/v1/auth/csrf',
         'api/panel/v1/auth/login',
+        'api/panel/v1/auth/registro',
         'api/panel/v1/auth/contrasena/solicitar',
         'api/panel/v1/auth/contrasena/restablecer',
     ];
@@ -31,11 +32,12 @@ final class InventarioRutasPanelTest extends TestCase
     ];
 
     /**
-     * Dashboards: solo el permiso de entrada, porque filtran cada bloque por el permiso de su módulo
-     * (lo cubren sus pruebas propias).
+     * Dashboards y búsqueda global: solo el permiso de entrada, porque filtran cada bloque o grupo de resultados por el permiso de
+     * su módulo (lo cubren sus pruebas propias, `tests/Academic/Panel/TableroTest.php`).
      */
     private const SOLO_ENTRADA = [
         'api/panel/v1/academico/resumen',
+        'api/panel/v1/academico/busqueda',
         'api/panel/v1/servicios/resumen',
     ];
 
