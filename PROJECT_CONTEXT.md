@@ -1,5 +1,14 @@
 # Horus-System — Contexto técnico del proyecto
 
+> **Estado vigente — 18/11/2026: Blade y Vite retirados de `apps/api`.** Next.js (`apps/web`) es la **única interfaz web**; Laravel
+> solo expone API (`/api/auth/*` JWT, `/api/public/v1/*` para el BFF, `/api/panel/v1/*` para el panel) y genera PDF, correos y páginas de
+> error. El retiro se hizo en cinco fases con autorización expresa del propietario en cada una (páginas públicas; panel `/admin`;
+> autenticación web; Vite y herramientas; documentación), cada una con la suite PHP completa en verde (SQLite): última medida,
+> **3772 aprobadas, 2 omitidas, 0 fallidas**. **`HORUS_WEB_URL` es obligatoria.** Sin PostgreSQL aislado ejecutado, sin envío real por Resend
+> y sin recorrido en navegador real de todo el flujo. Detalle y mapa de rutas: [`docs/ola4-fase1-retiro-blade-panel.md`](docs/ola4-fase1-retiro-blade-panel.md)
+> y [`docs/guia-despliegue.md`](docs/guia-despliegue.md). **Todo lo que este documento dice más abajo de Blade, Vite, Alpine, `resources/js|css`,
+> `tests/frontend`, `tests/browser`, `/chat/mensaje`, `/admin/*` (vistas) y el widget Blade es histórico**: describe el estado anterior a esa fecha.
+
 > **Estado vigente — 05/11/2026, 18:17 (America/Lima).** Informe único actualizado:
 > [entrega técnica](docs/entrega-consolidacion.md). Rama anderson, HEAD
 > e5dfe127deee74292beadff60349117f1b3fab41: **17 commits nuevos y 202 rutas consolidadas** desde
@@ -120,12 +129,10 @@ Las versiones de locks describen dependencias fijadas, no una certificación de 
 
 | Componente | Versión/fuente verificada | Responsabilidad |
 | --- | --- | --- |
-| Laravel / Blade | `12.70.1`, `composer.lock`; requisito `^12.0` | HTTP, ORM, validación, vistas y jobs |
+| Laravel | `12.70.1`, `composer.lock`; requisito `^12.0` | API HTTP, ORM, validación, PDF, correos y jobs (sin interfaz web desde el 18/11/2026) |
 | PHP | CLI local `8.4.26`; requisito del proyecto `^8.2` | Backend principal; no confundir mínimo admitido con versión local |
 | PostgreSQL | `18.6` en el acta histórica de Fase A; sin consulta nueva | Base habitual y copia de ensayo |
 | SQLite Testing | `:memory:` en `phpunit.xml`; versión del motor no medida aquí | Regresión aislada; no equivalencia plena con PostgreSQL |
-| Alpine.js / Tailwind CSS | `3.17.5` / `3.4.19`, `package-lock.json` | Interacción y estilos; fuentes protegidas |
-| Vite | `8.3.5`, `package-lock.json` | Compilación de recursos |
 | PHPUnit / Larastan / Pint | `11.5.57` / `3.13.2` / `1.32.1`, `composer.lock` | Tests, análisis PHP nivel 6 y formato acotado |
 | Spatie Permission | `6.25.0`, `composer.lock` | Roles y permisos |
 | Python | CLI local `3.13.0`; proyecto admite `>=3.12,<3.14` | Servicio de IA independiente |
@@ -140,7 +147,7 @@ Dependencias adicionales: JWT con `firebase/php-jwt`, PDF con Dompdf, Excel con 
 
 ```mermaid
 flowchart TD
-    Web[Web pública Blade] --> Laravel[Backend Laravel]
+    Web[Web pública y panel Next.js] --> Laravel[API Laravel]
     Panel[Panel administrativo] --> Laravel
     Laravel --> PG[(PostgreSQL habitual)]
     Laravel --> PHP[Privacidad, concurrencia y contingencia institucional]
@@ -168,10 +175,10 @@ Entradas reales: [rutas web](routes/web.php), [rutas API](routes/api.php) y [boo
 | `app/Console/`, `app/Jobs/`, `app/Observers/` | Comandos y captura/despacho de avisos de matrícula |
 | `routes/`, `config/`, `bootstrap/` | Entradas, configuración y arranque; no leer/imprimir secretos del entorno |
 | `database/migrations/`, `database/seeders/`, `database/factories/` | Esquema, permisos iniciales y datos ficticios de pruebas |
-| `resources/views/`, `resources/css/`, `resources/js/` | Frontend Blade/Alpine/Tailwind protegido |
-| `public/assets/` | Activos institucionales versionados; preservar identidad visual |
+| `resources/views/{pdf,emails,errors,auth/emails}` | Lo único que Laravel sigue renderizando: PDF, correos y páginas de error |
+| `public/assets/images/` | Imágenes versionadas que Next sirve desde Laravel; ya no hay `css/` ni `js/` |
 | `tests/Feature/`, `tests/Unit/`, `tests/PostgresIntegrity/` | Regresión funcional, unidades y perfil PostgreSQL explícito |
-| `tests/frontend/`, `tests/browser/`, `tests/Support/` | Pruebas JavaScript `.mjs`, smokes y fixtures locales |
+| `tests/Support/` | Ayudas y fixtures de pruebas PHP (las pruebas JavaScript y los smokes de navegador se retiraron) |
 | `scripts/` | Herramientas acotadas; `pgsql-test.php` exige perfil aislado |
 | `docs/` | Informes por sprint y evidencia histórica |
 | `chatbot-python/` | Proyecto Python independiente, incorporado a Git; entornos, modelos y artefactos privados permanecen ignorados |

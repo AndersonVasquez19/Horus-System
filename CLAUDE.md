@@ -9,48 +9,45 @@ Guía técnica para asistentes de código que modifican **esta carpeta**. Define
 
 ## 1. Sistema y stack
 
-**Monorepo (etapa 8, 11–12/11/2026):** Laravel vive en `apps/api/`. Todas las rutas y comandos de este documento son relativos a `apps/api/`, salvo `apps/web` (Next.js), `apps/ai` (Horus AI), `packages/`, `docs/`, `ops/` y `.github/`, que cuelgan de la raíz del repositorio. Desde `apps/api`, `docs/` se alcanza con `dirname(base_path(), 2)` y `apps/ai` con `dirname(base_path()).'/ai'` (ver `config/horus-knowledge.php`). El frontend destino es Next.js (`apps/web`); **Blade y Vite siguen en `apps/api`** para el panel, la autenticación web y las páginas con formulario o datos de Laravel hasta que se migren (fases en `PROJECT_CONTEXT.md`). **Fase 1 (12/11/2026):** las páginas estáticas (`home`, `quienes-somos`, `galeria`, `contactos`, `legales.{devolucion,privacidad,cookies,faq}`, `educacion.{asesoramiento,capacitaciones}`) ya no son vistas Blade: sus rutas con nombre redirigen (302) a `HORUS_WEB_URL` (`RedirigirAWebController`); vacía o no http/https = 404. No restaures esas vistas ni añadas páginas públicas nuevas en Blade.
+**Monorepo (etapa 8, 11–12/11/2026):** Laravel vive en `apps/api/`. Todas las rutas y comandos de este documento son relativos a `apps/api/`, salvo `apps/web` (Next.js), `apps/ai` (Horus AI), `packages/`, `docs/`, `ops/` y `.github/`, que cuelgan de la raíz del repositorio. Desde `apps/api`, `docs/` se alcanza con `dirname(base_path(), 2)` y `apps/ai` con `dirname(base_path()).'/ai'` (ver `config/horus-knowledge.php`). **Next.js (`apps/web`) es la única interfaz web.** El retiro de Blade y Vite de `apps/api` se hizo en cinco fases el 18/11/2026 (páginas públicas, panel `/admin`, autenticación web, Vite y herramientas, documentación; ver `docs/ola4-fase1-retiro-blade-panel.md`). Laravel solo expone API (`/api/auth`, `/api/public/v1`, `/api/panel/v1`) y genera PDF, correos y páginas de error. **`HORUS_WEB_URL` es obligatoria:** sin ella no hay enlace de recuperación de contraseña y los botones de las páginas de error apuntan a `/`. No restaures vistas Blade ni añadas páginas en Laravel.
 
 Sitio público y panel administrativo de Horus Group SRL (Cajamarca): estudiantes, cursos, matrículas, usuarios/roles, aprobaciones, reportes, publicación editorial de cursos y asistente virtual. Procesos fue retirado del panel sin eliminar su histórico (ver `docs/retiro-procesos.md`).
 
 | Capa | Tecnología |
 | --- | --- |
 | Backend | PHP ^8.2 (local: 8.4), Laravel ^12, `spatie/laravel-permission` ^6, `firebase/php-jwt`, `barryvdh/laravel-dompdf`, `phpoffice/phpspreadsheet`, `resend/resend-laravel` |
-| Frontend | Blade, Alpine.js 3, Tailwind 3, Vite 8 (`resources/js/app.js`, `resources/css/app.css`, `resources/css/chatbot.css`) |
+| Interfaz web | Ninguna en Laravel: la sirve `apps/web` (Next.js 16, React 19). Blade, Alpine, Tailwind y Vite se retiraron de `apps/api` (retiro en cinco fases, 18/11/2026) |
 | Datos | PostgreSQL en desarrollo (`.env.example`); SQLite en memoria en `phpunit.xml` |
-| Calidad | PHPUnit 11, Larastan ^3 (`phpstan.neon.dist`), Pint, `node --test` para el frontend |
+| Calidad | PHPUnit 11 con Pest, Larastan ^3 (`phpstan.neon.dist`), Pint |
 
 ### Mapa de directorios
 
-- **Rutas:** `routes/web.php` (público, auth, `/admin`, chat), `routes/api.php` (`/api/auth/*`), `routes/console.php` (scheduler: `horus:matriculas-notificar` cada minuto). `bootstrap/app.php` registra alias de middleware (`role`, `permission`, `role_or_permission`, `jwt.auth`), salud en `/up` y las salvaguardas de pruebas.
-- **Controladores:** `app/Http/Controllers/{Admin,Api,Auth}`; `CursosPublicosController` atiende `/educacion/cursos` y filtra fichas autorizadas por modalidad (ver §4). **Requests:** `app/Http/Requests/` (cursos, estudiantes, matrículas, reportes, publicación). **Middleware JWT:** `app/Http/Middleware/AuthenticateJwt.php`.
+- **Rutas:** `routes/web.php` (vacío a propósito: conserva el grupo `web`, sesión y CSRF, que usa el panel), `routes/api.php` (`/api/auth/*` JWT y `/api/public/v1/*` para el BFF), `routes/panel.php` (`/api/panel/v1/*`), `routes/console.php` (scheduler: `horus:matriculas-notificar` cada minuto). `bootstrap/app.php` registra alias de middleware (`permission`, `role_or_permission`, `jwt.auth`), `redirectGuestsTo` hacia `HORUS_WEB_URL/login`, salud en `/up` y las salvaguardas de pruebas.
+- **Controladores:** `app/Http/Controllers/Api/{Panel,Publico}` (más `Api/AuthController` para el JWT); el catálogo de cursos por modalidad lo entrega `Api/Publico/CatalogoPublicoController` (ver §4). **Requests:** `app/Http/Requests/` (cursos, estudiantes, matrículas, reportes, publicación). **Middleware JWT:** `app/Http/Middleware/AuthenticateJwt.php`.
 - **Servicios** (`app/Services/`): `AdminProtection`, `AsistenteVirtualService`, `CatalogoPublicoCursos`, `JwtTokenService`, `MatriculaNotificationService`, `MatriculasExcelExport`.
 - **Soporte** (`app/Support/`): `ChatKnowledge`, `ChatIntentMatcher`, `ChatCursosPublicos`, `PasswordPolicy`, `SessionRevoker`, `SafeSpreadsheet`, `SpreadsheetCellCache`, `TemporaryExportFile`, `SensitiveData`, `OldInput`, `ListFilter`, `Email`.
 - **Pruebas aisladas PostgreSQL:** `app/Support/Testing/` y `config/pgsql-testing-database.php`. Forman parte del arranque (`bootstrap/app.php`); no las debilites.
 - **Comandos:** `horus:crear-usuario`, `horus:promover-admin`, `horus:matriculas-notificar`.
-- **Datos y vistas:** `database/{migrations,seeders}`, `resources/views/{admin,auth,components,layouts,pages,partials}`.
-- **Estáticos:** `public/assets/` (versionado, dentro de `apps/api`, `asset('assets/...')`). `public/build/` y `public/hot` son generados y no se versionan. `public/assets/css/Market/` está ignorado a propósito. El sitio `legacy-html-node/` solo existe en el historial de Git.
+- **Datos y vistas:** `database/{migrations,seeders}`; vistas solo para lo que Laravel sigue generando: `resources/views/pdf` (reportes PDF), `resources/views/emails` y `auth/emails` (correos) y `resources/views/errors` (páginas de error, autónomas).
+- **Estáticos:** `public/assets/images/` (versionado; Next sirve imágenes del catálogo desde Laravel) y `/storage` (imágenes de servicios). No hay CSS ni JS: `public/build/` y `public/hot` ya no existen. El sitio `legacy-html-node/` solo existe en el historial de Git.
 
 Ubica la ruta o pantalla que pide el usuario antes de cambiar archivos.
 
 ## 2. Comandos habituales
 
-Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe `composer.phar` local (`php composer.phar ...`). El `package.json` de la raíz solo ofrece atajos (`npm run api:test`, `web:build`, etc.) con `npm --prefix`.
+Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe `composer.phar` local (`php composer.phar ...`). El `package.json` de la raíz solo ofrece atajos (`npm run api:test`, `web:dev`, `web:build`, etc.); `apps/api` no tiene `package.json`.
 
 | Objetivo | Comando |
 | --- | --- |
 | Servidor Laravel | `php artisan serve` |
-| Vite con recarga | `npm run dev` junto a `php artisan serve` (visita la URL de Laravel, no la de Vite) |
-| Compilar recursos | `npm run build` |
+| Interfaz web (Next.js) | Desde la raíz: `npm run web:dev` / `npm run web:build`; Laravel no sirve interfaz |
 | Prueba PHP acotada | `php artisan test --filter=NombreTest` |
 | Suite PHP completa | `php artisan test --compact` |
-| Pruebas frontend | `npm test` |
 | Análisis estático | `vendor/bin/phpstan analyse` (nivel 6 sobre `app/`, `routes/`, `database/`, `config/` y los archivos de arranque indicados en `phpstan.neon.dist`) |
 | Estilo | `vendor/bin/pint --test <archivos propios>` |
 | Diff limpio | `git diff --check` |
 
-- Evita `composer setup` y `composer dev` salvo petición expresa: el primero genera `APP_KEY` y migra; el segundo lanza servidor, cola, logs y Vite a la vez.
-- `public/hot` apunta a un servidor Vite. Si queda **obsoleto** (sin `npm run dev` activo), la web carga CSS/JS de un puerto muerto y se ve sin estilos. Es un archivo generado; la causa y la corrección están en `docs/restauracion-web-publica.md`.
+- Evita `composer setup` y `composer dev` salvo petición expresa: el primero genera `APP_KEY` y migra; el segundo lanza el servidor. Laravel ya no usa Node.
 - Pint global falla hoy en archivos ajenos (formato y finales de línea preexistentes). Ejecútalo solo sobre los archivos que tocaste y no reformatees los demás. Las advertencias LF/CRLF de Git son conocidas.
 
 ## 3. Antes de cambiar algo
@@ -65,7 +62,7 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 
 ### Autenticación y autorización
 
-- `/admin` exige sesión y rol `admin|coordinador|secretaria`. Cada controlador del panel añade permisos de Spatie por acción con `HasMiddleware` (p. ej. `matriculas.ver|crear|editar|anular|eliminar|restaurar|exportar`, `cursos.publicar`). Comprueba cada acción en su ruta y controlador. El registro público nunca asigna roles: no infieras acceso administrativo de él. No retires validaciones ni controles para hacer pasar pruebas.
+- El panel (`apps/web`, `/admin/*`) habla con `/api/panel/v1`, que exige sesión (cookie reenviada por el BFF) y uno de los roles `admin|coordinador|secretaria`. Cada controlador del panel añade permisos de Spatie por acción con `HasMiddleware` (p. ej. `matriculas.ver|crear|editar|anular|eliminar|restaurar|exportar`, `cursos.publicar`). Comprueba cada acción en su ruta y controlador. El registro público nunca asigna roles: no infieras acceso administrativo de él. No retires validaciones ni controles para hacer pasar pruebas.
 - `AdminProtection` impide dejar el sistema sin administración: el rol `admin` no se renombra ni elimina, no pierde `CRITICAL_PERMISSIONS`, y no se puede eliminar ni quitar el rol al último administrador (ni a uno mismo). Toda operación que afecte a administradores se ejecuta dentro de `AdminProtection::runExclusively()`.
 - **Permisos propios solo de `admin` por defecto:** `matriculas.exportar`, `matriculas.eliminar`, `cursos.publicar`. `cursos.editar` **no** concede publicar.
 - Los permisos nuevos para bases con datos se añaden con una **migración**, no con el seeder: `RolesAndPermissionsSeeder` resincroniza los roles base y descarta permisos concedidos a mano. Un permiso nuevo exige constante en el seeder **y** migración que lo cree y lo conceda sin resincronizar el resto.
@@ -91,39 +88,31 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 ### Publicación editorial de cursos
 
 - `Curso` es información administrativa; **`estado=activo` no es autorización editorial**. La ficha pública vive aparte en `curso_publicaciones` (`CursoPublicacion`) y nunca se rellena ni se publica automáticamente desde datos administrativos.
-- Rutas: `GET|PUT|DELETE /admin/cursos/{curso}/publicacion`, con permiso `cursos.publicar`. Las escrituras son transaccionales, bloquean el curso y escriben auditoría (`curso_publicado`, `curso_despublicado`). La elegibilidad se relee tras la validación HTTP. La asignación de autor ocurre en el servidor desde la lista validada de `PublicarCursoRequest`.
+- Rutas: la ficha pública se gestiona en la API del panel (`routes/panel.php`, `academico/cursos/{curso}/publicacion`), con permiso `cursos.publicar`. Las escrituras son transaccionales, bloquean el curso y escriben auditoría (`curso_publicado`, `curso_despublicado`). La elegibilidad se relee tras la validación HTTP. La asignación de autor ocurre en el servidor desde la lista validada de `PublicarCursoRequest`.
 - `CatalogoPublicoCursos::vigentes()` es la única consulta pública: ficha autorizada, vigente (días completos en `America/Lima`) y curso activo no eliminado. Proyecta solo campos editoriales; nunca precio, cupos, matrículas, estudiantes ni metadatos de autorización.
 - **El catálogo dinámico del asistente sigue apagado por defecto** (`chatbot.public_catalog_enabled=false`). El propietario autorizó el 06/11/2026 el catálogo de la web (`catalogo-publico.enabled=true`) en Educación → Cursos, con las modalidades presencial, virtual y semipresencial. Crear un curso no crea ni autoriza su ficha pública; se mantiene la revisión y el permiso `cursos.publicar`. `hibrido` conserva su compatibilidad sin reclasificar datos existentes. Las pruebas pueden simular el catálogo web apagado con `config([...])`. Alcance actual: `docs/cursos-publicacion-modalidades.md`; los sprints anteriores conservan su contexto histórico.
 
 ### Salidas de datos
 
-- Exportaciones (CSV, Excel con `SafeSpreadsheet`, PDF, auditoría, `admin/respaldo`) deben evitar inyección de fórmulas y no incluir contraseñas, tokens ni claves (`SensitiveData`). `admin/respaldo` es una exportación administrativa minimizada, **no un respaldo** (`docs/seguridad-l1.1.md`).
+- Exportaciones (CSV, Excel con `SafeSpreadsheet`, PDF, auditoría, `compartido/respaldo`) deben evitar inyección de fórmulas y no incluir contraseñas, tokens ni claves (`SensitiveData`). `compartido/respaldo` es una exportación administrativa minimizada, **no un respaldo** (`docs/seguridad-l1.1.md`).
 - Las exportaciones XLSX filtradas deben coincidir con el listado y acotar memoria (`MatriculasExcelExport`, `SpreadsheetCellCache`, `TemporaryExportFile`).
-- Los formularios reponen la entrada previa mediante `OldInput`; no imprimas `old()` sin escapar.
 
 ### Asistente virtual
 
 **Corrección Fase 4C (03/11/2026):** el flujo conversacional público y el probador administrativo usan exclusivamente Horus AI Python cuando `HORUS_ADVISOR_ENABLED=true`; de lo contrario, o ante fallo, devuelven contingencia institucional. No se usa el motor PHP ni OpenAI. El contrato es `POST /api/v1/chat`, `history: []`, sin identificador de sesión; modelo local `paraphrase-multilingual-MiniLM-L12-v2`. El token permanece en servidor. Las descripciones siguientes de resolución local, contexto y OpenAI son históricas y quedan sustituidas por este contrato. Las intenciones PHP se conservan para consulta administrativa histórica; no controlan la activación de Python.
 
-- Flujo público: `POST /chat/mensaje` (`ChatWidgetController`), sesión, CSRF, validación (`mensaje` ≤ 2000, `session_id` ≤ 64) y `throttle:30,1`. Implementación en `AsistenteVirtualService`, `FiltroPrivacidadChat` y `HorusAdvisorClient`; el widget conserva su contrato público. `ChatKnowledge` y `ChatIntentMatcher` solo conservan consumidores históricos y de diagnóstico. Se retiró `ChatCursosPublicos`, sin consumidores.
+- Flujo público: `POST /api/public/v1/chat` (`ChatPublicoController`), solo con el token de servicio del BFF de `apps/web` (`X-Horus-Web-Token`), sin sesión ni CSRF; validación (`mensaje` ≤ 2000, `session_id` de 8 a 64 caracteres `[A-Za-z0-9_-]`) y `throttle:chat-bff` (20 por minuto y por visitante). La ruta Blade `POST /chat/mensaje` se retiró (Fase 1 del retiro de Blade). Implementación en `AsistenteVirtualService`, `FiltroPrivacidadChat` y `HorusAdvisorClient`. `ChatKnowledge` y `ChatIntentMatcher` solo conservan consumidores históricos y de diagnóstico. Se retiró `ChatCursosPublicos`, sin consumidores.
 - Las respuestas se basan en contenido verificable del sitio; **no inventes precios, fechas, horarios, disponibilidad ni políticas**. El horario de atención tiene fuentes inconsistentes en la web: el asistente advierte la discrepancia y recomienda confirmar; no elijas una franja. Un cambio en `ChatKnowledge.php` requiere actualizar `tests/Feature/AsistenteVirtualTest.php`.
 - Python es el único motor conversacional; la configuración OpenAI sin consumidores se retiró. La deduplicación usa HMAC del texto exacto y de la configuración, sin almacenar el mensaje. `chatbot.contingencia` registra solo `privacidad`, `seguridad`, `deshabilitado`, `no_disponible` o `respuesta_rechazada`, sin texto libre. `fuente` permanece compatible con la migración 000034 pendiente: la inserción usa transacción y reintenta sin esa columna únicamente ante su ausencia confirmada; no consulta ni cachea el esquema.
 - Solo se almacenan metadatos de la conversación, nunca su texto libre.
-- `admin/asistente` permite probar y consultar registros; la lista de intenciones no es un editor. Las intenciones incorporadas activas provienen del código, las personalizadas de `chat_intents`, y una incorporada desactivada en DB permanece desactivada. `ChatIntentSeeder` usa `updateOrCreate` y puede sobrescribir datos existentes.
+- El probador del asistente y su registro viven en el panel: `GET compartido/asistente` y `POST compartido/asistente/mensaje` (permiso `asistente.ver`, límite `chat`). La lista de intenciones no es un editor. Las intenciones incorporadas activas provienen del código, las personalizadas de `chat_intents`, y una incorporada desactivada en DB permanece desactivada. `ChatIntentSeeder` usa `updateOrCreate` y puede sobrescribir datos existentes.
 
 ## 5. Base de datos y pruebas
 
 - **Pruebas habituales:** `phpunit.xml` usa SQLite en memoria, sesión/caché `array`, cola `sync` y correo `array`. Esa evidencia **no prueba** PostgreSQL (bloqueos, DDL, concurrencia), OpenAI, correo real ni despliegue; distínguelo siempre en tu informe. Bloquea HTTP no simulado en pruebas nuevas.
 - **Perfil PostgreSQL aislado:** `phpunit.pgsql.xml`, `scripts/pgsql-test.php`, `tests/PostgresIntegrity/` y `.env.pgsql-testing.local` (no versionado; solo existe la plantilla `.example`). Solo acepta la base de pruebas dedicada en `127.0.0.1:55433` (`PostgresTestGuard::PORT`; el `55432` del clúster S7 suspendido se rechaza expresamente) y un marcador independiente. El clúster de 55433 existe desde PG-TEST-02b (`docs/postgresql-testing-cluster-independiente.md`). `php scripts/pgsql-test.php probe` valida identidad y aislamiento en solo lectura sin consentimiento; `check`/`test`/`artisan` exigen el consentimiento destructivo y habilitan escritura. **No ejecutes pruebas destructivas, aprovisionamiento ni migraciones sobre PostgreSQL sin autorización explícita**; la preparación documentada en `docs/postgresql-l2.2-*.md` no la concede. No cambies puertos, nombres ni salvaguardas para que una prueba «pase». **Fase 5.2 (12/11/2026):** `db:wipe` no borra funciones de PostgreSQL: la 000030 usa `CREATE OR REPLACE` y, desde el 14/11/2026, la 000032 acepta como residuo SOLO su propia función idéntica (firma y cuerpo), sin columna, CHECK ni trigger (`esSoloFuncionResidualPropia()`); una función ajena o distinta, o cualquier otro objeto residual, sigue deteniendo `up()`. Por eso `migrate:fresh` funciona sin gancho y `TestCase::setUpTraits()` se retiró. `TestCase::tearDown()` y `RequiresIsolatedPostgres::tearDown()` liberan la conexión: el clúster admite solo 30 conexiones. Compatibilidad PostgreSQL declarada el 14/11/2026 con salvedades (solo medida en el clúster aislado, sin producción; D9 y restauración sin ejecutar); ver `docs/fase-5-2-validacion-postgresql.md` §6i.
 - **Migraciones con permisos o restricciones de integridad** (`2026_10_27_000012`, `2026_10_27_000013`, `2026_10_28_000021`) están pensadas para aplicarse con revisión previa; no las ejecutes contra datos reales sin confirmación. Las migraciones del Sprint 05 y 09 solo se han probado en SQLite en memoria.
-- **JavaScript:** pruebas unitarias en `tests/frontend/` (hoy `chat-client.test.mjs`) y smokes en `tests/browser/`. Siempre `.mjs`; las unitarias se nombran `*.test.mjs` o `*.spec.mjs`. `npm test` (`scripts/run-frontend-tests.mjs`) rechaza otras extensiones.
-- **Smokes de navegador** (requieren Edge; verifica el destino antes de ejecutarlos):
-
-| Smoke | Destino y efectos |
-| --- | --- |
-| `chat-smoke.mjs` | Servidor Laravel en `http://127.0.0.1:8765/`, **base desechable migrada**, `OPENAI_API_KEY` vacía. Envía peticiones reales y guarda registros |
-| `public-restoration-smoke.mjs` | Servidor existente en `:8000`; solo GET/HEAD, bloquea destinos externos, sin escrituras |
-| `course-publication-smoke.mjs` | Fixture SQLite en memoria con `tests/Support/publication-browser-router.php` (opt-in explícito, loopback, sin HTTP externo) |
+- **JavaScript y navegador:** `apps/api` ya no tiene pruebas JavaScript ni smokes de navegador (`tests/frontend` y `tests/browser` se retiraron con Blade). Las comprobaciones de interfaz viven en `apps/web`. No hay `package.json` en `apps/api`.
 
 ## 6. Implementación
 
@@ -132,7 +121,7 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 - Validación nueva de escrituras en `FormRequest`; permiso de Spatie en el controlador para cada acción nueva del panel (ver §4 para la regla de migración).
 - Toda mutación que afecte datos relacionados va en transacción y, si compite por cupos u otros contadores, siguiendo el protocolo de bloqueo de §4.
 - No incorpores `vendor/`, `node_modules/`, `public/build/`, `public/hot`, cachés, logs, perfiles de navegador, bases temporales, `.env*` locales ni secretos.
-- Frontend y contenido público: ver el límite permanente de `AGENTS.md`. Esta guía describe cómo validar cambios de Blade/JS/CSS **cuando estén autorizados**, no los autoriza.
+- Frontend: Laravel ya no tiene (Blade y Vite se retiraron el 18/11/2026). La interfaz vive en `apps/web`; los límites y autorizaciones están en `AGENTS.md`.
 
 ## 7. Validación según el cambio
 
@@ -141,8 +130,6 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 | PHP acotado | `php artisan test --filter=<Clase>` |
 | Transversal, permisos, matrículas, auth o antes de afirmar estabilidad | `php artisan test --compact` |
 | `app/Support`, `app/Services` | Lo anterior y `vendor/bin/phpstan analyse` |
-| Blade, JS o CSS (si está autorizado) | `npm run build`; si afecta al chat, `chat-smoke.mjs` con su base desechable |
-| JavaScript con lógica | `npm test` (añade `*.test.mjs` si procede) |
 | Migraciones o permisos | Prueba en SQLite en memoria de instalación nueva **y** de base ya sembrada; no aplicar a PostgreSQL real |
 | Documentación | Contrasta cada afirmación con rutas, código o pruebas |
 | Cualquier cambio | `git diff --check` y revisión de `git status` |

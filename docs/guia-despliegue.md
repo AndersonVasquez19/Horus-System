@@ -15,7 +15,7 @@ No duplica lo ya escrito; lo enlaza:
 | --- | --- |
 | PHP | `^8.2` (se desarrolla y prueba con 8.4) con `dom`, `gd`, `mbstring`, `openssl`, `xml`, `zip` (la exportación de datos lo exige) y `pdo_pgsql`. Comprueba con `php composer.phar check-platform-reqs` (ver README) |
 | Base de datos | PostgreSQL. SQLite solo sirve para pruebas |
-| Node | Solo para compilar (`npm ci` y `npm run build`); no se necesita en ejecución |
+| Node | **No hace falta en Laravel** (Blade y Vite se retiraron el 18/11/2026). Solo `apps/web` (Next.js) lo usa: `npm ci`, `npm run build` y `next start` |
 | Procesos | Servidor web sobre `public/`, cron del scheduler y un worker de cola (ver §4) |
 
 ## 2. Variables de entorno
@@ -33,6 +33,8 @@ No duplica lo ya escrito; lo enlaza:
 | `TRUSTED_PROXIES` | IPs del balanceador, separadas por comas, si hay proxy |
 | `QUEUE_CONNECTION` | Cola asíncrona (`database`); el correo de matrículas rechaza `sync` |
 | `LOG_STACK` | `daily` |
+| `HORUS_WEB_URL` | **Obligatoria.** URL pública de `apps/web` con `https`, sin barra final. Se usa en el enlace de recuperación de contraseña, en `redirectGuestsTo` y en el botón de las páginas de error. Sin ella no hay recuperación de contraseña |
+| `HORUS_WEB_SERVICE_TOKEN` | 32 caracteres o más, **idéntico** en Laravel y en `apps/web`. Sin él, `/api/public/v1/*` y `/api/panel/v1/*` responden 404 |
 | `CSP_MODE` | `report-only` al inicio; pasar a `enforce` solo con el procedimiento de `seguridad-l1.1.md` |
 | `MATRICULA_MAIL_ENABLED`, `RESEND_API_KEY`, `MAIL_FROM_*` | Apagado por defecto; ver sprint 15 antes de activar |
 | `HORUS_ADVISOR_*` | Apagado por defecto; ver `horus-ai-operacion.md` |
@@ -49,7 +51,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 2. `php artisan down` y detener workers y scheduler.
 3. Actualizar el código (`git pull` o el artefacto que se use).
 4. `composer install --no-dev --optimize-autoloader --no-interaction`.
-5. `npm ci && npm run build`. `public/build` es un artefacto generado y no se versiona.
+5. (Sin paso de Node en Laravel.) Compila y reinicia `apps/web` por separado: `npm ci && npm run build` dentro de `apps/web`.
 6. **Migraciones, con `--path` por prudencia.** El 13/11/2026 se eliminaron `2026_10_28_000022` (verificación de registro), `000035` y `000036` (solicitudes de matrícula) con su código; ya no hay migraciones apartadas ni pendientes por decisión del propietario, y aun así, en una base real aplica una a una, en orden, las que muestre `migrate:status` como pendientes, con `php artisan migrate --force --path=database/migrations/<archivo>.php`. Recientes y su efecto:
 
    | Migración | Efecto |
@@ -60,7 +62,7 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
    | `2026_11_10_000040` | **Solo PostgreSQL. Aplicada en `horus_group` el 10/11/2026; falta en otros entornos.** Pasa `matriculas.estudiante_id` y `curso_id` de `ON DELETE CASCADE` a `RESTRICT` (no toca datos; `matricula_notifications` sigue en `CASCADE`). Bloqueo breve en `matriculas` y la tabla padre: copia reciente y `--path`. `down()` restaura `CASCADE` |
 
    Las migraciones de permisos o integridad (`000012`, `000013`, `000021`) se aplican con revisión previa y copia reciente. Tras ellas: `php artisan permission:cache-reset`.
-7. `php artisan config:cache && php artisan route:cache && php artisan view:cache` (las tres funcionan con las rutas y vistas actuales).
+7. `php artisan config:cache && php artisan route:cache`. No uses `view:cache` por costumbre: Laravel ya no tiene vistas de interfaz (solo PDF, correos y páginas de error).
 8. `php artisan queue:restart` (reinicia los workers con el código nuevo).
 9. `php artisan up`.
 
@@ -74,15 +76,28 @@ Tras cambiar el entorno con cachés activas: `php artisan config:clear` y luego 
 ## 5. Verificación posterior
 
 1. `GET /up` responde 200.
-2. Inicio de sesión del panel, listado de matrículas y la campana de notificaciones.
+2. Inicio de sesión del panel (en Next), listado de matrículas y la campana de notificaciones. Descargar un reporte PDF y uno Excel.
 3. Una exportación desde su botón (son `POST` con CSRF) y comprobar que queda el registro de auditoría correspondiente.
 4. `php artisan migrate:status` sin pendientes. Las antiguas `000022`, `000035` y `000036` se eliminaron el 13/11/2026 y no existen.
 5. `php artisan schedule:list` muestra las tareas esperadas.
 6. Revisar `storage/logs` en busca de errores nuevos.
 
+### Mapa de rutas: Next.js y Laravel
+
+Desde el 18/11/2026 Laravel no sirve páginas. En el dominio público, el servidor web o balanceador debe repartir así (no hay receta probada: validar antes de publicar):
+
+| Ruta | Destino |
+| --- | --- |
+| `/up` | Laravel (salud) |
+| `/api/auth/*`, `/api/panel/v1/*`, `/api/public/v1/*` | Laravel. Las dos últimas solo las llama el BFF de `apps/web` (servidor a servidor, con `X-Horus-Web-Token`); no hace falta exponerlas al navegador |
+| `/storage/*` y `/assets/images/*` | Laravel (`public/`): imágenes del catálogo |
+| Todo lo demás (`/`, `/login`, `/registro`, `/admin/*`, `/tecnologias/*`, `/legales/*`, …) | Next.js (`apps/web`) |
+
+Los enlaces antiguos de Blade (`/admin/matriculas`, `/libro-reclamaciones`, `/register`, `/forgot-password`, …) los redirige Next con 307. Los correos de recuperación emitidos antes del cambio (`/reset-password/{token}`) dejan de funcionar; caducan en una hora.
+
 ## 6. Reversa
 
-- **Código:** volver al commit anterior, repetir los pasos 4 a 9.
+- **Código:** volver al commit anterior, repetir los pasos 4 a 9 (y recompilar `apps/web`).
 - **Migraciones:** `000037` y `000038` tienen `down()` (borran el índice y la tabla; los avisos generales vuelven a considerarse leídos o no según su columna `leida`). Las de permisos y las de integridad **no se revierten a ciegas**: restaura la copia previa. No reintentes una migración fallida sin leer el mensaje.
 - **CSP:** `CSP_MODE=report-only` (o `off`) y `config:clear`.
 

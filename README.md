@@ -1,8 +1,8 @@
 # Horus Group SRL
 
-Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio está hecha con **Laravel 12**, Blade, Alpine.js, Tailwind CSS y Vite. Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, aprobaciones, reportes y un asistente virtual. La sección Procesos fue retirada del panel; se conserva su histórico sin borrar datos ([alcance](docs/retiro-procesos.md)).
+Sitio público y panel administrativo de Horus Group SRL. La aplicación principal de este directorio es la **API y el backend en Laravel 12** (sin interfaz propia: la interfaz es Next.js, en `apps/web`). Usa PostgreSQL según `.env.example`. Incluye gestión de estudiantes, cursos, matrículas, usuarios, roles, aprobaciones, reportes y un asistente virtual. La sección Procesos fue retirada del panel; se conserva su histórico sin borrar datos ([alcance](docs/retiro-procesos.md)).
 
-> **Identifica la aplicación antes de trabajar.** Laravel vive en `apps/api/` (desde la etapa 8); la raíz del repositorio solo contiene `apps/`, `packages/`, `docs/`, `ops/`, `.github/` y los documentos de contexto. El sitio y el panel que hoy sirve Laravel son vistas Blade compiladas con Vite; `apps/web` (Next.js) es el frontend destino y, a medida que lo cubre, sustituye a Blade (ver «Frontend: Blade y Next.js»). El sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git.
+> **Identifica la aplicación antes de trabajar.** Laravel vive en `apps/api/` (desde la etapa 8); la raíz del repositorio solo contiene `apps/`, `packages/`, `docs/`, `ops/`, `.github/` y los documentos de contexto. **Next.js (`apps/web`) es la única interfaz web**: Blade y Vite se retiraron de Laravel el 18/11/2026 (ver «Frontend: Next.js»). El sitio HTML y su servidor Node históricos (`legacy-html-node/`) se eliminaron y siguen disponibles solo en el historial de Git.
 
 ## Contenido
 
@@ -23,44 +23,48 @@ Las rutas de la tabla son relativas a `apps/api/` salvo `apps/web/`, `apps/ai/`,
 
 | Ruta | Responsabilidad |
 | --- | --- |
-| `artisan`, `bootstrap/app.php` | Entrada y configuración de Laravel; registra rutas web, API y `/up`. |
-| `routes/web.php`, `routes/api.php` | Rutas públicas, autenticación, panel, chat y autenticación API. |
+| `artisan`, `bootstrap/app.php` | Entrada y configuración de Laravel; registra rutas API, el panel y `/up`. |
+| `routes/api.php`, `routes/panel.php` | `/api/auth/*` (JWT), `/api/public/v1/*` (BFF público) y `/api/panel/v1/*` (panel). `routes/web.php` está vacío a propósito: conserva el grupo `web` (sesión y CSRF) que usa el panel. |
 | `app/Http/Controllers/`, `app/Http/Requests/` | Acciones HTTP y validación de formularios. |
 | `app/Models/`, `app/Services/`, `app/Support/` | Modelos, lógica de JWT/chat y conocimiento local del asistente. |
-| `resources/views/`, `resources/js/app.js`, `resources/css/app.css` | Vistas Blade, comportamiento del navegador y estilos. |
+| `resources/views/` | Solo lo que Laravel sigue generando: PDF (`pdf/`), correos (`emails/`, `auth/emails/`) y páginas de error (`errors/`). |
 | `database/migrations/`, `database/seeders/` | Esquema y datos iniciales. |
-| `tests/Feature/`, `tests/Unit/`, `tests/frontend/`, `tests/browser/` | Pruebas PHP, frontend y comprobación de chat en Edge. |
-| `public/` | Raíz pública del servidor web; Vite escribe en `public/build/`. |
-| `public/assets/` | Imágenes, estilos y scripts estáticos de las vistas Blade (`css/`, `images/`, `js/`). Está versionada. |
+| `tests/Feature/`, `tests/Unit/`, `tests/Academic/`, `tests/Contract/` | Pruebas PHP (Pest/PHPUnit). No hay pruebas JavaScript en la API. |
+| `public/` | Raíz pública del servidor web. Ya no hay compilación de recursos (`public/build` no existe). |
+| `public/assets/images/` | Imágenes versionadas que Next sirve desde Laravel (catálogo). Ya no hay `css/` ni `js/`. |
 | `apps/web/` | Frontend **Next.js** (React 19, Tailwind 4), proyecto Node independiente con su propio `package.json`. Atajos desde la raíz: `npm run web:dev`, `web:build` y `web:verify`. |
 | `apps/ai/` | **Horus AI** (Python, FastAPI): servicio del asistente. Su `.venv`, `.env` y `models/` no se versionan; ver su `README.md`. |
 | `packages/contracts/` | Contratos HTTP existentes (OpenAPI), documentados a partir del código. Sin clientes generados. |
 | `.github/workflows/` | `ci-api.yml`, `ci-web.yml` y `ci-ai.yml`, todos **suspendidos** (solo ejecución manual). |
 
-**Monorepo.** `apps/api` (Laravel), `apps/web` (Next.js) y `apps/ai` (Horus AI) son proyectos independientes. No hay workspaces de npm: `apps/api` (Vite, Tailwind 3) y `apps/web` (Next, Tailwind 4) mantienen dependencias y lockfiles separados. Detalle y decisiones en `PROJECT_CONTEXT.md`.
+**Monorepo.** `apps/api` (Laravel), `apps/web` (Next.js) y `apps/ai` (Horus AI) son proyectos independientes. No hay workspaces de npm: `apps/api` (Composer) y `apps/web` (npm) mantienen sus dependencias y lockfiles separados; la API no usa Node. Detalle y decisiones en `PROJECT_CONTEXT.md`.
 
-### Frontend: Blade y Next.js
+### Frontend: Next.js
 
-El destino es que **Next.js sea el único frontend**. Hoy conviven, y **Vite sigue siendo necesario** mientras exista una sola vista Blade con `@vite`:
+**Next.js (`apps/web`) es la única interfaz web.** Blade, Alpine, Tailwind 3 y Vite se retiraron de `apps/api` el 18/11/2026, en cinco fases con autorización expresa en cada una:
 
-| | Laravel (`apps/api`) | Next.js (`apps/web`) |
-| --- | --- | --- |
-| Tecnología | Blade, Alpine, Tailwind 3, Vite | Next 16, React 19, TypeScript, Tailwind 4 |
-| Sirve hoy | Panel `/admin`, autenticación web, y las páginas públicas con formulario o datos de Laravel (cursos, matrícula, libro de reclamaciones, cotización, tecnologías) | Las 16 páginas públicas como interfaz; todavía **no llama a Laravel** |
+| Fase | Qué salió de Laravel |
+| --- | --- |
+| 1 | Páginas públicas con formulario o datos de Laravel (tecnologías, cursos, libro de reclamaciones, solicitud de cotización) y `POST /chat/mensaje` |
+| 2 | Panel `/admin` de Blade (tablero, búsqueda, respaldo, asistente, notificaciones) y las redirecciones a Next |
+| 3 | Login, registro y recuperación de contraseña web |
+| 4 | Vite, Tailwind, Alpine, `resources/js` y `resources/css`, `public/assets/{css,js}`, pruebas JavaScript y smokes de navegador, y el paso de Node del CI |
+| 5 | Documentación |
 
-Retirada por fases: la Fase 1 (hecha, 12/11/2026) retiró las páginas Blade estáticas que Next ya cubre: sus rutas redirigen a `HORUS_WEB_URL` (obligatoria en el despliegue; vacía = 404); la Fase 2 expone endpoints JSON con CSRF/cookie y un BFF para los formularios, el catálogo y el chat; la Fase 3 lleva panel y autenticación a Next, momento en que salen Blade y Vite. Estado y límites en `PROJECT_CONTEXT.md`.
+Los enlaces antiguos (`/admin/matriculas`, `/libro-reclamaciones`, `/register`, …) los redirige Next con `redirects()` en `apps/web/next.config.ts`.
 
-El `package.json` de `apps/api` contiene los comandos y dependencias de **Vite de Laravel** (`npm run dev` dentro de `apps/api` inicia Vite). El de la raíz es mínimo y privado, sin dependencias ni lockfile: solo atajos `api:dev`, `api:build`, `api:test`, `web:dev`, `web:build` y `web:verify` que delegan con `npm --prefix`.
+**`HORUS_WEB_URL` es obligatoria** (URL pública de Next, sin barra final): con ella Laravel arma el enlace de recuperación de contraseña, el destino de `redirectGuestsTo` y los botones de las páginas de error. Sin una URL http/https válida no hay enlace de recuperación y los botones apuntan a `/`.
 
-Las vistas Laravel cargan imágenes, estilos y scripts estáticos con `asset('assets/...')`, desde `public/assets/`. Esa carpeta se versiona y no requiere ningún paso de copia o compilación. Para añadir una imagen, colócala directamente en `public/assets/images/`. `public/build/` sí es generada y no se versiona.
+`apps/api` ya no tiene `package.json`. El `package.json` de la raíz es mínimo y privado, sin dependencias ni lockfile: solo atajos `api:test`, `web:dev`, `web:build` y `web:verify`.
+
+Laravel conserva solo las vistas de PDF (`resources/views/pdf`), correos (`emails`, `auth/emails`) y páginas de error (`errors`). `public/assets/images/` se versiona y Next sirve desde ahí las imágenes del catálogo.
 
 ## Requisitos
 
 - PHP **8.2 o superior** y Composer 2. Existe un `composer.phar` local para equipos sin el comando global `composer`.
 - Extensiones PHP requeridas por dependencias: entre otras, `dom`, `gd`, `mbstring` o su polyfill, `openssl`, `xml` y `zip`. Para la configuración PostgreSQL necesitas `pdo_pgsql`; para las pruebas, `pdo_sqlite`. Comprueba el entorno con `php composer.phar check-platform-reqs` una vez instaladas las dependencias.
 - PostgreSQL accesible y una base de desarrollo creada antes de migrar.
-- Node.js compatible con Vite 8 (`^20.19.0` o `>=22.12.0`) y npm.
-- Microsoft Edge solo si vas a ejecutar `tests/browser/chat-smoke.mjs`.
+- Node.js y npm solo para `apps/web` (Next.js); `apps/api` no usa Node.
 
 ## Instalación local
 
@@ -69,7 +73,6 @@ Ejecuta estos comandos en **PowerShell**, desde `apps/api` (Laravel):
 ```powershell
 cd apps/api
 php composer.phar install
-npm ci
 if (-not (Test-Path -LiteralPath .env)) { Copy-Item -LiteralPath .env.example -Destination .env }
 ```
 
@@ -78,29 +81,16 @@ La copia no sobrescribe un `.env` existente. Configura `.env` como se indica aba
 ```powershell
 php artisan key:generate
 php artisan migrate
-npm run build
 php artisan serve
 ```
 
-Abre la URL que imprime `php artisan serve` (normalmente `http://127.0.0.1:8000`). La raíz web es `apps/api/public/`; no abras las vistas Blade ni el `index.html` histórico con `file://` como sustituto de Laravel. Si prefieres recarga de estilos y JavaScript, deja `php artisan serve` en una terminal y ejecuta `npm run dev` en otra. Para usar los recursos compilados, `npm run build` genera `public/build/`.
+`php artisan serve` expone la **API** (normalmente `http://127.0.0.1:8000`); no hay interfaz en esa URL. La interfaz se levanta aparte con `npm run web:dev` (desde la raíz) y se configura con `HORUS_API_URL` y `HORUS_WEB_SERVICE_TOKEN`; en Laravel, `HORUS_WEB_URL` y el mismo token. La raíz web es `apps/api/public/`.
 
 No ejecutes `php artisan key:generate` al actualizar una instalación existente: cambiar `APP_KEY` invalida datos cifrados y sesiones. `php artisan migrate` aplica cambios al destino configurado; revisa ese destino antes de ejecutarlo. El script `composer setup` del manifiesto genera una clave y ejecuta migraciones automáticamente, así que este README usa pasos explícitos.
 
-### Cambios visibles mientras desarrollas
+### Desarrollo
 
-Con las dependencias instaladas y `.env` configurado, mantén abiertos estos dos procesos en terminales separadas:
-
-```powershell
-php artisan serve
-```
-
-```powershell
-npm run dev
-```
-
-Visita la URL de **Laravel** que muestra la primera terminal, normalmente `http://127.0.0.1:8000`; no abras directamente la URL de Vite para probar Laravel. La directiva `@vite` de las vistas conecta el navegador con el servidor Vite. Los cambios en CSS se actualizan en caliente; los cambios en vistas Blade, rutas y archivos PHP de `app/` provocan una **recarga automática completa** de la página. El JavaScript se actualiza mediante HMR cuando es posible y puede provocar una recarga completa según el módulo. No necesitas ejecutar `npm run build` después de cada edición: ese comando genera archivos para uso sin el servidor de desarrollo.
-
-Blade genera HTML en el servidor; una vista o respuesta PHP nueva necesita otra petición para verse. La recarga automática evita pulsar F5, pero no conserva necesariamente el estado de formularios o del chat. Si necesitas actualizar partes de la página sin recarga completa, se requiere implementar interactividad específica (por ejemplo, peticiones AJAX o componentes reactivos) para esas partes.
+Mantén abiertos dos procesos en terminales separadas: `php artisan serve` (en `apps/api`) y `npm run web:dev` (desde la raíz). Visita la URL de **Next**; Laravel solo responde a la API.
 
 ## Configuración
 
@@ -157,11 +147,11 @@ Para tareas parciales, inspecciona el seeder correspondiente antes de ejecutarlo
 
 ## Acceso y funciones
 
-- **Público:** `/`, páginas de tecnologías, educación, mercado, galería, contacto y textos legales definidos en `routes/web.php`; `/register`, `/login` y recuperación de contraseña.
-- **Panel:** `/admin` requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo. El rol `admin` no se puede renombrar ni eliminar ni perder sus permisos críticos, y no se puede eliminar ni quitar el rol al último administrador (ni a uno mismo). La exportación CSV de matrículas (`matriculas.exportar`) y su eliminación (`matriculas.eliminar`) son permisos propios, solo de `admin` por defecto.
+- **Público:** las páginas, el catálogo, el libro de reclamaciones, la solicitud de cotización y el chat los sirve `apps/web`; Laravel solo entrega los datos por `/api/public/v1/*` (con el token de servicio del BFF). El login, el registro y la recuperación de contraseña están en `/api/panel/v1/auth/*`.
+- **Panel:** `/api/panel/v1` (que consume `/admin/*` de Next) requiere sesión y rol `admin`, `coordinador` o `secretaria`. Cada controlador del panel exige además un permiso de Spatie por acción mediante `HasMiddleware`; las operaciones sin permiso responden 403. Asignar roles a una cuenta requiere `usuarios.asignar-roles`. La inscripción pública no concede rol administrativo. El rol `admin` no se puede renombrar ni eliminar ni perder sus permisos críticos, y no se puede eliminar ni quitar el rol al último administrador (ni a uno mismo). La exportación CSV de matrículas (`matriculas.exportar`) y su eliminación (`matriculas.eliminar`) son permisos propios, solo de `admin` por defecto.
 - **Gestión:** estudiantes, cursos y matrículas; usuarios/roles; aprobaciones; notificaciones; configuración; auditoría; reportes CSV, Excel y PDF. Consulta las rutas y permisos reales antes de cambiar una operación.
-- **Exportación de datos (`admin/respaldo`):** genera un ZIP de CSV con nueve tablas seleccionadas; requiere extensión ZIP y el permiso `respaldo.exportar`. Es una **exportación administrativa minimizada, no un respaldo**: omite contraseñas, tokens y claves, enmascara secretos, no se puede usar para restaurar y no se conserva ninguna copia en el servidor (queda un registro en auditoría). La copia integral de PostgreSQL (`pg_dump`) y la política de retención son responsabilidad del servidor; véase [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md).
-- **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login web usa sesión y CSRF.
+- **Exportación de datos (`compartido/respaldo`, «Exportar datos» en el panel):** genera un ZIP de CSV con nueve tablas seleccionadas; requiere extensión ZIP y el permiso `respaldo.exportar`. Es una **exportación administrativa minimizada, no un respaldo**: omite contraseñas, tokens y claves, enmascara secretos, no se puede usar para restaurar y no se conserva ninguna copia en el servidor (queda un registro en auditoría). La copia integral de PostgreSQL (`pg_dump`) y la política de retención son responsabilidad del servidor; véase [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md).
+- **API:** `routes/api.php` expone registro, login, usuario actual y logout bajo `/api/auth/*`. `me` y `logout` requieren token Bearer JWT; el login del panel usa sesión y CSRF por `/api/panel/v1/auth/*`.
 - **Correo:** el restablecimiento de contraseña depende del transporte configurado. Con `MAIL_MAILER=log` el mensaje queda en los registros locales y no llega a una bandeja externa.
 
 ### Publicar cursos por modalidad
@@ -172,7 +162,7 @@ El catálogo web está habilitado en **Educación → Cursos**. Cada botón **Ve
 
 ### Reportes de matrículas
 
-`GET /admin/reportes` admite `busqueda` (DNI, nombres, apellidos, código o nombre de curso), `curso_id`, `estado` (`pendiente`, `pagada`, `anulada`) y `eliminados` (`0`: sin eliminadas; `1`: solo eliminadas). Los mismos filtros se envían por POST a las exportaciones Excel y PDF. Al aplicar filtros desde el panel se vuelve al primer lote.
+`GET /api/panel/v1/academico/reportes` admite `busqueda` (DNI, nombres, apellidos, código o nombre de curso), `curso_id`, `estado` (`pendiente`, `pagada`, `anulada`) y `eliminados` (`0`: sin eliminadas; `1`: solo eliminadas). Los mismos filtros se envían por POST a las exportaciones Excel y PDF. Al aplicar filtros desde el panel se vuelve al primer lote.
 
 El PDF mantiene un máximo explícito de **50 matrículas por descarga** (`ReportController::PDF_BATCH_SIZE`). El parámetro `lote`, desde 1, permite recorrer todas las coincidencias desde el panel. Panel y PDF muestran total coincidente, cantidad incluida, rango, filtros y lote actual. Se ordena por fecha de matrícula descendente e ID descendente para resolver empates; un lote fuera del rango devuelve 404. Sin coincidencias, el primer lote muestra cero registros. Dompdf recibe como máximo 50 filas con solo los campos necesarios y relaciones precargadas; no se genera un PDF ilimitado.
 
@@ -182,11 +172,11 @@ Los contadores de matrículas e ingresos del panel respetan los filtros; ingreso
 
 ## Asistente virtual
 
-El widget público se muestra en `resources/views/components/public/chat-widget.blade.php`; la conversación reutilizable está en `resources/views/components/chat/conversation.blade.php`. `resources/js/app.js` envía el mensaje a `POST /chat/mensaje` con token CSRF. La ruta valida `mensaje` (máximo 2000 caracteres) y `session_id` (máximo 64), y tiene límite `throttle:30,1`.
+El chat público lo muestra `apps/web`, que envía el mensaje a su BFF y este a `POST /api/public/v1/chat` con el token de servicio (sin sesión ni CSRF de navegador). La ruta valida `mensaje` (máximo 2000 caracteres) y `session_id` (8 a 64 caracteres), y tiene límite `throttle:chat-bff` (20 por minuto y por visitante).
 
 `app/Services/AsistenteVirtualService.php` aplica privacidad, bloqueo por sesión y deduplicación. Con activación explícita, `HorusAdvisorClient` consulta el servicio Python en loopback (`POST /api/v1/chat`, puerto 8001, `history: []`) y valida su respuesta. El modelo local es `paraphrase-multilingual-MiniLM-L12-v2`. Con el servicio desactivado o ante un fallo, responde mediante contingencia institucional. No participa un motor conversacional PHP ni OpenAI. El registro `chat_logs` omite el mensaje original.
 
-El área `admin/asistente` permite probar el mismo flujo y consultar hasta 50 registros recientes. La tabla de intenciones PHP es histórica; no entrena ni controla Python. Las clases de diagnóstico, el seeder y las migraciones históricas se conservan. Nunca ejecutes seeders para actualizar respuestas en una base real sin autorización.
+El asistente del panel (`compartido/asistente`) permite probar el mismo flujo y consultar hasta 50 registros recientes. La tabla de intenciones PHP es histórica; no entrena ni controla Python. Las clases de diagnóstico, el seeder y las migraciones históricas se conservan. Nunca ejecutes seeders para actualizar respuestas en una base real sin autorización.
 
 La plantilla `.env.example` declara `HORUS_ADVISOR_ENABLED=false`, URL loopback y secretos vacíos. El flag continúa apagado por defecto; no habilitarlo para usuarios reales sin autorización. El token de servicio solo vive en el servidor. Laravel usa `config()`; cualquier cambio operativo requiere regenerar la configuración cacheada mediante el procedimiento autorizado. No modificar `.env` para ejecutar pruebas.
 
@@ -198,34 +188,23 @@ El perfil PostgreSQL aislado y sus salvaguardas están en [docs/postgresql-l2.2-
 
 ```powershell
 php artisan test --compact
-npm test
-npm run build
 ```
 
-`npm test` ejecuta las pruebas unitarias del frontend con el runner nativo de Node. Los tests y smokes JavaScript dentro de `tests/frontend/` y `tests/browser/` deben usar siempre `.mjs`; el comando falla si encuentra allí `.js`, `.cjs`, TypeScript u otra extensión. Nombra las pruebas unitarias `*.test.mjs` o `*.spec.mjs`. Los smokes de navegador que requieren un servidor se ejecutan por separado.
+`apps/api` ya no tiene pruebas JavaScript ni smokes de navegador. Las comprobaciones de interfaz se hacen en `apps/web` (`npx tsc --noEmit`, ESLint, `npm run build`).
 
-Para un cambio acotado de PHP, puedes ejecutar `php artisan test --filter=AsistenteVirtualTest` u otra clase pertinente. `phpunit.xml` configura SQLite en memoria, sesión y caché aisladas, cola síncrona y correo simulado. Las pruebas PHP no demuestran PostgreSQL ni servicios externos reales. Si cambias el chat del navegador, comprueba también la interfaz, CSRF y las respuestas visibles.
+Para un cambio acotado de PHP, puedes ejecutar `php artisan test --filter=AsistenteVirtualTest` u otra clase pertinente. `phpunit.xml` configura SQLite en memoria, sesión y caché aisladas, cola síncrona y correo simulado. Las pruebas PHP no demuestran PostgreSQL ni servicios externos reales.
 
-`tests/browser/chat-smoke.mjs` abre Edge sin interfaz y envía una pregunta conocida y otra desconocida. Requiere **un servidor Laravel de prueba ya activo** en `http://127.0.0.1:8765/`, con base desechable migrada y `OPENAI_API_KEY` vacía. Ejecuta desde otra terminal:
-
-```powershell
-node tests/browser/chat-smoke.mjs
-```
-
-`CHAT_SMOKE_URL` cambia la URL objetivo y `EDGE_PATH` la ruta del ejecutable. La prueba envía solicitudes reales y guarda registros en la base conectada: verifica la URL y el destino antes de correrla. El perfil temporal de Edge se limpia al terminar y ante interrupciones habituales. Esta comprobación no acredita un despliegue ni el funcionamiento de PostgreSQL u OpenAI.
 
 ## Problemas frecuentes
 
 | Síntoma | Comprobación inicial |
 | --- | --- |
-| `419` al enviar el chat | Comprueba que cargas la página y envías a la misma aplicación/host, que la sesión funciona y que la página tiene un token CSRF vigente; recarga la página. |
+| `401` o `404` desde el BFF de Next | Comprueba que `HORUS_WEB_SERVICE_TOKEN` (32 caracteres o más) es el mismo en Laravel y en Next; sin token la API pública no existe. |
 | Chat sin respuesta o error `500` | Revisa `storage/logs/`, migraciones y conexión a DB; `chat_logs` se escribe sin guardar el mensaje original; comprobar también la configuración del Advisor. |
-| Página sin estilos o interacción | Ejecuta `npm run build` o inicia `npm run dev`; confirma que visitas Laravel mediante `php artisan serve`. |
-| Imágenes rotas o secciones sin su diseño propio | Comprueba que exista `public/assets/` (viene en el repositorio) y que la ruta usada en la vista coincida con un archivo real. Después recarga la página. |
-| Laravel intenta cargar Vite después de cerrarlo | Confirma que Vite ya no está activo y elimina el marcador temporal `public/hot`; luego usa `npm run build` o reinicia `npm run dev`. |
+| No llega el enlace de recuperación de contraseña | Comprueba `HORUS_WEB_URL` (obligatoria y válida) y `MAIL_MAILER`. |
+| Imágenes del catálogo rotas | Comprueba que exista `public/assets/images/` o `storage` enlazado (`php artisan storage:link`) y que Next apunte a `HORUS_API_URL`. |
 | `could not find driver` | Activa `pdo_pgsql` para PostgreSQL o `pdo_sqlite` para las pruebas, según el comando. |
 | No llega un correo | Comprueba `MAIL_MAILER`; con `log` no se envían mensajes reales. |
-| El smoke de Edge no conecta | Revisa el servidor en el puerto 8765, `CHAT_SMOKE_URL`, `EDGE_PATH` y que la base sea de prueba. |
 
 ## Seguridad y alcance
 
