@@ -59,7 +59,7 @@ final class ServiciosPanelTest extends PanelApiTestCase
 
     public function test_tener_permisos_de_modulo_sin_permiso_de_entrada_no_abre_el_panel(): void
     {
-        $user = $this->usuarioConPermisos(['servicios.ver', 'cotizaciones.ver'], ['admin']);
+        $user = $this->usuarioConPermisos(['servicios.ver', 'servicios.editar'], ['admin']);
         $user->roles()->where('name', 'admin')->first()->revokePermissionTo('panel.servicios.acceder');
 
         $this->como($user->fresh(), 'servicios/servicios')->assertForbidden();

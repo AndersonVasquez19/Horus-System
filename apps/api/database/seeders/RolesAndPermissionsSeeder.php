@@ -19,9 +19,6 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Solo admin por defecto; no concede acceso a otros roles administrativos. @var list<string> */
     public const SERVICIOS_PERMISSIONS = ['servicios.ver', 'servicios.crear', 'servicios.editar', 'servicios.publicar'];
 
-    /** Solo admin por defecto. @var list<string> */
-    public const COTIZACIONES_PERMISSIONS = ['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.gestionar'];
-
     /** Académico, Ola 3: convocatorias y horarios. Admin y coordinador todos; secretaria solo `ver`. @var list<string> */
     public const CONVOCATORIAS_PERMISSIONS = ['convocatorias.ver', 'convocatorias.crear', 'convocatorias.editar', 'convocatorias.cerrar'];
 
@@ -91,7 +88,6 @@ class RolesAndPermissionsSeeder extends Seeder
     public const PERMISSIONS = [
         ...self::PANEL_PERMISSIONS,
         ...self::SERVICIOS_PERMISSIONS,
-        ...self::COTIZACIONES_PERMISSIONS,
         ...self::CONVOCATORIAS_PERMISSIONS,
         ...self::CALIFICACIONES_PERMISSIONS,
         ...self::INFRAESTRUCTURA_PERMISSIONS,
