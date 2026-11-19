@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Schema;
  * Seguridad: si alguna de estas tablas tuviera filas, la migración se detiene sin cambiar nada. No se borran datos por
  * accidente; quien las necesite debe respaldarlas y vaciarlas a propósito.
  *
- * Los permisos del CRM (`clientes.*`, `prospectos.*`, …) se conservan: los retira otra decisión.
+ * Los permisos del CRM (`clientes.*`, `prospectos.*`, …) se conservan aquí: los retira la migración 000080.
  *
  * SQLite (solo pruebas): quitar una columna con clave foránea reconstruye la tabla y borra los `TRIGGER` que hacen de `CHECK`
  * (migración 000027); se guardan antes y se recrean después, y la columna no puede quedar apuntando a una tabla inexistente.

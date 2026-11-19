@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Panel;
 
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -34,13 +33,6 @@ final class RetiroTablasCrmMigracionTest extends TestCase
         }
         $this->assertTrue(Schema::hasTable('secuencias_codigo'), 'La usan los códigos de las ediciones.');
         $this->assertTrue(Schema::hasTable('solicitudes_cotizacion'));
-    }
-
-    public function test_los_permisos_del_crm_se_conservan(): void
-    {
-        foreach (RolesAndPermissionsSeeder::CLIENTES_PERMISSIONS as $permiso) {
-            $this->assertDatabaseHas('permissions', ['name' => $permiso, 'guard_name' => 'web']);
-        }
     }
 
     public function test_repetirla_no_falla_ni_cambia_nada(): void

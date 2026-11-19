@@ -22,24 +22,6 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Solo admin por defecto. @var list<string> */
     public const COTIZACIONES_PERMISSIONS = ['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.gestionar'];
 
-    /** CRM, Ola 3: clientes. Solo admin por defecto (restricción comercial vigente). @var list<string> */
-    public const CLIENTES_PERMISSIONS = ['clientes.ver', 'clientes.crear', 'clientes.editar'];
-
-    /** CRM, Ola 3: prospectos. Solo admin por defecto (restricción comercial vigente). @var list<string> */
-    public const PROSPECTOS_PERMISSIONS = ['prospectos.ver', 'prospectos.crear', 'prospectos.editar', 'prospectos.convertir'];
-
-    /** CRM, Ola 3: pipeline de oportunidades. Solo admin por defecto (restricción comercial vigente). @var list<string> */
-    public const PIPELINE_PERMISSIONS = ['pipeline.ver', 'pipeline.gestionar'];
-
-    /** CRM, Ola 3: proyectos. Solo admin por defecto (restricción comercial vigente). @var list<string> */
-    public const PROYECTOS_PERMISSIONS = ['proyectos.ver', 'proyectos.crear', 'proyectos.editar'];
-
-    /** CRM, Ola 3: soporte técnico. Solo admin por defecto (restricción comercial vigente). @var list<string> */
-    public const SOPORTE_PERMISSIONS = ['soporte.ver', 'soporte.crear', 'soporte.gestionar'];
-
-    /** CRM, Ola 3: reportes comerciales (consulta y exportación). Solo admin por defecto. @var list<string> */
-    public const REPORTES_COMERCIALES_PERMISSIONS = ['reportes-comerciales.ver', 'reportes-comerciales.exportar'];
-
     /** Académico, Ola 3: convocatorias y horarios. Admin y coordinador todos; secretaria solo `ver`. @var list<string> */
     public const CONVOCATORIAS_PERMISSIONS = ['convocatorias.ver', 'convocatorias.crear', 'convocatorias.editar', 'convocatorias.cerrar'];
 
@@ -110,12 +92,6 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::PANEL_PERMISSIONS,
         ...self::SERVICIOS_PERMISSIONS,
         ...self::COTIZACIONES_PERMISSIONS,
-        ...self::CLIENTES_PERMISSIONS,
-        ...self::PROSPECTOS_PERMISSIONS,
-        ...self::PIPELINE_PERMISSIONS,
-        ...self::PROYECTOS_PERMISSIONS,
-        ...self::SOPORTE_PERMISSIONS,
-        ...self::REPORTES_COMERCIALES_PERMISSIONS,
         ...self::CONVOCATORIAS_PERMISSIONS,
         ...self::CALIFICACIONES_PERMISSIONS,
         ...self::INFRAESTRUCTURA_PERMISSIONS,

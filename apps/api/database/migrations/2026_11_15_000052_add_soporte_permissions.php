@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
@@ -17,15 +16,18 @@ use Spatie\Permission\PermissionRegistrar;
  */
 return new class extends Migration
 {
+    /** Lista propia: el seeder ya no define los permisos del CRM (los retira la migración 000080). @var list<string> */
+    private const PERMISOS = ['soporte.ver', 'soporte.crear', 'soporte.gestionar'];
+
     public function up(): void
     {
         DB::transaction(function (): void {
-            foreach (RolesAndPermissionsSeeder::SOPORTE_PERMISSIONS as $name) {
+            foreach (self::PERMISOS as $name) {
                 Permission::findOrCreate($name, 'web');
             }
 
             Role::query()->where('name', 'admin')->where('guard_name', 'web')->first()
-                ?->givePermissionTo(RolesAndPermissionsSeeder::SOPORTE_PERMISSIONS);
+                ?->givePermissionTo(self::PERMISOS);
         });
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -36,7 +38,7 @@ return new class extends Migration
         // asignaciones a roles y usuarios.
         DB::transaction(function (): void {
             Permission::query()->where('guard_name', 'web')
-                ->whereIn('name', RolesAndPermissionsSeeder::SOPORTE_PERMISSIONS)
+                ->whereIn('name', self::PERMISOS)
                 ->get()
                 ->each(fn (Permission $permiso) => $permiso->delete());
         });
