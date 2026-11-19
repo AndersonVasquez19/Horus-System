@@ -15,20 +15,20 @@ export function ExportarRespaldo() {
   const [exportando, setExportando] = useState(false);
 
   if (!puede) {
-    return <p className="text-sm text-panel-muted">Tu cuenta puede ver qué incluye la exportación, pero no descargarla.</p>;
+    return <p className="text-sm text-panel-muted">Tu cuenta puede ver qué incluye la descarga, pero no descargarla.</p>;
   }
 
   async function exportar() {
     setExportando(true);
     const resultado = await descargar('compartido/respaldo/exportar');
     setExportando(false);
-    if (resultado.ok) mostrar('exito', 'Exportación generada. No se conserva ninguna copia en el servidor.');
+    if (resultado.ok) mostrar('exito', 'Descarga lista. No se guarda ninguna copia en el servidor.');
     else mostrar('error', resultado.error.message);
   }
 
   return (
     <Boton icono={<Download className="h-4 w-4" aria-hidden="true" />} cargando={exportando} onClick={exportar}>
-      {exportando ? 'Generando…' : 'Descargar exportación (ZIP)'}
+      {exportando ? 'Preparando…' : 'Descargar datos'}
     </Boton>
   );
 }

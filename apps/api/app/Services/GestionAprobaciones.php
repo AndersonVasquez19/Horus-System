@@ -53,7 +53,7 @@ class GestionAprobaciones
                             'mensaje' => 'Hay una solicitud pendiente para revisar: '.$aprobacion->titulo,
                             'tipo' => 'warning',
                             'leida' => false,
-                            'vinculo' => '/admin/aprobaciones',
+                            'vinculo' => '/admin/academico/aprobaciones',
                         ]);
                     }
                 }

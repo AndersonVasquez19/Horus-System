@@ -46,7 +46,7 @@ async function Edicion({ params }: { params: Promise<{ id: string }> }) {
     <>
       <EncabezadoPagina
         titulo={`Editar matrícula #${matricula.id}`}
-        descripcion="Cambiar el curso traslada el cupo; pasar a «Anulada» lo libera. Laravel vuelve a comprobarlo todo al guardar."
+        descripcion="Cambiar el curso traslada el cupo; pasar a «Anulada» lo libera. Todo se vuelve a comprobar al guardar."
         migas={[
           { etiqueta: 'Inicio', href: '/admin/academico' },
           { etiqueta: 'Matrículas', href: LISTADO },

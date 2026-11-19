@@ -88,7 +88,7 @@ export function SesionesActivas({ sesiones, disponible, tono }: { sesiones: Sesi
       {objetivo !== null ? (
         <form onSubmit={confirmar} noValidate className="space-y-3 rounded-lg border border-panel-border bg-panel-bg p-4">
           <p className="text-sm text-panel-text">
-            {objetivo === 'otras' ? `Se cerrarán ${otras} sesión(es) y se revocarán los accesos por API.` : 'Se cerrará esa sesión.'} Confirma con tu contraseña actual.
+            {objetivo === 'otras' ? `Se cerrarán ${otras} sesión(es) y se cerrará el acceso desde otros dispositivos.` : 'Se cerrará esa sesión.'} Confirma con tu contraseña actual.
           </p>
           {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
           <Campo tono={tono} etiqueta="Contraseña actual" type="password" value={clave} onChange={(e) => setClave(e.target.value)} error={errorDeCampo(error, 'current_password')} autoComplete="current-password" required />

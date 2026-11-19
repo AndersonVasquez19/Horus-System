@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CheckCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -29,6 +30,22 @@ export function BotonMarcarLeida({ id, tono }: { id: number; tono: TonoUi }) {
     <Boton tono={tono} variante="fantasma" cargando={cargando} onClick={marcar} className="px-2 py-1 text-xs">
       Marcar como leída
     </Boton>
+  );
+}
+
+/** Enlace de una notificación: al abrirlo, si estaba sin leer, la marca como leída (sin esperar a la respuesta). */
+export function EnlaceNotificacion({ id, href, texto, leida }: { id: number; href: string; texto: string; leida: boolean }) {
+  const { ejecutar } = useOperacionPanel();
+  return (
+    <Link
+      href={href}
+      onClick={() => {
+        if (!leida) void ejecutar(`compartido/notificaciones/${id}/leida`, 'POST');
+      }}
+      className="text-xs font-semibold text-panel-text underline"
+    >
+      {texto}
+    </Link>
   );
 }
 

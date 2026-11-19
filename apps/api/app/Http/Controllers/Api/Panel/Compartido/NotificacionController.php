@@ -13,6 +13,7 @@ use App\Support\NotificacionesPendientes;
 use App\Support\Panel\Listado;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -28,11 +29,37 @@ final class NotificacionController extends Controller
 
     private const ORDENABLES = ['fecha' => 'created_at'];
 
+    /** Tipo de aviso → texto que se muestra. Un tipo nuevo se muestra como «Aviso». */
+    public const TIPOS = [
+        'reclamacion' => 'Reclamación',
+        'reclamacion_plazo' => 'Plazo de reclamación',
+        'contacto' => 'Mensaje de contacto',
+        'warning' => 'Aviso',
+        'success' => 'Confirmación',
+        'danger' => 'Urgente',
+        'info' => 'Información',
+    ];
+
     public function index(Request $request): JsonResponse
     {
         $usuario = $this->usuario($request);
 
+        $filtros = self::filtros($request);
         $consulta = NotificacionInterna::query()->visiblePara($usuario)->conLecturaDe($usuario);
+        if ($filtros['estado'] === 'no_leidas') {
+            $consulta->noLeidasPara($usuario);
+        } elseif ($filtros['estado'] === 'leidas') {
+            $consulta->whereNotIn('id', NotificacionInterna::query()->visiblePara($usuario)->noLeidasPara($usuario)->select('id'));
+        }
+        if ($filtros['tipo'] !== '') {
+            $consulta->where('tipo', $filtros['tipo']);
+        }
+        if ($filtros['desde'] !== '') {
+            $consulta->where('created_at', '>=', Carbon::parse($filtros['desde'], HoraLocal::ZONA)->startOfDay()->utc());
+        }
+        if ($filtros['hasta'] !== '') {
+            $consulta->where('created_at', '<=', Carbon::parse($filtros['hasta'], HoraLocal::ZONA)->endOfDay()->utc());
+        }
         $orden = Listado::ordenar($consulta, $request, self::ORDENABLES, '-fecha');
         $respuesta = Listado::responder(
             Listado::paginar($consulta, $request),
@@ -41,10 +68,12 @@ final class NotificacionController extends Controller
                 'leida' => $notificacion->estaLeidaPara($usuario),
             ],
             $orden,
+            $filtros,
         );
 
         $cuerpo = $respuesta->getData(true);
         $cuerpo['meta']['pendientes'] = NotificacionesPendientes::para($usuario);
+        $cuerpo['meta']['tipos'] = collect(self::TIPOS)->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])->values()->all();
 
         return response()->json($cuerpo);
     }
@@ -127,6 +156,39 @@ final class NotificacionController extends Controller
         ]);
     }
 
+    /** @return array{estado: string, tipo: string, desde: string, hasta: string} */
+    private static function filtros(Request $request): array
+    {
+        $texto = static fn (string $campo): string => is_string($request->query($campo)) ? trim((string) $request->query($campo)) : '';
+        $fecha = static function (string $valor): string {
+            if (preg_match('/\A(\d{4})-(\d{2})-(\d{2})\z/', $valor, $m) !== 1) {
+                return '';
+            }
+
+            return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $valor : '';
+        };
+        $estado = $texto('estado');
+        $tipo = $texto('tipo');
+
+        return [
+            'estado' => in_array($estado, ['no_leidas', 'leidas'], true) ? $estado : '',
+            'tipo' => array_key_exists($tipo, self::TIPOS) ? $tipo : '',
+            'desde' => $fecha($texto('desde')),
+            'hasta' => $fecha($texto('hasta')),
+        ];
+    }
+
+    /** Texto del enlace según a dónde lleva. */
+    private static function textoEnlace(?string $vinculo): string
+    {
+        return match (true) {
+            $vinculo === null => '',
+            str_contains($vinculo, '/aprobaciones') => 'Ir a aprobaciones',
+            str_contains($vinculo, '/reclamaciones') => 'Ver en reclamaciones',
+            default => 'Abrir',
+        };
+    }
+
     /** @return array<string, mixed> */
     private static function resumen(NotificacionInterna $notificacion): array
     {
@@ -137,7 +199,9 @@ final class NotificacionController extends Controller
             'tipo' => $notificacion->tipo,
             'fecha' => $notificacion->created_at?->toIso8601String(),
             'fecha_local' => HoraLocal::formato($notificacion->created_at),
+            'tipo_etiqueta' => self::TIPOS[(string) $notificacion->tipo] ?? 'Aviso',
             'vinculo' => $notificacion->vinculoSeguro(),
+            'enlace_texto' => self::textoEnlace($notificacion->vinculoSeguro()),
         ];
     }
 

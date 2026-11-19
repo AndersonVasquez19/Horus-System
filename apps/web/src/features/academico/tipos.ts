@@ -33,7 +33,7 @@ export interface ResumenAcademico {
   seguimiento?: {
     aprobaciones_pendientes?: number;
     notificaciones_sin_leer?: number;
-    auditoria_reciente?: { id: number; fecha_local: string; usuario: string | null; accion: string }[];
+    auditoria_reciente?: { id: number; fecha_local: string; usuario: string | null; accion: string; accion_etiqueta?: string }[];
   };
 }
 

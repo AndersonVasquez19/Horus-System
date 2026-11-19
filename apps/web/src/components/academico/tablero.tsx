@@ -151,7 +151,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
               {sg.auditoria_reciente.map((a) => (
                 <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                   <span className="min-w-0 truncate text-panel-text">
-                    <span className="font-medium">{a.usuario ?? 'Sistema'}</span> <span className="text-panel-muted">{a.accion}</span>
+                    <span className="font-medium">{a.usuario ?? 'Sistema'}</span> <span className="text-panel-muted">{a.accion_etiqueta ?? a.accion}</span>
                   </span>
                   <span className="shrink-0 tabular-nums text-panel-muted">{a.fecha_local}</span>
                 </li>

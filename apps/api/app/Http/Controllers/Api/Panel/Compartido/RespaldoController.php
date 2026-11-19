@@ -31,6 +31,19 @@ class RespaldoController extends Controller implements HasMiddleware
         'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas',
     ];
 
+    /** Nombre con el que se presenta cada tabla en el panel (la clave técnica no se muestra). */
+    private const ETIQUETAS = [
+        'users' => 'Usuarios del panel',
+        'estudiantes' => 'Estudiantes',
+        'cursos' => 'Cursos',
+        'matriculas' => 'Matrículas',
+        'procesos_internos' => 'Procesos internos',
+        'notificaciones_internas' => 'Notificaciones',
+        'audit_logs' => 'Historial de actividad',
+        'system_settings' => 'Configuración del sistema',
+        'aprobaciones_internas' => 'Aprobaciones',
+    ];
+
     /** @return list<Middleware> */
     public static function middleware(): array
     {
@@ -51,21 +64,25 @@ class RespaldoController extends Controller implements HasMiddleware
     {
         return response()->json(['data' => [
             'tablas' => self::TABLAS,
+            'contenido' => array_map(
+                static fn (string $tabla): array => ['clave' => $tabla, 'etiqueta' => self::ETIQUETAS[$tabla] ?? $tabla],
+                self::TABLAS,
+            ),
             'es_respaldo_restaurable' => false,
-            'aviso' => 'Exportación minimizada de tablas seleccionadas. No incluye contraseñas ni tokens y no permite restaurar el sistema.',
+            'aviso' => 'Resumen de la información principal del sistema. No incluye contraseñas ni claves de acceso y no permite restaurar el sistema.',
         ]]);
     }
 
     public function exportar(): JsonResponse|BinaryFileResponse
     {
         if (! class_exists(ZipArchive::class)) {
-            return response()->json(['message' => 'La extensión ZIP no está disponible en este servidor.'], 503);
+            return response()->json(['message' => 'No se pueden preparar descargas comprimidas en este servidor. Contacta con soporte.'], 503);
         }
 
         $nombre = 'exportacion_'.now()->format('Ymd_His').'.zip';
         $zipPath = $this->newTemporaryFile();
         if ($zipPath === false) {
-            return response()->json(['message' => 'No se pudo crear el archivo de exportación.'], 500);
+            return response()->json(['message' => 'No se pudo preparar la descarga. Inténtalo de nuevo.'], 500);
         }
 
         // Solo se conserva el temporal si la respuesta de descarga llegó a construirse.

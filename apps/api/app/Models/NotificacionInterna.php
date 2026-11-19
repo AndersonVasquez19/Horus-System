@@ -187,6 +187,11 @@ class NotificacionInterna extends Model
             return null;
         }
 
+        // Avisos antiguos apuntaban a `/admin/aprobaciones`, que no existe en el panel actual.
+        if ($ruta === '/admin/aprobaciones') {
+            return '/admin/academico/aprobaciones';
+        }
+
         return $vinculo;
     }
 

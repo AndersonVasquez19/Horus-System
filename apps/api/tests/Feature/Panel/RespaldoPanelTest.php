@@ -51,7 +51,9 @@ final class RespaldoPanelTest extends PanelApiTestCase
 
         $coordinador = $this->usuarioConRol('coordinador', 'coord@horus.test');
         $this->actingAs($coordinador)->panel('GET', 'compartido/respaldo')->assertOk()
-            ->assertJsonPath('data.es_respaldo_restaurable', false)->assertJsonPath('data.tablas.0', 'users');
+            ->assertJsonPath('data.es_respaldo_restaurable', false)->assertJsonPath('data.tablas.0', 'users')
+            ->assertJsonPath('data.contenido.0', ['clave' => 'users', 'etiqueta' => 'Usuarios del panel'])
+            ->assertJsonPath('data.contenido.6.etiqueta', 'Historial de actividad');
         $this->actingAs($coordinador)->panel('POST', 'compartido/respaldo/exportar')->assertForbidden();
 
         $secretaria = $this->usuarioConRol('secretaria', 'sec@horus.test');

@@ -65,7 +65,7 @@ class AprobacionInterna extends Model
                     'mensaje' => 'Hay una solicitud pendiente para revisar: '.$aprobacion->titulo,
                     'tipo' => 'warning',
                     'leida' => false,
-                    'vinculo' => '/admin/aprobaciones',
+                    'vinculo' => '/admin/academico/aprobaciones',
                 ]);
             }
         });
@@ -103,7 +103,7 @@ class AprobacionInterna extends Model
                         default => 'danger',
                     },
                     'leida' => false,
-                    'vinculo' => '/admin/aprobaciones',
+                    'vinculo' => '/admin/academico/aprobaciones',
                 ]);
             }
         });

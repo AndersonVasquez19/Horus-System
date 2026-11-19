@@ -5,6 +5,7 @@ import { Insignia } from '@/components/shared/ui/insignia';
 import type { TonoUi } from '@/components/shared/ui/boton';
 import type { RolPanel } from '@/features/notificaciones/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
+import { agruparPermisos } from '@/lib/permisos-etiquetas';
 import { AccionesRol, BotonNuevoRol } from './acciones-rol';
 
 const TIPOS = { principal: 'Principal', base: 'Base', personalizado: 'Personalizado' } as const;
@@ -48,17 +49,26 @@ async function Roles({ tono }: { tono: TonoUi }) {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="font-heading text-base font-semibold text-panel-text">{rol.nombre}</h2>
-                  <p className="text-xs text-panel-muted">{rol.usuarios === 1 ? '1 usuario' : `${rol.usuarios} usuarios`} · {rol.permisos.length} permisos</p>
+                  <p className="text-xs text-panel-muted">{rol.usuarios === 1 ? '1 usuario' : `${rol.usuarios} usuarios`} · {rol.permisos.length === 1 ? '1 permiso' : `${rol.permisos.length} permisos`}</p>
                 </div>
                 <Insignia color={rol.tipo === 'principal' ? 'azul' : 'gris'}>{TIPOS[rol.tipo]}</Insignia>
               </div>
-              <p className="flex flex-wrap gap-1">
-                {rol.permisos.length === 0 ? (
-                  <span className="text-sm text-panel-muted">Sin permisos</span>
-                ) : (
-                  rol.permisos.map((permiso) => <span key={permiso} className="rounded-md bg-panel-bg px-2 py-0.5 font-mono text-xs text-panel-muted">{permiso}</span>)
-                )}
-              </p>
+              {rol.permisos.length === 0 ? (
+                <p className="text-sm text-panel-muted">Sin permisos</p>
+              ) : (
+                <dl className="space-y-2">
+                  {agruparPermisos(rol.permisos).map((grupo) => (
+                    <div key={grupo.modulo}>
+                      <dt className="text-xs font-semibold text-panel-text">{grupo.etiqueta}</dt>
+                      <dd className="mt-1 flex flex-wrap gap-1">
+                        {grupo.permisos.map((permiso) => (
+                          <span key={permiso.clave} className="rounded-md bg-panel-bg px-2 py-0.5 text-xs text-panel-muted">{permiso.etiqueta}</span>
+                        ))}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
               <AccionesRol rol={rol} permisos={meta.permisos} tono={tono} />
             </li>
           ))}

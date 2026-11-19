@@ -67,8 +67,28 @@ class NotificacionLecturaPorUsuarioTest extends TestCase
 
         $vinculos = $this->panel($this->a, 'GET', 'notificaciones')->assertOk()->json('data.*.vinculo');
 
-        $this->assertContains('/admin/aprobaciones', $vinculos);
+        $this->assertContains('/admin/academico/aprobaciones', $vinculos);
         $this->assertNotContains('//externo.example/x', $vinculos);
+    }
+
+    public function test_la_bandeja_filtra_por_estado_tipo_y_fecha_y_etiqueta_el_tipo(): void
+    {
+        $leida = $this->personal($this->a, 'Ya leída', leida: true);
+        $this->personal($this->a, 'Pendiente');
+        NotificacionInterna::crearPersonal($this->a->id, ['titulo' => 'Reclamo', 'mensaje' => 'x', 'tipo' => 'reclamacion', 'leida' => false, 'vinculo' => '/admin/academico/reclamaciones']);
+
+        $titulos = fn (string $consulta): array => $this->panel($this->a, 'GET', 'notificaciones'.$consulta)->assertOk()->json('data.*.titulo');
+
+        $this->assertEqualsCanonicalizing(['Pendiente', 'Reclamo'], $titulos('?estado=no_leidas'));
+        $this->assertSame(['Ya leída'], $titulos('?estado=leidas'));
+        $this->assertSame(['Reclamo'], $titulos('?tipo=reclamacion'));
+        $this->assertSame([], $titulos('?desde=2999-01-01'));
+        $this->assertCount(3, $titulos('?estado=nada&tipo=inventado&desde=basura'));
+
+        $respuesta = $this->panel($this->a, 'GET', 'notificaciones?tipo=reclamacion')->assertOk();
+        $respuesta->assertJsonPath('data.0.tipo_etiqueta', 'Reclamación')->assertJsonPath('data.0.enlace_texto', 'Ver en reclamaciones');
+        $this->assertNotEmpty($respuesta->json('meta.tipos'));
+        $this->assertNotNull($leida->id);
     }
 
     public function test_la_migracion_funciona_en_base_sembrada_y_es_reversible(): void

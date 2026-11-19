@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Support\ConsultaAuditoria;
 use App\Support\Panel\Listado;
+use App\Support\Panel\PresentadorAuditoria;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -39,7 +40,7 @@ final class AuditoriaController extends Controller implements HasMiddleware
         ConsultaAuditoria::aplicar($consulta, $filtros);
         $orden = Listado::ordenar($consulta, $request, self::ORDENABLES, '-fecha');
 
-        return Listado::responder(
+        $respuesta = Listado::responder(
             Listado::paginar($consulta, $request),
             fn (AuditLog $registro): array => [
                 'id' => $registro->id,
@@ -51,10 +52,23 @@ final class AuditoriaController extends Controller implements HasMiddleware
                 'modelo_id' => $registro->model_id,
                 'ip' => $registro->ip_address,
                 'cambios' => $registro->changes === null || $registro->changes === [] ? null : $registro->redactedChanges(),
+                // Lo que enseña el panel: etiquetas y frases, sin clases, claves internas ni JSON.
+                ...PresentadorAuditoria::de($registro),
             ],
             $orden,
             $filtros,
         );
+
+        // Opciones de los filtros «Acción» y «Qué se tocó», con su texto en español.
+        $contenido = $respuesta->getData(true);
+        $contenido['meta']['acciones'] = collect(PresentadorAuditoria::ACCIONES)
+            ->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])
+            ->sortBy('etiqueta')->values()->all();
+        $contenido['meta']['secciones'] = collect(PresentadorAuditoria::MODELOS)
+            ->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])
+            ->sortBy('etiqueta')->values()->all();
+
+        return response()->json($contenido);
     }
 
     /**

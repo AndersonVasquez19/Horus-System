@@ -75,6 +75,15 @@ export function SelectorFiltro({ tono, nombre, etiqueta, valor, opciones, todos 
   );
 }
 
+export function CampoFecha({ tono, nombre, etiqueta, valor }: { tono: TonoUi; nombre: string; etiqueta: string; valor: string }) {
+  return (
+    <div>
+      <label htmlFor={nombre} className="mb-1 block text-xs font-medium text-panel-muted">{etiqueta}</label>
+      <input id={nombre} name={nombre} type="date" defaultValue={valor} className={claseControl(tono)} />
+    </div>
+  );
+}
+
 /** Primer valor de un parámetro de búsqueda. */
 export function parametro(parametros: Record<string, string | string[] | undefined>, nombre: string): string {
   const dato = parametros[nombre];

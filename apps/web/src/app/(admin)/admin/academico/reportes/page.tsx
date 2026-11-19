@@ -64,7 +64,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
   const encabezado = (acciones?: React.ReactNode) => (
     <EncabezadoPagina
       titulo="Reportes"
-      descripcion="Matrículas con sus filtros, resumen y exportación a Excel o PDF."
+      descripcion="Matrículas con sus filtros, resumen y descarga en Excel o PDF."
       migas={[{ etiqueta: 'Inicio', href: '/admin/academico' }, { etiqueta: 'Reportes' }]}
       acciones={acciones}
     />

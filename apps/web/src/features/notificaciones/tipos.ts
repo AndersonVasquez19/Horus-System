@@ -12,6 +12,9 @@ export interface Notificacion {
   /** Ruta interna segura (o null: Laravel descarta enlaces externos). */
   vinculo: string | null;
   leida: boolean;
+  /** Tipo en español («Reclamación», «Aviso»…) y texto del enlace, ya resueltos por Laravel. */
+  tipo_etiqueta?: string;
+  enlace_texto?: string;
 }
 
 export interface PerfilPropio {
@@ -39,8 +42,17 @@ export interface RegistroAuditoria {
   modelo: string | null;
   modelo_id: number | null;
   ip: string | null;
-  /** Cambios ya enmascarados por Laravel (secretos y texto de búsqueda). */
+  /** Cambios ya enmascarados por Laravel (secretos y texto de búsqueda). No se muestran crudos: ver `resumen`. */
   cambios: Record<string, unknown> | null;
+  /** Texto en español de la acción y de lo que se tocó, y frases con los cambios (sin claves internas ni JSON). */
+  accion_etiqueta: string;
+  modelo_etiqueta: string | null;
+  resumen: string[];
+}
+
+export interface OpcionAuditoria {
+  clave: string;
+  etiqueta: string;
 }
 
 export interface UsuarioPanel {

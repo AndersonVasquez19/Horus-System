@@ -332,6 +332,7 @@ class GestionReclamaciones
                     'titulo' => $titulo.$r->numero,
                     'mensaje' => $mensaje,
                     'tipo' => 'reclamacion_plazo',
+                    'vinculo' => '/admin/academico/reclamaciones',
                 ]);
             }
             AuditoriaReclamaciones::registrar('aviso_plazo', $r, ['numero' => $r->numero, 'resultado' => $umbral, 'fecha_limite' => $r->fecha_limite->toDateString()], null);
@@ -566,6 +567,7 @@ class GestionReclamaciones
                 'titulo' => 'Nueva reclamación '.$r->numero,
                 'mensaje' => 'Se registró '.($r->tipo === 'reclamo' ? 'un reclamo' : 'una queja').'. Plazo de respuesta hasta el '.$r->fecha_limite->format('d/m/Y').'.',
                 'tipo' => 'reclamacion',
+                'vinculo' => '/admin/academico/reclamaciones',
             ]);
         }
     }

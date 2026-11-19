@@ -155,6 +155,7 @@ final class ResumenAcademico
                     'fecha_local' => HoraLocal::formato($a->created_at, 'd/m/Y H:i'),
                     'usuario' => $a->user?->name,
                     'accion' => $a->action,
+                    'accion_etiqueta' => \App\Support\Panel\PresentadorAuditoria::etiquetaAccion((string) $a->action),
                 ])->all();
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\AuditLog;
+use App\Support\Panel\PresentadorAuditoria;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -37,7 +38,13 @@ final class ConsultaAuditoria
      */
     public static function aplicar(Builder $query, array $filtros): void
     {
-        BusquedaLike::contiene($query, ['action'], $filtros['accion']);
+        // Una acción elegida de la lista (p. ej. «login») se compara completa para no mezclar «login_failed»; el texto libre sigue
+        // buscándose por coincidencia parcial.
+        if (array_key_exists($filtros['accion'], PresentadorAuditoria::ACCIONES)) {
+            $query->where('action', $filtros['accion']);
+        } else {
+            BusquedaLike::contiene($query, ['action'], $filtros['accion']);
+        }
         BusquedaLike::contiene($query, ['model_type'], $filtros['modelo']);
 
         if ($filtros['usuario'] !== '') {

@@ -143,7 +143,8 @@ class RetiroProcesosTest extends TestCase
             ->assertOk()->json('data');
         $porTitulo = collect($lista)->keyBy('titulo');
         $this->assertNull($porTitulo['Aviso histórico ficticio']['vinculo']);
-        $this->assertSame('/admin/aprobaciones', $porTitulo['Aviso vigente ficticio']['vinculo']);
+        // El aviso guardado con la ruta antigua se muestra con la ruta vigente del panel.
+        $this->assertSame('/admin/academico/aprobaciones', $porTitulo['Aviso vigente ficticio']['vinculo']);
 
         $this->assertSame($vinculo, $aviso->fresh()->vinculo);
         $this->assertFalse($aviso->fresh()->leida);
