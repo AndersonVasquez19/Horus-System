@@ -96,7 +96,7 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
           icono={<ShieldAlert className="h-6 w-6" aria-hidden="true" />}
           titulo="No tienes acceso a este panel"
           texto="Tu cuenta no tiene permiso para entrar aquí. Si crees que es un error, contacta con un administrador."
-          enlace={{ href: '/admin', texto: 'Ir a mis paneles', clase: t.enlace }}
+          enlace={{ href: '/admin', texto: 'Volver al inicio del panel', clase: t.enlace }}
         />
       </Franja>
     );
@@ -201,9 +201,24 @@ function EstadoPagina({
   );
 }
 
+/** Riel lateral de carga: oscuro como el real, con barras neutras (aún no se sabe qué módulos puede usar la persona). */
+function RielEsqueleto() {
+  return (
+    <div className="space-y-2 px-4 pb-6 pt-4 md:px-5" aria-hidden="true">
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
+        <div key={n} className="h-8 animate-pulse rounded-md bg-white/10" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Lo primero que se pinta al entrar o recargar, hasta que Laravel confirma la sesión. Lleva el riel oscuro y la franja
+ * superior del panel real: sin riel era una pantalla clara casi vacía con el título «Gestión académica».
+ */
 function EsqueletoPanel({ tono, titulo }: { tono: TonoPanel; titulo: string }) {
   return (
-    <Franja tono={tono} titulo={titulo}>
+    <Franja tono={tono} titulo={titulo} riel={<RielEsqueleto />}>
       <div className="flex flex-1 flex-col" aria-busy="true" aria-label="Cargando el panel">
         <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
           <div className="h-8 w-56 animate-pulse rounded-md bg-panel-border" />

@@ -27,7 +27,10 @@ export function FormularioLogin() {
     const resultado = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/login', { cuerpo: { email, password } });
     if (resultado.ok) {
       setPassword('');
-      router.replace(destinoSeguro(parametros.get('next')));
+      // Sin destino pedido se entra directo al panel académico: `/admin` solo resuelve la sesión y redirige, y pasar por él
+      // dejaba ver un instante otro título antes del definitivo. Quien no tenga acceso verá el aviso de acceso denegado.
+      const destino = destinoSeguro(parametros.get('next'));
+      router.replace(destino === '/admin' ? '/admin/academico' : destino);
       router.refresh();
       return;
     }

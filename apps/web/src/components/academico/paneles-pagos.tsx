@@ -334,6 +334,13 @@ function ComprobanteTransaccion({ transaccion: t, puedeAdjuntar }: { transaccion
       ) : null}
       <Dialogo abierto={viendo} titulo="Comprobante de pago" onCerrar={() => setViendo(false)}>
         {viendo ? (
+          <p className="mb-3 text-right">
+            <a href={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`} download={`comprobante-de-pago-${t.identificador}`} className="text-sm font-semibold text-panel-text underline">
+              Descargar imagen
+            </a>
+          </p>
+        ) : null}
+        {viendo ? (
           // Imagen privada servida por el BFF con la sesión: no hay URL pública; `no-store` y `nosniff` los pone Laravel.
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`} alt="Captura del comprobante de pago" className="mx-auto max-h-[70vh] w-auto rounded-lg border border-panel-border" />
@@ -377,6 +384,42 @@ export function EnlaceObligacion({ identificador }: { identificador: string }) {
 }
 
 export { COLOR_COBRO };
+
+/**
+ * «Comprobante de pago» de la ficha de la matrícula: cada pago con su estado y su captura (ver, descargar, adjuntar o reemplazar si
+ * el pago sigue por confirmar). Confirmar o rechazar sigue en la página del pago, donde queda el detalle completo.
+ */
+export function ComprobantesDeLaMatricula({ obligacion: o }: { obligacion: ObligacionDetalle }) {
+  const puedeRegistrar = usePuede('pagos.registrar');
+  const pagos = o.transacciones.filter((t) => t.tipo === 'pago');
+  const vigente = o.estado !== 'anulada';
+
+  if (pagos.length === 0) {
+    return <p className="text-sm text-panel-muted">Todavía no hay pagos registrados. Cuando se registre un pago podrás adjuntar aquí su comprobante.</p>;
+  }
+
+  return (
+    <ul className="divide-y divide-panel-border rounded-xl border border-panel-border bg-panel-surface">
+      {pagos.map((t) => (
+        <li key={t.identificador} className="space-y-2 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-panel-text">
+              {moneda(t.monto)} · {t.metodo} · {fecha(t.fecha_pago)}
+            </p>
+            <div className="flex gap-1">
+              <Insignia color={COLOR_TX[t.estado]}>{t.estado === 'confirmada' ? 'Confirmado' : t.estado === 'pendiente' ? 'Por confirmar' : 'Rechazado'}</Insignia>
+              <Insignia color={t.tiene_comprobante ? 'verde' : 'gris'}>{t.tiene_comprobante ? 'Con comprobante' : 'Sin comprobante'}</Insignia>
+            </div>
+          </div>
+          {t.referencia ? <p className="text-xs text-panel-muted">N.º de operación: {t.referencia}</p> : null}
+          <div className="flex flex-wrap gap-1">
+            <ComprobanteTransaccion transaccion={t} puedeAdjuntar={t.estado === 'pendiente' && puedeRegistrar && vigente} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** Exporta las obligaciones a Excel (solo con `pagos.exportar`). */
 export function BotonExportarPagos() {

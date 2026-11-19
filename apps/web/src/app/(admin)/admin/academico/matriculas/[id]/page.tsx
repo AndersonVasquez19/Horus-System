@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesMatricula } from '@/components/academico/acciones-matricula';
-import { BotonCrearObligacion, COLOR_COBRO, ETIQUETA_COBRO, EnlaceObligacion } from '@/components/academico/paneles-pagos';
+import { BotonCrearObligacion, COLOR_COBRO, ComprobantesDeLaMatricula, ETIQUETA_COBRO, EnlaceObligacion } from '@/components/academico/paneles-pagos';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
@@ -127,6 +127,7 @@ async function PagosDeLaMatricula({ matriculaId }: { matriculaId: number }) {
   if (r.estado !== 'ok') return null;
   const o = r.datos.data;
   return (
+    <>
     <Seccion id="titulo-pagos" titulo="Pagos" descripcion="Obligación de pago en soles (PEN).">
       {o === null ? (
         <div className="space-y-3">
@@ -141,6 +142,12 @@ async function PagosDeLaMatricula({ matriculaId }: { matriculaId: number }) {
         </div>
       )}
     </Seccion>
+    {o !== null ? (
+      <Seccion id="titulo-comprobante" titulo="Comprobante de pago" descripcion="Captura de cada pago: ábrela, descárgala o adjúntala si el pago aún está por confirmar.">
+        <ComprobantesDeLaMatricula obligacion={o} />
+      </Seccion>
+    ) : null}
+    </>
   );
 }
 

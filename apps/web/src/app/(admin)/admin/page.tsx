@@ -4,7 +4,8 @@ import { Suspense } from 'react';
 import { BotonCerrarSesion } from '@/components/shared/boton-cerrar-sesion';
 import { obtenerSesion } from '@/lib/panel/sesion';
 
-export const metadata = { title: 'Mis paneles' };
+// Título neutro: esta página solo resuelve la sesión y redirige; no debe mostrarse como una pantalla propia.
+export const metadata = { title: 'Horus Group' };
 
 /** Entrada común: quien tiene acceso al panel académico va directo; el resto ve un aviso. */
 export default function AdminInicioPage() {
