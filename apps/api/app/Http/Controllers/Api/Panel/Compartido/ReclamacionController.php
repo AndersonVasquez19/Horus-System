@@ -6,14 +6,17 @@ namespace App\Http\Controllers\Api\Panel\Compartido;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GestionarReclamacionRequest;
+use App\Models\Estudiante;
 use App\Models\Reclamacion;
 use App\Models\ReclamacionEnvio;
 use App\Models\ReclamacionHistorial;
 use App\Models\User;
 use App\Services\GestionReclamaciones;
 use App\Services\OperacionesReclamacion;
+use App\Support\AuditoriaAcademica;
 use App\Support\ConsultaReclamaciones;
 use App\Support\HojaReclamacion;
+use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\Listado;
 use App\Support\PresentacionReclamacion;
 use App\Support\Reclamaciones;
@@ -22,6 +25,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -50,17 +55,48 @@ final class ReclamacionController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:reclamaciones.ver', only: ['index', 'show', 'hoja']),
+            new Middleware('permission:reclamaciones.ver', only: ['index', 'show', 'hoja', 'exportar']),
+            new Middleware('permission:reclamaciones.gestionar', only: ['asignarLote']),
             // Permiso fino por operación: GestionarReclamacionRequest::authorize() y el propio servicio.
             new Middleware('permission:reclamaciones.gestionar|reclamaciones.responder', only: ['gestionar']),
         ];
+    }
+
+    public function exportar(Request $request): StreamedResponse|BinaryFileResponse
+    {
+        $filtros = ConsultaReclamaciones::validar($request);
+        $consulta = Reclamacion::query();
+        ConsultaReclamaciones::aplicar($consulta, $filtros, (int) $this->usuario($request)->id);
+        Listado::ordenar($consulta, $request, self::ORDENABLES, '-recibida');
+
+        $filas = $consulta->cursor()->map(fn (Reclamacion $r): array => [
+            $r->numero,
+            ucfirst((string) $r->tipo),
+            ucfirst((string) $r->estado),
+            trim($r->nombres.' '.$r->apellidos),
+            $this->local($r->recibida_at),
+            $r->fecha_limite->format('Y-m-d'),
+            $r->suspension_desde !== null ? 'Sí' : 'No',
+        ]);
+
+        return ExportacionListado::responder(
+            'reclamaciones',
+            'Reclamaciones',
+            ExportacionListado::formato($request),
+            ['Código', 'Tipo', 'Estado', 'Consumidor', 'Recibida', 'Fecha límite', 'Plazo suspendido'],
+            $filas,
+            'reclamaciones_exportadas',
+            Reclamacion::class,
+            AuditoriaAcademica::actorDe($request),
+            ['filtros' => ConsultaReclamaciones::usados($filtros)],
+        );
     }
 
     public function index(Request $request): JsonResponse
     {
         $filtros = ConsultaReclamaciones::validar($request);
         $consulta = Reclamacion::query();
-        ConsultaReclamaciones::aplicar($consulta, $filtros);
+        ConsultaReclamaciones::aplicar($consulta, $filtros, (int) $this->usuario($request)->id);
         $orden = Listado::ordenar($consulta, $request, self::ORDENABLES, '-recibida');
         $paginas = Listado::paginar($consulta, $request);
 
@@ -85,6 +121,8 @@ final class ReclamacionController extends Controller implements HasMiddleware
 
         $datos = $respuesta->getData(true);
         $datos['meta']['metricas'] = ConsultaReclamaciones::metricas();
+        $datos['meta']['plazos'] = ConsultaReclamaciones::plazos();
+        $datos['meta']['responsables'] = $this->operaciones->responsablesDisponibles();
 
         return response()->json($datos, 200, self::CABECERAS);
     }
@@ -95,6 +133,14 @@ final class ReclamacionController extends Controller implements HasMiddleware
         $r = $this->gestion->consultar($actor, $reclamacion->identificador);
 
         $puedeGestionar = $actor->can('reclamaciones.gestionar');
+        $dni = trim((string) $r->numero_documento);
+        $estudianteRelacionado = null;
+        if ($actor->can('estudiantes.ver') && preg_match('/\A\d{8}\z/', $dni) === 1) {
+            $e = Estudiante::query()->where('dni', $dni)->first(['id', 'nombres', 'apellidos']);
+            if ($e instanceof Estudiante) {
+                $estudianteRelacionado = ['id' => (int) $e->id, 'nombre' => trim($e->nombres.' '.$e->apellidos)];
+            }
+        }
 
         return response()->json([
             'data' => $this->expediente($r),
@@ -106,6 +152,7 @@ final class ReclamacionController extends Controller implements HasMiddleware
                 'responsables' => $this->operaciones->responsablesDisponibles(),
                 'puede_gestionar' => $puedeGestionar,
                 'puede_responder' => $actor->can('reclamaciones.responder'),
+                'estudiante_relacionado' => $estudianteRelacionado,
             ],
         ], 200, self::CABECERAS);
     }
@@ -147,6 +194,50 @@ final class ReclamacionController extends Controller implements HasMiddleware
         }
 
         return response()->json(['message' => $mensaje], 200, self::CABECERAS);
+    }
+
+    /** Asigna o retira responsable en lote sobre casos abiertos (409 si todos los seleccionados ya están cerrados). */
+    public function asignarLote(Request $request): JsonResponse
+    {
+        $datos = $request->validate([
+            'identificadores' => ['required', 'array', 'min:1', 'max:50'],
+            'identificadores.*' => ['required', 'uuid'],
+            'responsable_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $actor = $this->usuario($request);
+        $casos = Reclamacion::query()
+            ->whereIn('identificador', array_map('strtolower', $datos['identificadores']))
+            ->get();
+        abort_if($casos->isEmpty(), 404, 'No se encontraron las reclamaciones seleccionadas.');
+
+        $actualizadas = 0;
+        $ultimoConflicto = null;
+        foreach ($casos as $caso) {
+            try {
+                $this->operaciones->ejecutar($actor, $caso, [
+                    'operacion' => 'responsable',
+                    'responsable_id' => $datos['responsable_id'] ?? null,
+                ]);
+                $actualizadas++;
+            } catch (HttpException $e) {
+                if ($e->getStatusCode() !== 409) {
+                    throw $e;
+                }
+                $ultimoConflicto = $e->getMessage();
+            }
+        }
+
+        if ($actualizadas === 0 && $ultimoConflicto !== null) {
+            return response()->json(['message' => $ultimoConflicto], 409, self::CABECERAS);
+        }
+
+        return response()->json([
+            'message' => $actualizadas === 1
+                ? 'Responsable actualizado en 1 reclamación.'
+                : "Responsable actualizado en {$actualizadas} reclamaciones.",
+            'actualizadas' => $actualizadas,
+        ], 200, self::CABECERAS);
     }
 
     /** @return array<string, mixed> */

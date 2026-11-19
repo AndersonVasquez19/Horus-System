@@ -41,16 +41,19 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         // Notificaciones y perfil: cuenta propia.
         Route::get('notificaciones', [Compartido\NotificacionController::class, 'index'])->name('notificaciones.index');
         Route::get('notificaciones/recientes', [Compartido\NotificacionController::class, 'recientes'])->name('notificaciones.recientes');
+        Route::get('notificaciones/conteos', [Compartido\NotificacionController::class, 'conteos'])->name('notificaciones.conteos');
         Route::get('perfil', [Compartido\PerfilController::class, 'show'])->name('perfil.show');
         Route::get('perfil/sesiones', [Compartido\PerfilController::class, 'sesiones'])->name('perfil.sesiones');
 
         // Auditoría: solo lectura y exportación; el permiso lo declara el controlador.
-        Route::get('auditoria', [Compartido\AuditoriaController::class, 'index'])->name('auditoria.index');
+        Route::get('auditoria', [Compartido\AuditoriaController::class, 'index'])
+            ->middleware('throttle:admin-heavy-read')->name('auditoria.index');
         Route::post('auditoria/exportar', [Compartido\AuditoriaController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('auditoria.exportar');
 
         // Exportación administrativa de tablas (ZIP de CSV minimizados; no es un respaldo restaurable).
-        Route::get('respaldo', [Compartido\RespaldoController::class, 'index'])->name('respaldo.index');
+        Route::get('respaldo', [Compartido\RespaldoController::class, 'index'])
+            ->middleware('throttle:admin-heavy-read')->name('respaldo.index');
         Route::post('respaldo/exportar', [Compartido\RespaldoController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('respaldo.exportar');
 
@@ -60,9 +63,16 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
             ->middleware('throttle:chat')->name('asistente.mensaje');
 
         // Libro de Reclamaciones: datos personales; el permiso lo declara el controlador y la lógica es la del Blade.
-        Route::get('reclamaciones', [Compartido\ReclamacionController::class, 'index'])->name('reclamaciones.index');
+        Route::get('reclamaciones', [Compartido\ReclamacionController::class, 'index'])
+            ->middleware('throttle:admin-heavy-read')->name('reclamaciones.index');
+        Route::post('reclamaciones/exportar', [Compartido\ReclamacionController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('reclamaciones.exportar');
+        Route::post('reclamaciones/asignar-lote', [Compartido\ReclamacionController::class, 'asignarLote'])
+            ->middleware('throttle:admin-write')->name('reclamaciones.asignar-lote');
         // Mensajes de «Contáctanos»: misma bandeja y mismos permisos del libro (ver: reclamaciones.ver; atender: reclamaciones.gestionar).
         Route::get('reclamaciones-mensajes', [Compartido\MensajeContactoController::class, 'index'])->name('mensajes-contacto.index');
+        Route::post('reclamaciones-mensajes/atender-lote', [Compartido\MensajeContactoController::class, 'atenderLote'])
+            ->middleware('throttle:admin-write')->name('mensajes-contacto.atender-lote');
         Route::post('reclamaciones-mensajes/{mensaje:identificador}/atender', [Compartido\MensajeContactoController::class, 'atender'])
             ->middleware('throttle:admin-write')->whereUuid('mensaje')->name('mensajes-contacto.atender');
         Route::get('reclamaciones/{reclamacion:identificador}', [Compartido\ReclamacionController::class, 'show'])
@@ -75,6 +85,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         // Usuarios y roles: el permiso lo declara cada controlador; la lógica (R1 a R4, último administrador) es la de
         // `GestionUsuarios` y `GestionRoles`, compartida con el Blade.
         Route::get('usuarios', [Compartido\UsuarioController::class, 'index'])->name('usuarios.index');
+        Route::post('usuarios/exportar', [Compartido\UsuarioController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('usuarios.exportar');
         Route::get('usuarios/roles-asignables', [Compartido\UsuarioController::class, 'rolesAsignables'])->name('usuarios.roles-asignables');
         Route::get('usuarios/{user}', [Compartido\UsuarioController::class, 'show'])->whereNumber('user')->name('usuarios.show');
         Route::get('roles', [Compartido\RolController::class, 'index'])->name('roles.index');
@@ -82,6 +94,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
             Route::post('usuarios', [Compartido\UsuarioController::class, 'store'])->name('usuarios.store');
             Route::put('usuarios/{user}', [Compartido\UsuarioController::class, 'update'])->whereNumber('user')->name('usuarios.update');
             Route::delete('usuarios/{user}', [Compartido\UsuarioController::class, 'destroy'])->whereNumber('user')->name('usuarios.destroy');
+            Route::post('usuarios/{user}/desactivar', [Compartido\UsuarioController::class, 'desactivar'])->whereNumber('user')->name('usuarios.desactivar');
+            Route::post('usuarios/{user}/restaurar', [Compartido\UsuarioController::class, 'restaurar'])->whereNumber('user')->name('usuarios.restaurar');
+            Route::post('usuarios/{user}/suspender', [Compartido\UsuarioController::class, 'suspender'])->whereNumber('user')->name('usuarios.suspender');
+            Route::post('usuarios/{user}/desbloquear', [Compartido\UsuarioController::class, 'desbloquear'])->whereNumber('user')->name('usuarios.desbloquear');
+            Route::post('usuarios/{user}/cerrar-sesiones', [Compartido\UsuarioController::class, 'cerrarSesiones'])->whereNumber('user')->name('usuarios.cerrar-sesiones');
+            Route::post('usuarios/{user}/invitar', [Compartido\UsuarioController::class, 'invitar'])->whereNumber('user')->name('usuarios.invitar');
             Route::post('roles', [Compartido\RolController::class, 'store'])->name('roles.store');
             Route::put('roles/{role}', [Compartido\RolController::class, 'update'])->whereNumber('role')->name('roles.update');
             Route::delete('roles/{role}', [Compartido\RolController::class, 'destroy'])->whereNumber('role')->name('roles.destroy');
@@ -90,6 +108,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         // Aprobaciones internas: el permiso lo declara el controlador y la lógica es la de `GestionAprobaciones`, compartida
         // con el Blade que se retira.
         Route::get('aprobaciones', [Compartido\AprobacionController::class, 'index'])->name('aprobaciones.index');
+        Route::post('aprobaciones/exportar', [Compartido\AprobacionController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('aprobaciones.exportar');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('aprobaciones', [Compartido\AprobacionController::class, 'store'])->name('aprobaciones.store');
             Route::put('aprobaciones/{aprobacion}', [Compartido\AprobacionController::class, 'update'])->whereNumber('aprobacion')->name('aprobaciones.update');
@@ -106,6 +126,10 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
         });
         Route::middleware('throttle:perfil')->group(function (): void {
             Route::put('perfil', [Compartido\PerfilController::class, 'update'])->name('perfil.update');
+            Route::put('perfil/preferencias', [Compartido\PerfilController::class, 'preferencias'])->name('perfil.preferencias');
+            Route::post('perfil/2fa/iniciar', [Compartido\PerfilController::class, 'iniciar2fa'])->name('perfil.2fa.iniciar');
+            Route::post('perfil/2fa/confirmar', [Compartido\PerfilController::class, 'confirmar2fa'])->name('perfil.2fa.confirmar');
+            Route::post('perfil/2fa/desactivar', [Compartido\PerfilController::class, 'desactivar2fa'])->name('perfil.2fa.desactivar');
             Route::post('perfil/sesiones/cerrar-otras', [Compartido\PerfilController::class, 'cerrarOtras'])->name('perfil.sesiones.cerrar-otras');
             Route::post('perfil/sesiones/{identificador}/cerrar', [Compartido\PerfilController::class, 'cerrarUna'])
                 ->where('identificador', '[a-f0-9]{32}')->name('perfil.sesiones.cerrar');
@@ -121,10 +145,13 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         // Búsqueda global: cada grupo (estudiantes, matrículas, ediciones) solo con el permiso de su módulo.
         Route::get('busqueda', Academico\BusquedaController::class)->middleware('throttle:admin-opciones')->name('busqueda');
         Route::get('cursos', [Academico\CursoController::class, 'index'])->name('cursos.index');
+        Route::post('cursos/exportar', [Academico\CursoController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('cursos.exportar');
         Route::get('cursos/{curso}', [Academico\CursoController::class, 'show'])->whereNumber('curso')->name('cursos.show');
         Route::get('cursos/{curso}/publicacion', [Academico\CursoPublicacionController::class, 'show'])->whereNumber('curso')->name('cursos.publicacion.show');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('cursos', [Academico\CursoController::class, 'store'])->name('cursos.store');
+            Route::post('cursos/{curso}/duplicar', [Academico\CursoController::class, 'duplicar'])->whereNumber('curso')->name('cursos.duplicar');
             Route::put('cursos/{curso}', [Academico\CursoController::class, 'update'])->whereNumber('curso')->name('cursos.update');
             Route::delete('cursos/{curso}', [Academico\CursoController::class, 'destroy'])->whereNumber('curso')->name('cursos.destroy');
             Route::post('cursos/{curso}/restaurar', [Academico\CursoController::class, 'restaurar'])->whereNumber('curso')->name('cursos.restaurar');
@@ -134,11 +161,15 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
 
         // Convocatorias y horarios (Ola 3): el permiso de cada acción lo declara el controlador.
         Route::get('convocatorias', [Academico\ConvocatoriaController::class, 'index'])->name('convocatorias.index');
+        Route::post('convocatorias/exportar', [Academico\ConvocatoriaController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('convocatorias.exportar');
         Route::get('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'show'])->name('convocatorias.show');
         // Calificaciones (Ola 3): evaluaciones, notas y acta de una convocatoria.
         Route::get('convocatorias/{identificador}/calificaciones', [Academico\CalificacionController::class, 'index'])->name('calificaciones.index');
         Route::post('convocatorias/{identificador}/acta/exportar', [Academico\CalificacionController::class, 'exportarActa'])
             ->middleware('throttle:admin-export')->name('calificaciones.acta.exportar');
+        Route::post('convocatorias/{identificador}/acta/borrador/exportar', [Academico\CalificacionController::class, 'exportarBorradorActa'])
+            ->middleware('throttle:admin-export')->name('calificaciones.acta.borrador.exportar');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('convocatorias/{identificador}/evaluaciones', [Academico\CalificacionController::class, 'crearEvaluacion'])->name('calificaciones.evaluaciones.store');
             Route::put('convocatorias/{identificador}/evaluaciones/{evaluacion}', [Academico\CalificacionController::class, 'actualizarEvaluacion'])->name('calificaciones.evaluaciones.update');
@@ -176,10 +207,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
 
         // Finanzas (Horus Academic, Fase 7): libro de pagos inmutable. El permiso (`pagos.*`) lo declara el controlador.
         Route::get('pagos/metodos', [Academico\PagoController::class, 'metodos'])->name('pagos.metodos');
-        Route::get('pagos/obligaciones', [Academico\PagoController::class, 'index'])->name('pagos.obligaciones.index');
+        Route::get('pagos/obligaciones', [Academico\PagoController::class, 'index'])
+            ->middleware('throttle:admin-heavy-read')->name('pagos.obligaciones.index');
         Route::get('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'verComprobante'])->middleware('throttle:60,1')->name('pagos.comprobante.ver');
         Route::post('pagos/exportar', [Academico\PagoController::class, 'exportar'])->middleware('throttle:admin-export')->name('pagos.exportar');
         Route::get('pagos/obligaciones/{obligacion}',[Academico\PagoController::class, 'show'])->name('pagos.obligaciones.show');
+        Route::get('pagos/obligaciones/{obligacion}/recibo', [Academico\PagoController::class, 'recibo'])->name('pagos.obligaciones.recibo');
         Route::get('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'deMatricula'])->whereNumber('matricula')->name('pagos.obligaciones.matricula');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'crearObligacion'])->whereNumber('matricula')->name('pagos.obligaciones.store');
@@ -197,6 +230,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         // Estudiantes: mismas reglas que /admin/estudiantes (GestionEstudiantes). Las escrituras, con throttle de panel.
 
         Route::get('estudiantes', [Academico\EstudianteController::class, 'index'])->name('estudiantes.index');
+        Route::post('estudiantes/exportar', [Academico\EstudianteController::class, 'exportar'])
+            ->middleware('throttle:admin-export')->name('estudiantes.exportar');
         Route::get('estudiantes/{estudiante}', [Academico\EstudianteController::class, 'show'])->whereNumber('estudiante')->name('estudiantes.show');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('estudiantes', [Academico\EstudianteController::class, 'store'])->name('estudiantes.store');
@@ -206,7 +241,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         });
 
         // Reportes de matrículas: misma consulta, lotes, exportaciones y auditoría que /admin/reportes.
-        Route::get('reportes', [Academico\ReporteController::class, 'index'])->name('reportes.index');
+        Route::get('reportes', [Academico\ReporteController::class, 'index'])
+            ->middleware('throttle:admin-heavy-read')->name('reportes.index');
         Route::post('reportes/exportar/excel', [Academico\ReporteController::class, 'exportarExcel'])
             ->middleware('throttle:admin-export')->name('reportes.exportar.excel');
         Route::post('reportes/exportar/pdf', [Academico\ReporteController::class, 'exportarPdf'])
@@ -223,6 +259,7 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::post('matriculas/exportar', [Academico\MatriculaController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('matriculas.exportar');
         Route::get('matriculas/{matricula}', [Academico\MatriculaController::class, 'show'])->whereNumber('matricula')->name('matriculas.show');
+        Route::get('matriculas/{matricula}/constancia', [Academico\MatriculaController::class, 'constancia'])->whereNumber('matricula')->name('matriculas.constancia');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('matriculas', [Academico\MatriculaController::class, 'store'])->name('matriculas.store');
             Route::put('matriculas/{matricula}', [Academico\MatriculaController::class, 'update'])->whereNumber('matricula')->name('matriculas.update');

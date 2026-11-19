@@ -11,14 +11,19 @@ use App\Models\AprobacionInterna;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\GestionAprobaciones;
+use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
+use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\Listado;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Aprobaciones internas para los dos paneles. Toda escritura pasa por {@see GestionAprobaciones} (transacción, bloqueo de
@@ -37,32 +42,14 @@ final class AprobacionController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:aprobaciones.ver', only: ['index', 'update', 'destroy']),
-            new Middleware('permission:aprobaciones.gestionar', only: ['store', 'aprobar', 'rechazar', 'reabrir']),
+            new Middleware('permission:aprobaciones.ver', only: ['index', 'exportar']),
+            new Middleware('permission:aprobaciones.gestionar', only: ['store', 'update', 'destroy', 'aprobar', 'rechazar', 'reabrir']),
         ];
     }
 
     public function index(Request $request): JsonResponse
     {
-        $filtros = [
-            'estado' => ListFilter::in($request, 'estado', AprobacionInterna::ESTADOS),
-            'tipo' => ListFilter::in($request, 'tipo', AprobacionInterna::TIPOS_PERMITIDOS),
-            'busqueda' => ListFilter::text($request, 'busqueda'),
-        ];
-
-        $consulta = AprobacionInterna::query()->with(['solicitante:id,name', 'aprobador:id,name']);
-        if ($filtros['estado'] !== '') {
-            $consulta->where('estado', $filtros['estado']);
-        }
-        if ($filtros['tipo'] !== '') {
-            $consulta->where('tipo', $filtros['tipo']);
-        }
-        if ($filtros['busqueda'] !== '') {
-            BusquedaLike::contiene($consulta, ['titulo', 'tipo', 'descripcion', 'comentario', 'referencia'], $filtros['busqueda']);
-        }
-        // Primero lo pendiente, luego lo resuelto; dentro de cada grupo, lo más reciente.
-        $consulta->orderByRaw("CASE estado WHEN 'pendiente' THEN 1 WHEN 'aprobado' THEN 2 WHEN 'rechazado' THEN 3 ELSE 4 END")
-            ->latest('created_at')->orderByDesc('id');
+        [$consulta, $filtros] = $this->consultaFiltrada($request);
 
         $paginas = Listado::paginar($consulta, $request);
         $usuario = $this->usuario($request);
@@ -76,6 +63,76 @@ final class AprobacionController extends Controller implements HasMiddleware
             'pendientes',
             $filtros,
         )->withHeaders(self::CABECERAS);
+    }
+
+    public function exportar(Request $request): StreamedResponse|BinaryFileResponse
+    {
+        [$consulta, $filtros] = $this->consultaFiltrada($request);
+        $filas = $consulta->get()->map(fn (AprobacionInterna $a): array => [
+            $a->id,
+            $a->titulo,
+            $a->tipo,
+            ucfirst((string) $a->estado),
+            $a->solicitante?->name,
+            $a->aprobador?->name,
+            $a->referencia,
+            $a->created_at?->format('Y-m-d H:i'),
+        ]);
+
+        return ExportacionListado::responder(
+            'aprobaciones',
+            'Aprobaciones',
+            ExportacionListado::formato($request),
+            ['ID', 'Título', 'Tipo', 'Estado', 'Solicitante', 'Aprobador', 'Referencia', 'Creada'],
+            $filas,
+            'aprobaciones_exportadas',
+            AprobacionInterna::class,
+            AuditoriaAcademica::actorDe($request),
+            ['estado' => $filtros['estado'] ?: null, 'tipo' => $filtros['tipo'] ?: null, 'alcance' => $filtros['alcance'] ?: null, 'con_busqueda' => $filtros['busqueda'] !== ''],
+        );
+    }
+
+    /** @return array{0: Builder<AprobacionInterna>, 1: array{estado: string, tipo: string, alcance: string, busqueda: string}} */
+    private function consultaFiltrada(Request $request): array
+    {
+        $usuario = $this->usuario($request);
+        $filtros = [
+            'estado' => ListFilter::in($request, 'estado', AprobacionInterna::ESTADOS),
+            'tipo' => ListFilter::in($request, 'tipo', AprobacionInterna::TIPOS_PERMITIDOS),
+            'alcance' => ListFilter::in($request, 'alcance', ['para_mi', 'mias', 'todas']),
+            'busqueda' => ListFilter::text($request, 'busqueda'),
+        ];
+
+        $consulta = AprobacionInterna::query()->with(['solicitante:id,name', 'aprobador:id,name']);
+        if ($filtros['alcance'] === 'mias') {
+            $consulta->where('solicitante_id', $usuario->id);
+        } elseif ($filtros['alcance'] === 'para_mi') {
+            $tiposAutorizados = array_keys(array_filter(
+                AprobacionInterna::TIPOS_AUTORIDAD,
+                fn (string $rol): bool => $usuario->hasRole($rol),
+            ));
+            $consulta->where('estado', AprobacionInterna::ESTADO_PENDIENTE)
+                ->where('solicitante_id', '!=', $usuario->id);
+            if ($tiposAutorizados === []) {
+                $consulta->whereRaw('1 = 0');
+            } else {
+                $consulta->whereIn('tipo', $tiposAutorizados);
+            }
+        }
+        if ($filtros['estado'] !== '') {
+            $consulta->where('estado', $filtros['estado']);
+        }
+        if ($filtros['tipo'] !== '') {
+            $consulta->where('tipo', $filtros['tipo']);
+        }
+        if ($filtros['busqueda'] !== '') {
+            BusquedaLike::contiene($consulta, ['titulo', 'tipo', 'descripcion', 'comentario', 'referencia'], $filtros['busqueda']);
+        }
+        // Primero lo pendiente, luego lo resuelto; dentro de cada grupo, lo más reciente.
+        $consulta->orderByRaw("CASE estado WHEN 'pendiente' THEN 1 WHEN 'aprobado' THEN 2 WHEN 'rechazado' THEN 3 ELSE 4 END")
+            ->latest('created_at')->orderByDesc('id');
+
+        return [$consulta, $filtros];
     }
 
     public function store(StoreAprobacionRequest $request): JsonResponse
@@ -160,9 +217,10 @@ final class AprobacionController extends Controller implements HasMiddleware
             'creada_local' => HoraLocal::formato($a->created_at),
             'actualizada_local' => HoraLocal::formato($a->updated_at),
             'es_propia' => $propia,
+            'puede_editar' => $pendiente && $usuario->can('aprobaciones.gestionar') && ($propia || $usuario->hasRole('admin')),
             'puede_resolver' => $pendiente && ! $propia && $a->puedeResolver($usuario),
             'puede_reabrir' => $a->puedeReabrir($usuario),
-            'puede_eliminar' => $pendiente && ($propia || $usuario->hasRole('admin')),
+            'puede_eliminar' => $pendiente && $usuario->can('aprobaciones.gestionar') && ($propia || $usuario->hasRole('admin')),
             'historial' => array_map(function (AuditLog $evento): array {
                 $cambios = $evento->redactedChanges();
 

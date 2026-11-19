@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use App\Http\Controllers\Api\Publico\ContactoPublicoController;
 use App\Http\Controllers\Api\Publico\CotizacionesPublicoController;
 use App\Http\Controllers\Api\Publico\ReclamacionesPublicoController;
+use App\Http\Controllers\Api\Webhooks\ResendWebhookController;
 use App\Http\Middleware\AutenticarServicioWeb;
 use App\Http\Middleware\RecepcionReclamacionesHabilitada;
 use Illuminate\Support\Facades\Route;
@@ -40,3 +41,8 @@ Route::prefix('public/v1')->name('api.publico.')->middleware([AutenticarServicio
     Route::post('/cotizaciones', [CotizacionesPublicoController::class, 'store'])
         ->middleware('throttle:cotizaciones-bff-intentos')->name('cotizaciones.store');
 });
+
+// Webhook firmado de Resend (Svix HMAC): actualiza entregas/rebotes sin depender del BFF ni exponer PII.
+Route::post('/webhooks/resend', ResendWebhookController::class)
+    ->middleware('throttle:60,1')
+    ->name('api.webhooks.resend');

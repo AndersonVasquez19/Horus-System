@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Panel\Compartido;
 
 use App\Http\Controllers\Controller;
+use App\Models\AprobacionInterna;
+use App\Models\MensajeContacto;
 use App\Models\NotificacionInterna;
 use App\Models\NotificacionLectura;
 use App\Models\User;
+use App\Support\ConsultaReclamaciones;
 use App\Support\HoraLocal;
 use App\Support\NotificacionesPendientes;
 use App\Support\Panel\Listado;
@@ -33,7 +36,11 @@ final class NotificacionController extends Controller
     public const TIPOS = [
         'reclamacion' => 'Reclamación',
         'reclamacion_plazo' => 'Plazo de reclamación',
+        'reclamacion_rebote' => 'Rebote de correo en reclamación',
         'contacto' => 'Mensaje de contacto',
+        'recordatorio_cuota' => 'Cuota por vencer',
+        'recordatorio_sesion' => 'Clase programada hoy',
+        'recordatorio_contacto' => 'Mensajes sin atender',
         'warning' => 'Aviso',
         'success' => 'Confirmación',
         'danger' => 'Urgente',
@@ -96,7 +103,42 @@ final class NotificacionController extends Controller
             ])
             ->values();
 
-        return response()->json(['data' => $items, 'meta' => ['pendientes' => NotificacionesPendientes::para($usuario)]]);
+        $conteos = $this->conteosPara($usuario);
+
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'pendientes' => $conteos['notificaciones_sin_leer'],
+                'conteos' => $conteos,
+            ],
+        ]);
+    }
+
+    /** Conteos ligeros para la barra lateral y la campana, respetando los permisos del usuario. */
+    public function conteos(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->conteosPara($this->usuario($request))]);
+    }
+
+    /** @return array{notificaciones_sin_leer: int, aprobaciones_pendientes: int, reclamaciones_por_vencer: int, mensajes_nuevos: int} */
+    private function conteosPara(User $usuario): array
+    {
+        $reclamacionesPorVencer = 0;
+        $mensajesNuevos = 0;
+        if ($usuario->can('reclamaciones.ver')) {
+            $plazos = ConsultaReclamaciones::plazos();
+            $reclamacionesPorVencer = $plazos['vencidas'] + $plazos['vencen_hoy'] + $plazos['por_vencer'];
+            $mensajesNuevos = MensajeContacto::query()->where('estado', MensajeContacto::ESTADO_NUEVO)->count();
+        }
+
+        return [
+            'notificaciones_sin_leer' => NotificacionesPendientes::para($usuario),
+            'aprobaciones_pendientes' => $usuario->can('aprobaciones.ver')
+                ? AprobacionInterna::query()->where('estado', 'pendiente')->count()
+                : 0,
+            'reclamaciones_por_vencer' => $reclamacionesPorVencer,
+            'mensajes_nuevos' => $mensajesNuevos,
+        ];
     }
 
     /**

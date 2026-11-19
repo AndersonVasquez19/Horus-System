@@ -36,9 +36,10 @@ final class ContactoPanelTest extends PanelApiTestCase
         return $this->postJson('/api/public/v1/contactos', $cuerpo, $conToken ? ['X-Horus-Web-Token' => self::TOKEN, 'X-Horus-Visitante' => self::VISITANTE] : []);
     }
 
-    private function como(User $user, string $metodo, string $ruta): TestResponse
+    /** @param array<string, mixed> $datos */
+    private function como(User $user, string $metodo, string $ruta, array $datos = []): TestResponse
     {
-        return $this->actingAs($user)->withHeaders(['X-Horus-Web-Token' => self::TOKEN])->json($metodo, '/api/panel/v1/'.$ruta);
+        return $this->actingAs($user)->withHeaders(['X-Horus-Web-Token' => self::TOKEN])->json($metodo, '/api/panel/v1/'.$ruta, $datos);
     }
 
     public function test_guarda_el_mensaje_audita_sin_texto_y_avisa_al_equipo(): void
@@ -95,5 +96,30 @@ final class ContactoPanelTest extends PanelApiTestCase
         $this->assertDatabaseHas('mensajes_contacto', ['identificador' => $id, 'estado' => 'atendido', 'atendido_por' => $admin->id]);
         $this->assertSame(1, AuditLog::query()->where('action', 'contacto_atendido')->count());
         $this->como($admin, 'GET', 'compartido/reclamaciones-mensajes?estado=nuevo')->assertOk()->assertJsonPath('meta.total', 0);
+    }
+
+    public function test_atender_en_lote_y_filtros_de_mensajes_de_contacto(): void
+    {
+        $this->enviar(['nombre' => 'María Pérez', 'asunto' => 'Cursos', 'mensaje' => 'Consulta sobre PHP'])->assertCreated();
+        $this->enviar(['nombre' => 'Ana Gómez', 'correo' => 'ana@example.test', 'asunto' => 'Educación', 'mensaje' => 'Consulta diplomado'])->assertCreated();
+        $ids = MensajeContacto::query()->orderBy('id')->pluck('identificador')->all();
+
+        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
+        $secretaria = $this->usuarioConRol('secretaria', 'secretaria@horus.test');
+
+        $this->como($admin, 'GET', 'compartido/reclamaciones-mensajes?busqueda=diplomado&asunto=Educaci%C3%B3n')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.nombre', 'Ana Gómez')
+            ->assertJsonPath('meta.asuntos', ['Cursos', 'Educación']);
+
+        $this->como($secretaria, 'POST', 'compartido/reclamaciones-mensajes/atender-lote', ['identificadores' => $ids])->assertForbidden();
+
+        $this->como($admin, 'POST', 'compartido/reclamaciones-mensajes/atender-lote', ['identificadores' => $ids])
+            ->assertOk()
+            ->assertJsonPath('data.marcados', 2);
+
+        $this->assertSame(2, MensajeContacto::query()->where('estado', 'atendido')->count());
+        $this->assertSame(2, AuditLog::query()->where('action', 'contacto_atendido')->count());
     }
 }

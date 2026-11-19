@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type FormEvent } from 'react';
+import { useSesionPanel } from '@/components/shared/sesion-panel-contexto';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
@@ -13,6 +14,8 @@ import type { ErrorPanel } from '@/lib/panel/tipos';
 interface FormularioRolProps {
   /** Sin rol: alta. Con rol: edición. */
   rol?: RolPanel;
+  /** Valores precargados al duplicar un rol existente sin asignarle id. */
+  inicial?: { nombre: string; permisos: readonly string[] };
   /** Catálogo de permisos asignables (sin los históricos que ya no corresponden a ningún módulo). */
   permisos: readonly string[];
   tono: TonoUi;
@@ -25,18 +28,45 @@ interface FormularioRolProps {
  * Alta y edición de roles. Laravel decide qué se puede conceder (quien no es administrador solo concede permisos
  * que ya posee) y protege el rol `admin` y los roles base; aquí solo se muestran sus errores.
  */
-export function FormularioRol({ rol, permisos, tono, onGuardado, onCancelar, onOcupado }: FormularioRolProps) {
+export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCancelar, onOcupado }: FormularioRolProps) {
+  const sesion = useSesionPanel();
   const { ejecutar } = useOperacionPanel();
-  const [nombre, setNombre] = useState(rol?.nombre ?? '');
-  const [seleccion, setSeleccion] = useState<string[]>(rol?.permisos ?? []);
+  const esAdmin = sesion.roles.includes('admin');
+  const misPermisos = useMemo(() => new Set(sesion.permisos), [sesion.permisos]);
+  const [nombre, setNombre] = useState(rol?.nombre ?? inicial?.nombre ?? '');
+  const [seleccion, setSeleccion] = useState<string[]>(() => {
+    const origen = rol?.permisos ?? inicial?.permisos ?? [];
+    return esAdmin ? [...origen] : origen.filter((p) => misPermisos.has(p));
+  });
+  const [busqueda, setBusqueda] = useState('');
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
   const grupos = useMemo(() => agruparPermisos(permisos), [permisos]);
+  const gruposFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return grupos;
+    return grupos
+      .map((g) => ({
+        ...g,
+        permisos: g.modulo.toLowerCase().includes(q) || g.etiqueta.toLowerCase().includes(q)
+          ? g.permisos
+          : g.permisos.filter((p) => p.clave.toLowerCase().includes(q) || p.etiqueta.toLowerCase().includes(q)),
+      }))
+      .filter((g) => g.permisos.length > 0);
+  }, [grupos, busqueda]);
 
-  const alternarGrupo = (claves: string[]) =>
-    setSeleccion((actual) => (claves.every((c) => actual.includes(c)) ? actual.filter((p) => !claves.includes(p)) : [...new Set([...actual, ...claves])]));
+  const puedeConceder = (clave: string) => esAdmin || misPermisos.has(clave);
 
-  const alternar = (permiso: string) => setSeleccion((actual) => (actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso]));
+  const alternarGrupo = (claves: string[]) => {
+    const permitidas = claves.filter(puedeConceder);
+    if (permitidas.length === 0) return;
+    setSeleccion((actual) => (permitidas.every((c) => actual.includes(c)) ? actual.filter((p) => !permitidas.includes(p)) : [...new Set([...actual, ...permitidas])]));
+  };
+
+  const alternar = (permiso: string) => {
+    if (!puedeConceder(permiso)) return;
+    setSeleccion((actual) => (actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso]));
+  };
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -63,29 +93,57 @@ export function FormularioRol({ rol, permisos, tono, onGuardado, onCancelar, onO
   return (
     <form onSubmit={enviar} noValidate className="space-y-4">
       {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
+      {rol && rol.usuarios > 0 ? (
+        <Alerta tipo="aviso">
+          Los cambios en este rol afectarán a {rol.usuarios === 1 ? '1 persona' : `${rol.usuarios} personas`} asignadas actualmente.
+        </Alerta>
+      ) : null}
       <Campo tono={tono} etiqueta="Nombre del rol" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errorDeCampo(error, 'name')} required maxLength={255} autoComplete="off" />
 
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium text-panel-text">Permisos</legend>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <legend className="text-sm font-medium text-panel-text">Permisos ({seleccion.length})</legend>
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Filtrar permisos…"
+            aria-label="Filtrar permisos"
+            className="w-full rounded-lg border border-panel-border bg-panel-surface px-2.5 py-1.5 text-xs text-panel-text outline-none focus:border-academico-700 sm:w-52"
+          />
+        </div>
         <div className="max-h-80 space-y-4 overflow-y-auto rounded-lg border border-panel-border bg-panel-bg p-3">
-          {grupos.map((grupo) => {
-            const claves = grupo.permisos.map((p) => p.clave);
-            const todos = claves.every((c) => seleccion.includes(c));
+          {gruposFiltrados.length === 0 ? (
+            <p className="text-xs text-panel-muted">Ningún permiso coincide con «{busqueda}».</p>
+          ) : gruposFiltrados.map((grupo) => {
+            const clavesConcedibles = grupo.permisos.map((p) => p.clave).filter(puedeConceder);
+            const todos = clavesConcedibles.length > 0 && clavesConcedibles.every((c) => seleccion.includes(c));
             return (
               <div key={grupo.modulo}>
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-panel-text">{grupo.etiqueta}</p>
-                  <button type="button" onClick={() => alternarGrupo(claves)} className="text-xs font-medium text-panel-muted underline hover:text-panel-text">
-                    {todos ? 'Quitar todos' : 'Marcar todos'}
-                  </button>
+                  {clavesConcedibles.length > 0 ? (
+                    <button type="button" onClick={() => alternarGrupo(clavesConcedibles)} className="text-xs font-medium text-panel-muted underline hover:text-panel-text">
+                      {todos ? 'Quitar todos' : 'Marcar todos'}
+                    </button>
+                  ) : null}
                 </div>
                 <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-                  {grupo.permisos.map((permiso) => (
-                    <label key={permiso.clave} className="inline-flex items-center gap-2 text-sm text-panel-text">
-                      <input type="checkbox" checked={seleccion.includes(permiso.clave)} onChange={() => alternar(permiso.clave)} className="h-4 w-4 rounded border-panel-border" />
-                      {permiso.etiqueta}
-                    </label>
-                  ))}
+                  {grupo.permisos.map((permiso) => {
+                    const bloqueado = !puedeConceder(permiso.clave);
+                    return (
+                      <label key={permiso.clave} className={`inline-flex items-center gap-2 text-sm ${bloqueado ? 'cursor-not-allowed text-panel-muted opacity-60' : 'text-panel-text'}`}>
+                        <input
+                          type="checkbox"
+                          checked={seleccion.includes(permiso.clave)}
+                          disabled={bloqueado}
+                          onChange={() => alternar(permiso.clave)}
+                          className="h-4 w-4 rounded border-panel-border"
+                        />
+                        <span>{permiso.etiqueta}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             );

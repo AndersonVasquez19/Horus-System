@@ -36,27 +36,50 @@ final class AsistenteController extends Controller implements HasMiddleware
 
         $filtro = ListFilter::text($request, 'intent');
         $intentValido = $filtro !== '' && $intenciones->contains('nombre', $filtro) ? $filtro : null;
+        $porPagina = filter_var($request->query('per_page'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 100],
+        ]) ?: 50;
+        $pagina = max(1, (int) $request->query('page', 1));
 
-        $registros = ChatLog::query()
+        $paginado = ChatLog::query()
             ->when($intentValido, fn ($consulta) => $consulta->where('intent_detectado', $intentValido))
             ->latest()
-            ->limit(50)
-            ->get();
+            ->orderByDesc('id')
+            ->paginate($porPagina, ['*'], 'page', $pagina);
 
-        return response()->json(['data' => [
-            'intenciones' => $intenciones->map(fn (ChatIntent $i): array => [
-                'nombre' => $i->nombre, 'respuesta' => $i->respuesta, 'prioridad' => $i->prioridad, 'activo' => (bool) $i->activo,
-            ])->values()->all(),
-            'registros' => $registros->map(fn (ChatLog $r): array => [
-                'id' => $r->id,
-                'fecha_local' => HoraLocal::formato($r->created_at),
-                'mensaje' => $r->mensaje_usuario,
-                'respuesta' => $r->respuesta_bot,
-                'intencion' => $r->intent_detectado,
-                'fuente' => $r->fuente,
-            ])->values()->all(),
-            'filtro' => $intentValido,
-        ]]);
+        $registros = collect($paginado->items());
+
+        return response()->json([
+            'data' => [
+                'intenciones' => $intenciones->map(fn (ChatIntent $i): array => [
+                    'nombre' => $i->nombre, 'respuesta' => $i->respuesta, 'prioridad' => $i->prioridad, 'activo' => (bool) $i->activo,
+                ])->values()->all(),
+                'registros' => $registros->map(fn (ChatLog $r): array => [
+                    'id' => $r->id,
+                    'fecha_local' => HoraLocal::formato($r->created_at),
+                    'mensaje' => $r->mensaje_usuario,
+                    'respuesta' => $r->respuesta_bot,
+                    'intencion' => $r->intent_detectado,
+                    'fuente' => $r->fuente,
+                ])->values()->all(),
+                'filtro' => $intentValido,
+                'horus_ai' => [
+                    'habilitado' => (bool) config('horus-advisor.enabled'),
+                    'url_configurada' => trim((string) config('horus-advisor.url', '')) !== '',
+                ],
+            ],
+            'meta' => [
+                'pagina' => $paginado->currentPage(),
+                'por_pagina' => $paginado->perPage(),
+                'total' => $paginado->total(),
+                'paginas' => $paginado->lastPage(),
+                'orden' => '-creado',
+                'filtros' => array_filter([
+                    'intent' => $intentValido,
+                    'per_page' => $request->query('per_page'),
+                ], fn ($v): bool => $v !== null && $v !== ''),
+            ],
+        ]);
     }
 
     public function mensaje(Request $request, AsistenteVirtualService $asistente): JsonResponse

@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { BotonNuevaAprobacion, AccionesAprobacion } from '@/components/compartido/acciones-aprobacion';
+import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
@@ -13,7 +15,19 @@ import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 
 type Parametros = Record<string, string | string[] | undefined>;
 
-const PARAMETROS = ['busqueda', 'estado', 'tipo', 'page'] as const;
+const PARAMETROS = ['busqueda', 'estado', 'tipo', 'alcance', 'page'] as const;
+
+function enlaceDeReferencia(referencia: string, tono: TonoUi): string | null {
+  const limpia = referencia.trim();
+  const matricula = /^MAT-?#?(\d+)$/i.exec(limpia);
+  if (matricula) return `/admin/${tono}/matriculas/${matricula[1]}`;
+  const estudiante = /^EST-?#?(\d+)$/i.exec(limpia);
+  if (estudiante) return `/admin/${tono}/estudiantes/${estudiante[1]}`;
+  if (/^\d{8}$/.test(limpia)) return `/admin/${tono}/estudiantes?busqueda=${encodeURIComponent(limpia)}`;
+  if (/^REC-[\w-]+$/i.test(limpia)) return `/admin/${tono}/reclamaciones?busqueda=${encodeURIComponent(limpia)}`;
+  if (/^(?:CNV|ED)-[\w-]+$/i.test(limpia)) return `/admin/${tono}/convocatorias?busqueda=${encodeURIComponent(limpia)}`;
+  return null;
+}
 
 const ESTADOS: Record<string, { texto: string; color: ColorInsignia }> = {
   pendiente: { texto: 'Pendiente', color: 'ambar' },
@@ -52,14 +66,41 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
     PARAMETROS.filter((nombre) => nombre !== 'page' && parametro(parametros, nombre) !== '').map((nombre) => [nombre, parametro(parametros, nombre)]),
   );
   const hayFiltros = Object.keys(meta.filtros).length > 0;
+  const alcanceActual = parametro(parametros, 'alcance') || 'todas';
 
   return (
     <div className="space-y-4">
+      <nav aria-label="Alcance de solicitudes" className="flex flex-wrap gap-2 border-b border-panel-border">
+        {([
+          ['para_mi', 'Para mí', `${ruta}?alcance=para_mi`],
+          ['mias', 'Mías', `${ruta}?alcance=mias`],
+          ['todas', 'Todas', ruta],
+        ] as const).map(([clave, texto, href]) => (
+          <Link
+            key={clave}
+            href={href}
+            aria-current={alcanceActual === clave ? 'page' : undefined}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${alcanceActual === clave ? 'border-panel-text text-panel-text' : 'border-transparent text-panel-muted hover:text-panel-text'}`}
+          >
+            {texto}
+          </Link>
+        ))}
+      </nav>
+
       <FiltrosListado tono={tono} ruta={ruta} hayFiltros={hayFiltros}>
+        {parametro(parametros, 'alcance') ? <input type="hidden" name="alcance" value={parametro(parametros, 'alcance')} /> : null}
         <CampoBusqueda tono={tono} nombre="busqueda" valor={parametro(parametros, 'busqueda')} marcador="Título, descripción o referencia" />
         <SelectorFiltro tono={tono} nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={Object.fromEntries(Object.entries(ESTADOS).map(([clave, { texto }]) => [clave, texto]))} />
         <SelectorFiltro tono={tono} nombre="tipo" etiqueta="Tipo" valor={parametro(parametros, 'tipo')} opciones={ETIQUETAS_TIPO_APROBACION} />
       </FiltrosListado>
+
+      <div className="flex justify-end">
+        <BotonExportarListado
+          ruta="compartido/aprobaciones/exportar"
+          filtros={consulta(parametros, ['busqueda', 'estado', 'tipo', 'alcance'])}
+          permiso="aprobaciones.ver"
+        />
+      </div>
 
       {filas.length === 0 ? (
         hayFiltros ? (
@@ -78,7 +119,18 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <Insignia color={fila.tipo === 'compra' ? 'azul' : fila.tipo === 'operativo' ? 'verde' : 'gris'}>{ETIQUETAS_TIPO_APROBACION[fila.tipo] ?? fila.tipo}</Insignia>
-                      {fila.referencia ? <span className="rounded-md border border-panel-border bg-panel-bg px-2 py-0.5 font-mono text-panel-muted">{fila.referencia}</span> : null}
+                      {fila.referencia ? (
+                        (() => {
+                          const destinoRef = enlaceDeReferencia(fila.referencia, tono);
+                          return destinoRef ? (
+                            <Link href={destinoRef} className="rounded-md border border-panel-border bg-panel-bg px-2 py-0.5 font-mono text-academico-700 hover:underline">
+                              {fila.referencia}
+                            </Link>
+                          ) : (
+                            <span className="rounded-md border border-panel-border bg-panel-bg px-2 py-0.5 font-mono text-panel-muted">{fila.referencia}</span>
+                          );
+                        })()
+                      ) : null}
                       <span className="text-panel-muted">Creada el {fila.creada_local}</span>
                     </div>
                     <h2 className="mt-2 break-words font-heading text-lg font-semibold text-panel-text">{fila.titulo}</h2>

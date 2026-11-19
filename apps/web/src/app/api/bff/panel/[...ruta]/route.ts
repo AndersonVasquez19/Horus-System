@@ -10,7 +10,7 @@ import { ipDelCliente } from '@/lib/panel/red';
  * Capas, en orden:
  *  1. La operación debe estar en la lista cerrada (`operaciones-panel.ts`); si no, 404.
  *  2. Mismo origen (todas) y JSON con tamaño acotado (mutaciones): `leerMutacion`; o, en las operaciones
- *     multipart (imagen de la ficha), cuerpo acotado con una sola imagen de tipo real válido: `leerMultipart`.
+ *     multipart (comprobante de pago), cuerpo acotado con una sola imagen de tipo real válido: `leerMultipart`.
  *  3. Cookie de sesión de Laravel presente; sin ella, 401 sin llamar a Laravel.
  *  4. Laravel valida el token CSRF que envía el navegador (`X-CSRF-TOKEN`, de la sesión ya validada), la sesión,
  *     el permiso de entrada al panel, el permiso de la acción y las reglas de negocio.
@@ -56,14 +56,19 @@ async function atender(request: NextRequest, metodo: Metodo, { params }: Context
     const archivo = await descargarDeLaravel(destino, operacion.archivo, opciones);
     if (!archivo.ok) return cerrarSiExpiro(aplicarCookieSesion(errorJson(archivo.estado, archivo.error), archivo.cookie), archivo.estado);
 
+    const cabeceras: Record<string, string> = {
+      'Content-Type': operacion.enLinea ? archivo.tipo : `${archivo.tipo}; charset=UTF-8`,
+      'Content-Disposition': operacion.enLinea ? 'inline' : `attachment; filename="${archivo.nombre}"`,
+      'Cache-Control': 'no-store, private',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    if (archivo.aviso) {
+      cabeceras['X-Export-Truncated'] = 'true';
+      cabeceras['X-Export-Message'] = archivo.aviso;
+    }
     const respuesta = new NextResponse(archivo.contenido, {
       status: 200,
-      headers: {
-        'Content-Type': operacion.enLinea ? archivo.tipo : `${archivo.tipo}; charset=UTF-8`,
-        'Content-Disposition': operacion.enLinea ? 'inline' : `attachment; filename="${archivo.nombre}"`,
-        'Cache-Control': 'no-store, private',
-        'X-Content-Type-Options': 'nosniff',
-      },
+      headers: cabeceras,
     });
     return aplicarCookieSesion(respuesta, archivo.cookie);
   }

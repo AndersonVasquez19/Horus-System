@@ -62,14 +62,16 @@ export function useOperacionPanel() {
     [router, ruta],
   );
 
-  /** Descarga un archivo generado por Laravel (POST con los filtros en la consulta). */
+  /** Descarga un archivo generado por Laravel (`POST` por defecto, o `GET` para documentos sin efecto en datos). */
   const descargar = useCallback(
-    async (destino: string): Promise<{ ok: true } | { ok: false; error: ErrorPanel }> => {
+    async (destino: string, metodo: 'GET' | 'POST' = 'POST'): Promise<{ ok: true; aviso?: string } | { ok: false; error: ErrorPanel }> => {
       const intentar = () =>
         fetch(`/api/bff/panel/${destino}`, {
-          method: 'POST',
-          headers: { Accept: 'text/csv, application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.current },
-          body: '{}',
+          method: metodo,
+          headers: metodo === 'POST'
+            ? { Accept: 'text/csv, application/pdf, application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.current }
+            : { Accept: 'application/pdf, text/csv, application/json' },
+          body: metodo === 'POST' ? '{}' : undefined,
           credentials: 'same-origin',
           cache: 'no-store',
         });
@@ -102,7 +104,10 @@ export function useOperacionPanel() {
       enlace.click();
       enlace.remove();
       window.setTimeout(() => URL.revokeObjectURL(enlace.href), 10_000);
-      return { ok: true };
+      const aviso = respuesta.headers.get('x-export-truncated') === 'true'
+        ? (respuesta.headers.get('x-export-message') ?? undefined)
+        : undefined;
+      return { ok: true, aviso };
     },
     [router, ruta],
   );

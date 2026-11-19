@@ -21,6 +21,7 @@ export interface ResumenAcademico {
   acciones?: {
     pagos_por_confirmar?: { cantidad: number; monto: string };
     matriculas_con_saldo?: { cantidad: number; monto: string };
+    cuotas?: { vencidas: number; monto_vencido: string; por_vencer: number; monto_por_vencer: string };
     ediciones?: { por_iniciar: number; por_cerrar: number; lista_por_cerrar: { identificador: string; codigo: string; curso: string | null }[] };
   };
   negocio?: { cobrado_mes?: string; saldo_por_cobrar?: string };
@@ -53,9 +54,13 @@ export interface CursoResumen {
   nombre: string;
   categoria: string;
   modalidad: string;
+  duracion_horas: number;
+  precio: string;
   estado: string;
   cupos_maximos: number;
   cupos_disponibles: number;
+  publicado: boolean;
+  enlace_grupo_whatsapp: string | null;
   eliminado: boolean;
   creado_en: string | null;
 }
@@ -94,12 +99,10 @@ export interface PublicacionCurso {
 export interface CursoDetalle extends CursoResumen {
   historial: EventoHistorialBasico[];
   descripcion: string | null;
-  duracion_horas: number;
-  precio: string;
   horario: string | null;
   actualizado_en: string | null;
   matriculas_activas: number;
-  estudiantes: { id: number; nombre: string; estado_matricula: string; fecha_matricula: string | null }[];
+  estudiantes: { id: number; matricula_id: number; nombre: string; estado_matricula: string; fecha_matricula: string | null }[];
 }
 
 export interface EstudianteResumen {
@@ -120,16 +123,24 @@ export interface EstudianteDetalle extends EstudianteResumen {
   actualizado_en: string | null;
   historial: EventoHistorialBasico[];
   /** Solo con permiso `matriculas.ver`. */
-  matriculas?: { id: number; curso: { id: number; codigo: string; nombre: string } | null; estado: string; fecha: string | null }[];
+  matriculas?: {
+    id: number;
+    curso: { id: number; codigo: string; nombre: string; enlace_grupo_whatsapp?: string | null } | null;
+    estado: string;
+    fecha: string | null;
+  }[];
 }
 
 export interface MatriculaResumen {
   id: number;
-  estudiante: { id: number; dni: string; nombre: string; eliminado: boolean } | null;
-  curso: { id: number; codigo: string; nombre: string; eliminado: boolean } | null;
+  estudiante: { id: number; dni: string; nombre: string; email?: string | null; telefono?: string | null; eliminado: boolean } | null;
+  curso: { id: number; codigo: string; nombre: string; enlace_grupo_whatsapp?: string | null; eliminado: boolean } | null;
   /** Convocatoria de la que sale el cupo; sin ella, el cupo es el del curso. */
   convocatoria: { identificador: string; codigo: string } | null;
   estado: 'pendiente' | 'pagada' | 'anulada';
+  estado_cobro?: 'pendiente' | 'parcial' | 'pagada' | 'anulada' | 'sin_obligacion';
+  obligacion_identificador?: string | null;
+  saldo_cobro?: string | null;
   fecha: string;
   monto_pagado: string | null;
   eliminado: boolean;
@@ -148,6 +159,7 @@ export interface EventoHistorial {
 
 export interface MatriculaDetalle extends MatriculaResumen {
   observaciones: string | null;
+  motivo_anulacion?: string | null;
   curso_cupos_disponibles: number | null;
   creado_en: string | null;
   actualizado_en: string | null;
@@ -169,7 +181,7 @@ export interface ConvocatoriaResumen {
   /** Nombre propio o, si no tiene, el del curso. */
   nombre: string | null;
   nombre_propio: string | null;
-  curso: { id: number; codigo: string; nombre: string } | null;
+  curso: { id: number; codigo: string; nombre: string; enlace_grupo_whatsapp?: string | null } | null;
   modalidad: string;
   estado: EstadoConvocatoria;
   fecha_inicio: string;
@@ -216,10 +228,19 @@ export interface HorarioConvocatoria {
   hora_fin: string;
 }
 
+export interface MatriculadoEdicion {
+  id: number;
+  fecha: string;
+  estado: 'pendiente' | 'pagada' | 'anulada';
+  estudiante: { id: number; dni: string; nombre: string; email: string | null; telefono: string | null } | null;
+  obligacion: { identificador: string; estado: EstadoCobro; monto_total: string; pagado: string; saldo: string } | null;
+}
+
 export interface ConvocatoriaDetalle extends ConvocatoriaResumen {
   horarios: HorarioConvocatoria[];
   creado_en: string | null;
   revision: string;
+  matriculados?: MatriculadoEdicion[];
 }
 
 /** Estados a los que se puede pasar (espejo de `Convocatoria::TRANSICIONES`; Laravel es la autoridad). */
@@ -287,7 +308,7 @@ export type EstadoCobro = 'pendiente' | 'parcial' | 'pagada' | 'anulada';
 export interface ObligacionResumen {
   identificador: string;
   matricula_id: number;
-  estudiante: { dni: string; nombre: string };
+  estudiante: { id: number; dni: string; nombre: string; telefono: string | null; email: string | null };
   edicion: string | null;
   concepto: string;
   plan: 'completo' | 'fraccionado';
@@ -297,6 +318,7 @@ export interface ObligacionResumen {
   pagado: string;
   pendiente_confirmar: string;
   saldo: string;
+  proxima_cuota?: { numero: number; vence: string; saldo: string; vencida: boolean } | null;
 }
 
 export interface TransaccionPagoVista {

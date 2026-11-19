@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesCurso } from '@/components/academico/acciones-curso';
+import { BotonNuevaConvocatoria } from '@/components/academico/acciones-convocatoria';
 import { HistorialAcademico } from '@/components/academico/historial-academico';
 import { PanelPublicacion } from '@/components/academico/panel-publicacion';
 import { Alerta } from '@/components/shared/ui/alerta';
+import { BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
@@ -68,6 +70,9 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
               <Insignia color={colorEstado(curso.estado)}>{etiqueta('estadoCurso', curso.estado)}</Insignia>
               {curso.eliminado ? <Insignia color="rojo">Archivado</Insignia> : null}
             </div>
+            {!curso.eliminado && curso.estado === 'activo' ? (
+              <BotonNuevaConvocatoria cursoInicial={{ id: curso.id, codigo: curso.codigo, nombre: curso.nombre }} />
+            ) : null}
             <AccionesCurso curso={curso} />
           </>
         }
@@ -97,6 +102,12 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
               </div>
             ))}
           </dl>
+          {curso.enlace_grupo_whatsapp ? (
+            <div className="mt-4 border-t border-panel-border pt-4">
+              <p className="mb-2 text-xs font-medium text-panel-muted">Grupo de WhatsApp</p>
+              <BotonesGrupoWhatsApp enlace={curso.enlace_grupo_whatsapp} />
+            </div>
+          ) : null}
           {curso.descripcion ? (
             <div className="mt-5 border-t border-panel-border pt-4">
               <h3 className="text-sm font-semibold text-panel-text">Descripción</h3>
@@ -111,6 +122,9 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
             <p className="text-xs text-panel-muted">{numero(curso.matriculas_activas)} matrículas vigentes (sin anuladas ni eliminadas)</p>
             <Link href={`/admin/academico/matriculas?curso_id=${curso.id}`} className="mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
               Ver todas las matrículas del curso
+            </Link>
+            <Link href={`/admin/academico/convocatorias?curso_id=${curso.id}`} className="ml-4 mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
+              Ver ediciones del curso
             </Link>
             {!curso.eliminado && curso.estado === 'activo' && curso.cupos_disponibles > 0 ? (
               <Link href={`/admin/academico/matriculas/nueva?curso_id=${curso.id}`} className="ml-4 mt-1 inline-flex items-center gap-1 text-xs font-semibold text-academico-700 hover:underline">
@@ -132,10 +146,17 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
                 </thead>
                 <tbody className="divide-y divide-panel-border">
                   {curso.estudiantes.map((estudiante) => (
-                    <tr key={estudiante.id}>
-                      <td className="px-5 py-3 font-medium text-panel-text">{estudiante.nombre}</td>
+                    <tr key={estudiante.matricula_id}>
+                      <td className="px-5 py-3 font-medium text-panel-text">
+                        <Link href={`/admin/academico/estudiantes/${estudiante.id}`} className="hover:text-academico-800 hover:underline">
+                          {estudiante.nombre}
+                        </Link>
+                      </td>
                       <td className="px-5 py-3">
-                        <Insignia color={colorEstado(estudiante.estado_matricula)}>{etiqueta('estadoMatricula', estudiante.estado_matricula)}</Insignia>
+                        <Link href={`/admin/academico/matriculas/${estudiante.matricula_id}`} className="inline-flex items-center gap-2 hover:underline">
+                          <Insignia color={colorEstado(estudiante.estado_matricula)}>{etiqueta('estadoMatricula', estudiante.estado_matricula)}</Insignia>
+                          <span className="text-xs text-academico-700">#{estudiante.matricula_id}</span>
+                        </Link>
                       </td>
                       <td className="whitespace-nowrap px-5 py-3 text-panel-muted">{fecha(estudiante.fecha_matricula)}</td>
                     </tr>

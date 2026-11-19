@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoVacio } from '@/components/shared/ui/estados';
@@ -49,7 +50,13 @@ async function Roles({ tono }: { tono: TonoUi }) {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="font-heading text-base font-semibold text-panel-text">{rol.nombre}</h2>
-                  <p className="text-xs text-panel-muted">{rol.usuarios === 1 ? '1 usuario' : `${rol.usuarios} usuarios`} · {rol.permisos.length === 1 ? '1 permiso' : `${rol.permisos.length} permisos`}</p>
+                  <p className="text-xs text-panel-muted">
+                    <Link href={`/admin/${tono}/usuarios?rol=${encodeURIComponent(rol.nombre)}`} className="font-medium text-panel-text hover:underline">
+                      {rol.usuarios === 1 ? '1 usuario' : `${rol.usuarios} usuarios`}
+                    </Link>
+                    {' · '}
+                    {rol.permisos.length === 1 ? '1 permiso' : `${rol.permisos.length} permisos`}
+                  </p>
                 </div>
                 <Insignia color={rol.tipo === 'principal' ? 'azul' : 'gris'}>{TIPOS[rol.tipo]}</Insignia>
               </div>

@@ -1,11 +1,14 @@
 'use client';
 
+import { Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
+import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { Campo, CampoSeleccion } from '@/components/shared/ui/campo';
-import type { EstudianteDetalle } from '@/features/academico/tipos';
+import type { EstudianteDetalle, PersonaDni } from '@/features/academico/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import { ETIQUETAS } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
@@ -41,12 +44,43 @@ function inicial(estudiante?: EstudianteDetalle): Datos {
  */
 export function FormularioEstudiante({ estudiante, onGuardado, onCancelar, onOcupado }: FormularioEstudianteProps) {
   const { ejecutar } = useOperacionPanel();
+  const { mostrar } = useAvisos();
+  const puedeConsultarDni = usePuede('estudiantes.crear');
   const [datos, setDatos] = useState<Datos>(() => inicial(estudiante));
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [consultandoDni, setConsultandoDni] = useState(false);
+  const [avisoDni, setAvisoDni] = useState<string | null>(null);
 
-  const cambiar = (campo: keyof Datos) => (evento: { target: { value: string } }) =>
+  const cambiar = (campo: keyof Datos) => (evento: { target: { value: string } }) => {
+    if (campo === 'dni') setAvisoDni(null);
     setDatos((actuales) => ({ ...actuales, [campo]: evento.target.value }));
+  };
+
+  async function consultarDni() {
+    const dni = datos.dni.trim();
+    if (!/^\d{8}$/.test(dni) || consultandoDni) return;
+    setConsultandoDni(true);
+    setError(null);
+    setAvisoDni(null);
+    const resultado = await ejecutar<{ data: PersonaDni }>('academico/consultas/dni', 'POST', { dni });
+    setConsultandoDni(false);
+    if (!resultado.ok) {
+      setError(resultado.error);
+      return;
+    }
+    const persona = resultado.datos.data;
+    setDatos((actuales) => ({
+      ...actuales,
+      nombres: persona.nombres || actuales.nombres,
+      apellidos: persona.apellidos || actuales.apellidos,
+    }));
+    if (persona.ya_registrado_como_estudiante && (!estudiante || estudiante.dni !== dni)) {
+      setAvisoDni('Este DNI ya figura registrado como estudiante en el sistema.');
+    } else {
+      mostrar('exito', 'Datos del DNI cargados correctamente.');
+    }
+  }
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -72,9 +106,25 @@ export function FormularioEstudiante({ estudiante, onGuardado, onCancelar, onOcu
     <form onSubmit={enviar} noValidate className="space-y-4">
       {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
       {error?.code === 'validacion' ? <Alerta tipo="error">Revisa los campos marcados.</Alerta> : null}
+      {avisoDni ? <Alerta tipo="aviso">{avisoDni}</Alerta> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="DNI" value={datos.dni} onChange={cambiar('dni')} error={err('dni')} required inputMode="numeric" maxLength={8} pattern="\d{8}" autoComplete="off" ayuda="8 dígitos" />
+        <div className="flex items-start gap-2">
+          <Campo etiqueta="DNI" className="flex-1" value={datos.dni} onChange={cambiar('dni')} error={err('dni')} required inputMode="numeric" maxLength={8} pattern="\d{8}" autoComplete="off" ayuda="8 dígitos" />
+          {puedeConsultarDni ? (
+            <Boton
+              type="button"
+              variante="secundario"
+              className="mt-[26px] shrink-0"
+              cargando={consultandoDni}
+              disabled={guardando || !/^\d{8}$/.test(datos.dni.trim())}
+              icono={<Search className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => void consultarDni()}
+            >
+              Consultar DNI
+            </Boton>
+          ) : null}
+        </div>
         <CampoSeleccion etiqueta="Estado" value={datos.estado} onChange={cambiar('estado')} error={err('estado')} opciones={ETIQUETAS.estadoEstudiante} />
         <Campo etiqueta="Nombres" value={datos.nombres} onChange={cambiar('nombres')} error={err('nombres')} required maxLength={100} autoComplete="off" />
         <Campo etiqueta="Apellidos" value={datos.apellidos} onChange={cambiar('apellidos')} error={err('apellidos')} required maxLength={100} autoComplete="off" />

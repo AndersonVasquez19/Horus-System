@@ -58,11 +58,11 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
     a.matriculas_con_saldo && (
       <TarjetaAccion
         key="saldo"
-        href="/admin/academico/pagos?estado=parcial"
-        alerta={false}
+        href="/admin/academico/pagos?estado=con_saldo"
+        alerta={(a.cuotas?.vencidas ?? 0) > 0}
         etiqueta="Matrículas con saldo pendiente"
         valor={numero(a.matriculas_con_saldo.cantidad)}
-        detalle={`${moneda(a.matriculas_con_saldo.monto)} por cobrar.`}
+        detalle={detalleSaldo(a.matriculas_con_saldo.monto, a.cuotas)}
         icono={<CircleDollarSign className="h-5 w-5" />}
       />
     ),
@@ -217,6 +217,19 @@ function Lista({ titulo, vacio, children }: { titulo: string; vacio: string; chi
       {children.length === 0 ? <p className="px-4 py-8 text-center text-sm text-panel-muted">{vacio}</p> : <ul className="mt-2 divide-y divide-panel-border border-t border-panel-border">{children}</ul>}
     </div>
   );
+}
+
+function detalleSaldo(monto: string, cuotas?: NonNullable<Datos['acciones']>['cuotas']): string {
+  const base = `${moneda(monto)} por cobrar`;
+  if (!cuotas) return `${base}.`;
+  const partes: string[] = [];
+  if (cuotas.vencidas > 0) {
+    partes.push(`${numero(cuotas.vencidas)} ${cuotas.vencidas === 1 ? 'cuota vencida' : 'cuotas vencidas'} (${moneda(cuotas.monto_vencido)})`);
+  }
+  if (cuotas.por_vencer > 0) {
+    partes.push(`${numero(cuotas.por_vencer)} por vencer (${moneda(cuotas.monto_por_vencer)})`);
+  }
+  return partes.length > 0 ? `${base} · ${partes.join(' · ')}.` : `${base}.`;
 }
 
 /** «+3 frente al mes anterior (5)»; sin referencia anterior, solo el dato disponible. */

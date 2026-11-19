@@ -128,7 +128,7 @@ async function peticion(ruta: string, opciones: OpcionesLlamada, timeout: number
 }
 
 export type ArchivoLaravel =
-  | { ok: true; contenido: ArrayBuffer; tipo: string; nombre: string; cookie: CookieSesionLaravel | null }
+  | { ok: true; contenido: ArrayBuffer; tipo: string; nombre: string; cookie: CookieSesionLaravel | null; aviso?: string }
   | { ok: false; estado: number; error: ErrorApi; cookie: CookieSesionLaravel | null };
 
 /**
@@ -155,7 +155,9 @@ export async function descargarDeLaravel(ruta: string, tiposPermitidos: readonly
 
   const disposicion = respuesta.headers.get('content-disposition') ?? '';
   const nombre = /filename="?([A-Za-z0-9._-]{1,100})"?/.exec(disposicion)?.[1] ?? 'exportacion';
-  return { ok: true, contenido: await respuesta.arrayBuffer(), tipo, nombre, cookie };
+  const truncado = respuesta.headers.get('x-export-truncated') === 'true';
+  const aviso = truncado ? (respuesta.headers.get('x-export-message') ?? 'La descarga se acotó al máximo permitido. Usa los filtros para exportar menos filas.') : undefined;
+  return { ok: true, contenido: await respuesta.arrayBuffer(), tipo, nombre, cookie, aviso };
 }
 
 export async function llamarLaravel<T>(ruta: string, opciones: OpcionesLlamada = {}): Promise<RespuestaLaravel<T>> {

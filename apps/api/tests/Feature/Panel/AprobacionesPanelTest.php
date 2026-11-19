@@ -236,16 +236,28 @@ final class AprobacionesPanelTest extends PanelApiTestCase
         $secretaria = $this->rol('secretaria');
         $datos = ['titulo' => 'Cambio', 'tipo' => AprobacionInterna::TIPO_OPERATIVO];
 
-        // Cada solicitante, sobre lo suyo; Gerencia, sobre lo de otros; nadie más.
-        foreach ([$coordinador, $secretaria, $admin] as $propietario) {
+        // Cada solicitante con `aprobaciones.gestionar`, sobre lo suyo; Gerencia, sobre lo de otros; nadie más.
+        foreach ([$coordinador, $admin] as $propietario) {
             $propia = $this->solicitud($propietario, AprobacionInterna::TIPO_OPERATIVO);
             $this->como($propietario, 'PUT', (string) $propia->id, $datos)->assertOk();
             $this->como($propietario, 'DELETE', (string) $propia->id)->assertOk();
             $this->assertDatabaseMissing('aprobaciones_internas', ['id' => $propia->id]);
         }
+        // La secretaría solo tiene `aprobaciones.ver` por defecto: no edita ni elimina ni siquiera lo suyo.
+        $propiaSecretaria = $this->solicitud($secretaria, AprobacionInterna::TIPO_OPERATIVO);
+        $this->como($secretaria, 'PUT', (string) $propiaSecretaria->id, $datos)->assertForbidden();
+        $this->como($secretaria, 'DELETE', (string) $propiaSecretaria->id)->assertForbidden();
+        $this->assertDatabaseHas('aprobaciones_internas', ['id' => $propiaSecretaria->id]);
+        // Con `aprobaciones.gestionar` concedido explícitamente sí gestiona su propia solicitud.
+        $secretaria->givePermissionTo('aprobaciones.gestionar');
+        $this->como($secretaria->fresh(), 'PUT', (string) $propiaSecretaria->id, $datos)->assertOk();
+        $this->como($secretaria->fresh(), 'DELETE', (string) $propiaSecretaria->id)->assertOk();
+        $this->assertDatabaseMissing('aprobaciones_internas', ['id' => $propiaSecretaria->id]);
+        $secretaria->revokePermissionTo('aprobaciones.gestionar');
+
         $ajena = $this->solicitud($coordinador, AprobacionInterna::TIPO_OPERATIVO);
         $this->como($admin, 'PUT', (string) $ajena->id, $datos)->assertOk();
-        foreach ([$secretaria] as $tercero) {
+        foreach ([$secretaria->fresh()] as $tercero) {
             $this->como($tercero, 'PUT', (string) $ajena->id, $datos)->assertForbidden();
             $this->como($tercero, 'DELETE', (string) $ajena->id)->assertForbidden();
         }

@@ -42,18 +42,40 @@ final class BusquedaAcademica
         }
 
         if ($user->can('matriculas.ver')) {
-            $grupos['matriculas'] = Matricula::query()->with(['estudiante:id,nombres,apellidos,dni', 'curso:id,nombre'])
-                ->whereHas('estudiante', fn ($e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $texto))
-                ->latest('id')->limit(self::POR_GRUPO)->get()->map(fn (Matricula $m): array => [
-                    'id' => $m->id, 'texto' => trim(($m->estudiante->apellidos ?? '').', '.($m->estudiante->nombres ?? '')), 'detalle' => ($m->curso?->nombre ?? 'Curso').' · '.$m->estado,
-                ])->all();
+            $numeroMatricula = ltrim($texto, '#');
+            $consultaMatriculas = Matricula::query()->with(['estudiante:id,nombres,apellidos,dni', 'curso:id,codigo,nombre', 'convocatoria:id,codigo']);
+            $consultaMatriculas->where(function ($w) use ($texto, $numeroMatricula): void {
+                $w->whereHas('estudiante', fn ($e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $texto))
+                    ->orWhereHas('curso', fn ($c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $texto))
+                    ->orWhereHas('convocatoria', fn ($cv) => BusquedaLike::contiene($cv, ['codigo'], $texto));
+                if ($numeroMatricula !== '' && ctype_digit($numeroMatricula) && strlen($numeroMatricula) <= 18) {
+                    $w->orWhere('id', (int) $numeroMatricula);
+                }
+            });
+
+            $grupos['matriculas'] = $consultaMatriculas->latest('id')->limit(self::POR_GRUPO)->get()->map(function (Matricula $m): array {
+                $dni = $m->estudiante?->dni;
+                $curso = trim(($m->curso?->codigo ? $m->curso->codigo.' — ' : '').($m->curso?->nombre ?? 'Curso'));
+                $partesDetalle = array_filter([
+                    $dni !== null ? 'DNI '.$dni : null,
+                    $curso,
+                    $m->convocatoria?->codigo,
+                    $m->estado,
+                ]);
+
+                return [
+                    'id' => $m->id,
+                    'texto' => '#'.$m->id.' · '.trim(($m->estudiante->apellidos ?? '').', '.($m->estudiante->nombres ?? '')),
+                    'detalle' => implode(' · ', $partesDetalle),
+                ];
+            })->all();
         }
 
         if ($user->can('convocatorias.ver')) {
-            $q = Convocatoria::query()->with('curso:id,nombre');
+            $q = Convocatoria::query()->with('curso:id,codigo,nombre');
             $q->where(function ($w) use ($texto): void {
-                BusquedaLike::contiene($w, ['codigo'], $texto);
-                $w->orWhereHas('curso', fn ($c) => BusquedaLike::contiene($c, ['nombre'], $texto));
+                BusquedaLike::contiene($w, ['codigo', 'nombre'], $texto);
+                $w->orWhereHas('curso', fn ($c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $texto));
             });
             $grupos['ediciones'] = $q->orderByDesc('fecha_inicio')->limit(self::POR_GRUPO)->get()->map(fn (Convocatoria $c): array => [
                 'identificador' => $c->identificador, 'texto' => $c->codigo, 'detalle' => $c->curso?->nombre ?? '',

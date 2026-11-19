@@ -30,6 +30,7 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
   const [lista, setLista] = useState<ListaAsistencia | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elegidos, setElegidos] = useState<Record<number, EstadoAsistencia>>({});
+  const [observaciones, setObservaciones] = useState<Record<number, string>>({});
   const [guardando, setGuardando] = useState(false);
   const [corrigiendo, setCorrigiendo] = useState<{ id: number; estado: EstadoAsistencia; motivo: string } | null>(null);
 
@@ -39,17 +40,26 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
     if (!r.ok) return setError(r.error.message);
     setLista(r.datos.data);
     setElegidos(Object.fromEntries(r.datos.data.matriculas.filter((m) => m.estado === null).map((m) => [m.matricula_id, 'presente' as EstadoAsistencia])));
+    setObservaciones(Object.fromEntries(r.datos.data.matriculas.filter((m) => m.estado === null).map((m) => [m.matricula_id, m.observacion ?? ''])));
   }, [ejecutar, sesion.identificador]);
 
   if (!puedeVer || sesion.estado === 'cancelada') return null;
 
   const pendientes = lista?.matriculas.filter((m) => m.estado === null) ?? [];
 
+  function marcarTodosPresentes() {
+    setElegidos(Object.fromEntries(pendientes.map((m) => [m.matricula_id, 'presente' as EstadoAsistencia])));
+  }
+
   async function guardar() {
     setGuardando(true);
     setError(null);
     const r = await ejecutar<{ message: string }>(`academico/sesiones/${sesion.identificador}/asistencias`, 'PUT', {
-      asistencias: pendientes.map((m) => ({ matricula_id: m.matricula_id, estado: elegidos[m.matricula_id] ?? 'presente', observacion: null })),
+      asistencias: pendientes.map((m) => ({
+        matricula_id: m.matricula_id,
+        estado: elegidos[m.matricula_id] ?? 'presente',
+        observacion: (observaciones[m.matricula_id] ?? '').trim() || null,
+      })),
     });
     setGuardando(false);
     if (!r.ok) return setError(r.error.message);
@@ -80,36 +90,58 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
           {lista === null && !error ? <p className="text-sm text-panel-muted" aria-busy="true">Cargando matrículas…</p> : null}
           {lista && lista.matriculas.length === 0 ? <p className="text-sm text-panel-muted">La edición no tiene matrículas vigentes.</p> : null}
           {lista && lista.matriculas.length > 0 ? (
-            <ul className="divide-y divide-panel-border rounded-xl border border-panel-border">
-              {lista.matriculas.map((m) => (
-                <li key={m.matricula_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-panel-text">{m.estudiante.nombre}</p>
-                    <p className="font-mono text-xs text-panel-muted">{m.estudiante.dni}</p>
-                  </div>
-                  {m.estado === null ? (
-                    puedeRegistrar ? (
-                      <select
-                        aria-label={`Asistencia de ${m.estudiante.nombre}`}
-                        value={elegidos[m.matricula_id] ?? 'presente'}
-                        onChange={(e) => setElegidos((p) => ({ ...p, [m.matricula_id]: e.target.value as EstadoAsistencia }))}
-                        className="rounded-lg border border-panel-border bg-panel-surface px-2 py-1.5 text-sm"
-                      >
-                        {Object.entries(ESTADOS).map(([valor, texto]) => <option key={valor} value={valor}>{texto}</option>)}
-                      </select>
-                    ) : (
-                      <span className="text-sm text-panel-muted">Sin registrar</span>
-                    )
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Insignia color={COLORES[m.estado]}>{ESTADOS[m.estado]}</Insignia>
-                      {m.corregida ? <span className="text-xs text-panel-muted">corregida</span> : null}
-                      {puedeCorregir ? <Boton variante="fantasma" onClick={() => setCorrigiendo({ id: m.matricula_id, estado: m.estado ?? 'presente', motivo: '' })}>Corregir</Boton> : null}
+            <>
+              {puedeRegistrar && pendientes.length > 0 ? (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-panel-muted">{pendientes.length} por registrar</span>
+                  <Boton variante="secundario" onClick={marcarTodosPresentes} disabled={guardando}>Todos presentes</Boton>
+                </div>
+              ) : null}
+              <ul className="divide-y divide-panel-border rounded-xl border border-panel-border">
+                {lista.matriculas.map((m) => (
+                  <li key={m.matricula_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-panel-text">{m.estudiante.nombre}</p>
+                      <p className="font-mono text-xs text-panel-muted">{m.estudiante.dni}</p>
+                      {m.estado !== null && m.observacion ? (
+                        <p className="mt-0.5 text-xs text-panel-muted">Obs.: {m.observacion}</p>
+                      ) : null}
                     </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    {m.estado === null ? (
+                      puedeRegistrar ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            aria-label={`Asistencia de ${m.estudiante.nombre}`}
+                            value={elegidos[m.matricula_id] ?? 'presente'}
+                            onChange={(e) => setElegidos((p) => ({ ...p, [m.matricula_id]: e.target.value as EstadoAsistencia }))}
+                            className="rounded-lg border border-panel-border bg-panel-surface px-2 py-1.5 text-sm"
+                          >
+                            {Object.entries(ESTADOS).map(([valor, texto]) => <option key={valor} value={valor}>{texto}</option>)}
+                          </select>
+                          <input
+                            type="text"
+                            aria-label={`Observación de ${m.estudiante.nombre}`}
+                            placeholder="Observación (opcional)"
+                            maxLength={200}
+                            value={observaciones[m.matricula_id] ?? ''}
+                            onChange={(e) => setObservaciones((p) => ({ ...p, [m.matricula_id]: e.target.value }))}
+                            className="w-44 rounded-lg border border-panel-border bg-panel-surface px-2 py-1.5 text-sm text-panel-text"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-panel-muted">Sin registrar</span>
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Insignia color={COLORES[m.estado]}>{ESTADOS[m.estado]}</Insignia>
+                        {m.corregida ? <span className="text-xs text-panel-muted">corregida</span> : null}
+                        {puedeCorregir ? <Boton variante="fantasma" onClick={() => setCorrigiendo({ id: m.matricula_id, estado: m.estado ?? 'presente', motivo: '' })}>Corregir</Boton> : null}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : null}
 
           {corrigiendo ? (

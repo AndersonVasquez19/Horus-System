@@ -14,6 +14,8 @@ export interface SesionPanel {
   roles: string[];
   permisos: string[];
   paneles: { academico: boolean };
+  debe_cambiar_clave?: boolean;
+  two_factor_habilitado?: boolean;
   csrf_token: string;
   expira_en: number | null;
 }

@@ -272,4 +272,44 @@ final class ReclamacionesPanelTest extends PanelApiTestCase
         $this->como($this->admin, 'POST', "/{$r->identificador}/gestion", ['operacion' => 'reintento', 'envio_id' => $envio->id, 'confirmar_envio' => true])
             ->assertOk()->assertJsonPath('message', 'Envío reprogramado.');
     }
+
+    public function test_filtra_por_canal_responsable_y_plazo_y_expone_metricas_de_plazo(): void
+    {
+        $vencida = $this->nueva();
+        $vencida->forceFill([
+            'fecha_limite' => \App\Support\HoraLocal::ahora()->subDays(2)->toDateString(),
+            'responsable_id' => null,
+        ])->save();
+
+        $respaldo = $this->nueva();
+        \Illuminate\Support\Facades\DB::table('reclamaciones')->where('id', $respaldo->id)->update([
+            'canal' => 'respaldo',
+            'numero_hoja_respaldo' => 'HR-001',
+        ]);
+        $respaldo->forceFill([
+            'fecha_limite' => \App\Support\HoraLocal::ahora()->addDays(10)->toDateString(),
+            'responsable_id' => $this->admin->id,
+        ])->save();
+
+        $this->como($this->admin, 'GET', '?canal=respaldo')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $respaldo->identificador)
+            ->assertJsonPath('meta.plazos.vencidas', 1);
+
+        $this->como($this->admin, 'GET', "?responsable={$this->admin->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $respaldo->identificador);
+
+        $this->como($this->admin, 'GET', '?responsable=sin_asignar')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $vencida->identificador);
+
+        $this->como($this->admin, 'GET', '?plazo=vencidas')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $vencida->identificador);
+    }
 }

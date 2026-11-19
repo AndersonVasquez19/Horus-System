@@ -3,10 +3,9 @@ import type { ReactNode } from 'react';
 import { MarcaPanel } from '@/components/shared/marca-panel';
 
 /*
- * Layout común de /admin (solo estructura).
+ * Layout común de /admin (aislamiento visual del sitio público y metadatos de panel).
  *
- * No hay páginas bajo este segmento, por lo que ninguna ruta de panel está expuesta todavía.
- * La autenticación y la protección de rutas llegan en una etapa posterior.
+ * Las rutas del panel se protegen mediante sesión y permisos en Laravel (PanelShell + GuardiaPanel).
  *
  * `data-panel-root` (vía MarcaPanel) activa el aislamiento del tema público (globals.css):
  * mientras este contenedor esté en pantalla, <html> y <body> adoptan el tema de panel y se

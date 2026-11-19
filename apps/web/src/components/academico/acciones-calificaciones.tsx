@@ -1,8 +1,8 @@
 'use client';
 
-import { CheckCheck, FileSpreadsheet, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCheck, FileSpreadsheet, Grid3x3, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useState, type ClipboardEvent, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
@@ -38,6 +38,10 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
   const [objetivo, setObjetivo] = useState<Objetivo>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
+  const [modoRapido, setModoRapido] = useState(false);
+  const [borradores, setBorradores] = useState<Record<string, string>>({});
+  const [motivoLote, setMotivoLote] = useState('');
+  const [errorRapido, setErrorRapido] = useState<string | null>(null);
 
   const { convocatoria, evaluaciones, matriculas } = acta;
   const enCurso = convocatoria.estado === 'en_curso';
@@ -68,12 +72,104 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
     return true;
   }
 
-  async function exportar() {
+  async function exportar(borrador = false) {
     setOcupado(true);
-    const resultado = await descargar(`${base}/acta/exportar`);
+    const resultado = await descargar(`${base}/${borrador ? 'acta/borrador/exportar' : 'acta/exportar'}`);
     setOcupado(false);
-    if (resultado.ok) mostrar('exito', 'Acta generada. La exportación quedó registrada.');
+    if (resultado.ok) mostrar('exito', borrador ? 'Borrador del acta generado.' : 'Acta generada. La exportación quedó registrada.');
     else mostrar('error', resultado.error.message);
+  }
+
+  function abrirModoRapido() {
+    const iniciales: Record<string, string> = {};
+    for (const f of matriculas) {
+      for (const e of evaluaciones) {
+        iniciales[`${f.id}:${e.identificador}`] = f.notas[e.identificador] ?? '';
+      }
+    }
+    setBorradores(iniciales);
+    setMotivoLote('');
+    setErrorRapido(null);
+    setModoRapido(true);
+  }
+
+  function pegarColumna(evento: ClipboardEvent<HTMLInputElement>, filaInicio: number, evaluacionId: string) {
+    const texto = evento.clipboardData.getData('text');
+    const lineas = texto.split(/\r?\n/).map((l) => l.split('\t')[0]?.trim() ?? '');
+    if (lineas.length <= 1) return;
+    evento.preventDefault();
+    setBorradores((prev) => {
+      const siguiente = { ...prev };
+      lineas.forEach((valor, offset) => {
+        const filaDestino = matriculas[filaInicio + offset];
+        if (!filaDestino || valor === '') return;
+        const actual = filaDestino.notas[evaluacionId];
+        const editable = enCurso && (actual === undefined ? puedeRegistrar : puedeCorregir);
+        if (editable) siguiente[`${filaDestino.id}:${evaluacionId}`] = valor.replace(',', '.');
+      });
+      return siguiente;
+    });
+  }
+
+  async function guardarLote() {
+    setErrorRapido(null);
+    const cambios: { matricula_id: number; evaluacion: string; nota: string; nota_actual: string | null }[] = [];
+    let requiereMotivo = false;
+
+    for (const f of matriculas) {
+      for (const e of evaluaciones) {
+        const claveCelda = `${f.id}:${e.identificador}`;
+        const actual = f.notas[e.identificador];
+        const nuevo = (borradores[claveCelda] ?? '').trim().replace(',', '.');
+        if (nuevo === (actual ?? '')) continue;
+        if (nuevo === '' && actual !== undefined) {
+          setErrorRapido(`No puedes dejar vacía la nota ya registrada de ${f.estudiante.nombre} (${e.nombre}).`);
+          return;
+        }
+        if (nuevo === '') continue;
+        if (!/^\d{1,2}(\.\d{1,2})?$/.test(nuevo) || Number(nuevo) < 0 || Number(nuevo) > 20) {
+          setErrorRapido(`Nota inválida para ${f.estudiante.nombre} en ${e.nombre}: usa un valor de 0 a 20.`);
+          return;
+        }
+        if (actual !== undefined) requiereMotivo = true;
+        cambios.push({ matricula_id: f.id, evaluacion: e.identificador, nota: nuevo, nota_actual: actual ?? null });
+      }
+    }
+
+    if (cambios.length === 0) {
+      setModoRapido(false);
+      return;
+    }
+    if (requiereMotivo && motivoLote.trim().length < 3) {
+      setErrorRapido('Indica un motivo de corrección (al menos 3 caracteres) para las notas modificadas que ya tenían registro.');
+      return;
+    }
+
+    setOcupado(true);
+    let guardadas = 0;
+    for (const c of cambios) {
+      const r = await ejecutar<Respuesta>(`${base}/calificaciones`, 'PUT', {
+        evaluacion: c.evaluacion,
+        matricula_id: c.matricula_id,
+        nota: c.nota,
+        nota_actual: c.nota_actual,
+        motivo: c.nota_actual === null ? null : motivoLote.trim(),
+      });
+      if (!r.ok) {
+        setOcupado(false);
+        setErrorRapido(guardadas > 0
+          ? `Se guardaron ${guardadas} nota(s) y falló el resto: ${r.error.message}`
+          : r.error.message);
+        router.refresh();
+        return;
+      }
+      guardadas++;
+    }
+    setOcupado(false);
+    setModoRapido(false);
+    setMotivoLote('');
+    mostrar('exito', guardadas === 1 ? '1 nota guardada.' : `${guardadas} notas guardadas.`);
+    router.refresh();
   }
 
   return (
@@ -82,23 +178,60 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
         <Insignia color={pesosCompletos ? 'verde' : 'ambar'}>Pesos: {acta.peso_total}% de 100%</Insignia>
         <span className="text-xs text-panel-muted">Nota mínima aprobatoria: {acta.nota_aprobatoria}</span>
         <div className="ml-auto flex flex-wrap gap-2">
-          {puedeCorregir && estructuraEditable ? (
+          {enCurso && (puedeRegistrar || puedeCorregir) && evaluaciones.length > 0 && matriculas.length > 0 ? (
+            modoRapido ? (
+              <>
+                <Boton variante="secundario" icono={<X className="h-4 w-4" aria-hidden="true" />} disabled={ocupado} onClick={() => setModoRapido(false)}>
+                  Salir de cuadrícula
+                </Boton>
+                <Boton icono={<Save className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void guardarLote()}>
+                  Guardar notas
+                </Boton>
+              </>
+            ) : (
+              <Boton variante="secundario" icono={<Grid3x3 className="h-4 w-4" aria-hidden="true" />} disabled={ocupado} onClick={abrirModoRapido}>
+                Captura rápida
+              </Boton>
+            )
+          ) : null}
+          {puedeCorregir && estructuraEditable && !modoRapido ? (
             <Boton variante="secundario" icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setObjetivo({ tipo: 'evaluacion', evaluacion: null })}>
               Nueva evaluación
             </Boton>
           ) : null}
-          {puedeCerrar && enCurso ? (
+          {puedeCerrar && enCurso && !modoRapido ? (
             <Boton icono={<CheckCheck className="h-4 w-4" aria-hidden="true" />} disabled={!pesosCompletos} onClick={() => setObjetivo({ tipo: 'cerrar' })}>
               Cerrar acta
             </Boton>
           ) : null}
+          {puedeExportar && !cerrada && evaluaciones.length > 0 && matriculas.length > 0 ? (
+            <Boton variante="secundario" icono={<FileSpreadsheet className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void exportar(true)}>
+              Exportar borrador Excel
+            </Boton>
+          ) : null}
           {puedeExportar && cerrada ? (
-            <Boton variante="secundario" icono={<FileSpreadsheet className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void exportar()}>
+            <Boton variante="secundario" icono={<FileSpreadsheet className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void exportar(false)}>
               Exportar acta
             </Boton>
           ) : null}
         </div>
       </div>
+
+      {modoRapido ? (
+        <div className="space-y-3 rounded-xl border border-academico-200 bg-academico-50/50 p-3 text-sm">
+          <p className="text-xs text-academico-900">
+            Edita las notas en línea o pega una columna de Excel directamente en la primera celda a rellenar. Al finalizar pulsa «Guardar notas».
+          </p>
+          <Campo
+            etiqueta="Motivo de corrección (solo necesario si editas notas ya registradas)"
+            value={motivoLote}
+            onChange={(e) => setMotivoLote(e.target.value)}
+            maxLength={200}
+            placeholder="Ej. Recalificación de examen"
+          />
+          {errorRapido ? <Alerta tipo="error">{errorRapido}</Alerta> : null}
+        </div>
+      ) : null}
 
       {evaluaciones.length === 0 ? (
         <p className="text-sm text-panel-muted">Todavía no hay evaluaciones. Crea una para empezar a registrar notas.</p>
@@ -129,7 +262,7 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-panel-border">
-              {matriculas.map((fila) => (
+              {matriculas.map((fila, indiceFila) => (
                 <tr key={fila.id}>
                   <th scope="row" className="px-3 py-2 text-left font-medium text-panel-text">
                     {fila.estudiante.nombre}
@@ -138,9 +271,21 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
                   {evaluaciones.map((e) => {
                     const nota = fila.notas[e.identificador];
                     const puede = enCurso && (nota === undefined ? puedeRegistrar : puedeCorregir);
+                    const claveCelda = `${fila.id}:${e.identificador}`;
                     return (
                       <td key={e.identificador} className="px-3 py-2 text-right tabular-nums">
-                        {puede ? (
+                        {modoRapido && puede ? (
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={borradores[claveCelda] ?? ''}
+                            onChange={(ev) => setBorradores((prev) => ({ ...prev, [claveCelda]: ev.target.value }))}
+                            onPaste={(ev) => pegarColumna(ev, indiceFila, e.identificador)}
+                            disabled={ocupado}
+                            aria-label={`Nota de ${fila.estudiante.nombre} en ${e.nombre}`}
+                            className="w-20 rounded-md border border-academico-300 bg-panel-surface px-2 py-1 text-right text-sm tabular-nums text-panel-text outline-none focus:border-academico-700 focus:ring-2 focus:ring-academico-700/20"
+                          />
+                        ) : puede ? (
                           <button
                             type="button"
                             className="rounded-md px-2 py-1 font-semibold text-academico-800 hover:bg-academico-50"

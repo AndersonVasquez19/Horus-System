@@ -2,13 +2,16 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { BotonNuevoEstudiante } from '@/components/academico/acciones-estudiante';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
+import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
+import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import type { EstudianteResumen } from '@/features/academico/tipos';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
+import { mensajeEstudiante, urlMailto, urlWhatsApp } from '@/lib/panel/contacto';
 import { ETIQUETAS, etiqueta, fecha } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Estudiantes · Gestión académica' };
@@ -67,6 +70,14 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
         </label>
       </FiltrosListado>
 
+      <div className="flex justify-end">
+        <BotonExportarListado
+          ruta="academico/estudiantes/exportar"
+          filtros={consulta(parametros, ['busqueda', 'estado', 'eliminados', 'sort'])}
+          permiso="estudiantes.ver"
+        />
+      </div>
+
       {estudiantes.length === 0 ? (
         hayFiltros ? (
           <EstadoSinResultados titulo="Ningún estudiante coincide con los filtros" texto="Prueba con otros criterios o limpia los filtros." />
@@ -76,30 +87,49 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
       ) : (
         <Tabla
           titulo={`Estudiantes (${meta.total})`}
-          columnas={['Estudiante', 'DNI', { texto: 'Contacto' }, 'Registrado', 'Estado']}
+          columnas={['Estudiante', 'DNI', { texto: 'Contacto' }, 'Registrado', 'Estado', { texto: 'Acciones', oculta: true, derecha: true }]}
           pie={<Paginacion meta={meta} ruta={RUTA} parametros={actuales} />}
         >
-          {estudiantes.map((estudiante) => (
-            <tr key={estudiante.id} className="hover:bg-academico-50/50">
-              <td className="px-4 py-3">
-                <Link href={`${RUTA}/${estudiante.id}`} className="font-semibold text-panel-text hover:text-academico-800 hover:underline">
-                  {estudiante.apellidos}, {estudiante.nombres}
-                </Link>
-              </td>
-              <td className="px-4 py-3 font-mono text-xs text-panel-muted">{estudiante.dni}</td>
-              <td className="px-4 py-3 text-panel-muted">
-                <p className="max-w-56 truncate">{estudiante.email ?? '—'}</p>
-                {estudiante.telefono ? <p className="text-xs">{estudiante.telefono}</p> : null}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(estudiante.creado_en)}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-1">
-                  <Insignia color={colorEstado(estudiante.estado)}>{etiqueta('estadoEstudiante', estudiante.estado)}</Insignia>
-                  {estudiante.eliminado ? <Insignia color="rojo">Desactivado</Insignia> : null}
-                </div>
-              </td>
-            </tr>
-          ))}
+          {estudiantes.map((estudiante) => {
+            const nombreCompleto = `${estudiante.nombres} ${estudiante.apellidos}`.trim();
+            const wa = urlWhatsApp(estudiante.telefono, mensajeEstudiante({ nombre: nombreCompleto }));
+            const mail = urlMailto(estudiante.email, 'Horus Group · Información académica');
+            const acciones: ElementoMenuFila[] = [
+              { tipo: 'enlace', etiqueta: 'Ver ficha', href: `${RUTA}/${estudiante.id}` },
+              ...(!estudiante.eliminado && estudiante.estado === 'activo'
+                ? [{ tipo: 'enlace' as const, etiqueta: 'Matricular', href: `/admin/academico/matriculas/nueva?estudiante_id=${estudiante.id}` }]
+                : []),
+              ...(wa ? [{ tipo: 'enlace' as const, etiqueta: 'WhatsApp', href: wa, externo: true }] : []),
+              ...(mail ? [{ tipo: 'enlace' as const, etiqueta: 'Enviar correo', href: mail, externo: true }] : []),
+              ...(estudiante.telefono ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar teléfono', valor: estudiante.telefono, aviso: 'Teléfono copiado.' }] : []),
+              ...(estudiante.email ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar correo', valor: estudiante.email, aviso: 'Correo copiado.' }] : []),
+              { tipo: 'copiar', etiqueta: 'Copiar DNI', valor: estudiante.dni, aviso: 'DNI copiado.' },
+            ];
+            return (
+              <tr key={estudiante.id} className="hover:bg-academico-50/50">
+                <td className="px-4 py-3">
+                  <Link href={`${RUTA}/${estudiante.id}`} className="font-semibold text-panel-text hover:text-academico-800 hover:underline">
+                    {estudiante.apellidos}, {estudiante.nombres}
+                  </Link>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-panel-muted">{estudiante.dni}</td>
+                <td className="px-4 py-3 text-panel-muted">
+                  <p className="max-w-56 truncate">{estudiante.email ?? '—'}</p>
+                  {estudiante.telefono ? <p className="text-xs">{estudiante.telefono}</p> : null}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(estudiante.creado_en)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    <Insignia color={colorEstado(estudiante.estado)}>{etiqueta('estadoEstudiante', estudiante.estado)}</Insignia>
+                    {estudiante.eliminado ? <Insignia color="rojo">Desactivado</Insignia> : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <MenuFila etiqueta={`Acciones para ${nombreCompleto}`} elementos={acciones} />
+                </td>
+              </tr>
+            );
+          })}
         </Tabla>
       )}
     </div>

@@ -6,8 +6,10 @@ import { LogoHorus, MarcaHorus } from './marca-horus';
 import { obtenerSesion } from '@/lib/panel/sesion';
 import { urlLogin } from '@/lib/panel/redireccion';
 import { BotonCerrarSesion } from './boton-cerrar-sesion';
-import { CampanaNotificaciones, CampanaSinConteo } from './campana-notificaciones';
+import { CambioClaveObligatorio } from './cambio-clave-obligatorio';
+import { CampanaNotificaciones, CampanaSinConteo, obtenerInsigniasNavegacion } from './campana-notificaciones';
 import { MarcaPanel } from './marca-panel';
+import { MenuUsuarioPanel } from './menu-usuario-panel';
 import { PanelNavegacion } from './panel-navegacion';
 import { filtrarNavegacion, type ModeloNavegacion, type TonoPanel } from './panel-tipos';
 import { RenovadorSesion } from './renovador-sesion';
@@ -18,13 +20,10 @@ import { ProveedorAvisos } from './ui/avisos';
  * Las clases se escriben completas (no se componen) para que Tailwind las detecte.
  * Texto blanco sobre 800; foco con 700 (ver globals.css para los contrastes).
  */
-const TONOS: Record<TonoPanel, { franja: string; foco: string; enlace: string }> = {
-  academico: {
-    franja: '',
-    foco: 'focus-visible:outline-academico-700',
-    enlace: 'text-academico-700 focus-visible:outline-academico-700',
-  },
-};
+const ESTILO_PANEL = {
+  foco: 'focus-visible:outline-academico-700',
+  enlace: 'text-academico-700 focus-visible:outline-academico-700',
+} as const;
 
 interface PanelShellProps {
   tono: TonoPanel;
@@ -45,18 +44,16 @@ interface PanelShellProps {
  * Semántica: el layout raíz aporta el único `<main>`; aquí no se declara otro `<main>`, `<header>` ni `<aside>`.
  */
 export function PanelShell({ tono, titulo, navegacion, children }: PanelShellProps) {
-  const t = TONOS[tono];
-
   return (
     <MarcaPanel atributo="data-panel-tono" valor={tono} className="flex min-h-screen flex-col">
       <a
         href="#contenido-panel"
-        className={`sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-panel-surface focus:px-3 focus:py-2 focus:text-panel-text focus:shadow focus-visible:outline-2 focus-visible:outline-offset-2 ${t.foco}`}
+        className={`sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-panel-surface focus:px-3 focus:py-2 focus:text-panel-text focus:shadow focus-visible:outline-2 focus-visible:outline-offset-2 ${ESTILO_PANEL.foco}`}
       >
         Saltar al contenido
       </a>
 
-      <Suspense fallback={<EsqueletoPanel tono={tono} titulo={titulo} />}>
+      <Suspense fallback={<EsqueletoPanel titulo={titulo} />}>
         <GuardiaPanel tono={tono} titulo={titulo} navegacion={navegacion}>
           {children}
         </GuardiaPanel>
@@ -66,13 +63,12 @@ export function PanelShell({ tono, titulo, navegacion, children }: PanelShellPro
 }
 
 async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellProps) {
-  const t = TONOS[tono];
   const resultado = await obtenerSesion();
 
   if (resultado.estado === 'anonimo') redirect(urlLogin(`/admin/${tono}`));
   if (resultado.estado === 'no_disponible') {
     return (
-      <Franja tono={tono} titulo={titulo}>
+      <Franja titulo={titulo}>
         <EstadoPagina
           icono={<WifiOff className="h-6 w-6" aria-hidden="true" />}
           titulo="El panel no está disponible"
@@ -85,41 +81,59 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
   const { sesion } = resultado;
   if (!sesion.paneles[tono]) {
     return (
-      <Franja tono={tono} titulo={titulo} acciones={<BotonCerrarSesion className="text-panel-text hover:bg-panel-bg focus-visible:outline-academico-700" />}>
+      <Franja titulo={titulo} acciones={<BotonCerrarSesion className="text-panel-text hover:bg-panel-bg focus-visible:outline-academico-700" />}>
         <EstadoPagina
           icono={<ShieldAlert className="h-6 w-6" aria-hidden="true" />}
           titulo="No tienes acceso a este panel"
           texto="Tu cuenta no tiene permiso para entrar aquí. Si crees que es un error, contacta con un administrador."
-          enlace={{ href: '/admin', texto: 'Volver al inicio del panel', clase: t.enlace }}
+          enlace={{ href: '/', texto: 'Ir al sitio público', clase: ESTILO_PANEL.enlace }}
         />
       </Franja>
+    );
+  }
+
+  const modeloFiltrado = filtrarNavegacion(navegacion, sesion.permisos);
+  const bloqueadoPorClave = Boolean(sesion.debe_cambiar_clave);
+
+  if (bloqueadoPorClave) {
+    return (
+      <ProveedorSesionPanel sesion={sesion}>
+        <ProveedorAvisos>
+          <Franja titulo={titulo} acciones={<BotonCerrarSesion className="text-panel-text hover:bg-panel-bg focus-visible:outline-academico-700" />}>
+            <RenovadorSesion />
+            <div id="contenido-panel" tabIndex={-1} className={`min-w-0 flex-1 p-4 sm:p-6 ${ESTILO_PANEL.foco}`}>
+              <CambioClaveObligatorio sesion={sesion} tono={tono} />
+            </div>
+          </Franja>
+        </ProveedorAvisos>
+      </ProveedorSesionPanel>
     );
   }
 
   return (
     <ProveedorSesionPanel sesion={sesion}>
       <ProveedorAvisos>
-        <RenovadorSesion />
         <Franja
-          tono={tono}
           titulo={titulo}
           acciones={
             <>
               <Suspense fallback={<CampanaSinConteo tono={tono} />}>
                 <CampanaNotificaciones tono={tono} />
               </Suspense>
-              <span className="hidden max-w-48 truncate text-sm font-medium text-panel-text md:inline" title={sesion.usuario.email}>
-                {sesion.usuario.nombre}
-              </span>
-              <BotonCerrarSesion className="text-panel-text hover:bg-panel-bg focus-visible:outline-academico-700" />
+              <MenuUsuarioPanel usuario={sesion.usuario} tono={tono} />
             </>
           }
-          riel={<PanelNavegacion tono={tono} titulo={titulo} modelo={filtrarNavegacion(navegacion, sesion.permisos)} />}
+          riel={
+            <Suspense fallback={<PanelNavegacion titulo={titulo} modelo={modeloFiltrado} />}>
+              <RielConInsignias titulo={titulo} modelo={modeloFiltrado} />
+            </Suspense>
+          }
         >
+          <RenovadorSesion />
           <div
             id="contenido-panel"
             tabIndex={-1}
-            className={`min-w-0 flex-1 p-4 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 sm:p-6 lg:p-8 ${t.foco}`}
+            className={`min-w-0 flex-1 p-4 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 sm:p-6 lg:p-8 ${ESTILO_PANEL.foco}`}
           >
             {children}
           </div>
@@ -129,7 +143,12 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
   );
 }
 
-function Franja({ tono, titulo, acciones, riel, children }: { tono: TonoPanel; titulo: string; acciones?: ReactNode; riel?: ReactNode; children: ReactNode }) {
+async function RielConInsignias({ titulo, modelo }: { titulo: string; modelo: ModeloNavegacion }) {
+  const insignias = await obtenerInsigniasNavegacion();
+  return <PanelNavegacion titulo={titulo} modelo={modelo} insignias={insignias} />;
+}
+
+function Franja({ titulo, acciones, riel, children }: { titulo: string; acciones?: ReactNode; riel?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col md:min-h-screen md:flex-row">
       {riel ? (
@@ -141,7 +160,7 @@ function Franja({ tono, titulo, acciones, riel, children }: { tono: TonoPanel; t
         </div>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className={`flex items-center justify-between gap-3 border-b border-panel-border bg-panel-surface px-4 py-2.5 sm:px-6 ${TONOS[tono].franja}`}>
+        <div className="flex items-center justify-between gap-3 border-b border-panel-border bg-panel-surface px-4 py-2.5 sm:px-6">
           {riel ? (
             <p className="min-w-0 truncate font-heading text-sm font-semibold text-panel-text">{titulo}</p>
           ) : (
@@ -210,9 +229,9 @@ function RielEsqueleto() {
  * Lo primero que se pinta al entrar o recargar, hasta que Laravel confirma la sesión. Lleva el riel oscuro y la franja
  * superior del panel real: sin riel era una pantalla clara casi vacía con el título «Gestión académica».
  */
-function EsqueletoPanel({ tono, titulo }: { tono: TonoPanel; titulo: string }) {
+function EsqueletoPanel({ titulo }: { titulo: string }) {
   return (
-    <Franja tono={tono} titulo={titulo} riel={<RielEsqueleto />}>
+    <Franja titulo={titulo} riel={<RielEsqueleto />}>
       <div className="flex flex-1 flex-col" aria-busy="true" aria-label="Cargando el panel">
         <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
           <div className="h-8 w-56 animate-pulse rounded-md bg-panel-border" />

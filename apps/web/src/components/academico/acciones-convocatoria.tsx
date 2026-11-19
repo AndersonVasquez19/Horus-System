@@ -34,8 +34,9 @@ interface DatosConvocatoria {
   cupos_maximos: string;
 }
 
-function FormularioConvocatoria({ convocatoria, onGuardado, onCancelar, onOcupado }: {
+function FormularioConvocatoria({ convocatoria, cursoInicial, onGuardado, onCancelar, onOcupado }: {
   convocatoria?: ConvocatoriaDetalle;
+  cursoInicial?: CursoOpcion;
   onGuardado: (mensaje: string, identificador: string) => void;
   onCancelar: () => void;
   onOcupado: (ocupado: boolean) => void;
@@ -50,7 +51,7 @@ function FormularioConvocatoria({ convocatoria, onGuardado, onCancelar, onOcupad
   });
   const [busqueda, setBusqueda] = useState('');
   const [cursos, setCursos] = useState<CursoOpcion[] | null>(null);
-  const [curso, setCurso] = useState('');
+  const [curso, setCurso] = useState(cursoInicial ? String(cursoInicial.id) : '');
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
   const cambiar = (campo: keyof DatosConvocatoria) => (evento: { target: { value: string } }) => setDatos((actuales) => ({ ...actuales, [campo]: evento.target.value }));
@@ -96,7 +97,15 @@ function FormularioConvocatoria({ convocatoria, onGuardado, onCancelar, onOcupad
     <form onSubmit={(evento) => void enviar(evento)} noValidate className="space-y-4">
       {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
       {error?.code === 'validacion' ? <Alerta tipo="error">Revisa los campos marcados.</Alerta> : null}
-      {convocatoria ? null : (
+      {convocatoria ? null : cursoInicial ? (
+        <section aria-labelledby="titulo-convocatoria-curso" className="space-y-1">
+          <h3 id="titulo-convocatoria-curso" className="text-sm font-semibold text-panel-text">Curso</h3>
+          <p className="rounded-lg border border-panel-border bg-panel-bg px-3 py-2 text-sm text-panel-text">
+            <span className="font-medium">{cursoInicial.nombre}</span>{' '}
+            <span className="font-mono text-xs text-panel-muted">({cursoInicial.codigo})</span>
+          </p>
+        </section>
+      ) : (
         <section aria-labelledby="titulo-convocatoria-curso" className="space-y-2">
           <h3 id="titulo-convocatoria-curso" className="text-sm font-semibold text-panel-text">Curso</h3>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -129,14 +138,14 @@ function FormularioConvocatoria({ convocatoria, onGuardado, onCancelar, onOcupad
       </div>
       <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
         <Boton variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
-        <Boton type="submit" cargando={guardando} disabled={!convocatoria && curso === ''}>{convocatoria ? 'Guardar cambios' : 'Registrar convocatoria'}</Boton>
+        <Boton type="submit" cargando={guardando} disabled={!convocatoria && curso === ''}>{convocatoria ? 'Guardar cambios' : 'Registrar edición'}</Boton>
       </div>
     </form>
   );
 }
 
-/** «Nueva convocatoria» del listado. */
-export function BotonNuevaConvocatoria() {
+/** «Nueva edición» del listado o de la ficha de un curso. */
+export function BotonNuevaConvocatoria({ cursoInicial }: { cursoInicial?: CursoOpcion } = {}) {
   const puede = usePuede('convocatorias.crear');
   const router = useRouter();
   const { mostrar } = useAvisos();
@@ -147,9 +156,10 @@ export function BotonNuevaConvocatoria() {
 
   return (
     <>
-      <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Nueva convocatoria</Boton>
-      <Dialogo abierto={abierto} titulo="Registrar convocatoria" descripcion="Una edición de un curso con sus fechas, cupos y horario." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Nueva edición</Boton>
+      <Dialogo abierto={abierto} titulo="Registrar edición" descripcion="Una edición de un curso con sus fechas, cupos y horario." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <FormularioConvocatoria
+          cursoInicial={cursoInicial}
           onOcupado={setOcupado}
           onCancelar={() => setAbierto(false)}
           onGuardado={(mensaje, identificador) => {
@@ -167,8 +177,8 @@ const ACCION_ESTADO: Record<EstadoConvocatoria, { texto: string; icono: typeof P
   borrador: { texto: 'Borrador', icono: Play, secundaria: true },
   abierta: { texto: 'Abrir inscripciones', icono: DoorOpen, secundaria: false },
   en_curso: { texto: 'Iniciar', icono: Play, secundaria: false },
-  cerrada: { texto: 'Cerrar convocatoria', icono: CheckCheck, secundaria: false },
-  cancelada: { texto: 'Cancelar convocatoria', icono: CircleX, secundaria: true },
+  cerrada: { texto: 'Cerrar edición', icono: CheckCheck, secundaria: false },
+  cancelada: { texto: 'Cancelar edición', icono: CircleX, secundaria: true },
 };
 
 /** Acciones del detalle: cambios de estado permitidos y edición. Cerrar y cancelar piden confirmación y su permiso propio. */
@@ -224,7 +234,7 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
       {puedeEditar && vigente ? <Boton variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => { setError(null); setEditando(true); }}>Editar</Boton> : null}
       {error && !editando && confirmar === null ? <p role="alert" className="basis-full text-sm text-estado-error">{error.message}</p> : null}
 
-      <Dialogo abierto={editando} titulo="Editar convocatoria" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+      <Dialogo abierto={editando} titulo="Editar edición" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioConvocatoria
           convocatoria={convocatoria}
           onOcupado={setOcupado}
@@ -237,13 +247,13 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
         />
       </Dialogo>
 
-      <Dialogo abierto={confirmar !== null} titulo={confirmar === 'cerrada' ? 'Cerrar convocatoria' : 'Cancelar convocatoria'} descripcion={convocatoria.codigo} onCerrar={() => setConfirmar(null)} bloqueado={ocupado} ancho="sm">
+      <Dialogo abierto={confirmar !== null} titulo={confirmar === 'cerrada' ? 'Cerrar edición' : 'Cancelar edición'} descripcion={convocatoria.codigo} onCerrar={() => setConfirmar(null)} bloqueado={ocupado} ancho="sm">
         <div className="space-y-4">
           {error ? <Alerta tipo="error">{error.message}</Alerta> : null}
-          <p className="text-sm text-panel-text">Una convocatoria {confirmar === 'cerrada' ? 'cerrada' : 'cancelada'} ya no se puede editar ni reabrir.</p>
+          <p className="text-sm text-panel-text">Una edición {confirmar === 'cerrada' ? 'cerrada' : 'cancelada'} ya no se puede editar ni reabrir.</p>
           <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
             <Boton variante="secundario" onClick={() => setConfirmar(null)} disabled={ocupado}>Volver</Boton>
-            <Boton cargando={ocupado} onClick={() => confirmar !== null && void cambiarEstado(confirmar)}>{confirmar === 'cerrada' ? 'Cerrar convocatoria' : 'Cancelar convocatoria'}</Boton>
+            <Boton cargando={ocupado} onClick={() => confirmar !== null && void cambiarEstado(confirmar)}>{confirmar === 'cerrada' ? 'Cerrar edición' : 'Cancelar edición'}</Boton>
           </div>
         </div>
       </Dialogo>

@@ -18,10 +18,6 @@ export interface Operacion {
   campos?: readonly string[];
   /** Campos del cuerpo que son listas de textos (roles o permisos): hasta `MAX_LISTA` elementos de texto acotado. */
   listas?: readonly string[];
-  /** El cuerpo trae `contactos`: hasta `MAX_CONTACTOS` objetos con campos de texto acotados (clientes). */
-  contactos?: boolean;
-  /** Campos de un único objeto anidado `oportunidad` (conversión de un prospecto): solo escalares, texto acotado. */
-  oportunidad?: readonly string[];
   /** El cuerpo trae `horarios`: hasta `MAX_HORARIOS` bloques de horario de una convocatoria (campos acotados). */
   horarios?: boolean;
   /** El cuerpo trae `asistencias`: pares {matricula_id, estado, observacion} de una sesión. */
@@ -41,14 +37,11 @@ export interface Operacion {
   multipart?: readonly string[];
 }
 
-/** Tamaño máximo de la imagen de la ficha (igual que `ImagenesServicios::MAX_KB` en Laravel: 3 MB). */
+/** Tamaño máximo de la imagen adjunta (comprobantes de pago en `PagoController`: 3 MB). */
 export const MAX_IMAGEN = 3 * 1024 * 1024;
 
 /** Elementos admitidos en un campo de lista (Laravel limita roles a 20 y permisos a 100). */
 export const MAX_LISTA = 100;
-
-/** Contactos admitidos por cliente (igual que `GuardarClienteRequest::MAX_CONTACTOS` en Laravel). */
-export const MAX_CONTACTOS = 10;
 
 /** Bloques de horario admitidos por convocatoria (igual que `Convocatoria::MAX_HORARIOS` en Laravel). */
 export const MAX_HORARIOS = 20;
@@ -73,57 +66,61 @@ export interface HorarioReenviado {
   hora_fin: string | null;
 }
 
-export interface ContactoReenviado {
-  nombre: string | null;
-  cargo: string | null;
-  email: string | null;
-  telefono: string | null;
-  principal: boolean;
-}
-
-export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | HorarioReenviado[] | AsistenciaReenviada[] | CuotaReenviada[] | Record<string, string | number | boolean | null>;
+export type ValorCuerpo = string | number | boolean | null | string[] | HorarioReenviado[] | AsistenciaReenviada[] | CuotaReenviada[] | Record<string, string | number | boolean | null>;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 
 const CAMPOS_ESTUDIANTE = ['dni', 'nombres', 'apellidos', 'email', 'telefono', 'fecha_nacimiento', 'direccion', 'estado'] as const;
-const CAMPOS_CURSO = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado'] as const;
+const CAMPOS_CURSO = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado', 'enlace_grupo_whatsapp'] as const;
 const CAMPOS_FICHA = ['titulo', 'resumen', 'modalidad', 'horario', 'inscripcion', 'vigente_desde', 'vigente_hasta', 'confirmacion_publica', '_revision'] as const;
-const FILTROS_REPORTE = ['busqueda', 'estado', 'eliminados', 'lote'] as const;
+const FILTROS_REPORTE = ['tipo', 'busqueda', 'estado', 'curso_id', 'eliminados', 'completo', 'lote'] as const;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const CAMPOS_CONVOCATORIA = ['curso_id', 'nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos', '_revision'] as const;
 const CAMPOS_SESION = ['numero', 'fecha', 'hora_inicio', 'hora_fin', 'tema', '_revision'] as const;
 const CAMPOS_EVALUACION = ['nombre', 'peso', 'fecha', '_revision'] as const;
-const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
+const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'motivo', 'observaciones'] as const;
 /** La convocatoria solo se elige al registrar: queda fija y la edición no la acepta. */
 const CAMPOS_MATRICULA_ALTA = [...CAMPOS_MATRICULA, 'convocatoria'] as const;
-const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'eliminados'] as const;
+const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'convocatoria', 'estado_cobro', 'eliminados'] as const;
 
 const SESION = '[a-f0-9]{32}';
 const CAMPOS_GESTION_RECLAMACION = ['operacion', 'responsable_id', 'tipo', 'nota', 'asunto', 'cuerpo', 'fecha_recepcion', 'medio', 'constancia', 'respuesta', 'canal', 'envio_id', 'confirmar_envio'] as const;
-const CAMPOS_USUARIO = ['name', 'email', 'password', 'password_confirmation'] as const;
+const CAMPOS_USUARIO = ['name', 'email', 'password', 'password_confirmation', 'temporal'] as const;
 
 export const OPERACIONES: readonly Operacion[] = [
   // Cuenta propia compartida por los dos paneles: notificaciones, perfil y sesiones
-  { metodo: 'GET', patron: /^compartido\/notificaciones\/recientes$/ },
+  { metodo: 'GET', patron: /^compartido\/notificaciones\/(recientes|conteos)$/ },
   { metodo: 'POST', patron: /^compartido\/notificaciones\/leidas$/ },
   { metodo: 'POST', patron: new RegExp(`^compartido/notificaciones/${ID}/leida$`) },
   { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
-  { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta'], archivo: ['application/json'] },
-  { metodo: 'POST', patron: /^compartido\/respaldo\/exportar$/, archivo: ['application/zip'] },
+  { metodo: 'PUT', patron: /^compartido\/perfil\/preferencias$/, campos: ['telefono', 'interno', 'email', 'whatsapp', 'whatsapp_consentimiento', 'recordatorio_cuotas', 'recordatorio_sesiones', 'recordatorio_reclamaciones', 'alerta_accesos'] },
+  { metodo: 'POST', patron: /^compartido\/perfil\/2fa\/iniciar$/, campos: ['current_password'] },
+  { metodo: 'POST', patron: /^compartido\/perfil\/2fa\/confirmar$/, campos: ['codigo'] },
+  { metodo: 'POST', patron: /^compartido\/perfil\/2fa\/desactivar$/, campos: ['current_password', 'codigo'] },
+  { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta', 'formato'], archivo: ['application/json', 'text/csv', XLSX] },
+  { metodo: 'POST', patron: /^compartido\/respaldo\/exportar$/, consulta: ['tablas', 'desde', 'hasta'], archivo: ['application/zip'] },
   { metodo: 'POST', patron: /^compartido\/asistente\/mensaje$/, campos: ['mensaje', 'session_id'] },
+  { metodo: 'POST', patron: /^compartido\/reclamaciones\/exportar$/, consulta: ['formato', 'busqueda', 'tipo', 'estado', 'canal', 'responsable', 'plazo', 'desde', 'hasta', 'sort'], archivo: ['text/csv', XLSX] },
+  { metodo: 'POST', patron: /^compartido\/reclamaciones\/asignar-lote$/, campos: ['responsable_id'], listas: ['identificadores'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones/${UUID}/gestion$`), campos: CAMPOS_GESTION_RECLAMACION },
   // Mensajes de «Contáctanos»: marcar como atendido (el listado lo pide el servidor de Next)
+  { metodo: 'POST', patron: /^compartido\/reclamaciones-mensajes\/atender-lote$/, listas: ['identificadores'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones-mensajes/${UUID}/atender$`) },
   // Aprobaciones internas: el servidor decide quién puede qué; aquí solo viajan los campos de cada operación
+  { metodo: 'POST', patron: /^compartido\/aprobaciones\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'tipo', 'alcance'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^compartido\/aprobaciones$/, campos: ['titulo', 'tipo', 'descripcion', 'referencia', 'comentario'] },
+  { metodo: 'PUT', patron: new RegExp(`^compartido/aprobaciones/${ID}$`), campos: ['titulo', 'tipo', 'descripcion', 'referencia', 'comentario'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/aprobaciones/${ID}/aprobar$`), campos: ['comentario'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/aprobaciones/${ID}/(rechazar|reabrir)$`), campos: ['motivo'] },
   { metodo: 'DELETE', patron: new RegExp(`^compartido/aprobaciones/${ID}$`) },
+  { metodo: 'POST', patron: /^compartido\/usuarios\/exportar$/, consulta: ['formato', 'busqueda', 'rol', 'estado', 'eliminados', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^compartido\/usuarios$/, campos: CAMPOS_USUARIO, listas: ['roles'] },
   { metodo: 'PUT', patron: new RegExp(`^compartido/usuarios/${ID}$`), campos: CAMPOS_USUARIO, listas: ['roles'] },
   { metodo: 'DELETE', patron: new RegExp(`^compartido/usuarios/${ID}$`) },
+  { metodo: 'POST', patron: new RegExp(`^compartido/usuarios/${ID}/(desactivar|restaurar|desbloquear|cerrar-sesiones|invitar)$`) },
+  { metodo: 'POST', patron: new RegExp(`^compartido/usuarios/${ID}/suspender$`), campos: ['dias', 'motivo'] },
   { metodo: 'POST', patron: /^compartido\/roles$/, campos: ['name'], listas: ['permissions'] },
   { metodo: 'PUT', patron: new RegExp(`^compartido/roles/${ID}$`), campos: ['name'], listas: ['permissions'] },
   { metodo: 'DELETE', patron: new RegExp(`^compartido/roles/${ID}$`) },
@@ -150,11 +147,13 @@ export const OPERACIONES: readonly Operacion[] = [
   // Caja del administrador: matrícula + pago Yape + captura en un solo paso (multipart; la clave de idempotencia viaja como `_clave`)
   { metodo: 'POST', patron: /^academico\/matriculas\/con-pago$/, multipart: ['estudiante_id', 'convocatoria', 'monto', 'fecha_pago', 'referencia', '_clave'] },
 
-  // Finanzas (solo PEN y Yape): la clave de idempotencia viaja como `_clave` y Laravel la convierte en cabecera
+  // Finanzas (solo PEN y métodos activos): la clave de idempotencia viaja como `_clave` y Laravel la convierte en cabecera
+  { metodo: 'GET', patron: /^academico\/pagos\/metodos$/ },
+  { metodo: 'GET', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/recibo$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: /^academico\/matriculas\/[0-9]{1,10}\/obligacion$/, campos: ['concepto', 'plan', 'monto_total'], cuotas: true },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/pagos$`), campos: ['metodo', 'monto', 'fecha_pago', 'referencia', 'confirmar', '_clave'] },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/anular$`), campos: ['motivo'] },
-  { metodo: 'POST', patron: /^academico\/pagos\/exportar$/, archivo: [XLSX] },
+  { metodo: 'POST', patron: /^academico\/pagos\/exportar$/, consulta: ['busqueda', 'estado', 'desde', 'hasta', 'sort'], archivo: [XLSX] },
   // Captura del comprobante: una sola imagen (campo `imagen`); se muestra en línea y solo con permiso en Laravel
   { metodo: 'GET', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), archivo: IMAGENES, enLinea: true },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), multipart: [] },
@@ -163,14 +162,17 @@ export const OPERACIONES: readonly Operacion[] = [
 
 
   // Estudiantes
+  { metodo: 'POST', patron: /^academico\/estudiantes\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'eliminados', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^academico\/estudiantes$/, campos: CAMPOS_ESTUDIANTE },
   { metodo: 'PUT', patron: new RegExp(`^academico/estudiantes/${ID}$`), campos: CAMPOS_ESTUDIANTE },
   { metodo: 'DELETE', patron: new RegExp(`^academico/estudiantes/${ID}$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/estudiantes/${ID}/restaurar$`) },
 
   // Cursos y ficha pública (la revisión viaja en el cuerpo: `_revision`)
+  { metodo: 'POST', patron: /^academico\/cursos\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'modalidad', 'categoria', 'con_cupos', 'publicado', 'eliminados', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^academico\/cursos$/, campos: CAMPOS_CURSO },
   { metodo: 'PUT', patron: new RegExp(`^academico/cursos/${ID}$`), campos: CAMPOS_CURSO },
+  { metodo: 'POST', patron: new RegExp(`^academico/cursos/${ID}/duplicar$`) },
   { metodo: 'DELETE', patron: new RegExp(`^academico/cursos/${ID}$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/cursos/${ID}/restaurar$`) },
   { metodo: 'GET', patron: new RegExp(`^academico/cursos/${ID}/publicacion$`) },
@@ -186,6 +188,7 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: /^academico\/cursos$/, consulta: ['busqueda', 'estado'] },
   // Selector de convocatoria del formulario de matrícula (las vigentes de un curso)
   { metodo: 'GET', patron: /^academico\/convocatorias$/, consulta: ['curso_id', 'vigentes'] },
+  { metodo: 'POST', patron: /^academico\/convocatorias\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'curso_id', 'desde', 'hasta', 'vigentes', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^academico\/convocatorias$/, campos: CAMPOS_CONVOCATORIA },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}$`), campos: CAMPOS_CONVOCATORIA },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/estado$`), campos: ['estado', '_revision'] },
@@ -198,13 +201,16 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/calificaciones$`), campos: ['evaluacion', 'matricula_id', 'nota', 'nota_actual', 'motivo'] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/cerrar$`), campos: ['_revision'] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/exportar$`), archivo: [XLSX] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/borrador/exportar$`), archivo: [XLSX] },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
+  { metodo: 'GET', patron: new RegExp(`^academico/matriculas/${ID}/constancia$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA_ALTA },
   { metodo: 'PUT', patron: new RegExp(`^academico/matriculas/${ID}$`), campos: CAMPOS_MATRICULA },
-  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/(anular|restaurar)$`) },
-  { metodo: 'DELETE', patron: new RegExp(`^academico/matriculas/${ID}$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/anular$`), campos: ['motivo'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/restaurar$`) },
+  { metodo: 'DELETE', patron: new RegExp(`^academico/matriculas/${ID}$`), campos: ['motivo'] },
   { metodo: 'POST', patron: /^academico\/matriculas\/exportar$/, consulta: FILTROS_MATRICULAS, archivo: ['text/csv'] },
 ];
 
@@ -214,7 +220,8 @@ export function buscarOperacion(metodo: string, ruta: string): Operacion | null 
 
 /** Cuerpo reenviado: solo los campos declarados y con valores escalares. */
 export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unknown>): Record<string, ValorCuerpo> | undefined {
-  if (operacion.metodo === 'GET' || operacion.metodo === 'DELETE') return undefined;
+  if (operacion.metodo === 'GET') return undefined;
+  if (operacion.metodo === 'DELETE' && (!operacion.campos || operacion.campos.length === 0)) return undefined;
   const resultado: Record<string, ValorCuerpo> = {};
   for (const campo of operacion.campos ?? []) {
     const valor = cuerpo[campo];
@@ -228,17 +235,6 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
     if (Array.isArray(valor) && valor.length <= MAX_LISTA && valor.every((elemento) => typeof elemento === 'string')) {
       resultado[campo] = valor.map((elemento: string) => elemento.slice(0, 100));
     }
-  }
-  const oportunidad = cuerpo.oportunidad;
-  if (operacion.oportunidad && esObjeto(oportunidad)) {
-    const anidada: Record<string, string | number | boolean | null> = {};
-    for (const campo of operacion.oportunidad) {
-      const valor = oportunidad[campo];
-      if (valor === null || typeof valor === 'string' || typeof valor === 'number' || typeof valor === 'boolean') {
-        anidada[campo] = typeof valor === 'string' ? valor.slice(0, 200) : valor;
-      }
-    }
-    resultado.oportunidad = anidada;
   }
   const horarios = cuerpo.horarios;
   if (operacion.horarios && Array.isArray(horarios) && horarios.length <= MAX_HORARIOS && horarios.every(esObjeto)) {
@@ -262,17 +258,6 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
       matricula_id: typeof a.matricula_id === 'number' ? a.matricula_id : null,
       estado: typeof a.estado === 'string' ? a.estado.slice(0, 20) : null,
       observacion: typeof a.observacion === 'string' ? a.observacion.slice(0, 200) : null,
-    }));
-  }
-  const contactos = cuerpo.contactos;
-  if (operacion.contactos && Array.isArray(contactos) && contactos.length <= MAX_CONTACTOS && contactos.every(esObjeto)) {
-    const texto = (valor: unknown): string | null => (typeof valor === 'string' ? valor.slice(0, 200) : null);
-    resultado.contactos = contactos.map((c) => ({
-      nombre: texto(c.nombre),
-      cargo: texto(c.cargo),
-      email: texto(c.email),
-      telefono: texto(c.telefono),
-      principal: c.principal === true,
     }));
   }
   return resultado;

@@ -10,7 +10,7 @@ import { errorDeCampo } from '@/lib/panel/cliente';
 import { ETIQUETAS } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
-const CAMPOS = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado'] as const;
+const CAMPOS = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado', 'enlace_grupo_whatsapp'] as const;
 type Datos = Record<(typeof CAMPOS)[number], string>;
 
 interface FormularioCursoProps {
@@ -33,6 +33,7 @@ function inicial(curso?: CursoDetalle): Datos {
     horario: curso?.horario ?? '',
     cupos_maximos: curso ? String(curso.cupos_maximos) : '',
     estado: curso?.estado ?? 'activo',
+    enlace_grupo_whatsapp: curso?.enlace_grupo_whatsapp ?? '',
   };
 }
 
@@ -96,6 +97,17 @@ export function FormularioCurso({ curso, onGuardado, onCancelar, onOcupado }: Fo
           error={err('cupos_maximos')}
           required
           ayuda={curso ? 'Máximo 10. No puede ser menor que las matrículas vigentes.' : 'Máximo 10. Los cupos disponibles empiezan igual al máximo.'}
+        />
+        <Campo
+          etiqueta="Grupo de WhatsApp (opcional)"
+          type="url"
+          value={datos.enlace_grupo_whatsapp}
+          onChange={cambiar('enlace_grupo_whatsapp')}
+          error={err('enlace_grupo_whatsapp')}
+          maxLength={255}
+          placeholder="https://chat.whatsapp.com/..."
+          ayuda="Enlace de invitación al grupo del curso. Se incluye al dar la bienvenida por WhatsApp."
+          className="sm:col-span-2"
         />
       </div>
 

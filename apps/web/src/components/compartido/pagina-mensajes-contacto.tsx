@@ -1,12 +1,20 @@
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
-import { FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
+import { BotonesContacto } from '@/components/shared/ui/acciones-contacto';
+import { CampoBusqueda, CampoFecha, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import type { TonoUi } from '@/components/shared/ui/boton';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
-import { BotonAtenderMensaje } from './acciones-mensaje-contacto';
+import { mensajeRespuestaContacto } from '@/lib/panel/contacto';
+import { BotonAtenderMensaje, BotonAtenderVisibles } from './acciones-mensaje-contacto';
 
 type Parametros = Record<string, string | string[] | undefined>;
+const PARAMETROS = ['busqueda', 'estado', 'asunto', 'desde', 'hasta', 'page', 'per_page'] as const;
+
+interface MetaMensajes extends MetaListado {
+  asuntos?: string[];
+  nuevos?: number;
+}
 
 interface MensajeContacto {
   id: string;
@@ -24,22 +32,40 @@ interface MensajeContacto {
 /** Mensajes enviados desde «Contáctanos». Contienen datos personales: úsalos solo para responder a la persona. */
 export async function MensajesContacto({ tono, parametros }: { tono: TonoUi; parametros: Parametros }) {
   const ruta = `/admin/${tono}/reclamaciones`;
-  const cadena = consulta(parametros, ['estado', 'page']);
-  const resultado = await consultarPanel<{ data: MensajeContacto[]; meta: MetaListado }>(`compartido/reclamaciones-mensajes${cadena}`, `${ruta}?vista=mensajes`);
+  const cadena = consulta(parametros, PARAMETROS);
+  const resultado = await consultarPanel<{ data: MensajeContacto[]; meta: MetaMensajes }>(`compartido/reclamaciones-mensajes${cadena}`, `${ruta}?vista=mensajes`);
 
   if (resultado.estado === 'prohibido') return <EstadoProhibido volver={`/admin/${tono}`} />;
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
   const { data: mensajes, meta } = resultado.datos;
   const hayFiltros = Object.keys(meta.filtros).length > 0;
-  const actuales: Record<string, string> = { vista: 'mensajes', ...(parametro(parametros, 'estado') ? { estado: parametro(parametros, 'estado') } : {}) };
+  const actuales: Record<string, string> = {
+    vista: 'mensajes',
+    ...Object.fromEntries(
+      PARAMETROS.filter((nombre) => nombre !== 'page' && parametro(parametros, nombre) !== '').map((nombre) => [nombre, parametro(parametros, nombre)]),
+    ),
+  };
+  const asuntosUnicos = Array.from(new Set([...(meta.asuntos ?? []), ...mensajes.map((m) => m.asunto)].filter(Boolean)));
+  const opcionesAsunto = Object.fromEntries(asuntosUnicos.map((a) => [a, a]));
+  const pendientesVisibles = mensajes.filter((m) => m.estado === 'nuevo').map((m) => m.id);
 
   return (
     <div className="space-y-4">
-      <FiltrosListado tono={tono} ruta={ruta} hayFiltros={hayFiltros}>
-        <input type="hidden" name="vista" value="mensajes" />
-        <SelectorFiltro tono={tono} nombre="estado" etiqueta="Mostrar" valor={parametro(parametros, 'estado')} opciones={{ nuevo: 'Solo sin atender', atendido: 'Solo atendidos' }} todos="Todos" />
-      </FiltrosListado>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <FiltrosListado tono={tono} ruta={ruta} rutaLimpiar={`${ruta}?vista=mensajes`} hayFiltros={hayFiltros}>
+          <input type="hidden" name="vista" value="mensajes" />
+          <CampoBusqueda tono={tono} nombre="busqueda" valor={parametro(parametros, 'busqueda')} marcador="Nombre, correo, asunto o texto" />
+          <SelectorFiltro tono={tono} nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={{ nuevo: 'Sin atender', atendido: 'Atendidos' }} todos="Todos" />
+          {asuntosUnicos.length > 0 ? (
+            <SelectorFiltro tono={tono} nombre="asunto" etiqueta="Asunto" valor={parametro(parametros, 'asunto')} opciones={opcionesAsunto} todos="Todos" />
+          ) : null}
+          <CampoFecha tono={tono} nombre="desde" etiqueta="Desde" valor={parametro(parametros, 'desde')} />
+          <CampoFecha tono={tono} nombre="hasta" etiqueta="Hasta" valor={parametro(parametros, 'hasta')} />
+          <SelectorPorPagina tono={tono} valor={parametro(parametros, 'per_page')} />
+        </FiltrosListado>
+        <BotonAtenderVisibles identificadores={pendientesVisibles} tono={tono} />
+      </div>
 
       {mensajes.length === 0 ? (
         hayFiltros ? (
@@ -64,11 +90,20 @@ export async function MensajesContacto({ tono, parametros }: { tono: TonoUi; par
                 </div>
               </div>
               <p className="whitespace-pre-line text-sm text-panel-text">{m.mensaje}</p>
-              {m.estado === 'nuevo' ? (
-                <BotonAtenderMensaje id={m.id} tono={tono} />
-              ) : (
-                <p className="text-xs text-panel-muted">Atendido{m.atendido_por ? ` por ${m.atendido_por}` : ''}{m.atendido_local ? ` el ${m.atendido_local}` : ''}.</p>
-              )}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <BotonesContacto
+                  telefono={m.telefono}
+                  email={m.correo}
+                  mensajeWa={mensajeRespuestaContacto({ nombre: m.nombre, asunto: m.asunto })}
+                  asuntoCorreo={`Re: ${m.asunto}`}
+                  cuerpoCorreo={mensajeRespuestaContacto({ nombre: m.nombre, asunto: m.asunto })}
+                />
+                {m.estado === 'nuevo' ? (
+                  <BotonAtenderMensaje id={m.id} tono={tono} />
+                ) : (
+                  <p className="text-xs text-panel-muted">Atendido{m.atendido_por ? ` por ${m.atendido_por}` : ''}{m.atendido_local ? ` el ${m.atendido_local}` : ''}.</p>
+                )}
+              </div>
             </li>
           ))}
         </ul>

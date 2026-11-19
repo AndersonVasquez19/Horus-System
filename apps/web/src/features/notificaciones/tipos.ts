@@ -17,11 +17,26 @@ export interface Notificacion {
   enlace_texto?: string;
 }
 
+export interface PreferenciasNotificacion {
+  interno: boolean;
+  email: boolean;
+  whatsapp: boolean;
+  whatsapp_consentimiento: boolean;
+  recordatorio_cuotas: boolean;
+  recordatorio_sesiones: boolean;
+  recordatorio_reclamaciones: boolean;
+  alerta_accesos: boolean;
+}
+
 export interface PerfilPropio {
   id: number;
   nombre: string;
   email: string;
+  telefono?: string | null;
   roles: string[];
+  preferencias_notificacion?: PreferenciasNotificacion;
+  two_factor_habilitado?: boolean;
+  debe_cambiar_clave?: boolean;
 }
 
 export interface SesionActiva {
@@ -61,6 +76,12 @@ export interface UsuarioPanel {
   email: string;
   roles: string[];
   verificado: boolean;
+  suspendido?: boolean;
+  bloqueado_hasta?: string | null;
+  motivo_bloqueo?: string | null;
+  debe_cambiar_clave?: boolean;
+  two_factor_habilitado?: boolean;
+  eliminado?: boolean;
   /** ISO 8601. */
   creado_en: string | null;
 }
@@ -102,6 +123,7 @@ export interface AprobacionFila {
   creada_local: string;
   actualizada_local: string;
   es_propia: boolean;
+  puede_editar?: boolean;
   puede_resolver: boolean;
   puede_reabrir: boolean;
   puede_eliminar: boolean;
@@ -187,6 +209,7 @@ export interface MetaExpediente {
   responsables: { id: number; name: string }[];
   puede_gestionar: boolean;
   puede_responder: boolean;
+  estudiante_relacionado?: { id: number; nombre: string } | null;
 }
 
 export interface HojaReclamacionDatos {

@@ -42,6 +42,9 @@ export interface GrupoNavegacion {
 /** Navegación completa de un panel. */
 export type ModeloNavegacion = readonly GrupoNavegacion[];
 
+/** Conteo de avisos pendientes mostrado junto a las entradas de la barra lateral (clave = `elemento.id`). */
+export type InsigniasNavegacion = Partial<Record<string, number>>;
+
 /** Deja solo las entradas cuyos permisos requeridos tiene el usuario; descarta los grupos vacíos. */
 export function filtrarNavegacion(modelo: ModeloNavegacion, permisos: readonly IdentificadorPermiso[]): ModeloNavegacion {
   const concedidos = new Set(permisos);

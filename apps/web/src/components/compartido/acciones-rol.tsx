@@ -1,6 +1,6 @@
 'use client';
 
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -49,8 +49,10 @@ export function AccionesRol({ rol, permisos, tono }: { rol: RolPanel; permisos: 
   const { mostrar } = useAvisos();
   const { ejecutar } = useOperacionPanel();
   const puedeEditar = usePuede('roles.editar');
+  const puedeCrear = usePuede('roles.crear');
   const puedeEliminar = usePuede('roles.eliminar') && rol.tipo === 'personalizado';
   const [editando, setEditando] = useState(false);
+  const [duplicando, setDuplicando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,13 +71,18 @@ export function AccionesRol({ rol, permisos, tono }: { rol: RolPanel; permisos: 
     router.refresh();
   }
 
-  if (!puedeEditar && !puedeEliminar) return null;
+  if (!puedeEditar && !puedeEliminar && !puedeCrear) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
       {puedeEditar ? (
         <Boton tono={tono} variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => setEditando(true)}>
           Editar<span className="sr-only"> el rol {rol.nombre}</span>
+        </Boton>
+      ) : null}
+      {puedeCrear ? (
+        <Boton tono={tono} variante="secundario" icono={<Copy className="h-4 w-4" aria-hidden="true" />} onClick={() => setDuplicando(true)}>
+          Duplicar<span className="sr-only"> el rol {rol.nombre}</span>
         </Boton>
       ) : null}
       {puedeEliminar ? (
@@ -93,6 +100,20 @@ export function AccionesRol({ rol, permisos, tono }: { rol: RolPanel; permisos: 
           onCancelar={() => setEditando(false)}
           onGuardado={(mensaje) => {
             setEditando(false);
+            mostrar('exito', mensaje);
+            router.refresh();
+          }}
+        />
+      </Dialogo>
+      <Dialogo abierto={duplicando} titulo={`Duplicar rol «${rol.nombre}»`} descripcion="Ajusta el nombre y los permisos para crear el nuevo perfil." onCerrar={() => setDuplicando(false)} bloqueado={ocupado}>
+        <FormularioRol
+          inicial={{ nombre: `${rol.nombre}-copia`, permisos: rol.permisos }}
+          permisos={permisos}
+          tono={tono}
+          onOcupado={setOcupado}
+          onCancelar={() => setDuplicando(false)}
+          onGuardado={(mensaje) => {
+            setDuplicando(false);
             mostrar('exito', mensaje);
             router.refresh();
           }}

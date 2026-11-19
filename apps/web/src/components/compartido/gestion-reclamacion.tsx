@@ -27,6 +27,34 @@ const ETIQUETAS: Record<Operacion, string> = {
 const GESTIONAR: readonly Operacion[] = ['responsable', 'tipo', 'nota', 'propuesta', 'rechazo'];
 const RESPONDER: readonly Operacion[] = ['aceptacion', 'respuesta'];
 
+const PLANTILLAS_PROPUESTA = [
+  {
+    etiqueta: 'Reprogramación sin costo',
+    asunto: 'Propuesta de solución · Reprogramación de matrícula',
+    cuerpo: 'Estimado(a),\n\nEn atención a su solicitud, proponemos reprogramar su matrícula a la próxima edición disponible sin costo adicional.\n\nAgradecemos confirmarnos su conformidad por este medio.',
+  },
+  {
+    etiqueta: 'Devolución de pago',
+    asunto: 'Propuesta de solución · Devolución de importe abonado',
+    cuerpo: 'Estimado(a),\n\nTras revisar su caso, proponemos proceder con la devolución del importe correspondiente dentro de los próximos 5 días hábiles.\n\nSírvase confirmar su conformidad para completar el trámite.',
+  },
+] as const;
+
+const PLANTILLAS_RESPUESTA = [
+  {
+    etiqueta: 'Procedente con solución aplicada',
+    texto: 'Luego de evaluar los hechos y documentos presentados, declaramos su solicitud PROCEDENTE y confirmamos la ejecución de la medida correctiva correspondiente.',
+  },
+  {
+    etiqueta: 'Procedente por reprogramación / crédito',
+    texto: 'Luego de evaluar su caso, declaramos su solicitud PROCEDENTE y otorgamos el saldo a favor / reprogramación académica solicitada conforme a nuestros términos vigentes.',
+  },
+  {
+    etiqueta: 'Improcedente con sustento',
+    texto: 'Tras revisar los registros y condiciones aceptadas al momento de la contratación del servicio, informamos que su solicitud resulta IMPROCEDENTE debido a que el servicio se brindó según lo pactado.',
+  },
+] as const;
+
 /** Mensaje legible de un error del panel: el primero de validación si lo hay (Laravel ya lo redacta sin datos personales). */
 function mensajeDe(error: ErrorPanel): string {
   const primero = error.errors ? Object.values(error.errors)[0]?.[0] : undefined;
@@ -123,6 +151,21 @@ export function GestionReclamacion({ expediente, meta, tono }: GestionProps) {
           {operacion === 'nota' ? <CampoArea tono={tono} etiqueta="Nota interna" value={valor('nota')} onChange={poner('nota')} error={err('nota')} maxLength={2000} rows={4} /> : null}
           {operacion === 'propuesta' ? (
             <>
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-panel-muted">Plantillas rápidas</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PLANTILLAS_PROPUESTA.map((p) => (
+                    <button
+                      key={p.etiqueta}
+                      type="button"
+                      onClick={() => setCampos((actual) => ({ ...actual, asunto: p.asunto, cuerpo: p.cuerpo }))}
+                      className="rounded-lg border border-panel-border bg-panel-bg px-2.5 py-1 text-xs font-medium text-panel-text hover:bg-panel-surface"
+                    >
+                      {p.etiqueta}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Campo tono={tono} etiqueta="Asunto" value={valor('asunto')} onChange={poner('asunto')} error={err('asunto')} maxLength={200} />
               <CampoArea tono={tono} etiqueta="Texto de la propuesta" value={valor('cuerpo')} onChange={poner('cuerpo')} error={err('cuerpo')} maxLength={10000} rows={6} />
             </>
@@ -143,6 +186,21 @@ export function GestionReclamacion({ expediente, meta, tono }: GestionProps) {
           {operacion === 'respuesta' ? (
             <>
               <CampoSeleccion tono={tono} etiqueta="Canal" value={valor('canal')} onChange={poner('canal')} error={err('canal')} opciones={{ correo: 'Correo electrónico', carta: 'Carta' }} />
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-panel-muted">Plantillas de respuesta</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PLANTILLAS_RESPUESTA.map((p) => (
+                    <button
+                      key={p.etiqueta}
+                      type="button"
+                      onClick={() => setCampos((actual) => ({ ...actual, respuesta: p.texto }))}
+                      className="rounded-lg border border-panel-border bg-panel-bg px-2.5 py-1 text-xs font-medium text-panel-text hover:bg-panel-surface"
+                    >
+                      {p.etiqueta}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <CampoArea tono={tono} etiqueta="Respuesta formal" value={valor('respuesta')} onChange={poner('respuesta')} error={err('respuesta')} maxLength={10000} rows={6} />
               {valor('canal') === 'carta' ? (
                 <Campo tono={tono} etiqueta="Constancia de la carta" value={valor('constancia')} onChange={poner('constancia')} error={err('constancia')} maxLength={255} ayuda="Fecha, medio y cargo o guía." />

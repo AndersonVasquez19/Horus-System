@@ -23,11 +23,22 @@ final class PresentadorAuditoria
         'logout' => 'Cierre de sesión',
         'password_reset' => 'Contraseña restablecida',
         'perfil_actualizado' => 'Perfil actualizado',
+        'perfil_preferencias_actualizadas' => 'Preferencias de notificación actualizadas',
         'sesiones_cerradas' => 'Sesiones cerradas',
         'acceso_denegado' => 'Acceso denegado',
         'user_created' => 'Usuario creado',
         'user_updated' => 'Usuario modificado',
         'user_deleted' => 'Usuario eliminado',
+        'user_deactivated' => 'Usuario dado de baja',
+        'user_restored' => 'Usuario restaurado',
+        'user_suspended' => 'Cuenta suspendida',
+        'user_unlocked' => 'Suspensión levantada',
+        'user_locked_auto' => 'Bloqueo automático por intentos fallidos',
+        'user_invited' => 'Enlace de acceso enviado',
+        'user_sessions_revoked' => 'Sesiones de usuario cerradas',
+        'two_factor_enabled' => '2FA activado',
+        'two_factor_disabled' => '2FA desactivado',
+        'two_factor_recovery_used' => 'Código de recuperación 2FA usado',
         'role_created' => 'Rol creado',
         'role_updated' => 'Rol modificado',
         'role_deleted' => 'Rol eliminado',
@@ -101,7 +112,23 @@ final class PresentadorAuditoria
         'correo_fallido' => 'Correo no enviado',
         'aviso_plazo' => 'Aviso de plazo',
         'reclamacion_bandeja_consultada' => 'Bandeja de reclamaciones consultada',
+        'reclamacion_registrada' => 'Reclamación registrada',
+        'reclamacion_consultada' => 'Expediente consultado',
+        'reclamacion_impresa' => 'Hoja imprimible generada',
+        'reclamacion_respondida' => 'Reclamación respondida',
+        'reclamacion_propuesta' => 'Propuesta enviada',
+        'reclamacion_nota' => 'Nota en reclamación',
+        'reclamacion_responsable' => 'Responsable de reclamación asignado',
+        'reclamacion_tipo' => 'Tipo de reclamación actualizado',
+        'reclamacion_reintento' => 'Reintento de correo en reclamación',
         'contacto_recibido' => 'Mensaje de contacto recibido',
+        'contacto_atendido' => 'Mensaje de contacto atendido',
+        'aprobacion_creada' => 'Aprobación solicitada',
+        'aprobacion_actualizada' => 'Aprobación modificada',
+        'aprobacion_eliminada' => 'Aprobación eliminada',
+        'aprobacion_aprobada' => 'Aprobación aprobada',
+        'aprobacion_rechazada' => 'Aprobación rechazada',
+        'aprobacion_reabierta' => 'Aprobación reabierta',
     ];
 
     /** @var array<string, string> */
@@ -117,15 +144,59 @@ final class PresentadorAuditoria
         'Aula' => 'Aula',
         'PlataformaVirtual' => 'Plataforma virtual',
         'SesionClase' => 'Clase',
+        'Asistencia' => 'Asistencia',
         'Calificacion' => 'Nota',
         'Evaluacion' => 'Evaluación',
         'ObligacionPago' => 'Cobro',
         'TransaccionPago' => 'Pago',
+        'AprobacionInterna' => 'Aprobación interna',
         'ServicioTecnologico' => 'Servicio',
         'Reclamacion' => 'Reclamación',
         'MensajeContacto' => 'Mensaje de contacto',
         'AuditLog' => 'Historial de actividad',
     ];
+
+    /** @var list<string> Claves de módulos retirados del panel (conservadas solo para mostrar históricos). */
+    private const ACCIONES_RETIRADAS = [
+        'docente_creado',
+        'docente_actualizado',
+        'docente_eliminado',
+        'docente_restaurado',
+        'convocatoria_docentes_asignados',
+        'convocatoria_infraestructura_asignada',
+        'sede_creada',
+        'sede_actualizada',
+        'sede_estado_cambiado',
+        'aula_creada',
+        'aula_actualizada',
+        'aula_estado_cambiado',
+        'plataforma_creada',
+        'plataforma_actualizada',
+        'plataforma_estado_cambiado',
+        'sesion_enlace_consultado',
+        'servicio_creado',
+    ];
+
+    /** @var list<string> */
+    private const MODELOS_RETIRADOS = [
+        'Docente',
+        'Sede',
+        'Aula',
+        'PlataformaVirtual',
+        'ServicioTecnologico',
+    ];
+
+    /** @return array<string, string> */
+    public static function accionesSelector(): array
+    {
+        return array_diff_key(self::ACCIONES, array_flip(self::ACCIONES_RETIRADAS));
+    }
+
+    /** @return array<string, string> */
+    public static function modelosSelector(): array
+    {
+        return array_diff_key(self::MODELOS, array_flip(self::MODELOS_RETIRADOS));
+    }
 
     /** @var array<string, string> */
     private const CAMPOS = [

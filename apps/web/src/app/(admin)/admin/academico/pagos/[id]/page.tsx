@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
-import { AccionesObligacion, COLOR_COBRO, ETIQUETA_COBRO } from '@/components/academico/paneles-pagos';
+import { AccionesObligacion, BotonReciboPdf, COLOR_COBRO, ETIQUETA_COBRO } from '@/components/academico/paneles-pagos';
+import { BotonesContacto } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion, Tabla } from '@/components/shared/ui/tabla';
 import type { ObligacionDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
+import { mensajeCobro } from '@/lib/panel/contacto';
 import { fecha, moneda } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Obligación de pago · Gestión académica' };
@@ -57,10 +59,20 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         titulo={o.concepto}
         descripcion={`${o.estudiante.nombre} · DNI ${o.estudiante.dni}`}
         migas={[{ etiqueta: 'Inicio', href: '/admin/academico' }, { etiqueta: 'Pagos', href: LISTADO }, { etiqueta: o.estudiante.nombre }]}
+        acciones={<BotonReciboPdf identificador={o.identificador} />}
       />
       <div className="grid gap-6 xl:grid-cols-3">
         <Seccion id="titulo-resumen" titulo="Resumen" acciones={<Insignia color={COLOR_COBRO[o.estado]}>{ETIQUETA_COBRO[o.estado]}</Insignia>}>
           <ListaDatos filas={filas} />
+          <div className="mt-4 border-t border-panel-border pt-3">
+            <BotonesContacto
+              telefono={o.estudiante.telefono}
+              email={o.estudiante.email}
+              mensajeWa={mensajeCobro({ nombre: o.estudiante.nombre, concepto: o.concepto, saldo: o.saldo, edicion: o.edicion })}
+              asuntoCorreo={`Estado de cuenta · ${o.concepto}`}
+              cuerpoCorreo={mensajeCobro({ nombre: o.estudiante.nombre, concepto: o.concepto, saldo: o.saldo, edicion: o.edicion })}
+            />
+          </div>
         </Seccion>
         <div className="space-y-6 xl:col-span-2">
           <Seccion id="titulo-cuotas" titulo="Cuotas">

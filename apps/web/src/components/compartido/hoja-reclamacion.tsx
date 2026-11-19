@@ -20,7 +20,11 @@ export function HojaReclamacion({ hoja, tono }: { hoja: HojaReclamacionDatos; to
         @page :first { @top-right { content: none; } }
         @media print {
           body * { visibility: hidden; }
-          .hoja-imprimible, .hoja-imprimible * { visibility: visible; }
+          .hoja-imprimible, .hoja-imprimible * {
+            visibility: visible;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .hoja-imprimible { position: absolute; left: 0; top: 0; width: 100%; border: 0; box-shadow: none; }
           .no-imprimir { display: none !important; }
         }

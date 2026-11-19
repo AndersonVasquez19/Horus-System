@@ -27,10 +27,30 @@ export default function BuscarPage({ searchParams }: { searchParams: Promise<Par
   );
 }
 
-const GRUPOS: { clave: keyof ResultadoBusqueda['grupos']; titulo: string; enlace: (r: Record<string, string | number>) => string }[] = [
-  { clave: 'estudiantes', titulo: 'Estudiantes', enlace: (r) => `/admin/academico/estudiantes/${r.id}` },
-  { clave: 'matriculas', titulo: 'Matrículas', enlace: (r) => `/admin/academico/matriculas/${r.id}` },
-  { clave: 'ediciones', titulo: 'Ediciones', enlace: (r) => `/admin/academico/convocatorias/${r.identificador}` },
+const GRUPOS: {
+  clave: keyof ResultadoBusqueda['grupos'];
+  titulo: string;
+  enlace: (r: Record<string, string | number>) => string;
+  listado: (q: string) => string;
+}[] = [
+  {
+    clave: 'estudiantes',
+    titulo: 'Estudiantes',
+    enlace: (r) => `/admin/academico/estudiantes/${r.id}`,
+    listado: (q) => `/admin/academico/estudiantes?busqueda=${encodeURIComponent(q)}`,
+  },
+  {
+    clave: 'matriculas',
+    titulo: 'Matrículas',
+    enlace: (r) => `/admin/academico/matriculas/${r.id}`,
+    listado: (q) => `/admin/academico/matriculas?busqueda=${encodeURIComponent(q)}`,
+  },
+  {
+    clave: 'ediciones',
+    titulo: 'Ediciones',
+    enlace: (r) => `/admin/academico/convocatorias/${r.identificador}`,
+    listado: (q) => `/admin/academico/convocatorias?busqueda=${encodeURIComponent(q)}`,
+  },
 ];
 
 async function Resultados({ searchParams }: { searchParams: Promise<Parametros> }) {
@@ -63,7 +83,12 @@ async function Resultados({ searchParams }: { searchParams: Promise<Parametros> 
       ) : (
         conResultados.map((g) => (
           <section key={g.clave} aria-labelledby={`grupo-${g.clave}`} className="overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm">
-            <h2 id={`grupo-${g.clave}`} className="border-b border-panel-border px-4 py-3 font-heading text-sm font-semibold text-panel-text">{g.titulo}</h2>
+            <div className="flex items-center justify-between gap-2 border-b border-panel-border px-4 py-3">
+              <h2 id={`grupo-${g.clave}`} className="font-heading text-sm font-semibold text-panel-text">{g.titulo}</h2>
+              <Link href={g.listado(q)} className="text-xs font-semibold text-academico-700 hover:underline">
+                Ver todos
+              </Link>
+            </div>
             <ul className="divide-y divide-panel-border">
               {grupos[g.clave]?.map((r, k) => (
                 <li key={`${g.clave}-${k}`}>

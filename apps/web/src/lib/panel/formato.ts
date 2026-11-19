@@ -125,6 +125,7 @@ export const ETIQUETAS = {
     responsable_asignado: 'Responsable asignado',
     seguimiento_registrado: 'Seguimiento registrado',
   },
+  rol: { admin: 'Administrador', coordinador: 'Coordinador', secretaria: 'Secretaría' },
 } as const;
 
 export function etiqueta<T extends keyof typeof ETIQUETAS>(grupo: T, valor: string | null | undefined): string {

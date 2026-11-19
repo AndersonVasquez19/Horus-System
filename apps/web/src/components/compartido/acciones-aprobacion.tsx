@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleCheck, CircleX, Lock, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { CircleCheck, CircleX, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -10,6 +10,7 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { Campo, CampoArea, CampoSeleccion } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
+import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { ETIQUETAS_TIPO_APROBACION } from '@/features/notificaciones/aprobaciones';
 import type { AprobacionFila, EventoAprobacion } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
@@ -83,7 +84,7 @@ export function BotonNuevaAprobacion({ tono }: { tono: TonoUi }) {
   );
 }
 
-type Panel = 'aprobar' | 'rechazar' | 'reabrir' | 'eliminar' | null;
+type Panel = 'aprobar' | 'rechazar' | 'reabrir' | 'eliminar' | 'editar' | null;
 
 /**
  * Acciones de una solicitud. Solo se ofrecen las que Laravel aceptaría para esta persona (`puede_*`); aun así Laravel las
@@ -95,6 +96,13 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
   const { ejecutar } = useOperacionPanel();
   const [panel, setPanel] = useState<Panel>(null);
   const [motivo, setMotivo] = useState('');
+  const [comentarioAprobar, setComentarioAprobar] = useState('');
+  const [edicion, setEdicion] = useState({
+    titulo: fila.titulo,
+    descripcion: fila.descripcion ?? '',
+    referencia: fila.referencia ?? '',
+    comentario: fila.comentario ?? '',
+  });
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [historial, setHistorial] = useState(false);
@@ -105,7 +113,18 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
     setError(null);
   };
 
-  async function operar(ruta: string, metodo: 'POST' | 'DELETE', cuerpo?: Record<string, string>) {
+  function abrirEdicion() {
+    setError(null);
+    setEdicion({
+      titulo: fila.titulo,
+      descripcion: fila.descripcion ?? '',
+      referencia: fila.referencia ?? '',
+      comentario: fila.comentario ?? '',
+    });
+    setPanel('editar');
+  }
+
+  async function operar(ruta: string, metodo: 'POST' | 'PUT' | 'DELETE', cuerpo?: Record<string, string | null>) {
     setOcupado(true);
     setError(null);
     const resultado = await ejecutar<Respuesta>(`compartido/aprobaciones/${fila.id}${ruta}`, metodo, cuerpo);
@@ -121,6 +140,16 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
   }
 
   const pendiente = fila.estado === 'pendiente';
+  const menuElementos: ElementoMenuFila[] = [
+    ...(fila.puede_editar ? [{ tipo: 'accion' as const, etiqueta: 'Editar solicitud', onClick: abrirEdicion }] : []),
+    ...(fila.referencia ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar referencia', valor: fila.referencia, aviso: 'Referencia copiada.' }] : []),
+    ...(pendiente && fila.puede_resolver ? [
+      { tipo: 'accion' as const, etiqueta: 'Aprobar', onClick: () => setPanel('aprobar') },
+      { tipo: 'accion' as const, etiqueta: 'Rechazar', peligro: true, onClick: () => setPanel('rechazar') },
+    ] : []),
+    ...(!pendiente && fila.puede_reabrir ? [{ tipo: 'accion' as const, etiqueta: 'Reabrir solicitud', onClick: () => setPanel('reabrir') }] : []),
+    ...(fila.puede_eliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar', peligro: true, onClick: () => setPanel('eliminar') }] : []),
+  ];
 
   return (
     <div className="mt-4 space-y-3 border-t border-panel-border pt-4">
@@ -154,22 +183,73 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
           <Boton tono={tono} variante="secundario" icono={<RotateCcw className="h-4 w-4" aria-hidden="true" />} onClick={() => setPanel('reabrir')}>Reabrir solicitud</Boton>
         ) : null}
         {!pendiente ? <span className="text-xs italic text-panel-muted sm:ml-auto">Decisión registrada.</span> : null}
-        {fila.puede_eliminar ? (
-          <Boton tono={tono} variante="secundario" icono={<Trash2 className="h-4 w-4" aria-hidden="true" />} className="sm:ml-auto" onClick={() => setPanel('eliminar')}>Eliminar</Boton>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+          {fila.puede_editar ? (
+            <Boton tono={tono} variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={abrirEdicion}>Editar</Boton>
+          ) : null}
+          {fila.puede_eliminar ? (
+            <Boton tono={tono} variante="secundario" icono={<Trash2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setPanel('eliminar')}>Eliminar</Boton>
+          ) : null}
+          {menuElementos.length > 0 ? <MenuFila etiqueta={`Más acciones para ${fila.titulo}`} elementos={menuElementos} /> : null}
+        </div>
       </div>
 
-      <DialogoConfirmacion
-        abierto={panel === 'aprobar'}
-        titulo="Aprobar solicitud"
-        texto="¿Confirmas que deseas aprobar esta solicitud? La decisión quedará registrada."
-        confirmar="Aprobar"
-        tono={tono}
-        cargando={ocupado}
-        error={error?.message ?? null}
-        onConfirmar={() => void operar('/aprobar', 'POST', {})}
-        onCerrar={cerrar}
-      />
+      <Dialogo abierto={panel === 'editar'} titulo="Editar solicitud" descripcion="Solo se actualizan las solicitudes pendientes. El tipo no puede cambiarse." onCerrar={cerrar} bloqueado={ocupado}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const opcional = (valor: string) => (valor.trim() === '' ? null : valor.trim());
+            void operar('', 'PUT', {
+              titulo: edicion.titulo.trim(),
+              tipo: fila.tipo,
+              descripcion: opcional(edicion.descripcion),
+              referencia: opcional(edicion.referencia),
+              comentario: opcional(edicion.comentario),
+            });
+          }}
+          noValidate
+          className="space-y-4"
+        >
+          {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
+          <Campo tono={tono} etiqueta="Título" maxLength={255} value={edicion.titulo} onChange={(e) => setEdicion((a) => ({ ...a, titulo: e.target.value }))} error={errorDeCampo(error, 'titulo')} required autoFocus />
+          <CampoArea tono={tono} etiqueta="Descripción (opcional)" maxLength={5000} rows={4} value={edicion.descripcion} onChange={(e) => setEdicion((a) => ({ ...a, descripcion: e.target.value }))} error={errorDeCampo(error, 'descripcion')} />
+          <Campo tono={tono} etiqueta="Referencia (opcional)" maxLength={255} value={edicion.referencia} onChange={(e) => setEdicion((a) => ({ ...a, referencia: e.target.value }))} error={errorDeCampo(error, 'referencia')} />
+          <CampoArea tono={tono} etiqueta="Comentario (opcional)" maxLength={2000} rows={2} value={edicion.comentario} onChange={(e) => setEdicion((a) => ({ ...a, comentario: e.target.value }))} error={errorDeCampo(error, 'comentario')} />
+          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+            <Boton tono={tono} variante="secundario" onClick={cerrar} disabled={ocupado}>Cancelar</Boton>
+            <Boton tono={tono} type="submit" cargando={ocupado}>Guardar cambios</Boton>
+          </div>
+        </form>
+      </Dialogo>
+
+      <Dialogo abierto={panel === 'aprobar'} titulo="Aprobar solicitud" descripcion={fila.titulo} onCerrar={() => { setComentarioAprobar(''); cerrar(); }} bloqueado={ocupado} ancho="sm">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const limpio = comentarioAprobar.trim();
+            void operar('/aprobar', 'POST', limpio === '' ? {} : { comentario: limpio });
+          }}
+          noValidate
+          className="space-y-4"
+        >
+          {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
+          <p className="text-sm text-panel-muted">¿Confirmas que deseas aprobar esta solicitud? La decisión quedará registrada.</p>
+          <CampoArea
+            tono={tono}
+            etiqueta="Comentario (opcional)"
+            rows={2}
+            maxLength={1000}
+            value={comentarioAprobar}
+            onChange={(e) => setComentarioAprobar(e.target.value)}
+            error={errorDeCampo(error, 'comentario')}
+            autoFocus
+          />
+          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+            <Boton tono={tono} variante="secundario" onClick={() => { setComentarioAprobar(''); cerrar(); }} disabled={ocupado}>Cancelar</Boton>
+            <Boton tono={tono} type="submit" cargando={ocupado}>Aprobar</Boton>
+          </div>
+        </form>
+      </Dialogo>
       <DialogoConfirmacion
         abierto={panel === 'eliminar'}
         titulo="Eliminar solicitud"

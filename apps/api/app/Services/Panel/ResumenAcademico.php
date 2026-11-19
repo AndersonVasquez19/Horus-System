@@ -63,17 +63,11 @@ final class ResumenAcademico
             $finMes = HoraLocal::ahora()->endOfMonth();
             $verIngresos = $user->hasRole('admin');
 
-            $consulta = Matricula::query()->whereBetween('fecha_matricula', [$inicioMes, $finMes]);
-            $resumen = ($verIngresos
-                ? $consulta->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
-                : $consulta->selectRaw('COUNT(*) as total'))
-                ->toBase()->first();
-
-            $indicadores['matriculas_mes'] = (int) $resumen->total;
+            $indicadores['matriculas_mes'] = Matricula::query()->whereBetween('fecha_matricula', [$inicioMes, $finMes])->count();
             $indicadores['matriculas_mes_anterior'] = Matricula::query()
                 ->whereBetween('fecha_matricula', [$inicioMes->subMonthNoOverflow()->startOfMonth(), $inicioMes->subMonthNoOverflow()->endOfMonth()])->count();
             if ($verIngresos) {
-                $indicadores['ingresos_mes'] = number_format((float) $resumen->ingresos, 2, '.', '');
+                $indicadores['ingresos_mes'] = GestionPagos::formato($this->cobradoDelMes());
             }
             $indicadores['matriculas_pendientes'] = Matricula::query()->where('estado', 'pendiente')->count();
 
@@ -103,6 +97,7 @@ final class ResumenAcademico
 
             [$conSaldo, $saldo] = $this->saldoPorCobrar();
             $acciones['matriculas_con_saldo'] = ['cantidad' => $conSaldo, 'monto' => GestionPagos::formato($saldo)];
+            $acciones['cuotas'] = $this->cuotasPendientes();
 
             $negocio['cobrado_mes'] = GestionPagos::formato($this->cobradoDelMes());
             $negocio['saldo_por_cobrar'] = GestionPagos::formato($saldo);
@@ -188,6 +183,53 @@ final class ResumenAcademico
         }
 
         return [$cantidad, $saldo];
+    }
+
+    /**
+     * Cuotas con saldo pendiente de obligaciones vigentes, separadas en vencidas (`vence < hoy`) y por vencer en los próximos 7 días.
+     *
+     * @return array{vencidas: int, monto_vencido: string, por_vencer: int, monto_por_vencer: string}
+     */
+    private function cuotasPendientes(): array
+    {
+        $hoy = HoraLocal::hoy();
+        $limite = HoraLocal::ahora()->addDays(7)->toDateString();
+
+        $filas = DB::table('cuotas_obligacion as c')
+            ->join('obligaciones_pago as o', 'o.id', '=', 'c.obligacion_pago_id')
+            ->leftJoin('asignaciones_pago as a', 'a.cuota_obligacion_id', '=', 'c.id')
+            ->where('o.estado', 'vigente')
+            ->whereDate('c.vence', '<=', $limite)
+            ->groupBy('c.id', 'c.monto', 'c.vence')
+            ->selectRaw('c.monto, c.vence, COALESCE(SUM(a.monto), 0) as pagado')
+            ->get();
+
+        $vencidas = 0;
+        $montoVencido = 0;
+        $porVencer = 0;
+        $montoPorVencer = 0;
+
+        foreach ($filas as $f) {
+            $saldo = GestionPagos::leer($f->monto) - GestionPagos::leer($f->pagado);
+            if ($saldo <= 0) {
+                continue;
+            }
+            $vence = substr((string) $f->vence, 0, 10);
+            if ($vence < $hoy) {
+                $vencidas++;
+                $montoVencido += $saldo;
+            } else {
+                $porVencer++;
+                $montoPorVencer += $saldo;
+            }
+        }
+
+        return [
+            'vencidas' => $vencidas,
+            'monto_vencido' => GestionPagos::formato($montoVencido),
+            'por_vencer' => $porVencer,
+            'monto_por_vencer' => GestionPagos::formato($montoPorVencer),
+        ];
     }
 
     /** Lo cobrado en el mes (Lima) según el libro: pagos confirmados menos reversos confirmados, por fecha de pago. En céntimos. */

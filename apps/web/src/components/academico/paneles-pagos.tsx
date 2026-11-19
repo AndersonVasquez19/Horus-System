@@ -1,9 +1,9 @@
 'use client';
 
-import { Ban, Check, CirclePlus, Plus, Trash2, Undo2, X } from 'lucide-react';
+import { Ban, Check, CirclePlus, FileText, Plus, Trash2, Undo2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useFormularioPanel } from '@/components/shared/use-formulario-panel';
@@ -22,6 +22,12 @@ const COLOR_COBRO = { pendiente: 'ambar', parcial: 'azul', pagada: 'verde', anul
 const COLOR_TX = { pendiente: 'ambar', confirmada: 'verde', rechazada: 'rojo' } as const;
 export const ETIQUETA_COBRO = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', anulada: 'Anulada' } as const;
 
+const MOTIVOS_FRECUENTES = [
+  'Comprobante ilegible o incompleto',
+  'Monto no coincide con la captura',
+  'Operación duplicada o inexistente',
+  'Solicitud de anulación del estudiante',
+] as const;
 const hoyLima = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
 const clave = () => crypto.randomUUID();
 
@@ -116,6 +122,7 @@ function FormularioObligacion({ matriculaId, onOcupado, onCerrar }: { matriculaI
 // ---- Acciones de una obligación ----------------------------------------------------------------------------------------
 
 const esquemaPago = z.object({
+  metodo: z.string().min(1, 'Elige el método de pago.'),
   monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales.').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
   fecha_pago: z.string().min(1, 'Indica la fecha del pago.'),
   referencia: z.string().max(80, 'Hasta 80 caracteres.'),
@@ -206,6 +213,7 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
   const router = useRouter();
   const { mostrar } = useAvisos();
   const { ejecutar, subir } = useOperacionPanel();
+  const [metodos, setMetodos] = useState<{ codigo: string; nombre: string }[]>([{ codigo: 'yape', nombre: 'Yape' }]);
   const [confirmar, setConfirmar] = useState(false);
   const [captura, setCaptura] = useState<File | null>(null);
   const [errorCaptura, setErrorCaptura] = useState<string | null>(null);
@@ -213,7 +221,7 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
   const claveIntento = useRef(clave());
   const f = useFormularioPanel({
     esquema: esquemaPago,
-    valores: { monto: '', fecha_pago: hoyLima(), referencia: '' },
+    valores: { metodo: 'yape', monto: '', fecha_pago: hoyLima(), referencia: '' },
     onOcupado,
     enviar: async (d) => {
       setErrorCaptura(null);
@@ -223,7 +231,7 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
         return { ok: false as const, estado: 422, error: { message: 'Falta la captura del comprobante.', code: 'captura' } };
       }
       const registro = await ejecutar<{ message: string; data: ObligacionDetalle }>(`academico/pagos/obligaciones/${o.identificador}/pagos`, 'POST', {
-        metodo: 'yape', monto: d.monto, fecha_pago: d.fecha_pago, referencia: d.referencia === '' ? null : d.referencia, _clave: claveIntento.current,
+        metodo: d.metodo, monto: d.monto, fecha_pago: d.fecha_pago, referencia: d.referencia === '' ? null : d.referencia, _clave: claveIntento.current,
       });
       if (!registro.ok) return registro;
 
@@ -253,6 +261,21 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
     },
   });
 
+  useEffect(() => {
+    let activo = true;
+    void ejecutar<{ data: { codigo: string; nombre: string }[] }>('academico/pagos/metodos').then((r) => {
+      if (!activo || !r.ok || r.datos.data.length === 0) return;
+      setMetodos(r.datos.data);
+      const actual = f.form.getValues('metodo');
+      if (!r.datos.data.some((m) => m.codigo === actual)) {
+        f.form.setValue('metodo', r.datos.data[0].codigo);
+      }
+    });
+    return () => {
+      activo = false;
+    };
+  }, [ejecutar, f.form]);
+
   return (
     <form onSubmit={f.enviar} noValidate className="space-y-4">
       {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
@@ -260,9 +283,17 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
         <Campo etiqueta="Importe (S/)" inputMode="decimal" {...f.registro('monto')} error={f.error('monto')} />
         <Campo etiqueta="Fecha del pago" type="date" {...f.registro('fecha_pago')} error={f.error('fecha_pago')} />
       </div>
-      <Campo etiqueta="Código de operación Yape (opcional)" {...f.registro('referencia')} error={f.error('referencia')} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CampoSeleccion
+          etiqueta="Método de pago"
+          {...f.registro('metodo')}
+          error={f.error('metodo')}
+          opciones={Object.fromEntries(metodos.map((m) => [m.codigo, m.nombre]))}
+        />
+        <Campo etiqueta="Código de operación (opcional)" {...f.registro('referencia')} error={f.error('referencia')} />
+      </div>
       <Campo
-        etiqueta="Captura del comprobante de Yape"
+        etiqueta="Captura del comprobante de pago"
         type="file"
         accept="image/jpeg,image/png,image/webp"
         onChange={(e) => setCaptura(e.target.files?.[0] ?? null)}
@@ -369,6 +400,21 @@ function FormularioMotivo({ motivo, onOcupado, onCerrar }: { motivo: Motivo; onO
   return (
     <form onSubmit={f.enviar} noValidate className="space-y-4">
       {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-panel-muted">Motivos frecuentes</p>
+        <div className="flex flex-wrap gap-1.5">
+          {MOTIVOS_FRECUENTES.map((texto) => (
+            <button
+              key={texto}
+              type="button"
+              onClick={() => f.form.setValue('motivo', texto, { shouldValidate: true, shouldDirty: true })}
+              className="rounded-lg border border-panel-border bg-panel-bg px-2.5 py-1 text-xs font-medium text-panel-text transition hover:border-academico-400 hover:bg-academico-50"
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+      </div>
       <Campo etiqueta="Motivo" {...f.registro('motivo')} error={f.error('motivo')} maxLength={200} />
       <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Volver</Boton>
@@ -421,26 +467,57 @@ export function ComprobantesDeLaMatricula({ obligacion: o }: { obligacion: Oblig
   );
 }
 
-/** Exporta las obligaciones a Excel (solo con `pagos.exportar`). */
-export function BotonExportarPagos() {
+/** Exporta las obligaciones a Excel (solo con `pagos.exportar`) conservando los filtros activos. */
+export function BotonExportarPagos({ filtros = '' }: { filtros?: string }) {
   const { descargar } = useOperacionPanel();
+  const { mostrar } = useAvisos();
   const puede = usePuede('pagos.exportar');
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   if (!puede) return null;
 
   async function exportar() {
     setOcupado(true);
     setError(null);
-    const r = await descargar('academico/pagos/exportar');
+    setAviso(null);
+    const r = await descargar(`academico/pagos/exportar${filtros}`);
     setOcupado(false);
-    if (!r.ok) setError(r.error.message);
+    if (!r.ok) {
+      setError(r.error.message);
+      return;
+    }
+    if (r.aviso) setAviso(r.aviso);
+    else mostrar('exito', 'Exportación de pagos generada.');
   }
 
   return (
     <div className="space-y-2">
       {error ? <Alerta tipo="error">{error}</Alerta> : null}
+      {aviso ? <Alerta tipo="aviso">{aviso}</Alerta> : null}
       <Boton variante="secundario" cargando={ocupado} onClick={() => void exportar()}>Exportar Excel</Boton>
     </div>
+  );
+}
+
+/** Descarga el recibo / estado de cuenta en PDF de la obligación (`pagos.ver`). */
+export function BotonReciboPdf({ identificador }: { identificador: string }) {
+  const { descargar } = useOperacionPanel();
+  const { mostrar } = useAvisos();
+  const puede = usePuede('pagos.ver');
+  const [ocupado, setOcupado] = useState(false);
+  if (!puede) return null;
+
+  async function bajar() {
+    setOcupado(true);
+    const r = await descargar(`academico/pagos/obligaciones/${identificador}/recibo`, 'GET');
+    setOcupado(false);
+    if (!r.ok) mostrar('error', r.error.message);
+  }
+
+  return (
+    <Boton variante="secundario" icono={<FileText className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void bajar()}>
+      Recibo PDF
+    </Boton>
   );
 }

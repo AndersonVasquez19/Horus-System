@@ -1,6 +1,6 @@
 'use client';
 
-import { Send } from 'lucide-react';
+import { RotateCcw, Send } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
@@ -40,6 +40,13 @@ export function ProbadorAsistente() {
     else setError(resultado.error.message);
   }
 
+  function reiniciar() {
+    sesion.current = null;
+    setTurnos([]);
+    setMensaje('');
+    setError(null);
+  }
+
   return (
     <div className="space-y-4">
       <div role="log" aria-live="polite" aria-label="Conversación de prueba" className="max-h-96 min-h-40 space-y-3 overflow-y-auto rounded-lg border border-panel-border bg-panel-bg p-4">
@@ -70,9 +77,16 @@ export function ProbadorAsistente() {
             className="w-full rounded-lg border border-slate-300 bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none focus:border-academico-700 focus:ring-4 focus:ring-academico-700/15"
           />
         </div>
-        <Boton type="submit" cargando={enviando} icono={<Send className="h-4 w-4" aria-hidden="true" />}>
-          {enviando ? 'Enviando…' : 'Enviar'}
-        </Boton>
+        <div className="flex flex-wrap gap-2">
+          {turnos.length > 0 ? (
+            <Boton type="button" variante="secundario" disabled={enviando} icono={<RotateCcw className="h-4 w-4" aria-hidden="true" />} onClick={reiniciar}>
+              Nueva conversación
+            </Boton>
+          ) : null}
+          <Boton type="submit" cargando={enviando} icono={<Send className="h-4 w-4" aria-hidden="true" />}>
+            {enviando ? 'Enviando…' : 'Enviar'}
+          </Boton>
+        </div>
       </form>
       <p className="text-xs text-panel-muted">No escribas datos personales reales: el servidor los omite del registro, pero esto es solo un probador.</p>
     </div>

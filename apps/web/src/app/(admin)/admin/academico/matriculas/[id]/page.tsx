@@ -4,12 +4,14 @@ import { Suspense } from 'react';
 import { AccionesMatricula } from '@/components/academico/acciones-matricula';
 import { BotonCrearObligacion, COLOR_COBRO, ComprobantesDeLaMatricula, ETIQUETA_COBRO, EnlaceObligacion } from '@/components/academico/paneles-pagos';
 import { Alerta } from '@/components/shared/ui/alerta';
+import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
 import type { EventoHistorial, MatriculaDetalle, ObligacionDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
+import { mensajeBienvenida } from '@/lib/panel/contacto';
 import { etiqueta, fecha, moneda, numero } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Matrícula · Gestión académica' };
@@ -65,11 +67,18 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           id="titulo-matricula"
           titulo="Datos de la matrícula"
           acciones={
-            <div className="flex flex-wrap gap-1">
-              <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
-              {matricula.eliminado ? <Insignia color="rojo">Eliminada</Insignia> : null}
-            </div>
-          }
+          <div className="flex flex-wrap gap-1">
+            <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
+            {matricula.estado_cobro && matricula.estado_cobro !== 'sin_obligacion' ? (
+              <Insignia color={COLOR_COBRO[matricula.estado_cobro] ?? 'gris'}>
+                Cobro: {ETIQUETA_COBRO[matricula.estado_cobro] ?? matricula.estado_cobro}
+              </Insignia>
+            ) : (
+              <Insignia color="gris">Sin obligación</Insignia>
+            )}
+            {matricula.eliminado ? <Insignia color="rojo">Eliminada</Insignia> : null}
+          </div>
+        }
         >
           <ListaDatos
             filas={[
@@ -90,21 +99,48 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
                 ) : '—',
               ],
               [
-                'Convocatoria',
+                'Edición',
                 matricula.convocatoria ? (
                   <Link href={`/admin/academico/convocatorias/${matricula.convocatoria.identificador}`} className="font-mono text-academico-800 hover:underline">
                     {matricula.convocatoria.codigo}
                   </Link>
-                ) : 'Sin convocatoria (el cupo es el del curso)',
+                ) : 'Sin edición (el cupo es el del curso)',
               ],
               ['Cupos libres del curso', numero(matricula.curso_cupos_disponibles)],
               ['Fecha', fecha(matricula.fecha)],
-              ['Monto pagado', moneda(matricula.monto_pagado)],
+              ['Monto pagado (libro)', moneda(matricula.monto_pagado)],
+              ...(matricula.motivo_anulacion ? [['Motivo anulación/elim.', matricula.motivo_anulacion] as [string, string]] : []),
               ['Observaciones', matricula.observaciones ? <span className="whitespace-pre-line font-normal">{matricula.observaciones}</span> : '—'],
               ['Registrada', fecha(matricula.creado_en)],
               ['Última actualización', fecha(matricula.actualizado_en)],
             ]}
           />
+          {matricula.estudiante ? (
+            <div className="mt-4 space-y-2 border-t border-panel-border pt-3">
+              <BotonesContacto
+                telefono={matricula.estudiante.telefono}
+                email={matricula.estudiante.email}
+                mensajeWa={mensajeBienvenida({
+                  nombre: matricula.estudiante.nombre,
+                  curso: matricula.curso?.nombre ?? 'nuestro curso',
+                  edicion: matricula.convocatoria?.codigo,
+                  enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
+                })}
+                asuntoCorreo={`Bienvenida · ${matricula.curso?.nombre ?? 'Horus Group'}`}
+                cuerpoCorreo={mensajeBienvenida({
+                  nombre: matricula.estudiante.nombre,
+                  curso: matricula.curso?.nombre ?? 'nuestro curso',
+                  edicion: matricula.convocatoria?.codigo,
+                  enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
+                })}
+              />
+              <BotonesGrupoWhatsApp enlace={matricula.curso?.enlace_grupo_whatsapp} />
+            </div>
+          ) : matricula.curso?.enlace_grupo_whatsapp ? (
+            <div className="mt-4 border-t border-panel-border pt-3">
+              <BotonesGrupoWhatsApp enlace={matricula.curso.enlace_grupo_whatsapp} />
+            </div>
+          ) : null}
         </Seccion>
 
         {matricula.convocatoria && !matricula.eliminado && matricula.estado !== 'anulada' ? (

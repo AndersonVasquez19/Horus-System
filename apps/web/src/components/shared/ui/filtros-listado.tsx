@@ -23,11 +23,12 @@ export function claseControl(tono: TonoUi): string {
 interface FiltrosListadoProps {
   tono: TonoUi;
   ruta: string;
+  rutaLimpiar?: string;
   hayFiltros: boolean;
   children: ReactNode;
 }
 
-export function FiltrosListado({ tono, ruta, hayFiltros, children }: FiltrosListadoProps) {
+export function FiltrosListado({ tono, ruta, rutaLimpiar, hayFiltros, children }: FiltrosListadoProps) {
   return (
     <Form action={ruta} className="flex flex-wrap items-end gap-3 rounded-xl border border-panel-border bg-panel-surface p-4 shadow-sm">
       {children}
@@ -36,7 +37,7 @@ export function FiltrosListado({ tono, ruta, hayFiltros, children }: FiltrosList
           Aplicar
         </button>
         {hayFiltros ? (
-          <Link href={ruta} className="rounded-lg px-3 py-2 text-sm font-medium text-panel-muted hover:bg-panel-bg hover:text-panel-text">
+          <Link href={rutaLimpiar ?? ruta} className="rounded-lg px-3 py-2 text-sm font-medium text-panel-muted hover:bg-panel-bg hover:text-panel-text">
             Limpiar
           </Link>
         ) : null}
@@ -77,6 +78,19 @@ export function CampoFecha({ tono, nombre, etiqueta, valor }: { tono: TonoUi; no
       <label htmlFor={nombre} className="mb-1 block text-xs font-medium text-panel-muted">{etiqueta}</label>
       <input id={nombre} name={nombre} type="date" defaultValue={valor} className={claseControl(tono)} />
     </div>
+  );
+}
+
+export function SelectorPorPagina({ tono, valor }: { tono: TonoUi; valor: string }) {
+  return (
+    <SelectorFiltro
+      tono={tono}
+      nombre="per_page"
+      etiqueta="Mostrar"
+      valor={['20', '50', '100'].includes(valor) ? valor : '20'}
+      todos={null}
+      opciones={{ '20': '20', '50': '50', '100': '100' }}
+    />
   );
 }
 

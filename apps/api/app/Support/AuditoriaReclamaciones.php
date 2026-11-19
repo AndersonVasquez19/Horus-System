@@ -40,7 +40,7 @@ final class AuditoriaReclamaciones
     }
 
     /** @var list<string> Filtros de la bandeja que pueden constar (por nombre; nunca su valor). */
-    private const FILTROS_BANDEJA = ['busqueda', 'tipo', 'estado', 'desde', 'hasta'];
+    private const FILTROS_BANDEJA = ['busqueda', 'tipo', 'estado', 'desde', 'hasta', 'canal', 'responsable', 'plazo'];
 
     /**
      * Consulta de la bandeja (E3). No apunta a una reclamación concreta (`model_id` nulo). Guarda solo los

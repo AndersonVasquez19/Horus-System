@@ -4,12 +4,14 @@ import { Suspense } from 'react';
 import { AccionesEstudiante } from '@/components/academico/acciones-estudiante';
 import { HistorialAcademico } from '@/components/academico/historial-academico';
 import { Alerta } from '@/components/shared/ui/alerta';
+import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
 import type { EstudianteDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
+import { mensajeEstudiante } from '@/lib/panel/contacto';
 import { etiqueta, fecha } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Ficha del estudiante · Gestión académica' };
@@ -84,6 +86,14 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
               ['Última actualización', fecha(estudiante.actualizado_en)],
             ]}
           />
+          <div className="mt-4 border-t border-panel-border pt-3">
+            <BotonesContacto
+              telefono={estudiante.telefono}
+              email={estudiante.email}
+              mensajeWa={mensajeEstudiante({ nombre })}
+              asuntoCorreo="Horus Group · Contacto académico"
+            />
+          </div>
         </Seccion>
 
         {estudiante.matriculas ? (
@@ -128,7 +138,12 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
                         </td>
                         <td className="whitespace-nowrap px-5 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
                         <td className="px-5 py-3">
-                          <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
+                          <div className="space-y-1.5">
+                            <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
+                            {matricula.curso?.enlace_grupo_whatsapp ? (
+                              <BotonesGrupoWhatsApp enlace={matricula.curso.enlace_grupo_whatsapp} compacto />
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))}

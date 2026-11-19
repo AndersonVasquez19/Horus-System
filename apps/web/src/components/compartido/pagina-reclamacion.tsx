@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { Suspense } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
+import { BotonesContacto } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia } from '@/components/shared/ui/insignia';
@@ -9,6 +10,7 @@ import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabl
 import type { TonoUi } from '@/components/shared/ui/boton';
 import type { ExpedienteReclamacion, MetaExpediente } from '@/features/notificaciones/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
+import { mensajeRespuestaReclamacion } from '@/lib/panel/contacto';
 import { fecha } from '@/lib/panel/formato';
 import { BotonReintento, GestionReclamacion } from './gestion-reclamacion';
 import { ESTADOS_RECLAMACION } from './pagina-reclamaciones';
@@ -89,6 +91,9 @@ async function Expediente({ tono, params }: { tono: TonoUi; params: Promise<{ id
               ['Domicilio', c.domicilio],
               ['Teléfono', c.telefono],
               ['Correo', c.email],
+              ...(meta.estudiante_relacionado
+                ? [['Estudiante vinculado', <Link key="est" href={`/admin/academico/estudiantes/${meta.estudiante_relacionado.id}`} className="font-semibold text-academico-700 hover:underline">{meta.estudiante_relacionado.nombre}</Link>] as const]
+                : []),
               ...(c.representante
                 ? [
                     ['Representante', c.representante.nombre ?? '—'] as const,
@@ -99,6 +104,15 @@ async function Expediente({ tono, params }: { tono: TonoUi; params: Promise<{ id
                 : []),
             ]}
           />
+          <div className="mt-4 border-t border-panel-border pt-3">
+            <BotonesContacto
+              telefono={c.telefono}
+              email={c.email}
+              mensajeWa={mensajeRespuestaReclamacion({ nombre: `${c.nombres} ${c.apellidos}`, numero: r.numero })}
+              asuntoCorreo={`Libro de reclamaciones · Expediente ${r.numero}`}
+              cuerpoCorreo={mensajeRespuestaReclamacion({ nombre: `${c.nombres} ${c.apellidos}`, numero: r.numero })}
+            />
+          </div>
         </Seccion>
 
         <Seccion id="titulo-bien" titulo="Bien contratado">

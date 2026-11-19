@@ -48,3 +48,22 @@ export function EstadoProhibido({ volver }: { volver: string }) {
     />
   );
 }
+
+export function EstadoNoEncontradoPanel({ volver = '/admin/academico' }: { volver?: string }) {
+  return (
+    <Estado
+      icono={<SearchX className="h-6 w-6" />}
+      rol="status"
+      titulo="Página no encontrada"
+      texto="La ruta solicitada no existe o fue retirada del panel."
+      accion={
+        <Link
+          href={volver}
+          className="inline-flex items-center justify-center rounded-lg bg-academico-700 px-4 py-2 text-sm font-semibold text-white hover:bg-academico-800"
+        >
+          Volver al panel
+        </Link>
+      }
+    />
+  );
+}

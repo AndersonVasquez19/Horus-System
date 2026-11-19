@@ -37,6 +37,7 @@ security:
 tags:
   - name: auth
   - name: academico
+  - name: compartido
 paths:
   /auth/csrf:
     get:
@@ -160,6 +161,26 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+  /academico/cursos/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta el listado filtrado de cursos a CSV o XLSX"
+      description: "Permiso: `cursos.ver`. Limitador `admin-export` (6 por minuto y usuario)."
+      parameters:
+        - { name: formato, in: query, schema: { type: string, enum: [csv, xlsx] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [activo, inactivo, archivado] } }
+        - { name: modalidad, in: query, schema: { type: string, enum: [presencial, semipresencial, virtual, hibrido] } }
+        - { name: categoria, in: query, schema: { type: string, enum: [tecnologia, educacion, salud, gestion, otros] } }
+        - { name: con_cupos, in: query, schema: { type: boolean } }
+        - { name: publicado, in: query, schema: { type: string, enum: ['1', '0'] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo CSV o XLSX }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/cursos:
     get:
       tags: [academico]
@@ -241,6 +262,20 @@ paths:
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/cursos/{curso}/duplicar:
+    post:
+      tags: [academico]
+      summary: "Duplica un curso existente en estado inactivo con un código nuevo y sin copiar el enlace de WhatsApp"
+      description: "Permiso: `cursos.crear`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/cursos/{curso}/restaurar:
     post:
@@ -341,6 +376,22 @@ paths:
         '429': { description: "Límite del panel (`demasiadas_solicitudes`) o del proveedor (`dni_limite_proveedor`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '502': { description: "Respuesta incompleta del proveedor (`dni_respuesta_incompleta`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '503': { description: "Servicio no configurado, no autorizado o no disponible (`dni_servicio_no_configurado`, `dni_servicio_no_autorizado`, `dni_servicio_no_disponible`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/estudiantes/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta el listado filtrado de estudiantes a CSV o XLSX"
+      description: "Permiso: `estudiantes.ver`. Limitador `admin-export` (6 por minuto y usuario)."
+      parameters:
+        - { name: formato, in: query, schema: { type: string, enum: [csv, xlsx] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string, enum: [activo, inactivo] } }
+        - { name: eliminados, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo CSV o XLSX }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/estudiantes:
     get:
       tags: [academico]
@@ -560,6 +611,18 @@ paths:
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/{matricula}/constancia:
+    get:
+      tags: [academico]
+      summary: "Constancia de matrícula en PDF"
+      description: "Permiso: `matriculas.ver`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { description: Documento PDF de la constancia, content: { application/pdf: { schema: { type: string, format: binary } } } }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/matriculas/{matricula}/anular:
     post:
       tags: [academico]
@@ -593,15 +656,17 @@ paths:
   /academico/reportes:
     get:
       tags: [academico]
-      summary: "Resumen y listado de matrículas para reportes"
+      summary: "Resumen y listado de reportes académicos (matrículas, cobranza, asistencia, calificaciones)"
       description: "Permiso: `reportes.ver`."
       parameters:
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/PorPagina' }
+        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza, asistencia, calificaciones] } }
         - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada, parcial, vigente] } }
+        - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
         - { name: eliminados, in: query, schema: { type: boolean } }
-        - { name: lote, in: query, description: 'Lote de 1000 filas para el PDF', schema: { type: integer, minimum: 1 } }
+        - { name: lote, in: query, description: 'Lote de 50 filas', schema: { type: integer, minimum: 1 } }
       responses:
         '200': { $ref: '#/components/responses/Listado' }
         '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
@@ -610,13 +675,15 @@ paths:
   /academico/reportes/exportar/excel:
     post:
       tags: [academico]
-      summary: "Exporta el reporte filtrado a Excel (límite de memoria; coincide con el listado)"
+      summary: "Exporta el reporte filtrado a Excel (coincide con el listado y tipo elegido)"
       description: "Permiso: `reportes.exportar.excel`. Limitador `admin-export` (6 por minuto y usuario)."
       parameters:
+        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza, asistencia, calificaciones] } }
         - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada, parcial, vigente] } }
+        - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
         - { name: eliminados, in: query, schema: { type: boolean } }
-        - { name: lote, in: query, description: 'Lote de 1000 filas para el PDF', schema: { type: integer, minimum: 1 } }
+        - { name: lote, in: query, description: 'Lote de 50 filas', schema: { type: integer, minimum: 1 } }
         - { $ref: '#/components/parameters/Csrf' }
       responses:
         '200': { description: Archivo XLSX, content: { application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: { schema: { type: string, format: binary } } } }
@@ -626,19 +693,40 @@ paths:
   /academico/reportes/exportar/pdf:
     post:
       tags: [academico]
-      summary: "Exporta un lote del reporte a PDF"
+      summary: "Exporta un lote o el consolidado completo del reporte a PDF"
       description: "Permiso: `reportes.exportar.pdf`. Limitador `admin-export` (6 por minuto y usuario)."
       parameters:
+        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza, asistencia, calificaciones] } }
         - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada] } }
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada, parcial, vigente] } }
+        - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
         - { name: eliminados, in: query, schema: { type: boolean } }
-        - { name: lote, in: query, description: 'Lote de 1000 filas para el PDF', schema: { type: integer, minimum: 1 } }
+        - { name: completo, in: query, schema: { type: boolean } }
+        - { name: lote, in: query, description: 'Lote de 50 filas para exportación por lote', schema: { type: integer, minimum: 1 } }
         - { $ref: '#/components/parameters/Csrf' }
       responses:
         '200': { description: Archivo PDF, content: { application/pdf: { schema: { type: string, format: binary } } } }
         '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/convocatorias/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta el listado filtrado de ediciones (convocatorias) a CSV o XLSX"
+      description: "Permiso: `convocatorias.ver`. Limitador `admin-export` (6 por minuto y usuario)."
+      parameters:
+        - { name: formato, in: query, schema: { type: string, enum: [csv, xlsx] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: estado, in: query, schema: { type: string } }
+        - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: desde, in: query, schema: { type: string, format: date } }
+        - { name: hasta, in: query, schema: { type: string, format: date } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo CSV o XLSX }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/convocatorias:
     get:
       tags: [academico]
@@ -872,6 +960,21 @@ paths:
     post:
       tags: [academico]
       summary: "Exporta el acta en Excel"
+      description: "Permiso: `calificaciones.exportar`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo de descarga (no se conserva en el servidor) }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/acta/borrador/exportar:
+    post:
+      tags: [academico]
+      summary: "Exporta el borrador del acta en Excel sin requerir el cierre"
       description: "Permiso: `calificaciones.exportar`."
       x-estado: vigente
       parameters:
@@ -1283,6 +1386,23 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/obligaciones/{obligacion}/recibo:
+    get:
+      tags: [academico]
+      summary: "Descarga el recibo / estado de cuenta en PDF de la obligación"
+      description: "Permiso: `pagos.ver`."
+      parameters:
+        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: "Archivo PDF del recibo de pago"
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/pagos/obligaciones/{obligacion}/pagos:
     post:
       tags: [academico]
@@ -1429,6 +1549,714 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+  /compartido/aprobaciones:
+    get:
+      tags: [compartido]
+      summary: "Consulta: aprobaciones"
+      description: "Permiso: `aprobaciones.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: aprobaciones"
+      description: "Permiso: `aprobaciones.gestionar`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/aprobaciones/exportar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: aprobaciones › exportar"
+      description: "Permiso: `aprobaciones.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/aprobaciones/{aprobacion}:
+    put:
+      tags: [compartido]
+      summary: "Actualiza: aprobaciones"
+      description: "Permiso: `aprobaciones.gestionar`."
+      parameters:
+        - { name: aprobacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [compartido]
+      summary: "Elimina: aprobaciones"
+      description: "Permiso: `aprobaciones.gestionar`."
+      parameters:
+        - { name: aprobacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/aprobaciones/{aprobacion}/aprobar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: aprobaciones › aprobar"
+      description: "Permiso: `aprobaciones.gestionar`."
+      parameters:
+        - { name: aprobacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/aprobaciones/{aprobacion}/reabrir:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: aprobaciones › reabrir"
+      description: "Permiso: `aprobaciones.gestionar`."
+      parameters:
+        - { name: aprobacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/aprobaciones/{aprobacion}/rechazar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: aprobaciones › rechazar"
+      description: "Permiso: `aprobaciones.gestionar`."
+      parameters:
+        - { name: aprobacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/asistente:
+    get:
+      tags: [compartido]
+      summary: "Consulta: asistente"
+      description: "Permiso: `asistente.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/asistente/mensaje:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: asistente › mensaje"
+      description: "Permiso: `asistente.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/auditoria:
+    get:
+      tags: [compartido]
+      summary: "Consulta: auditoria"
+      description: "Permiso: `auditoria.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/auditoria/exportar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: auditoria › exportar"
+      description: "Permiso: `auditoria.exportar`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/notificaciones:
+    get:
+      tags: [compartido]
+      summary: "Consulta: notificaciones"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/notificaciones/conteos:
+    get:
+      tags: [compartido]
+      summary: "Consulta: notificaciones › conteos"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/notificaciones/leidas:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: notificaciones › leidas"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/notificaciones/recientes:
+    get:
+      tags: [compartido]
+      summary: "Consulta: notificaciones › recientes"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/notificaciones/{notificacion}/leida:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: notificaciones › leida"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { name: notificacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil:
+    get:
+      tags: [compartido]
+      summary: "Consulta: perfil"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [compartido]
+      summary: "Actualiza: perfil"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/2fa/confirmar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: perfil › 2fa › confirmar"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/2fa/desactivar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: perfil › 2fa › desactivar"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/2fa/iniciar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: perfil › 2fa › iniciar"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/preferencias:
+    put:
+      tags: [compartido]
+      summary: "Actualiza: perfil › preferencias"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/sesiones:
+    get:
+      tags: [compartido]
+      summary: "Consulta: perfil › sesiones"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/sesiones/cerrar-otras:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: perfil › sesiones › cerrar otras"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/perfil/sesiones/{identificador}/cerrar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: perfil › sesiones › cerrar"
+      description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones:
+    get:
+      tags: [compartido]
+      summary: "Consulta: reclamaciones"
+      description: "Permiso: `reclamaciones.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones-mensajes:
+    get:
+      tags: [compartido]
+      summary: "Consulta: reclamaciones mensajes"
+      description: "Permiso: `reclamaciones.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones-mensajes/atender-lote:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: reclamaciones mensajes › atender lote"
+      description: "Permiso: `reclamaciones.gestionar`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones-mensajes/{mensaje}/atender:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: reclamaciones mensajes › atender"
+      description: "Permiso: `reclamaciones.gestionar`."
+      parameters:
+        - { name: mensaje, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones/asignar-lote:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: reclamaciones › asignar lote"
+      description: "Permiso: `reclamaciones.gestionar`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones/exportar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: reclamaciones › exportar"
+      description: "Permiso: `reclamaciones.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones/{reclamacion}:
+    get:
+      tags: [compartido]
+      summary: "Consulta: reclamaciones"
+      description: "Permiso: `reclamaciones.ver`."
+      parameters:
+        - { name: reclamacion, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones/{reclamacion}/gestion:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: reclamaciones › gestion"
+      description: "Permiso: `reclamaciones.gestionar|reclamaciones.responder`."
+      parameters:
+        - { name: reclamacion, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/reclamaciones/{reclamacion}/hoja:
+    get:
+      tags: [compartido]
+      summary: "Consulta: reclamaciones › hoja"
+      description: "Permiso: `reclamaciones.ver`."
+      parameters:
+        - { name: reclamacion, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/respaldo:
+    get:
+      tags: [compartido]
+      summary: "Consulta: respaldo"
+      description: "Permiso: `respaldo.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/respaldo/exportar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: respaldo › exportar"
+      description: "Permiso: `respaldo.exportar`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/roles:
+    get:
+      tags: [compartido]
+      summary: "Consulta: roles"
+      description: "Permiso: `roles.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: roles"
+      description: "Permiso: `roles.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/roles/{role}:
+    put:
+      tags: [compartido]
+      summary: "Actualiza: roles"
+      description: "Permiso: `roles.editar`."
+      parameters:
+        - { name: role, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [compartido]
+      summary: "Elimina: roles"
+      description: "Permiso: `roles.eliminar`."
+      parameters:
+        - { name: role, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios:
+    get:
+      tags: [compartido]
+      summary: "Consulta: usuarios"
+      description: "Permiso: `usuarios.ver`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios"
+      description: "Permiso: `usuarios.crear`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/exportar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › exportar"
+      description: "Permiso: `usuarios.ver`."
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/roles-asignables:
+    get:
+      tags: [compartido]
+      summary: "Consulta: usuarios › roles asignables"
+      description: "Permiso: `usuarios.crear|usuarios.editar`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}:
+    get:
+      tags: [compartido]
+      summary: "Consulta: usuarios"
+      description: "Permiso: `usuarios.ver`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [compartido]
+      summary: "Actualiza: usuarios"
+      description: "Permiso: `usuarios.editar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [compartido]
+      summary: "Elimina: usuarios"
+      description: "Permiso: `usuarios.eliminar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}/cerrar-sesiones:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › cerrar sesiones"
+      description: "Permiso: `usuarios.editar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}/desactivar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › desactivar"
+      description: "Permiso: `usuarios.eliminar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}/desbloquear:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › desbloquear"
+      description: "Permiso: `usuarios.editar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}/invitar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › invitar"
+      description: "Permiso: `usuarios.editar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}/restaurar:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › restaurar"
+      description: "Permiso: `usuarios.eliminar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/usuarios/{user}/suspender:
+    post:
+      tags: [compartido]
+      summary: "Ejecuta: usuarios › suspender"
+      description: "Permiso: `usuarios.editar`."
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     tokenServicio: { type: apiKey, in: header, name: X-Horus-Web-Token }
@@ -1551,9 +2379,11 @@ components:
         estudiante_id: { type: integer }
         curso_id: { type: integer }
         fecha_matricula: { type: string, format: date }
-        estado: { type: string, enum: [pendiente, pagada, anulada] }
-        monto_pagado: { type: [number, 'null'], minimum: 0 }
+        convocatoria: { type: string, format: uuid, description: 'Solo al crear: identificador de la edición.' }
+        estado: { type: string, enum: [pendiente, pagada, anulada], description: 'Al crear solo `pendiente` o `anulada`; `pagada` la deriva el libro de pagos.' }
+        motivo: { type: [string, 'null'], minLength: 3, maxLength: 200, description: 'Motivo de la anulación (solo al actualizar).' }
         observaciones: { type: [string, 'null'] }
+      description: '`monto_pagado` no se envía: lo calcula el libro de pagos y el servidor lo rechaza (422).'
     AutorizarFicha:
       type: object
       required: [confirmacion_publica, _revision]
