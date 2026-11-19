@@ -171,19 +171,27 @@ export function ChatWidget() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
 
-  // Restore history from sessionStorage
+  // Restore history from sessionStorage. Se hace después del montaje (no en el cuerpo síncrono del efecto) para que el HTML del
+  // servidor y el primer render del cliente coincidan; el resultado para la persona es el mismo.
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem('horus_chat_history');
-      if (stored) {
-        const restaurados = restaurarMensajes(JSON.parse(stored));
-        if (restaurados.length > 0) {
-          setMessages(restaurados);
+    let cancelado = false;
+    queueMicrotask(() => {
+      if (cancelado) return;
+      try {
+        const stored = sessionStorage.getItem('horus_chat_history');
+        if (stored) {
+          const restaurados = restaurarMensajes(JSON.parse(stored));
+          if (restaurados.length > 0) {
+            setMessages(restaurados);
+          }
         }
+      } catch {
+        // ignore storage errors
       }
-    } catch {
-      // ignore storage errors
-    }
+    });
+    return () => {
+      cancelado = true;
+    };
   }, []);
 
   // Save history to sessionStorage

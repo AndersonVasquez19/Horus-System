@@ -25,11 +25,13 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close menus on route change
-  useEffect(() => {
+  // Close menus on route change: se ajusta durante el render al cambiar `pathname` (patrón recomendado por React en vez de un efecto).
+  const [rutaAnterior, setRutaAnterior] = useState(pathname);
+  if (rutaAnterior !== pathname) {
+    setRutaAnterior(pathname);
     setMobileOpen(false);
     setOpenDropdown(null);
-  }, [pathname]);
+  }
 
   // Click outside to close dropdowns
   useEffect(() => {
