@@ -15,11 +15,13 @@ Decisión del propietario: usar solo canales simples y sin cobro por mensaje. **
 
 El `.env` de desarrollo es local (`APP_ENV=local`). Nada de esto está activo en producción.
 
+**Correo saliente por SMTP (local, probado el 19/11/2026):** el mailer por defecto de Laravel (`MAIL_MAILER=smtp`, `smtp.gmail.com:587`, contraseña de aplicación de Google; el remitente debe ser la misma cuenta) envió correctamente un correo de prueba. Sirve para lo que usa el mailer de Laravel, como la recuperación de contraseña. **No** lo usan los recordatorios automáticos: `EnvioAvisosExternosService` llama directo a la API de Resend (`RESEND_API_KEY`), que no admite remitentes `@gmail.com` sin un dominio propio verificado. Por eso `RECORDATORIOS_MAIL_ENABLED` sigue apagado. Opciones futuras: dominio propio verificado en Resend, o adaptar ese servicio al mailer de Laravel (se perderían la clave de idempotencia y los estados del webhook).
+
 ## Cómo apagar un canal
 Quitar la variable o ponerla en `false` y ejecutar `php artisan config:clear`. Los avisos pendientes no se envían al reactivar.
 
 ## Correo automático (cuando se decida activarlo)
-1. Requiere `MAIL_MAILER=resend`, `RESEND_API_KEY` y un `MAIL_FROM_ADDRESS` de un dominio verificado en Resend (SPF/DKIM). Alternativa sin cambios de código: SMTP con otro proveedor.
+1. Requiere `RESEND_API_KEY` válida y un `MAIL_FROM_ADDRESS` de un dominio verificado en Resend (SPF/DKIM); los recordatorios usan la API de Resend directamente, no el mailer SMTP de Laravel. Usar SMTP (Gmail, Brevo…) para los recordatorios exige adaptar `EnvioAvisosExternosService`.
 2. Probar primero con un destinatario autorizado por el propietario (perfil con «correo» activado) y comprobar en `avisos_externos` el estado del aviso.
 3. El texto hacia Resend es genérico: sin nombre del estudiante ni montos.
 4. `RESEND_WEBHOOK_SECRET` es opcional: solo añade los estados «entregado», «rebotado» y «queja». Sin él los avisos quedan en «enviado».
