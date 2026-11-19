@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use App\Notifications\ResetPasswordNotification;
+use App\Notifications\RestablecerContrasenaWebNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -66,8 +67,18 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Expediente de estudiante vinculado a esta cuenta (opcional; un usuario, un expediente). No habilita ningún portal.
+     *
+     * @return HasOne<Estudiante, $this>
+     */
+    public function estudiante(): HasOne
+    {
+        return $this->hasOne(Estudiante::class);
+    }
+
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(new ResetPasswordNotification($token));
+        $this->notify(new RestablecerContrasenaWebNotification($token));
     }
 }

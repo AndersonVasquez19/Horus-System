@@ -101,7 +101,7 @@ class PromoverAdminLocal extends Command
         });
 
         $this->info("Listo: la cuenta #{$usuario->getKey()} ahora tiene el rol admin en la base «{$baseActual}».");
-        $this->line('Inicia sesión en /login para entrar a /admin.');
+        $this->line('Inicia sesión en el login de la interfaz web (HORUS_WEB_URL/login) para entrar al panel.');
 
         return self::SUCCESS;
     }

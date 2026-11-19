@@ -177,23 +177,6 @@ class PromoverAdminLocalTest extends TestCase
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'admin_role_granted_local')->count());
     }
 
-    public function test_promoted_account_signs_in_and_reaches_the_panel_after_registering_normally(): void
-    {
-        $this->seed(RolesAndPermissionsSeeder::class);
-        $this->post(route('register.post'), [
-            'name' => 'Compañero Ficticio', 'email' => self::EMAIL,
-            'password' => 'ClaveSegura123', 'password_confirmation' => 'ClaveSegura123', 'terms' => '1',
-        ])->assertRedirect(route('login'));
-
-        $this->entorno('local');
-        $this->promover()->assertExitCode(0);
-        $this->entorno('testing');
-
-        $this->post(route('login.post'), ['email' => self::EMAIL, 'password' => 'ClaveSegura123'])
-            ->assertRedirect(route('admin.dashboard'));
-        $this->get(route('admin.dashboard'))->assertOk();
-    }
-
     public function test_there_is_no_http_route_for_the_command(): void
     {
         $rutas = collect(app('router')->getRoutes()->getRoutes())->map->uri()->implode(' ');
