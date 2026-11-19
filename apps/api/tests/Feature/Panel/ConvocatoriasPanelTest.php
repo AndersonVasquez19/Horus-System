@@ -50,7 +50,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
 
         return [
             'curso_id' => $curso->id, 'nombre' => null, 'modalidad' => 'virtual', 'fecha_inicio' => $inicio->toDateString(),
-            'fecha_fin' => $inicio->addDays(30)->toDateString(), 'cupos_maximos' => 20, ...$cambios,
+            'fecha_fin' => $inicio->addDays(30)->toDateString(), 'cupos_maximos' => 10, ...$cambios,
         ];
     }
 
@@ -124,9 +124,9 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         $anio = CarbonImmutable::now('America/Lima')->format('Y');
         $curso = $this->curso();
 
-        $r = $this->como($coordinador, 'POST', '', $this->datos($curso, ['nombre' => 'Edición Reservada', 'cupos_maximos' => 15]))->assertCreated();
+        $r = $this->como($coordinador, 'POST', '', $this->datos($curso, ['nombre' => 'Edición Reservada', 'cupos_maximos' => 9]))->assertCreated();
         $r->assertJsonPath('data.estado', 'borrador')->assertJsonPath('data.codigo', "CNV-{$anio}-0001")
-            ->assertJsonPath('data.cupos', ['maximos' => 15, 'disponibles' => 15, 'ocupados' => 0])
+            ->assertJsonPath('data.cupos', ['maximos' => 9, 'disponibles' => 9, 'ocupados' => 0])
             ->assertJsonPath('data.nombre', 'Edición Reservada')->assertJsonPath('data.curso.codigo', $curso->codigo)
             ->assertJsonPath('data.horarios', [])->assertJsonMissingPath('data.id');
 
@@ -157,6 +157,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         $this->como($coordinador, 'POST', '', $this->datos($curso, ['modalidad' => 'telepatia']))->assertJsonValidationErrors('modalidad');
         $this->como($coordinador, 'POST', '', $this->datos($curso, ['cupos_maximos' => 0]))->assertJsonValidationErrors('cupos_maximos');
         $this->como($coordinador, 'POST', '', $this->datos($curso, ['cupos_maximos' => 'muchos']))->assertJsonValidationErrors('cupos_maximos');
+        $this->como($coordinador, 'POST', '', $this->datos($curso, ['cupos_maximos' => 11]))->assertJsonValidationErrors('cupos_maximos');
         $this->como($coordinador, 'POST', '', $this->datos($curso, ['fecha_inicio' => '10/12/2026']))->assertJsonValidationErrors('fecha_inicio');
         $this->como($coordinador, 'POST', '', $this->datos($curso, ['fecha_inicio' => '2026-12-10', 'fecha_fin' => '2026-12-01']))->assertJsonValidationErrors('fecha_fin');
         $this->como($coordinador, 'POST', '', $this->datos($curso, ['nombre' => '<b>x</b>']))->assertJsonValidationErrors('nombre');
@@ -175,7 +176,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     {
         $coordinador = $this->coordinador();
         $c = $this->crear($coordinador);
-        $cuerpo = $this->datos($c->curso, ['nombre' => 'Otra edición', 'cupos_maximos' => 20]);
+        $cuerpo = $this->datos($c->curso, ['nombre' => 'Otra edición', 'cupos_maximos' => 10]);
         unset($cuerpo['curso_id']);
 
         $this->como($coordinador, 'PUT', $c->identificador, $cuerpo)->assertStatus(428);
@@ -193,14 +194,14 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     public function test_los_cupos_se_mueven_con_el_maximo_y_nunca_bajan_de_lo_ocupado(): void
     {
         $coordinador = $this->coordinador();
-        $c = $this->crear($coordinador, null, ['cupos_maximos' => 20]);
-        // Simula 8 cupos ocupados (12 disponibles).
-        Convocatoria::query()->whereKey($c->id)->update(['cupos_disponibles' => 12]);
+        $c = $this->crear($coordinador, null, ['cupos_maximos' => 9]);
+        // Simula 8 cupos ocupados (1 disponible).
+        Convocatoria::query()->whereKey($c->id)->update(['cupos_disponibles' => 1]);
         $base = $this->datos($c->curso);
         unset($base['curso_id']);
 
-        $this->como($coordinador, 'PUT', $c->identificador, [...$base, 'cupos_maximos' => 25, '_revision' => $c->fresh()->etag()])
-            ->assertOk()->assertJsonPath('data.cupos', ['maximos' => 25, 'disponibles' => 17, 'ocupados' => 8]);
+        $this->como($coordinador, 'PUT', $c->identificador, [...$base, 'cupos_maximos' => 10, '_revision' => $c->fresh()->etag()])
+            ->assertOk()->assertJsonPath('data.cupos', ['maximos' => 10, 'disponibles' => 2, 'ocupados' => 8]);
         $this->como($coordinador, 'PUT', $c->identificador, [...$base, 'cupos_maximos' => 7, '_revision' => $c->fresh()->etag()])->assertJsonValidationErrors('cupos_maximos');
         $this->como($coordinador, 'PUT', $c->identificador, [...$base, 'cupos_maximos' => 8, '_revision' => $c->fresh()->etag()])
             ->assertOk()->assertJsonPath('data.cupos', ['maximos' => 8, 'disponibles' => 0, 'ocupados' => 8]);

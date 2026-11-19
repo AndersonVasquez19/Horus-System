@@ -26,7 +26,7 @@ class StoreCursoRequest extends FormRequest
             'precio' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'modalidad' => ['required', Rule::in(['presencial', 'semipresencial', 'virtual', 'hibrido'])],
             'horario' => ['required', 'string', 'max:100'],
-            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:2147483647'],
+            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:'.(int) config('academico.cupos_maximos', 10)],
             'estado' => ['required', Rule::in(['activo', 'inactivo', 'archivado'])],
         ];
     }
@@ -55,6 +55,7 @@ class StoreCursoRequest extends FormRequest
             'cupos_maximos.required' => 'Debes indicar la cantidad de cupos.',
             'cupos_maximos.integer' => 'Los cupos deben ser un número entero.',
             'cupos_maximos.min' => 'Los cupos deben ser al menos 1.',
+            'cupos_maximos.max' => 'Un curso admite como máximo '.(int) config('academico.cupos_maximos', 10).' cupos.',
             'estado.required' => 'Debes seleccionar el estado del curso.',
             'estado.in' => 'El estado seleccionado no es válido.',
         ];

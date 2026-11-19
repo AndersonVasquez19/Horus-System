@@ -43,7 +43,7 @@ class GuardarConvocatoriaRequest extends FormRequest
             'modalidad' => ['required', 'string', Rule::in(Convocatoria::MODALIDADES)],
             'fecha_inicio' => ['required', 'date_format:Y-m-d'],
             'fecha_fin' => ['required', 'date_format:Y-m-d', 'after_or_equal:fecha_inicio'],
-            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:5000'],
+            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:'.(int) config('academico.cupos_maximos', 10)],
             'curso_id' => $this->isMethod('POST') ? ['required', 'integer', 'min:1'] : ['missing'],
             'estado' => ['missing'],
             'codigo' => ['missing'],
@@ -51,5 +51,11 @@ class GuardarConvocatoriaRequest extends FormRequest
             'revision' => ['missing'],
             'identificador' => ['missing'],
         ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['cupos_maximos.max' => 'Una edición admite como máximo '.(int) config('academico.cupos_maximos', 10).' cupos.'];
     }
 }

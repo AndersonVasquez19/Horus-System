@@ -123,7 +123,7 @@ function FormularioConvocatoria({ convocatoria, onGuardado, onCancelar, onOcupad
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo etiqueta="Nombre (opcional)" value={datos.nombre} onChange={cambiar('nombre')} error={err('nombre')} maxLength={160} ayuda="Si lo dejas vacío se usa el del curso." className="sm:col-span-2" />
         <CampoSeleccion etiqueta="Modalidad" value={datos.modalidad} onChange={cambiar('modalidad')} error={err('modalidad')} opciones={ETIQUETAS.modalidad} />
-        <Campo etiqueta="Cupos máximos" type="number" inputMode="numeric" min="1" max="5000" step="1" value={datos.cupos_maximos} onChange={cambiar('cupos_maximos')} error={err('cupos_maximos')} required />
+        <Campo etiqueta="Cupos máximos" type="number" inputMode="numeric" min="1" max="10" step="1" value={datos.cupos_maximos} onChange={cambiar('cupos_maximos')} error={err('cupos_maximos')} required />
         <Campo etiqueta="Inicio" type="date" value={datos.fecha_inicio} onChange={cambiar('fecha_inicio')} error={err('fecha_inicio')} required />
         <Campo etiqueta="Fin" type="date" value={datos.fecha_fin} onChange={cambiar('fecha_fin')} error={err('fecha_fin')} required />
       </div>

@@ -89,12 +89,13 @@ export function FormularioCurso({ curso, onGuardado, onCancelar, onOcupado }: Fo
           type="number"
           inputMode="numeric"
           min={1}
+          max={10}
           step={1}
           value={datos.cupos_maximos}
           onChange={cambiar('cupos_maximos')}
           error={err('cupos_maximos')}
           required
-          ayuda={curso ? 'No puede ser menor que las matrículas vigentes.' : 'Los cupos disponibles empiezan igual al máximo.'}
+          ayuda={curso ? 'Máximo 10. No puede ser menor que las matrículas vigentes.' : 'Máximo 10. Los cupos disponibles empiezan igual al máximo.'}
         />
       </div>
 

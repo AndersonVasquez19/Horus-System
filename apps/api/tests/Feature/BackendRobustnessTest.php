@@ -150,11 +150,11 @@ class BackendRobustnessTest extends TestCase
     {
         [, $course] = $this->fixtures();
         $data = $course->only(['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado']);
-        $data = array_replace($data, ['codigo' => 'LIMIT', 'precio' => '99999999.99', 'duracion_horas' => 2147483647, 'cupos_maximos' => 2147483647]);
+        $data = array_replace($data, ['codigo' => 'LIMIT', 'precio' => '99999999.99', 'duracion_horas' => 2147483647, 'cupos_maximos' => 10]);
         $this->actingAs($this->adminUser())->panelCursos('POST', '', $data)->assertCreated();
         $created = Curso::where('codigo', 'LIMIT')->sole();
         $this->assertSame('99999999.99', $created->precio);
-        $this->assertSame(2147483647, $created->cupos_disponibles);
+        $this->assertSame(10, $created->cupos_disponibles);
         $this->panelCursos('PUT', (string) $created->id, array_replace($data, ['precio' => 0, 'duracion_horas' => 1, 'cupos_maximos' => 1]))->assertOk();
         $this->assertSame('0.00', $created->fresh()->precio);
         $this->assertSame(1, $created->fresh()->cupos_disponibles);

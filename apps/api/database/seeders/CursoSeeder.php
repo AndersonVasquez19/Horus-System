@@ -19,7 +19,7 @@ class CursoSeeder extends Seeder
                 'precio' => 350,
                 'modalidad' => 'presencial',
                 'horario' => 'Lun-Mié, 18:00-20:00',
-                'cupos_maximos' => 30,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-002',
@@ -30,7 +30,7 @@ class CursoSeeder extends Seeder
                 'precio' => 480,
                 'modalidad' => 'hibrido',
                 'horario' => 'Mar-Jue, 18:00-20:00',
-                'cupos_maximos' => 25,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-003',
@@ -41,7 +41,7 @@ class CursoSeeder extends Seeder
                 'precio' => 520,
                 'modalidad' => 'presencial',
                 'horario' => 'Sábados, 09:00-13:00',
-                'cupos_maximos' => 30,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-004',
@@ -52,7 +52,7 @@ class CursoSeeder extends Seeder
                 'precio' => 280,
                 'modalidad' => 'presencial',
                 'horario' => 'Sábados, 14:00-18:00',
-                'cupos_maximos' => 20,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-005',
@@ -63,7 +63,7 @@ class CursoSeeder extends Seeder
                 'precio' => 390,
                 'modalidad' => 'virtual',
                 'horario' => 'Lun-Mié, 19:00-21:00',
-                'cupos_maximos' => 25,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-006',
@@ -74,7 +74,7 @@ class CursoSeeder extends Seeder
                 'precio' => 420,
                 'modalidad' => 'hibrido',
                 'horario' => 'Mar-Jue, 19:00-21:00',
-                'cupos_maximos' => 25,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-007',
@@ -85,7 +85,7 @@ class CursoSeeder extends Seeder
                 'precio' => 560,
                 'modalidad' => 'presencial',
                 'horario' => 'Sábados, 08:00-13:00',
-                'cupos_maximos' => 20,
+                'cupos_maximos' => 10,
             ],
             [
                 'codigo' => 'CUR-008',
@@ -96,7 +96,7 @@ class CursoSeeder extends Seeder
                 'precio' => 240,
                 'modalidad' => 'virtual',
                 'horario' => 'Vie, 18:00-21:00',
-                'cupos_maximos' => 30,
+                'cupos_maximos' => 10,
             ],
         ];
 

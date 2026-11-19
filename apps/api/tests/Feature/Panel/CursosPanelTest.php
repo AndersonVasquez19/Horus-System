@@ -28,7 +28,7 @@ final class CursosPanelTest extends PanelApiTestCase
     {
         return [
             'codigo' => 'CUR-NUEVO', 'nombre' => 'Excel Intermedio', 'descripcion' => 'Contenido del curso', 'categoria' => 'tecnologia',
-            'duracion_horas' => 30, 'precio' => '250.50', 'modalidad' => 'virtual', 'horario' => 'Sáb 09:00', 'cupos_maximos' => 12,
+            'duracion_horas' => 30, 'precio' => '250.50', 'modalidad' => 'virtual', 'horario' => 'Sáb 09:00', 'cupos_maximos' => 9,
             'estado' => 'activo', ...$cambios,
         ];
     }
@@ -76,12 +76,12 @@ final class CursosPanelTest extends PanelApiTestCase
     public function test_el_detalle_lista_los_estudiantes_matriculados_sin_datos_personales_ni_montos(): void
     {
         $admin = $this->admin();
-        $curso = $this->curso('CUR-DET', ['cupos_maximos' => 20, 'cupos_disponibles' => 19]);
+        $curso = $this->curso('CUR-DET', ['cupos_maximos' => 10, 'cupos_disponibles' => 9]);
         $estudiante = $this->estudiante('70123456');
         Matricula::create(['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => '2026-11-01', 'estado' => 'pagada', 'monto_pagado' => 150]);
 
         $respuesta = $this->como($admin, 'GET', "cursos/{$curso->id}")->assertOk()
-            ->assertJsonPath('data.matriculas_activas', 1)->assertJsonPath('data.cupos_disponibles', 19)
+            ->assertJsonPath('data.matriculas_activas', 1)->assertJsonPath('data.cupos_disponibles', 9)
             ->assertJsonPath('data.estudiantes.0.estado_matricula', 'pagada');
         $this->assertStringContainsString($estudiante->nombres, (string) $respuesta->json('data.estudiantes.0.nombre'));
         $cuerpo = (string) json_encode($respuesta->json('data.estudiantes'));
@@ -122,10 +122,10 @@ final class CursosPanelTest extends PanelApiTestCase
         $this->como($admin, 'POST', 'cursos', $this->datosValidos())
             ->assertCreated()
             ->assertJsonPath('data.codigo', 'CUR-NUEVO')
-            ->assertJsonPath('data.cupos_disponibles', 12)
+            ->assertJsonPath('data.cupos_disponibles', 9)
             ->assertJsonPath('data.historial.0.accion', 'curso_creado');
 
-        $this->assertSame(12, Curso::query()->where('codigo', 'CUR-NUEVO')->sole()->cupos_disponibles);
+        $this->assertSame(9, Curso::query()->where('codigo', 'CUR-NUEVO')->sole()->cupos_disponibles);
         $this->assertSame(1, AuditLog::query()->where('action', 'curso_creado')->count());
     }
 
@@ -156,6 +156,11 @@ final class CursosPanelTest extends PanelApiTestCase
         $this->como($admin, 'PUT', "cursos/{$curso->id}", $this->datosValidos(['codigo' => 'CUR-1', 'cupos_maximos' => 0]))
             ->assertUnprocessable();
         $this->assertSame(7, $curso->fresh()->cupos_disponibles);
+        // Tope de cupos: más de 10 se rechaza con un mensaje claro, al editar y al crear.
+        $this->como($admin, 'PUT', "cursos/{$curso->id}", $this->datosValidos(['codigo' => 'CUR-1', 'cupos_maximos' => 11]))
+            ->assertUnprocessable()->assertJsonValidationErrors(['cupos_maximos'])
+            ->assertJsonPath('errors.cupos_maximos.0', 'Un curso admite como máximo 10 cupos.');
+        $this->como($admin, 'POST', 'cursos', $this->datosValidos(['cupos_maximos' => 11]))->assertUnprocessable()->assertJsonValidationErrors(['cupos_maximos']);
         $this->assertSame(1, AuditLog::query()->where('action', 'curso_actualizado')->count());
     }
 

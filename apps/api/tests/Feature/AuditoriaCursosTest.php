@@ -70,7 +70,7 @@ class AuditoriaCursosTest extends TestCase
             'precio' => 250,
             'modalidad' => 'virtual',
             'horario' => self::HORARIO,
-            'cupos_maximos' => 20,
+            'cupos_maximos' => 10,
             'estado' => 'activo',
         ], $extra);
     }
@@ -141,7 +141,7 @@ class AuditoriaCursosTest extends TestCase
 
         $cambios = $this->cambios($log);
         $this->assertSame(1, $cambios['esquema']);
-        $this->assertSame(['precio' => '250.00', 'cupos_maximos' => 20, 'cupos_disponibles' => 20], $cambios['valores']);
+        $this->assertSame(['precio' => '250.00', 'cupos_maximos' => 10, 'cupos_disponibles' => 10], $cambios['valores']);
         $this->assertEqualsCanonicalizing(
             ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'cupos_disponibles', 'estado'],
             $cambios['campos'],
@@ -180,7 +180,7 @@ class AuditoriaCursosTest extends TestCase
         $this->actingAs($admin)
             ->panelCursos('PUT', (string) $curso->id, $this->datos([
                 'precio' => 300,
-                'cupos_maximos' => 40,
+                'cupos_maximos' => 8,
                 'nombre' => 'OTRO-NOMBRE-MARCA-7731',
                 'descripcion' => 'OTRA-DESCRIPCION-MARCA-7731',
                 'horario' => 'OTRO-HORARIO-MARCA-7731',
@@ -204,10 +204,10 @@ class AuditoriaCursosTest extends TestCase
             ['precio', 'cupos_maximos', 'cupos_disponibles', 'nombre', 'descripcion', 'horario', 'categoria', 'modalidad', 'estado', 'duracion_horas'],
             $cambios['campos'],
         );
-        $this->assertSame(['precio' => '250.00', 'cupos_maximos' => 20, 'cupos_disponibles' => 20], $cambios['antes']);
-        $this->assertSame(['precio' => '300.00', 'cupos_maximos' => 40, 'cupos_disponibles' => 40], $cambios['despues']);
+        $this->assertSame(['precio' => '250.00', 'cupos_maximos' => 10, 'cupos_disponibles' => 10], $cambios['antes']);
+        $this->assertSame(['precio' => '300.00', 'cupos_maximos' => 8, 'cupos_disponibles' => 8], $cambios['despues']);
         $this->assertSinMarcadores($log, ['salud', 'presencial', 'archivado', '8842', 'tecnologia', 'virtual']);
-        $this->assertDatabaseHas('cursos', ['id' => $curso->id, 'cupos_maximos' => 40, 'cupos_disponibles' => 40]);
+        $this->assertDatabaseHas('cursos', ['id' => $curso->id, 'cupos_maximos' => 8, 'cupos_disponibles' => 8]);
     }
 
     public function test_cambiar_solo_el_precio_registra_solo_el_precio(): void
@@ -301,9 +301,9 @@ class AuditoriaCursosTest extends TestCase
         $this->actingAs($this->usuario('admin'));
         $this->failAudit();
 
-        $this->panelCursos('PUT', (string) $curso->id, $this->datos(['precio' => 300, 'cupos_maximos' => 40]))->assertStatus(500);
+        $this->panelCursos('PUT', (string) $curso->id, $this->datos(['precio' => 300, 'cupos_maximos' => 8]))->assertStatus(500);
 
-        $this->assertDatabaseHas('cursos', ['id' => $curso->id, 'precio' => '250.00', 'cupos_maximos' => 20, 'cupos_disponibles' => 20]);
+        $this->assertDatabaseHas('cursos', ['id' => $curso->id, 'precio' => '250.00', 'cupos_maximos' => 10, 'cupos_disponibles' => 10]);
         $this->assertSame(0, AuditLog::count());
     }
 
