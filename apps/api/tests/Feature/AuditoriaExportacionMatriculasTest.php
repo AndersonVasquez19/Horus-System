@@ -18,6 +18,7 @@ use Illuminate\Testing\TestResponse;
 use RuntimeException;
 use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaRespaldoDelPanel;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -30,6 +31,7 @@ use ZipArchive;
  */
 class AuditoriaExportacionMatriculasTest extends TestCase
 {
+    use LlamaRespaldoDelPanel;
     use LlamaAuditoriaDelPanel;
     use LlamaMatriculasDelPanel;
     use RefreshDatabase;
@@ -219,7 +221,7 @@ class AuditoriaExportacionMatriculasTest extends TestCase
         $admin = $this->adminUser();
         $this->actingAs($admin)->panelAuditoria('GET')->assertOk();
         $this->actingAs($admin)->panelAuditoria('POST', 'exportar')->assertOk()->streamedContent();
-        $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
+        $this->downloadZip($this->actingAs($admin)->panelRespaldo('POST', 'exportar'));
 
         $despues = (array) DB::table('audit_logs')->where('id', $id)->first();
         $this->assertSame($antes, $despues);
@@ -255,23 +257,13 @@ class AuditoriaExportacionMatriculasTest extends TestCase
     {
         $this->insertarHistorico();
 
-        $archivos = $this->downloadZip($this->actingAs($this->adminUser())->post(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($this->adminUser())->panelRespaldo('POST', 'exportar'));
 
         $this->assertArrayHasKey('audit_logs.csv', $archivos);
         $this->assertStringNotContainsString('71000001', $archivos['audit_logs.csv']);
         $this->assertStringNotContainsString('Ana Prueba', $archivos['audit_logs.csv']);
         $this->assertStringContainsString(SensitiveData::MASK, $archivos['audit_logs.csv']);
         $this->assertStringContainsString('matriculas_20260101_000000.csv', $archivos['audit_logs.csv']);
-    }
-
-    public function test_el_panel_de_inicio_no_expone_la_busqueda_historica(): void
-    {
-        $this->insertarHistorico();
-
-        $html = (string) $this->actingAs($this->adminUser())->get(route('admin.dashboard'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('71000001', $html);
-        $this->assertStringNotContainsString('Ana Prueba', $html);
     }
 
     public function test_la_serializacion_del_modelo_enmascara_la_busqueda_historica(): void

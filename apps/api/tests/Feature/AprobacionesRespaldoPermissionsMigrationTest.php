@@ -12,6 +12,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\LlamaAprobacionesDelPanel;
+use Tests\Support\LlamaRespaldoDelPanel;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
  */
 class AprobacionesRespaldoPermissionsMigrationTest extends TestCase
 {
+    use LlamaRespaldoDelPanel;
     use LlamaAprobacionesDelPanel;
     use RefreshDatabase;
 
@@ -39,13 +41,13 @@ class AprobacionesRespaldoPermissionsMigrationTest extends TestCase
         $admin = $this->staff('admin');
 
         $this->actingAs($admin)->panelAprobaciones('GET')->assertForbidden();
-        $this->actingAs($admin)->get(route('admin.respaldo.index'))->assertForbidden();
+        $this->actingAs($admin)->panelRespaldo('GET')->assertForbidden();
 
         $this->migration()->up();
 
         $admin = $admin->fresh();
         $this->actingAs($admin)->panelAprobaciones('GET')->assertOk();
-        $this->actingAs($admin)->get(route('admin.respaldo.index'))->assertOk();
+        $this->actingAs($admin)->panelRespaldo('GET')->assertOk();
     }
 
     public function test_migration_reproduces_the_seeder_matrix_for_these_permissions(): void

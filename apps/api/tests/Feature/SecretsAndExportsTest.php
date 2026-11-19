@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Admin\RespaldoController;
+use App\Http\Controllers\Api\Panel\Compartido\RespaldoController;
 use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
@@ -23,6 +23,7 @@ use Illuminate\Testing\TestResponse;
 use RuntimeException;
 use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaRespaldoDelPanel;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -33,6 +34,7 @@ class SecretsAndExportsTest extends TestCase
 {
     use LlamaAuditoriaDelPanel;
     use LlamaMatriculasDelPanel;
+    use LlamaRespaldoDelPanel;
     use RefreshDatabase;
 
     private const LEGACY_SECRET = 're_SECRETO_HISTORICO_9f8e7d6c';
@@ -65,80 +67,12 @@ class SecretsAndExportsTest extends TestCase
         $this->assertStringNotContainsString('settings[api_resend]', $codigo);
     }
 
-    public function test_settings_page_does_not_expose_the_legacy_resend_secret(): void
-    {
-        SystemSetting::create(['key' => 'api_resend', 'value' => self::LEGACY_SECRET, 'description' => 'Clave API de Resend']);
-
-        $this->actingAs($this->staff('admin'))
-            ->get(route('admin.configuracion.index'))
-            ->assertOk()
-            ->assertSee('Guardar configuración')
-            ->assertDontSee(self::LEGACY_SECRET)
-            ->assertDontSee('api_resend')
-            ->assertDontSee('API de Resend');
-    }
-
-    public function test_settings_update_ignores_and_never_persists_or_audits_a_resend_key(): void
-    {
-        $nuevo = 're_NUEVO_SECRETO_a1b2c3';
-
-        $this->actingAs($this->staff('admin'))
-            ->put(route('admin.configuracion.update'), [
-                'settings' => [
-                    'moneda' => 'USD',
-                    'api_resend' => $nuevo,
-                    'clave_inventada' => 'x',
-                ],
-            ])
-            ->assertRedirect(route('admin.configuracion.index'))
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame('USD', SystemSetting::value('moneda'));
-        $this->assertDatabaseMissing('system_settings', ['key' => 'api_resend']);
-        $this->assertDatabaseMissing('system_settings', ['key' => 'clave_inventada']);
-        $this->assertNoSecretInDatabase($nuevo);
-
-        $log = AuditLog::where('action', 'settings_updated')->firstOrFail();
-        // Solo la clave permitida y modificada, con su valor anterior (predeterminado) y el nuevo.
-        $this->assertSame(['antes' => ['moneda' => 'S/'], 'despues' => ['moneda' => 'USD']], $log->changes);
-    }
-
-    public function test_an_existing_legacy_resend_row_is_left_untouched_by_the_panel(): void
-    {
-        SystemSetting::create(['key' => 'api_resend', 'value' => self::LEGACY_SECRET, 'description' => 'Clave API de Resend']);
-
-        $this->actingAs($this->staff('admin'))
-            ->put(route('admin.configuracion.update'), ['settings' => ['telefono' => '+51 900 111 222']])
-            ->assertRedirect(route('admin.configuracion.index'));
-
-        // La limpieza de claves históricas es un procedimiento manual (docs/seguridad-l1.1.md): no se borra sola.
-        $this->assertSame(self::LEGACY_SECRET, SystemSetting::where('key', 'api_resend')->value('value'));
-        $this->assertSame('+51 900 111 222', SystemSetting::value('telefono'));
-    }
-
     public function test_base_seeders_no_longer_create_the_resend_setting(): void
     {
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseMissing('system_settings', ['key' => 'api_resend']);
         $this->assertDatabaseHas('system_settings', ['key' => 'moneda']);
-    }
-
-    public function test_settings_require_their_own_permissions(): void
-    {
-        foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->get(route('admin.configuracion.index'))->assertForbidden();
-            $this->put(route('admin.configuracion.update'), ['settings' => ['moneda' => 'X']])->assertForbidden();
-        }
-
-        $soloLectura = $this->staff('coordinador');
-        $soloLectura->givePermissionTo('configuracion.ver');
-
-        $this->actingAs($soloLectura)->get(route('admin.configuracion.index'))->assertOk();
-        $this->put(route('admin.configuracion.update'), ['settings' => ['moneda' => 'X']])->assertForbidden();
-        $this->assertNotSame('X', SystemSetting::value('moneda'));
-
-        $this->actingAs(User::factory()->create())->get(route('admin.configuracion.index'))->assertForbidden();
     }
 
     // ---- Auditoría --------------------------------------------------------------------------
@@ -210,7 +144,7 @@ class SecretsAndExportsTest extends TestCase
         $this->insertHistoricalAuditRow();
         DB::table('password_reset_tokens')->insert(['email' => $admin->email, 'token' => 'TOKEN_RESET_PRUEBA', 'created_at' => now()]);
 
-        $archivos = $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($admin)->panelRespaldo('POST', 'exportar'));
 
         $this->assertEqualsCanonicalizing(
             ['users', 'estudiantes', 'cursos', 'matriculas', 'procesos_internos', 'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas'],
@@ -235,7 +169,7 @@ class SecretsAndExportsTest extends TestCase
 
     public function test_zip_export_is_not_presented_as_a_restorable_backup(): void
     {
-        $archivos = $this->downloadZip($this->actingAs($this->staff('admin'))->post(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($this->staff('admin'))->panelRespaldo('POST', 'exportar'));
         $manifiesto = json_decode($archivos['manifest.json'], true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame('exportacion_administrativa', $manifiesto['tipo']);
@@ -243,16 +177,16 @@ class SecretsAndExportsTest extends TestCase
         $this->assertStringContainsString('No es una copia de seguridad completa de PostgreSQL', $manifiesto['descripcion']);
         $this->assertContains('password', $manifiesto['columnas_omitidas_por_seguridad']['users']);
 
-        $this->get(route('admin.respaldo.index'))
-            ->assertOk()
-            ->assertSee('No es una copia de seguridad')
+        $this->actingAs($this->staff('admin'))->panelRespaldo('GET')->assertOk()
+            ->assertJsonPath('data.es_respaldo_restaurable', false)
+            ->assertSee('no permite restaurar el sistema')
             ->assertDontSee('Generar respaldo');
     }
 
     public function test_zip_export_leaves_no_copy_and_deletes_its_temporary_file(): void
     {
         $admin = $this->staff('admin');
-        $respuesta = $this->actingAs($admin)->post(route('admin.respaldo.exportar'))->assertOk()->assertDownload();
+        $respuesta = $this->actingAs($admin)->panelRespaldo('POST', 'exportar')->assertOk()->assertDownload();
         $temporal = $respuesta->baseResponse->getFile()->getPathname();
         $this->assertFileExists($temporal);
 
@@ -265,7 +199,7 @@ class SecretsAndExportsTest extends TestCase
     public function test_zip_export_is_audited_with_the_acting_user(): void
     {
         $admin = $this->staff('admin');
-        $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
+        $this->downloadZip($this->actingAs($admin)->panelRespaldo('POST', 'exportar'));
 
         $log = AuditLog::where('action', 'data_export_generated')->firstOrFail();
         $this->assertSame($admin->id, $log->user_id);
@@ -278,7 +212,7 @@ class SecretsAndExportsTest extends TestCase
         $admin = $this->staff('admin');
         User::factory()->create(['name' => '=HYPERLINK("http://malo.example","clic")', 'email' => 'formula@example.com']);
 
-        $archivos = $this->downloadZip($this->actingAs($admin)->post(route('admin.respaldo.exportar')));
+        $archivos = $this->downloadZip($this->actingAs($admin)->panelRespaldo('POST', 'exportar'));
 
         $this->assertStringContainsString("'=HYPERLINK", $archivos['users.csv']);
         $this->assertStringNotContainsString(',"=HYPERLINK', $archivos['users.csv']);
@@ -353,38 +287,10 @@ class SecretsAndExportsTest extends TestCase
         }
     }
 
-    // ---- Listado de archivos heredados ------------------------------------------------------
-
-    public function test_export_listing_only_shows_the_private_exports_folder_and_warns_about_older_zip_files(): void
-    {
-        Storage::disk('local')->put('exports/auditoria_20260101_000000.json', 'contenido-antiguo');
-        // Los ZIP de versiones anteriores se guardaban fuera de `exports/` del disco `local`: no se listan.
-        Storage::disk('local')->put('otra-carpeta/respaldo_20260101_000000.zip', 'contenido-antiguo');
-
-        $this->actingAs($this->staff('admin'))
-            ->get(route('admin.respaldo.index'))
-            ->assertOk()
-            ->assertSee('auditoria_20260101_000000.json')
-            ->assertDontSee('respaldo_20260101_000000.zip')
-            ->assertSee('Archivos heredados de versiones anteriores')
-            ->assertSee('No incluye los ZIP de «respaldo»');
-    }
-
-    public function test_the_legacy_zip_warning_is_shown_even_when_the_listing_is_empty_and_exposes_no_server_path(): void
-    {
-        $this->actingAs($this->staff('admin'))
-            ->get(route('admin.respaldo.index'))
-            ->assertOk()
-            ->assertSee('No incluye los ZIP de «respaldo»')
-            ->assertSee('aunque esta lista esté vacía')
-            ->assertDontSee('storage/app')
-            ->assertDontSee('storage\\app');
-    }
-
     public function test_export_routes_keep_their_permission_requirements(): void
     {
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->post(route('admin.respaldo.exportar'))->assertForbidden();
+            $this->actingAs($this->staff($rol))->panelRespaldo('POST', 'exportar')->assertForbidden();
             $this->panelAuditoria('POST', 'exportar')->assertForbidden();
         }
 
@@ -443,10 +349,8 @@ class SecretsAndExportsTest extends TestCase
         $admin = $this->staff('admin');
 
         $this->actingAs($admin)
-            ->from(route('admin.respaldo.index'))
-            ->post(route('admin.respaldo.exportar'))
-            ->assertRedirect(route('admin.respaldo.index'))
-            ->assertSessionHas('error')
+            ->panelRespaldo('POST', 'exportar')
+            ->assertStatus(500)
             ->assertHeaderMissing('Content-Disposition');
 
         // Si la lista estuviera vacía la comprobación no probaría nada: el temporal sí debió crearse.

@@ -10,8 +10,8 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaRespaldoDelPanel;
 use Tests\TestCase;
 
 /**
@@ -20,6 +20,7 @@ use Tests\TestCase;
  */
 class ExportacionesPostTest extends TestCase
 {
+    use LlamaRespaldoDelPanel;
     use LlamaMatriculasDelPanel;
     use RefreshDatabase;
 
@@ -39,50 +40,19 @@ class ExportacionesPostTest extends TestCase
         return $usuario;
     }
 
-    /** @return array<string, array{0: string, 1: string}> */
-    public static function exportaciones(): array
+    public function test_el_respaldo_del_panel_solo_acepta_post_esta_limitado_y_exige_sesion(): void
     {
-        return [
-            'respaldo.exportar' => ['admin.respaldo.exportar', 'respaldo/exportar'],
-        ];
-    }
-
-    #[DataProvider('exportaciones')]
-    public function test_la_ruta_solo_acepta_post_y_pasa_por_el_grupo_web_con_csrf(string $nombre): void
-    {
-        $ruta = Route::getRoutes()->getByName($nombre);
+        $ruta = Route::getRoutes()->getByName('api.panel.compartido.respaldo.exportar');
 
         $this->assertNotNull($ruta);
         $this->assertSame(['POST'], $ruta->methods());
-        $this->assertContains('web', $ruta->gatherMiddleware());
         $this->assertContains('throttle:admin-export', $ruta->gatherMiddleware());
-    }
 
-    #[DataProvider('exportaciones')]
-    public function test_un_get_no_exporta_ni_deja_registro_de_auditoria(string $nombre, string $ruta): void
-    {
-        $this->actingAs($this->staff('admin'))
-            ->get('/admin/'.$ruta)
-            ->assertStatus(405);
-
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'audit_exported']);
+        $this->actingAs($this->staff('admin'))->panelRespaldo('GET', 'exportar')->assertStatus(405);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'data_export_generated']);
-        $this->assertSame(0, AuditLog::query()->where('action', 'like', '%export%')->count());
-    }
-
-    #[DataProvider('exportaciones')]
-    public function test_matriz_de_acceso_de_la_exportacion(string $nombre): void
-    {
-        $this->post(route($nombre))->assertRedirect(route('login'));
-
-        foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->post(route($nombre))->assertForbidden();
-        }
-
-        $this->actingAs(User::factory()->create())->post(route($nombre))->assertForbidden();
-
-        $respuesta = $this->actingAs($this->staff('admin'))->post(route($nombre))->assertOk();
-        $this->assertTrue($respuesta->baseResponse->headers->has('Content-Disposition'));
+        auth()->forgetGuards();
+        $this->panelRespaldo('POST', 'exportar')->assertUnauthorized();
+        $this->actingAs(User::factory()->create())->panelRespaldo('POST', 'exportar')->assertForbidden();
     }
 
     /**
@@ -126,23 +96,4 @@ class ExportacionesPostTest extends TestCase
 
     // La exportación de auditoría se retiró de Blade el 14/11/2026: su ruta POST con límite de velocidad y sus permisos
     // están en Panel\AuditoriaPanelTest (solo POST, `auditoria.exportar`) y ExportacionesPanelRobustezTest (cupo compartido).
-    public function test_la_pantalla_de_respaldo_exporta_con_un_formulario_post_con_token(): void
-    {
-        $this->actingAs($this->staff('admin'));
-
-        $respaldo = (string) $this->get(route('admin.respaldo.index'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression(
-            '#<form method="POST" action="'.preg_quote(e(route('admin.respaldo.exportar')), '#').'">\s*<input type="hidden" name="_token"#',
-            $respaldo,
-        );
-        $this->assertStringNotContainsString('href="'.route('admin.respaldo.exportar'), $respaldo);
-    }
-
-    public function test_la_pantalla_de_respaldo_no_ofrece_la_exportacion_a_quien_no_tiene_el_permiso(): void
-    {
-        $this->actingAs($this->staff('coordinador'))
-            ->get(route('admin.respaldo.index'))
-            ->assertOk()
-            ->assertDontSee(route('admin.respaldo.exportar'), false);
-    }
 }

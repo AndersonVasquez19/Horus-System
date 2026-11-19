@@ -77,23 +77,20 @@ class RetiroProcesosTest extends TestCase
         $this->adminUser();
         $usuario = User::factory()->create()->assignRole($rol);
         $proceso = $this->historico();
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
         $this->actingAs($usuario);
 
         DB::flushQueryLog();
         DB::enableQueryLog();
         try {
-            $respuesta = $this->get(route('admin.dashboard'));
+            $respuesta = $this->getJson('/api/panel/v1/academico/resumen', ['X-Horus-Web-Token' => config('horus-web.service_token')]);
             $consultas = DB::getQueryLog();
         } finally {
             DB::disableQueryLog();
             DB::flushQueryLog();
         }
 
-        $respuesta->assertOk()
-            ->assertDontSee('/admin/procesos', false)
-            ->assertDontSee('Procesos pendientes')
-            ->assertSee('Aprobaciones pendientes')
-            ->assertSee('Notificaciones pendientes');
+        $respuesta->assertOk()->assertDontSee('/admin/procesos', false)->assertDontSee('Procesos pendientes');
         foreach ($consultas as $consulta) {
             $this->assertStringNotContainsString('procesos_internos', $consulta['query']);
         }

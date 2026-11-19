@@ -23,32 +23,10 @@ class AdminListFilterInputTest extends TestCase
     use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function listFilters(): iterable
-    {
-        foreach ([
-            'admin.busqueda.index' => ['q'],
-        ] as $route => $params) {
-            foreach ($params as $param) {
-                yield "{$route} {$param}[]" => [$route, $param];
-            }
-        }
-    }
-
     public function test_el_filtro_de_usuarios_del_panel_tolera_formas_de_arreglo(): void
     {
         $this->actingAs($this->adminUser())
             ->llamarUsuariosPanel('GET', '', ['busqueda' => ['x', 'y']])
-            ->assertOk();
-    }
-
-    #[DataProvider('listFilters')]
-    public function test_array_shaped_filters_never_cause_a_server_error(string $route, string $param): void
-    {
-        $this->actingAs($this->adminUser())
-            ->get(route($route, [$param => ['x', 'y']]))
             ->assertOk();
     }
 
@@ -99,7 +77,17 @@ class AdminListFilterInputTest extends TestCase
      */
     public function test_no_admin_controller_uses_a_literal_like_operator(): void
     {
-        foreach (glob(app_path('Http/Controllers/Admin/*.php')) ?: [] as $archivo) {
+        // Los controladores de Blade ya no existen: la guarda cubre los del panel (API de Next) y sus servicios.
+        $archivos = [];
+        foreach ([app_path('Http/Controllers/Api/Panel'), app_path('Services/Panel')] as $dir) {
+            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $archivo) {
+                if ($archivo->getExtension() === 'php') {
+                    $archivos[] = $archivo->getPathname();
+                }
+            }
+        }
+        $this->assertNotEmpty($archivos);
+        foreach ($archivos as $archivo) {
             $codigo = file_get_contents($archivo);
             $this->assertIsString($codigo);
             $this->assertDoesNotMatchRegularExpression('/,\s*[\'"]like[\'"]\s*,/i', $codigo, basename($archivo)." usa 'like' literal.");

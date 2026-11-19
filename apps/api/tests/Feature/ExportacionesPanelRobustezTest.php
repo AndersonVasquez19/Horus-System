@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\LlamaAuditoriaDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
+use Tests\Support\LlamaRespaldoDelPanel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,7 @@ use Tests\TestCase;
  */
 class ExportacionesPanelRobustezTest extends TestCase
 {
+    use LlamaRespaldoDelPanel;
     use LlamaAuditoriaDelPanel;
     use LlamaMatriculasDelPanel;
     use RefreshDatabase;
@@ -73,23 +75,12 @@ class ExportacionesPanelRobustezTest extends TestCase
         $this->assertSame([], json_decode($json, true, flags: JSON_THROW_ON_ERROR));
     }
 
-    public function test_un_identificador_no_numerico_responde_404_en_las_rutas_del_panel(): void
-    {
-        $admin = $this->adminUser();
-
-        foreach (['estudiantes', 'cursos', 'matriculas', 'usuarios'] as $recurso) {
-            $this->actingAs($admin)->get('/admin/'.$recurso.'/abc')->assertNotFound();
-        }
-        $this->actingAs($admin)->patch('/admin/estudiantes/abc/restaurar')->assertNotFound();
-        $this->actingAs($admin)->patch('/admin/cursos/1;DROP/restaurar')->assertNotFound();
-    }
-
     public function test_el_respaldo_no_deja_csv_temporales_y_sigue_incluyendo_cada_tabla(): void
     {
         $admin = $this->adminUser();
         $antes = glob(sys_get_temp_dir().DIRECTORY_SEPARATOR.'horus_csv_*') ?: [];
 
-        $respuesta = $this->actingAs($admin)->post(route('admin.respaldo.exportar'))->assertOk();
+        $respuesta = $this->actingAs($admin)->panelRespaldo('POST', 'exportar')->assertOk();
 
         $zip = new \ZipArchive;
         $this->assertTrue($zip->open($respuesta->baseResponse->getFile()->getPathname()) === true);

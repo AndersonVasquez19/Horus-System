@@ -173,18 +173,22 @@ class BusquedaLikeEscapeTest extends TestCase
         $conPorcentaje = $this->matricular($this->crearEstudiante('70000003', 'Eva 7% Real', 'Mora'), $curso);
         $admin = $this->adminUser();
 
-        $resultados = $this->actingAs($admin)
-            ->get(route('admin.busqueda.index', ['q' => '%']))
-            ->assertOk()
-            ->viewData('resultados');
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $buscar = fn (string $q): array => $this->actingAs($admin)
+            ->getJson('/api/panel/v1/academico/busqueda?q='.urlencode($q), ['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])
+            ->assertOk()->json('data.grupos');
 
-        $this->assertSame(['Soto', 'Mora'], $resultados['estudiantes']->pluck('apellidos')->sort()->reverse()->values()->all());
-        $this->assertSame(['Excel al 100% práctico'], $resultados['cursos']->pluck('nombre')->all());
-        $this->assertSame([$conPorcentaje->id], $resultados['matriculas']->pluck('id')->all());
-        $this->assertSame(['Marta 50% Pérez'], $resultados['usuarios']->pluck('name')->all());
-
-        // El id sigue buscándose como texto: «_» ya no equivale a «cualquier carácter».
-        $this->assertSame([], $this->get(route('admin.busqueda.index', ['q' => '_']))->viewData('resultados')['matriculas']->pluck('id')->all());
+        // El «%» y el «_» se buscan como texto literal, no como comodines de LIKE.
+        $this->assertSame(['Soto, Ana 100% Real'], array_column($buscar('100%')['estudiantes'], 'texto'));
+        $grupos = $buscar('7%');
+        $this->assertSame(['Mora, Eva 7% Real'], array_column($grupos['estudiantes'], 'texto'));
+        $this->assertCount(1, $grupos['matriculas']);
+        $this->assertSame($conPorcentaje->id, $grupos['matriculas'][0]['id']);
+        foreach (['__', '%%'] as $comodin) {
+            foreach ($buscar($comodin) as $grupo => $filas) {
+                $this->assertSame([], $filas, $grupo.' con '.$comodin);
+            }
+        }
     }
 
     public function test_auditoria_filtra_accion_modelo_y_usuario_sin_comodines(): void

@@ -55,7 +55,6 @@ class AdminProtectionTest extends TestCase
 
         $this->assertDatabaseHas('roles', ['id' => $rol->id, 'name' => 'admin']);
         $this->assertTrue($admin->fresh()->hasRole('admin'));
-        $this->get(route('admin.dashboard'))->assertOk();
     }
 
     public function test_the_admin_role_cannot_lose_critical_permissions(): void
@@ -232,7 +231,6 @@ class AdminProtectionTest extends TestCase
         ])->assertJsonValidationErrors('roles');
 
         $this->assertTrue($yo->fresh()->hasRole('admin'));
-        $this->get(route('admin.dashboard'))->assertOk();
     }
 
     public function test_an_admin_can_still_edit_their_own_profile_keeping_the_role(): void

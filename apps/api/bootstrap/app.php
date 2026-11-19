@@ -3,19 +3,16 @@
 use App\Http\Middleware\AutenticarBffPanel;
 use App\Http\Middleware\AuthenticateJwt;
 use App\Http\Middleware\SecurityHeaders;
-use App\Models\User;
 use App\Support\ErroresApiPanel;
 use App\Support\Testing\TestDatabaseSafety;
-use Database\Seeders\RolesAndPermissionsSeeder;
+use App\Support\UrlWeb;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 $app = Application::configure(basePath: dirname(__DIR__))
@@ -41,13 +38,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         }
 
         $middleware->append(SecurityHeaders::class);
-        // Usuario ya autenticado en /login o /register: el personal vuelve al panel, no a la portada pública.
-        $middleware->redirectUsersTo(fn (Request $request): string => $request->user() instanceof User
-            && $request->user()->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES)
-                ? route('admin.dashboard')
-                : route('home'));
+        // Una ruta con `auth` sin sesión (petición no JSON) manda a iniciar sesión a la interfaz Next, no a una ruta de Laravel.
+        $middleware->redirectGuestsTo(fn (): string => UrlWeb::ruta('/login'));
         $middleware->alias([
-            'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'jwt.auth' => AuthenticateJwt::class,

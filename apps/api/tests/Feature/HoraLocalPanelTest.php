@@ -48,16 +48,6 @@ class HoraLocalPanelTest extends TestCase
         ]);
     }
 
-    public function test_el_inicio_usa_el_mes_y_la_fecha_de_lima(): void
-    {
-        $this->matricula('2026-11-30');
-
-        $this->actingAs($this->adminUser())->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertViewHas('matriculasMes', 1)
-            ->assertSee('Actualizado al 30/11/2026');
-    }
-
     public function test_la_matricula_y_las_notificaciones_muestran_la_hora_de_lima(): void
     {
         $admin = $this->adminUser();

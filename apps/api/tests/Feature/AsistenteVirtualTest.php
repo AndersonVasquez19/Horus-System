@@ -11,11 +11,13 @@ use Database\Seeders\ChatIntentSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
 class AsistenteVirtualTest extends TestCase
 {
     use RefreshDatabase;
+    use ChatPublicoBff;
 
     protected function setUp(): void
     {
@@ -97,7 +99,7 @@ class AsistenteVirtualTest extends TestCase
     {
         Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'Unavailable']], 429)]);
 
-        $this->postJson(route('chat.mensaje'), [
+        $this->postChatPublico([
             'mensaje' => 'Compara las modalidades de cursos para orientarme',
             'session_id' => 'session-error',
         ])->assertOk()->assertJsonPath('respuesta', AsistenteVirtualService::RESPUESTA_FALLBACK);
@@ -110,31 +112,17 @@ class AsistenteVirtualTest extends TestCase
 
     public function test_public_and_admin_chat_endpoints_work(): void
     {
-        $this->postJson(route('chat.mensaje'), ['mensaje' => 'humano', 'session_id' => 'public-session'])
-            ->assertOk()->assertJsonPath('intent', null);
+        $this->postChatPublico(['mensaje' => 'humano', 'session_id' => 'public-session'])->assertOk();
 
         $this->seed(ChatIntentSeeder::class);
         $this->seed(RolesAndPermissionsSeeder::class);
         $admin = User::factory()->create();
         $admin->assignRole('admin');
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
         $this->actingAs($admin)
-            ->postJson(route('admin.asistente.mensaje'), ['mensaje' => 'cursos disponibles', 'session_id' => 'admin-session'])
-            ->assertOk()->assertJsonPath('intent', null);
-        $this->get(route('admin.asistente.index'))
-            ->assertOk()->assertSee('[contenido omitido por privacidad]')
-            ->assertSee('Horus AI Python')->assertSee('Registro histórico')
-            ->assertDontSee('Prueba las respuestas por reglas');
+            ->postJson('/api/panel/v1/compartido/asistente/mensaje', ['mensaje' => 'cursos disponibles', 'session_id' => 'admin-session'], ['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])
+            ->assertOk();
         $this->assertSame(2, ChatLog::count());
-    }
-
-    public function test_public_pages_render_the_chat_widget(): void
-    {
-        $this->get('/tecnologias/camaras-seguridad')->assertOk()
-            ->assertSee('aria-label="Abrir chat con el asistente Horus"', false)
-            ->assertSee('aria-controls="horus-chat-panel"', false)
-            ->assertSee('id="horus-chat-panel"', false)
-            ->assertSee(':aria-expanded="abierto.toString()"', false)
-            ->assertSee('chat/mensaje', false);
     }
 
     public function test_original_attention_hours_are_preserved_and_chat_explains_the_discrepancy(): void

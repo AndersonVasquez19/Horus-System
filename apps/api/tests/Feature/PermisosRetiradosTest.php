@@ -76,8 +76,11 @@ class PermisosRetiradosTest extends TestCase
         $sin = User::factory()->create();
         $sin->assignRole('secretaria');
 
-        foreach (['admin.estudiantes.index', 'admin.cursos.index', 'admin.matriculas.index', 'admin.asistente.index'] as $ruta) {
-            $this->actingAs($con)->get(route($ruta))->assertStatus($this->actingAs($sin)->get(route($ruta))->status());
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $cabecera = ['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'];
+        foreach (['academico/estudiantes', 'academico/cursos', 'academico/matriculas', 'compartido/asistente'] as $ruta) {
+            $this->actingAs($con)->getJson('/api/panel/v1/'.$ruta, $cabecera)
+                ->assertStatus($this->actingAs($sin)->getJson('/api/panel/v1/'.$ruta, $cabecera)->status());
         }
     }
 }

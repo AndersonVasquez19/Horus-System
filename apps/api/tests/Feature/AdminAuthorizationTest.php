@@ -21,6 +21,7 @@ use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\Support\LlamaRolesDelPanel;
 use Tests\Support\LlamaUsuariosDelPanel;
+use Tests\Support\LlamaRespaldoDelPanel;
 use Tests\TestCase;
 
 /**
@@ -28,6 +29,7 @@ use Tests\TestCase;
  */
 class AdminAuthorizationTest extends TestCase
 {
+    use LlamaRespaldoDelPanel;
     use LlamaAuditoriaDelPanel;
     use LlamaCursosDelPanel;
     use LlamaEstudiantesDelPanel;
@@ -46,60 +48,12 @@ class AdminAuthorizationTest extends TestCase
         Storage::fake('local');
     }
 
-    /**
-     * Páginas GET del panel y roles que pueden abrirlas según RolesAndPermissionsSeeder. Las exportaciones
-     * (POST) tienen su matriz en ExportacionesPostTest.
-     *
-     * @return array<string, array{0: string, 1: list<string>}>
-     */
-    public static function adminPages(): array
-    {
-        return [
-            'dashboard' => ['admin.dashboard', self::ALL],
-            'busqueda' => ['admin.busqueda.index', self::ALL],
-            'configuracion.index' => ['admin.configuracion.index', ['admin']],
-            'respaldo.index' => ['admin.respaldo.index', ['admin', 'coordinador']],
-            'asistente.index' => ['admin.asistente.index', ['admin', 'coordinador']],
-        ];
-    }
-
-    /**
-     * @param  list<string>  $allowedRoles
-     */
-    #[DataProvider('adminPages')]
-    public function test_admin_pages_follow_the_role_permission_matrix(string $routeName, array $allowedRoles): void
-    {
-        foreach (self::ALL as $role) {
-            $response = $this->actingAs($this->staff($role))->get(route($routeName));
-
-            if (in_array($role, $allowedRoles, true)) {
-                $response->assertOk();
-            } else {
-                $response->assertForbidden();
-            }
-        }
-    }
-
-    #[DataProvider('adminPages')]
-    public function test_guests_are_redirected_to_login(string $routeName): void
-    {
-        $this->get(route($routeName))->assertRedirect(route('login'));
-    }
-
-    #[DataProvider('adminPages')]
-    public function test_authenticated_users_without_staff_role_are_forbidden(string $routeName): void
-    {
-        $this->actingAs(User::factory()->create())
-            ->get(route($routeName))
-            ->assertForbidden();
-    }
-
     public function test_guests_cannot_reach_destructive_or_export_operations(): void
     {
         $estudiante = $this->makeStudent('70000001');
 
         $this->panelEstudiantes('DELETE', (string) $estudiante->id)->assertUnauthorized();
-        $this->post(route('admin.respaldo.exportar'))->assertRedirect(route('login'));
+        $this->panelRespaldo('POST', 'exportar')->assertUnauthorized();
         $this->crearUsuarioPanel([])->assertUnauthorized();
 
         $this->assertNotSoftDeleted($estudiante);
@@ -208,7 +162,7 @@ class AdminAuthorizationTest extends TestCase
         // Panel\ReportesConsistenciaPanelTest::test_export_endpoints_require_their_own_permission y ReportesPanelTest.
 
         foreach (['coordinador', 'secretaria'] as $role) {
-            $this->actingAs($this->staff($role))->post(route('admin.respaldo.exportar'))->assertForbidden();
+            $this->actingAs($this->staff($role))->panelRespaldo('POST', 'exportar')->assertForbidden();
             $this->panelAuditoria('POST', 'exportar')->assertForbidden();
         }
 
@@ -233,7 +187,6 @@ class AdminAuthorizationTest extends TestCase
             $this->crearRolPanel(['name' => 'nuevo'])->assertForbidden();
             $this->actualizarRolPanel($rol, ['name' => 'renombrado'])->assertForbidden();
             $this->eliminarRolPanel($rol)->assertForbidden();
-            $this->put(route('admin.configuracion.update'), ['settings' => ['moneda' => 'X']])->assertForbidden();
         }
 
         $this->assertModelExists($objetivo);
@@ -245,7 +198,8 @@ class AdminAuthorizationTest extends TestCase
     public function test_secretaria_cannot_use_the_assistant(): void
     {
         $this->actingAs($this->staff('secretaria'));
-        $this->postJson(route('admin.asistente.mensaje'), ['mensaje' => 'hola', 'session_id' => 's'])->assertForbidden();
+        config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+        $this->postJson('/api/panel/v1/compartido/asistente/mensaje', ['mensaje' => 'hola', 'session_id' => 's'], ['X-Horus-Web-Token' => 'token-de-servicio-del-bff-para-pruebas-0123456789'])->assertForbidden();
     }
 
     public function test_admin_user_update_changes_the_bound_user_instead_of_creating_one(): void
@@ -326,55 +280,6 @@ class AdminAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseMissing('users', ['email' => 'nuevo@example.com']);
-    }
-
-    public function test_dashboard_hides_audit_activity_without_audit_permission(): void
-    {
-        AuditLog::record('evento_confidencial_de_prueba');
-
-        $this->actingAs($this->staff('secretaria'))
-            ->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertDontSee('evento_confidencial_de_prueba');
-
-        $this->actingAs($this->staff('admin'))
-            ->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertSee('evento_confidencial_de_prueba');
-    }
-
-    public function test_search_only_returns_sections_the_user_may_view(): void
-    {
-        $this->makeStudent('70000099');
-        User::factory()->create(['name' => 'Persona 70000099']);
-
-        $this->actingAs($this->staff('secretaria'))
-            ->get(route('admin.busqueda.index', ['q' => '70000099']))
-            ->assertOk()
-            ->assertSee('70000099')
-            ->assertDontSee('Persona 70000099');
-    }
-
-    public function test_public_registration_never_grants_staff_access(): void
-    {
-        $this->post(route('register.post'), [
-            'name' => 'Visitante',
-            'email' => 'visitante@example.com',
-            'password' => 'ClaveSegura123',
-            'password_confirmation' => 'ClaveSegura123',
-            'terms' => '1',
-        ])->assertRedirect(route('login'));
-
-        $user = User::where('email', 'visitante@example.com')->firstOrFail();
-        $this->assertCount(0, $user->getRoleNames());
-        $this->assertCount(0, $user->getAllPermissions());
-
-        $this->post(route('login.post'), [
-            'email' => 'visitante@example.com',
-            'password' => 'ClaveSegura123',
-        ])->assertRedirect(route('home'));
-
-        $this->get(route('admin.dashboard'))->assertForbidden();
     }
 
     public function test_api_registration_never_grants_staff_roles(): void

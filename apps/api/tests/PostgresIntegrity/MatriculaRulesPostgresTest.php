@@ -119,11 +119,10 @@ class MatriculaRulesPostgresTest extends TestCase
         $this->assertContains('Redes y Servidores', $this->panelCursos('GET', '', ['busqueda' => 'redes'])->assertOk()->json('data.*.nombre'));
         $this->panelMatriculas('GET', '', ['busqueda' => 'juan'])->assertOk()->assertJsonPath('meta.total', 1);
 
-        // Búsqueda global: coincidencia parcial por ID ("id"::text ilike) y por curso sin mayúsculas.
-        $matricula = Matricula::query()->sole();
-        $porId = $this->get(route('admin.busqueda.index', ['q' => (string) $matricula->id]))->assertOk();
-        $this->assertContains($matricula->id, $porId->viewData('resultados')['matriculas']->pluck('id')->all());
-        $porCurso = $this->get(route('admin.busqueda.index', ['q' => 'SERVIDORES']))->assertOk();
-        $this->assertSame([$matricula->id], $porCurso->viewData('resultados')['matriculas']->pluck('id')->all());
+        // Búsqueda global del panel (`academico/busqueda`): ILIKE sin distinguir mayúsculas sobre el estudiante de la matrícula.
+        $token = (string) config('horus-web.service_token');
+        $grupos = $this->actingAs($admin)->getJson('/api/panel/v1/academico/busqueda?q=JUAN', ['X-Horus-Web-Token' => $token])
+            ->assertOk()->json('data.grupos');
+        $this->assertSame([$matricula->id], array_column($grupos['matriculas'], 'id'));
     }
 }

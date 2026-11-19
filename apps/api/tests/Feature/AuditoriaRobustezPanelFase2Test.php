@@ -51,7 +51,7 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
     public function test_respuestas_admin_incluyen_cache_control_no_store_salvo_descargas(): void
     {
         $respuesta = $this->actingAs($this->admin)
-            ->get(route('admin.dashboard'))
+            ->panelMatriculas('GET')
             ->assertOk();
 
         $cacheControl = (string) $respuesta->headers->get('Cache-Control');
@@ -63,38 +63,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
             ->assertOk();
 
         $this->assertStringContainsString('attachment', (string) $csv->headers->get('Content-Disposition'));
-    }
-
-    public function test_configuracion_index_usa_una_sola_consulta_de_ajustes_y_update_audita(): void
-    {
-        DB::enableQueryLog();
-        $this->actingAs($this->admin)
-            ->get(route('admin.configuracion.index'))
-            ->assertOk();
-
-        $consultasSettings = collect(DB::getQueryLog())
-            ->filter(fn (array $q): bool => str_contains($q['query'], 'system_settings'))
-            ->count();
-        DB::disableQueryLog();
-
-        $this->assertLessThanOrEqual(1, $consultasSettings);
-
-        $this->actingAs($this->admin)
-            ->put(route('admin.configuracion.update'), [
-                'settings' => [
-                    'nombre_empresa' => 'Horus Group Test',
-                    'telefono' => '+51 999888777',
-                    'correo_contacto' => 'contacto@horus.test',
-                    'moneda' => 'PEN',
-                    'direccion' => 'Cajamarca',
-                ],
-            ])
-            ->assertRedirect(route('admin.configuracion.index'));
-
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'settings_updated',
-            'user_id' => $this->admin->id,
-        ]);
     }
 
     public function test_actualizar_usuario_y_rol_sin_cambios_no_genera_ruido_en_audit_log(): void
@@ -199,10 +167,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         $this->actingAs($this->admin)
             ->panelMatriculas('GET', '', ['estado' => ['pendiente']])
             ->assertOk();
-
-        $this->actingAs($this->admin)
-            ->get(route('admin.asistente.index', ['intent' => ['saludo']]))
-            ->assertOk();
     }
 
     public function test_migracion_000041_es_noop_seguro_en_sqlite(): void
@@ -236,15 +200,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
             'estado' => 'activo',
         ]);
 
-        $htmlDashboard = (string) $this->actingAs($secretaria)
-            ->get(route('admin.dashboard'))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringNotContainsString('href="/admin/usuarios"', $htmlDashboard);
-        $this->assertStringNotContainsString('href="/admin/roles"', $htmlDashboard);
-        $this->assertStringNotContainsString('href="/admin/configuracion"', $htmlDashboard);
-
         $estudiante = Estudiante::create([
             'dni' => '71234567',
             'nombres' => 'Luis',
@@ -262,12 +217,5 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
         // Puede ver la matrícula pero no anularla (permiso propio): los botones son de la UI, la regla es del servidor.
         $this->actingAs($secretaria)->panelMatriculas('GET', (string) $matricula->id)->assertOk();
         $this->panelMatriculas('POST', $matricula->id.'/anular')->assertForbidden();
-
-        $htmlAsistente = (string) $this->actingAs($this->admin)
-            ->get(route('admin.asistente.index'))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertStringNotContainsString("<th scope=\"col\">Intención</th>\n                                <th scope=\"col\">Fuente</th>", $htmlAsistente);
     }
 }

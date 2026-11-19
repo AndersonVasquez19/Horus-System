@@ -88,7 +88,7 @@ final class ReporteController extends Controller implements HasMiddleware
         $matriculas = $this->reportes->lote($this->reportes->consulta($request), $request);
 
         // La vista solo es la plantilla del PDF; la interfaz del panel es la de apps/web.
-        $pdf = Pdf::loadView('admin.reportes.pdf', [
+        $pdf = Pdf::loadView('pdf.reporte-matriculas', [
             'matriculas' => $matriculas,
             'fecha' => HoraLocal::ahora()->format('d/m/Y'),
             'filtros' => $request->filters(),

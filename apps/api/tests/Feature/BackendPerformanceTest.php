@@ -31,29 +31,6 @@ class BackendPerformanceTest extends TestCase
         Http::preventStrayRequests();
     }
 
-    public function test_dashboard_uses_one_monthly_aggregate_and_preserves_totals(): void
-    {
-        $course = $this->course();
-        foreach ([['pendiente', 999], ['pagada', 10.25], ['pagada', 20.75], ['pagada', null], ['anulada', 500]] as [$status, $amount]) {
-            $this->enrollment($course, $status, $amount);
-        }
-        $this->enrollment($course, 'pagada', 777)->update(['fecha_matricula' => '2026-09-30']);
-        $this->enrollment($course, 'pagada', 900)->update(['fecha_matricula' => '2026-11-01']);
-        $this->enrollment($course, 'pagada', 100)->delete();
-        $this->actingAs($this->adminUser());
-
-        DB::enableQueryLog();
-        $response = $this->get(route('admin.dashboard'))->assertOk();
-        $aggregates = $this->enrollmentAggregates();
-        $response->assertViewHas('matriculasMes', 5)
-            ->assertViewHas('ingresosMes', fn ($value) => (float) $value === 31.0);
-        $this->assertSame(5, $response->viewData('meses')->last()['total']);
-        $this->assertSame(1, $response->viewData('meses')[4]['total']);
-        // Una consulta mensual conjunta y otra agrupada para los seis meses.
-        $this->assertCount(2, $aggregates);
-        Http::assertNothingSent();
-    }
-
     /** Listado del reporte por la API del panel (usuario fijado antes con actingAs). @param array<string, mixed> $filtros */
     private function reportePanel(array $filtros = []): TestResponse
     {
@@ -96,8 +73,6 @@ class BackendPerformanceTest extends TestCase
     public function test_empty_dashboard_and_reports_keep_zero_totals_and_batch_rejection(): void
     {
         $this->actingAs($this->adminUser());
-        $this->get(route('admin.dashboard'))->assertOk()
-            ->assertViewHas('matriculasMes', 0)->assertViewHas('ingresosMes', fn ($value) => (float) $value === 0.0);
         $this->reportePanel()->assertOk()->assertJsonPath('resumen.matriculas', 0)->assertJsonPath('resumen.ingresos', '0.00');
         $this->reportePanel(['lote' => 2])->assertNotFound();
         Http::assertNothingSent();

@@ -78,10 +78,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         $this->notificacionHuerfanaPorHttp();
 
         foreach ([$this->usuarioB, $this->admin] as $usuario) {
-            $this->actingAs($usuario)
-                ->get(route('admin.dashboard'))
-                ->assertOk()
-                ->assertViewHas('notificacionesPendientes', 0);
+            $this->assertSame(0, $this->pendientesTablero($usuario));
         }
     }
 
@@ -113,10 +110,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
     {
         $this->notificacionHuerfanaPorQueryBuilder();
 
-        $this->actingAs($this->usuarioB)
-            ->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertViewHas('notificacionesPendientes', 0);
+        $this->assertSame(0, $this->pendientesTablero($this->usuarioB));
     }
 
     public function test_other_user_gets_403_marking_query_builder_orphaned_personal_notification(): void
@@ -176,10 +170,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
             $this->assertSame(0, $this->pendientes($bandeja));
             $this->assertStringNotContainsString('sin destinatario', $bandeja->getContent());
 
-            $this->actingAs($usuario)
-                ->get(route('admin.dashboard'))
-                ->assertOk()
-                ->assertViewHas('notificacionesPendientes', 0);
+            $this->assertSame(0, $this->pendientesTablero($usuario));
         }
 
         $this->assertSame(NotificacionInterna::AUDIENCIA_INDETERMINADA, $indeterminada->fresh()->audiencia);
@@ -222,10 +213,7 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
             $this->assertSame([$general->id], $this->ids($bandeja));
             $this->assertSame(1, $this->pendientes($bandeja));
 
-            $this->actingAs($usuario)
-                ->get(route('admin.dashboard'))
-                ->assertOk()
-                ->assertViewHas('notificacionesPendientes', 1);
+            $this->assertSame(1, $this->pendientesTablero($usuario));
         }
 
         $this->marcarLeida($this->usuarioB, $general)->assertOk();
@@ -346,6 +334,14 @@ class NotificacionPrivacidadUsuarioEliminadoTest extends TestCase
         sort($ids);
 
         return $ids;
+    }
+
+    /** Contador «sin leer» del tablero de Next (`seguimiento`), el que antes mostraba el dashboard Blade. */
+    private function pendientesTablero(User $usuario): int
+    {
+        return (int) $this->actingAs($usuario)
+            ->json('GET', '/api/panel/v1/academico/resumen', [], ['X-Horus-Web-Token' => $this->tokenDelPanel()])
+            ->assertOk()->json('data.seguimiento.notificaciones_sin_leer');
     }
 
     private function pendientes(TestResponse $bandeja): int
