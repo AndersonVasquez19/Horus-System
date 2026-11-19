@@ -69,51 +69,10 @@ class SecurityHeaders
         /** @var array<string, list<string>> $directives */
         $directives = (array) config('csp.directives', []);
 
-        if ($vite = $this->viteDevOrigin()) {
-            $esquema = str_starts_with($vite, 'https:') ? 'https' : 'http';
-            $esquemaWs = $esquema === 'https' ? 'wss' : 'ws';
-
-            // Una dirección IPv6 entre corchetes (`http://[::1]:5173`, la que usa Vite por defecto) NO es una
-            // fuente válida de CSP: el navegador la descarta y bloquea los recursos de Vite. Solo para ese caso, y
-            // solo fuera de producción, se permite el esquema completo; con un nombre de host se limita al origen.
-            $ipv6 = str_contains($vite, '[');
-            $origen = $ipv6 ? $esquema.':' : $vite;
-            $socket = $ipv6 ? $esquemaWs.':' : $esquemaWs.substr($vite, strlen($esquema));
-
-            // Servidor de desarrollo de Vite: scripts, estilos, fuentes, imágenes y WebSocket de recarga.
-            foreach (['script-src', 'style-src', 'font-src', 'img-src'] as $directive) {
-                $directives[$directive][] = $origen;
-            }
-            $directives['connect-src'][] = $origen;
-            $directives['connect-src'][] = $socket;
-        }
-
         return implode('; ', array_map(
             fn (string $name, array $sources): string => $name.' '.implode(' ', array_unique($sources)),
             array_keys($directives),
             array_values($directives),
         ));
-    }
-
-    /** Origen de Vite solo fuera de producción y solo si el archivo `hot` contiene una URL http(s) válida. */
-    private function viteDevOrigin(): ?string
-    {
-        if (app()->isProduction()) {
-            return null;
-        }
-
-        $file = (string) config('csp.vite_hot_file');
-
-        if ($file === '' || ! is_file($file)) {
-            return null;
-        }
-
-        $parts = parse_url(trim((string) file_get_contents($file)));
-
-        if (! is_array($parts) || ! in_array($parts['scheme'] ?? null, ['http', 'https'], true) || empty($parts['host'])) {
-            return null;
-        }
-
-        return $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
     }
 }

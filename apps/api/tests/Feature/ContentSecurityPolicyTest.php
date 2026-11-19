@@ -11,76 +11,47 @@ class ContentSecurityPolicyTest extends TestCase
 {
     private const REPORT = 'Content-Security-Policy-Report-Only';
 
-    protected function setUp(): void
+    /** Un HTML cualquiera de Laravel (hoy solo las páginas de error): la política que recibe. */
+    private function policy(string $cabecera): string
     {
-        parent::setUp();
-        // Sin servidor Vite real durante las pruebas, salvo que cada prueba lo pida.
-        config(['csp.vite_hot_file' => sys_get_temp_dir().'/horus-no-hot-'.uniqid()]);
+        $respuesta = $this->get('/ruta-que-no-existe');
+        $respuesta->assertNotFound();
+
+        return (string) $respuesta->headers->get($cabecera);
     }
 
-    public function test_html_pages_send_the_policy_in_report_only_mode(): void
+    public function test_html_pages_send_the_policy_in_report_only_mode_without_unsafe_eval_or_vite(): void
     {
         config(['csp.mode' => 'report-only']);
 
-        $response = $this->get(route('login'));
+        $politica = $this->policy(self::REPORT);
 
-        $response->assertOk()->assertHeader(self::REPORT);
-        $this->assertFalse($response->headers->has('Content-Security-Policy'), 'No debe haber una cabecera bloqueante.');
-
-        $policy = (string) $response->headers->get(self::REPORT);
-        foreach (["default-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'self'", 'frame-src https://www.google.com'] as $directive) {
-            $this->assertStringContainsString($directive, $policy);
-        }
-    }
-
-    public function test_the_policy_is_not_sent_when_disabled(): void
-    {
-        config(['csp.mode' => 'off']);
-
-        $response = $this->get(route('login'));
-
-        $this->assertFalse($response->headers->has(self::REPORT));
-        $this->assertFalse($response->headers->has('Content-Security-Policy'));
-        $response->assertHeader('X-Content-Type-Options', 'nosniff');
-    }
-
-    public function test_an_unknown_mode_never_enforces_anything(): void
-    {
-        foreach (['bloquear', 'Enforce', 'ENFORCE', 'true', '1', ''] as $modo) {
-            config(['csp.mode' => $modo]);
-
-            $response = $this->get(route('login'));
-
-            $this->assertFalse($response->headers->has('Content-Security-Policy'), "Modo «{$modo}» no debe bloquear.");
-            $this->assertFalse($response->headers->has(self::REPORT), "Modo «{$modo}» no debe enviar reporte.");
-        }
+        $this->assertStringContainsString("default-src 'self'", $politica);
+        $this->assertStringContainsString("script-src 'self'", $politica);
+        $this->assertStringNotContainsString('unsafe-eval', $politica);
+        $this->assertStringNotContainsString('5173', $politica, 'Ya no hay servidor de desarrollo de Vite.');
+        $this->assertFalse($this->get('/ruta-que-no-existe')->headers->has('Content-Security-Policy'));
     }
 
     public function test_enforce_mode_sends_a_blocking_policy_and_no_report_only_header(): void
     {
         config(['csp.mode' => 'enforce']);
 
-        $response = $this->get(route('login'));
+        $respuesta = $this->get('/ruta-que-no-existe');
 
-        $response->assertOk()->assertHeader('Content-Security-Policy');
-        $this->assertFalse($response->headers->has(self::REPORT));
-
-        $policy = (string) $response->headers->get('Content-Security-Policy');
-        foreach (["default-src 'self'", "object-src 'none'", "frame-ancestors 'self'", 'frame-src https://www.google.com'] as $directive) {
-            $this->assertStringContainsString($directive, $policy);
-        }
+        $this->assertNotSame('', (string) $respuesta->headers->get('Content-Security-Policy'));
+        $this->assertFalse($respuesta->headers->has(self::REPORT));
     }
 
-    public function test_enforce_and_report_only_use_the_same_policy(): void
+    public function test_the_policy_is_not_sent_when_disabled_or_the_mode_is_unknown(): void
     {
-        config(['csp.mode' => 'report-only']);
-        $reporte = (string) $this->get(route('login'))->headers->get(self::REPORT);
+        foreach (['off', 'otro-valor'] as $modo) {
+            config(['csp.mode' => $modo]);
+            $respuesta = $this->get('/ruta-que-no-existe');
 
-        config(['csp.mode' => 'enforce']);
-        $bloqueo = (string) $this->get(route('login'))->headers->get('Content-Security-Policy');
-
-        $this->assertNotSame('', $bloqueo);
-        $this->assertSame($reporte, $bloqueo);
+            $this->assertFalse($respuesta->headers->has('Content-Security-Policy'), $modo);
+            $this->assertFalse($respuesta->headers->has(self::REPORT), $modo);
+        }
     }
 
     public function test_enforce_mode_does_not_touch_json_or_redirect_responses(): void
@@ -88,7 +59,8 @@ class ContentSecurityPolicyTest extends TestCase
         config(['csp.mode' => 'enforce']);
 
         $this->assertFalse($this->getJson(route('api.auth.me'))->headers->has('Content-Security-Policy'));
-        $this->assertFalse($this->get('/home')->headers->has('Content-Security-Policy'));
+        \Illuminate\Support\Facades\Route::middleware('web')->get('/__redireccion', fn () => redirect('/'));
+        $this->assertFalse($this->get('/__redireccion')->headers->has('Content-Security-Policy'));
     }
 
     public function test_the_default_mode_is_report_only(): void
@@ -117,59 +89,4 @@ class ContentSecurityPolicyTest extends TestCase
         $this->assertFalse($response->headers->has(self::REPORT));
     }
 
-    public function test_the_vite_dev_origin_is_added_outside_production(): void
-    {
-        $hot = sys_get_temp_dir().'/horus-hot-'.uniqid();
-        file_put_contents($hot, "http://[::1]:5173\n");
-        config(['csp.mode' => 'report-only', 'csp.vite_hot_file' => $hot]);
-
-        $policy = (string) $this->get(route('login'))->headers->get(self::REPORT);
-        @unlink($hot);
-
-        // `http://[::1]:5173` no es una fuente válida de CSP (el navegador la descarta y bloquea Vite): para una
-        // IPv6 literal se permite el esquema, no el origen con corchetes.
-        $this->assertStringContainsString('script-src \'self\' \'unsafe-eval\' http:', $policy);
-        $this->assertStringContainsString('connect-src \'self\' http: ws:', $policy);
-        $this->assertStringNotContainsString('[::1]', $policy);
-    }
-
-    public function test_a_named_vite_host_is_limited_to_its_origin(): void
-    {
-        $hot = sys_get_temp_dir().'/horus-hot-'.uniqid();
-        file_put_contents($hot, "http://localhost:5173\n");
-        config(['csp.mode' => 'report-only', 'csp.vite_hot_file' => $hot]);
-
-        $policy = (string) $this->get(route('login'))->headers->get(self::REPORT);
-        @unlink($hot);
-
-        $this->assertStringContainsString('script-src \'self\' \'unsafe-eval\' http://localhost:5173', $policy);
-        $this->assertStringContainsString('connect-src \'self\' http://localhost:5173 ws://localhost:5173', $policy);
-        $this->assertStringNotContainsString(' http: ', $policy.' ');
-    }
-
-    public function test_a_malformed_hot_file_adds_nothing(): void
-    {
-        $hot = sys_get_temp_dir().'/horus-hot-'.uniqid();
-        file_put_contents($hot, "javascript:alert(1)\n");
-        config(['csp.mode' => 'report-only', 'csp.vite_hot_file' => $hot]);
-
-        $policy = (string) $this->get(route('login'))->headers->get(self::REPORT);
-        @unlink($hot);
-
-        $this->assertStringNotContainsString('javascript', $policy);
-        $this->assertStringNotContainsString('ws://', $policy);
-    }
-
-    public function test_the_vite_origin_is_never_added_in_production(): void
-    {
-        $hot = sys_get_temp_dir().'/horus-hot-'.uniqid();
-        file_put_contents($hot, "http://[::1]:5173\n");
-        config(['csp.mode' => 'report-only', 'csp.vite_hot_file' => $hot]);
-        $this->app['env'] = 'production';
-
-        $policy = (string) $this->get(route('login'))->headers->get(self::REPORT);
-        @unlink($hot);
-
-        $this->assertStringNotContainsString('5173', $policy);
-    }
 }

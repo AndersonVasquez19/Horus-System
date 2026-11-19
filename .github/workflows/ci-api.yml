@@ -3,8 +3,8 @@
 #
 # Alcance: lo que se puede comprobar sin servicios externos. La suite usa SQLite en memoria (phpunit.xml), así que
 # NO prueba PostgreSQL, concurrencia, correo real ni Horus AI; eso exige los perfiles y autorizaciones que
-# describen CLAUDE.md y docs/postgresql-*. No se ejecutan los smokes de navegador (requieren Edge) ni el perfil
-# PostgreSQL aislado. El workflow no usa secretos.
+# describen CLAUDE.md y docs/postgresql-*. No se ejecuta el perfil PostgreSQL aislado. Laravel ya no tiene frontend
+# (Blade y Vite se retiraron): no hay paso de Node en este workflow. El workflow no usa secretos.
 name: CI API
 
 # SUSPENDIDO (10/11/2026, decisión del propietario; confirmado para los tres workflows el 11/11/2026): solo se ejecuta
@@ -56,18 +56,6 @@ jobs:
       - name: Instalar dependencias
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      # Las vistas usan @vite: sin public/build/manifest.json las pruebas que renderizan páginas fallan.
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: apps/api/package-lock.json
-
-      - name: Compilar recursos para las pruebas de vistas
-        run: |
-          npm ci
-          npm run build
-
       # Solo en este runner efímero: las pruebas necesitan APP_KEY. No se aplica a instalaciones existentes.
       - name: Preparar entorno de pruebas
         run: |
@@ -92,25 +80,3 @@ jobs:
           if [ "${#archivos[@]}" -gt 0 ]; then
             vendor/bin/pint --test "${archivos[@]}"
           fi
-
-  recursos:
-    name: Recursos de Laravel (Vite, pruebas y compilación)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: apps/api/package-lock.json
-
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Pruebas de JavaScript
-        run: npm test
-
-      - name: Compilar recursos
-        run: npm run build

@@ -6,7 +6,8 @@
 --}}
 @php
     $enPanel = request()->is('admin') || request()->is('admin/*');
-    $destino = $enPanel ? url('/admin') : url('/');
+    // Laravel ya no sirve páginas: el destino es siempre la interfaz Next (HORUS_WEB_URL); sin ella, la raíz relativa.
+    $destino = \App\Support\UrlWeb::ruta($enPanel ? '/admin' : '/');
     $textoDestino = $enPanel ? 'Volver al panel' : 'Ir a la página principal';
 @endphp
 <!DOCTYPE html>

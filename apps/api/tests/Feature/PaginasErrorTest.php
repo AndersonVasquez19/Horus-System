@@ -46,13 +46,30 @@ class PaginasErrorTest extends TestCase
         $this->assertStringNotContainsString('/build/', $html);
     }
 
+    public function test_el_boton_de_las_paginas_de_error_apunta_a_la_interfaz_next(): void
+    {
+        config(['horus-web.url' => 'https://web.example.test']);
+
+        $this->get('/ruta-que-no-existe-en-horus')->assertNotFound()
+            ->assertSee('href="https://web.example.test/"', false);
+
+        Route::middleware('web')->get('/admin/prueba-403-destino', fn () => abort(403));
+        $this->get('/admin/prueba-403-destino')->assertForbidden()
+            ->assertSee('href="https://web.example.test/admin"', false)->assertSee('Volver al panel');
+
+        config(['horus-web.url' => '']);
+        $this->get('/ruta-que-no-existe-en-horus')->assertNotFound()->assertSee('href="/"', false);
+    }
+
     public function test_un_403_del_panel_es_en_espanol_y_vuelve_al_panel(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $secretaria = User::factory()->create();
         $secretaria->assignRole('secretaria');
 
-        $this->actingAs($secretaria)->get(route('admin.configuracion.index'))
+        \Illuminate\Support\Facades\Route::middleware('web')->get('/admin/prueba-403', fn () => abort(403));
+
+        $this->actingAs($secretaria)->get('/admin/prueba-403')
             ->assertForbidden()
             ->assertSee('Acceso no permitido')
             ->assertSee('Volver al panel')
