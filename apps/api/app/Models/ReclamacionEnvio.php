@@ -18,7 +18,12 @@ class ReclamacionEnvio extends Model
 
     protected $guarded = ['id'];
 
-    protected $casts = ['enviado_at' => 'datetime', 'intentos' => 'integer'];
+    protected $casts = [
+        'enviado_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'bounced_at' => 'datetime',
+        'intentos' => 'integer',
+    ];
 
     protected static function booted(): void
     {

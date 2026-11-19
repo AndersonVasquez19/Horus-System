@@ -15,6 +15,15 @@ Schedule::command('horus:reclamaciones-vencimientos')
     ->timezone('America/Lima')
     ->withoutOverlapping(30);
 
+Schedule::command('horus:recordatorios-diarios')
+    ->dailyAt('07:00')
+    ->timezone('America/Lima')
+    ->withoutOverlapping(30);
+
+Schedule::command('horus:avisos-despachar')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

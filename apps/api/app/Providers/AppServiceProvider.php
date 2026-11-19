@@ -54,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('admin-export', fn (Request $request) => Limit::perMinute(6)->by(
             'admin-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
+        // Lecturas pesadas del panel (reportes, auditoría, respaldo, obligaciones de pago).
+        RateLimiter::for('admin-heavy-read', fn (Request $request) => Limit::perMinute(60)->by(
+            'admin-heavy-read:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
         // Selectores de matrícula: una consulta por pausa al teclear; se limita por usuario sin estorbar el uso normal.
         RateLimiter::for('admin-opciones', fn (Request $request) => Limit::perMinute(120)->by(
             'admin-opciones:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),

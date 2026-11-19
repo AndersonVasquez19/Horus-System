@@ -22,6 +22,8 @@ class MatriculaNotification extends Model
             'payload' => 'encrypted:array',
             'available_at' => 'datetime',
             'first_attempt_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'bounced_at' => 'datetime',
             'attempts' => 'integer',
             'uncertain' => 'boolean',
         ];
