@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Panel;
 
 use App\Models\AuditLog;
+use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
@@ -43,7 +44,7 @@ final class MatriculasPanelTest extends PanelApiTestCase
     {
         return [
             'estudiante_id' => $this->estudiante->id, 'curso_id' => $this->curso->id, 'fecha_matricula' => '2026-11-10',
-            'estado' => 'pendiente', 'monto_pagado' => null, 'observaciones' => null, ...$cambios,
+            'estado' => 'pendiente', 'observaciones' => null, ...$cambios,
         ];
     }
 
@@ -91,11 +92,11 @@ final class MatriculasPanelTest extends PanelApiTestCase
     {
         $secretaria = $this->usuarioConRol('secretaria', 'secretaria@horus.test');
 
-        $id = $this->como($secretaria, 'POST', 'matriculas', $this->datos(['monto_pagado' => '80.50']))
+        $id = $this->como($secretaria, 'POST', 'matriculas', $this->datos())
             ->assertCreated()
             ->assertJsonPath('message', 'La matrícula se registró correctamente.')
             ->assertJsonPath('data.estado', 'pendiente')
-            ->assertJsonPath('data.monto_pagado', '80.50')
+            ->assertJsonPath('data.monto_pagado', '0.00')
             ->assertJsonPath('data.curso_cupos_disponibles', 1)
             ->json('data.id');
 
@@ -226,16 +227,17 @@ final class MatriculasPanelTest extends PanelApiTestCase
         $matricula = $this->matricula();
         $this->assertSame(1, $this->cupos());
 
-        $this->como($coordinador, 'POST', "matriculas/{$matricula->id}/anular")->assertForbidden();
+        $this->como($coordinador, 'POST', "matriculas/{$matricula->id}/anular", ['motivo' => 'Intento sin permiso'])->assertForbidden();
         // Tampoco por PUT: pasar a anulada exige `matriculas.anular`, evaluado bajo bloqueo.
-        $this->como($coordinador, 'PUT', "matriculas/{$matricula->id}", $this->datos(['estado' => 'anulada']))->assertForbidden();
+        $this->como($coordinador, 'PUT', "matriculas/{$matricula->id}", $this->datos(['estado' => 'anulada', 'motivo' => 'Intento sin permiso']))->assertForbidden();
         $this->assertSame('pendiente', $matricula->fresh()->estado);
         $this->assertSame(1, $this->cupos());
 
-        $this->como($admin, 'POST', "matriculas/{$matricula->id}/anular")->assertOk()->assertJsonPath('message', 'La matrícula se anuló correctamente.');
-        $this->como($admin, 'POST', "matriculas/{$matricula->id}/anular")->assertOk();
+        $this->como($admin, 'POST', "matriculas/{$matricula->id}/anular", ['motivo' => 'Desistimiento del estudiante'])->assertOk()->assertJsonPath('message', 'La matrícula se anuló correctamente.');
+        $this->como($admin, 'POST', "matriculas/{$matricula->id}/anular", ['motivo' => 'Repetición idempotente'])->assertOk();
 
         $this->assertSame('anulada', $matricula->fresh()->estado);
+        $this->assertSame('Desistimiento del estudiante', $matricula->fresh()->motivo_anulacion);
         $this->assertSame(2, $this->cupos());
         $this->assertSame(1, AuditLog::query()->where('action', 'matricula_anulada')->count());
     }
@@ -246,10 +248,10 @@ final class MatriculasPanelTest extends PanelApiTestCase
         $destino = $this->curso('CUR-2', ['cupos_maximos' => 5, 'cupos_disponibles' => 5]);
         $matricula = $this->matricula();
 
-        $this->como($coordinador, 'PUT', "matriculas/{$matricula->id}", $this->datos(['curso_id' => $destino->id, 'estado' => 'pagada', 'monto_pagado' => 150]))
+        $this->como($coordinador, 'PUT', "matriculas/{$matricula->id}", $this->datos(['curso_id' => $destino->id, 'observaciones' => 'Cambio de curso']))
             ->assertOk()
             ->assertJsonPath('data.curso.codigo', 'CUR-2')
-            ->assertJsonPath('data.estado', 'pagada');
+            ->assertJsonPath('data.estado', 'pendiente');
 
         $this->assertSame(2, $this->cupos());
         $this->assertSame(4, $this->cupos($destino));
@@ -261,7 +263,7 @@ final class MatriculasPanelTest extends PanelApiTestCase
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $matricula = $this->matricula();
 
-        $this->como($admin, 'DELETE', "matriculas/{$matricula->id}")->assertOk();
+        $this->como($admin, 'DELETE', "matriculas/{$matricula->id}", ['motivo' => 'Registro duplicado'])->assertOk();
         $this->assertSoftDeleted($matricula);
         $this->assertSame(2, $this->cupos());
 
@@ -287,7 +289,7 @@ final class MatriculasPanelTest extends PanelApiTestCase
         $coordinador = $this->usuarioConRol('coordinador', 'coordinador@horus.test');
         $matricula = $this->matricula();
 
-        $this->como($coordinador, 'DELETE', "matriculas/{$matricula->id}")->assertForbidden();
+        $this->como($coordinador, 'DELETE', "matriculas/{$matricula->id}", ['motivo' => 'Intento sin permiso'])->assertForbidden();
         $this->assertNotSoftDeleted($matricula);
     }
 
@@ -295,7 +297,7 @@ final class MatriculasPanelTest extends PanelApiTestCase
     {
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $id = $this->como($admin, 'POST', 'matriculas', $this->datos(['observaciones' => 'Nota interna privada']))->json('data.id');
-        $this->como($admin, 'POST', "matriculas/{$id}/anular")->assertOk();
+        $this->como($admin, 'POST', "matriculas/{$id}/anular", ['motivo' => 'Anulación de prueba'])->assertOk();
 
         $detalle = $this->como($admin, 'GET', "matriculas/{$id}")
             ->assertOk()
@@ -355,6 +357,73 @@ final class MatriculasPanelTest extends PanelApiTestCase
         $this->assertSame('pendiente', $auditoria->changes['estado']);
         $this->assertTrue($auditoria->changes['busqueda_aplicada']);
         $this->assertStringNotContainsString('5555', json_encode($auditoria->changes));
+    }
+
+    public function test_el_listado_filtra_por_convocatoria_y_estado_de_cobro(): void
+    {
+        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
+        $conv = $this->como($admin, 'POST', 'convocatorias', [
+            'curso_id' => $this->curso->id,
+            'modalidad' => 'virtual',
+            'fecha_inicio' => '2027-01-10',
+            'fecha_fin' => '2027-02-10',
+            'cupos_maximos' => 5,
+        ])->assertCreated();
+        $convUuid = (string) $conv->json('data.identificador');
+        $convId = (int) Convocatoria::query()->where('identificador', $convUuid)->value('id');
+
+        $m1 = $this->matricula(['convocatoria_id' => $convId]);
+        $e2 = $this->estudiante('22222222');
+        $m2 = $this->matricula(['estudiante_id' => $e2->id, 'convocatoria_id' => $convId]);
+        $e3 = $this->estudiante('33333333');
+        $cursoSinConv = $this->curso('CUR-2', ['cupos_maximos' => 2, 'cupos_disponibles' => 2]);
+        $m3 = $this->matricula(['estudiante_id' => $e3->id, 'curso_id' => $cursoSinConv->id, 'convocatoria_id' => null]);
+
+        $ob1 = (string) $this->como($admin, 'POST', "matriculas/{$m1->id}/obligacion", [
+            'concepto' => 'Matrícula edición parcial',
+            'plan' => 'completo',
+            'monto_total' => 200,
+        ])->assertCreated()->json('data.identificador');
+        $this->actingAs($admin)->withHeaders([
+            'X-Horus-Web-Token' => self::TOKEN,
+            'Idempotency-Key' => 'pago-parcial-001',
+        ])->json('POST', "/api/panel/v1/academico/pagos/obligaciones/{$ob1}/pagos", [
+            'metodo' => 'yape',
+            'monto' => 100,
+            'fecha_pago' => '2026-11-10',
+            'referencia' => 'Y-100',
+            'confirmar' => true,
+        ])->assertCreated();
+
+        $this->como($admin, 'POST', "matriculas/{$m2->id}/obligacion", [
+            'concepto' => 'Matrícula edición pendiente',
+            'plan' => 'completo',
+            'monto_total' => 200,
+        ])->assertCreated();
+
+        $this->como($admin, 'GET', "matriculas?convocatoria={$convUuid}")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.convocatorias.0.identificador', $convUuid);
+
+        $this->como($admin, 'GET', 'matriculas?convocatoria=sin_convocatoria')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $m3->id);
+
+        $this->como($admin, 'GET', 'matriculas?estado_cobro=parcial')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $m1->id);
+
+        $this->como($admin, 'GET', 'matriculas?estado_cobro=pendiente')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $m2->id);
+
+        $this->como($admin, 'GET', 'matriculas?estado_cobro=con_saldo')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 
     /** Ejecuta `$accion` una sola vez, la primera vez que se lee un curso (es decir, durante la validación HTTP). */

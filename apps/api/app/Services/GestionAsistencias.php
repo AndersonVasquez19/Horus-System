@@ -70,6 +70,11 @@ class GestionAsistencias
                 if ($actual === null) {
                     $crear[] = $item;
                 } elseif ($actual->estado === $item['estado']) {
+                    $obs = isset($item['observacion']) ? (trim((string) $item['observacion']) ?: null) : null;
+                    if (array_key_exists('observacion', $item) && $actual->observacion !== $obs) {
+                        $actual->observacion = $obs;
+                        $actual->save();
+                    }
                     $sinCambios++;
                 } else {
                     abort(409, 'Una asistencia ya registrada solo se cambia con una corrección y su motivo.');

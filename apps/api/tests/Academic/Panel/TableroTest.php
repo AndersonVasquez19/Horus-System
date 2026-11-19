@@ -175,15 +175,18 @@ it('la cobranza no cuenta lo pendiente y un reverso la deshace', function (): vo
 });
 
 it('busca por DNI, nombre, código y número en todos los módulos y enlaza con identificadores, sin datos sensibles', function (): void {
-    [$porCerrar] = tbEscenario();
+    [$porCerrar, , $m] = tbEscenario();
     $admin = $this->usuarioConRol('admin');
     $r = $this->panelComo($admin, 'GET', 'academico/busqueda?q=Quispe')->assertOk();
     $g = $r->json('data.grupos');
     expect($g['estudiantes'])->toHaveCount(1)->and($g['estudiantes'][0]['texto'])->toBe('Quispe Soto, Ana')->and($g['estudiantes'][0]['detalle'])->toBe('DNI 81000001')
         ->and($g)->not->toHaveKey('docentes')
-        ->and($g['matriculas'])->toHaveCount(1)->and($g['matriculas'][0])->toHaveKeys(['id', 'texto', 'detalle']);
+        ->and($g['matriculas'])->toHaveCount(1)->and($g['matriculas'][0])->toHaveKeys(['id', 'texto', 'detalle'])
+        ->and($g['matriculas'][0]['detalle'])->toContain('DNI 81000001');
     expect($r->getContent())->not->toContain('monto_pagado')->not->toContain('nota_final');
 
+    expect($this->panelComo($admin, 'GET', 'academico/busqueda?q='.urlencode('#'.$m->id))->json('data.grupos.matriculas.0.id'))->toBe($m->id);
+    expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=TBL-1')->json('data.grupos.matriculas'))->toHaveCount(3);
     expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=81000002')->json('data.grupos.estudiantes.0.texto'))->toBe('Rojas, Luis');
     expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=CNV-2026-8001')->json('data.grupos.ediciones.0.identificador'))->toBe($porCerrar->identificador);
     expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=Excel')->json('data.grupos.ediciones'))->toHaveCount(2);
@@ -223,4 +226,32 @@ it('el seguimiento muestra aprobaciones, notificaciones y auditoría reciente so
 
     $s = $this->panelComo($sec, 'GET', 'academico/resumen')->assertOk()->json('data.seguimiento');
     expect($s)->toHaveKey('aprobaciones_pendientes')->not->toHaveKey('auditoria_reciente');
+});
+
+it('calcula cuotas vencidas y por vencer en el tablero solo con pagos.ver', function (): void {
+    [$porCerrar] = tbEscenario();
+    $m2 = tbMatricula($porCerrar, '81000009', 'Carlos', 'Vega');
+    $obligacionId = DB::table('obligaciones_pago')->insertGetId([
+        'identificador' => (string) Str::uuid(),
+        'matricula_id' => $m2->id,
+        'concepto' => 'Fraccionado',
+        'plan' => 'fraccionado',
+        'monto_total' => '250.00',
+        'moneda' => 'PEN',
+        'estado' => 'vigente',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    $hoy = \App\Support\HoraLocal::ahora();
+    DB::table('cuotas_obligacion')->insert([
+        ['obligacion_pago_id' => $obligacionId, 'numero' => 1, 'monto' => '100.00', 'vence' => $hoy->subDays(3)->toDateString(), 'created_at' => now(), 'updated_at' => now()],
+        ['obligacion_pago_id' => $obligacionId, 'numero' => 2, 'monto' => '150.00', 'vence' => $hoy->addDays(4)->toDateString(), 'created_at' => now(), 'updated_at' => now()],
+    ]);
+
+    $admin = $this->usuarioConRol('admin');
+    $d = $this->panelComo($admin, 'GET', 'academico/resumen')->assertOk()->json('data.acciones.cuotas');
+    // tbEscenario aporta 1 cuota de 200.00 pendiente con fecha de hoy; m2 aporta 1 vencida (100.00) y 1 por vencer (150.00).
+    expect($d['vencidas'])->toBe(1)
+        ->and($d['monto_vencido'])->toBe('100.00')
+        ->and($d['por_vencer'])->toBeGreaterThanOrEqual(1);
 });

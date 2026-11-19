@@ -49,8 +49,7 @@ class AuditoriaMatriculasTest extends TestCase
     // ---------------------------------------------------------------------------------------------
 
     /** M01 + M12 + M13 */
-    #[DataProvider('estadosVigentes')]
-    public function test_store_audita_la_creacion_con_actor_valores_efecto_y_sin_datos_privados(string $estado): void
+    public function test_store_audita_la_creacion_con_actor_valores_efecto_y_sin_datos_privados(): void
     {
         $admin = $this->adminUser();
         [$estudiante, $curso] = $this->escenario(2);
@@ -58,7 +57,7 @@ class AuditoriaMatriculasTest extends TestCase
         $notificaciones = MatriculaNotification::count();
 
         $this->actingAs($admin)
-            ->panelMatriculas('POST', '', $this->datos($estudiante, $curso, $estado, ['monto_pagado' => 150.5, 'observaciones' => self::PRIVADO]))
+            ->panelMatriculas('POST', '', $this->datos($estudiante, $curso, 'pendiente', ['observaciones' => self::PRIVADO]))
             ->assertCreated();
 
         $matricula = Matricula::sole();
@@ -72,8 +71,8 @@ class AuditoriaMatriculasTest extends TestCase
             'estudiante_id' => $estudiante->id,
             'curso_id' => $curso->id,
             'fecha_matricula' => '2026-10-28',
-            'estado' => $estado,
-            'monto_pagado' => '150.50',
+            'estado' => 'pendiente',
+            'monto_pagado' => '0.00',
         ], $registro->changes['valores']);
         $this->assertContains('observaciones', $registro->changes['campos']);
         $this->assertNoHayDatosPrivados();
@@ -274,7 +273,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, $estado, ['observaciones' => self::PRIVADO]);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular');
+        $respuesta = $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Anulación solicitada por el estudiante']);
 
         $respuesta->assertOk();
         $respuesta->assertJsonPath('message', 'La matrícula se anuló correctamente.');
@@ -297,10 +296,10 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular')->assertOk();
+        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Primera anulación'])->assertOk();
         $cupos = $this->cupos($curso);
 
-        $segunda = $this->panelMatriculas('POST', $matricula->id.'/anular');
+        $segunda = $this->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Segunda anulación']);
 
         $segunda->assertOk();
         $segunda->assertJsonPath('message', 'La matrícula se anuló correctamente.');
@@ -315,7 +314,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = Matricula::create($this->datos($estudiante, $curso, 'anulada'));
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular')->assertOk();
+        $this->actingAs($admin)->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Confirmación de historial'])->assertOk();
 
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
@@ -332,8 +331,8 @@ class AuditoriaMatriculasTest extends TestCase
         $a = $this->matriculaVigente($estudiante, $curso);
         $b = $this->matriculaVigente($otro, $curso);
 
-        $this->actingAs($primero)->panelMatriculas('POST', $a->id.'/anular')->assertOk();
-        $this->actingAs($segundo)->panelMatriculas('POST', $b->id.'/anular')->assertOk();
+        $this->actingAs($primero)->panelMatriculas('POST', $a->id.'/anular', ['motivo' => 'Actor 1 anula'])->assertOk();
+        $this->actingAs($segundo)->panelMatriculas('POST', $b->id.'/anular', ['motivo' => 'Actor 2 anula'])->assertOk();
 
         $this->assertSame([$primero->id, $segundo->id], AuditLog::where('action', 'matricula_anulada')->orderBy('id')->pluck('user_id')->all());
     }
@@ -348,7 +347,7 @@ class AuditoriaMatriculasTest extends TestCase
         $coordinador->assignRole('coordinador');
         $antes = $this->cupos($curso);
 
-        $this->actingAs($coordinador)->panelMatriculas('POST', $matricula->id.'/anular')->assertForbidden();
+        $this->actingAs($coordinador)->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Intento sin permiso'])->assertForbidden();
 
         $this->assertSame('pendiente', $matricula->fresh()->estado);
         $this->assertSame($antes, $this->cupos($curso));
@@ -372,7 +371,7 @@ class AuditoriaMatriculasTest extends TestCase
         });
         $this->actingAs($admin);
 
-        $this->panelMatriculas('POST', $matricula->id.'/anular')->assertOk();
+        $this->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Anulación concurrente'])->assertOk();
 
         $this->assertSame('anulada', $matricula->fresh()->estado);
         $this->assertSame($curso->cupos_maximos, $curso->fresh()->cupos_disponibles);
@@ -388,21 +387,23 @@ class AuditoriaMatriculasTest extends TestCase
     {
         $admin = $this->adminUser();
         [$estudiante, $curso] = $this->escenario(2);
-        $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente', ['monto_pagado' => 100]);
+        $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente');
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', [
-            'monto_pagado' => 80, 'fecha_matricula' => '2026-10-30',
+        $respuesta = $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', [
+            'fecha_matricula' => '2026-10-30',
+            'observaciones' => self::PRIVADO,
         ]));
 
         $respuesta->assertOk();
         $respuesta->assertJsonPath('message', 'La matrícula se actualizó correctamente.');
         $registro = $this->unicoEvento('matricula_actualizada');
         $this->assertSame($admin->id, $registro->user_id);
-        $this->assertEqualsCanonicalizing(['estado', 'monto_pagado', 'fecha_matricula'], $registro->changes['campos']);
-        $this->assertSameSinOrden(['estado' => 'pendiente', 'monto_pagado' => '100.00', 'fecha_matricula' => '2026-10-28'], $registro->changes['antes']);
-        $this->assertSameSinOrden(['estado' => 'pagada', 'monto_pagado' => '80.00', 'fecha_matricula' => '2026-10-30'], $registro->changes['despues']);
+        $this->assertEqualsCanonicalizing(['fecha_matricula', 'observaciones'], $registro->changes['campos']);
+        $this->assertSameSinOrden(['fecha_matricula' => '2026-10-28'], $registro->changes['antes']);
+        $this->assertSameSinOrden(['fecha_matricula' => '2026-10-30'], $registro->changes['despues']);
         $this->assertSame('ninguno', $registro->changes['efecto_cupo']);
+        $this->assertNoHayDatosPrivados();
         $this->assertEfecto($registro, $antes);
         $this->assertSame(1, AuditLog::count());
     }
@@ -463,19 +464,19 @@ class AuditoriaMatriculasTest extends TestCase
         $admin = $this->adminUser();
         [$estudiante, $curso] = $this->escenario(2);
         $destino = $this->curso('DESTINO', 2);
-        $matricula = $this->matriculaVigente($estudiante, $curso, 'pagada', ['monto_pagado' => 100]);
+        $matricula = $this->matriculaVigente($estudiante, $curso, 'pagada');
         $antes = $this->cupos($curso, $destino);
 
         $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'anulada', [
-            'monto_pagado' => 0, 'observaciones' => self::PRIVADO,
+            'motivo' => 'Anulación con traslado de prueba', 'observaciones' => self::PRIVADO,
         ]))->assertOk();
 
         $this->assertSame(1, AuditLog::count());
         $this->assertSame(0, AuditLog::where('action', 'matricula_actualizada')->count());
         $registro = $this->unicoEvento('matricula_anulada');
-        $this->assertEqualsCanonicalizing(['estado', 'curso_id', 'monto_pagado', 'observaciones'], $registro->changes['campos']);
-        $this->assertSameSinOrden(['estado' => 'pagada', 'curso_id' => $curso->id, 'monto_pagado' => '100.00'], $registro->changes['antes']);
-        $this->assertSameSinOrden(['estado' => 'anulada', 'curso_id' => $destino->id, 'monto_pagado' => '0.00'], $registro->changes['despues']);
+        $this->assertEqualsCanonicalizing(['estado', 'curso_id', 'observaciones'], $registro->changes['campos']);
+        $this->assertSameSinOrden(['estado' => 'pagada', 'curso_id' => $curso->id], $registro->changes['antes']);
+        $this->assertSameSinOrden(['estado' => 'anulada', 'curso_id' => $destino->id], $registro->changes['despues']);
         $this->assertSame('libera', $registro->changes['efecto_cupo']);
         $this->assertEfecto($registro, $antes);
         $this->assertNoHayDatosPrivados();
@@ -486,13 +487,12 @@ class AuditoriaMatriculasTest extends TestCase
     {
         $admin = $this->adminUser();
         [$estudiante, $curso] = $this->escenario(2);
-        $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente', ['monto_pagado' => 100, 'observaciones' => 'igual']);
+        $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente', ['observaciones' => 'igual']);
         $antes = $this->cupos($curso);
 
         $respuesta = $this->actingAs($admin)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', [
             'estudiante_id' => (string) $estudiante->id,
             'curso_id' => (string) $curso->id,
-            'monto_pagado' => '100',
             'observaciones' => 'igual',
         ]));
 
@@ -539,10 +539,10 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(2);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($primero)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', [
+        $this->actingAs($primero)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', [
             'observaciones' => self::PRIVADO, 'dni' => '99999999', 'password' => 'SECRETO-1', 'remember_token' => 'TOKEN-SECRETO',
         ]))->assertOk();
-        $this->actingAs($segundo)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente'))->assertOk();
+        $this->actingAs($segundo)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', ['fecha_matricula' => '2026-10-30']))->assertOk();
 
         $this->assertSame([$primero->id, $segundo->id], AuditLog::where('action', 'matricula_actualizada')->orderBy('id')->pluck('user_id')->all());
         $primera = AuditLog::orderBy('id')->first();
@@ -565,13 +565,13 @@ class AuditoriaMatriculasTest extends TestCase
         $secretaria->assignRole('secretaria');
         $antes = $this->cupos($curso);
 
-        $this->actingAs($secretaria)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente'))->assertForbidden();
-        $this->actingAs($coordinador)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada'))->assertForbidden();
+        $this->actingAs($secretaria)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', ['fecha_matricula' => '2026-10-29']))->assertForbidden();
+        $this->actingAs($coordinador)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada', ['motivo' => 'Intento sin permiso']))->assertForbidden();
         $this->assertSame('pagada', $matricula->fresh()->estado);
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
 
-        $this->actingAs($coordinador)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente'))->assertOk();
+        $this->actingAs($coordinador)->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', ['fecha_matricula' => '2026-10-29']))->assertOk();
         $this->assertSame($coordinador->id, $this->unicoEvento('matricula_actualizada')->user_id);
         $this->assertNotNull($admin);
     }
@@ -626,15 +626,15 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pendiente');
         $this->actingAs($admin);
         $this->app->resolving(UpdateMatriculaRequest::class, function () use ($matricula): void {
-            DB::table('matriculas')->where('id', $matricula->id)->update(['estado' => 'pagada', 'monto_pagado' => 55]);
+            DB::table('matriculas')->where('id', $matricula->id)->update(['fecha_matricula' => '2026-10-29']);
         });
 
-        $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', ['monto_pagado' => 70]))->assertOk();
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', ['fecha_matricula' => '2026-10-30']))->assertOk();
 
         $registro = $this->unicoEvento('matricula_actualizada');
-        $this->assertSame(['monto_pagado'], $registro->changes['campos']);
-        $this->assertSame(['monto_pagado' => '55.00'], $registro->changes['antes']);
-        $this->assertSame(['monto_pagado' => '70.00'], $registro->changes['despues']);
+        $this->assertSame(['fecha_matricula'], $registro->changes['campos']);
+        $this->assertSame(['fecha_matricula' => '2026-10-29'], $registro->changes['antes']);
+        $this->assertSame(['fecha_matricula' => '2026-10-30'], $registro->changes['despues']);
         $this->assertSame('ninguno', $registro->changes['efecto_cupo']);
     }
 
@@ -649,7 +649,7 @@ class AuditoriaMatriculasTest extends TestCase
             DB::table('cursos')->where('id', $curso->id)->increment('cupos_disponibles');
         });
 
-        $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada'))->assertOk();
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'anulada', ['motivo' => 'Anulación concurrente']))->assertOk();
 
         $this->assertSame($curso->cupos_maximos, $curso->fresh()->cupos_disponibles);
         $this->assertSame(0, AuditLog::count());
@@ -689,10 +689,10 @@ class AuditoriaMatriculasTest extends TestCase
 
         try {
             match ($operacion) {
-                'anular' => $this->panelMatriculas('POST', $matricula->id.'/anular'),
-                'update datos' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente', ['monto_pagado' => 5])),
+                'anular' => $this->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Fallo simulado']),
+                'update datos' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pagada', ['fecha_matricula' => '2026-10-30'])),
                 'update traslado' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'pagada')),
-                'update anulada' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'anulada')),
+                'update anulada' => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $destino, 'anulada', ['motivo' => 'Anulación fallida'])),
                 default => $this->panelMatriculas('PUT', (string) $matricula->id, $this->datos($estudiante, $curso, 'pendiente')),
             };
             $this->fail('Se esperaba el fallo simulado de auditoría.');
@@ -719,7 +719,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, $estado, ['monto_pagado' => 90, 'observaciones' => self::PRIVADO]);
         $antes = $this->cupos($curso);
 
-        $respuesta = $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id);
+        $respuesta = $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminación administrativa']);
 
         $respuesta->assertOk();
         $respuesta->assertJsonPath('message', 'La matrícula se eliminó correctamente.');
@@ -749,7 +749,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = Matricula::create($this->datos($estudiante, $curso, 'anulada'));
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminar anulada'])->assertOk();
 
         $this->assertSoftDeleted($matricula);
         $registro = $this->unicoEvento('matricula_eliminada');
@@ -767,7 +767,7 @@ class AuditoriaMatriculasTest extends TestCase
         $curso->delete();
         $antes = $this->cupos($curso);
 
-        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminar anulada'])->assertOk();
 
         $registro = $this->unicoEvento('matricula_eliminada');
         $this->assertSame('libera', $registro->changes['efecto_cupo']);
@@ -846,7 +846,7 @@ class AuditoriaMatriculasTest extends TestCase
         $matricula = $this->matriculaVigente($estudiante, $curso, 'pagada');
         $inicio = $this->cupos($curso);
 
-        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminar anulada'])->assertOk();
         $this->assertSame([$curso->id => $inicio[$curso->id] + 1], $this->cupos($curso));
         $this->panelMatriculas('POST', $matricula->id.'/restaurar')->assertOk();
 
@@ -870,7 +870,7 @@ class AuditoriaMatriculasTest extends TestCase
         [$estudiante, $curso] = $this->escenario(3);
         $matricula = $this->matriculaVigente($estudiante, $curso);
 
-        $this->actingAs($segundo)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($segundo)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Actor 2 elimina'])->assertOk();
         $this->actingAs($tercero)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertOk();
 
         $this->assertGreaterThan(1, $segundo->id);
@@ -889,8 +889,8 @@ class AuditoriaMatriculasTest extends TestCase
         $this->panelMatriculas('POST', $matricula->id.'/restaurar')->assertNotFound();
         $this->assertSame(0, AuditLog::count());
 
-        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
-        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertNotFound();
+        $this->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Primera eliminación'])->assertOk();
+        $this->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Segunda eliminación'])->assertNotFound();
 
         $this->assertSame(1, AuditLog::count());
         $this->assertSame(1, AuditLog::where('action', 'matricula_eliminada')->count());
@@ -914,7 +914,7 @@ class AuditoriaMatriculasTest extends TestCase
 
         try {
             $operacion === 'destroy'
-                ? $this->panelMatriculas('DELETE', (string) $matricula->id)
+                ? $this->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Fallo simulado'])
                 : $this->panelMatriculas('POST', $matricula->id.'/restaurar');
             $this->fail('Se esperaba el fallo simulado de auditoría.');
         } catch (RuntimeException $error) {
@@ -951,15 +951,15 @@ class AuditoriaMatriculasTest extends TestCase
         $antes = $this->cupos($curso);
 
         // El coordinador no puede eliminar; la secretaria no puede eliminar ni restaurar: 403 y sin auditoría.
-        $this->actingAs($coordinador)->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
-        $this->actingAs($secretaria)->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
+        $this->actingAs($coordinador)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Sin permiso'])->assertForbidden();
+        $this->actingAs($secretaria)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Sin permiso'])->assertForbidden();
         $this->assertNotSoftDeleted($matricula);
         $this->assertSame($antes, $this->cupos($curso));
         $this->assertSame(0, AuditLog::count());
 
         // El administrador elimina; el coordinador sí puede restaurar (contrato actual) y se audita con su usuario.
         $admin = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))->firstOrFail();
-        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->actingAs($admin)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminar anulada'])->assertOk();
         $this->actingAs($secretaria)->panelMatriculas('POST', $matricula->id.'/restaurar')->assertForbidden();
         $this->assertSoftDeleted($matricula);
         $this->assertSame(1, AuditLog::count());
@@ -1023,7 +1023,7 @@ class AuditoriaMatriculasTest extends TestCase
         });
         $this->actingAs($admin);
 
-        $this->panelMatriculas('DELETE', (string) $matricula->id)->assertOk();
+        $this->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminación concurrente'])->assertOk();
 
         $registro = $this->unicoEvento('matricula_eliminada');
         $this->assertSame('anulada', $registro->changes['estado']);

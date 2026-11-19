@@ -40,4 +40,17 @@ final class ListFilter
 
         return is_string($value) && in_array($value, $allowed, true) ? $value : '';
     }
+
+    /** Fecha válida en formato AAAA-MM-DD (o `''` si no se envió o no existe en calendario). */
+    public static function date(Request $request, string $key): string
+    {
+        $value = self::text($request, $key, 10);
+        if (preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $value) !== 1) {
+            return '';
+        }
+
+        [$anio, $mes, $dia] = array_map('intval', explode('-', $value));
+
+        return checkdate($mes, $dia, $anio) ? $value : '';
+    }
 }

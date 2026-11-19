@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Curso extends Model
@@ -20,6 +21,7 @@ class Curso extends Model
         'precio',
         'modalidad',
         'horario',
+        'enlace_grupo_whatsapp',
         'cupos_maximos',
         'cupos_disponibles',
         'estado',
@@ -36,9 +38,25 @@ class Curso extends Model
     }
 
     /** @return HasMany<Matricula, $this> */
+    /**
+     * El enlace de invitación al grupo de WhatsApp es un dato privado: solo lo ve quien lo usa o lo mantiene (matricular o editar el curso).
+     */
+    public static function enlaceGrupoVisible(?string $enlace): ?string
+    {
+        $actor = request()->user();
+
+        return $enlace !== null && $actor !== null && ($actor->can('matriculas.crear') || $actor->can('cursos.editar')) ? $enlace : null;
+    }
+
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class);
+    }
+
+    /** @return HasOne<CursoPublicacion, $this> */
+    public function publicacion(): HasOne
+    {
+        return $this->hasOne(CursoPublicacion::class);
     }
 
     /** @return BelongsToMany<Estudiante, $this> */

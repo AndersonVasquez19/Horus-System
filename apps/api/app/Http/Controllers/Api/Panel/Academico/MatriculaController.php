@@ -8,20 +8,25 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMatriculaRequest;
 use App\Http\Requests\UpdateMatriculaRequest;
 use App\Models\AuditLog;
+use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Services\GestionMatriculas;
+use App\Services\GestionPagos;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
+use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use App\Support\OpcionesMatricula;
 use App\Support\Panel\Listado;
 use App\Support\SensitiveData;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -38,9 +43,9 @@ final class MatriculaController extends Controller implements HasMiddleware
     public const ESTADOS_VALIDOS = ['pendiente', 'pagada', 'anulada'];
 
     private const ORDENABLES = [
-        'fecha' => 'fecha_matricula',
-        'creado' => 'created_at',
-        'estado' => 'estado',
+        'fecha' => 'matriculas.fecha_matricula',
+        'creado' => 'matriculas.created_at',
+        'estado' => 'matriculas.estado',
     ];
 
     /** Acciones de auditoría que forman el historial de una matrícula. */
@@ -58,7 +63,7 @@ final class MatriculaController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:matriculas.ver', only: ['index', 'show']),
+            new Middleware('permission:matriculas.ver', only: ['index', 'show', 'constancia']),
             new Middleware('permission:matriculas.crear', only: ['store']),
             new Middleware('permission:matriculas.editar', only: ['update']),
             new Middleware('permission:matriculas.anular', only: ['anular']),
@@ -75,19 +80,62 @@ final class MatriculaController extends Controller implements HasMiddleware
         [$query, $filtros] = $this->consultaFiltrada($request);
         $orden = Listado::ordenar($query, $request, self::ORDENABLES, '-fecha');
 
-        return Listado::responder(
+        $respuesta = Listado::responder(
             Listado::paginar($query, $request),
             fn (Matricula $matricula): array => self::resumen($matricula),
             $orden,
             $filtros,
         );
+        $contenido = $respuesta->getData(true);
+        $contenido['meta']['convocatorias'] = Convocatoria::query()
+            ->orderByDesc('fecha_inicio')
+            ->orderBy('codigo')
+            ->get(['identificador', 'codigo', 'nombre'])
+            ->map(fn (Convocatoria $c): array => [
+                'identificador' => $c->identificador,
+                'codigo' => $c->codigo,
+                'nombre' => $c->nombre,
+            ])->all();
+
+        return response()->json($contenido);
     }
 
     public function show(Request $request, int $matricula): JsonResponse
     {
-        $modelo = Matricula::withTrashed()->with(['estudiante', 'curso', 'convocatoria'])->findOrFail($matricula);
+        $modelo = Matricula::withTrashed()->with(['estudiante', 'curso', 'convocatoria', 'obligacionPago.transacciones'])->findOrFail($matricula);
 
         return response()->json(['data' => $this->detalle($modelo, true)]);
+    }
+
+    public function constancia(Request $request, int $matricula): Response
+    {
+        $modelo = Matricula::withTrashed()
+            ->with(['estudiante', 'curso', 'convocatoria', 'obligacionPago.transacciones'])
+            ->findOrFail($matricula);
+
+        $obligacion = $modelo->obligacionPago;
+        $saldos = $obligacion === null ? null : app(GestionPagos::class)->saldos($obligacion);
+
+        AuditLog::record(
+            'matricula_constancia_pdf',
+            Matricula::class,
+            $modelo->id,
+            ['curso_id' => $modelo->curso_id],
+            AuditoriaAcademica::actorDe($request),
+        );
+
+        $pdf = Pdf::loadView('pdf.constancia-matricula', [
+            'matricula' => $modelo,
+            'saldos' => $saldos,
+            'mostrarMontos' => (bool) $request->user()?->can('pagos.ver'),
+            'fecha' => HoraLocal::ahora()->format('d/m/Y H:i'),
+        ]);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"constancia-matricula-{$modelo->id}.pdf\"",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     public function store(StoreMatriculaRequest $request): JsonResponse
@@ -96,7 +144,7 @@ final class MatriculaController extends Controller implements HasMiddleware
 
         return response()->json([
             'message' => 'La matrícula se registró correctamente.',
-            'data' => $this->detalle($matricula->refresh()->load(['estudiante', 'curso', 'convocatoria']), false),
+            'data' => $this->detalle($matricula->refresh()->load(['estudiante', 'curso', 'convocatoria', 'obligacionPago.transacciones']), false),
         ], 201);
     }
 
@@ -111,20 +159,38 @@ final class MatriculaController extends Controller implements HasMiddleware
 
         return response()->json([
             'message' => 'La matrícula se actualizó correctamente.',
-            'data' => $this->detalle($actualizada->refresh()->load(['estudiante', 'curso', 'convocatoria']), false),
+            'data' => $this->detalle($actualizada->refresh()->load(['estudiante', 'curso', 'convocatoria', 'obligacionPago.transacciones']), false),
         ]);
     }
 
     public function anular(Request $request, Matricula $matricula): JsonResponse
     {
-        $this->gestion->anular($matricula, AuditoriaAcademica::actorDe($request));
+        $datos = $request->validate(
+            ['motivo' => ['required', 'string', 'min:3', 'max:200']],
+            [
+                'motivo.required' => 'Indica el motivo de anulación.',
+                'motivo.min' => 'El motivo debe tener al menos 3 caracteres.',
+                'motivo.max' => 'El motivo no puede superar los 200 caracteres.',
+            ],
+        );
+
+        $this->gestion->anular($matricula, AuditoriaAcademica::actorDe($request), (string) $datos['motivo']);
 
         return response()->json(['message' => 'La matrícula se anuló correctamente.']);
     }
 
     public function destroy(Request $request, Matricula $matricula): JsonResponse
     {
-        $this->gestion->eliminar($matricula, AuditoriaAcademica::actorDe($request));
+        $datos = $request->validate(
+            ['motivo' => ['required', 'string', 'min:3', 'max:200']],
+            [
+                'motivo.required' => 'Indica el motivo de eliminación.',
+                'motivo.min' => 'El motivo debe tener al menos 3 caracteres.',
+                'motivo.max' => 'El motivo no puede superar los 200 caracteres.',
+            ],
+        );
+
+        $this->gestion->eliminar($matricula, AuditoriaAcademica::actorDe($request), (string) $datos['motivo']);
 
         return response()->json(['message' => 'La matrícula se eliminó correctamente.']);
     }
@@ -213,14 +279,15 @@ final class MatriculaController extends Controller implements HasMiddleware
     /**
      * Mismos filtros que el listado y la exportación del Blade.
      *
-     * @return array{0: Builder<Matricula>, 1: array{busqueda: string, estado: string, curso_id: int|null, eliminados: bool}}
+     * @return array{0: Builder<Matricula>, 1: array{busqueda: string, estado: string, curso_id: int|null, convocatoria: string, estado_cobro: string, eliminados: bool}}
      */
     private function consultaFiltrada(Request $request): array
     {
         $query = Matricula::query()->with([
-            'estudiante:id,dni,nombres,apellidos,deleted_at',
-            'curso:id,codigo,nombre,deleted_at',
+            'estudiante:id,dni,nombres,apellidos,email,telefono,deleted_at',
+            'curso:id,codigo,nombre,enlace_grupo_whatsapp,deleted_at',
             'convocatoria:id,identificador,codigo,deleted_at',
+            'obligacionPago.transacciones',
         ]);
 
         $cursoId = $request->input('curso_id');
@@ -229,10 +296,18 @@ final class MatriculaController extends Controller implements HasMiddleware
         if (is_int($cursoId) && $cursoId > 0) {
             $cursoId = (string) $cursoId;
         }
+        $convocatoriaInput = ListFilter::text($request, 'convocatoria', 36);
+        $convocatoria = match (true) {
+            $convocatoriaInput === 'sin_convocatoria' => 'sin_convocatoria',
+            preg_match('/\A[0-9a-f-]{36}\z/i', $convocatoriaInput) === 1 => strtolower($convocatoriaInput),
+            default => '',
+        };
         $filtros = [
             'busqueda' => ListFilter::text($request, 'busqueda'),
             'estado' => ListFilter::in($request, 'estado', self::ESTADOS_VALIDOS),
             'curso_id' => is_string($cursoId) && ctype_digit($cursoId) && strlen($cursoId) <= 18 ? (int) $cursoId : null,
+            'convocatoria' => $convocatoria,
+            'estado_cobro' => ListFilter::in($request, 'estado_cobro', ['pendiente', 'parcial', 'con_saldo', 'pagada', 'anulada', 'sin_obligacion']),
             'eliminados' => $request->boolean('eliminados'),
         ];
 
@@ -245,6 +320,30 @@ final class MatriculaController extends Controller implements HasMiddleware
         if ($filtros['curso_id'] !== null) {
             $query->where('curso_id', $filtros['curso_id']);
         }
+        if ($filtros['convocatoria'] === 'sin_convocatoria') {
+            $query->whereNull('convocatoria_id');
+        } elseif ($filtros['convocatoria'] !== '') {
+            $conv = $filtros['convocatoria'];
+            $query->whereHas('convocatoria', fn (Builder $c) => $c->where('identificador', $conv));
+        }
+        if ($filtros['estado_cobro'] !== '') {
+            $sqlConfirmado = "(SELECT ROUND(COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN t.monto ELSE -t.monto END), 0), 2) FROM transacciones_pago t WHERE t.obligacion_pago_id = obligaciones_pago.id AND t.estado = 'confirmada')";
+            $estadoCobro = $filtros['estado_cobro'];
+            match ($estadoCobro) {
+                'sin_obligacion' => $query->whereDoesntHave('obligacionesPago'),
+                'anulada' => $query->whereDoesntHave('obligacionPago')
+                    ->whereHas('obligacionesPago', fn (Builder $q) => $q->where('estado', 'anulada')),
+                default => $query->whereHas('obligacionPago', function (Builder $q) use ($estadoCobro, $sqlConfirmado): void {
+                    match ($estadoCobro) {
+                        'pendiente' => $q->whereRaw("{$sqlConfirmado} <= 0"),
+                        'pagada' => $q->whereRaw("{$sqlConfirmado} >= ROUND(obligaciones_pago.monto_total, 2)"),
+                        'parcial' => $q->whereRaw("{$sqlConfirmado} > 0 AND {$sqlConfirmado} < ROUND(obligaciones_pago.monto_total, 2)"),
+                        'con_saldo' => $q->whereRaw("{$sqlConfirmado} < ROUND(obligaciones_pago.monto_total, 2)"),
+                        default => null,
+                    };
+                }),
+            };
+        }
         if ($filtros['busqueda'] !== '') {
             $busqueda = $filtros['busqueda'];
             $query->where(function (Builder $query) use ($busqueda): void {
@@ -252,7 +351,12 @@ final class MatriculaController extends Controller implements HasMiddleware
                     BusquedaLike::contiene($estudiante, ['dni', 'nombres', 'apellidos'], $busqueda);
                 })->orWhereHas('curso', function (Builder $curso) use ($busqueda): void {
                     BusquedaLike::contiene($curso, ['codigo', 'nombre'], $busqueda);
+                })->orWhereHas('convocatoria', function (Builder $convocatoria) use ($busqueda): void {
+                    BusquedaLike::contiene($convocatoria, ['codigo'], $busqueda);
                 });
+                if (preg_match('/\A#?(\d{1,18})\z/', $busqueda, $coincidencia) === 1) {
+                    $query->orWhere('matriculas.id', (int) $coincidencia[1]);
+                }
             });
         }
 
@@ -283,6 +387,19 @@ final class MatriculaController extends Controller implements HasMiddleware
         $estudiante = $matricula->estudiante;
         $curso = $matricula->curso;
         $convocatoria = $matricula->convocatoria;
+        $obligacion = $matricula->relationLoaded('obligacionPago') ? $matricula->obligacionPago : null;
+        $estadoCobro = 'sin_obligacion';
+        $saldoCobro = null;
+
+        if ($obligacion !== null) {
+            $saldos = app(GestionPagos::class)->saldos($obligacion);
+            $estadoCobro = match (true) {
+                $saldos['confirmado'] >= $saldos['total'] => 'pagada',
+                $saldos['confirmado'] > 0 => 'parcial',
+                default => 'pendiente',
+            };
+            $saldoCobro = GestionPagos::formato($saldos['saldo']);
+        }
 
         return [
             'id' => $matricula->id,
@@ -290,12 +407,15 @@ final class MatriculaController extends Controller implements HasMiddleware
                 'id' => $estudiante->id,
                 'dni' => $estudiante->dni,
                 'nombre' => trim($estudiante->nombres.' '.$estudiante->apellidos),
+                'email' => $estudiante->email,
+                'telefono' => $estudiante->telefono,
                 'eliminado' => $estudiante->trashed(),
             ],
             'curso' => $curso === null ? null : [
                 'id' => $curso->id,
                 'codigo' => $curso->codigo,
                 'nombre' => $curso->nombre,
+                'enlace_grupo_whatsapp' => $matricula->estado !== 'anulada' ? \App\Models\Curso::enlaceGrupoVisible($curso->enlace_grupo_whatsapp) : null,
                 'eliminado' => $curso->trashed(),
             ],
             'convocatoria' => $convocatoria === null ? null : [
@@ -303,6 +423,9 @@ final class MatriculaController extends Controller implements HasMiddleware
                 'codigo' => $convocatoria->codigo,
             ],
             'estado' => $matricula->estado,
+            'estado_cobro' => $estadoCobro,
+            'obligacion_identificador' => $obligacion?->identificador,
+            'saldo_cobro' => $saldoCobro,
             'fecha' => $matricula->fecha_matricula->toDateString(),
             'monto_pagado' => $matricula->monto_pagado,
             'eliminado' => $matricula->trashed(),
@@ -315,6 +438,7 @@ final class MatriculaController extends Controller implements HasMiddleware
         $datos = [
             ...self::resumen($matricula),
             'observaciones' => $matricula->observaciones,
+            'motivo_anulacion' => $matricula->motivo_anulacion,
             'curso_cupos_disponibles' => $matricula->curso?->cupos_disponibles,
             'creado_en' => $matricula->created_at?->toIso8601String(),
             'actualizado_en' => $matricula->updated_at?->toIso8601String(),

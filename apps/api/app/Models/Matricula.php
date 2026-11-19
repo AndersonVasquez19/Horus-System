@@ -6,6 +6,8 @@ use App\Observers\MatriculaNotificationObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -50,5 +52,17 @@ class Matricula extends Model
     public function convocatoria(): BelongsTo
     {
         return $this->belongsTo(Convocatoria::class)->withTrashed();
+    }
+
+    /** @return HasOne<ObligacionPago, $this> */
+    public function obligacionPago(): HasOne
+    {
+        return $this->hasOne(ObligacionPago::class, 'matricula_id')->where('estado', 'vigente');
+    }
+
+    /** @return HasMany<ObligacionPago, $this> */
+    public function obligacionesPago(): HasMany
+    {
+        return $this->hasMany(ObligacionPago::class, 'matricula_id');
     }
 }

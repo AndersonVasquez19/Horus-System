@@ -337,4 +337,64 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         $this->como($coordinador, 'GET', 'no-es-un-uuid')->assertNotFound();
         $this->como($coordinador, 'GET', '')->assertOk()->assertJsonMissingPath('data.0.id');
     }
+
+    public function test_filtra_por_fechas_expone_meta_cursos_y_matriculados_en_el_detalle(): void
+    {
+        $admin = $this->usuarioConRol('admin', 'admin@horus.test');
+        $soloEdicion = User::factory()->create(['email' => 'edicion@horus.test']);
+        $soloEdicion->givePermissionTo(['panel.academico.acceder', 'convocatorias.ver']);
+
+        $curso = $this->curso('CUR-DET');
+        $enero = $this->crear($admin, $curso, [
+            'nombre' => 'Edición enero',
+            'fecha_inicio' => '2027-01-10',
+            'fecha_fin' => '2027-02-10',
+        ]);
+        $marzo = $this->crear($admin, $curso, [
+            'nombre' => 'Edición marzo',
+            'fecha_inicio' => '2027-03-10',
+            'fecha_fin' => '2027-04-10',
+        ]);
+
+        $this->como($admin, 'GET', '?desde=2027-01-01&hasta=2027-02-01')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.codigo', $enero->codigo)
+            ->assertJsonPath('meta.cursos.0.codigo', 'CUR-DET');
+        $this->assertNotSame($enero->codigo, $marzo->codigo);
+
+        $estudiante = \App\Models\Estudiante::create([
+            'dni' => '76543210',
+            'nombres' => 'Lucía',
+            'apellidos' => 'Paredes',
+            'email' => 'lucia@horus.test',
+            'telefono' => '987654321',
+            'estado' => 'activo',
+        ]);
+        $matricula = \App\Models\Matricula::create([
+            'estudiante_id' => $estudiante->id,
+            'curso_id' => $curso->id,
+            'convocatoria_id' => $enero->id,
+            'fecha_matricula' => '2027-01-05',
+            'estado' => 'pendiente',
+            'monto_pagado' => 0,
+        ]);
+        $this->actingAs($admin)->withHeaders(['X-Horus-Web-Token' => self::TOKEN])
+            ->postJson("/api/panel/v1/academico/matriculas/{$matricula->id}/obligacion", [
+                'concepto' => 'Matrícula enero',
+                'plan' => 'completo',
+                'monto_total' => 250,
+            ])->assertCreated();
+
+        $this->como($admin, 'GET', $enero->identificador)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.matriculados')
+            ->assertJsonPath('data.matriculados.0.estudiante.dni', '76543210')
+            ->assertJsonPath('data.matriculados.0.estudiante.telefono', '987654321')
+            ->assertJsonPath('data.matriculados.0.obligacion.estado', 'pendiente');
+
+        $this->como($soloEdicion, 'GET', $enero->identificador)
+            ->assertOk()
+            ->assertJsonMissingPath('data.matriculados');
+    }
 }

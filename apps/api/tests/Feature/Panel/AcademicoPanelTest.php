@@ -95,7 +95,28 @@ final class AcademicoPanelTest extends PanelApiTestCase
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $curso = $this->curso('C-1');
         $estudiante = $this->estudiante('11111111');
-        Matricula::create(['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => now()->toDateString(), 'estado' => 'pagada', 'monto_pagado' => 150]);
+        $matricula = Matricula::create(['estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => now()->toDateString(), 'estado' => 'pagada', 'monto_pagado' => 150]);
+        $metodo = \App\Models\MetodoPago::query()->firstOrCreate(['codigo' => 'yape'], ['nombre' => 'Yape', 'activo' => true]);
+        $obligacion = \App\Models\ObligacionPago::forceCreate([
+            'identificador' => (string) \Illuminate\Support\Str::uuid(),
+            'matricula_id' => $matricula->id,
+            'concepto' => 'Matrícula C-1',
+            'plan' => 'completo',
+            'moneda' => 'PEN',
+            'monto_total' => '150.00',
+            'estado' => 'vigente',
+            'creado_por' => $admin->id,
+        ]);
+        \App\Models\TransaccionPago::forceCreate([
+            'identificador' => (string) \Illuminate\Support\Str::uuid(),
+            'obligacion_pago_id' => $obligacion->id,
+            'metodo_pago_id' => $metodo->id,
+            'tipo' => 'pago',
+            'estado' => 'confirmada',
+            'monto' => '150.00',
+            'fecha_pago' => now()->toDateString(),
+            'registrado_por' => $admin->id,
+        ]);
 
         $this->como($admin, 'academico/resumen')->assertOk()->assertJsonPath('data.indicadores.ingresos_mes', '150.00');
     }
@@ -136,7 +157,8 @@ final class AcademicoPanelTest extends PanelApiTestCase
 
         $this->como($secretaria, 'academico/cursos?busqueda=exc')->assertOk()->assertJsonPath('data.0.codigo', 'EX-01');
 
-        $this->assertArrayNotHasKey('precio', $todos->json('data.0'));
+        $this->assertArrayHasKey('precio', $todos->json('data.0'));
+        $this->assertArrayNotHasKey('descripcion', $todos->json('data.0'));
     }
 
     public function test_parametros_invalidos_no_rompen_el_listado(): void

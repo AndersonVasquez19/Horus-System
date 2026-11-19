@@ -34,7 +34,8 @@ class UpdateMatriculaRequest extends FormRequest
             'convocatoria' => ['prohibited'],
             'fecha_matricula' => ['required', 'date'],
             'estado' => ['required', Rule::in(['pendiente', 'pagada', 'anulada'])],
-            'monto_pagado' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'monto_pagado' => ['prohibited'],
+            'motivo' => ['nullable', 'string', 'min:3', 'max:200'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -44,11 +45,33 @@ class UpdateMatriculaRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                if ($validator->errors()->isNotEmpty() || $this->input('estado') === 'anulada') {
+                if ($validator->errors()->isNotEmpty()) {
                     return;
                 }
 
                 $matricula = $this->route('matricula');
+                $estadoSolicitado = (string) $this->input('estado');
+                if ($estadoSolicitado === 'pagada' && $matricula->estado !== 'pagada') {
+                    $validator->errors()->add('estado', 'El estado pagada se asigna automáticamente desde el libro de pagos.');
+
+                    return;
+                }
+                if ($matricula->estado === 'pagada' && $estadoSolicitado === 'pendiente') {
+                    $validator->errors()->add('estado', 'Una matrícula pagada solo vuelve a pendiente al reversar su pago en Finanzas.');
+
+                    return;
+                }
+                if ($estadoSolicitado === 'anulada') {
+                    if ($matricula->estado !== 'anulada') {
+                        $motivo = $this->input('motivo');
+                        if (! is_string($motivo) || mb_strlen(trim($motivo)) < 3 || mb_strlen(trim($motivo)) > 200) {
+                            $validator->errors()->add('motivo', 'Debes indicar un motivo de entre 3 y 200 caracteres para anular la matrícula.');
+                        }
+                    }
+
+                    return;
+                }
+
                 $estudianteId = (int) $this->input('estudiante_id');
                 $cursoId = (int) $this->input('curso_id');
                 $duplicada = Matricula::query()
@@ -82,9 +105,9 @@ class UpdateMatriculaRequest extends FormRequest
             'fecha_matricula.date' => 'La fecha de matrícula no es válida.',
             'estado.required' => 'Debes seleccionar el estado de la matrícula.',
             'estado.in' => 'El estado seleccionado no es válido.',
-            'monto_pagado.numeric' => 'El monto pagado debe ser un número.',
-            'monto_pagado.min' => 'El monto pagado no puede ser negativo.',
-            'monto_pagado.max' => 'El monto pagado supera el máximo permitido.',
+            'monto_pagado.prohibited' => 'El monto pagado se calcula automáticamente desde el libro de pagos.',
+            'motivo.min' => 'El motivo debe tener al menos 3 caracteres.',
+            'motivo.max' => 'El motivo no puede superar los 200 caracteres.',
         ];
     }
 }

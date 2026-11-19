@@ -116,7 +116,7 @@ class SecretsAndExportsTest extends TestCase
         $this->assertCount(1, $registros);
         $this->assertSame(
             ['moneda' => 'S/', 'api_resend' => SensitiveData::MASK],
-            json_decode($registros[0]['cambios'], true, flags: JSON_THROW_ON_ERROR),
+            $registros[0]['cambios'],
         );
     }
 
@@ -147,7 +147,13 @@ class SecretsAndExportsTest extends TestCase
         $archivos = $this->downloadZip($this->actingAs($admin)->panelRespaldo('POST', 'exportar'));
 
         $this->assertEqualsCanonicalizing(
-            ['users', 'estudiantes', 'cursos', 'matriculas', 'procesos_internos', 'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas'],
+            [
+                'users', 'estudiantes', 'cursos', 'convocatorias', 'matriculas',
+                'sesiones_clase', 'asistencias', 'evaluaciones', 'calificaciones',
+                'obligaciones_pago', 'cuotas_obligacion', 'transacciones_pago',
+                'reclamaciones', 'mensajes_contacto',
+                'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas',
+            ],
             array_map(fn (string $n): string => basename($n, '.csv'), array_diff(array_keys($archivos), ['manifest.json'])),
         );
 

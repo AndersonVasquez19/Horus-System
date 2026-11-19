@@ -11,13 +11,12 @@ use Symfony\Component\Yaml\Yaml;
  *
  *   (a) Toda operación `vigente` del contrato (sin `x-estado`, o `x-estado: vigente`) existe en el enrutador con el mismo
  *       método y la misma ruta.
- *   (b) Toda ruta de `routes/panel.php` bajo `auth/` y `academico/` figura en el contrato.
+ *   (b) Toda ruta de `routes/panel.php` bajo `auth/`, `academico/` y `compartido/` figura en el contrato.
  *   (c) El permiso que el contrato declara en `description` (`Permiso: …`) coincide con un middleware `permission:` de esa ruta
  *       (del grupo o del controlador).
  *   (d) Ninguna operación `propuesto` existe todavía en el servidor: al implementarla se cambia a `vigente` en el mismo cambio.
  *
- * Alcance acotado a `auth/` y `academico/`: los módulos `compartido/` y `servicios/` aún no figuran completos en el contrato
- * (los de servicios se retiran en la Fase 7). No necesita base de datos.
+ * Alcance: `auth/`, `academico/` y `compartido/`. No necesita base de datos.
  */
 
 const PREFIJO_PANEL = 'api/panel/v1/';
@@ -99,12 +98,12 @@ it('toda operación vigente del contrato existe en el enrutador con el mismo mé
     expect($faltan)->toBe([], 'Operaciones vigentes del contrato que no existen en routes/panel.php');
 });
 
-it('toda ruta del panel bajo auth/ y academico/ figura en el contrato', function (): void {
+it('toda ruta del panel bajo auth/, academico/ y compartido/ figura en el contrato', function (): void {
     $contrato = operacionesDelContrato();
     $sinContrato = [];
     foreach (rutasDelPanel() as $clave => $route) {
         [, $ruta] = explode(' ', $clave, 2);
-        if ((str_starts_with($ruta, 'auth/') || str_starts_with($ruta, 'academico/')) && ! isset($contrato[$clave])) {
+        if ((str_starts_with($ruta, 'auth/') || str_starts_with($ruta, 'academico/') || str_starts_with($ruta, 'compartido/')) && ! isset($contrato[$clave])) {
             $sinContrato[] = $clave;
         }
     }
@@ -116,7 +115,7 @@ it('el permiso que el contrato declara coincide con el middleware de la ruta', f
     $rutas = rutasDelPanel();
     $distintos = [];
     foreach (operacionesDelContrato() as $clave => $operacion) {
-        if (($operacion['x-estado'] ?? 'vigente') !== 'vigente' || ! isset($rutas[$clave]) || ! str_starts_with((string) $operacion['_ruta'], '/academico')) {
+        if (($operacion['x-estado'] ?? 'vigente') !== 'vigente' || ! isset($rutas[$clave]) || ! (str_starts_with((string) $operacion['_ruta'], '/academico') || str_starts_with((string) $operacion['_ruta'], '/compartido'))) {
             continue;
         }
         if (preg_match('/Permiso:\s*`([^`]+)`/', (string) ($operacion['description'] ?? ''), $m) !== 1) {

@@ -8,6 +8,7 @@ use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Models\ObligacionPago;
 use App\Models\User;
 use App\Support\AuditoriaAcademica;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,13 @@ final class GestionMatriculas
     public function crear(array $datos, int $actor): Matricula
     {
         $datos = $this->conIdentificadoresEnteros($datos);
+        unset($datos['motivo']);
+        if (($datos['estado'] ?? null) === 'pagada') {
+            throw ValidationException::withMessages([
+                'estado' => 'Las matrículas nuevas solo pueden registrarse como pendientes o anuladas.',
+            ]);
+        }
+        $datos['monto_pagado'] = 0;
 
         // La convocatoria llega por su identificador público; se resuelve bajo bloqueo, nunca desde la lectura previa.
         $identificador = $datos['convocatoria'] ?? null;
@@ -102,21 +110,34 @@ final class GestionMatriculas
     public function actualizar(Matricula $matricula, array $datos, ?User $usuario, int $actor): Matricula
     {
         $datos = $this->conIdentificadoresEnteros($datos);
+        $motivo = is_string($datos['motivo'] ?? null) ? trim((string) $datos['motivo']) : '';
+        unset($datos['monto_pagado'], $datos['motivo']);
 
-        return DB::transaction(function () use ($matricula, $datos, $usuario, $actor): Matricula {
+        return DB::transaction(function () use ($matricula, $datos, $usuario, $actor, $motivo): Matricula {
             $matricula = $this->lockMatricula($matricula->id, (int) $datos['curso_id'], (int) $datos['estudiante_id']);
 
             $estadoAnterior = (string) $matricula->estado;
+            if ($datos['estado'] === 'pagada' && $estadoAnterior !== 'pagada') {
+                throw ValidationException::withMessages([
+                    'estado' => 'El estado pagada se asigna automáticamente desde el libro de pagos.',
+                ]);
+            }
+            if ($estadoAnterior === 'pagada' && $datos['estado'] === 'pendiente') {
+                throw ValidationException::withMessages([
+                    'estado' => 'Una matrícula pagada solo vuelve a pendiente al reversar su pago en Finanzas.',
+                ]);
+            }
+
             $anteriorActiva = $matricula->estado !== 'anulada';
             $nuevaActiva = $datos['estado'] !== 'anulada';
             if ($anteriorActiva && ! $nuevaActiva) {
                 abort_unless($usuario?->can('matriculas.anular') === true, 403);
-                // Una matrícula con pagos no se anula: primero se reversan (o rechazan) en el libro de pagos.
-                $obligacion = \App\Models\ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->first();
-                if ($obligacion !== null) {
-                    $saldos = app(GestionPagos::class)->saldos($obligacion);
-                    abort_if($saldos['confirmado'] > 0 || $saldos['pendiente'] > 0, 409, 'La matrícula tiene pagos: reviértelos o recházalos antes de anularla.');
+                if (mb_strlen($motivo) < 3) {
+                    throw ValidationException::withMessages([
+                        'motivo' => 'Debes indicar un motivo de al menos 3 caracteres para anular la matrícula.',
+                    ]);
                 }
+                $this->asegurarSinPagosEnLibro($matricula);
             }
             $cursoAnteriorId = (int) $matricula->curso_id;
             $cursoNuevoId = (int) $datos['curso_id'];
@@ -192,6 +213,11 @@ final class GestionMatriculas
             // Las diferencias se calculan sobre la fila bloqueada, antes de guardar. Anular mediante PUT produce
             // un único evento «matricula_anulada» con todas las diferencias permitidas, nunca dos eventos.
             $matricula->fill($datos);
+            if ($anteriorActiva && ! $nuevaActiva) {
+                $matricula->motivo_anulacion = $motivo;
+            } elseif (! $anteriorActiva && $nuevaActiva) {
+                $matricula->motivo_anulacion = null;
+            }
             $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
             $matricula->save();
 
@@ -207,15 +233,19 @@ final class GestionMatriculas
         });
     }
 
-    public function eliminar(Matricula $matricula, int $actor): void
+    public function eliminar(Matricula $matricula, int $actor, string $motivo): void
     {
-        DB::transaction(function () use ($matricula, $actor): void {
+        $motivo = trim($motivo);
+        DB::transaction(function () use ($matricula, $actor, $motivo): void {
             $matricula = $this->lockMatricula($matricula->id);
+            $this->asegurarSinPagosEnLibro($matricula);
 
             if ($matricula->estado !== 'anulada') {
                 $this->liberarCupo($matricula);
             }
 
+            $matricula->motivo_anulacion = $motivo;
+            $matricula->save();
             $matricula->delete();
 
             // Última escritura de la transacción. El efecto y el estado salen de la fila bloqueada: eliminar una
@@ -230,10 +260,12 @@ final class GestionMatriculas
         });
     }
 
-    public function anular(Matricula $matricula, int $actor): void
+    public function anular(Matricula $matricula, int $actor, string $motivo): void
     {
-        DB::transaction(function () use ($matricula, $actor): void {
+        $motivo = trim($motivo);
+        DB::transaction(function () use ($matricula, $actor, $motivo): void {
             $matricula = $this->lockMatricula($matricula->id);
+            $this->asegurarSinPagosEnLibro($matricula);
 
             // Repetir la anulación no cambia nada, no devuelve cupo otra vez y no genera otro evento.
             if ($matricula->estado !== 'anulada') {
@@ -241,6 +273,7 @@ final class GestionMatriculas
 
                 $estadoAnterior = (string) $matricula->estado;
                 $matricula->fill(['estado' => 'anulada']);
+                $matricula->motivo_anulacion = $motivo;
                 $diferencias = AuditoriaAcademica::diferencias($matricula, AuditoriaAcademica::MATRICULA);
                 $matricula->save();
 
@@ -289,6 +322,7 @@ final class GestionMatriculas
                 }
             }
 
+            $matricula->motivo_anulacion = null;
             $matricula->restore();
 
             // Última escritura de la transacción: restaurar una vigente vuelve a ocupar cupo; una anulada no.
@@ -399,6 +433,24 @@ final class GestionMatriculas
                 'curso_id' => 'El curso seleccionado no está disponible.',
             ]);
         }
+    }
+
+    /** Una matrícula con pagos confirmados o por confirmar en el libro no se anula ni elimina hasta resolverlos. */
+    private function asegurarSinPagosEnLibro(Matricula $matricula): void
+    {
+        $obligacion = ObligacionPago::query()
+            ->where('matricula_id', $matricula->id)
+            ->where('estado', 'vigente')
+            ->first();
+        if ($obligacion === null) {
+            return;
+        }
+        $saldos = app(GestionPagos::class)->saldos($obligacion);
+        abort_if(
+            $saldos['confirmado'] > 0 || $saldos['pendiente'] > 0,
+            409,
+            'La matrícula tiene pagos: reviértelos o recházalos antes de anularla o eliminarla.',
+        );
     }
 
     private function assertNoActiveDuplicate(int $estudianteId, int $cursoId, ?int $excluirId = null): void

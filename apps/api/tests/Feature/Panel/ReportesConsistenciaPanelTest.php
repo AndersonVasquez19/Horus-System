@@ -8,10 +8,14 @@ use App\Models\AuditLog;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Models\MetodoPago;
+use App\Models\ObligacionPago;
+use App\Models\TransaccionPago;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -253,9 +257,23 @@ class ReportesConsistenciaPanelTest extends TestCase
             'dni' => (string) (71000000 + $number), 'nombres' => 'Ana', 'apellidos' => 'Prueba '.$number, 'estado' => 'activo',
         ]);
 
-        return Matricula::create([
+        $matricula = Matricula::create([
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id,
-            'fecha_matricula' => '2026-10-28', 'estado' => $estado, 'monto_pagado' => 150,
+            'fecha_matricula' => '2026-10-28', 'estado' => $estado, 'monto_pagado' => $estado === 'pagada' ? 150 : 0,
         ]);
+
+        if ($estado === 'pagada') {
+            $metodo = MetodoPago::firstOrCreate(['codigo' => 'yape'], ['nombre' => 'Yape', 'activo' => true]);
+            $ob = ObligacionPago::create([
+                'identificador' => (string) Str::uuid(), 'matricula_id' => $matricula->id, 'concepto' => 'Matrícula',
+                'plan' => 'unico', 'monto_total' => '150.00', 'estado' => 'vigente',
+            ]);
+            TransaccionPago::create([
+                'identificador' => (string) Str::uuid(), 'obligacion_pago_id' => $ob->id, 'tipo' => 'pago',
+                'metodo_pago_id' => $metodo->id, 'monto' => '150.00', 'fecha_pago' => '2026-10-28', 'estado' => 'confirmada',
+            ]);
+        }
+
+        return $matricula;
     }
 }

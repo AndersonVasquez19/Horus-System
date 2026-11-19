@@ -6,8 +6,12 @@ namespace Tests\Feature\Panel;
 
 use App\Models\AuditLog;
 use App\Models\Matricula;
+use App\Models\MetodoPago;
+use App\Models\ObligacionPago;
+use App\Models\TransaccionPago;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -23,10 +27,21 @@ final class ReportesPanelTest extends PanelApiTestCase
     {
         $estudiante = $this->estudiante($dni);
         $curso = $this->curso($codigo);
-        Matricula::create([
+        $m = Matricula::create([
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => '2026-11-0'.substr($dni, -1),
-            'estado' => $estado, 'monto_pagado' => $monto,
+            'estado' => $estado, 'monto_pagado' => $estado === 'pagada' ? $monto : '0.00',
         ]);
+        if ($estado === 'pagada') {
+            $metodo = MetodoPago::firstOrCreate(['codigo' => 'yape'], ['nombre' => 'Yape', 'activo' => true]);
+            $ob = ObligacionPago::create([
+                'identificador' => (string) Str::uuid(), 'matricula_id' => $m->id, 'concepto' => 'Matrícula',
+                'plan' => 'unico', 'monto_total' => $monto, 'estado' => 'vigente',
+            ]);
+            TransaccionPago::create([
+                'identificador' => (string) Str::uuid(), 'obligacion_pago_id' => $ob->id, 'tipo' => 'pago',
+                'metodo_pago_id' => $metodo->id, 'monto' => $monto, 'fecha_pago' => '2026-11-01', 'estado' => 'confirmada',
+            ]);
+        }
     }
 
     public function test_el_listado_filtra_pagina_y_entrega_ingresos_solo_al_admin(): void
@@ -38,11 +53,16 @@ final class ReportesPanelTest extends PanelApiTestCase
 
         $todo = $this->como($admin, 'GET', 'reportes')->assertOk();
         $todo->assertJsonPath('meta.total', 3)->assertJsonPath('meta.lote', 1)->assertJsonPath('meta.lotes', 1)
-            ->assertJsonPath('resumen.matriculas', 3)->assertJsonPath('resumen.estudiantes', 3)->assertJsonPath('resumen.ingresos', '100.00')
-            ->assertJsonPath('data.0.estado', 'anulada');
+            ->assertJsonPath('resumen.matriculas', 3)->assertJsonPath('resumen.estudiantes', 3)->assertJsonPath('resumen.cursos', 3)->assertJsonPath('resumen.ingresos', '100.00')
+            ->assertJsonPath('data.0.estado', 'anulada')
+            ->assertJsonCount(3, 'meta.cursos');
 
         $this->como($admin, 'GET', 'reportes?estado=pagada')->assertJsonPath('meta.total', 1)->assertJsonPath('meta.filtros.estado', 'pagada')
+            ->assertJsonPath('resumen.estudiantes', 1)->assertJsonPath('resumen.cursos', 1)->assertJsonPath('resumen.ingresos', '100.00')
             ->assertJsonPath('data.0.curso.codigo', 'CUR-1');
+        $cursoId = (int) \App\Models\Curso::query()->where('codigo', 'CUR-2')->value('id');
+        $this->como($admin, 'GET', "reportes?curso_id={$cursoId}")->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('resumen.estudiantes', 1)->assertJsonPath('resumen.cursos', 1);
         $this->como($admin, 'GET', 'reportes?busqueda=CUR-2')->assertJsonPath('meta.total', 1);
         $this->como($admin, 'GET', 'reportes?estado=inventado')->assertUnprocessable();
         $this->como($admin, 'GET', 'reportes?lote=2')->assertNotFound();

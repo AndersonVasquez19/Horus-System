@@ -109,4 +109,44 @@ final class GestionCursos
     {
         return 'No se puede archivar el curso: tiene '.$vigentes.' matrícula(s) vigente(s). Anúlalas primero para liberar sus cupos.';
     }
+
+    /** Duplica la definición del curso en estado inactivo, con código único y sin copiar el enlace de WhatsApp. */
+    public function duplicar(Curso $origen, int $actor): Curso
+    {
+        return DB::transaction(function () use ($origen, $actor): Curso {
+            $base = mb_substr(trim($origen->codigo), 0, 12);
+            $candidato = $base.'-COPIA';
+            $intento = 2;
+            while (Curso::withTrashed()->where('codigo', $candidato)->exists()) {
+                $sufijo = '-C'.$intento;
+                $candidato = mb_substr($origen->codigo, 0, 20 - strlen($sufijo)).$sufijo;
+                $intento++;
+            }
+
+            $nombre = trim($origen->nombre);
+            $sufijoNombre = ' (copia)';
+            if (mb_strlen($nombre) + mb_strlen($sufijoNombre) > 150) {
+                $nombre = mb_substr($nombre, 0, 150 - mb_strlen($sufijoNombre));
+            }
+
+            $copia = Curso::create([
+                'codigo' => $candidato,
+                'nombre' => $nombre.$sufijoNombre,
+                'descripcion' => $origen->descripcion,
+                'categoria' => $origen->categoria,
+                'duracion_horas' => $origen->duracion_horas,
+                'precio' => $origen->precio,
+                'modalidad' => $origen->modalidad,
+                'horario' => $origen->horario,
+                'enlace_grupo_whatsapp' => null,
+                'cupos_maximos' => $origen->cupos_maximos,
+                'cupos_disponibles' => $origen->cupos_maximos,
+                'estado' => 'inactivo',
+            ]);
+
+            AuditoriaAcademica::registrarCreacion('curso_creado', $copia, AuditoriaAcademica::CURSO, $actor);
+
+            return $copia;
+        });
+    }
 }

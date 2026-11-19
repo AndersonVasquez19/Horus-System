@@ -21,6 +21,21 @@ use ZipArchive;
  */
 trait GeneraExportacionAdministrativa
 {
+    /**
+     * Datos personales que la exportación administrativa NO incluye (minimización, Ley N.º 29733): identificación, domicilio y contacto de
+     * quien reclama o escribe, y de su representante. El expediente completo se consulta en su pantalla, con permiso y auditoría.
+     *
+     * @var array<string, list<string>>
+     */
+    private const COLUMNAS_PERSONALES = [
+        'reclamaciones' => [
+            'tipo_documento', 'numero_documento', 'domicilio', 'telefono', 'email',
+            'representante_nombre', 'representante_domicilio', 'representante_telefono', 'representante_email',
+            'detalle', 'pedido', 'respuesta',
+        ],
+        'mensajes_contacto' => ['nombre', 'telefono', 'correo', 'mensaje', 'visitante'],
+    ];
+
     /** @return list<string> */
     abstract protected function tablasExportables(): array;
 
@@ -45,9 +60,10 @@ trait GeneraExportacionAdministrativa
      * Escribe el ZIP completo en `$zipPath`. Lanza una excepción ante cualquier fallo, de modo que
      * nunca se devuelve como válido un archivo incompleto.
      *
+     * @param  list<string>|null  $tablasSeleccionadas
      * @return array<string, list<string>> Columnas incluidas por tabla.
      */
-    private function buildArchive(string $zipPath): array
+    private function buildArchive(string $zipPath, ?array $tablasSeleccionadas = null, ?string $desde = null, ?string $hasta = null): array
     {
         $zip = $this->newArchive();
 
@@ -59,26 +75,34 @@ trait GeneraExportacionAdministrativa
         // ZipArchive lee los archivos añadidos con addFile() al cerrar: cada CSV temporal debe existir hasta
         // entonces y se elimina siempre después (éxito o fallo).
         $temporales = [];
+        $objetivo = $tablasSeleccionadas === null || $tablasSeleccionadas === []
+            ? $this->tablasExportables()
+            : array_values(array_intersect($this->tablasExportables(), $tablasSeleccionadas));
 
         try {
             $incluidas = [];
             $omitidas = [];
 
-            foreach ($this->tablasExportables() as $table) {
+            foreach ($objetivo as $table) {
                 if (! Schema::hasTable($table)) {
                     continue;
                 }
 
+                $allColumns = Schema::getColumnListing($table);
                 $columns = [];
-                foreach (Schema::getColumnListing($table) as $column) {
-                    if (SensitiveData::isSensitiveKey($column)) {
+                foreach ($allColumns as $column) {
+                    if (
+                        SensitiveData::isSensitiveKey($column)
+                        || in_array($column, ['enlace_grupo_whatsapp', 'enlace_virtual', 'huella'], true)
+                        || in_array($column, self::COLUMNAS_PERSONALES[$table] ?? [], true)
+                    ) {
                         $omitidas[$table][] = $column;
                     } else {
                         $columns[] = $column;
                     }
                 }
 
-                $csv = $this->tableToCsvFile($table, $columns);
+                $csv = $this->tableToCsvFile($table, $columns, in_array('created_at', $allColumns, true) ? $desde : null, in_array('created_at', $allColumns, true) ? $hasta : null);
                 $temporales[] = $csv;
                 if (! $zip->addFile($csv, $table.'.csv')) {
                     throw new RuntimeException("No se pudo añadir {$table}.csv al archivo ZIP.");
@@ -93,6 +117,8 @@ trait GeneraExportacionAdministrativa
                 'descripcion' => 'Exportación minimizada de tablas seleccionadas de Horus Group SRL. '
                     .'No es una copia de seguridad completa de PostgreSQL ni permite restaurar el sistema.',
                 'tablas' => array_keys($incluidas),
+                'desde' => $desde,
+                'hasta' => $hasta,
                 'columnas_omitidas_por_seguridad' => $omitidas,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
@@ -127,7 +153,7 @@ trait GeneraExportacionAdministrativa
     /**
      * @param  list<string>  $columns
      */
-    private function tableToCsvFile(string $table, array $columns): string
+    private function tableToCsvFile(string $table, array $columns, ?string $desde = null, ?string $hasta = null): string
     {
         $ruta = tempnam(sys_get_temp_dir(), 'horus_csv_');
         if ($ruta === false) {
@@ -144,7 +170,14 @@ trait GeneraExportacionAdministrativa
             fputcsv($handle, $columns);
 
             if ($columns !== []) {
-                foreach (DB::table($table)->select($columns)->cursor() as $row) {
+                $consulta = DB::table($table)->select($columns);
+                if ($desde !== null) {
+                    $consulta->whereDate('created_at', '>=', $desde);
+                }
+                if ($hasta !== null) {
+                    $consulta->whereDate('created_at', '<=', $hasta);
+                }
+                foreach ($consulta->cursor() as $row) {
                     fputcsv($handle, $this->csvRow($table, $columns, $row));
                 }
             }

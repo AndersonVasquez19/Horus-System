@@ -6,16 +6,25 @@ namespace App\Services;
 
 use App\Http\Requests\ReportMatriculasRequest;
 use App\Models\AuditLog;
+use App\Models\Convocatoria;
 use App\Models\Matricula;
+use App\Models\ObligacionPago;
 use App\Support\BusquedaLike;
+use App\Support\SafeSpreadsheet;
+use App\Support\SpreadsheetCellCache;
 use App\Support\TemporaryExportFile;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Settings;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
+use ZipArchive;
 
 /**
  * Consulta, paginación por lotes y descarga temporal de los reportes de matrículas (extraídas de
@@ -24,6 +33,8 @@ use Throwable;
 final class ReportesMatriculas
 {
     public const TAMANO_LOTE = 50;
+
+    public const MAX_PDF_COMPLETO = 500;
 
     /** @return Builder<Matricula> */
     public function consulta(ReportMatriculasRequest $request): Builder
@@ -58,16 +69,28 @@ final class ReportesMatriculas
     }
 
     /**
-     * El mismo agregado filtrado alimenta el resumen y el total del paginador.
+     * El mismo agregado filtrado alimenta el resumen y el total del paginador. Los ingresos salen del libro de pagos
+     * (transacciones confirmadas netas de reversos sobre obligaciones vigentes de las matrículas filtradas).
      *
      * @param  Builder<Matricula>  $query
-     * @return object{total: int|string, ingresos: int|float|string}
+     * @return object{total: int|string, estudiantes: int|string, cursos: int|string, ingresos: int|float|string}
      */
     public function resumen(Builder $query): object
     {
-        return (clone $query)->toBase()->select([])
-            ->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN estado = ? THEN monto_pagado ELSE 0 END), 0) as ingresos', ['pagada'])
+        $totales = (clone $query)->toBase()->select([])
+            ->selectRaw('COUNT(*) as total, COUNT(DISTINCT estudiante_id) as estudiantes, COUNT(DISTINCT curso_id) as cursos')
             ->first();
+
+        $netoLibro = DB::table('obligaciones_pago as o')
+            ->join('transacciones_pago as t', fn ($j) => $j->on('t.obligacion_pago_id', '=', 'o.id')->where('t.estado', 'confirmada'))
+            ->where('o.estado', 'vigente')
+            ->whereIn('o.matricula_id', (clone $query)->toBase()->select('matriculas.id'))
+            ->selectRaw("COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN t.monto ELSE -t.monto END), 0) as neto")
+            ->value('neto') ?? 0;
+
+        $totales->ingresos = max(0.0, (float) $netoLibro);
+
+        return $totales;
     }
 
     /**
@@ -146,5 +169,257 @@ final class ReportesMatriculas
         }
 
         return $resumen;
+    }
+
+    /**
+     * Reporte de cobranza (obligaciones, cobrado neto y saldo pendiente).
+     *
+     * @return array{rows: list<array<string, mixed>>, resumen: array<string, mixed>}
+     */
+    public function cobranza(ReportMatriculasRequest $request): array
+    {
+        $filtros = $request->filters();
+        $query = ObligacionPago::query()
+            ->with(['matricula.estudiante:id,dni,nombres,apellidos', 'matricula.curso:id,codigo,nombre', 'transacciones'])
+            ->whereHas('matricula', function (Builder $m) use ($filtros): void {
+                if (isset($filtros['curso_id'])) {
+                    $m->where('curso_id', (int) $filtros['curso_id']);
+                }
+                if (isset($filtros['busqueda'])) {
+                    $b = (string) $filtros['busqueda'];
+                    $m->where(function (Builder $sub) use ($b): void {
+                        $sub->whereHas('estudiante', fn (Builder $e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $b))
+                            ->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
+                    });
+                }
+            })
+            ->orderByDesc('id');
+
+        if (($filtros['estado'] ?? null) === 'anulada') {
+            $query->where('estado', 'anulada');
+        } else {
+            $query->where('estado', 'vigente');
+        }
+
+        $pagos = app(GestionPagos::class);
+        $estadoFiltro = isset($filtros['estado']) ? (string) $filtros['estado'] : '';
+        $filas = [];
+        $totalFacturado = 0;
+        $totalCobrado = 0;
+        $totalSaldo = 0;
+
+        foreach ($query->get() as $ob) {
+            $saldos = $pagos->saldos($ob);
+            $estadoCobro = match (true) {
+                $ob->estado === 'anulada' => 'anulada',
+                $saldos['confirmado'] >= $saldos['total'] => 'pagada',
+                $saldos['confirmado'] > 0 => 'parcial',
+                default => 'pendiente',
+            };
+            if (in_array($estadoFiltro, ['pendiente', 'parcial', 'pagada'], true) && $estadoCobro !== $estadoFiltro) {
+                continue;
+            }
+            $mat = $ob->matricula;
+            $est = $mat?->estudiante;
+            $curso = $mat?->curso;
+
+            $totalFacturado += $saldos['total'];
+            $totalCobrado += $saldos['confirmado'];
+            $totalSaldo += $saldos['saldo'];
+
+            $filas[] = [
+                'id' => $ob->matricula_id,
+                'obligacion' => $ob->identificador,
+                'estudiante' => $est ? trim($est->nombres.' '.$est->apellidos) : null,
+                'dni' => $est?->dni,
+                'curso' => $curso ? ['codigo' => $curso->codigo, 'nombre' => $curso->nombre] : null,
+                'concepto' => $ob->concepto,
+                'total' => GestionPagos::formato($saldos['total']),
+                'pagado' => GestionPagos::formato($saldos['confirmado']),
+                'saldo' => GestionPagos::formato($saldos['saldo']),
+                'estado' => $estadoCobro,
+            ];
+        }
+
+        return [
+            'rows' => $filas,
+            'resumen' => [
+                'obligaciones' => count($filas),
+                'total_facturado' => GestionPagos::formato($totalFacturado),
+                'cobrado' => GestionPagos::formato($totalCobrado),
+                'saldo_pendiente' => GestionPagos::formato($totalSaldo),
+            ],
+        ];
+    }
+
+    /**
+     * Reporte consolidado de asistencia por edición.
+     *
+     * @return array{rows: list<array<string, mixed>>, resumen: array<string, mixed>}
+     */
+    public function asistencia(ReportMatriculasRequest $request): array
+    {
+        $filtros = $request->filters();
+        $query = Convocatoria::query()->with('curso:id,codigo,nombre')->orderByDesc('fecha_inicio');
+        if (isset($filtros['curso_id'])) {
+            $query->where('curso_id', (int) $filtros['curso_id']);
+        }
+        if (isset($filtros['busqueda'])) {
+            $b = (string) $filtros['busqueda'];
+            $query->where(function (Builder $q) use ($b): void {
+                BusquedaLike::contiene($q, ['codigo', 'nombre'], $b);
+                $q->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
+            });
+        }
+
+        $asistencias = app(GestionAsistencias::class);
+        $filas = [];
+        $totalSesiones = 0;
+        $totalMatriculados = 0;
+        $promedios = [];
+
+        foreach ($query->get() as $conv) {
+            $res = $asistencias->resumen($conv);
+            $porcentajes = collect($res['matriculas'])->pluck('porcentaje')->filter(fn ($v): bool => $v !== null);
+            $promedio = $porcentajes->isEmpty() ? null : round((float) $porcentajes->avg(), 1);
+            if ($promedio !== null) {
+                $promedios[] = $promedio;
+            }
+            $totalSesiones += $res['sesiones_realizadas'];
+            $totalMatriculados += count($res['matriculas']);
+
+            $filas[] = [
+                'identificador' => $conv->identificador,
+                'codigo' => $conv->codigo,
+                'edicion' => $conv->nombre ?: ($conv->curso?->nombre ?? $conv->codigo),
+                'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
+                'sesiones_realizadas' => $res['sesiones_realizadas'],
+                'matriculados' => count($res['matriculas']),
+                'promedio' => $promedio,
+                'estado' => $conv->estado,
+            ];
+        }
+
+        return [
+            'rows' => $filas,
+            'resumen' => [
+                'ediciones' => count($filas),
+                'sesiones_realizadas' => $totalSesiones,
+                'matriculados' => $totalMatriculados,
+                'promedio_asistencia' => $promedios === [] ? null : round(array_sum($promedios) / count($promedios), 1),
+            ],
+        ];
+    }
+
+    /**
+     * Reporte consolidado de calificaciones por edición.
+     *
+     * @return array{rows: list<array<string, mixed>>, resumen: array<string, mixed>}
+     */
+    public function calificaciones(ReportMatriculasRequest $request): array
+    {
+        $filtros = $request->filters();
+        $query = Convocatoria::query()->with('curso:id,codigo,nombre')->orderByDesc('fecha_inicio');
+        if (isset($filtros['curso_id'])) {
+            $query->where('curso_id', (int) $filtros['curso_id']);
+        }
+        if (isset($filtros['busqueda'])) {
+            $b = (string) $filtros['busqueda'];
+            $query->where(function (Builder $q) use ($b): void {
+                BusquedaLike::contiene($q, ['codigo', 'nombre'], $b);
+                $q->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
+            });
+        }
+
+        $filas = [];
+        $totalEvaluados = 0;
+        $totalAprobados = 0;
+        $todasNotas = [];
+
+        foreach ($query->get() as $conv) {
+            $mats = Matricula::query()
+                ->where('convocatoria_id', $conv->id)
+                ->where('estado', '!=', 'anulada')
+                ->get(['nota_final', 'resultado']);
+            $conNota = $mats->filter(fn (Matricula $m): bool => $m->nota_final !== null);
+            $aprobados = $conNota->where('resultado', 'aprobado')->count();
+            $desaprobados = $conNota->where('resultado', 'desaprobado')->count();
+            $promedio = $conNota->isEmpty() ? null : round((float) $conNota->avg('nota_final'), 2);
+            foreach ($conNota as $m) {
+                $todasNotas[] = (float) $m->nota_final;
+            }
+            $totalEvaluados += $conNota->count();
+            $totalAprobados += $aprobados;
+
+            $filas[] = [
+                'identificador' => $conv->identificador,
+                'codigo' => $conv->codigo,
+                'edicion' => $conv->nombre ?: ($conv->curso?->nombre ?? $conv->codigo),
+                'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
+                'matriculados' => $mats->count(),
+                'con_nota' => $conNota->count(),
+                'aprobados' => $aprobados,
+                'desaprobados' => $desaprobados,
+                'promedio' => $promedio,
+                'estado' => $conv->estado,
+            ];
+        }
+
+        return [
+            'rows' => $filas,
+            'resumen' => [
+                'ediciones' => count($filas),
+                'evaluados' => $totalEvaluados,
+                'aprobados' => $totalAprobados,
+                'promedio_general' => $todasNotas === [] ? null : round(array_sum($todasNotas) / count($todasNotas), 2),
+            ],
+        ];
+    }
+
+    /**
+     * Genera un archivo XLSX seguro desde cabeceras y filas tabulares.
+     *
+     * @param  list<string>  $cabeceras
+     * @param  iterable<list<string|int|float|null>>  $filas
+     */
+    public function escribirXlsxTabla(array $cabeceras, iterable $filas, string $tituloHoja, string $archivo): void
+    {
+        $previousCache = Settings::getCache();
+        $cache = new SpreadsheetCellCache;
+        $spreadsheet = null;
+        try {
+            Settings::setCache($cache);
+            $spreadsheet = new Spreadsheet;
+            Settings::setCache($previousCache);
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle(mb_substr($tituloHoja, 0, 31));
+            SafeSpreadsheet::writeRow($sheet, 1, $cabeceras);
+            $rowNumber = 2;
+            foreach ($filas as $row) {
+                SafeSpreadsheet::writeRow($sheet, $rowNumber++, $row);
+            }
+            $writer = new Xlsx($spreadsheet);
+            $writer->setPreCalculateFormulas(false);
+            $writer->save($archivo);
+
+            $zip = new ZipArchive;
+            if ($zip->open($archivo, ZipArchive::CHECKCONS) !== true) {
+                throw new RuntimeException('No se pudo completar el archivo XLSX.');
+            }
+            try {
+                if ($zip->locateName('xl/worksheets/sheet1.xml') === false || $zip->locateName('xl/workbook.xml') === false) {
+                    throw new RuntimeException('El archivo XLSX está incompleto.');
+                }
+            } finally {
+                $zip->close();
+            }
+        } finally {
+            Settings::setCache($previousCache);
+            try {
+                $spreadsheet?->disconnectWorksheets();
+            } finally {
+                $cache->close();
+            }
+        }
     }
 }

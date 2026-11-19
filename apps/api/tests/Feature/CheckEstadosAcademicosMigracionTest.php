@@ -71,7 +71,14 @@ class CheckEstadosAcademicosMigracionTest extends TestCase
         sort($esperados);
 
         $this->assertSame($campo, $definicion['columna']);
-        $this->assertSame($this->valoresDeLaRegla($request, $campo), $esperados);
+        $reglas = $this->valoresDeLaRegla($request, $campo);
+        if ($nombre === 'matriculas_estado_valido') {
+            // Al registrar una matrícula no se elige «pagada» manualmente: ese estado lo deriva GestionPagos desde el libro.
+            $this->assertSame(['anulada', 'pendiente'], $reglas);
+            $this->assertSame(['anulada', 'pagada', 'pendiente'], $esperados);
+        } else {
+            $this->assertSame($reglas, $esperados);
+        }
         $this->assertTrue(Schema::hasColumn($definicion['tabla'], $definicion['columna']));
     }
 

@@ -15,15 +15,19 @@ use App\Services\ComprobantesPago;
 use App\Services\GestionPagos;
 use App\Services\PagosExcel;
 use App\Support\BusquedaLike;
+use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use App\Support\Panel\Listado;
 use App\Support\Panel\PrecondicionesPanel;
 use App\Support\TemporaryExportFile;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -36,13 +40,17 @@ use Throwable;
  */
 final class PagoController extends Controller implements HasMiddleware
 {
+    private const LIMITE_EXPORTACION = 5000;
+
+    private const ORDENABLES = ['creado' => 'obligaciones_pago.created_at', 'monto' => 'obligaciones_pago.monto_total'];
+
     public function __construct(private readonly GestionPagos $gestion) {}
 
     /** @return list<Middleware> */
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'show', 'deMatricula', 'verComprobante']),
+            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'show', 'deMatricula', 'verComprobante', 'recibo']),
             new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante']),
             new Middleware('permission:pagos.planificar', only: ['crearObligacion', 'anular']),
             new Middleware('permission:pagos.registrar', only: ['registrar']),
@@ -59,36 +67,24 @@ final class PagoController extends Controller implements HasMiddleware
 
     public function index(Request $request): JsonResponse
     {
-        $filtros = [
-            'busqueda' => ListFilter::text($request, 'busqueda'),
-            'estado' => ListFilter::in($request, 'estado', ['pendiente', 'parcial', 'pagada', 'anulada']),
-        ];
-        $consulta = ObligacionPago::query()->with(['matricula.estudiante', 'matricula.convocatoria']);
-        if ($filtros['busqueda'] !== '') {
-            $consulta->whereHas('matricula.estudiante', fn ($q) => BusquedaLike::contiene($q, ['dni', 'nombres', 'apellidos'], $filtros['busqueda']));
-        }
-        if ($filtros['estado'] === 'anulada') {
-            $consulta->where('estado', 'anulada');
-        } elseif ($filtros['estado'] !== '') {
-            $consulta->where('estado', 'vigente');
-        }
-        $orden = Listado::ordenar($consulta, $request, ['creado' => 'created_at'], '-creado');
+        [$consulta, $filtros] = $this->consultaFiltrada($request);
+        $orden = Listado::ordenar($consulta, $request, self::ORDENABLES, '-creado');
         $paginas = Listado::paginar($consulta, $request);
-        if ($filtros['estado'] !== '' && $filtros['estado'] !== 'anulada') {
-            // El estado de cobro se deriva del libro: se filtra sobre la página, así que el total es aproximado solo con este filtro.
-            $paginas->setCollection($paginas->getCollection()->filter(fn (ObligacionPago $o): bool => $this->estadoCobro($o) === $filtros['estado'])->values());
-        }
 
         return Listado::responder($paginas, fn (ObligacionPago $o): array => $this->resumen($o), $orden, $filtros)->header('Cache-Control', 'no-store, private');
     }
 
-    /** Excel de las obligaciones (hasta 5000), sin conservarlo en el servidor y con constancia de acceso sin datos de personas. */
+    /** Excel de las obligaciones (hasta 5000, respetando filtros y orden), sin conservarlo en el servidor y con constancia sin datos personales. */
     public function exportar(Request $request): BinaryFileResponse
     {
         /** @var User $usuario */
         $usuario = $request->user();
-        $filas = ObligacionPago::query()->with(['matricula.estudiante', 'matricula.convocatoria'])->orderBy('id')->limit(5000)->get()
-            ->map(fn (ObligacionPago $o): array => $this->resumen($o))->all();
+        [$consulta, $filtros] = $this->consultaFiltrada($request);
+        Listado::ordenar($consulta, $request, self::ORDENABLES, '-creado');
+
+        $coleccion = $consulta->limit(self::LIMITE_EXPORTACION + 1)->get();
+        $truncado = $coleccion->count() > self::LIMITE_EXPORTACION;
+        $filas = $coleccion->take(self::LIMITE_EXPORTACION)->map(fn (ObligacionPago $o): array => $this->resumen($o))->all();
 
         $nombre = 'pagos-'.now()->format('Ymd-His').'.xlsx';
         $disco = Storage::disk('local');
@@ -104,9 +100,28 @@ final class PagoController extends Controller implements HasMiddleware
             if (! is_file($archivo) || filesize($archivo) === 0) {
                 throw new RuntimeException('No se pudo completar el archivo de exportación.');
             }
-            AuditLog::record('pagos_exportados', ObligacionPago::class, null, ['filename' => $nombre, 'obligaciones' => count($filas)], $usuario->id);
+            AuditLog::record('pagos_exportados', ObligacionPago::class, null, [
+                'filename' => $nombre,
+                'obligaciones' => count($filas),
+                'truncado' => $truncado,
+                'filtros' => [
+                    'estado' => $filtros['estado'] !== '' ? $filtros['estado'] : null,
+                    'desde' => $filtros['desde'] !== '' ? $filtros['desde'] : null,
+                    'hasta' => $filtros['hasta'] !== '' ? $filtros['hasta'] : null,
+                    'con_busqueda' => $filtros['busqueda'] !== '',
+                ],
+            ], $usuario->id);
 
-            return response()->download($temporal, $nombre, ['Cache-Control' => 'no-store, private'])->deleteFileAfterSend(true);
+            $cabeceras = [
+                'Cache-Control' => 'no-store, private',
+                'X-Export-Truncated' => $truncado ? 'true' : 'false',
+                'X-Export-Limit' => (string) self::LIMITE_EXPORTACION,
+            ];
+            if ($truncado) {
+                $cabeceras['X-Export-Message'] = 'Se exportaron los primeros '.self::LIMITE_EXPORTACION.' registros mas recientes. Aplica filtros para acotar la descarga.';
+            }
+
+            return response()->download($temporal, $nombre, $cabeceras)->deleteFileAfterSend(true);
         } catch (Throwable $error) {
             if (is_file($archivo)) {
                 unlink($archivo);
@@ -119,6 +134,30 @@ final class PagoController extends Controller implements HasMiddleware
     public function show(string $obligacion): JsonResponse
     {
         return $this->json(['data' => $this->detalle($this->buscar($obligacion))]);
+    }
+
+    /** Recibo e historial de pagos confirmados en PDF (sin claves ni enlaces privados). */
+    public function recibo(Request $request, string $obligacion): Response
+    {
+        /** @var User|null $usuario */
+        $usuario = $request->user();
+        $modelo = $this->buscar($obligacion);
+        $modelo->loadMissing(['matricula.estudiante', 'matricula.curso', 'matricula.convocatoria', 'cuotas', 'transacciones.metodo', 'transacciones.reversaDe']);
+        $detalle = $this->detalle($modelo);
+
+        AuditLog::record('pago_recibo_pdf', ObligacionPago::class, $modelo->id, ['matricula_id' => $modelo->matricula_id], $usuario?->id);
+
+        $pdf = Pdf::loadView('pdf.recibo-pago', [
+            'obligacion' => $modelo,
+            'detalle' => $detalle,
+            'fecha' => HoraLocal::ahora()->format('d/m/Y H:i'),
+        ]);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"recibo-pago-{$modelo->identificador}.pdf\"",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     /** Obligación vigente de una matrícula (o `data: null` si todavía no tiene). */
@@ -238,12 +277,74 @@ final class PagoController extends Controller implements HasMiddleware
             ->where('identificador', strtolower($identificador))->firstOrFail();
     }
 
-    private function estadoCobro(ObligacionPago $o): string
+    /**
+     * Consulta de obligaciones con sumas de transacciones calculadas en SQL para filtrar el estado de cobro antes de paginar
+     * y evitar consultas N+1 al presentar cada fila.
+     *
+     * @return array{0: Builder<ObligacionPago>, 1: array{busqueda: string, estado: string, desde: string, hasta: string}}
+     */
+    private function consultaFiltrada(Request $request): array
+    {
+        $filtros = [
+            'busqueda' => ListFilter::text($request, 'busqueda'),
+            'estado' => ListFilter::in($request, 'estado', ['pendiente', 'parcial', 'con_saldo', 'pagada', 'anulada', 'por_confirmar', 'vencidas']),
+            'desde' => ListFilter::date($request, 'desde'),
+            'hasta' => ListFilter::date($request, 'hasta'),
+        ];
+
+        $sqlConfirmado = "(SELECT ROUND(COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN t.monto ELSE -t.monto END), 0), 2) FROM transacciones_pago t WHERE t.obligacion_pago_id = obligaciones_pago.id AND t.estado = 'confirmada')";
+        $sqlPendiente = "(SELECT ROUND(COALESCE(SUM(t.monto), 0), 2) FROM transacciones_pago t WHERE t.obligacion_pago_id = obligaciones_pago.id AND t.tipo = 'pago' AND t.estado = 'pendiente')";
+
+        $consulta = ObligacionPago::query()
+            ->select('obligaciones_pago.*')
+            ->selectRaw("{$sqlConfirmado} as monto_confirmado_calculado, {$sqlPendiente} as monto_pendiente_calculado")
+            ->with(['matricula.estudiante', 'matricula.convocatoria', 'cuotas']);
+
+        if ($filtros['busqueda'] !== '') {
+            $busqueda = $filtros['busqueda'];
+            $consulta->where(function (Builder $q) use ($busqueda): void {
+                $q->whereHas('matricula.estudiante', fn (Builder $e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $busqueda))
+                    ->orWhereHas('matricula.convocatoria', fn (Builder $cv) => BusquedaLike::contiene($cv, ['codigo'], $busqueda));
+                BusquedaLike::contiene($q, ['obligaciones_pago.concepto'], $busqueda, or: true);
+            });
+        }
+
+        if ($filtros['estado'] === 'anulada') {
+            $consulta->where('obligaciones_pago.estado', 'anulada');
+        } elseif ($filtros['estado'] !== '') {
+            $consulta->where('obligaciones_pago.estado', 'vigente');
+            match ($filtros['estado']) {
+                'pendiente' => $consulta->whereRaw("{$sqlConfirmado} <= 0"),
+                'pagada' => $consulta->whereRaw("{$sqlConfirmado} >= ROUND(obligaciones_pago.monto_total, 2)"),
+                'parcial' => $consulta->whereRaw("{$sqlConfirmado} > 0 AND {$sqlConfirmado} < ROUND(obligaciones_pago.monto_total, 2)"),
+                'con_saldo' => $consulta->whereRaw("{$sqlConfirmado} < ROUND(obligaciones_pago.monto_total, 2)"),
+                'por_confirmar' => $consulta->whereRaw("{$sqlPendiente} > 0"),
+                'vencidas' => $consulta->whereRaw("{$sqlConfirmado} < ROUND(obligaciones_pago.monto_total, 2)")
+                    ->whereHas('cuotas', function (Builder $c) use ($sqlConfirmado): void {
+                        $c->where('vence', '<', HoraLocal::hoy())
+                            ->whereRaw("ROUND(COALESCE((SELECT SUM(c2.monto) FROM cuotas_obligacion c2 WHERE c2.obligacion_pago_id = obligaciones_pago.id AND c2.numero <= cuotas_obligacion.numero), 0), 2) > {$sqlConfirmado}");
+                    }),
+                default => null,
+            };
+        }
+
+        if ($filtros['desde'] !== '') {
+            $consulta->where('obligaciones_pago.created_at', '>=', Carbon::parse($filtros['desde'], HoraLocal::ZONA)->startOfDay()->utc());
+        }
+        if ($filtros['hasta'] !== '') {
+            $consulta->where('obligaciones_pago.created_at', '<=', Carbon::parse($filtros['hasta'], HoraLocal::ZONA)->endOfDay()->utc());
+        }
+
+        return [$consulta, $filtros];
+    }
+
+    /** @param  array{total: int, confirmado: int, pendiente: int, saldo: int}|null  $saldos */
+    private function estadoCobro(ObligacionPago $o, ?array $saldos = null): string
     {
         if ($o->estado === 'anulada') {
             return 'anulada';
         }
-        $s = $this->gestion->saldos($o);
+        $s = $saldos ?? $this->gestion->saldos($o);
 
         return $s['confirmado'] <= 0 ? 'pendiente' : ($s['confirmado'] >= $s['total'] ? 'pagada' : 'parcial');
     }
@@ -253,20 +354,50 @@ final class PagoController extends Controller implements HasMiddleware
     {
         $s = $this->gestion->saldos($o);
         $e = $o->matricula->estudiante;
+        $proximaCuota = null;
+        if ($o->estado === 'vigente' && $s['total'] > $s['confirmado']) {
+            $o->loadMissing('cuotas');
+            $restante = $s['confirmado'];
+            $hoy = HoraLocal::hoy();
+            foreach ($o->cuotas->sortBy('numero') as $cuota) {
+                $montoCuota = GestionPagos::leer($cuota->monto);
+                $cubierto = min($montoCuota, $restante);
+                $restante -= $cubierto;
+                $saldoCuota = $montoCuota - $cubierto;
+                if ($saldoCuota > 0) {
+                    $vence = substr((string) $cuota->vence, 0, 10);
+                    $proximaCuota = [
+                        'numero' => $cuota->numero,
+                        'vence' => $vence,
+                        'saldo' => GestionPagos::formato($saldoCuota),
+                        'vencida' => $vence < $hoy,
+                    ];
+
+                    break;
+                }
+            }
+        }
 
         return [
             'identificador' => $o->identificador,
             'matricula_id' => $o->matricula->id,
-            'estudiante' => ['dni' => $e->dni, 'nombre' => trim($e->apellidos.', '.$e->nombres)],
+            'estudiante' => [
+                'id' => $e->id,
+                'dni' => $e->dni,
+                'nombre' => trim($e->apellidos.', '.$e->nombres),
+                'telefono' => $e->telefono,
+                'email' => $e->email,
+            ],
             'edicion' => $o->matricula->convocatoria?->codigo,
             'concepto' => $o->concepto,
             'plan' => $o->plan,
-            'estado' => $this->estadoCobro($o),
+            'estado' => $this->estadoCobro($o, $s),
             'moneda' => $o->moneda,
             'monto_total' => GestionPagos::formato($s['total']),
             'pagado' => GestionPagos::formato($s['confirmado']),
             'pendiente_confirmar' => GestionPagos::formato($s['pendiente']),
             'saldo' => GestionPagos::formato(max(0, $s['total'] - $s['confirmado'])),
+            'proxima_cuota' => $proximaCuota,
         ];
     }
 

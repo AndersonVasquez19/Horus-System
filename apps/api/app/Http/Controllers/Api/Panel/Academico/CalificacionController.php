@@ -45,7 +45,7 @@ final class CalificacionController extends Controller implements HasMiddleware
             new Middleware('permission:calificaciones.registrar|calificaciones.corregir', only: ['nota']),
             new Middleware('permission:calificaciones.corregir', only: ['crearEvaluacion', 'actualizarEvaluacion', 'eliminarEvaluacion']),
             new Middleware('permission:convocatorias.cerrar', only: ['cerrarActa']),
-            new Middleware('permission:calificaciones.exportar', only: ['exportarActa']),
+            new Middleware('permission:calificaciones.exportar', only: ['exportarActa', 'exportarBorradorActa']),
         ];
     }
 
@@ -121,9 +121,25 @@ final class CalificacionController extends Controller implements HasMiddleware
         $usuario = $request->user();
         $convocatoria = $this->convocatoria($identificador);
         abort_unless($convocatoria->estado === 'cerrada', 409, 'El acta se exporta una vez cerrada.');
+
+        return $this->generarExcelActa($convocatoria, $usuario, 'acta', 'acta_exportada');
+    }
+
+    /** Exporta el avance actual de notas en Excel sin requerir el cierre de acta. */
+    public function exportarBorradorActa(Request $request, string $identificador): BinaryFileResponse
+    {
+        /** @var User $usuario */
+        $usuario = $request->user();
+        $convocatoria = $this->convocatoria($identificador);
+
+        return $this->generarExcelActa($convocatoria, $usuario, 'borrador-acta', 'acta_borrador_exportada');
+    }
+
+    private function generarExcelActa(Convocatoria $convocatoria, User $usuario, string $prefijo, string $accionAuditoria): BinaryFileResponse
+    {
         $acta = $this->matriz($convocatoria);
 
-        $nombre = 'acta-'.strtolower($convocatoria->codigo).'-'.now()->format('Ymd-His').'.xlsx';
+        $nombre = $prefijo.'-'.strtolower($convocatoria->codigo).'-'.now()->format('Ymd-His').'.xlsx';
         $disco = Storage::disk('local');
         if (! $disco->makeDirectory('exports')) {
             throw new RuntimeException('No se pudo crear el directorio temporal de exportación.');
@@ -132,13 +148,13 @@ final class CalificacionController extends Controller implements HasMiddleware
         $temporal = new TemporaryExportFile($archivo, false);
 
         try {
-            app(ActaExcel::class)->write($acta, $archivo);
+            app(ActaExcel::class)->write($acta, $archivo, $prefijo === 'borrador-acta');
             clearstatcache(true, $archivo);
             if (! is_file($archivo) || filesize($archivo) === 0) {
                 throw new RuntimeException('No se pudo completar el archivo de exportación.');
             }
 
-            AuditLog::record('acta_exportada', Convocatoria::class, $convocatoria->id, [
+            AuditLog::record($accionAuditoria, Convocatoria::class, $convocatoria->id, [
                 'filename' => $nombre, 'matriculas' => count($acta['matriculas']),
             ], $usuario->id);
 

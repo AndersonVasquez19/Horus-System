@@ -26,6 +26,7 @@ class StoreCursoRequest extends FormRequest
             'precio' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'modalidad' => ['required', Rule::in(['presencial', 'semipresencial', 'virtual', 'hibrido'])],
             'horario' => ['required', 'string', 'max:100'],
+            'enlace_grupo_whatsapp' => ['nullable', 'string', 'max:255', 'regex:/\Ahttps:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,120}\z/'],
             'cupos_maximos' => ['required', 'integer', 'min:1', 'max:'.(int) config('academico.cupos_maximos', 10)],
             'estado' => ['required', Rule::in(['activo', 'inactivo', 'archivado'])],
         ];
@@ -52,6 +53,8 @@ class StoreCursoRequest extends FormRequest
             'modalidad.in' => 'La modalidad seleccionada no es válida.',
             'horario.required' => 'El horario del curso es obligatorio.',
             'horario.max' => 'El horario no debe superar los 100 caracteres.',
+            'enlace_grupo_whatsapp.max' => 'El enlace del grupo no debe superar los 255 caracteres.',
+            'enlace_grupo_whatsapp.regex' => 'El enlace debe pertenecer a un grupo válido de WhatsApp (https://chat.whatsapp.com/…).',
             'cupos_maximos.required' => 'Debes indicar la cantidad de cupos.',
             'cupos_maximos.integer' => 'Los cupos deben ser un número entero.',
             'cupos_maximos.min' => 'Los cupos deben ser al menos 1.',

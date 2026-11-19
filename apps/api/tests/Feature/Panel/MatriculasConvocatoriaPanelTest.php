@@ -157,14 +157,14 @@ final class MatriculasConvocatoriaPanelTest extends PanelApiTestCase
         $id = $this->como($admin, 'POST', 'matriculas', $this->datos($convocatoria))->assertCreated()->json('data.id');
         $this->assertSame(1, $this->cuposConvocatoria($convocatoria));
 
-        $this->como($admin, 'POST', "matriculas/{$id}/anular")->assertOk();
-        $this->como($admin, 'POST', "matriculas/{$id}/anular")->assertOk();
+        $this->como($admin, 'POST', "matriculas/{$id}/anular", ['motivo' => 'Anulación de prueba'])->assertOk();
+        $this->como($admin, 'POST', "matriculas/{$id}/anular", ['motivo' => 'Anulación repetida'])->assertOk();
         $this->assertSame(2, $this->cuposConvocatoria($convocatoria));
         $this->assertSame(5, $this->cuposCurso());
 
         $otro = $this->como($admin, 'POST', 'matriculas', $this->datos($convocatoria))->assertCreated()->json('data.id');
         $this->assertSame(1, $this->cuposConvocatoria($convocatoria));
-        $this->como($admin, 'DELETE', "matriculas/{$otro}")->assertOk();
+        $this->como($admin, 'DELETE', "matriculas/{$otro}", ['motivo' => 'Eliminación de prueba'])->assertOk();
         $this->assertSame(2, $this->cuposConvocatoria($convocatoria));
         $this->assertSame(5, $this->cuposCurso());
     }
@@ -174,7 +174,7 @@ final class MatriculasConvocatoriaPanelTest extends PanelApiTestCase
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $convocatoria = $this->convocatoria('abierta', null, 1);
         $id = $this->como($admin, 'POST', 'matriculas', $this->datos($convocatoria))->assertCreated()->json('data.id');
-        $this->como($admin, 'DELETE', "matriculas/{$id}")->assertOk();
+        $this->como($admin, 'DELETE', "matriculas/{$id}", ['motivo' => 'Eliminación temporal'])->assertOk();
         $this->assertSame(1, $this->cuposConvocatoria($convocatoria));
 
         $otro = $this->estudiante('22222222');
@@ -194,7 +194,7 @@ final class MatriculasConvocatoriaPanelTest extends PanelApiTestCase
         $id = $this->como($admin, 'POST', 'matriculas', $this->datos($convocatoria))->assertCreated()->json('data.id');
         $editar = fn (array $cambios) => $this->como($admin, 'PUT', "matriculas/{$id}", [
             'estudiante_id' => $this->estudiante->id, 'curso_id' => $this->curso->id, 'fecha_matricula' => '2026-11-10',
-            'estado' => 'pagada', 'monto_pagado' => null, 'observaciones' => null, ...$cambios,
+            'estado' => 'pendiente', 'observaciones' => null, ...$cambios,
         ]);
 
         $editar(['curso_id' => $otroCurso->id])
@@ -203,11 +203,11 @@ final class MatriculasConvocatoriaPanelTest extends PanelApiTestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['convocatoria']);
         $this->assertSame(1, $this->cuposConvocatoria($convocatoria));
 
-        $editar([])->assertOk()->assertJsonPath('data.estado', 'pagada')->assertJsonPath('data.convocatoria.codigo', $convocatoria->codigo);
+        $editar(['observaciones' => 'Actualizada'])->assertOk()->assertJsonPath('data.estado', 'pendiente')->assertJsonPath('data.convocatoria.codigo', $convocatoria->codigo);
         $this->assertSame(1, $this->cuposConvocatoria($convocatoria));
 
         // Anular por PUT libera el cupo de la convocatoria; reactivarla lo vuelve a ocupar.
-        $editar(['estado' => 'anulada'])->assertOk();
+        $editar(['estado' => 'anulada', 'motivo' => 'Anulación por edición'])->assertOk();
         $this->assertSame(2, $this->cuposConvocatoria($convocatoria));
         $editar(['estado' => 'pendiente'])->assertOk();
         $this->assertSame(1, $this->cuposConvocatoria($convocatoria));
@@ -219,12 +219,12 @@ final class MatriculasConvocatoriaPanelTest extends PanelApiTestCase
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $convocatoria = $this->convocatoria();
         $id = $this->como($admin, 'POST', 'matriculas', $this->datos($convocatoria))->assertCreated()->json('data.id');
-        $this->como($admin, 'POST', "matriculas/{$id}/anular")->assertOk();
+        $this->como($admin, 'POST', "matriculas/{$id}/anular", ['motivo' => 'Anulación antes de cierre'])->assertOk();
         $convocatoria->forceFill(['estado' => 'cerrada'])->save();
 
         $this->como($admin, 'PUT', "matriculas/{$id}", [
             'estudiante_id' => $this->estudiante->id, 'curso_id' => $this->curso->id, 'fecha_matricula' => '2026-11-10',
-            'estado' => 'pendiente', 'monto_pagado' => null, 'observaciones' => null,
+            'estado' => 'pendiente', 'observaciones' => null,
         ])->assertUnprocessable()->assertJsonPath('errors.convocatoria.0', 'La convocatoria no admite matrículas en su estado actual.');
         $this->assertSame(2, $this->cuposConvocatoria($convocatoria));
     }
@@ -243,7 +243,7 @@ final class MatriculasConvocatoriaPanelTest extends PanelApiTestCase
         $cancelar()->assertStatus(409);
         $this->assertSame('abierta', $convocatoria->fresh()->estado);
 
-        $this->como($admin, 'POST', "matriculas/{$id}/anular")->assertOk();
+        $this->como($admin, 'POST', "matriculas/{$id}/anular", ['motivo' => 'Anulación previa a cancelar'])->assertOk();
         $cancelar()->assertOk();
         $this->assertSame('cancelada', $convocatoria->fresh()->estado);
     }

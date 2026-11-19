@@ -7,7 +7,9 @@ namespace App\Http\Controllers\Api\Panel\Compartido;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Support\GeneraExportacionAdministrativa;
+use App\Support\ListFilter;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -25,9 +27,12 @@ class RespaldoController extends Controller implements HasMiddleware
 {
     use GeneraExportacionAdministrativa;
 
-    /** Tablas incluidas (las mismas que el módulo Blade). */
+    /** Tablas incluidas en la exportación administrativa de Horus Academic. */
     private const TABLAS = [
-        'users', 'estudiantes', 'cursos', 'matriculas', 'procesos_internos',
+        'users', 'estudiantes', 'cursos', 'convocatorias', 'matriculas',
+        'sesiones_clase', 'asistencias', 'evaluaciones', 'calificaciones',
+        'obligaciones_pago', 'cuotas_obligacion', 'transacciones_pago',
+        'reclamaciones', 'mensajes_contacto',
         'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas',
     ];
 
@@ -36,8 +41,17 @@ class RespaldoController extends Controller implements HasMiddleware
         'users' => 'Usuarios del panel',
         'estudiantes' => 'Estudiantes',
         'cursos' => 'Cursos',
+        'convocatorias' => 'Ediciones (convocatorias)',
         'matriculas' => 'Matrículas',
-        'procesos_internos' => 'Procesos internos',
+        'sesiones_clase' => 'Sesiones de clase',
+        'asistencias' => 'Asistencias',
+        'evaluaciones' => 'Evaluaciones',
+        'calificaciones' => 'Calificaciones',
+        'obligaciones_pago' => 'Obligaciones de pago',
+        'cuotas_obligacion' => 'Cuotas de pago',
+        'transacciones_pago' => 'Transacciones del libro',
+        'reclamaciones' => 'Reclamaciones',
+        'mensajes_contacto' => 'Mensajes de contacto',
         'notificaciones_internas' => 'Notificaciones',
         'audit_logs' => 'Historial de actividad',
         'system_settings' => 'Configuración del sistema',
@@ -73,11 +87,27 @@ class RespaldoController extends Controller implements HasMiddleware
         ]]);
     }
 
-    public function exportar(): JsonResponse|BinaryFileResponse
+    public function exportar(Request $request): JsonResponse|BinaryFileResponse
     {
         if (! class_exists(ZipArchive::class)) {
             return response()->json(['message' => 'No se pueden preparar descargas comprimidas en este servidor. Contacta con soporte.'], 503);
         }
+
+        $brutoTablas = $request->input('tablas', $request->query('tablas'));
+        $seleccionadas = match (true) {
+            is_array($brutoTablas) => array_values(array_filter(array_map('strval', $brutoTablas))),
+            is_string($brutoTablas) && trim($brutoTablas) !== '' => array_values(array_filter(array_map('trim', explode(',', $brutoTablas)))),
+            default => null,
+        };
+        if ($seleccionadas !== null) {
+            $seleccionadas = array_values(array_intersect(self::TABLAS, $seleccionadas));
+            if ($seleccionadas === []) {
+                return response()->json(['message' => 'Selecciona al menos una tabla válida para exportar.'], 422);
+            }
+        }
+
+        $desde = ListFilter::date($request, 'desde');
+        $hasta = ListFilter::date($request, 'hasta');
 
         $nombre = 'exportacion_'.now()->format('Ymd_His').'.zip';
         $zipPath = $this->newTemporaryFile();
@@ -89,11 +119,18 @@ class RespaldoController extends Controller implements HasMiddleware
         $entregable = false;
 
         try {
-            $incluidas = $this->buildArchive($zipPath);
+            $incluidas = $this->buildArchive(
+                $zipPath,
+                $seleccionadas,
+                $desde !== '' ? $desde : null,
+                $hasta !== '' ? $hasta : null,
+            );
 
             AuditLog::record('data_export_generated', null, null, [
                 'filename' => $nombre,
                 'tables' => array_keys($incluidas),
+                'desde' => $desde !== '' ? $desde : null,
+                'hasta' => $hasta !== '' ? $hasta : null,
                 'canal' => 'panel',
             ]);
 

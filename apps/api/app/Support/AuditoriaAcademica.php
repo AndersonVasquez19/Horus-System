@@ -87,7 +87,7 @@ final class AuditoriaAcademica
         self::CURSO => [
             // «cupos» autorizados expresamente: la tabla no tiene una columna «cupos», sino estas dos.
             'valores' => ['precio', 'cupos_maximos', 'cupos_disponibles'],
-            'nombres' => ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'modalidad', 'horario', 'estado'],
+            'nombres' => ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'modalidad', 'horario', 'enlace_grupo_whatsapp', 'estado'],
         ],
         self::MATRICULA => [
             'valores' => ['estudiante_id', 'curso_id', 'convocatoria_id', 'fecha_matricula', 'estado', 'monto_pagado'],

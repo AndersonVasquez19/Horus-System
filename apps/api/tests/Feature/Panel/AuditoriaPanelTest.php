@@ -213,4 +213,27 @@ final class AuditoriaPanelTest extends PanelApiTestCase
         }
         $this->assertSame(['exportacion_ficticia'], $this->acciones($admin, '?accion=EXPORTACION'));
     }
+
+    public function test_exportacion_devuelve_cambios_como_objeto_y_selectores_ocultan_modulos_retirados(): void
+    {
+        $admin = $this->admin();
+        $this->registro('perfil_actualizado', '2026-11-03 10:00:00', null, ['campos' => ['name']]);
+        $this->registro('docente_creado', '2026-11-03 09:00:00', null, ['nombres' => 'Histórico']);
+
+        $json = $this->como($admin, 'POST', '/exportar', ['accion' => 'perfil'])->assertOk()->streamedContent();
+        $exportado = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsArray($exportado[0]['cambios']);
+        $this->assertSame(['name'], $exportado[0]['cambios']['campos']);
+
+        $respuesta = $this->como($admin, 'GET', '')->assertOk();
+        $acciones = array_column($respuesta->json('meta.acciones'), 'clave');
+        $secciones = array_column($respuesta->json('meta.secciones'), 'clave');
+
+        $this->assertNotContains('docente_creado', $acciones);
+        $this->assertNotContains('servicio_creado', $acciones);
+        $this->assertNotContains('Docente', $secciones);
+        $this->assertNotContains('Sede', $secciones);
+        $this->assertNotContains('ServicioTecnologico', $secciones);
+        $this->assertContains('Docente registrado', array_column($respuesta->json('data'), 'accion_etiqueta'));
+    }
 }

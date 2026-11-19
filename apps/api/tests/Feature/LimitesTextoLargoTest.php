@@ -42,7 +42,7 @@ class LimitesTextoLargoTest extends TestCase
 
         $base = [
             'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => now()->toDateString(),
-            'estado' => 'pendiente', 'monto_pagado' => 0,
+            'estado' => 'pendiente',
         ];
 
         $this->actingAs($admin)->panelMatriculas('POST', '', $base + ['observaciones' => str_repeat('a', 2001)])

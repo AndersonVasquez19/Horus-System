@@ -16,6 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /*
  * Horus Academic, Fase 7: libro de pagos. SQLite en memoria: los CHECK, los disparadores de inmutabilidad y el bloqueo de filas
@@ -255,7 +256,7 @@ it('anula la obligación solo sin pagos y bloquea anular una matrícula con pago
     pagoRegistrar($this, $admin, $id, '100', 'clave-0001-abcd', ['confirmar' => true])->assertCreated();
 
     $this->panelComo($admin, 'POST', "academico/pagos/obligaciones/{$id}/anular", ['motivo' => 'Error de captura inicial'])->assertStatus(409);
-    $datos = ['estudiante_id' => $m->estudiante_id, 'curso_id' => $m->curso_id, 'convocatoria_id' => $m->convocatoria_id, 'fecha_matricula' => now()->toDateString(), 'estado' => 'anulada', 'monto_pagado' => 100];
+    $datos = ['estudiante_id' => $m->estudiante_id, 'curso_id' => $m->curso_id, 'convocatoria_id' => $m->convocatoria_id, 'fecha_matricula' => now()->toDateString(), 'estado' => 'anulada', 'motivo' => 'Anulación bloqueada por pagos'];
     $this->panelComo($admin, 'PUT', "academico/matriculas/{$m->id}", $datos)->assertStatus(409);
     expect($m->fresh()->estado)->toBe('pendiente');
 
@@ -393,4 +394,66 @@ it('solo adjunta a pagos por confirmar y exige el comprobante para confirmar', f
     $this->panelComo($admin, 'POST', "academico/pagos/transacciones/{$tx}/confirmar")->assertOk();
     pagoComprobante($this, $coord, $tx)->assertStatus(409);
     expect(DB::table('comprobantes_pago')->count())->toBe(1);
+});
+
+it('filtra por estado de cobro en SQL antes de paginar y sin consultas N+1', function (): void {
+    $admin = $this->usuarioConRol('admin');
+    $estados = ['pendiente', 'pendiente', 'pendiente', 'parcial', 'pagada', 'pendiente'];
+    foreach ($estados as $i => $tipo) {
+        $m = pagoMatricula('6100000'.$i);
+        $id = pagoObligacion($this, $admin, $m, 'completo', '200.00');
+        if ($tipo === 'parcial') {
+            pagoRegistrar($this, $admin, $id, '50.00', 'clave-sql-'.$i, ['confirmar' => true])->assertCreated();
+        } elseif ($tipo === 'pagada') {
+            pagoRegistrar($this, $admin, $id, '200.00', 'clave-sql-'.$i, ['confirmar' => true])->assertCreated();
+        }
+    }
+
+    $p1 = $this->panelComo($admin, 'GET', 'academico/pagos/obligaciones?estado=pendiente&per_page=2&page=1')->assertOk();
+    $p1->assertJsonPath('meta.total', 4)->assertJsonPath('meta.paginas', 2)->assertJsonCount(2, 'data');
+    $p2 = $this->panelComo($admin, 'GET', 'academico/pagos/obligaciones?estado=pendiente&per_page=2&page=2')->assertOk();
+    $p2->assertJsonPath('meta.total', 4)->assertJsonPath('meta.paginas', 2)->assertJsonCount(2, 'data');
+
+    $conSaldo = $this->panelComo($admin, 'GET', 'academico/pagos/obligaciones?estado=con_saldo&per_page=10')->assertOk();
+    $conSaldo->assertJsonPath('meta.total', 5);
+
+    // Calentamiento de permisos y medición sin N+1 por fila.
+    $this->panelComo($admin, 'GET', 'academico/pagos/obligaciones?per_page=2')->assertOk();
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $this->panelComo($admin, 'GET', 'academico/pagos/obligaciones?per_page=2')->assertOk();
+    $consultasDosFilas = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $this->panelComo($admin, 'GET', 'academico/pagos/obligaciones?per_page=10')->assertOk();
+    $consultasSeisFilas = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($consultasSeisFilas)->toBe($consultasDosFilas);
+});
+
+it('exporta obligaciones respetando los filtros y expone cabeceras de límite', function (): void {
+    $admin = $this->usuarioConRol('admin');
+    $m1 = pagoMatricula('62000001');
+    $m2 = pagoMatricula('62000002');
+    $id1 = pagoObligacion($this, $admin, $m1, 'completo', '100.00');
+    pagoObligacion($this, $admin, $m2, 'completo', '100.00');
+    pagoRegistrar($this, $admin, $id1, '100.00', 'clave-exp-1', ['confirmar' => true])->assertCreated();
+
+    $r = $this->panelComo($admin, 'POST', 'academico/pagos/exportar?estado=pagada&busqueda=62000001')->assertOk();
+    expect($r->headers->get('X-Export-Limit'))->toBe('5000')
+        ->and($r->headers->get('X-Export-Truncated'))->toBe('false');
+
+    $archivo = $r->baseResponse->getFile()->getPathname();
+    try {
+        $hoja = IOFactory::load($archivo)->getActiveSheet();
+        expect($hoja->getHighestDataRow())->toBe(2)
+            ->and($hoja->getCell('A2')->getValue())->toBe('62000001');
+    } finally {
+        if (is_file($archivo)) {
+            unlink($archivo);
+        }
+    }
 });

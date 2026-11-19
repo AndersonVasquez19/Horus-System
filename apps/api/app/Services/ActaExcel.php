@@ -19,13 +19,17 @@ final class ActaExcel
     /**
      * @param  array<string, mixed>  $acta  la matriz de notas que arma `CalificacionController` para la pantalla
      */
-    public function write(array $acta, string $archivo): void
+    public function write(array $acta, string $archivo, bool $borrador = false): void
     {
         $libro = new Spreadsheet;
         try {
             $sheet = $libro->getActiveSheet();
-            $sheet->setTitle('Acta');
+            $sheet->setTitle($borrador ? 'BORRADOR' : 'Acta');
             SafeSpreadsheet::writeRow($sheet, 1, ['Convocatoria', $acta['convocatoria']['codigo']]);
+            if ($borrador) {
+                // Documento no oficial: el acta solo vale tras el cierre de la convocatoria.
+                SafeSpreadsheet::writeRow($sheet, 3, ['BORRADOR - NO OFICIAL: notas y resultados provisionales, sujetos a cambio hasta el cierre del acta.']);
+            }
             SafeSpreadsheet::writeRow($sheet, 2, ['Curso', $acta['convocatoria']['curso'] ?? '']);
 
             $cabecera = ['DNI', 'Estudiante'];
@@ -41,7 +45,7 @@ final class ActaExcel
                 foreach ($acta['evaluaciones'] as $evaluacion) {
                     $celdas[] = $matricula['notas'][$evaluacion['identificador']] ?? '';
                 }
-                array_push($celdas, $matricula['nota_final'] ?? '', $matricula['resultado'] ?? '');
+                array_push($celdas, $matricula['nota_final'] ?? '', $borrador ? 'PROVISIONAL' : ($matricula['resultado'] ?? ''));
                 SafeSpreadsheet::writeRow($sheet, $fila++, $celdas);
             }
 

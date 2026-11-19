@@ -35,6 +35,9 @@ class MatriculaOperationsTest extends TestCase
     {
         foreach (['pendiente', 'pagada', 'anulada'] as $from) {
             foreach (['pendiente', 'pagada', 'anulada'] as $to) {
+                if (($to === 'pagada' && $from !== 'pagada') || ($from === 'pagada' && $to === 'pendiente')) {
+                    continue;
+                }
                 foreach ([false, true] as $transfer) {
                     yield "$from -> $to / transfer=".(int) $transfer => [$from, $to, $transfer];
                 }
@@ -49,8 +52,9 @@ class MatriculaOperationsTest extends TestCase
         $target = $transfer ? $this->course('TARGET') : $source;
         $notifications = DB::table('matricula_notifications')->count();
         $this->actingAs($this->adminUser());
+        $payload = $this->data($student, $target, $to) + ($to === 'anulada' ? ['motivo' => 'Cambio de estado en prueba'] : []);
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, $to))->assertOk();
+            $this->panelMatriculas('PUT', (string) $enrollment->id, $payload)->assertOk();
             $this->assertSame($to, $enrollment->fresh()->estado);
             $this->assertSame($target->id, $enrollment->fresh()->curso_id);
             $this->assertSeats($source);
@@ -83,9 +87,9 @@ class MatriculaOperationsTest extends TestCase
             $target->decrement('cupos_disponibles');
             Matricula::whereKey($enrollment->id)->update(['estado' => 'pendiente', 'curso_id' => $target->id]);
         });
-        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'))
             ->assertOk();
-        $this->assertSame('pagada', $enrollment->fresh()->estado);
+        $this->assertSame('pendiente', $enrollment->fresh()->estado);
         $this->assertSeats($source);
         $this->assertSeats($target);
         $this->assertSame(0, $target->fresh()->cupos_disponibles);
@@ -112,14 +116,14 @@ class MatriculaOperationsTest extends TestCase
         if ($deleted !== null) {
             ($deleted === 'student' ? $student : $target)->delete();
         }
-        $response = $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'));
+        $response = $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'));
         if ($deleted !== null || $studentState !== 'activo' || $courseState !== 'activo') {
             $response->assertUnprocessable()->assertJsonValidationErrors($deleted === 'student' || $studentState !== 'activo' ? 'estudiante_id' : 'curso_id');
             $this->assertSame('anulada', $enrollment->fresh()->estado);
             $this->assertSame($source->id, $enrollment->fresh()->curso_id);
         } else {
             $response->assertOk();
-            $this->assertSame('pagada', $enrollment->fresh()->estado);
+            $this->assertSame('pendiente', $enrollment->fresh()->estado);
             $this->assertSame($target->id, $enrollment->fresh()->curso_id);
         }
         $this->assertSeats($source);
@@ -139,8 +143,8 @@ class MatriculaOperationsTest extends TestCase
     public function test_restore_requires_eligible_parents_only_for_current_occupation(string $state, string $studentState, string $courseState, ?string $deleted): void
     {
         [$student, $course, $enrollment] = $this->enrollment($state);
-        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
-        $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertNotFound();
+        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Eliminación temporal'])->assertOk();
+        $this->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Repetición'])->assertNotFound();
         $student->update(['estado' => $studentState]);
         $course->update(['estado' => $courseState]);
         if ($deleted !== null) {
@@ -176,11 +180,11 @@ class MatriculaOperationsTest extends TestCase
     #[DataProvider('rollbackOperations')]
     public function test_failure_rolls_back_state_relations_and_seats(string $operation, string $event): void
     {
-        [$student, $source, $enrollment] = $this->enrollment($operation === 'update' ? 'anulada' : 'pagada');
+        [$student, $source, $enrollment] = $this->enrollment($operation === 'update' ? 'anulada' : 'pendiente');
         $target = $this->course('TARGET');
         $this->actingAs($this->adminUser());
         if ($operation === 'restaurar') {
-            $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
+            $this->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Preparación de rollback'])->assertOk();
         }
         $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
         $sourceSeats = $source->fresh()->cupos_disponibles;
@@ -194,7 +198,8 @@ class MatriculaOperationsTest extends TestCase
         try {
             match ($operation) {
                 'update', 'transfer' => $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente')),
-                'destroy' => $this->panelMatriculas('DELETE', (string) $enrollment->id),
+                'destroy' => $this->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Fallo simulado']),
+                'anular' => $this->panelMatriculas('POST', $enrollment->id.'/anular', ['motivo' => 'Fallo simulado']),
                 default => $this->panelMatriculas('POST', $enrollment->id.'/'.$operation),
             };
             $this->fail('Expected simulated failure');
@@ -218,14 +223,14 @@ class MatriculaOperationsTest extends TestCase
         $this->adminUser();
         $editor = User::factory()->create();
         $editor->assignRole('coordinador');
-        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'anulada'))->assertForbidden();
+        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'anulada') + ['motivo' => 'Sin permiso'])->assertForbidden();
         $this->assertSame($source->id, $enrollment->fresh()->curso_id);
         $this->assertSame('pagada', $enrollment->fresh()->estado);
         $this->assertSeats($source);
         $this->assertSeats($target);
         // The same editor may reactivate: no separate reactivation permission exists.
         $this->actingAs(User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->firstOrFail())
-            ->panelMatriculas('POST', $enrollment->id.'/anular')->assertOk();
+            ->panelMatriculas('POST', $enrollment->id.'/anular', ['motivo' => 'Anulación para reactivar'])->assertOk();
         $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'))->assertOk();
         $this->assertSeats($source);
         $this->assertSeats($target);
@@ -238,8 +243,8 @@ class MatriculaOperationsTest extends TestCase
         $secretary = User::factory()->create();
         $secretary->assignRole('secretaria');
         $this->actingAs($secretary)->panelMatriculas('PUT', (string) $enrollment->id, [])->assertForbidden();
-        $this->panelMatriculas('POST', $enrollment->id.'/anular')->assertForbidden();
-        $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertForbidden();
+        $this->panelMatriculas('POST', $enrollment->id.'/anular', ['motivo' => 'Sin permiso'])->assertForbidden();
+        $this->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Sin permiso'])->assertForbidden();
         $enrollment->delete();
         $course->increment('cupos_disponibles');
         $this->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertForbidden();
@@ -262,7 +267,7 @@ class MatriculaOperationsTest extends TestCase
         [$student, $course, $enrollment] = $this->enrollment($restore ? 'pagada' : 'anulada');
         $this->actingAs($this->adminUser());
         if ($restore) {
-            $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
+            $this->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Prueba de restauración'])->assertOk();
         }
         $other = $duplicate ? $student : Estudiante::create(['dni' => '71000002', 'nombres' => 'Luis', 'apellidos' => 'Prueba', 'estado' => 'activo']);
         $course->refresh()->update(['cupos_maximos' => 1, 'cupos_disponibles' => 1]);
@@ -287,7 +292,7 @@ class MatriculaOperationsTest extends TestCase
     #[DataProvider('lateConflicts')]
     public function test_acquisition_rechecks_conflicts_after_validation(bool $transfer, bool $duplicate): void
     {
-        [$student, $source, $enrollment] = $this->enrollment($transfer ? 'pagada' : 'anulada');
+        [$student, $source, $enrollment] = $this->enrollment($transfer ? 'pendiente' : 'anulada');
         $target = $transfer ? $this->course('TARGET', 1) : $source;
         if (! $transfer) {
             $source->update(['cupos_maximos' => 1, 'cupos_disponibles' => 1]);
@@ -298,9 +303,9 @@ class MatriculaOperationsTest extends TestCase
             Matricula::create($this->data($other, $target, 'pendiente'));
             $target->decrement('cupos_disponibles');
         });
-        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'))
             ->assertUnprocessable()->assertJsonValidationErrors($duplicate ? 'estudiante_id' : 'curso_id');
-        $this->assertSame($transfer ? 'pagada' : 'anulada', $enrollment->fresh()->estado);
+        $this->assertSame($transfer ? 'pendiente' : 'anulada', $enrollment->fresh()->estado);
         $this->assertSame($source->id, $enrollment->fresh()->curso_id);
         $this->assertSeats($source);
         $this->assertSeats($target);
@@ -313,7 +318,7 @@ class MatriculaOperationsTest extends TestCase
         $course->delete();
         $this->actingAs($this->adminUser());
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            $this->panelMatriculas('POST', $enrollment->id.'/anular')->assertOk();
+            $this->panelMatriculas('POST', $enrollment->id.'/anular', ['motivo' => 'Anulación con padres eliminados'])->assertOk();
             $this->assertSame('anulada', $enrollment->fresh()->estado);
             $this->assertSeats($course);
         }
@@ -322,11 +327,11 @@ class MatriculaOperationsTest extends TestCase
     public function test_coordinator_can_restore_but_cannot_delete(): void
     {
         [, $course, $enrollment] = $this->enrollment('pagada');
-        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
+        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Eliminación temporal'])->assertOk();
         $coordinator = User::factory()->create();
         $coordinator->assignRole('coordinador');
         $this->actingAs($coordinator)->panelMatriculas('POST', $enrollment->id.'/restaurar')->assertOk();
-        $this->panelMatriculas('DELETE', (string) $enrollment->id)->assertForbidden();
+        $this->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Sin permiso'])->assertForbidden();
         $this->assertSame('pagada', $enrollment->fresh()->estado);
         $this->assertSeats($course);
     }
@@ -346,7 +351,7 @@ class MatriculaOperationsTest extends TestCase
         [$student, $source, $enrollment] = $this->enrollment('anulada');
         $target = $operation === 'reactivate' ? $source : $this->course('TARGET');
         if ($operation === 'transfer') {
-            $enrollment->update(['estado' => 'pagada']);
+            $enrollment->update(['estado' => 'pendiente']);
             $source->decrement('cupos_disponibles');
         }
         $student->update(['estado' => $studentState]);
@@ -391,7 +396,7 @@ class MatriculaOperationsTest extends TestCase
         [$student, $course, $enrollment] = $this->enrollment($state);
         $student->update(['estado' => 'inactivo']);
         $course->update(['estado' => $courseState, 'cupos_maximos' => $state === 'anulada' ? 0 : 1, 'cupos_disponibles' => 0]);
-        $data = $this->data($student, $course, $state === 'pendiente' ? 'pagada' : $state);
+        $data = $this->data($student, $course, $state);
         $data['observaciones'] = 'Corrección histórica';
         $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $data)->assertOk();
         $this->assertSame('Corrección histórica', $enrollment->fresh()->observaciones);
@@ -411,7 +416,7 @@ class MatriculaOperationsTest extends TestCase
     #[DataProvider('lateEligibilityChanges')]
     public function test_eligibility_is_rechecked_after_request_validation(string $operation, string $change): void
     {
-        [$student, $source, $enrollment] = $this->enrollment($operation === 'transfer' ? 'pagada' : 'anulada');
+        [$student, $source, $enrollment] = $this->enrollment($operation === 'transfer' ? 'pendiente' : 'anulada');
         $target = $operation === 'transfer' ? $this->course('TARGET') : $source;
         $this->actingAs($this->adminUser());
         $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
@@ -435,8 +440,8 @@ class MatriculaOperationsTest extends TestCase
     {
         [$student, $course, $enrollment] = $this->enrollment('anulada');
         $course->update(['cupos_maximos' => 1, 'cupos_disponibles' => 1]);
-        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id)->assertOk();
-        $this->panelMatriculas('POST', '', $this->data($student, $course, 'pagada'))->assertCreated();
+        $this->actingAs($this->adminUser())->panelMatriculas('DELETE', (string) $enrollment->id, ['motivo' => 'Eliminar historial'])->assertOk();
+        $this->panelMatriculas('POST', '', $this->data($student, $course, 'pendiente'))->assertCreated();
         $student->delete();
         $course->delete();
         $notifications = DB::table('matricula_notifications')->count();
@@ -463,7 +468,7 @@ class MatriculaOperationsTest extends TestCase
 
     public function test_changed_relations_during_lock_discovery_reject_without_partial_writes(): void
     {
-        [$student, $source, $enrollment] = $this->enrollment('pagada');
+        [$student, $source, $enrollment] = $this->enrollment('pendiente');
         $target = $this->course('TARGET');
         $this->actingAs($this->adminUser());
         $before = DB::table('matriculas')->where('id', $enrollment->id)->first();
@@ -479,7 +484,7 @@ class MatriculaOperationsTest extends TestCase
                 }
             });
         });
-        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $source, 'pagada'))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $source, 'pendiente'))
             ->assertUnprocessable()->assertJsonValidationErrors('curso_id');
         $this->assertTrue($changed);
         $this->assertEquals($before, DB::table('matriculas')->where('id', $enrollment->id)->first());
@@ -500,7 +505,7 @@ class MatriculaOperationsTest extends TestCase
         $target = $this->course('TARGET', 0);
         $student->update(['estado' => 'inactivo']);
         $target->update(['estado' => 'archivado']);
-        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'anulada'))->assertOk();
+        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'anulada') + ['motivo' => 'Anulación histórica'])->assertOk();
         $this->assertSame('anulada', $enrollment->fresh()->estado);
         $this->assertSame($target->id, $enrollment->fresh()->curso_id);
         $this->assertSeats($source);
@@ -517,14 +522,14 @@ class MatriculaOperationsTest extends TestCase
     #[DataProvider('historicalSources')]
     public function test_transfer_can_release_occupation_from_an_unavailable_source(string $condition): void
     {
-        [$student, $source, $enrollment] = $this->enrollment('pagada');
+        [$student, $source, $enrollment] = $this->enrollment('pendiente');
         $target = $this->course('TARGET');
         if ($condition === 'deleted') {
             $source->delete();
         } else {
             $source->update(['estado' => $condition]);
         }
-        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pagada'))->assertOk();
+        $this->actingAs($this->adminUser())->panelMatriculas('PUT', (string) $enrollment->id, $this->data($student, $target, 'pendiente'))->assertOk();
         $this->assertSame($target->id, $enrollment->fresh()->curso_id);
         $this->assertSame($condition === 'deleted', $source->fresh()->trashed());
         $this->assertSeats($source);

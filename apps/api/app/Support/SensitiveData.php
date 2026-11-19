@@ -31,6 +31,10 @@ final class SensitiveData
         'credential',
         'private_key',
         'jwt',
+        'recovery',
+        'two_factor',
+        'idempotencia',
+        'creacion_huella',
     ];
 
     public static function isSensitiveKey(string $key): bool

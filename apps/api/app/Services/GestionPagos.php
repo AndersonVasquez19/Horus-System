@@ -348,9 +348,26 @@ class GestionPagos
      */
     public function saldos(ObligacionPago $obligacion): array
     {
+        $atributos = $obligacion->getAttributes();
+        $total = self::leer($obligacion->monto_total);
+        if (
+            array_key_exists('monto_confirmado_calculado', $atributos)
+            && array_key_exists('monto_pendiente_calculado', $atributos)
+            && $atributos['monto_confirmado_calculado'] !== null
+            && $atributos['monto_pendiente_calculado'] !== null
+        ) {
+            $confirmado = self::leer($atributos['monto_confirmado_calculado']);
+            $pendiente = self::leer($atributos['monto_pendiente_calculado']);
+
+            return ['total' => $total, 'confirmado' => $confirmado, 'pendiente' => $pendiente, 'saldo' => max(0, $total - $confirmado - $pendiente)];
+        }
+
         $confirmado = 0;
         $pendiente = 0;
-        foreach (TransaccionPago::query()->where('obligacion_pago_id', $obligacion->id)->get(['tipo', 'estado', 'monto']) as $t) {
+        $transacciones = $obligacion->relationLoaded('transacciones')
+            ? $obligacion->transacciones
+            : TransaccionPago::query()->where('obligacion_pago_id', $obligacion->id)->get(['tipo', 'estado', 'monto']);
+        foreach ($transacciones as $t) {
             $m = self::leer($t->monto);
             if ($t->estado === 'confirmada') {
                 $confirmado += $t->tipo === 'pago' ? $m : -$m;
@@ -358,7 +375,6 @@ class GestionPagos
                 $pendiente += $m;
             }
         }
-        $total = self::leer($obligacion->monto_total);
 
         return ['total' => $total, 'confirmado' => $confirmado, 'pendiente' => $pendiente, 'saldo' => max(0, $total - $confirmado - $pendiente)];
     }

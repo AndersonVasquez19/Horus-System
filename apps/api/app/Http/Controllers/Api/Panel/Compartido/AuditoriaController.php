@@ -6,13 +6,17 @@ namespace App\Http\Controllers\Api\Panel\Compartido;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\AuditoriaAcademica;
 use App\Support\ConsultaAuditoria;
+use App\Support\Panel\ConsultaListadoAuditoria;
+use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\Listado;
 use App\Support\Panel\PresentadorAuditoria;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -59,12 +63,12 @@ final class AuditoriaController extends Controller implements HasMiddleware
             $filtros,
         );
 
-        // Opciones de los filtros «Acción» y «Qué se tocó», con su texto en español.
+        // Opciones de los filtros «Acción» y «Qué se tocó», con su texto en español (excluyendo módulos retirados).
         $contenido = $respuesta->getData(true);
-        $contenido['meta']['acciones'] = collect(PresentadorAuditoria::ACCIONES)
+        $contenido['meta']['acciones'] = collect(PresentadorAuditoria::accionesSelector())
             ->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])
             ->sortBy('etiqueta')->values()->all();
-        $contenido['meta']['secciones'] = collect(PresentadorAuditoria::MODELOS)
+        $contenido['meta']['secciones'] = collect(PresentadorAuditoria::modelosSelector())
             ->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])
             ->sortBy('etiqueta')->values()->all();
 
@@ -72,15 +76,54 @@ final class AuditoriaController extends Controller implements HasMiddleware
     }
 
     /**
-     * Exportación JSON (más reciente primero) que se entrega al navegador y no se conserva en el servidor. El id máximo
-     * acota lo exportado aunque entren registros nuevos (incluido el propio `audit_exported`) mientras se transmite.
+     * Exportación JSON (por defecto), CSV o XLSX (más reciente primero) que se entrega al navegador y no se conserva en el servidor.
      */
-    public function exportar(Request $request): StreamedResponse
+    public function exportar(Request $request): StreamedResponse|BinaryFileResponse
     {
         $filtros = ConsultaAuditoria::filtros($request);
-        $archivo = 'auditoria_'.now()->format('Ymd_His').'.json';
+        $formato = strtolower(trim((string) $request->query('formato', $request->input('formato', 'json'))));
 
         $maxId = (int) AuditLog::query()->max('id');
+        $contextoFiltros = [
+            'accion' => $filtros['accion'] !== '' ? $filtros['accion'] : null,
+            'modelo' => $filtros['modelo'] !== '' ? $filtros['modelo'] : null,
+            'usuario' => $filtros['usuario'] !== '',
+            'desde' => $filtros['desde'] !== '' ? $filtros['desde'] : null,
+            'hasta' => $filtros['hasta'] !== '' ? $filtros['hasta'] : null,
+        ];
+
+        if (in_array($formato, ['csv', 'xlsx'], true)) {
+            $consulta = AuditLog::query()->with('user')->where('id', '<=', $maxId);
+            ConsultaAuditoria::aplicar($consulta, $filtros);
+
+            $filas = $consulta->lazyByIdDesc(500)->map(fn (AuditLog $log): array => [
+                $log->id,
+                $log->created_at->format('Y-m-d H:i:s'),
+                $log->user->name ?? 'Sistema',
+                $log->user->email ?? 'N/A',
+                $log->action,
+                $log->model_type,
+                $log->model_id,
+                $log->ip_address,
+                $log->changes === null || $log->changes === []
+                    ? null
+                    : json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
+            ]);
+
+            return ExportacionListado::responder(
+                'auditoria',
+                'Auditoría',
+                $formato,
+                ['ID', 'Fecha', 'Usuario', 'Correo', 'Acción', 'Módulo', 'Entidad ID', 'IP', 'Cambios'],
+                $filas,
+                'audit_exported',
+                AuditLog::class,
+                AuditoriaAcademica::actorDe($request),
+                ['filtros' => $contextoFiltros],
+            );
+        }
+
+        $archivo = 'auditoria_'.now()->format('Ymd_His').'.json';
         $conteo = AuditLog::query()->where('id', '<=', $maxId);
         ConsultaAuditoria::aplicar($conteo, $filtros);
 
@@ -88,13 +131,7 @@ final class AuditoriaController extends Controller implements HasMiddleware
             'filename' => $archivo,
             'records' => $conteo->count(),
             // El texto buscado por usuario puede ser un nombre o correo: solo se registra si se usó.
-            'filtros' => [
-                'accion' => $filtros['accion'] !== '' ? $filtros['accion'] : null,
-                'modelo' => $filtros['modelo'] !== '' ? $filtros['modelo'] : null,
-                'usuario' => $filtros['usuario'] !== '',
-                'desde' => $filtros['desde'] !== '' ? $filtros['desde'] : null,
-                'hasta' => $filtros['hasta'] !== '' ? $filtros['hasta'] : null,
-            ],
+            'filtros' => $contextoFiltros,
         ]);
 
         return response()->streamDownload(function () use ($maxId, $filtros): void {
@@ -113,7 +150,7 @@ final class AuditoriaController extends Controller implements HasMiddleware
                     'modelo' => $log->model_type,
                     'modelo_id' => $log->model_id,
                     'ip' => $log->ip_address,
-                    'cambios' => json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
+                    'cambios' => $log->changes === null || $log->changes === [] ? null : $log->redactedChanges(),
                     'fecha' => $log->created_at->format('Y-m-d H:i:s'),
                 ], JSON_UNESCAPED_UNICODE);
 

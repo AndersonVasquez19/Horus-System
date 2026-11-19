@@ -13,13 +13,17 @@ use App\Services\GestionEstudiantes;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
+use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\HistorialAuditoria;
 use App\Support\Panel\Listado;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Estudiantes del panel académico. Mismos permisos, Form Requests y reglas que Admin\EstudianteController:
@@ -45,7 +49,7 @@ final class EstudianteController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:estudiantes.ver', only: ['index', 'show']),
+            new Middleware('permission:estudiantes.ver', only: ['index', 'show', 'exportar']),
             new Middleware('permission:estudiantes.crear', only: ['store']),
             new Middleware('permission:estudiantes.editar', only: ['update']),
             new Middleware('permission:estudiantes.eliminar', only: ['destroy']),
@@ -54,6 +58,46 @@ final class EstudianteController extends Controller implements HasMiddleware
     }
 
     public function index(Request $request): JsonResponse
+    {
+        [$query, $filtros, $orden] = $this->consultaFiltrada($request);
+
+        return Listado::responder(
+            Listado::paginar($query, $request),
+            fn (Estudiante $estudiante): array => self::resumen($estudiante),
+            $orden,
+            $filtros,
+        );
+    }
+
+    public function exportar(Request $request): StreamedResponse|BinaryFileResponse
+    {
+        [$query, $filtros] = $this->consultaFiltrada($request);
+        $filas = $query->cursor()->map(fn (Estudiante $e): array => [
+            $e->id,
+            $e->dni,
+            $e->apellidos,
+            $e->nombres,
+            $e->email,
+            $e->telefono,
+            ucfirst((string) $e->estado),
+            $e->created_at?->format('Y-m-d'),
+        ]);
+
+        return ExportacionListado::responder(
+            'estudiantes',
+            'Estudiantes',
+            ExportacionListado::formato($request),
+            ['ID', 'DNI', 'Apellidos', 'Nombres', 'Correo', 'Teléfono', 'Estado', 'Registrado'],
+            $filas,
+            'estudiantes_exportados',
+            Estudiante::class,
+            AuditoriaAcademica::actorDe($request),
+            ['estado' => $filtros['estado'] ?: null, 'eliminados' => $filtros['eliminados'], 'con_busqueda' => $filtros['busqueda'] !== ''],
+        );
+    }
+
+    /** @return array{0: Builder<Estudiante>, 1: array{busqueda: string, estado: string, eliminados: bool}, 2: string} */
+    private function consultaFiltrada(Request $request): array
     {
         $query = Estudiante::query();
 
@@ -75,19 +119,13 @@ final class EstudianteController extends Controller implements HasMiddleware
 
         $orden = Listado::ordenar($query, $request, self::ORDENABLES, 'apellidos');
         if (ltrim($orden, '-') === 'apellidos') {
-            // Mismo criterio que el listado Blade: apellidos y, dentro de ellos, nombres.
             $query->reorder()
                 ->orderBy('apellidos', str_starts_with($orden, '-') ? 'desc' : 'asc')
                 ->orderBy('nombres', str_starts_with($orden, '-') ? 'desc' : 'asc')
                 ->orderBy('id', str_starts_with($orden, '-') ? 'desc' : 'asc');
         }
 
-        return Listado::responder(
-            Listado::paginar($query, $request),
-            fn (Estudiante $estudiante): array => self::resumen($estudiante),
-            $orden,
-            $filtros,
-        );
+        return [$query, $filtros, $orden];
     }
 
     public function show(Request $request, int $estudiante): JsonResponse
@@ -170,7 +208,7 @@ final class EstudianteController extends Controller implements HasMiddleware
         // panel nuevo separa los módulos). Sin montos ni observaciones: eso pertenece al detalle de la matrícula.
         if ($conMatriculas) {
             $datos['matriculas'] = $estudiante->matriculas()
-                ->with('curso:id,codigo,nombre,deleted_at')
+                ->with('curso:id,codigo,nombre,enlace_grupo_whatsapp,deleted_at')
                 ->latest('fecha_matricula')
                 ->latest('id')
                 ->get(['id', 'curso_id', 'estudiante_id', 'estado', 'fecha_matricula'])
@@ -180,6 +218,7 @@ final class EstudianteController extends Controller implements HasMiddleware
                         'id' => $matricula->curso->id,
                         'codigo' => $matricula->curso->codigo,
                         'nombre' => $matricula->curso->nombre,
+                        'enlace_grupo_whatsapp' => $matricula->estado !== 'anulada' ? \App\Models\Curso::enlaceGrupoVisible($matricula->curso->enlace_grupo_whatsapp) : null,
                     ],
                     'estado' => $matricula->estado,
                     'fecha' => $matricula->fecha_matricula->toDateString(),

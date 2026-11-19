@@ -62,17 +62,13 @@ class AdminMatriculaTest extends TestCase
 
         $this->actingAs($this->adminUser())
             ->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoOriginal, [
-                'estado' => 'pagada',
-                'monto_pagado' => 150,
+                'observaciones' => 'Cambio de datos',
             ]))
             ->assertOk();
 
         $this->assertSame(1, $cursoOriginal->fresh()->cupos_disponibles);
 
-        $this->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoNuevo, [
-            'estado' => 'pagada',
-            'monto_pagado' => 150,
-        ]))
+        $this->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoNuevo))
             ->assertOk();
 
         $this->assertSame(2, $cursoOriginal->fresh()->cupos_disponibles);
@@ -80,6 +76,7 @@ class AdminMatriculaTest extends TestCase
 
         $this->panelMatriculas('PUT', (string) $matricula->id, $this->matriculaData($estudiante, $cursoNuevo, [
             'estado' => 'anulada',
+            'motivo' => 'Cambio de estado de prueba',
         ]))
             ->assertOk();
 
@@ -98,14 +95,14 @@ class AdminMatriculaTest extends TestCase
         $matricula = $this->makeEnrollment($estudiante, $curso);
 
         $this->actingAs($this->adminUser())
-            ->panelMatriculas('POST', $matricula->id.'/anular')
+            ->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Anulación de prueba'])
             ->assertOk()
             ->assertJsonStructure(['message']);
 
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
         $this->assertSame('anulada', $matricula->fresh()->estado);
 
-        $this->panelMatriculas('POST', $matricula->id.'/anular')
+        $this->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Anulación repetida'])
             ->assertOk();
 
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
@@ -118,7 +115,7 @@ class AdminMatriculaTest extends TestCase
         $matricula = $this->makeEnrollment($estudiante, $curso);
 
         $this->actingAs($this->adminUser())
-            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminación de prueba'])
             ->assertOk();
 
         $this->assertSame(1, $curso->fresh()->cupos_disponibles);
@@ -138,7 +135,8 @@ class AdminMatriculaTest extends TestCase
         $estudianteEliminado = $this->makeStudent('70123456');
         $matriculaEliminada = $this->makeEnrollment($estudianteEliminado, $curso);
         $this->actingAs($this->adminUser())
-            ->panelMatriculas('DELETE', (string) $matriculaEliminada->id);
+            ->panelMatriculas('DELETE', (string) $matriculaEliminada->id, ['motivo' => 'Eliminación temporal'])
+            ->assertOk();
         $this->makeEnrollment($this->makeStudent('70123457'), $curso);
         $this->makeEnrollment($this->makeStudent('70123458'), $curso);
 
@@ -320,7 +318,6 @@ class AdminMatriculaTest extends TestCase
             'curso_id' => $curso->id,
             'fecha_matricula' => today()->toDateString(),
             'estado' => 'pendiente',
-            'monto_pagado' => null,
             'observaciones' => null,
         ], $attributes);
     }

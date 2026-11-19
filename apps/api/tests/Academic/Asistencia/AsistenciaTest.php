@@ -210,3 +210,21 @@ it('responde 404 ante identificadores mal formados', function (): void {
     $this->panelComo($admin, 'GET', 'academico/convocatorias/no-es-uuid/asistencias/resumen')->assertNotFound();
     $this->panelComo($admin, 'GET', 'academico/sesiones/'.Str::uuid().'/asistencias')->assertNotFound();
 });
+
+it('actualiza la observacion cuando se vuelve a enviar el mismo estado sin duplicar filas', function (): void {
+    $c = asisEdicion();
+    $m = asisMatricula($c, '50000010');
+    $s = asisSesion($c, 1);
+    $admin = $this->usuarioConRol('admin');
+
+    $this->panelComo($admin, 'PUT', "academico/sesiones/{$s->identificador}/asistencias", [
+        'asistencias' => [['matricula_id' => $m->id, 'estado' => 'presente', 'observacion' => 'Inicial']],
+    ])->assertOk();
+
+    $this->panelComo($admin, 'PUT', "academico/sesiones/{$s->identificador}/asistencias", [
+        'asistencias' => [['matricula_id' => $m->id, 'estado' => 'presente', 'observacion' => 'Actualizada']],
+    ])->assertOk();
+
+    expect(Asistencia::count())->toBe(1)
+        ->and(Asistencia::first()->observacion)->toBe('Actualizada');
+});

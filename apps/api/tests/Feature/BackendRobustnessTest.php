@@ -77,11 +77,11 @@ class BackendRobustnessTest extends TestCase
         $enrollment = $this->enroll($data, $course);
         $this->actingAs($this->adminUser());
         $this->app->afterResolving(UpdateMatriculaRequest::class, function (UpdateMatriculaRequest $request) use ($parent, $student, $course): void {
-            $this->assertSame('pagada', $request->validated('estado'));
+            $this->assertSame('pendiente', $request->validated('estado'));
             ($parent === 'estudiante' ? $student : $course)->delete();
         });
 
-        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'pagada']))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'pendiente', 'observaciones' => 'Actualizado']))
             ->assertUnprocessable()->assertJsonValidationErrors($parent.'_id');
 
         $this->assertSame('pendiente', $enrollment->fresh()->estado);
@@ -98,15 +98,15 @@ class BackendRobustnessTest extends TestCase
         $this->assertTrue($editor->can('matriculas.editar'));
         $this->assertFalse($editor->can('matriculas.anular'));
 
-        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada']))
+        $this->actingAs($editor)->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada', 'motivo' => 'Intento sin permiso']))
             ->assertForbidden();
-        $this->panelMatriculas('POST', $enrollment->id.'/anular')->assertForbidden();
+        $this->panelMatriculas('POST', $enrollment->id.'/anular', ['motivo' => 'Intento sin permiso'])->assertForbidden();
         $this->assertSame('pendiente', $enrollment->fresh()->estado);
         $this->assertSame(1, $course->fresh()->cupos_disponibles);
 
-        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'pagada']))
+        $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['observaciones' => 'Observación editada']))
             ->assertOk();
-        $this->assertSame('pagada', $enrollment->fresh()->estado);
+        $this->assertSame('Observación editada', $enrollment->fresh()->observaciones);
     }
 
     public function test_authorized_annul_via_update_releases_seat_once(): void
@@ -115,7 +115,7 @@ class BackendRobustnessTest extends TestCase
         $enrollment = $this->enroll($data, $course);
         $this->actingAs($this->adminUser());
         foreach ([1, 2] as $attempt) {
-            $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada']))
+            $this->panelMatriculas('PUT', (string) $enrollment->id, array_replace($data, ['estado' => 'anulada', 'motivo' => 'Anulación administrativa']))
                 ->assertOk();
             $this->assertSame(2, $course->fresh()->cupos_disponibles);
         }

@@ -39,8 +39,8 @@ class StoreMatriculaRequest extends FormRequest
                 Rule::exists('convocatorias', 'identificador')->whereNull('deleted_at'),
             ],
             'fecha_matricula' => ['required', 'date'],
-            'estado' => ['required', Rule::in(['pendiente', 'pagada', 'anulada'])],
-            'monto_pagado' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'estado' => ['required', Rule::in(['pendiente', 'anulada'])],
+            'monto_pagado' => ['prohibited'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -102,10 +102,8 @@ class StoreMatriculaRequest extends FormRequest
             'fecha_matricula.required' => 'La fecha de matrícula es obligatoria.',
             'fecha_matricula.date' => 'La fecha de matrícula no es válida.',
             'estado.required' => 'Debes seleccionar el estado de la matrícula.',
-            'estado.in' => 'El estado seleccionado no es válido.',
-            'monto_pagado.numeric' => 'El monto pagado debe ser un número.',
-            'monto_pagado.min' => 'El monto pagado no puede ser negativo.',
-            'monto_pagado.max' => 'El monto pagado supera el máximo permitido.',
+            'estado.in' => 'Las matrículas nuevas solo pueden registrarse como pendientes o anuladas; el estado pagada se deriva de Finanzas.',
+            'monto_pagado.prohibited' => 'El monto pagado se calcula automáticamente desde el libro de pagos.',
         ];
     }
 }

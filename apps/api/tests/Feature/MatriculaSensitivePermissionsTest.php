@@ -102,12 +102,12 @@ class MatriculaSensitivePermissionsTest extends TestCase
         $matricula = $this->makeEnrollment('70000101');
 
         foreach (['coordinador', 'secretaria'] as $rol) {
-            $this->actingAs($this->staff($rol))->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
+            $this->actingAs($this->staff($rol))->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Prueba de permisos'])->assertForbidden();
         }
         $this->assertNotSoftDeleted($matricula);
 
         $this->actingAs($this->staff('admin'))
-            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminación administrativa'])
             ->assertOk();
         $this->assertSoftDeleted($matricula);
     }
@@ -117,20 +117,20 @@ class MatriculaSensitivePermissionsTest extends TestCase
         $matricula = $this->makeEnrollment('70000102');
 
         $soloAnular = $this->staff('coordinador', ['matriculas.anular']);
-        $this->actingAs($soloAnular)->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
+        $this->actingAs($soloAnular)->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Prueba de permisos'])->assertForbidden();
         $this->assertNotSoftDeleted($matricula);
 
         $soloEliminar = $this->staff('coordinador', ['matriculas.eliminar']);
-        $this->actingAs($soloEliminar)->panelMatriculas('POST', $matricula->id.'/anular')->assertForbidden();
+        $this->actingAs($soloEliminar)->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Prueba de permisos'])->assertForbidden();
         $this->assertSame('pendiente', $matricula->fresh()->estado);
 
         $this->actingAs($soloAnular)
-            ->panelMatriculas('POST', $matricula->id.'/anular')
+            ->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Anulación por retiro'])
             ->assertOk();
         $this->assertSame('anulada', $matricula->fresh()->estado);
 
         $this->actingAs($soloEliminar)
-            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminación de registro anulado'])
             ->assertOk();
         $this->assertSoftDeleted($matricula);
     }

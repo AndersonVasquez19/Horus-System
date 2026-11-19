@@ -8,10 +8,14 @@ use App\Models\ChatIntent;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Models\MetodoPago;
+use App\Models\ObligacionPago;
+use App\Models\TransaccionPago;
 use App\Services\AsistenteVirtualService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\TestCase;
@@ -66,7 +70,8 @@ class BackendPerformanceTest extends TestCase
         $this->assertSame('PRUEBA', $response->json('meta.filtros.busqueda'));
         $this->assertSame('pagada', $response->json('meta.filtros.estado'));
         $this->assertSame($course->id, (int) $response->json('meta.filtros.curso_id'));
-        $this->assertCount(1, $aggregates);
+        // 1 consulta de conteo/distintos en matrículas + 1 consulta de ingresos netos en el libro de pagos.
+        $this->assertCount(2, $aggregates);
         Http::assertNothingSent();
     }
 
@@ -151,7 +156,34 @@ class BackendPerformanceTest extends TestCase
         $student = Estudiante::create(['dni' => sprintf('%08d', Estudiante::withTrashed()->count() + 1),
             'nombres' => 'Prueba', 'apellidos' => 'Ficticia', 'estado' => 'activo']);
 
-        return Matricula::create(['estudiante_id' => $student->id, 'curso_id' => $course->id,
+        $matricula = Matricula::create(['estudiante_id' => $student->id, 'curso_id' => $course->id,
             'fecha_matricula' => '2026-10-28', 'estado' => $status, 'monto_pagado' => $amount]);
+
+        if ($amount !== null && $amount > 0) {
+            $admin = $this->adminUser();
+            $metodo = MetodoPago::query()->firstOrCreate(['codigo' => 'yape'], ['nombre' => 'Yape', 'activo' => true]);
+            $obligacion = ObligacionPago::forceCreate([
+                'identificador' => (string) Str::uuid(),
+                'matricula_id' => $matricula->id,
+                'concepto' => 'Matrícula prueba',
+                'plan' => 'completo',
+                'moneda' => 'PEN',
+                'monto_total' => number_format($amount, 2, '.', ''),
+                'estado' => 'vigente',
+                'creado_por' => $admin->id,
+            ]);
+            TransaccionPago::forceCreate([
+                'identificador' => (string) Str::uuid(),
+                'obligacion_pago_id' => $obligacion->id,
+                'metodo_pago_id' => $metodo->id,
+                'tipo' => 'pago',
+                'estado' => 'confirmada',
+                'monto' => number_format($amount, 2, '.', ''),
+                'fecha_pago' => '2026-10-28',
+                'registrado_por' => $admin->id,
+            ]);
+        }
+
+        return $matricula;
     }
 }

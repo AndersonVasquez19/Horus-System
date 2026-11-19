@@ -13,13 +13,17 @@ use App\Services\GestionCursos;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
 use App\Support\ListFilter;
+use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\HistorialAuditoria;
 use App\Support\Panel\Listado;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Cursos del panel académico (lectura). Mismos filtros y permisos que el listado Blade (`cursos.ver`).
@@ -40,6 +44,8 @@ final class CursoController extends Controller implements HasMiddleware
     private const ORDENABLES = [
         'nombre' => 'nombre',
         'codigo' => 'codigo',
+        'precio' => 'precio',
+        'duracion' => 'duracion_horas',
         'cupos_disponibles' => 'cupos_disponibles',
         'creado' => 'created_at',
     ];
@@ -50,8 +56,8 @@ final class CursoController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:cursos.ver', only: ['index', 'show']),
-            new Middleware('permission:cursos.crear', only: ['store']),
+            new Middleware('permission:cursos.ver', only: ['index', 'show', 'exportar']),
+            new Middleware('permission:cursos.crear', only: ['store', 'duplicar']),
             new Middleware('permission:cursos.editar', only: ['update']),
             new Middleware('permission:cursos.eliminar', only: ['destroy']),
             new Middleware('permission:cursos.restaurar', only: ['restaurar']),
@@ -60,18 +66,61 @@ final class CursoController extends Controller implements HasMiddleware
 
     public function index(Request $request): JsonResponse
     {
-        $query = Curso::query();
+        [$query, $filtros, $orden] = $this->consultaFiltrada($request);
+
+        return Listado::responder(Listado::paginar($query, $request), fn (Curso $curso): array => self::resumen($curso), $orden, $filtros);
+    }
+
+    public function exportar(Request $request): StreamedResponse|BinaryFileResponse
+    {
+        [$query, $filtros] = $this->consultaFiltrada($request);
+        $filas = $query->get()->map(fn (Curso $c): array => [
+            $c->id,
+            $c->codigo,
+            $c->nombre,
+            $c->categoria,
+            $c->modalidad,
+            $c->duracion_horas,
+            number_format((float) $c->precio, 2, '.', ''),
+            $c->cupos_disponibles,
+            $c->cupos_maximos,
+            $c->publicacion?->publicada === true ? 'Sí' : 'No',
+            ucfirst((string) $c->estado),
+        ]);
+
+        return ExportacionListado::responder(
+            'cursos',
+            'Cursos',
+            ExportacionListado::formato($request),
+            ['ID', 'Código', 'Nombre', 'Categoría', 'Modalidad', 'Duración (h)', 'Precio (PEN)', 'Cupos disponibles', 'Cupos máximos', 'Publicado', 'Estado'],
+            $filas,
+            'cursos_exportados',
+            Curso::class,
+            AuditoriaAcademica::actorDe($request),
+            ['estado' => $filtros['estado'] ?: null, 'eliminados' => $filtros['eliminados'], 'con_busqueda' => $filtros['busqueda'] !== ''],
+        );
+    }
+
+    /** @return array{0: Builder<Curso>, 1: array<string, mixed>, 2: string} */
+    private function consultaFiltrada(Request $request): array
+    {
+        $query = Curso::query()->with('publicacion:id,curso_id,publicada');
 
         $eliminados = $request->boolean('eliminados');
         if ($eliminados) {
             $query->onlyTrashed();
         }
 
+        $publicado = ListFilter::in($request, 'publicado', ['1', '0']);
+        $conCupos = $request->boolean('con_cupos');
+
         $filtros = [
             'busqueda' => ListFilter::text($request, 'busqueda'),
             'categoria' => ListFilter::in($request, 'categoria', self::CATEGORIAS),
             'estado' => ListFilter::in($request, 'estado', self::ESTADOS),
             'modalidad' => ListFilter::in($request, 'modalidad', self::MODALIDADES),
+            'con_cupos' => $conCupos,
+            'publicado' => $publicado,
             'eliminados' => $eliminados,
         ];
 
@@ -81,10 +130,18 @@ final class CursoController extends Controller implements HasMiddleware
                 $query->where($campo, $filtros[$campo]);
             }
         }
+        if ($conCupos) {
+            $query->where('cupos_disponibles', '>', 0);
+        }
+        if ($publicado === '1') {
+            $query->whereHas('publicacion', fn ($q) => $q->where('publicada', true));
+        } elseif ($publicado === '0') {
+            $query->whereDoesntHave('publicacion', fn ($q) => $q->where('publicada', true));
+        }
 
         $orden = Listado::ordenar($query, $request, self::ORDENABLES, 'nombre');
 
-        return Listado::responder(Listado::paginar($query, $request), fn (Curso $curso): array => self::resumen($curso), $orden, $filtros);
+        return [$query, $filtros, $orden];
     }
 
     public function store(StoreCursoRequest $request): JsonResponse
@@ -94,6 +151,16 @@ final class CursoController extends Controller implements HasMiddleware
         return response()->json([
             'message' => 'El curso se registró correctamente.',
             'data' => $this->detalle($curso->refresh()),
+        ], 201);
+    }
+
+    public function duplicar(Request $request, Curso $curso): JsonResponse
+    {
+        $copia = $this->gestion->duplicar($curso, AuditoriaAcademica::actorDe($request));
+
+        return response()->json([
+            'message' => 'El curso se duplicó correctamente.',
+            'data' => $this->detalle($copia->refresh()),
         ], 201);
     }
 
@@ -136,6 +203,7 @@ final class CursoController extends Controller implements HasMiddleware
     /** @return array<string, mixed> */
     private function detalle(Curso $modelo): array
     {
+        $modelo->loadMissing('publicacion:id,curso_id,publicada');
         $estudiantes = $modelo->estudiantes()
             ->orderBy('apellidos')
             ->orderBy('nombres')
@@ -147,11 +215,13 @@ final class CursoController extends Controller implements HasMiddleware
             'duracion_horas' => $modelo->duracion_horas,
             'precio' => $modelo->precio,
             'horario' => $modelo->horario,
+            'enlace_grupo_whatsapp' => Curso::enlaceGrupoVisible($modelo->enlace_grupo_whatsapp),
             'actualizado_en' => $modelo->updated_at?->toIso8601String(),
             'matriculas_activas' => $estudiantes->count(),
             // Minimizado: nombre y estado de la matrícula; sin documento, contacto, montos ni observaciones.
             'estudiantes' => $estudiantes->map(fn (Estudiante $estudiante): array => [
                 'id' => $estudiante->id,
+                'matricula_id' => self::pivote($estudiante, 'id'),
                 'nombre' => trim($estudiante->nombres.' '.$estudiante->apellidos),
                 'estado_matricula' => self::pivote($estudiante, 'estado'),
                 'fecha_matricula' => substr((string) self::pivote($estudiante, 'fecha_matricula'), 0, 10) ?: null,
@@ -176,8 +246,12 @@ final class CursoController extends Controller implements HasMiddleware
             'codigo' => $curso->codigo,
             'nombre' => $curso->nombre,
             'categoria' => $curso->categoria,
+            'duracion_horas' => $curso->duracion_horas,
+            'precio' => $curso->precio,
             'modalidad' => $curso->modalidad,
             'estado' => $curso->estado,
+            'publicado' => $curso->relationLoaded('publicacion') && (bool) ($curso->publicacion?->publicada ?? false),
+            'enlace_grupo_whatsapp' => Curso::enlaceGrupoVisible($curso->enlace_grupo_whatsapp),
             'cupos_maximos' => $curso->cupos_maximos,
             'cupos_disponibles' => $curso->cupos_disponibles,
             'eliminado' => $curso->trashed(),
