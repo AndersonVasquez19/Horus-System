@@ -34,18 +34,19 @@ def test_only_verified_records_are_recommendable(kb: KnowledgeBase) -> None:
 
 
 def test_sources_point_to_existing_files(kb: KnowledgeBase) -> None:
-    """Cada fuente cita archivos reales de Horus-System (lectura, sin modificarlos)."""
+    """Cada fuente cita archivos reales de Horus-System (rutas relativas a apps/api; lectura, sin modificarlos)."""
     for record in kb.records:
         for part in record.source.file.split(";"):
             assert (API_ROOT / part.strip()).exists(), f"{record.id}: fuente inexistente {part!r}"
 
 
-def test_public_url_paths_exist_in_laravel_routes(kb: KnowledgeBase) -> None:
-    routes = (API_ROOT / "routes" / "web.php").read_text(encoding="utf-8")
+def test_public_url_paths_exist_as_next_pages(kb: KnowledgeBase) -> None:
+    """Cada `url_path` público es una página real de apps/web (Next.js es la única interfaz web desde el 18/11/2026)."""
+    app = PROJECT_ROOT.parent / "web" / "src" / "app"
     for record in kb.records:
         path = (record.source.url_path or "").split("#")[0]
         if path and path != "/":
-            assert f"'{path}'" in routes, f"{record.id}: {path} no figura en routes/web.php"
+            assert (app / path.strip("/") / "page.tsx").exists(), f"{record.id}: {path} no es una página de apps/web"
 
 
 def test_no_private_data_in_knowledge(kb: KnowledgeBase) -> None:

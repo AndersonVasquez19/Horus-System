@@ -15,9 +15,9 @@ use Throwable;
 class PresentacionRecomendacionesHorus
 {
     private const RUTAS = [
-        '/educacion/cursos', '/educacion/capacitaciones', '/contactos', '/preguntas-frecuentes',
+        '/educacion/cursos', '/educacion/capacitaciones', '/contactos', '/legales/preguntas-frecuentes',
         '/tecnologias/camaras-seguridad', '/tecnologias/cableado-estructurado',
-        '/tecnologias/soporte-mantenimiento', '/politicas-devolucion', '/quienes-somos',
+        '/tecnologias/soporte-mantenimiento', '/legales/politicas-devolucion', '/quienes-somos',
     ];
 
     public function __construct(

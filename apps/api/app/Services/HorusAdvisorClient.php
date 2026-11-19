@@ -126,9 +126,9 @@ class HorusAdvisorClient
         '/tecnologias/cableado-estructurado',
         '/tecnologias/camaras-seguridad',
         '/tecnologias/soporte-mantenimiento',
-        '/preguntas-frecuentes',
-        '/libro-reclamaciones',
-        '/politicas-devolucion',
+        '/legales/preguntas-frecuentes',
+        '/legales/libro-reclamaciones',
+        '/legales/politicas-devolucion',
     ];
 
     public const CANALES_OFICIALES_PUBLICOS = [

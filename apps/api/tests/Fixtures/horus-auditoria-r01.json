@@ -1240,7 +1240,7 @@
  {
   "q": "Compré un producto y mi pedido no llega",
   "r": {
-   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
+   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /legales/preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1253,7 +1253,7 @@
     {
      "id": "faq_pedido",
      "title": "Producto comprado que no llega",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -1564,7 +1564,7 @@
  {
   "q": "¿Cuál es su RUC?",
   "r": {
-   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa. Fuente: /preguntas-frecuentes.",
+   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1577,7 +1577,7 @@
     {
      "id": "faq_comprobantes",
      "title": "Comprobantes de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -1595,7 +1595,7 @@
  {
   "q": "¿Tienen libro de reclamaciones?",
   "r": {
-   "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /libro-reclamaciones.",
+   "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /legales/libro-reclamaciones.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1608,7 +1608,7 @@
     {
      "id": "libro_reclamaciones",
      "title": "Libro de Reclamaciones",
-     "url_path": "/libro-reclamaciones"
+     "url_path": "/legales/libro-reclamaciones"
     }
    ],
    "mode": "lexical",
@@ -1626,7 +1626,7 @@
  {
   "q": "¿Cuál es su política de devolución?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1639,7 +1639,7 @@
     {
      "id": "politica_devoluciones",
      "title": "Política de devoluciones (educación)",
-     "url_path": "/politicas-devolucion"
+     "url_path": "/legales/politicas-devolucion"
     }
    ],
    "mode": "lexical",
@@ -4052,7 +4052,7 @@
  {
   "q": "Se me perdió el certificado",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4065,7 +4065,7 @@
     {
      "id": "faq_certificado_perdido",
      "title": "Reimpresión de certificado o diploma perdido",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4085,7 +4085,7 @@
  {
   "q": "¿Cómo saco un duplicado de mi diploma?",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "media",
    "needs_clarification": false,
@@ -4098,7 +4098,7 @@
     {
      "id": "faq_certificado_perdido",
      "title": "Reimpresión de certificado o diploma perdido",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4116,7 +4116,7 @@
  {
   "q": "¿Cuándo doy el examen del curso grabado?",
   "r": {
-   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 972 021 374. Fuente: /preguntas-frecuentes.",
+   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 972 021 374. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4129,7 +4129,7 @@
     {
      "id": "faq_evaluaciones",
      "title": "Evaluaciones de cursos grabados (asincrónicos)",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4149,7 +4149,7 @@
  {
   "q": "No pude ir a la clase práctica, ¿qué hago?",
   "r": {
-   "answer": "Si tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad. Fuente: /preguntas-frecuentes.",
+   "answer": "Si tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "media",
    "needs_clarification": false,
@@ -4162,7 +4162,7 @@
     {
      "id": "faq_practica_perdida",
      "title": "Si faltaste a una sesión práctica",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4180,7 +4180,7 @@
  {
   "q": "Compré algo y todavía no llega",
   "r": {
-   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
+   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /legales/preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
    "intent": "faq",
    "match_level": "media",
    "needs_clarification": false,
@@ -4193,7 +4193,7 @@
     {
      "id": "faq_pedido",
      "title": "Producto comprado que no llega",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4211,7 +4211,7 @@
  {
   "q": "¿Me pueden dar factura?",
   "r": {
-   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa. Fuente: /preguntas-frecuentes.",
+   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4224,7 +4224,7 @@
     {
      "id": "faq_comprobantes",
      "title": "Comprobantes de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4242,7 +4242,7 @@
  {
   "q": "¿Aceptan Yape?",
   "r": {
-   "answer": "Según /preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
+   "answer": "Según /legales/preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4255,7 +4255,7 @@
     {
      "id": "faq_medios_pago",
      "title": "Medios de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4273,7 +4273,7 @@
  {
   "q": "¿Cómo puedo pagar?",
   "r": {
-   "answer": "Según /preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
+   "answer": "Según /legales/preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4286,7 +4286,7 @@
     {
      "id": "faq_medios_pago",
      "title": "Medios de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4304,7 +4304,7 @@
  {
   "q": "¿Puedo agendar una reunión virtual?",
   "r": {
-   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor. Fuente: /preguntas-frecuentes.",
+   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4317,7 +4317,7 @@
     {
      "id": "faq_atencion_personalizada",
      "title": "Atención personalizada y reunión virtual",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "lexical",
@@ -4335,7 +4335,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4348,7 +4348,7 @@
     {
      "id": "politica_devoluciones",
      "title": "Política de devoluciones (educación)",
-     "url_path": "/politicas-devolucion"
+     "url_path": "/legales/politicas-devolucion"
     }
    ],
    "mode": "lexical",
@@ -4366,7 +4366,7 @@
  {
   "q": "Quiero poner un reclamo",
   "r": {
-   "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /libro-reclamaciones.",
+   "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /legales/libro-reclamaciones.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4379,7 +4379,7 @@
     {
      "id": "libro_reclamaciones",
      "title": "Libro de Reclamaciones",
-     "url_path": "/libro-reclamaciones"
+     "url_path": "/legales/libro-reclamaciones"
     }
    ],
    "mode": "lexical",
@@ -6819,7 +6819,7 @@
  {
   "q": "Se me perdió el certificado",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6832,7 +6832,7 @@
     {
      "id": "faq_certificado_perdido",
      "title": "Reimpresión de certificado o diploma perdido",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -6852,7 +6852,7 @@
  {
   "q": "¿Cómo saco un duplicado de mi diploma?",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6865,7 +6865,7 @@
     {
      "id": "faq_certificado_perdido",
      "title": "Reimpresión de certificado o diploma perdido",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -6883,7 +6883,7 @@
  {
   "q": "¿Cuándo doy el examen del curso grabado?",
   "r": {
-   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 972 021 374. Fuente: /preguntas-frecuentes.",
+   "answer": "Las evaluaciones de los cursos grabados (asincrónicos) se rinden en fechas fijas que se comunican mensualmente por correo y redes sociales. Para el próximo calendario, contacta al +51 972 021 374. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6896,7 +6896,7 @@
     {
      "id": "faq_evaluaciones",
      "title": "Evaluaciones de cursos grabados (asincrónicos)",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -6916,7 +6916,7 @@
  {
   "q": "No pude ir a la clase práctica, ¿qué hago?",
   "r": {
-   "answer": "Si tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad. Fuente: /preguntas-frecuentes.",
+   "answer": "Si tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6929,7 +6929,7 @@
     {
      "id": "faq_practica_perdida",
      "title": "Si faltaste a una sesión práctica",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -6947,7 +6947,7 @@
  {
   "q": "Compré algo y todavía no llega",
   "r": {
-   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
+   "answer": "Si compraste un producto en la web y no llega, escribe con tu número de pedido a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374. Según /legales/preguntas-frecuentes, verifican el envío y dan una solución en menos de 24 horas hábiles.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6960,7 +6960,7 @@
     {
      "id": "faq_pedido",
      "title": "Producto comprado que no llega",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -6978,7 +6978,7 @@
  {
   "q": "¿Me pueden dar factura?",
   "r": {
-   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa. Fuente: /preguntas-frecuentes.",
+   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6991,7 +6991,7 @@
     {
      "id": "faq_comprobantes",
      "title": "Comprobantes de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -7009,7 +7009,7 @@
  {
   "q": "¿Aceptan Yape?",
   "r": {
-   "answer": "Según /preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
+   "answer": "Según /legales/preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7022,7 +7022,7 @@
     {
      "id": "faq_medios_pago",
      "title": "Medios de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -7040,7 +7040,7 @@
  {
   "q": "¿Cómo puedo pagar?",
   "r": {
-   "answer": "Según /preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
+   "answer": "Según /legales/preguntas-frecuentes, se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7053,7 +7053,7 @@
     {
      "id": "faq_medios_pago",
      "title": "Medios de pago",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -7071,7 +7071,7 @@
  {
   "q": "¿Puedo agendar una reunión virtual?",
   "r": {
-   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor. Fuente: /preguntas-frecuentes.",
+   "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor. Fuente: /legales/preguntas-frecuentes.",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7084,7 +7084,7 @@
     {
      "id": "faq_atencion_personalizada",
      "title": "Atención personalizada y reunión virtual",
-     "url_path": "/preguntas-frecuentes"
+     "url_path": "/legales/preguntas-frecuentes"
     }
    ],
    "mode": "hybrid",
@@ -7102,7 +7102,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7115,7 +7115,7 @@
     {
      "id": "politica_devoluciones",
      "title": "Política de devoluciones (educación)",
-     "url_path": "/politicas-devolucion"
+     "url_path": "/legales/politicas-devolucion"
     }
    ],
    "mode": "lexical",
@@ -7133,7 +7133,7 @@
  {
   "q": "Quiero poner un reclamo",
   "r": {
-   "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /libro-reclamaciones.",
+   "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /legales/libro-reclamaciones.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7146,7 +7146,7 @@
     {
      "id": "libro_reclamaciones",
      "title": "Libro de Reclamaciones",
-     "url_path": "/libro-reclamaciones"
+     "url_path": "/legales/libro-reclamaciones"
     }
    ],
    "mode": "hybrid",

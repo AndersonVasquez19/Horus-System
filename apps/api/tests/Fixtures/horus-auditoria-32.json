@@ -710,7 +710,7 @@
     {
         "q":  "¿Tienen libro de reclamaciones?",
         "r":  {
-                  "answer":  "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /libro-reclamaciones.",
+                  "answer":  "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en /legales/libro-reclamaciones.",
                   "intent":  "policy",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -727,7 +727,7 @@
                                   {
                                       "id":  "libro_reclamaciones",
                                       "title":  "Libro de Reclamaciones",
-                                      "url_path":  "/libro-reclamaciones"
+                                      "url_path":  "/legales/libro-reclamaciones"
                                   }
                               ],
                   "mode":  "lexical",
@@ -749,7 +749,7 @@
     {
         "q":  "¿Cuál es su política de devolución?",
         "r":  {
-                  "answer":  "Las devoluciones se evalúan según los casos previstos en /politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+                  "answer":  "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
                   "intent":  "policy",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -766,7 +766,7 @@
                                   {
                                       "id":  "politica_devoluciones",
                                       "title":  "Política de devoluciones (educación)",
-                                      "url_path":  "/politicas-devolucion"
+                                      "url_path":  "/legales/politicas-devolucion"
                                   }
                               ],
                   "mode":  "lexical",
