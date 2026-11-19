@@ -94,7 +94,7 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 
 ### Seguridad de cuentas y avisos externos (Olas 2–3)
 
-- **Todo apagado por defecto:** `SEGURIDAD_BLOQUEO_AUTO_ENABLED`, `SEGURIDAD_ALERTAS_LOGIN_ENABLED`, `RECORDATORIOS_INTERNOS_ENABLED`, `RECORDATORIOS_MAIL_ENABLED`, `WHATSAPP_CLOUD_ENABLED`. No los actives sin aviso de privacidad vigente, acuerdos con Resend y Meta y plantillas de WhatsApp aprobadas (`docs/auditoria-olas-1-3-correcciones.md`).
+- **Todo apagado por defecto:** `SEGURIDAD_BLOQUEO_AUTO_ENABLED`, `SEGURIDAD_ALERTAS_LOGIN_ENABLED`, `RECORDATORIOS_INTERNOS_ENABLED`, `RECORDATORIOS_MAIL_ENABLED`, `WHATSAPP_CLOUD_ENABLED`. No los actives sin aviso de privacidad vigente, acuerdos con Resend y Meta y plantillas de WhatsApp aprobadas (`docs/auditoria-olas-1-3-correcciones.md`). Estado vigente (19/11/2026): solo los avisos internos están activos en local; WhatsApp Cloud queda apagado por decisión del propietario y WhatsApp/correo manual (`wa.me`, `mailto:`) no usan API (`docs/activacion-canales-externos.md`).
 - **Bloqueo automático** (`SeguridadCuentas`): ventana fija, contador por cuenta + IP, bloquea al alcanzar el umbral y **nunca a administradores**. Recuperación por consola: `horus:desbloquear-usuario {email}` y `horus:reiniciar-2fa {email}`.
 - **2FA TOTP** (`Totp`): un código no se reutiliza (`users.two_factor_last_step`); el login del panel limita 5 fallos/5 min. `/api/auth/login` rechaza (403) cuentas con 2FA o `debe_cambiar_password`: entran por el panel.
 - **Avisos externos** (`avisos_externos`, `EnvioAvisosExternosService`): `send()` relee la cuenta (baja, suspensión), las preferencias, el consentimiento y el teléfono antes de enviar. Los textos hacia Resend/Meta son genéricos: **sin nombre de estudiante ni montos**. El webhook de Resend respeta el orden de eventos y deduplica por `svix-id`.
@@ -168,4 +168,5 @@ Resume qué cambió y por qué, rutas afectadas, comprobaciones ejecutadas con s
 | Restauración de la web pública | `docs/restauracion-web-publica.md` |
 | Consolidación de sprints 01–07 | `docs/consolidacion-sprints-01-07.md` |
 | Correcciones tras verificar las olas 1–3 | `docs/auditoria-olas-1-3-correcciones.md` |
+| Canales de aviso activos y cómo cambiarlos | `docs/activacion-canales-externos.md` |
 | Barrera de privacidad de Horus AI (estabilización; no aprobada hasta auditoría independiente) | `docs/sprint-16-privacidad-estabilizacion.md` |
