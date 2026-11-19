@@ -92,6 +92,15 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 - `CatalogoPublicoCursos::vigentes()` es la única consulta pública: ficha autorizada, vigente (días completos en `America/Lima`) y curso activo no eliminado. Proyecta solo campos editoriales; nunca precio, cupos, matrículas, estudiantes ni metadatos de autorización.
 - **El catálogo dinámico del asistente sigue apagado por defecto** (`chatbot.public_catalog_enabled=false`). El propietario autorizó el 06/11/2026 el catálogo de la web (`catalogo-publico.enabled=true`) en Educación → Cursos, con las modalidades presencial, virtual y semipresencial. Crear un curso no crea ni autoriza su ficha pública; se mantiene la revisión y el permiso `cursos.publicar`. `hibrido` conserva su compatibilidad sin reclasificar datos existentes. Las pruebas pueden simular el catálogo web apagado con `config([...])`. Alcance actual: `docs/cursos-publicacion-modalidades.md`; los sprints anteriores conservan su contexto histórico.
 
+### Seguridad de cuentas y avisos externos (Olas 2–3)
+
+- **Todo apagado por defecto:** `SEGURIDAD_BLOQUEO_AUTO_ENABLED`, `SEGURIDAD_ALERTAS_LOGIN_ENABLED`, `RECORDATORIOS_INTERNOS_ENABLED`, `RECORDATORIOS_MAIL_ENABLED`, `WHATSAPP_CLOUD_ENABLED`. No los actives sin aviso de privacidad vigente, acuerdos con Resend y Meta y plantillas de WhatsApp aprobadas (`docs/auditoria-olas-1-3-correcciones.md`).
+- **Bloqueo automático** (`SeguridadCuentas`): ventana fija, contador por cuenta + IP, bloquea al alcanzar el umbral y **nunca a administradores**. Recuperación por consola: `horus:desbloquear-usuario {email}` y `horus:reiniciar-2fa {email}`.
+- **2FA TOTP** (`Totp`): un código no se reutiliza (`users.two_factor_last_step`); el login del panel limita 5 fallos/5 min. `/api/auth/login` rechaza (403) cuentas con 2FA o `debe_cambiar_password`: entran por el panel.
+- **Avisos externos** (`avisos_externos`, `EnvioAvisosExternosService`): `send()` relee la cuenta (baja, suspensión), las preferencias, el consentimiento y el teléfono antes de enviar. Los textos hacia Resend/Meta son genéricos: **sin nombre de estudiante ni montos**. El webhook de Resend respeta el orden de eventos y deduplica por `svix-id`.
+- **Pagos y matrículas:** `monto_pagado` y el estado `pagada` salen del libro de pagos (el servidor rechaza enviarlos). `horus:reconciliar-pagos` simula por defecto; `--aplicar --confirmo` escribe con respaldo en `matriculas_monto_respaldo` y `--revertir=<lote>` deshace. Matrículas «pagadas» sin obligación vigente se informan pero no se tocan.
+- **Datos personales:** el enlace del grupo de WhatsApp (`Curso::enlaceGrupoVisible`) solo lo ve quien tiene `matriculas.crear` o `cursos.editar`; la constancia imprime montos solo con `pagos.ver`; la exportación administrativa omite datos personales de reclamaciones y contacto (`GeneraExportacionAdministrativa::COLUMNAS_PERSONALES`).
+
 ### Salidas de datos
 
 - Exportaciones (CSV, Excel con `SafeSpreadsheet`, PDF, auditoría, `compartido/respaldo`) deben evitar inyección de fórmulas y no incluir contraseñas, tokens ni claves (`SensitiveData`). `compartido/respaldo` es una exportación administrativa minimizada, **no un respaldo** (`docs/seguridad-l1.1.md`).
@@ -158,4 +167,5 @@ Resume qué cambió y por qué, rutas afectadas, comprobaciones ejecutadas con s
 | Matriz de migraciones y plan de pruebas PostgreSQL (PG-TEST-04) | `docs/postgresql-testing-pg-test-04.md` |
 | Restauración de la web pública | `docs/restauracion-web-publica.md` |
 | Consolidación de sprints 01–07 | `docs/consolidacion-sprints-01-07.md` |
+| Correcciones tras verificar las olas 1–3 | `docs/auditoria-olas-1-3-correcciones.md` |
 | Barrera de privacidad de Horus AI (estabilización; no aprobada hasta auditoría independiente) | `docs/sprint-16-privacidad-estabilizacion.md` |

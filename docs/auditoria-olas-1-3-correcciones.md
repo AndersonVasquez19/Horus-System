@@ -27,9 +27,9 @@ Resumen de lo corregido después de revisar la ejecución del plan maestro. Todo
 
 - El formulario de roles no pierde permisos: el servidor ya rechaza editar roles con permisos que el actor no posee (`assertRolGestionable`).
 - La baja de usuarios sigue siendo manual (`deleted_at` sin `SoftDeletes`); los middleware `SesionPanelVigente` y `AuthenticateJwt` revalidan baja y suspensión en cada petición, por lo que `SessionRevoker` es solo defensa adicional.
-- Las descripciones de `compartido/*` en el contrato son mínimas (permiso, parámetros y códigos); faltan esquemas de cuerpo detallados.
-- `contacto.ts` y `MenuFila` no tienen prueba automática: `apps/web` no tiene ejecutor de pruebas.
-- `phpstan` (nivel 6) informa 38 errores en archivos de las olas, ninguno en el código nuevo de esta corrección.
+- Las descripciones de `compartido/*` en el contrato son mínimas (permiso, parámetros y códigos); solo 8 escrituras sensibles tienen esquema de cuerpo (preferencias, 2FA, lotes, suspensión, asistente).
+- `contacto.ts` tiene pruebas con el ejecutor integrado de Node (`npm run test:unit` en `apps/web`). `MenuFila` y los componentes React siguen sin prueba automática. La búsqueda global tiene pruebas en `BusquedaGlobalTest`.
+- `phpstan` (nivel 6) informa 29 avisos, ninguno en el código nuevo de esta corrección: comprobaciones defensivas (`?->` sobre relaciones con borrado lógico, que no se quitaron para no causar errores reales) y código previo (`SolicitudCotizacion`, `JsonPeService`).
 
 ## Antes de activar los canales externos
 

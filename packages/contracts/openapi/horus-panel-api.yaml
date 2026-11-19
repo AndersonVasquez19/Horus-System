@@ -1677,6 +1677,10 @@ paths:
       description: "Permiso: `asistente.ver`."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [mensaje], properties: { mensaje: { type: string, maxLength: 2000 }, session_id: { type: string, minLength: 8, maxLength: 64 } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1797,6 +1801,10 @@ paths:
       description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [codigo], properties: { codigo: { type: string, pattern: '^[0-9]{6}$', description: 'Código TOTP de 6 dígitos; un código ya usado no se acepta de nuevo.' } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1811,6 +1819,10 @@ paths:
       description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [current_password, codigo], properties: { current_password: { type: string }, codigo: { type: string, maxLength: 32, description: 'Código TOTP o código de recuperación.' } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1825,6 +1837,10 @@ paths:
       description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [current_password], properties: { current_password: { type: string } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1839,6 +1855,10 @@ paths:
       description: "Requiere sesión del panel; sin permiso adicional (datos propios de la cuenta)."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [interno, email, whatsapp, recordatorio_cuotas, recordatorio_sesiones, recordatorio_reclamaciones, alerta_accesos], properties: { telefono: { type: [string, 'null'], maxLength: 20 }, interno: { type: boolean }, email: { type: boolean }, whatsapp: { type: boolean, description: 'Exige `whatsapp_consentimiento` y teléfono.' }, whatsapp_consentimiento: { type: boolean, description: 'Se guarda con fecha y versión de la política vigente.' }, recordatorio_cuotas: { type: boolean }, recordatorio_sesiones: { type: boolean }, recordatorio_reclamaciones: { type: boolean }, alerta_accesos: { type: boolean } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1912,6 +1932,10 @@ paths:
       description: "Permiso: `reclamaciones.gestionar`."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [identificadores], properties: { identificadores: { type: array, items: { type: string, format: uuid } } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1941,6 +1965,10 @@ paths:
       description: "Permiso: `reclamaciones.gestionar`."
       parameters:
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, required: [identificadores], properties: { responsable_id: { type: [integer, 'null'] }, identificadores: { type: array, items: { type: string, format: uuid } } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
@@ -2250,6 +2278,10 @@ paths:
       parameters:
         - { name: user, in: path, required: true, schema: { type: string } }
         - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, properties: { hasta: { type: string, format: date-time }, motivo: { type: [string, 'null'], maxLength: 255 } } } }
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
