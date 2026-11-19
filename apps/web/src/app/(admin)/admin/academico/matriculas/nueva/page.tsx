@@ -1,3 +1,4 @@
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { FormularioMatricula } from '@/components/academico/formulario-matricula';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
@@ -54,7 +55,8 @@ async function Formulario({ searchParams }: { searchParams: Promise<Parametros> 
     }
   }
 
-  // Tras leer searchParams la página ya es dinámica: la hora actual se puede leer en el servidor.
+  // `connection()` marca el punto como dinámico (por petición): con `cacheComponents` Next no deja leer la hora sin él.
+  await connection();
   const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
 
   return <FormularioMatricula estudianteInicial={inicial} cursoInicial={cursoInicial} fechaInicial={hoy} />;

@@ -10,6 +10,7 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { CampoArea } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
+import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import type { MatriculaDetalle } from '@/features/academico/tipos';
 
 const LISTADO = '/admin/academico/matriculas';
@@ -47,7 +48,7 @@ export function AccionesListadoMatriculas({ filtros, mostrarNueva = true }: { fi
   );
 }
 
-type Operacion = 'anular' | 'eliminar' | 'restaurar';
+export type Operacion = 'anular' | 'eliminar' | 'restaurar';
 
 const TEXTOS: Record<Operacion, { titulo: string; texto: string; confirmar: string; peligro: boolean }> = {
   anular: {
@@ -70,29 +71,23 @@ const TEXTOS: Record<Operacion, { titulo: string; texto: string; confirmar: stri
   },
 };
 
-/** Acciones de la ficha de una matrícula: constancia PDF, edición, anulación/eliminación con motivo obligatorio y restauración. */
-export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }) {
+/**
+ * Diálogo de anulación, eliminación (ambas con motivo obligatorio) o restauración de una matrícula. Lo comparten la ficha y el
+ * menú ⋯ del listado. `operacion = null` lo mantiene cerrado.
+ */
+export function OperacionMatricula({ matriculaId, operacion, onCerrar }: { matriculaId: number; operacion: Operacion | null; onCerrar: () => void }) {
   const router = useRouter();
   const { mostrar } = useAvisos();
-  const { ejecutar, descargar } = useOperacionPanel();
-  const puedeVer = usePuede('matriculas.ver');
-  const puedeEditar = usePuede('matriculas.editar');
-  const puedeAnular = usePuede('matriculas.anular');
-  const puedeEliminar = usePuede('matriculas.eliminar');
-  const puedeRestaurar = usePuede('matriculas.restaurar');
-  const [operacion, setOperacion] = useState<Operacion | null>(null);
+  const { ejecutar } = useOperacionPanel();
   const [motivo, setMotivo] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [descargandoConstancia, setDescargandoConstancia] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function descargarConstancia() {
-    setDescargandoConstancia(true);
-    const resultado = await descargar(`academico/matriculas/${matricula.id}/constancia`, 'GET');
-    setDescargandoConstancia(false);
-    if (resultado.ok) mostrar('exito', 'Constancia descargada en PDF.');
-    else mostrar('error', resultado.error.message);
-  }
+  const cerrar = () => {
+    setMotivo('');
+    setError(null);
+    onCerrar();
+  };
 
   async function confirmarConMotivo(evento?: FormEvent<HTMLFormElement>) {
     evento?.preventDefault();
@@ -105,8 +100,8 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
     setError(null);
     const cuerpo = operacion === 'restaurar' ? undefined : { motivo: motivo.trim() };
     const resultado = operacion === 'eliminar'
-      ? await ejecutar<{ message: string }>(`academico/matriculas/${matricula.id}`, 'DELETE', cuerpo)
-      : await ejecutar<{ message: string }>(`academico/matriculas/${matricula.id}/${operacion}`, 'POST', cuerpo);
+      ? await ejecutar<{ message: string }>(`academico/matriculas/${matriculaId}`, 'DELETE', cuerpo)
+      : await ejecutar<{ message: string }>(`academico/matriculas/${matriculaId}/${operacion}`, 'POST', cuerpo);
     setOcupado(false);
 
     if (!resultado.ok) {
@@ -114,19 +109,98 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
       setError(detalle ?? resultado.error.message);
       return;
     }
-    setOperacion(null);
-    setMotivo('');
+    cerrar();
     mostrar('exito', resultado.datos.message);
     router.refresh();
   }
 
-  const cerrar = () => {
-    setOperacion(null);
-    setMotivo('');
-    setError(null);
-  };
-
   const textos = operacion ? TEXTOS[operacion] : null;
+
+  return (
+    <>
+      <Dialogo
+        abierto={operacion === 'anular' || operacion === 'eliminar'}
+        titulo={textos?.titulo ?? ''}
+        descripcion={textos?.texto}
+        ancho="sm"
+        bloqueado={ocupado}
+        onCerrar={cerrar}
+      >
+        <form onSubmit={confirmarConMotivo} noValidate className="space-y-4">
+          <CampoArea
+            etiqueta="Motivo"
+            rows={3}
+            minLength={3}
+            maxLength={200}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Describe el motivo (entre 3 y 200 caracteres)"
+            required
+          />
+          {error ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-estado-error">{error}</p> : null}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Boton variante="secundario" onClick={cerrar} disabled={ocupado}>Cancelar</Boton>
+            <Boton type="submit" variante="peligro" cargando={ocupado}>{textos?.confirmar ?? 'Confirmar'}</Boton>
+          </div>
+        </form>
+      </Dialogo>
+
+      <DialogoConfirmacion
+        abierto={operacion === 'restaurar'}
+        titulo={textos?.titulo ?? ''}
+        texto={<p>{textos?.texto}</p>}
+        confirmar={textos?.confirmar ?? ''}
+        peligro={false}
+        cargando={ocupado}
+        error={error}
+        onConfirmar={() => void confirmarConMotivo()}
+        onCerrar={cerrar}
+      />
+    </>
+  );
+}
+
+/** Menú ⋯ de una fila del listado: los elementos de contacto y navegación (serializables) más anular, eliminar o restaurar según permisos. */
+export function MenuFilaMatricula({ matricula, elementos }: { matricula: { id: number; estado: string; eliminado: boolean }; elementos: readonly ElementoMenuFila[] }) {
+  const puedeAnular = usePuede('matriculas.anular');
+  const puedeEliminar = usePuede('matriculas.eliminar');
+  const puedeRestaurar = usePuede('matriculas.restaurar');
+  const [operacion, setOperacion] = useState<Operacion | null>(null);
+
+  const propios: ElementoMenuFila[] = matricula.eliminado
+    ? puedeRestaurar ? [{ tipo: 'accion', etiqueta: 'Restaurar matrícula', onClick: () => setOperacion('restaurar') }] : []
+    : [
+        ...(puedeAnular && matricula.estado !== 'anulada' ? [{ tipo: 'accion' as const, etiqueta: 'Anular matrícula', peligro: true, onClick: () => setOperacion('anular') }] : []),
+        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar matrícula', peligro: true, onClick: () => setOperacion('eliminar') }] : []),
+      ];
+
+  return (
+    <>
+      <MenuFila etiqueta={`Acciones para matrícula #${matricula.id}`} elementos={[...elementos, ...propios]} />
+      <OperacionMatricula matriculaId={matricula.id} operacion={operacion} onCerrar={() => setOperacion(null)} />
+    </>
+  );
+}
+
+/** Acciones de la ficha de una matrícula: constancia PDF, edición, anulación/eliminación con motivo obligatorio y restauración. */
+export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }) {
+  const { mostrar } = useAvisos();
+  const { descargar } = useOperacionPanel();
+  const puedeVer = usePuede('matriculas.ver');
+  const puedeEditar = usePuede('matriculas.editar');
+  const puedeAnular = usePuede('matriculas.anular');
+  const puedeEliminar = usePuede('matriculas.eliminar');
+  const puedeRestaurar = usePuede('matriculas.restaurar');
+  const [operacion, setOperacion] = useState<Operacion | null>(null);
+  const [descargandoConstancia, setDescargandoConstancia] = useState(false);
+
+  async function descargarConstancia() {
+    setDescargandoConstancia(true);
+    const resultado = await descargar(`academico/matriculas/${matricula.id}/constancia`, 'GET');
+    setDescargandoConstancia(false);
+    if (resultado.ok) mostrar('exito', 'Constancia descargada en PDF.');
+    else mostrar('error', resultado.error.message);
+  }
 
   return (
     <>
@@ -167,44 +241,7 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
         </>
       )}
 
-      <Dialogo
-        abierto={operacion === 'anular' || operacion === 'eliminar'}
-        titulo={textos?.titulo ?? ''}
-        descripcion={textos?.texto}
-        ancho="sm"
-        bloqueado={ocupado}
-        onCerrar={cerrar}
-      >
-        <form onSubmit={confirmarConMotivo} noValidate className="space-y-4">
-          <CampoArea
-            etiqueta="Motivo"
-            rows={3}
-            minLength={3}
-            maxLength={200}
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Describe el motivo (entre 3 y 200 caracteres)"
-            required
-          />
-          {error ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-estado-error">{error}</p> : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Boton variante="secundario" onClick={cerrar} disabled={ocupado}>Cancelar</Boton>
-            <Boton type="submit" variante="peligro" cargando={ocupado}>{textos?.confirmar ?? 'Confirmar'}</Boton>
-          </div>
-        </form>
-      </Dialogo>
-
-      <DialogoConfirmacion
-        abierto={operacion === 'restaurar'}
-        titulo={textos?.titulo ?? ''}
-        texto={<p>{textos?.texto}</p>}
-        confirmar={textos?.confirmar ?? ''}
-        peligro={false}
-        cargando={ocupado}
-        error={error}
-        onConfirmar={() => void confirmarConMotivo()}
-        onCerrar={cerrar}
-      />
+      <OperacionMatricula matriculaId={matricula.id} operacion={operacion} onCerrar={() => setOperacion(null)} />
     </>
   );
 }

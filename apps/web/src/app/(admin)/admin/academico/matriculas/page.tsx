@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { AccionesListadoMatriculas } from '@/components/academico/acciones-matricula';
+import { AccionesListadoMatriculas, MenuFilaMatricula } from '@/components/academico/acciones-matricula';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado, type ColorInsignia } from '@/components/shared/ui/insignia';
-import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
+import type { ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import type { MatriculaResumen } from '@/features/academico/tipos';
@@ -195,7 +195,7 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <MenuFila etiqueta={`Acciones para matrícula #${matricula.id}`} elementos={acciones} />
+                    <MenuFilaMatricula matricula={{ id: matricula.id, estado: matricula.estado, eliminado: Boolean(matricula.eliminado) }} elementos={acciones} />
                   </td>
                 </tr>
               );
