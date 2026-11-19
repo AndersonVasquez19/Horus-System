@@ -249,7 +249,11 @@ class GestionPagos
         return $t;
     }
 
-    /** Bytes y tipo del comprobante de una transacción (con constancia de la consulta, sin la ruta). @return array{bytes: string, tipo: string} */
+    /**
+     * Bytes y tipo del comprobante de una transacción (con constancia de la consulta, sin la ruta).
+     *
+     * @return array{bytes: string, tipo: string}
+     */
     public function leerComprobante(Request $request, string $identificador): array
     {
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
@@ -379,7 +383,11 @@ class GestionPagos
         return ['total' => $total, 'confirmado' => $confirmado, 'pendiente' => $pendiente, 'saldo' => max(0, $total - $confirmado - $pendiente)];
     }
 
-    /** Lo pagado de cada cuota (neto de reversos), por id de cuota, en céntimos. @return array<int, int> */
+    /**
+     * Lo pagado de cada cuota (neto de reversos), por id de cuota, en céntimos.
+     *
+     * @return array<int, int>
+     */
     public function pagadoPorCuota(ObligacionPago $obligacion): array
     {
         $porCuota = [];

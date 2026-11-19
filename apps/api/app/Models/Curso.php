@@ -48,6 +48,7 @@ class Curso extends Model
         return $enlace !== null && $actor !== null && ($actor->can('matriculas.crear') || $actor->can('cursos.editar')) ? $enlace : null;
     }
 
+    /** @return HasMany<Matricula, $this> */
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class);

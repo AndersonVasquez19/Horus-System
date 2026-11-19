@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Fila del libro de pagos. Inmutable: solo un pago `pendiente` pasa a `confirmada` o `rechazada`; un reverso es otra fila. La
  * referencia y los motivos son texto libre y no se copian a la auditoría.
+ *
+ * @property string $monto Importe como texto decimal (nunca `float`).
+ * @property \Illuminate\Support\Carbon|string|null $resuelto_en
  */
 class TransaccionPago extends Model
 {

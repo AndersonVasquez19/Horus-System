@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Obligación de pago de una matrícula. Todo lo que no es dato de captura (matrícula, estado, autor, montos del libro) lo fija
  * {@see GestionPagos}. Los importes se manejan como texto decimal o céntimos enteros, nunca como `float`.
+ *
+ * @property string $monto_total Importe como texto decimal.
  */
 class ObligacionPago extends Model
 {

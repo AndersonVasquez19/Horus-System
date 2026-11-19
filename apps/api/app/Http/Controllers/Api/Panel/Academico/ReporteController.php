@@ -192,6 +192,7 @@ final class ReporteController extends Controller implements HasMiddleware
             'cobranza' => $this->reportes->cobranza($request),
             'asistencia' => $this->reportes->asistencia($request),
             'calificaciones' => $this->reportes->calificaciones($request),
+            default => throw new \InvalidArgumentException('Tipo de reporte no reconocido.'),
         };
 
         $todas = $datos['rows'];
