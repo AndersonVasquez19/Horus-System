@@ -22,6 +22,11 @@ use Illuminate\Support\Str;
  * (`lockForUpdate`) son de PostgreSQL y NO se prueban aquí; las reglas se prueban en el servicio, que es la barrera en SQLite.
  */
 
+// Ninguna prueba de este archivo puede escribir capturas en el disco real (`storage/app/private/comprobantes`).
+beforeEach(function (): void {
+    Storage::fake('local');
+});
+
 function pagoMatricula(string $dni = '60000001'): Matricula
 {
     static $n = 0;
