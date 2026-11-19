@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\Asistencia;
 use App\Models\Convocatoria;
 use App\Models\Curso;
-use App\Models\Docente;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\SesionClase;
@@ -178,16 +177,10 @@ it('la cobranza no cuenta lo pendiente y un reverso la deshace', function (): vo
 it('busca por DNI, nombre, código y número en todos los módulos y enlaza con identificadores, sin datos sensibles', function (): void {
     [$porCerrar] = tbEscenario();
     $admin = $this->usuarioConRol('admin');
-    $docente = new Docente(['nombres' => 'Rosa', 'apellidos' => 'Quispe Vega', 'email' => null, 'telefono' => null, 'especialidad' => 'Redes']);
-    $docente->identificador = (string) Str::uuid();
-    $docente->dni = '81000009';
-    $docente->estado = 'activo';
-    $docente->save();
-
     $r = $this->panelComo($admin, 'GET', 'academico/busqueda?q=Quispe')->assertOk();
     $g = $r->json('data.grupos');
     expect($g['estudiantes'])->toHaveCount(1)->and($g['estudiantes'][0]['texto'])->toBe('Quispe Soto, Ana')->and($g['estudiantes'][0]['detalle'])->toBe('DNI 81000001')
-        ->and($g['docentes'][0]['identificador'])->toBe($docente->identificador)
+        ->and($g)->not->toHaveKey('docentes')
         ->and($g['matriculas'])->toHaveCount(1)->and($g['matriculas'][0])->toHaveKeys(['id', 'texto', 'detalle']);
     expect($r->getContent())->not->toContain('monto_pagado')->not->toContain('nota_final');
 

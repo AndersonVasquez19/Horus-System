@@ -76,7 +76,7 @@ final class ConvocatoriasMigracionTest extends TestCase
             'identificador', 'codigo', 'curso_id', 'nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos',
             'cupos_disponibles', 'estado', 'revision', 'deleted_at',
         ]));
-        $this->assertTrue(Schema::hasColumns('convocatoria_horarios', ['convocatoria_id', 'dia_semana', 'hora_inicio', 'hora_fin', 'lugar', 'docente']));
+        $this->assertTrue(Schema::hasColumns('convocatoria_horarios', ['convocatoria_id', 'dia_semana', 'hora_inicio', 'hora_fin']));
     }
 
     public function test_el_codigo_es_unico_y_ni_el_curso_ni_la_convocatoria_se_borran_con_hijos(): void

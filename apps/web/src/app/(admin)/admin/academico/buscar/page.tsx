@@ -17,7 +17,7 @@ export default function BuscarPage({ searchParams }: { searchParams: Promise<Par
     <>
       <EncabezadoPagina
         titulo="Buscar"
-        descripcion="Estudiantes, docentes, matrículas y ediciones, por DNI, nombre, código o número."
+        descripcion="Estudiantes, matrículas y ediciones, por DNI, nombre, código o número."
         migas={[{ etiqueta: 'Inicio', href: '/admin/academico' }, { etiqueta: 'Buscar' }]}
       />
       <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Buscando" />}>
@@ -29,7 +29,6 @@ export default function BuscarPage({ searchParams }: { searchParams: Promise<Par
 
 const GRUPOS: { clave: keyof ResultadoBusqueda['grupos']; titulo: string; enlace: (r: Record<string, string | number>) => string }[] = [
   { clave: 'estudiantes', titulo: 'Estudiantes', enlace: (r) => `/admin/academico/estudiantes/${r.id}` },
-  { clave: 'docentes', titulo: 'Docentes', enlace: (r) => `/admin/academico/docentes/${r.identificador}` },
   { clave: 'matriculas', titulo: 'Matrículas', enlace: (r) => `/admin/academico/matriculas/${r.id}` },
   { clave: 'ediciones', titulo: 'Ediciones', enlace: (r) => `/admin/academico/convocatorias/${r.identificador}` },
 ];

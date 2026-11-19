@@ -77,6 +77,11 @@ return new class extends Migration
             return;
         }
 
+        // La migración 000085 ya pudo quitar estas columnas (los módulos Docentes e Infraestructura se retiraron): no hay nada que revertir.
+        if (! Schema::hasColumn('convocatorias', 'sede_id')) {
+            return;
+        }
+
         DB::statement('alter table convocatorias drop constraint if exists convocatorias_infra_completa');
         DB::statement('alter table convocatorias drop constraint if exists convocatorias_aula_exige_sede');
         DB::statement('alter table convocatorias drop constraint if exists convocatorias_infra_excluyente');

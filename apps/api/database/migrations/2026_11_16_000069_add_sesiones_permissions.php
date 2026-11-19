@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
@@ -15,16 +14,25 @@ use Spatie\Permission\PermissionRegistrar;
  */
 return new class extends Migration
 {
+    /** Permisos de esta migración (propios: el seeder ya no los define porque el módulo se retiró). @var list<string> */
+    private const PERMISOS = [
+        'sesiones.ver',
+        'sesiones.crear',
+        'sesiones.editar',
+        'sesiones.cancelar',
+        'sesiones.ver-enlace',
+    ];
+
     public function up(): void
     {
         DB::transaction(function (): void {
-            foreach (RolesAndPermissionsSeeder::SESIONES_PERMISSIONS as $name) {
+            foreach (self::PERMISOS as $name) {
                 Permission::findOrCreate($name, 'web');
             }
 
             $concesiones = [
-                'admin' => RolesAndPermissionsSeeder::SESIONES_PERMISSIONS,
-                'coordinador' => RolesAndPermissionsSeeder::SESIONES_PERMISSIONS,
+                'admin' => self::PERMISOS,
+                'coordinador' => self::PERMISOS,
                 'secretaria' => ['sesiones.ver'],
             ];
             foreach ($concesiones as $rol => $permisos) {
@@ -38,7 +46,7 @@ return new class extends Migration
     {
         DB::transaction(function (): void {
             Permission::query()->where('guard_name', 'web')
-                ->whereIn('name', RolesAndPermissionsSeeder::SESIONES_PERMISSIONS)
+                ->whereIn('name', self::PERMISOS)
                 ->get()
                 ->each(fn (Permission $permiso) => $permiso->delete());
         });

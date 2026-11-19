@@ -18,8 +18,8 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
 /**
- * Sesiones de clase (`sesiones.ver|crear|editar|cancelar|ver-enlace`). Toda escritura pasa por {@see GestionSesiones}. Ninguna
- * representación incluye el enlace virtual: solo `GET …/enlace` lo devuelve, con permiso propio y auditoría, sin caché.
+ * Sesiones de clase (`sesiones.ver|crear|editar|cancelar`). Toda escritura pasa por {@see GestionSesiones}. Una sesión solo lleva
+ * fecha, horas, tema y estado: no hay docente ni lugar ni enlace.
  */
 final class SesionController extends Controller implements HasMiddleware
 {
@@ -35,7 +35,6 @@ final class SesionController extends Controller implements HasMiddleware
             new Middleware('permission:sesiones.crear', only: ['store', 'generar']),
             new Middleware('permission:sesiones.editar', only: ['update', 'realizada']),
             new Middleware('permission:sesiones.cancelar', only: ['cancelar']),
-            new Middleware('permission:sesiones.ver-enlace', only: ['enlace']),
         ];
     }
 
@@ -47,7 +46,7 @@ final class SesionController extends Controller implements HasMiddleware
             'desde' => $this->fecha($request, 'desde'),
             'hasta' => $this->fecha($request, 'hasta'),
         ];
-        $consulta = SesionClase::query()->with(['docente', 'aula.sede', 'plataformaVirtual'])->where('convocatoria_id', $edicion->id);
+        $consulta = SesionClase::query()->where('convocatoria_id', $edicion->id);
         if ($filtros['estado'] !== '') {
             $consulta->where('estado', $filtros['estado']);
         }
@@ -114,13 +113,6 @@ final class SesionController extends Controller implements HasMiddleware
         return response()->json(['message' => $resultado['creadas'].' sesión(es) generada(s).', 'data' => $resultado])->header('Cache-Control', 'no-store, private');
     }
 
-    public function enlace(Request $request, string $sesion): JsonResponse
-    {
-        $enlace = $this->gestion->enlace($request, $sesion);
-
-        return response()->json(['data' => ['enlace_virtual' => $enlace]])->header('Cache-Control', 'no-store, private');
-    }
-
     private function edicion(string $identificador): Convocatoria
     {
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
@@ -132,7 +124,7 @@ final class SesionController extends Controller implements HasMiddleware
     {
         abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $identificador) === 1, 404);
 
-        return SesionClase::query()->with(['convocatoria', 'docente', 'aula.sede', 'plataformaVirtual'])->where('identificador', strtolower($identificador))->firstOrFail();
+        return SesionClase::query()->with(['convocatoria'])->where('identificador', strtolower($identificador))->firstOrFail();
     }
 
     private function fecha(Request $request, string $clave): string
@@ -148,7 +140,7 @@ final class SesionController extends Controller implements HasMiddleware
             ->header('ETag', $s->etag())->header('Cache-Control', 'no-store, private');
     }
 
-    /** @return array<string, mixed> sin enlace virtual ni DNI del docente */
+    /** @return array<string, mixed> */
     private function representar(SesionClase $s, ?Convocatoria $edicion): array
     {
         return [
@@ -161,10 +153,6 @@ final class SesionController extends Controller implements HasMiddleware
             'tema' => $s->tema,
             'estado' => $s->estado,
             'motivo_cancelacion' => $s->motivo_cancelacion,
-            'docente' => $s->docente === null ? null : ['identificador' => $s->docente->identificador, 'nombres' => $s->docente->nombres, 'apellidos' => $s->docente->apellidos],
-            'aula' => $s->aula === null ? null : ['identificador' => $s->aula->identificador, 'codigo' => $s->aula->codigo, 'nombre' => $s->aula->nombre, 'sede' => $s->aula->sede?->nombre],
-            'plataforma_virtual' => $s->plataformaVirtual === null ? null : ['identificador' => $s->plataformaVirtual->identificador, 'nombre' => $s->plataformaVirtual->nombre, 'tipo' => $s->plataformaVirtual->tipo],
-            'tiene_enlace' => $s->tieneEnlace(),
             'revision' => $s->etag(),
         ];
     }

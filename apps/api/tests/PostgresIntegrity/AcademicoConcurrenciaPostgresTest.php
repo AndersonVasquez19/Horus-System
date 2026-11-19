@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Tests\PostgresIntegrity;
 
 use App\Models\Asistencia;
-use App\Models\Aula;
 use App\Models\AuditLog;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\Sede;
 use App\Models\SesionClase;
 use App\Models\User;
 use App\Services\GestionPagos;
@@ -27,15 +25,15 @@ use Tests\PostgresIntegrity\Concerns\RequiresIsolatedPostgres;
 use Tests\TestCase;
 
 /**
- * Horus Academic sobre PostgreSQL REAL: carreras entre dos sesiones (pagos, reversos, cruces de aula, matrícula con pago).
+ * Horus Academic sobre PostgreSQL REAL: carreras entre dos sesiones (pagos, reversos, matrícula con pago).
  *
  * Protocolo (el mismo que MatriculaOperacionesConcurrencia…): la sesión B abre una transacción y toma los bloqueos que tomaría la otra
  * petición, dejando sus escrituras SIN confirmar; la petición real, con `lock_timeout` corto, debe quedar BLOQUEADA (55P03) y no dejar
  * rastro; al confirmar B, la petición se repite y debe decidir con el estado ya confirmado (sin duplicar ni sobrepasar nada).
  *
  * B toma `FOR NO KEY UPDATE` (no `FOR UPDATE`): choca con el `lockForUpdate` del servicio pero NO con la comprobación de clave foránea de
- * un INSERT. Comprobado por mutación: quitar el `lockForUpdate` de la obligación o el bloqueo consultivo del aula HACE FALLAR las pruebas de
- * sobrepago y de cruce de aula (son los bloqueos los que protegen). En la idempotencia la barrera de fondo es el índice
+ * un INSERT. Comprobado por mutación: quitar el `lockForUpdate` de la obligación HACE FALLAR las pruebas de
+ * sobrepago (es el bloqueo el que protege). En la idempotencia la barrera de fondo es el índice
  * único (clave por obligación): sin el bloqueo la petición igual espera en el índice y, al confirmar B,
  * fallaría con un duplicado (23505) en vez de devolver lo ya creado; esa prueba verifica la barrera del índice y la respuesta limpia.
  *
@@ -168,39 +166,6 @@ class AcademicoConcurrenciaPostgresTest extends TestCase
         $this->assertSame(0, AuditLog::where('action', 'pago_reversado')->count(), 'El segundo intento no audita otro reverso.');
     }
 
-    // ---------------------------------------------------------------- sesiones
-
-    public function test_dos_sesiones_que_se_cruzan_en_la_misma_aula_no_se_crean_ambas(): void
-    {
-        $admin = $this->adminUser();
-        $b = $this->secondSession();
-        $aula = $this->aula();
-        $uno = $this->edicionPresencial($aula);
-        $dos = $this->edicionPresencial($aula);
-        $fecha = now()->addDays(3)->toDateString();
-
-        // B: otra alta ya tomó el bloqueo consultivo del aula y dejó su sesión de 18:00 a 20:00 sin confirmar.
-        $b->beginTransaction();
-        $b->select('select pg_advisory_xact_lock(hashtext(?))', ['sesion-aula:'.$aula['id']]);
-        $b->table('sesiones_clase')->insert([
-            'identificador' => (string) Str::uuid(), 'convocatoria_id' => $dos, 'numero' => 1, 'fecha' => $fecha, 'hora_inicio' => '18:00:00', 'hora_fin' => '20:00:00',
-            'aula_id' => $aula['id'], 'estado' => 'programada', 'revision' => 1, 'created_at' => now(), 'updated_at' => now(),
-        ]);
-
-        $uuid = (string) Convocatoria::query()->whereKey($uno)->value('identificador');
-        $datos = ['fecha' => $fecha, 'hora_inicio' => '19:00', 'hora_fin' => '21:00'];
-        $this->limitLockWait();
-        $this->assertBloqueado(fn () => $this->como($admin, 'POST', "academico/convocatorias/{$uuid}/sesiones", $datos));
-        $this->assertSame(0, SesionClase::query()->count());
-        $b->commit();
-
-        $this->withExceptionHandling();
-        $this->como($admin, 'POST', "academico/convocatorias/{$uuid}/sesiones", $datos)->assertUnprocessable()->assertJsonValidationErrors('aula');
-        $this->assertSame(1, SesionClase::query()->count(), 'Solo existe la sesión de B: el cruce se rechaza.');
-        // Sin cruce (a partir de las 20:00) sí se crea.
-        $this->como($admin, 'POST', "academico/convocatorias/{$uuid}/sesiones", ['fecha' => $fecha, 'hora_inicio' => '20:00', 'hora_fin' => '21:00'])->assertCreated();
-    }
-
     // ---------------------------------------------------------------- matricular con pago
 
     public function test_matricular_con_pago_bloqueado_no_deja_matricula_pago_ni_archivo_y_luego_se_completa(): void
@@ -309,31 +274,4 @@ class AcademicoConcurrenciaPostgresTest extends TestCase
             'fecha_pago' => now()->toDateString(), 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    /** @return array{id: int, sede: int} */
-    private function aula(): array
-    {
-        $this->n++;
-        $sede = new Sede(['nombre' => 'Sede '.$this->n, 'direccion' => 'Jr. Ficticio 1', 'ciudad' => 'Cajamarca']);
-        $sede->identificador = (string) Str::uuid();
-        $sede->codigo = 'SD-'.$this->n;
-        $sede->estado = 'activo';
-        $sede->save();
-        $aula = new Aula(['nombre' => 'Aula '.$this->n, 'capacidad' => 30]);
-        $aula->identificador = (string) Str::uuid();
-        $aula->sede_id = $sede->id;
-        $aula->codigo = 'A-'.$this->n;
-        $aula->estado = 'activo';
-        $aula->save();
-
-        return ['id' => $aula->id, 'sede' => $sede->id];
-    }
-
-    /** @param array{id: int, sede: int} $aula */
-    private function edicionPresencial(array $aula): int
-    {
-        $c = $this->edicionAbierta();
-        Convocatoria::query()->whereKey($c['id'])->update(['modalidad' => 'presencial', 'sede_id' => $aula['sede'], 'aula_id' => $aula['id'], 'estado' => 'en_curso']);
-
-        return $c['id'];
-    }
 }

@@ -6,7 +6,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -65,42 +64,7 @@ class Convocatoria extends Model
             'cupos_disponibles' => 'integer',
             'fecha_inicio' => 'date',
             'fecha_fin' => 'date',
-            'exige_infraestructura' => 'boolean',
         ];
-    }
-
-    /** @return BelongsTo<Sede, $this> */
-    public function sede(): BelongsTo
-    {
-        return $this->belongsTo(Sede::class);
-    }
-
-    /** @return BelongsTo<Aula, $this> */
-    public function aula(): BelongsTo
-    {
-        return $this->belongsTo(Aula::class);
-    }
-
-    /** @return BelongsTo<PlataformaVirtual, $this> */
-    public function plataformaVirtual(): BelongsTo
-    {
-        return $this->belongsTo(PlataformaVirtual::class);
-    }
-
-    /** @return BelongsToMany<Docente, $this> */
-    public function docentes(): BelongsToMany
-    {
-        return $this->belongsToMany(Docente::class, 'convocatoria_docentes')->withPivot('rol')->withTimestamps();
-    }
-
-    /** ¿Tiene la infraestructura que exige su modalidad? (las heredadas no exigen nada). */
-    public function tieneInfraestructuraCompleta(): bool
-    {
-        return match ($this->modalidad) {
-            'presencial' => $this->sede_id !== null && $this->aula_id !== null,
-            'virtual' => $this->plataforma_virtual_id !== null,
-            default => true,
-        };
     }
 
     public function estaVigente(): bool

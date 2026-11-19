@@ -1,3 +1,5 @@
+> **RETIRADO el 19/11/2026.** Los módulos Docentes e Infraestructura se eliminaron del panel y de la base de datos (migraciones `000084` y `000085`). Este documento queda como historial; ver [`../retiro-docentes-infraestructura.md`](../retiro-docentes-infraestructura.md).
+
 # 10 · Fase 3 — Infraestructura y consulta de DNI
 
 > 16/11/2026. SQLite en memoria; **ninguna migración ejecutada** contra base real ni PostgreSQL aislado. Sin commits.

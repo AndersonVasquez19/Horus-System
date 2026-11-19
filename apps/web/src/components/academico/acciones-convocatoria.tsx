@@ -255,11 +255,9 @@ interface BloqueEditable {
   dia_semana: string;
   hora_inicio: string;
   hora_fin: string;
-  lugar: string;
-  docente: string;
 }
 
-const aEditable = (h: HorarioConvocatoria): BloqueEditable => ({ dia_semana: String(h.dia_semana), hora_inicio: h.hora_inicio, hora_fin: h.hora_fin, lugar: h.lugar ?? '', docente: h.docente ?? '' });
+const aEditable = (h: HorarioConvocatoria): BloqueEditable => ({ dia_semana: String(h.dia_semana), hora_inicio: h.hora_inicio, hora_fin: h.hora_fin });
 
 /** Editor de horarios: se envían todos los bloques juntos (reemplazan a los anteriores) con la revisión de la convocatoria. */
 export function EditorHorarios({ convocatoria, editable }: { convocatoria: ConvocatoriaDetalle; editable: boolean }) {
@@ -287,8 +285,6 @@ export function EditorHorarios({ convocatoria, editable }: { convocatoria: Convo
       dia_semana: Number(b.dia_semana),
       hora_inicio: b.hora_inicio,
       hora_fin: b.hora_fin,
-      lugar: opcional(b.lugar),
-      docente: opcional(b.docente),
     }));
     const resultado = await ejecutar<Respuesta>(`academico/convocatorias/${convocatoria.identificador}/horarios`, 'PUT', { horarios, _revision: convocatoria.revision });
     setOcupado(false);
@@ -312,7 +308,6 @@ export function EditorHorarios({ convocatoria, editable }: { convocatoria: Convo
             <li key={`${h.dia_semana}-${h.hora_inicio}-${n}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-sm">
               <span className="w-24 font-medium text-panel-text">{ETIQUETAS.diaSemana[String(h.dia_semana) as keyof typeof ETIQUETAS.diaSemana]}</span>
               <span className="text-panel-text">{h.hora_inicio} – {h.hora_fin}</span>
-              <span className="text-panel-muted">{[h.lugar, h.docente].filter(Boolean).join(' · ')}</span>
             </li>
           ))}
         </ul>
@@ -333,11 +328,9 @@ export function EditorHorarios({ convocatoria, editable }: { convocatoria: Convo
               <div className="flex items-end">
                 <Boton variante="secundario" className="w-full" icono={<Trash2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setBloques((actuales) => actuales.filter((_, j) => j !== i))}>Quitar</Boton>
               </div>
-              <Campo etiqueta="Lugar (opcional)" value={b.lugar} onChange={(e) => cambiar(i, 'lugar', e.target.value)} maxLength={120} className="sm:col-span-2" />
-              <Campo etiqueta="Docente (opcional)" value={b.docente} onChange={(e) => cambiar(i, 'docente', e.target.value)} maxLength={120} className="sm:col-span-2" />
             </fieldset>
           ))}
-          <Boton variante="secundario" icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setBloques((actuales) => [...actuales, { dia_semana: '1', hora_inicio: '', hora_fin: '', lugar: '', docente: '' }])}>Agregar bloque</Boton>
+          <Boton variante="secundario" icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setBloques((actuales) => [...actuales, { dia_semana: '1', hora_inicio: '', hora_fin: '' }])}>Agregar bloque</Boton>
           <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
             <Boton variante="secundario" onClick={() => setEditando(false)} disabled={ocupado}>Cancelar</Boton>
             <Boton type="submit" cargando={ocupado}>Guardar horario</Boton>

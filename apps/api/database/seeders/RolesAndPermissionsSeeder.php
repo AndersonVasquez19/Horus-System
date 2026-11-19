@@ -31,27 +31,11 @@ class RolesAndPermissionsSeeder extends Seeder
     public const CALIFICACIONES_PERMISSIONS = ['calificaciones.ver', 'calificaciones.registrar', 'calificaciones.corregir', 'calificaciones.exportar'];
 
     /**
-     * Horus Academic, Fase 3: infraestructura (sedes, aulas y plataformas virtuales). Admin y coordinador todos; secretaria
-     * solo `ver`.
+     * Horus Academic, Fase 5: sesiones de clase. Admin y coordinador todos; secretaria solo `ver`.
      *
      * @var list<string>
      */
-    public const INFRAESTRUCTURA_PERMISSIONS = ['infraestructura.ver', 'infraestructura.gestionar'];
-
-    /**
-     * Horus Academic, Fase 4: docentes. Admin todos; coordinador ver, crear y editar; secretaria solo `ver`. Eliminar y
-     * restaurar son solo de admin.
-     *
-     * @var list<string>
-     */
-    public const DOCENTES_PERMISSIONS = ['docentes.ver', 'docentes.crear', 'docentes.editar', 'docentes.eliminar', 'docentes.restaurar'];
-
-    /**
-     * Horus Academic, Fase 5: sesiones de clase. Admin y coordinador todos (incluido el enlace virtual privado); secretaria solo `ver`.
-     *
-     * @var list<string>
-     */
-    public const SESIONES_PERMISSIONS = ['sesiones.ver', 'sesiones.crear', 'sesiones.editar', 'sesiones.cancelar', 'sesiones.ver-enlace'];
+    public const SESIONES_PERMISSIONS = ['sesiones.ver', 'sesiones.crear', 'sesiones.editar', 'sesiones.cancelar'];
 
     /**
      * Horus Academic, Fase 6: asistencia. Admin y coordinador todos; secretaria solo `ver`.
@@ -90,8 +74,6 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::SERVICIOS_PERMISSIONS,
         ...self::CONVOCATORIAS_PERMISSIONS,
         ...self::CALIFICACIONES_PERMISSIONS,
-        ...self::INFRAESTRUCTURA_PERMISSIONS,
-        ...self::DOCENTES_PERMISSIONS,
         ...self::SESIONES_PERMISSIONS,
         ...self::ASISTENCIAS_PERMISSIONS,
         ...self::PAGOS_PERMISSIONS,
@@ -157,10 +139,6 @@ class RolesAndPermissionsSeeder extends Seeder
         'respaldo.ver',
         ...self::CONVOCATORIAS_PERMISSIONS,
         ...self::CALIFICACIONES_PERMISSIONS,
-        ...self::INFRAESTRUCTURA_PERMISSIONS,
-        'docentes.ver',
-        'docentes.crear',
-        'docentes.editar',
         ...self::SESIONES_PERMISSIONS,
         ...self::ASISTENCIAS_PERMISSIONS,
     ];
@@ -178,8 +156,6 @@ class RolesAndPermissionsSeeder extends Seeder
         'convocatorias.ver',
         'calificaciones.ver',
         'calificaciones.registrar',
-        'infraestructura.ver',
-        'docentes.ver',
         'sesiones.ver',
         'asistencias.ver',
     ];

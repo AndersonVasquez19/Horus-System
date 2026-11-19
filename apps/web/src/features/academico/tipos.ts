@@ -42,7 +42,6 @@ export interface ResultadoBusqueda {
   consulta: string;
   grupos: {
     estudiantes?: { id: number; texto: string; detalle: string }[];
-    docentes?: { identificador: string; texto: string; detalle: string }[];
     matriculas?: { id: number; texto: string; detalle: string }[];
     ediciones?: { identificador: string; texto: string; detalle: string }[];
   };
@@ -215,22 +214,10 @@ export interface HorarioConvocatoria {
   dia_semana: number;
   hora_inicio: string;
   hora_fin: string;
-  lugar: string | null;
-  docente: string | null;
-}
-
-export interface InfraestructuraEdicion {
-  /** Las ediciones nuevas deben tener su infraestructura antes de abrirse; las históricas no. */
-  exigida: boolean;
-  completa: boolean;
-  sede: { identificador: string; codigo: string; nombre: string } | null;
-  aula: { identificador: string; codigo: string; nombre: string; capacidad: number } | null;
-  plataforma_virtual: { identificador: string; nombre: string; tipo: string } | null;
 }
 
 export interface ConvocatoriaDetalle extends ConvocatoriaResumen {
   horarios: HorarioConvocatoria[];
-  infraestructura: InfraestructuraEdicion;
   creado_en: string | null;
   revision: string;
 }
@@ -246,66 +233,6 @@ export const TRANSICIONES_CONVOCATORIA: Record<EstadoConvocatoria, readonly Esta
 
 export type EstadoActivo = 'activo' | 'inactivo';
 
-export interface SedeResumen {
-  identificador: string;
-  codigo: string;
-  nombre: string;
-  direccion: string;
-  ciudad: string;
-  estado: EstadoActivo;
-  aulas: number;
-  creado_en: string | null;
-}
-
-export interface AulaResumen {
-  identificador: string;
-  codigo: string;
-  nombre: string;
-  capacidad: number;
-  estado: EstadoActivo;
-  sede: { identificador: string; codigo: string; nombre: string } | null;
-  creado_en: string | null;
-}
-
-export type TipoPlataforma = 'meet' | 'zoom' | 'teams' | 'otra';
-
-export interface PlataformaResumen {
-  identificador: string;
-  nombre: string;
-  tipo: TipoPlataforma;
-  estado: EstadoActivo;
-  creado_en: string | null;
-}
-
-/** Listado de docentes: sin correo ni teléfono (el detalle sí los trae). */
-export interface DocenteResumen {
-  identificador: string;
-  dni: string;
-  nombres: string;
-  apellidos: string;
-  especialidad: string | null;
-  estado: EstadoActivo;
-  eliminado: boolean;
-}
-
-export interface DocenteDetalle extends DocenteResumen {
-  email: string | null;
-  telefono: string | null;
-  ediciones_vigentes: number;
-  creado_en: string | null;
-}
-
-export type RolDocente = 'principal' | 'apoyo';
-
-export interface DocenteAsignado {
-  docente: string;
-  dni: string;
-  nombres: string;
-  apellidos: string;
-  rol: RolDocente;
-  estado: EstadoActivo;
-}
-
 /** Respuesta de la consulta de DNI (JSON.pe vía Laravel). Solo consulta: no registra a nadie. */
 export interface PersonaDni {
   dni: string;
@@ -314,7 +241,6 @@ export interface PersonaDni {
   apellido_materno: string;
   apellidos: string;
   ya_registrado_como_estudiante?: boolean;
-  ya_registrado_como_docente?: boolean;
 }
 
 export interface SesionClase {
@@ -327,11 +253,6 @@ export interface SesionClase {
   tema: string | null;
   estado: 'programada' | 'realizada' | 'cancelada';
   motivo_cancelacion: string | null;
-  docente: { identificador: string; nombres: string; apellidos: string } | null;
-  aula: { identificador: string; codigo: string; nombre: string; sede: string | null } | null;
-  plataforma_virtual: { identificador: string; nombre: string; tipo: string } | null;
-  /** El enlace nunca viaja en listados: solo se pide aparte con `sesiones.ver-enlace`. */
-  tiene_enlace: boolean;
   revision: string;
 }
 

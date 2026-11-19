@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
@@ -17,16 +16,22 @@ use Spatie\Permission\PermissionRegistrar;
  */
 return new class extends Migration
 {
+    /** Permisos de esta migración (propios: el seeder ya no los define porque el módulo se retiró). @var list<string> */
+    private const PERMISOS = [
+        'infraestructura.ver',
+        'infraestructura.gestionar',
+    ];
+
     public function up(): void
     {
         DB::transaction(function (): void {
-            foreach (RolesAndPermissionsSeeder::INFRAESTRUCTURA_PERMISSIONS as $name) {
+            foreach (self::PERMISOS as $name) {
                 Permission::findOrCreate($name, 'web');
             }
 
             $concesiones = [
-                'admin' => RolesAndPermissionsSeeder::INFRAESTRUCTURA_PERMISSIONS,
-                'coordinador' => RolesAndPermissionsSeeder::INFRAESTRUCTURA_PERMISSIONS,
+                'admin' => self::PERMISOS,
+                'coordinador' => self::PERMISOS,
                 'secretaria' => ['infraestructura.ver'],
             ];
             foreach ($concesiones as $rol => $permisos) {
@@ -41,7 +46,7 @@ return new class extends Migration
         // Retirar los permisos solo cierra el acceso al módulo: no afecta a datos. Spatie elimina en cascada sus asignaciones.
         DB::transaction(function (): void {
             Permission::query()->where('guard_name', 'web')
-                ->whereIn('name', RolesAndPermissionsSeeder::INFRAESTRUCTURA_PERMISSIONS)
+                ->whereIn('name', self::PERMISOS)
                 ->get()
                 ->each(fn (Permission $permiso) => $permiso->delete());
         });

@@ -26,8 +26,6 @@ const NAVEGACION: ModeloNavegacion = [
       { id: 'estudiantes', etiqueta: 'Estudiantes', href: '/admin/academico/estudiantes', icono: 'personas', permisosRequeridos: ['estudiantes.ver'] },
       { id: 'cursos', etiqueta: 'Cursos', href: '/admin/academico/cursos', icono: 'cursos', permisosRequeridos: ['cursos.ver'] },
       { id: 'convocatorias', etiqueta: 'Ediciones', href: '/admin/academico/convocatorias', icono: 'cursos', permisosRequeridos: ['convocatorias.ver'] },
-      { id: 'docentes', etiqueta: 'Docentes', href: '/admin/academico/docentes', icono: 'personas', permisosRequeridos: ['docentes.ver'] },
-      { id: 'infraestructura', etiqueta: 'Infraestructura', href: '/admin/academico/infraestructura', icono: 'registros', permisosRequeridos: ['infraestructura.ver'] },
       { id: 'reportes', etiqueta: 'Reportes', href: '/admin/academico/reportes', icono: 'documentos', permisosRequeridos: ['reportes.ver'] },
     ],
   },

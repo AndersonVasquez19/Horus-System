@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Api\Panel\Academico;
 
 use App\Exceptions\ConsultaDniException;
 use App\Http\Controllers\Controller;
-use App\Models\Docente;
 use App\Models\Estudiante;
 use App\Models\User;
 use App\Services\JsonPeService;
@@ -16,7 +15,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
 /**
- * Consulta de DNI para el alta de personas (estudiantes y docentes comparten este servicio). Solo consulta: no
+ * Consulta de DNI para el alta de estudiantes. Solo consulta: no
  * registra a nadie. Next.js muestra los datos, la persona los confirma y recién entonces se registra. Devuelve únicamente
  * los campos necesarios y, si quien consulta puede ver estudiantes, si el DNI ya está registrado (para no duplicar).
  */
@@ -28,8 +27,7 @@ final class ConsultaDniController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            // La consulta sirve al alta de estudiantes y de docentes.
-            new Middleware('permission:estudiantes.crear|docentes.crear'),
+            new Middleware('permission:estudiantes.crear'),
         ];
     }
 
@@ -57,12 +55,9 @@ final class ConsultaDniController extends Controller implements HasMiddleware
             ...$persona,
             'apellidos' => trim($persona['apellido_paterno'].' '.$persona['apellido_materno']),
         ];
-        // Un mismo DNI no puede ser estudiante y docente a la vez: se informa solo lo que la persona usuaria puede consultar.
+        // Se informa si ya está registrado solo a quien puede consultar estudiantes.
         if ($usuario->can('estudiantes.ver')) {
             $respuesta['ya_registrado_como_estudiante'] = Estudiante::withTrashed()->where('dni', $datos['dni'])->exists();
-        }
-        if ($usuario->can('docentes.ver')) {
-            $respuesta['ya_registrado_como_docente'] = Docente::withTrashed()->where('dni', $datos['dni'])->exists();
         }
 
         return response()->json(['data' => $respuesta])->header('Cache-Control', 'no-store, private');

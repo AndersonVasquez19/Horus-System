@@ -1,3 +1,5 @@
+> **RETIRADO el 19/11/2026.** Los módulos Docentes e Infraestructura se eliminaron del panel y de la base de datos (migraciones `000084` y `000085`). Este documento queda como historial; ver [`../retiro-docentes-infraestructura.md`](../retiro-docentes-infraestructura.md).
+
 # 04 · Plan de normalización de docentes, sedes, aulas y plataformas virtuales
 
 > **Fase 1 · diseño.** Parte de lo que el **código** del repositorio demuestra. **No se consultó ninguna base de datos**

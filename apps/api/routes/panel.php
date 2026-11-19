@@ -115,7 +115,7 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
     ->name('academico.')
     ->group(function (): void {
         Route::get('resumen', Academico\ResumenController::class)->name('resumen');
-        // Búsqueda global: cada grupo (estudiantes, docentes, matrículas, ediciones) solo con el permiso de su módulo.
+        // Búsqueda global: cada grupo (estudiantes, matrículas, ediciones) solo con el permiso de su módulo.
         Route::get('busqueda', Academico\BusquedaController::class)->middleware('throttle:admin-opciones')->name('busqueda');
         Route::get('cursos', [Academico\CursoController::class, 'index'])->name('cursos.index');
         Route::get('cursos/{curso}', [Academico\CursoController::class, 'show'])->whereNumber('curso')->name('cursos.show');
@@ -148,47 +148,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'update'])->name('convocatorias.update');
             Route::post('convocatorias/{identificador}/estado', [Academico\ConvocatoriaController::class, 'estado'])->name('convocatorias.estado');
             Route::put('convocatorias/{identificador}/horarios', [Academico\ConvocatoriaController::class, 'horarios'])->name('convocatorias.horarios');
-            Route::put('convocatorias/{identificador}/infraestructura', [Academico\ConvocatoriaController::class, 'infraestructura'])->name('convocatorias.infraestructura');
         });
 
-        // Infraestructura académica (Horus Academic, Fase 3): sedes, aulas y plataformas virtuales. No se eliminan: se desactivan.
-        // El permiso (`infraestructura.ver|gestionar`) lo declara cada controlador.
-        Route::get('sedes', [Academico\SedeController::class, 'index'])->name('sedes.index');
-        Route::get('sedes/{sede}', [Academico\SedeController::class, 'show'])->name('sedes.show');
-        Route::get('aulas', [Academico\AulaController::class, 'index'])->name('aulas.index');
-        Route::get('aulas/{aula}', [Academico\AulaController::class, 'show'])->name('aulas.show');
-        Route::get('plataformas-virtuales', [Academico\PlataformaVirtualController::class, 'index'])->name('plataformas.index');
-        Route::get('plataformas-virtuales/{plataforma}', [Academico\PlataformaVirtualController::class, 'show'])->name('plataformas.show');
-        Route::middleware('throttle:admin-write')->group(function (): void {
-            Route::post('sedes', [Academico\SedeController::class, 'store'])->name('sedes.store');
-            Route::put('sedes/{sede}', [Academico\SedeController::class, 'update'])->name('sedes.update');
-            Route::post('sedes/{sede}/estado', [Academico\SedeController::class, 'estado'])->name('sedes.estado');
-            Route::post('aulas', [Academico\AulaController::class, 'store'])->name('aulas.store');
-            Route::put('aulas/{aula}', [Academico\AulaController::class, 'update'])->name('aulas.update');
-            Route::post('aulas/{aula}/estado', [Academico\AulaController::class, 'estado'])->name('aulas.estado');
-            Route::post('plataformas-virtuales', [Academico\PlataformaVirtualController::class, 'store'])->name('plataformas.store');
-            Route::put('plataformas-virtuales/{plataforma}', [Academico\PlataformaVirtualController::class, 'update'])->name('plataformas.update');
-            Route::post('plataformas-virtuales/{plataforma}/estado', [Academico\PlataformaVirtualController::class, 'estado'])->name('plataformas.estado');
-        });
 
-        // Docentes (Horus Academic, Fase 4): identificados solo por DNI. El permiso (`docentes.*`) lo declara el controlador;
-        // asignar docentes a una edición exige `convocatorias.editar` y la revisión de la edición.
-        Route::get('docentes', [Academico\DocenteController::class, 'index'])->name('docentes.index');
-        Route::get('docentes/{docente}', [Academico\DocenteController::class, 'show'])->name('docentes.show');
-        Route::get('convocatorias/{identificador}/docentes', [Academico\ConvocatoriaDocenteController::class, 'show'])->name('convocatorias.docentes.show');
-        Route::middleware('throttle:admin-write')->group(function (): void {
-            Route::post('docentes', [Academico\DocenteController::class, 'store'])->name('docentes.store');
-            Route::put('docentes/{docente}', [Academico\DocenteController::class, 'update'])->name('docentes.update');
-            Route::delete('docentes/{docente}', [Academico\DocenteController::class, 'destroy'])->name('docentes.destroy');
-            Route::post('docentes/{docente}/restaurar', [Academico\DocenteController::class, 'restaurar'])->name('docentes.restaurar');
-            Route::put('convocatorias/{identificador}/docentes', [Academico\ConvocatoriaDocenteController::class, 'update'])->name('convocatorias.docentes.update');
-        });
-
-        // Sesiones de clase (Horus Academic, Fase 5). El permiso (`sesiones.*`) lo declara el controlador. El enlace virtual solo
-        // sale por `sesiones/{sesion}/enlace` (permiso propio, auditado, sin caché).
+        // Sesiones de clase (Horus Academic, Fase 5). El permiso (`sesiones.*`) lo declara el controlador.
         Route::get('convocatorias/{identificador}/sesiones', [Academico\SesionController::class, 'index'])->name('sesiones.index');
         Route::get('sesiones/{sesion}', [Academico\SesionController::class, 'show'])->name('sesiones.show');
-        Route::get('sesiones/{sesion}/enlace', [Academico\SesionController::class, 'enlace'])->middleware('throttle:30,1')->name('sesiones.enlace');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('convocatorias/{identificador}/sesiones', [Academico\SesionController::class, 'store'])->name('sesiones.store');
             Route::post('convocatorias/{identificador}/sesiones/generar', [Academico\SesionController::class, 'generar'])->name('sesiones.generar');

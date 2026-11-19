@@ -24,8 +24,6 @@ export interface Operacion {
   oportunidad?: readonly string[];
   /** El cuerpo trae `horarios`: hasta `MAX_HORARIOS` bloques de horario de una convocatoria (campos acotados). */
   horarios?: boolean;
-  /** El cuerpo trae `docentes`: hasta `MAX_DOCENTES` pares {docente (UUID), rol} de una edición. */
-  docentes?: boolean;
   /** El cuerpo trae `asistencias`: pares {matricula_id, estado, observacion} de una sesión. */
   asistencias?: boolean;
   /** El cuerpo trae `cuotas`: hasta `MAX_CUOTAS` pares {monto, vence} de un plan fraccionado. */
@@ -55,10 +53,8 @@ export const MAX_CONTACTOS = 10;
 /** Bloques de horario admitidos por convocatoria (igual que `Convocatoria::MAX_HORARIOS` en Laravel). */
 export const MAX_HORARIOS = 20;
 
-/** Docentes admitidos por edición (igual que `GestionDocentes::MAX_POR_EDICION` en Laravel). */
 export const MAX_ASISTENCIAS = 300;
 const MAX_CUOTAS = 24;
-const MAX_DOCENTES = 10;
 
 export interface CuotaReenviada {
   monto: string | null;
@@ -71,17 +67,10 @@ export interface AsistenciaReenviada {
   observacion: string | null;
 }
 
-export interface DocenteReenviado {
-  docente: string | null;
-  rol: string | null;
-}
-
 export interface HorarioReenviado {
   dia_semana: number | null;
   hora_inicio: string | null;
   hora_fin: string | null;
-  lugar: string | null;
-  docente: string | null;
 }
 
 export interface ContactoReenviado {
@@ -92,7 +81,7 @@ export interface ContactoReenviado {
   principal: boolean;
 }
 
-export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | HorarioReenviado[] | DocenteReenviado[] | AsistenciaReenviada[] | CuotaReenviada[] | Record<string, string | number | boolean | null>;
+export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | HorarioReenviado[] | AsistenciaReenviada[] | CuotaReenviada[] | Record<string, string | number | boolean | null>;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
@@ -104,11 +93,7 @@ const FILTROS_REPORTE = ['busqueda', 'estado', 'eliminados', 'lote'] as const;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const CAMPOS_CONVOCATORIA = ['curso_id', 'nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos', '_revision'] as const;
-const CAMPOS_SEDE = ['codigo', 'nombre', 'direccion', 'ciudad'] as const;
-const CAMPOS_AULA = ['sede', 'codigo', 'nombre', 'capacidad'] as const;
-const CAMPOS_PLATAFORMA = ['nombre', 'tipo'] as const;
-const CAMPOS_SESION = ['numero', 'fecha', 'hora_inicio', 'hora_fin', 'tema', 'docente', 'aula', 'plataforma_virtual', 'enlace_virtual', '_revision'] as const;
-const CAMPOS_DOCENTE = ['dni', 'nombres', 'apellidos', 'email', 'telefono', 'especialidad', 'estado'] as const;
+const CAMPOS_SESION = ['numero', 'fecha', 'hora_inicio', 'hora_fin', 'tema', '_revision'] as const;
 const CAMPOS_EVALUACION = ['nombre', 'peso', 'fecha', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 /** La convocatoria solo se elige al registrar: queda fija y la edición no la acepta. */
@@ -146,24 +131,12 @@ export const OPERACIONES: readonly Operacion[] = [
   // Consulta de DNI (JSON.pe desde Laravel): solo consulta; el token nunca llega al navegador
   { metodo: 'POST', patron: /^academico\/consultas\/dni$/, campos: ['dni'] },
 
-  // Infraestructura académica: sedes, aulas y plataformas virtuales (no se eliminan: se desactivan)
-  { metodo: 'POST', patron: /^academico\/sedes$/, campos: CAMPOS_SEDE },
-  { metodo: 'PUT', patron: new RegExp(`^academico/sedes/${UUID}$`), campos: CAMPOS_SEDE },
-  { metodo: 'POST', patron: new RegExp(`^academico/sedes/${UUID}/estado$`), campos: ['estado'] },
-  { metodo: 'POST', patron: /^academico\/aulas$/, campos: CAMPOS_AULA },
-  { metodo: 'PUT', patron: new RegExp(`^academico/aulas/${UUID}$`), campos: CAMPOS_AULA },
-  { metodo: 'POST', patron: new RegExp(`^academico/aulas/${UUID}/estado$`), campos: ['estado'] },
-  { metodo: 'POST', patron: /^academico\/plataformas-virtuales$/, campos: CAMPOS_PLATAFORMA },
-  { metodo: 'PUT', patron: new RegExp(`^academico/plataformas-virtuales/${UUID}$`), campos: CAMPOS_PLATAFORMA },
-  { metodo: 'POST', patron: new RegExp(`^academico/plataformas-virtuales/${UUID}/estado$`), campos: ['estado'] },
-
-  // Sesiones de clase (el enlace virtual solo se escribe aquí y se lee con su propia operación, sin caché)
+  // Sesiones de clase
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/sesiones$`), campos: CAMPOS_SESION },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/sesiones/generar$`), campos: ['desde', 'hasta'] },
   { metodo: 'PUT', patron: new RegExp(`^academico/sesiones/${UUID}$`), campos: CAMPOS_SESION },
   { metodo: 'POST', patron: new RegExp(`^academico/sesiones/${UUID}/cancelar$`), campos: ['motivo', '_revision'] },
   { metodo: 'POST', patron: new RegExp(`^academico/sesiones/${UUID}/realizada$`) },
-  { metodo: 'GET', patron: new RegExp(`^academico/sesiones/${UUID}/enlace$`) },
 
   // Asistencia: la lista de una sesión se lee desde el navegador al abrir el diálogo; el resumen se pide en el servidor
   { metodo: 'GET', patron: new RegExp(`^academico/sesiones/${UUID}/asistencias$`) },
@@ -186,11 +159,6 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/confirmar$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/(rechazar|reversar)$`), campos: ['motivo'] },
 
-  // Docentes (solo DNI peruano)
-  { metodo: 'POST', patron: /^academico\/docentes$/, campos: CAMPOS_DOCENTE },
-  { metodo: 'PUT', patron: new RegExp(`^academico/docentes/${UUID}$`), campos: CAMPOS_DOCENTE },
-  { metodo: 'DELETE', patron: new RegExp(`^academico/docentes/${UUID}$`) },
-  { metodo: 'POST', patron: new RegExp(`^academico/docentes/${UUID}/restaurar$`) },
 
   // Estudiantes
   { metodo: 'POST', patron: /^academico\/estudiantes$/, campos: CAMPOS_ESTUDIANTE },
@@ -219,8 +187,6 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: /^academico\/convocatorias$/, campos: CAMPOS_CONVOCATORIA },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}$`), campos: CAMPOS_CONVOCATORIA },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/estado$`), campos: ['estado', '_revision'] },
-  { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/infraestructura$`), campos: ['sede', 'aula', 'plataforma_virtual', '_revision'] },
-  { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/docentes$`), campos: ['_revision'], docentes: true },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/horarios$`), campos: ['_revision'], horarios: true },
 
   // Calificaciones: evaluaciones, notas y acta (la estructura y el cierre llevan `_revision`; la nota no)
@@ -279,8 +245,6 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
       dia_semana: typeof h.dia_semana === 'number' ? h.dia_semana : null,
       hora_inicio: texto(h.hora_inicio),
       hora_fin: texto(h.hora_fin),
-      lugar: texto(h.lugar),
-      docente: texto(h.docente),
     }));
   }
   const cuotas = cuerpo.cuotas;
@@ -297,11 +261,6 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
       estado: typeof a.estado === 'string' ? a.estado.slice(0, 20) : null,
       observacion: typeof a.observacion === 'string' ? a.observacion.slice(0, 200) : null,
     }));
-  }
-  const docentes = cuerpo.docentes;
-  if (operacion.docentes && Array.isArray(docentes) && docentes.length <= MAX_DOCENTES && docentes.every(esObjeto)) {
-    const texto = (valor: unknown): string | null => (typeof valor === 'string' ? valor.slice(0, 40) : null);
-    resultado.docentes = docentes.map((d) => ({ docente: texto(d.docente), rol: texto(d.rol) }));
   }
   const contactos = cuerpo.contactos;
   if (operacion.contactos && Array.isArray(contactos) && contactos.length <= MAX_CONTACTOS && contactos.every(esObjeto)) {

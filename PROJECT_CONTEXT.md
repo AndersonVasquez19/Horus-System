@@ -4904,3 +4904,11 @@ académicos y tecnológicos, servicios compartidos, formularios públicos y reti
 **Declaración de compatibilidad (14/11/2026, decisión del propietario):** Horus System es compatible con PostgreSQL 18 según la evidencia de `docs/fase-5-2-validacion-postgresql.md` §6h: suite aislada completa en un clúster de pruebas (3 915 pruebas, 0 fallos, 45 omitidas con motivo), carreras reales de dos sesiones y de dos procesos, y planes con datos sesgados sin consultas lentas. **Salvedades:** medido solo en el clúster aislado 55433 (Windows, datos sintéticos), no en la base de producción ni con su volumen real; D9 (reconstrucción) y el ensayo de restauración siguen sin ejecutarse; las 45 omisiones están justificadas pero no son cobertura; las migraciones nuevas sobre bases con datos reales exigen revisión y autorización aparte.
 
 **No ejecutado (compatibilidad PostgreSQL NO declarada total):** recepción pública de cotizaciones por HTTP; concurrencia con procesos paralelos del sistema operativo.
+
+## Retiro de Docentes e Infraestructura (19/11/2026)
+
+El propietario decidió que el panel es **gestión académica, no un portal** de estudiantes ni de docentes: al matricularse, la
+persona se agrega a un grupo de WhatsApp según el curso. Por eso se retiraron los módulos **Docentes** e **Infraestructura**
+(sedes, aulas, plataformas virtuales). Detalle, orden y riesgos: [`docs/retiro-docentes-infraestructura.md`](docs/retiro-docentes-infraestructura.md).
+No reintroducir esos módulos, sus permisos (`docentes.*`, `infraestructura.*`, `sesiones.ver-enlace`) ni el docente, el aula, la
+plataforma o el enlace de las clases sin decisión expresa del propietario.

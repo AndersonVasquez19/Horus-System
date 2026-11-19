@@ -106,8 +106,6 @@ export const ETIQUETAS = {
   prioridadTicket: { baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica' },
   canalTicket: { telefono: 'Teléfono', correo: 'Correo', presencial: 'Presencial', web: 'Web' },
   estadoActivo: { activo: 'Activo', inactivo: 'Inactivo' },
-  tipoPlataforma: { meet: 'Google Meet', zoom: 'Zoom', teams: 'Microsoft Teams', otra: 'Otra' },
-  rolDocente: { principal: 'Principal', apoyo: 'Apoyo' },
   estadoConvocatoria: { borrador: 'Borrador', abierta: 'Abierta', en_curso: 'En curso', cerrada: 'Cerrada', cancelada: 'Cancelada' },
   diaSemana: { '1': 'Lunes', '2': 'Martes', '3': 'Miércoles', '4': 'Jueves', '5': 'Viernes', '6': 'Sábado', '7': 'Domingo' },
   tipoCliente: { persona: 'Persona', empresa: 'Empresa' },

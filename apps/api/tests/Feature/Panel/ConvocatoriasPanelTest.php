@@ -7,7 +7,6 @@ namespace Tests\Feature\Panel;
 use App\Models\AuditLog;
 use App\Models\Convocatoria;
 use App\Models\Curso;
-use App\Models\PlataformaVirtual;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -62,22 +61,6 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         return Convocatoria::query()->where('identificador', $respuesta->json('data.identificador'))->firstOrFail();
     }
 
-    /**
-     * Desde Horus Academic (Fase 3) una edición NUEVA no se abre sin su infraestructura (virtual: plataforma). Se asigna
-     * directamente, sin pasar por la API, para no alterar la revisión ni la secuencia de auditoría que estas pruebas comprueban;
-     * la asignación por la API se prueba en tests/Academic/Infraestructura.
-     */
-    private function conInfraestructura(Convocatoria $c): Convocatoria
-    {
-        $plataforma = new PlataformaVirtual(['nombre' => 'Meet '.random_int(1000, 9999), 'tipo' => 'meet']);
-        $plataforma->identificador = (string) Str::uuid();
-        $plataforma->estado = 'activo';
-        $plataforma->save();
-        $c->forceFill(['plataforma_virtual_id' => $plataforma->id])->save();
-
-        return $c;
-    }
-
     private function estado(User $usuario, Convocatoria $c, string $estado): TestResponse
     {
         return $this->como($usuario, 'POST', $c->identificador.'/estado', ['estado' => $estado, '_revision' => $c->fresh()->etag()]);
@@ -104,7 +87,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     {
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $coordinador = $this->coordinador();
-        $c = $this->conInfraestructura($this->crear($admin));
+        $c = $this->crear($admin);
         $this->estado($coordinador, $c, 'abierta')->assertOk();
         $this->estado($coordinador, $c, 'en_curso')->assertOk();
 
@@ -228,7 +211,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     public function test_el_ciclo_de_estados_y_sus_auditorias(): void
     {
         $coordinador = $this->coordinador();
-        $c = $this->conInfraestructura($this->crear($coordinador));
+        $c = $this->crear($coordinador);
 
         $this->estado($coordinador, $c, 'en_curso')->assertStatus(409);
         $this->estado($coordinador, $c, 'cerrada')->assertStatus(409);
@@ -257,7 +240,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     public function test_repetir_el_estado_no_cambia_nada_y_la_revision_obsoleta_es_412(): void
     {
         $coordinador = $this->coordinador();
-        $c = $this->conInfraestructura($this->crear($coordinador));
+        $c = $this->crear($coordinador);
         $vieja = $c->fresh()->etag();
 
         $this->estado($coordinador, $c, 'borrador')->assertOk();
@@ -272,7 +255,7 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
     /** @return array<string, mixed> */
     private function bloque(int $dia, string $inicio, string $fin, array $cambios = []): array
     {
-        return ['dia_semana' => $dia, 'hora_inicio' => $inicio, 'hora_fin' => $fin, 'lugar' => 'Aula 2', 'docente' => 'Docente Ficticio', ...$cambios];
+        return ['dia_semana' => $dia, 'hora_inicio' => $inicio, 'hora_fin' => $fin, ...$cambios];
     }
 
     public function test_los_horarios_se_sustituyen_juntos_y_avanzan_la_revision(): void
@@ -288,8 +271,8 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         $this->assertSame([[1, '18:00'], [1, '20:00'], [3, '18:00']], array_map(fn (array $h): array => [$h['dia_semana'], $h['hora_inicio']], $r->json('data.horarios')));
         $this->assertSame(2, $c->fresh()->revision);
 
-        $this->como($coordinador, 'PUT', $c->identificador.'/horarios', ['horarios' => [$this->bloque(5, '09:00', '11:00', ['lugar' => null, 'docente' => null])], '_revision' => $c->fresh()->etag()])
-            ->assertOk()->assertJsonCount(1, 'data.horarios')->assertJsonPath('data.horarios.0.lugar', null);
+        $this->como($coordinador, 'PUT', $c->identificador.'/horarios', ['horarios' => [$this->bloque(5, '09:00', '11:00')], '_revision' => $c->fresh()->etag()])
+            ->assertOk()->assertJsonCount(1, 'data.horarios');
         $this->como($coordinador, 'PUT', $c->identificador.'/horarios', ['horarios' => [], '_revision' => $c->fresh()->etag()])->assertOk()->assertJsonPath('data.horarios', []);
         $this->assertSame(0, DB::table('convocatoria_horarios')->count());
 
@@ -312,9 +295,11 @@ final class ConvocatoriasPanelTest extends PanelApiTestCase
         $envia([$this->bloque(8, '08:00', '10:00')])->assertJsonValidationErrors('horarios.0.dia_semana');
         $envia([$this->bloque(0, '08:00', '10:00')])->assertJsonValidationErrors('horarios.0.dia_semana');
         $envia([$this->bloque(2, '8am', '10:00')])->assertJsonValidationErrors('horarios.0.hora_inicio');
-        $envia([$this->bloque(2, '08:00', '10:00', ['docente' => '<b>x</b>'])])->assertJsonValidationErrors('horarios.0.docente');
+        // Los horarios ya no llevan lugar ni docente: cualquier campo de más se rechaza.
+        $envia([$this->bloque(2, '08:00', '10:00', ['docente' => 'x'])])->assertJsonValidationErrors('horarios.0');
+        $envia([$this->bloque(2, '08:00', '10:00', ['lugar' => 'x'])])->assertJsonValidationErrors('horarios.0');
         $envia([$this->bloque(2, '08:00', '10:00', ['extra' => 'x'])])->assertJsonValidationErrors('horarios.0');
-        $envia(array_map(fn (int $n): array => $this->bloque(1 + $n % 7, '08:00', '09:00', ['lugar' => (string) $n]), range(0, 20)))->assertJsonValidationErrors('horarios');
+        $envia(array_map(fn (int $n): array => $this->bloque(1 + $n % 7, '08:00', '09:00'), range(0, 20)))->assertJsonValidationErrors('horarios');
         $this->como($coordinador, 'PUT', $c->identificador.'/horarios', ['_revision' => $c->fresh()->etag()])->assertJsonValidationErrors('horarios');
 
         $this->assertSame(1, DB::table('convocatoria_horarios')->count());

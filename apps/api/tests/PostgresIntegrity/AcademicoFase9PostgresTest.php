@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\PostgresIntegrity;
 
-use App\Models\Aula;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\PlataformaVirtual;
-use App\Models\Sede;
 use App\Models\SesionClase;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -115,18 +112,14 @@ class AcademicoFase9PostgresTest extends TestCase
     public function test_check_de_sesiones(): void
     {
         $edicion = $this->edicion();
-        $aula = $this->aula();
-        $plataforma = $this->plataforma();
 
         $this->assertEstado(self::CHECK, fn () => $this->sesion($edicion, 1, ['hora_inicio' => '20:00:00', 'hora_fin' => '18:00:00']));
         $this->assertEstado(self::CHECK, fn () => $this->sesion($edicion, 2, ['hora_inicio' => '18:00:00', 'hora_fin' => '18:00:00']));
         $this->assertEstado(self::CHECK, fn () => $this->sesion($edicion, 3, ['estado' => 'rara']));
-        // Aula y plataforma a la vez: no.
-        $this->assertEstado(self::CHECK, fn () => $this->sesion($edicion, 4, ['aula_id' => $aula, 'plataforma_virtual_id' => $plataforma]));
         // Cancelada sin motivo: no.
         $this->assertEstado(self::CHECK, fn () => $this->sesion($edicion, 5, ['estado' => 'cancelada']));
         $this->sesion($edicion, 6, ['estado' => 'cancelada', 'motivo_cancelacion' => 'Feriado']);
-        $this->sesion($edicion, 7, ['aula_id' => $aula]);
+        $this->sesion($edicion, 7);
         $this->assertSame(2, DB::table('sesiones_clase')->count());
     }
 
@@ -259,34 +252,5 @@ class AcademicoFase9PostgresTest extends TestCase
     private function evaluacion(int $edicion, string $peso): int
     {
         return DB::table('evaluaciones')->insertGetId(['identificador' => (string) Str::uuid(), 'convocatoria_id' => $edicion, 'nombre' => 'Examen', 'peso' => $peso, 'orden' => 1, 'created_at' => now(), 'updated_at' => now()]);
-    }
-
-    private function aula(): int
-    {
-        $this->n++;
-        $sede = new Sede(['nombre' => 'Sede '.$this->n, 'direccion' => 'Jr. Ficticio 1', 'ciudad' => 'Cajamarca']);
-        $sede->identificador = (string) Str::uuid();
-        $sede->codigo = 'SD-'.$this->n;
-        $sede->estado = 'activo';
-        $sede->save();
-        $aula = new Aula(['nombre' => 'Aula '.$this->n, 'capacidad' => 30]);
-        $aula->identificador = (string) Str::uuid();
-        $aula->sede_id = $sede->id;
-        $aula->codigo = 'A-'.$this->n;
-        $aula->estado = 'activo';
-        $aula->save();
-
-        return $aula->id;
-    }
-
-    private function plataforma(): int
-    {
-        $this->n++;
-        $p = new PlataformaVirtual(['nombre' => 'Meet '.$this->n, 'tipo' => 'meet']);
-        $p->identificador = (string) Str::uuid();
-        $p->estado = 'activo';
-        $p->save();
-
-        return $p->id;
     }
 }

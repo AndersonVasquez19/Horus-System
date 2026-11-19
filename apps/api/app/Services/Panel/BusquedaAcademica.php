@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Panel;
 
 use App\Models\Convocatoria;
-use App\Models\Docente;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
 use App\Support\BusquedaLike;
 
 /**
- * Búsqueda global del panel académico: estudiantes, docentes, matrículas y ediciones. Cada grupo se incluye SOLO si la
+ * Búsqueda global del panel académico: estudiantes, matrículas y ediciones. Cada grupo se incluye SOLO si la
  * persona tiene el permiso de su módulo (el servidor no envía lo que no podría consultar). Devuelve lo mínimo para identificar y
  * enlazar (hasta {@see self::POR_GRUPO} por grupo); nunca montos, notas, enlaces virtuales ni códigos de verificación.
  */
@@ -42,14 +41,6 @@ final class BusquedaAcademica
             ])->all();
         }
 
-        if ($user->can('docentes.ver')) {
-            $q = Docente::query();
-            BusquedaLike::contiene($q, ['dni', 'nombres', 'apellidos'], $texto);
-            $grupos['docentes'] = $q->orderBy('apellidos')->orderBy('id')->limit(self::POR_GRUPO)->get()->map(fn (Docente $d): array => [
-                'identificador' => $d->identificador, 'texto' => trim($d->apellidos.', '.$d->nombres), 'detalle' => 'DNI '.$d->dni,
-            ])->all();
-        }
-
         if ($user->can('matriculas.ver')) {
             $grupos['matriculas'] = Matricula::query()->with(['estudiante:id,nombres,apellidos,dni', 'curso:id,nombre'])
                 ->whereHas('estudiante', fn ($e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $texto))
@@ -68,7 +59,6 @@ final class BusquedaAcademica
                 'identificador' => $c->identificador, 'texto' => $c->codigo, 'detalle' => $c->curso?->nombre ?? '',
             ])->all();
         }
-
 
         return $grupos;
     }

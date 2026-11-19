@@ -8,15 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Bloque de horario de una convocatoria: día de la semana (1 lunes a 7 domingo), hora de inicio y de fin, lugar y docente
- * (texto libre hasta que exista un módulo de docentes). No tiene revisión propia: se sustituyen todos juntos y avanza la
+ * Bloque de horario de una convocatoria: día de la semana (1 lunes a 7 domingo), hora de inicio y de fin. No tiene revisión propia: se sustituyen todos juntos y avanza la
  * de la convocatoria.
  */
 class ConvocatoriaHorario extends Model
 {
     protected $table = 'convocatoria_horarios';
 
-    protected $fillable = ['dia_semana', 'hora_inicio', 'hora_fin', 'lugar', 'docente'];
+    protected $fillable = ['dia_semana', 'hora_inicio', 'hora_fin'];
 
     protected $hidden = ['id'];
 
