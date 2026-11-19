@@ -25,17 +25,17 @@
  * el 600 verde (3,8:1 sobre blanco) solo para elementos grandes o decorativos, nunca para texto ni foco.
  */
 @theme static {
-  --color-academico-50: #EFF6FF;
-  --color-academico-100: #DBEAFE;
-  --color-academico-200: #BFDBFE;
-  --color-academico-300: #93C5FD;
-  --color-academico-400: #60A5FA;
-  --color-academico-500: #3B82F6;
-  --color-academico-600: #2563EB;
-  --color-academico-700: #1D4ED8;
-  --color-academico-800: #1E40AF;
-  --color-academico-900: #1E3A8A;
-  --color-academico-950: #172554;
+  --color-academico-50: #EEF4FA;
+  --color-academico-100: #D9E6F3;
+  --color-academico-200: #B4CDE6;
+  --color-academico-300: #86ABD0;
+  --color-academico-400: #5586B6;
+  --color-academico-500: #346A9E;
+  --color-academico-600: #265684;
+  --color-academico-700: #1B4469;
+  --color-academico-800: #133354;
+  --color-academico-900: #0D2744;
+  --color-academico-950: #081A30;
 
   --color-servicios-50: #ECFDF5;
   --color-servicios-100: #D1FAE5;
@@ -49,9 +49,16 @@
   --color-servicios-900: #064E3B;
   --color-servicios-950: #022C22;
 
-  --color-panel-bg: #F8FAFC;
+  --color-tinta: #0B2340;
+  --color-tinta-profunda: #07172B;
+  --color-oro-300: #E4C987;
+  --color-oro-400: #D4AE5E;
+  --color-oro-500: #C9A24B;
+  --color-oro-700: #8A6A1F;
+
+  --color-panel-bg: #EEF2F7;
   --color-panel-surface: #FFFFFF;
-  --color-panel-border: #E2E8F0;
+  --color-panel-border: #D5DEE9;
   --color-panel-text: #0F172A;
   --color-panel-muted: #475569;
   --color-panel-scroll: #94A3B8;
@@ -84,6 +91,8 @@
  * Firefox 121).
  */
 :root:has([data-panel-root]) {
+  --font-heading: var(--font-panel-display), var(--font-montserrat), sans-serif;
+  --font-sans: var(--font-panel-texto), var(--font-poppins), sans-serif;
   --background: var(--color-panel-bg);
   --foreground: var(--color-panel-text);
   color-scheme: light;
@@ -1163,3 +1172,15 @@ body {
   }
 }
 
+
+/* Entrada de la tarjeta de acceso (un solo movimiento al cargar; se omite con movimiento reducido). */
+@keyframes acceso-llegada {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.acceso-tarjeta { animation: acceso-llegada 0.7s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .acceso-tarjeta { animation: none; }
+}

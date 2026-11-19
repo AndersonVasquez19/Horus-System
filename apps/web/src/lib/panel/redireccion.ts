@@ -3,7 +3,7 @@
  * barras dobles, barras invertidas ni caracteres de control. Cualquier otro valor vuelve a `/admin`.
  * Se usa en el servidor (proxy, guardias) y en el cliente (formulario de acceso).
  */
-const PREFIJOS = ['/admin/academico', '/admin/servicios'] as const;
+const PREFIJOS = ['/admin/academico'] as const;
 
 export const DESTINO_PREDETERMINADO = '/admin';
 

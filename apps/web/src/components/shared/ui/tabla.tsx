@@ -20,7 +20,7 @@ export function Tabla({ titulo, columnas, children, pie }: TablaProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">{titulo}</caption>
-          <thead className="border-b border-panel-border bg-panel-bg text-xs uppercase tracking-wide text-panel-muted">
+          <thead className="border-b border-panel-border bg-panel-bg text-sm font-semibold text-panel-muted">
             <tr>
               {columnas.map((columna) => {
                 const { texto, oculta = false, derecha = false } = typeof columna === 'string' ? { texto: columna } : columna;

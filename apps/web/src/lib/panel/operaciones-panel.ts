@@ -24,6 +24,12 @@ export interface Operacion {
   oportunidad?: readonly string[];
   /** El cuerpo trae `horarios`: hasta `MAX_HORARIOS` bloques de horario de una convocatoria (campos acotados). */
   horarios?: boolean;
+  /** El cuerpo trae `docentes`: hasta `MAX_DOCENTES` pares {docente (UUID), rol} de una edición. */
+  docentes?: boolean;
+  /** El cuerpo trae `asistencias`: pares {matricula_id, estado, observacion} de una sesión. */
+  asistencias?: boolean;
+  /** El cuerpo trae `cuotas`: hasta `MAX_CUOTAS` pares {monto, vence} de un plan fraccionado. */
+  cuotas?: boolean;
   /** Parámetros de consulta que se reenvían. */
   consulta?: readonly string[];
   /** La respuesta es un archivo con alguno de estos tipos MIME. */
@@ -49,6 +55,27 @@ export const MAX_CONTACTOS = 10;
 /** Bloques de horario admitidos por convocatoria (igual que `Convocatoria::MAX_HORARIOS` en Laravel). */
 export const MAX_HORARIOS = 20;
 
+/** Docentes admitidos por edición (igual que `GestionDocentes::MAX_POR_EDICION` en Laravel). */
+export const MAX_ASISTENCIAS = 300;
+const MAX_CUOTAS = 24;
+const MAX_DOCENTES = 10;
+
+export interface CuotaReenviada {
+  monto: string | null;
+  vence: string | null;
+}
+
+export interface AsistenciaReenviada {
+  matricula_id: number | null;
+  estado: string | null;
+  observacion: string | null;
+}
+
+export interface DocenteReenviado {
+  docente: string | null;
+  rol: string | null;
+}
+
 export interface HorarioReenviado {
   dia_semana: number | null;
   hora_inicio: string | null;
@@ -65,7 +92,7 @@ export interface ContactoReenviado {
   principal: boolean;
 }
 
-export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | HorarioReenviado[] | Record<string, string | number | boolean | null>;
+export type ValorCuerpo = string | number | boolean | null | string[] | ContactoReenviado[] | HorarioReenviado[] | DocenteReenviado[] | AsistenciaReenviada[] | CuotaReenviada[] | Record<string, string | number | boolean | null>;
 
 const ID = '[1-9][0-9]{0,17}';
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
@@ -75,20 +102,13 @@ const CAMPOS_CURSO = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_
 const CAMPOS_FICHA = ['titulo', 'resumen', 'modalidad', 'horario', 'inscripcion', 'vigente_desde', 'vigente_hasta', 'confirmacion_publica', '_revision'] as const;
 const FILTROS_REPORTE = ['busqueda', 'estado', 'eliminados', 'lote'] as const;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const CAMPOS_SERVICIO = ['codigo', 'nombre', 'categoria', 'estado', '_revision'] as const;
-const CAMPOS_FICHA_SERVICIO = ['titulo', 'resumen', 'descripcion', 'categoria', 'vigente_desde', 'vigente_hasta', 'titulo_tarjetas', 'imagen_principal_alt', '_revision'] as const;
-const CAMPOS_IMAGEN = ['imagen_principal_alt', '_revision'] as const;
-const CAMPOS_TARJETA = ['titulo', 'descripcion', 'caracteristicas', 'variante_imagen', 'imagen_alt', 'activo', 'orden', 'quitar_imagen', '_revision'] as const;
 const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
-const CAMPOS_COTIZACION = ['contacto_nombre', 'necesidad_cliente', 'contacto_email', 'contacto_telefono', 'servicio_uuid', '_revision', '_clave'] as const;
-const CAMPOS_CLIENTE = ['tipo', 'nombre', 'documento_tipo', 'documento_numero', 'email', 'telefono', 'direccion', '_revision'] as const;
-const CAMPOS_PROSPECTO = ['nombre_contacto', 'empresa', 'email', 'telefono', 'origen', 'servicio_interes', 'proximo_seguimiento', '_revision'] as const;
-const CAMPOS_OPORTUNIDAD = ['cliente', 'titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', 'servicio', 'cotizacion', '_revision'] as const;
-const CAMPOS_OPORTUNIDAD_EDICION = ['titulo', 'monto_estimado', 'probabilidad', 'fecha_cierre_estimada', '_revision'] as const;
-const CAMPOS_PROYECTO = ['cliente', 'oportunidad', 'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
-const CAMPOS_PROYECTO_EDICION = ['nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada', 'presupuesto', '_revision'] as const;
-const CAMPOS_TICKET = ['cliente', 'proyecto', 'asunto', 'descripcion', 'prioridad', 'canal', '_revision'] as const;
 const CAMPOS_CONVOCATORIA = ['curso_id', 'nombre', 'modalidad', 'fecha_inicio', 'fecha_fin', 'cupos_maximos', '_revision'] as const;
+const CAMPOS_SEDE = ['codigo', 'nombre', 'direccion', 'ciudad'] as const;
+const CAMPOS_AULA = ['sede', 'codigo', 'nombre', 'capacidad'] as const;
+const CAMPOS_PLATAFORMA = ['nombre', 'tipo'] as const;
+const CAMPOS_SESION = ['numero', 'fecha', 'hora_inicio', 'hora_fin', 'tema', 'docente', 'aula', 'plataforma_virtual', 'enlace_virtual', '_revision'] as const;
+const CAMPOS_DOCENTE = ['dni', 'nombres', 'apellidos', 'email', 'telefono', 'especialidad', 'estado'] as const;
 const CAMPOS_EVALUACION = ['nombre', 'peso', 'fecha', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'monto_pagado', 'observaciones'] as const;
 /** La convocatoria solo se elige al registrar: queda fija y la edición no la acepta. */
@@ -106,6 +126,8 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^compartido/notificaciones/${ID}/leida$`) },
   { metodo: 'PUT', patron: /^compartido\/perfil$/, campos: ['name', 'email', 'password', 'password_confirmation', 'current_password'] },
   { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta'], archivo: ['application/json'] },
+  { metodo: 'POST', patron: /^compartido\/respaldo\/exportar$/, archivo: ['application/zip'] },
+  { metodo: 'POST', patron: /^compartido\/asistente\/mensaje$/, campos: ['mensaje', 'session_id'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/reclamaciones/${UUID}/gestion$`), campos: CAMPOS_GESTION_RECLAMACION },
   // Aprobaciones internas: el servidor decide quién puede qué; aquí solo viajan los campos de cada operación
   { metodo: 'POST', patron: /^compartido\/aprobaciones$/, campos: ['titulo', 'tipo', 'descripcion', 'referencia', 'comentario'] },
@@ -120,6 +142,55 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'DELETE', patron: new RegExp(`^compartido/roles/${ID}$`) },
   { metodo: 'POST', patron: /^compartido\/perfil\/sesiones\/cerrar-otras$/, campos: ['current_password'] },
   { metodo: 'POST', patron: new RegExp(`^compartido/perfil/sesiones/${SESION}/cerrar$`), campos: ['current_password'] },
+
+  // Consulta de DNI (JSON.pe desde Laravel): solo consulta; el token nunca llega al navegador
+  { metodo: 'POST', patron: /^academico\/consultas\/dni$/, campos: ['dni'] },
+
+  // Infraestructura académica: sedes, aulas y plataformas virtuales (no se eliminan: se desactivan)
+  { metodo: 'POST', patron: /^academico\/sedes$/, campos: CAMPOS_SEDE },
+  { metodo: 'PUT', patron: new RegExp(`^academico/sedes/${UUID}$`), campos: CAMPOS_SEDE },
+  { metodo: 'POST', patron: new RegExp(`^academico/sedes/${UUID}/estado$`), campos: ['estado'] },
+  { metodo: 'POST', patron: /^academico\/aulas$/, campos: CAMPOS_AULA },
+  { metodo: 'PUT', patron: new RegExp(`^academico/aulas/${UUID}$`), campos: CAMPOS_AULA },
+  { metodo: 'POST', patron: new RegExp(`^academico/aulas/${UUID}/estado$`), campos: ['estado'] },
+  { metodo: 'POST', patron: /^academico\/plataformas-virtuales$/, campos: CAMPOS_PLATAFORMA },
+  { metodo: 'PUT', patron: new RegExp(`^academico/plataformas-virtuales/${UUID}$`), campos: CAMPOS_PLATAFORMA },
+  { metodo: 'POST', patron: new RegExp(`^academico/plataformas-virtuales/${UUID}/estado$`), campos: ['estado'] },
+
+  // Sesiones de clase (el enlace virtual solo se escribe aquí y se lee con su propia operación, sin caché)
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/sesiones$`), campos: CAMPOS_SESION },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/sesiones/generar$`), campos: ['desde', 'hasta'] },
+  { metodo: 'PUT', patron: new RegExp(`^academico/sesiones/${UUID}$`), campos: CAMPOS_SESION },
+  { metodo: 'POST', patron: new RegExp(`^academico/sesiones/${UUID}/cancelar$`), campos: ['motivo', '_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/sesiones/${UUID}/realizada$`) },
+  { metodo: 'GET', patron: new RegExp(`^academico/sesiones/${UUID}/enlace$`) },
+
+  // Asistencia: la lista de una sesión se lee desde el navegador al abrir el diálogo; el resumen se pide en el servidor
+  { metodo: 'GET', patron: new RegExp(`^academico/sesiones/${UUID}/asistencias$`) },
+  { metodo: 'PUT', patron: new RegExp(`^academico/sesiones/${UUID}/asistencias$`), asistencias: true },
+  { metodo: 'PUT', patron: new RegExp(`^academico/sesiones/${UUID}/asistencias/[0-9]{1,10}$`), campos: ['estado', 'motivo'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/asistencias/exportar$`), archivo: [XLSX] },
+
+
+  // Caja del administrador: matrícula + pago Yape + captura en un solo paso (multipart; la clave de idempotencia viaja como `_clave`)
+  { metodo: 'POST', patron: /^academico\/matriculas\/con-pago$/, multipart: ['estudiante_id', 'convocatoria', 'monto', 'fecha_pago', 'referencia', '_clave'] },
+
+  // Finanzas (solo PEN y Yape): la clave de idempotencia viaja como `_clave` y Laravel la convierte en cabecera
+  { metodo: 'POST', patron: /^academico\/matriculas\/[0-9]{1,10}\/obligacion$/, campos: ['concepto', 'plan', 'monto_total'], cuotas: true },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/pagos$`), campos: ['metodo', 'monto', 'fecha_pago', 'referencia', 'confirmar', '_clave'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/anular$`), campos: ['motivo'] },
+  { metodo: 'POST', patron: /^academico\/pagos\/exportar$/, archivo: [XLSX] },
+  // Captura del comprobante: una sola imagen (campo `imagen`); se muestra en línea y solo con permiso en Laravel
+  { metodo: 'GET', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), archivo: IMAGENES, enLinea: true },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), multipart: [] },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/confirmar$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/(rechazar|reversar)$`), campos: ['motivo'] },
+
+  // Docentes (solo DNI peruano)
+  { metodo: 'POST', patron: /^academico\/docentes$/, campos: CAMPOS_DOCENTE },
+  { metodo: 'PUT', patron: new RegExp(`^academico/docentes/${UUID}$`), campos: CAMPOS_DOCENTE },
+  { metodo: 'DELETE', patron: new RegExp(`^academico/docentes/${UUID}$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/docentes/${UUID}/restaurar$`) },
 
   // Estudiantes
   { metodo: 'POST', patron: /^academico\/estudiantes$/, campos: CAMPOS_ESTUDIANTE },
@@ -141,80 +212,6 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: /^academico\/reportes\/exportar\/excel$/, consulta: FILTROS_REPORTE, archivo: [XLSX] },
   { metodo: 'POST', patron: /^academico\/reportes\/exportar\/pdf$/, consulta: FILTROS_REPORTE, archivo: ['application/pdf'] },
 
-  // Servicios tecnológicos y su ficha pública (la revisión viaja en el cuerpo: `_revision`)
-  { metodo: 'POST', patron: /^servicios\/servicios$/, campos: CAMPOS_SERVICIO },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/servicios/${ID}$`), campos: CAMPOS_SERVICIO },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/estado$`), campos: ['estado', '_revision'] },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/servicios/${ID}/publicacion$`), campos: CAMPOS_FICHA_SERVICIO },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/publicacion/autorizar$`), campos: ['confirmacion_publica', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/publicacion/retirar$`), campos: ['_revision'] },
-
-  // Imagen principal y tarjetas de la ficha (multipart con una sola imagen; revisión en `_revision`)
-  { metodo: 'GET', patron: new RegExp(`^servicios/servicios/${ID}/imagen$`), archivo: IMAGENES, enLinea: true },
-  { metodo: 'GET', patron: new RegExp(`^servicios/servicios/${ID}/elementos/${ID}/imagen$`), archivo: IMAGENES, enLinea: true },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/imagen$`), multipart: CAMPOS_IMAGEN },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/imagen/quitar$`), campos: ['_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/elementos$`), multipart: CAMPOS_TARJETA },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/elementos/${ID}$`), multipart: CAMPOS_TARJETA },
-  { metodo: 'POST', patron: new RegExp(`^servicios/servicios/${ID}/elementos/${ID}/eliminar$`), campos: ['_revision'] },
-
-  // Cotizaciones (identificador = UUID; la revisión en `_revision` y la idempotencia en `_clave`)
-  { metodo: 'GET', patron: /^servicios\/cotizaciones\/opciones\/(responsables|servicios)$/ },
-  { metodo: 'POST', patron: /^servicios\/cotizaciones$/, campos: CAMPOS_COTIZACION },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/cotizaciones/${UUID}$`), campos: CAMPOS_COTIZACION },
-  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/estado$`), campos: ['estado', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/seguimientos$`), campos: ['nota', 'proximo_seguimiento', '_revision', '_clave'] },
-
-  // Clientes (CRM). Los contactos son una lista de objetos acotada: se reenvían por `contactos` (ver `cuerpoPermitido`).
-  { metodo: 'GET', patron: /^servicios\/clientes\/opciones\/responsables$/ },
-  // Selector de «vincular cliente» en una cotización: búsqueda acotada del listado (correo y documento ya van enmascarados).
-  { metodo: 'GET', patron: /^servicios\/clientes$/, consulta: ['busqueda', 'estado'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/cliente$`), campos: ['cliente', 'crear_cliente', '_revision'] },
-  { metodo: 'POST', patron: /^servicios\/clientes$/, campos: CAMPOS_CLIENTE, contactos: true },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/clientes/${UUID}$`), campos: CAMPOS_CLIENTE, contactos: true },
-  { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/estado$`), campos: ['estado', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/clientes/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
-
-  // Prospectos (CRM)
-  { metodo: 'GET', patron: /^servicios\/prospectos\/opciones\/(responsables|servicios)$/ },
-  { metodo: 'POST', patron: /^servicios\/prospectos$/, campos: CAMPOS_PROSPECTO },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/prospectos/${UUID}$`), campos: CAMPOS_PROSPECTO },
-  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/estado$`), campos: ['estado', 'motivo_descarte', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/prospectos/${UUID}/convertir$`), campos: ['cliente', '_revision'], oportunidad: ['titulo', 'monto_estimado', 'fecha_cierre_estimada'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/cotizaciones/${UUID}/prospecto$`) },
-
-  // Pipeline de oportunidades (CRM). El tablero y el listado son lecturas de las páginas de servidor; el navegador solo escribe.
-  { metodo: 'GET', patron: /^servicios\/oportunidades\/opciones\/responsables$/ },
-  { metodo: 'POST', patron: /^servicios\/oportunidades$/, campos: CAMPOS_OPORTUNIDAD },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/oportunidades/${UUID}$`), campos: CAMPOS_OPORTUNIDAD_EDICION },
-  { metodo: 'POST', patron: new RegExp(`^servicios/oportunidades/${UUID}/etapa$`), campos: ['etapa', 'motivo_perdida', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/oportunidades/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
-
-  // Proyectos (CRM). Los hitos no tienen revisión propia: cada cambio viaja con la `_revision` del proyecto.
-  { metodo: 'GET', patron: /^servicios\/proyectos\/opciones\/responsables$/ },
-  { metodo: 'GET', patron: /^servicios\/oportunidades$/, consulta: ['etapa', 'abiertas', 'busqueda'] },
-  { metodo: 'POST', patron: /^servicios\/proyectos$/, campos: CAMPOS_PROYECTO },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/proyectos/${UUID}$`), campos: CAMPOS_PROYECTO_EDICION },
-  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/estado$`), campos: ['estado', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/responsable$`), campos: ['responsable_id', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos$`), campos: ['nombre', 'fecha_objetivo', '_revision'] },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}$`), campos: ['nombre', 'fecha_objetivo', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}/completar$`), campos: ['completado', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/proyectos/${UUID}/hitos/${UUID}/eliminar$`), campos: ['_revision'] },
-
-  // Soporte técnico (CRM). Las notas solo se añaden y no llevan revisión.
-  { metodo: 'GET', patron: /^servicios\/tickets\/opciones\/asignados$/ },
-  { metodo: 'POST', patron: /^servicios\/tickets$/, campos: CAMPOS_TICKET },
-  { metodo: 'PUT', patron: new RegExp(`^servicios/tickets/${UUID}$`), campos: CAMPOS_TICKET },
-  { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/estado$`), campos: ['estado', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/asignar$`), campos: ['asignado_a', '_revision'] },
-  { metodo: 'POST', patron: new RegExp(`^servicios/tickets/${UUID}/notas$`), campos: ['texto', 'interna'] },
-
-  // Reportes comerciales (CRM). La lectura (y la lista de responsables) la hace la página de servidor; el navegador solo exporta.
-  { metodo: 'POST', patron: /^servicios\/reportes-comerciales\/exportar$/, consulta: ['desde', 'hasta', 'responsable_id'], archivo: [XLSX] },
-
   // Convocatorias y horarios (Ola 3). Los horarios se sustituyen juntos y llevan la `_revision` de la convocatoria.
   { metodo: 'GET', patron: /^academico\/cursos$/, consulta: ['busqueda', 'estado'] },
   // Selector de convocatoria del formulario de matrícula (las vigentes de un curso)
@@ -222,6 +219,8 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: /^academico\/convocatorias$/, campos: CAMPOS_CONVOCATORIA },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}$`), campos: CAMPOS_CONVOCATORIA },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/estado$`), campos: ['estado', '_revision'] },
+  { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/infraestructura$`), campos: ['sede', 'aula', 'plataforma_virtual', '_revision'] },
+  { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/docentes$`), campos: ['_revision'], docentes: true },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/horarios$`), campos: ['_revision'], horarios: true },
 
   // Calificaciones: evaluaciones, notas y acta (la estructura y el cierre llevan `_revision`; la nota no)
@@ -283,6 +282,26 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
       lugar: texto(h.lugar),
       docente: texto(h.docente),
     }));
+  }
+  const cuotas = cuerpo.cuotas;
+  if (operacion.cuotas && Array.isArray(cuotas) && cuotas.length <= MAX_CUOTAS && cuotas.every(esObjeto)) {
+    resultado.cuotas = cuotas.map((c) => ({
+      monto: typeof c.monto === 'string' ? c.monto.slice(0, 20) : null,
+      vence: typeof c.vence === 'string' ? c.vence.slice(0, 10) : null,
+    }));
+  }
+  const asistencias = cuerpo.asistencias;
+  if (operacion.asistencias && Array.isArray(asistencias) && asistencias.length <= MAX_ASISTENCIAS && asistencias.every(esObjeto)) {
+    resultado.asistencias = asistencias.map((a) => ({
+      matricula_id: typeof a.matricula_id === 'number' ? a.matricula_id : null,
+      estado: typeof a.estado === 'string' ? a.estado.slice(0, 20) : null,
+      observacion: typeof a.observacion === 'string' ? a.observacion.slice(0, 200) : null,
+    }));
+  }
+  const docentes = cuerpo.docentes;
+  if (operacion.docentes && Array.isArray(docentes) && docentes.length <= MAX_DOCENTES && docentes.every(esObjeto)) {
+    const texto = (valor: unknown): string | null => (typeof valor === 'string' ? valor.slice(0, 40) : null);
+    resultado.docentes = docentes.map((d) => ({ docente: texto(d.docente), rol: texto(d.rol) }));
   }
   const contactos = cuerpo.contactos;
   if (operacion.contactos && Array.isArray(contactos) && contactos.length <= MAX_CONTACTOS && contactos.every(esObjeto)) {

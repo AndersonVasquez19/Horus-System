@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { BookOpen, CalendarCheck, GraduationCap, Hourglass, Users, Wallet } from 'lucide-react';
+import { BookOpen, GraduationCap, Users } from 'lucide-react';
 import { Suspense } from 'react';
+import { TableroAcademico } from '@/components/academico/tablero';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoVacio } from '@/components/shared/ui/estados';
 import { GraficoBarras } from '@/components/shared/ui/grafico-barras';
@@ -8,7 +9,8 @@ import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
 import type { ResumenAcademico } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
-import { etiqueta, fecha, moneda, numero } from '@/lib/panel/formato';
+import { FormularioBusqueda } from '@/components/academico/formulario-busqueda';
+import { etiqueta, fecha, numero } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Inicio · Gestión académica' };
 
@@ -18,6 +20,9 @@ export default function AcademicoInicioPage() {
   return (
     <>
       <EncabezadoPagina titulo="Panel académico" descripcion="Resumen de la operación académica." />
+      <div className="mb-6">
+        <FormularioBusqueda valor="" />
+      </div>
       <Suspense fallback={<EsqueletoResumen />}>
         <Resumen />
       </Suspense>
@@ -31,6 +36,7 @@ async function Resumen() {
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
   const { indicadores: i, bloques: b } = resultado.datos.data;
+  const tablero = <TableroAcademico datos={resultado.datos.data} />;
   const tarjetas = [
     i.estudiantes_activos !== undefined && {
       etiqueta: 'Estudiantes activos', valor: numero(i.estudiantes_activos), icono: <Users className="h-5 w-5" />,
@@ -39,19 +45,12 @@ async function Resumen() {
       etiqueta: 'Cursos activos', valor: numero(i.cursos_activos), icono: <BookOpen className="h-5 w-5" />,
       detalle: `${numero(i.cupos_disponibles)} de ${numero(i.cupos_maximos)} cupos disponibles`,
     },
-    i.matriculas_mes !== undefined && {
-      etiqueta: 'Matrículas del mes', valor: numero(i.matriculas_mes), icono: <CalendarCheck className="h-5 w-5" />,
-    },
-    i.matriculas_pendientes !== undefined && {
-      etiqueta: 'Matrículas pendientes de pago', valor: numero(i.matriculas_pendientes), icono: <Hourglass className="h-5 w-5" />,
-    },
-    i.ingresos_mes !== undefined && {
-      etiqueta: 'Ingresos del mes', valor: moneda(i.ingresos_mes), icono: <Wallet className="h-5 w-5" />,
-      detalle: 'Matrículas pagadas en el mes (Lima).',
-    },
   ].filter((tarjeta) => tarjeta !== false);
+  // Matrículas del mes, cobranza (del libro de pagos), cupos y asistencia viven en el tablero nuevo.
+  const d = resultado.datos.data;
+  const hayTablero = i.matriculas_mes !== undefined || [d.acciones, d.negocio, d.academico].some((bloque) => bloque !== undefined && Object.keys(bloque).length > 0);
 
-  if (tarjetas.length === 0) {
+  if (tarjetas.length === 0 && !hayTablero) {
     return (
       <EstadoVacio
         titulo="Aún no tienes módulos asignados"
@@ -61,12 +60,16 @@ async function Resumen() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {tarjetas.map((tarjeta) => (
-          <TarjetaKpi key={tarjeta.etiqueta} tono="academico" {...tarjeta} />
-        ))}
-      </div>
+    <div className="space-y-8">
+      {tablero}
+
+      {tarjetas.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {tarjetas.map((tarjeta) => (
+            <TarjetaKpi key={tarjeta.etiqueta} tono="academico" {...tarjeta} />
+          ))}
+        </div>
+      ) : null}
 
       {b.matriculas_por_mes || b.ultimas_matriculas ? (
         <div className="grid gap-6 xl:grid-cols-5">

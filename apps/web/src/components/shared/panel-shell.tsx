@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeftRight, ShieldAlert, WifiOff } from 'lucide-react';
+import { ShieldAlert, WifiOff } from 'lucide-react';
 import { Suspense, type ReactNode } from 'react';
+import { LogoHorus, MarcaHorus } from './marca-horus';
 import { obtenerSesion } from '@/lib/panel/sesion';
 import { urlLogin } from '@/lib/panel/redireccion';
 import { BotonCerrarSesion } from './boton-cerrar-sesion';
@@ -17,20 +18,17 @@ import { ProveedorAvisos } from './ui/avisos';
  * Las clases se escriben completas (no se componen) para que Tailwind las detecte.
  * Texto blanco sobre 800; foco con 700 (ver globals.css para los contrastes).
  */
-const TONOS: Record<TonoPanel, { franja: string; foco: string; enlace: string; otro: TonoPanel; otroTitulo: string }> = {
+const TONOS: Record<TonoPanel, { franja: string; foco: string; enlace: string }> = {
   academico: {
-    franja: 'bg-academico-800',
+    franja: '',
     foco: 'focus-visible:outline-academico-700',
     enlace: 'text-academico-700 focus-visible:outline-academico-700',
-    otro: 'servicios',
-    otroTitulo: 'Servicios tecnológicos',
   },
+  // Variante de color sin panel propio (el panel de servicios tecnológicos se retiró); solo satisface al tipo compartido.
   servicios: {
-    franja: 'bg-servicios-800',
+    franja: '',
     foco: 'focus-visible:outline-servicios-700',
     enlace: 'text-servicios-700 focus-visible:outline-servicios-700',
-    otro: 'academico',
-    otroTitulo: 'Gestión académica',
   },
 };
 
@@ -93,7 +91,7 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
   const { sesion } = resultado;
   if (!sesion.paneles[tono]) {
     return (
-      <Franja tono={tono} titulo={titulo} acciones={<BotonCerrarSesion className="text-white hover:bg-white/10 focus-visible:outline-white" />}>
+      <Franja tono={tono} titulo={titulo} acciones={<BotonCerrarSesion className="text-panel-text hover:bg-panel-bg focus-visible:outline-academico-700" />}>
         <EstadoPagina
           icono={<ShieldAlert className="h-6 w-6" aria-hidden="true" />}
           titulo="No tienes acceso a este panel"
@@ -104,8 +102,6 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
     );
   }
 
-  const otroPanel = sesion.paneles[t.otro];
-
   return (
     <ProveedorSesionPanel sesion={sesion}>
       <ProveedorAvisos>
@@ -115,37 +111,23 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
           titulo={titulo}
           acciones={
             <>
-              {otroPanel ? (
-                <Link
-                  href={`/admin/${t.otro}`}
-                  className="hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white outline-offset-2 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white sm:inline-flex"
-                >
-                  <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
-                  {t.otroTitulo}
-                </Link>
-              ) : null}
               <Suspense fallback={<CampanaSinConteo tono={tono} />}>
                 <CampanaNotificaciones tono={tono} />
               </Suspense>
-              <span className="hidden max-w-48 truncate text-sm text-white/90 md:inline" title={sesion.usuario.email}>
+              <span className="hidden max-w-48 truncate text-sm font-medium text-panel-text md:inline" title={sesion.usuario.email}>
                 {sesion.usuario.nombre}
               </span>
-              <BotonCerrarSesion className="text-white hover:bg-white/10 focus-visible:outline-white" />
+              <BotonCerrarSesion className="text-panel-text hover:bg-panel-bg focus-visible:outline-academico-700" />
             </>
           }
+          riel={<PanelNavegacion tono={tono} titulo={titulo} modelo={filtrarNavegacion(navegacion, sesion.permisos)} />}
         >
-          <div className="flex flex-1 flex-col md:flex-row">
-            <div className="border-b border-panel-border bg-panel-surface md:w-64 md:shrink-0 md:border-b-0 md:border-r">
-              <PanelNavegacion tono={tono} titulo={titulo} modelo={filtrarNavegacion(navegacion, sesion.permisos)} />
-            </div>
-
-            <div
-              id="contenido-panel"
-              tabIndex={-1}
-              className={`min-w-0 flex-1 p-4 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 sm:p-6 lg:p-8 ${t.foco}`}
-            >
-              {children}
-            </div>
+          <div
+            id="contenido-panel"
+            tabIndex={-1}
+            className={`min-w-0 flex-1 p-4 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 sm:p-6 lg:p-8 ${t.foco}`}
+          >
+            {children}
           </div>
         </Franja>
       </ProveedorAvisos>
@@ -153,19 +135,39 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
   );
 }
 
-function Franja({ tono, titulo, acciones, children }: { tono: TonoPanel; titulo: string; acciones?: ReactNode; children: ReactNode }) {
+function Franja({ tono, titulo, acciones, riel, children }: { tono: TonoPanel; titulo: string; acciones?: ReactNode; riel?: ReactNode; children: ReactNode }) {
   return (
-    <>
-      <div className={`${TONOS[tono].franja} flex items-center justify-between gap-3 px-4 py-3 text-white sm:px-6`}>
-        {/* En pantallas muy estrechas se omite la marca para que el título y el botón de salida quepan en una línea. */}
-        <p className="min-w-0 truncate font-heading text-sm font-semibold tracking-wide">
-          <span className="hidden min-[420px]:inline">Horus Group <span aria-hidden="true">·</span> </span>
-          {titulo}
-        </p>
-        {acciones ? <div className="flex shrink-0 items-center gap-1 sm:gap-2">{acciones}</div> : null}
+    <div className="flex flex-1 flex-col md:min-h-screen md:flex-row">
+      {riel ? (
+        <div className="bg-tinta text-white md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto">
+          <div className="px-4 pb-1 pt-4 md:px-5 md:pt-6">
+            <MarcaHorus subtitulo={titulo} />
+          </div>
+          {riel}
+        </div>
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className={`flex items-center justify-between gap-3 border-b border-panel-border bg-panel-surface px-4 py-2.5 sm:px-6 ${TONOS[tono].franja}`}>
+          {riel ? (
+            <p className="min-w-0 truncate font-heading text-sm font-semibold text-panel-text">{titulo}</p>
+          ) : (
+            <MarcaHorusClara subtitulo={titulo} />
+          )}
+          {acciones ? <div className="flex shrink-0 items-center gap-1 sm:gap-2">{acciones}</div> : null}
+        </div>
+        {children}
       </div>
-      {children}
-    </>
+    </div>
+  );
+}
+
+/** Marca sobre fondo claro, para los estados sin riel (sin sesión, sin acceso). */
+function MarcaHorusClara({ subtitulo }: { subtitulo: string }) {
+  return (
+    <div className="flex items-center gap-2 text-tinta">
+      <LogoHorus className="h-6 w-auto shrink-0" />
+      <p className="font-heading text-sm font-semibold">Horus Group <span className="font-normal text-panel-muted">{subtitulo}</span></p>
+    </div>
   );
 }
 
@@ -202,12 +204,7 @@ function EstadoPagina({
 function EsqueletoPanel({ tono, titulo }: { tono: TonoPanel; titulo: string }) {
   return (
     <Franja tono={tono} titulo={titulo}>
-      <div className="flex flex-1 flex-col md:flex-row" aria-busy="true" aria-label="Cargando el panel">
-        <div className="space-y-2 border-b border-panel-border bg-panel-surface p-3 md:w-64 md:shrink-0 md:border-b-0 md:border-r">
-          {[0, 1, 2, 3].map((n) => (
-            <div key={n} className="h-9 animate-pulse rounded-md bg-panel-bg" />
-          ))}
-        </div>
+      <div className="flex flex-1 flex-col" aria-busy="true" aria-label="Cargando el panel">
         <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8">
           <div className="h-8 w-56 animate-pulse rounded-md bg-panel-border" />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

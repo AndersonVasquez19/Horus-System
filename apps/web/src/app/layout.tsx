@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Poppins, Montserrat } from 'next/font/google';
+import { Poppins, Montserrat, Bricolage_Grotesque, Figtree } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -11,6 +11,10 @@ const poppins = Poppins({
   variable: '--font-poppins',
   display: 'swap',
 });
+
+// Tipografía del panel administrativo (solo se aplica bajo [data-panel-root]; ver globals.css). Sin precarga: el sitio público no la usa.
+const panelDisplay = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-panel-display', display: 'swap', preload: false });
+const panelTexto = Figtree({ subsets: ['latin'], variable: '--font-panel-texto', display: 'swap', preload: false });
 
 const montserrat = Montserrat({
   weight: ['500', '600', '700', '800'],
@@ -69,7 +73,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${poppins.variable} ${montserrat.variable} scroll-smooth`}>
+    <html lang="es" className={`${poppins.variable} ${montserrat.variable} ${panelDisplay.variable} ${panelTexto.variable} scroll-smooth`}>
       <body className="min-h-screen flex flex-col bg-[#0A2540] text-slate-100 antialiased selection:bg-gold selection:text-ink-dark">
         {/*
           Los contenedores `contents` no alteran el diseño público. Los paneles (/admin) los ocultan

@@ -123,6 +123,7 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
                     <span className="block font-normal normal-case">{e.peso}%</span>
                   </th>
                 ))}
+                {acta.asistencia_visible ? <th scope="col" className="px-3 py-2 text-right font-semibold">% asistencia</th> : null}
                 <th scope="col" className="px-3 py-2 text-right font-semibold">Nota final</th>
                 <th scope="col" className="px-3 py-2 font-semibold">Resultado</th>
               </tr>
@@ -154,6 +155,7 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
                       </td>
                     );
                   })}
+                  {acta.asistencia_visible ? <td className="px-3 py-2 text-right tabular-nums">{fila.asistencia === null ? '—' : `${fila.asistencia}%`}</td> : null}
                   <td className="px-3 py-2 text-right font-semibold tabular-nums">{fila.nota_final ?? '—'}</td>
                   <td className="px-3 py-2">
                     {fila.resultado ? <Insignia color={fila.resultado === 'aprobado' ? 'verde' : 'rojo'}>{fila.resultado === 'aprobado' ? 'Aprobado' : 'Desaprobado'}</Insignia> : '—'}

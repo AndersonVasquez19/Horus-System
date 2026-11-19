@@ -9,18 +9,18 @@ import type { ElementoNavegacion, ModeloNavegacion, TonoPanel } from './panel-ti
 
 /*
  * Las clases se escriben completas (no se componen) para que Tailwind las detecte.
- * Foco con 700 (contraste ≥ 5,4:1 sobre blanco y sobre panel-bg); ver globals.css.
+ * Riel oscuro (tinta): foco en oro claro (≥ 9:1 sobre tinta); la sección activa lleva una marca dorada a la izquierda.
  */
 const TONOS: Record<TonoPanel, { foco: string; reposo: string; activo: string }> = {
   academico: {
-    foco: 'focus-visible:outline-academico-700',
-    reposo: 'hover:bg-academico-50 hover:text-academico-800',
-    activo: 'border-academico-700 bg-academico-100 text-academico-900',
+    foco: 'focus-visible:outline-oro-300',
+    reposo: 'hover:bg-white/10 hover:text-white',
+    activo: 'border-oro-400 bg-white/10 text-white',
   },
   servicios: {
-    foco: 'focus-visible:outline-servicios-700',
-    reposo: 'hover:bg-servicios-50 hover:text-servicios-800',
-    activo: 'border-servicios-700 bg-servicios-100 text-servicios-900',
+    foco: 'focus-visible:outline-oro-300',
+    reposo: 'hover:bg-white/10 hover:text-white',
+    activo: 'border-oro-400 bg-white/10 text-white',
   },
 };
 
@@ -62,20 +62,20 @@ export function PanelNavegacion({ tono, titulo, modelo }: PanelNavegacionProps) 
   if (!hayElementos) {
     return (
       <nav aria-label={`Navegación de ${titulo}`} className="p-3">
-        <p className="px-3 py-2 text-sm text-panel-muted">Sin módulos disponibles todavía.</p>
+        <p className="px-3 py-2 text-sm text-white/70">Sin módulos disponibles todavía.</p>
       </nav>
     );
   }
 
   return (
-    <nav aria-label={`Navegación de ${titulo}`} className="p-3" onKeyDown={alPulsarTecla}>
+    <nav aria-label={`Navegación de ${titulo}`} className="p-3 pb-6" onKeyDown={alPulsarTecla}>
       <button
         ref={botonRef}
         type="button"
         aria-expanded={abierto}
         aria-controls={idMenu}
         onClick={() => setAbierto((valor) => !valor)}
-        className={`flex w-full items-center justify-between rounded-md border border-panel-border px-3 py-2 text-sm font-medium text-panel-text outline-offset-2 focus-visible:outline-2 md:hidden ${t.foco}`}
+        className={`flex w-full items-center justify-between rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white outline-offset-2 focus-visible:outline-2 md:hidden ${t.foco}`}
       >
         <span>Menú de {titulo}</span>
         {abierto ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
@@ -88,7 +88,7 @@ export function PanelNavegacion({ tono, titulo, modelo }: PanelNavegacionProps) 
               {grupo.etiqueta ? (
                 <p
                   id={`${idMenu}-${grupo.id}`}
-                  className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-panel-muted"
+                  className="px-3 pb-1 pt-5 text-xs font-medium text-white/55"
                 >
                   {grupo.etiqueta}
                 </p>
@@ -103,8 +103,8 @@ export function PanelNavegacion({ tono, titulo, modelo }: PanelNavegacionProps) 
                         href={elemento.href}
                         aria-current={estado === 'exacta' ? 'page' : estado === 'prefijo' ? 'true' : undefined}
                         onClick={() => setAbierto(false)}
-                        className={`flex items-center gap-2 rounded-md border-l-4 px-3 py-2 text-sm outline-offset-2 focus-visible:outline-2 ${t.foco} ${
-                          estado ? `${t.activo} font-semibold` : `border-transparent font-medium text-panel-muted ${t.reposo}`
+                        className={`flex items-center gap-2 rounded-md border-l-[3px] px-3 py-2 text-sm outline-offset-2 focus-visible:outline-2 ${t.foco} ${
+                          estado ? `${t.activo} font-semibold` : `border-transparent font-medium text-white/75 ${t.reposo}`
                         }`}
                       >
                         {Icono ? <Icono className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}

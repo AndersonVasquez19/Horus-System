@@ -11,7 +11,7 @@ import type { TonoPanel } from './panel-tipos';
 const TOPE_VISIBLE = 99;
 
 const CLASE_ENLACE =
-  'relative inline-flex items-center rounded-md p-2 text-white outline-offset-2 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white';
+  'relative inline-flex items-center rounded-md p-2 text-panel-text outline-offset-2 hover:bg-panel-bg focus-visible:outline-2 focus-visible:outline-academico-700';
 
 /**
  * Campana del panel: enlaza a la bandeja del propio panel y avisa de cuántas notificaciones siguen sin leer.
@@ -53,7 +53,7 @@ function EnlaceCampana({ tono, pendientes }: { tono: TonoPanel; pendientes: numb
       {pendientes !== null && pendientes > 0 ? (
         <span
           aria-hidden="true"
-          className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-bold leading-5 text-panel-text"
+          className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-tinta px-1 text-[11px] font-bold leading-5 text-white"
         >
           {pendientes > TOPE_VISIBLE ? `${TOPE_VISIBLE}+` : pendientes}
         </span>

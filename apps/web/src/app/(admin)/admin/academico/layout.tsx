@@ -6,7 +6,18 @@ import type { ModeloNavegacion } from '@/components/shared/panel-tipos';
 const NAVEGACION: ModeloNavegacion = [
   {
     id: 'general',
-    elementos: [{ id: 'inicio', etiqueta: 'Inicio', href: '/admin/academico', icono: 'inicio', coincidencia: 'exacta' }],
+    elementos: [
+      { id: 'inicio', etiqueta: 'Inicio', href: '/admin/academico', icono: 'inicio', coincidencia: 'exacta' },
+      { id: 'buscar', etiqueta: 'Buscar', href: '/admin/academico/buscar', icono: 'documentos' },
+    ],
+  },
+  {
+    id: 'operacion',
+    etiqueta: 'Operación diaria',
+    elementos: [
+      { id: 'matriculas', etiqueta: 'Matrículas', href: '/admin/academico/matriculas', icono: 'registros', permisosRequeridos: ['matriculas.ver'] },
+      { id: 'pagos', etiqueta: 'Pagos', href: '/admin/academico/pagos', icono: 'registros', permisosRequeridos: ['pagos.ver'] },
+    ],
   },
   {
     id: 'gestion',
@@ -14,8 +25,9 @@ const NAVEGACION: ModeloNavegacion = [
     elementos: [
       { id: 'estudiantes', etiqueta: 'Estudiantes', href: '/admin/academico/estudiantes', icono: 'personas', permisosRequeridos: ['estudiantes.ver'] },
       { id: 'cursos', etiqueta: 'Cursos', href: '/admin/academico/cursos', icono: 'cursos', permisosRequeridos: ['cursos.ver'] },
-      { id: 'convocatorias', etiqueta: 'Convocatorias', href: '/admin/academico/convocatorias', icono: 'cursos', permisosRequeridos: ['convocatorias.ver'] },
-      { id: 'matriculas', etiqueta: 'Matrículas', href: '/admin/academico/matriculas', icono: 'registros', permisosRequeridos: ['matriculas.ver'] },
+      { id: 'convocatorias', etiqueta: 'Ediciones', href: '/admin/academico/convocatorias', icono: 'cursos', permisosRequeridos: ['convocatorias.ver'] },
+      { id: 'docentes', etiqueta: 'Docentes', href: '/admin/academico/docentes', icono: 'personas', permisosRequeridos: ['docentes.ver'] },
+      { id: 'infraestructura', etiqueta: 'Infraestructura', href: '/admin/academico/infraestructura', icono: 'registros', permisosRequeridos: ['infraestructura.ver'] },
       { id: 'reportes', etiqueta: 'Reportes', href: '/admin/academico/reportes', icono: 'documentos', permisosRequeridos: ['reportes.ver'] },
     ],
   },
@@ -28,6 +40,8 @@ const NAVEGACION: ModeloNavegacion = [
       { id: 'usuarios', etiqueta: 'Usuarios', href: '/admin/academico/usuarios', icono: 'personas', permisosRequeridos: ['usuarios.ver'] },
       { id: 'roles', etiqueta: 'Roles y permisos', href: '/admin/academico/roles', icono: 'seguridad', permisosRequeridos: ['roles.ver'] },
       { id: 'auditoria', etiqueta: 'Auditoría', href: '/admin/academico/auditoria', icono: 'documentos', permisosRequeridos: ['auditoria.ver'] },
+      { id: 'respaldo', etiqueta: 'Exportar datos', href: '/admin/academico/respaldo', icono: 'documentos', permisosRequeridos: ['respaldo.ver'] },
+      { id: 'asistente', etiqueta: 'Asistente virtual', href: '/admin/academico/asistente', icono: 'avisos', permisosRequeridos: ['asistente.ver'] },
     ],
   },
   {

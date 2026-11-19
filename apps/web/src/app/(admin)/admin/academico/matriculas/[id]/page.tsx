@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesMatricula } from '@/components/academico/acciones-matricula';
+import { BotonCrearObligacion, COLOR_COBRO, ETIQUETA_COBRO, EnlaceObligacion } from '@/components/academico/paneles-pagos';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
-import type { EventoHistorial, MatriculaDetalle } from '@/features/academico/tipos';
+import type { EventoHistorial, MatriculaDetalle, ObligacionDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { etiqueta, fecha, moneda, numero } from '@/lib/panel/formato';
 
@@ -106,11 +107,40 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           />
         </Seccion>
 
+        {matricula.convocatoria && !matricula.eliminado && matricula.estado !== 'anulada' ? (
+          <Suspense fallback={null}>
+            <PagosDeLaMatricula matriculaId={matricula.id} />
+          </Suspense>
+        ) : null}
+
         <Seccion id="titulo-historial" titulo="Historial" descripcion="Operaciones registradas en la auditoría." className="xl:col-span-2">
           <Historial eventos={matricula.historial ?? []} />
         </Seccion>
       </div>
     </>
+  );
+}
+
+/** Obligación de pago de la matrícula: solo se muestra a quien tiene `pagos.ver`. */
+async function PagosDeLaMatricula({ matriculaId }: { matriculaId: number }) {
+  const r = await consultarPanel<{ data: ObligacionDetalle | null }>(`academico/matriculas/${matriculaId}/obligacion`, `${LISTADO}/${matriculaId}`);
+  if (r.estado !== 'ok') return null;
+  const o = r.datos.data;
+  return (
+    <Seccion id="titulo-pagos" titulo="Pagos" descripcion="Obligación de pago en soles (PEN).">
+      {o === null ? (
+        <div className="space-y-3">
+          <p className="text-sm text-panel-muted">Esta matrícula todavía no tiene una obligación de pago.</p>
+          <BotonCrearObligacion matriculaId={matriculaId} />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Insignia color={COLOR_COBRO[o.estado]}>{ETIQUETA_COBRO[o.estado]}</Insignia>
+          <p className="text-sm text-panel-text">{o.concepto}: pagado {moneda(o.pagado)} de {moneda(o.monto_total)}; saldo {moneda(o.saldo)}.</p>
+          <EnlaceObligacion identificador={o.identificador} />
+        </div>
+      )}
+    </Seccion>
   );
 }
 
