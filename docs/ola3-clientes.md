@@ -1,5 +1,7 @@
 # Ola 3, módulo 1: Clientes (panel de servicios)
 
+> **Documento histórico (módulo retirado el 19/11/2026).** El panel de servicios tecnológicos y sus módulos CRM/soporte fueron retirados de Horus System; este documento se conserva únicamente como referencia previa. Ver [`retiro-panel-servicios.md`](retiro-panel-servicios.md).
+
 15/11/2026. Implementa `docs/ola3-diseno-datos.md` §3.1 con las decisiones por defecto aprobadas. Sin push; sin PostgreSQL.
 
 ## API (`/api/panel/v1/servicios/clientes`)
