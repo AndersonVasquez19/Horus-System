@@ -84,7 +84,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
       <TarjetaKpi key="cobrado" tono="academico" etiqueta="Cobrado en el mes" valor={moneda(n.cobrado_mes)} icono={<Landmark className="h-5 w-5" />} detalle="Pagos confirmados menos reversos (Lima)." />
     ),
     n.saldo_por_cobrar !== undefined && (
-      <TarjetaKpi key="porcobrar" tono="academico" etiqueta="Saldo total por cobrar" valor={moneda(n.saldo_por_cobrar)} icono={<CircleDollarSign className="h-5 w-5" />} detalle="De las obligaciones vigentes." />
+      <TarjetaKpi key="porcobrar" tono="academico" etiqueta="Saldo total por cobrar" href="/admin/academico/pagos?estado=con_saldo" valor={moneda(n.saldo_por_cobrar)} icono={<CircleDollarSign className="h-5 w-5" />} detalle="De las obligaciones vigentes." />
     ),
     i.matriculas_mes !== undefined && (
       <TarjetaKpi
