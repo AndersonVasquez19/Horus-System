@@ -17,7 +17,6 @@ const MODULOS: Record<string, { etiqueta: string; orden: number }> = {
   reportes: { etiqueta: 'Reportes', orden: 11 },
   aprobaciones: { etiqueta: 'Aprobaciones', orden: 12 },
   reclamaciones: { etiqueta: 'Libro de reclamaciones y mensajes', orden: 13 },
-  servicios: { etiqueta: 'Servicios tecnológicos', orden: 14 },
   usuarios: { etiqueta: 'Usuarios', orden: 15 },
   roles: { etiqueta: 'Roles y permisos', orden: 16 },
   auditoria: { etiqueta: 'Historial de actividad', orden: 17 },
@@ -52,7 +51,6 @@ const ACCIONES: Record<string, string> = {
 /** Casos cuyo sentido depende del módulo y no se deduce de la acción. */
 const ESPECIALES: Record<string, string> = {
   'panel.academico.acceder': 'Entrar al panel de gestión académica',
-  'panel.servicios.acceder': 'Entrar al panel de servicios',
   'reclamaciones.gestionar': 'Gestionar reclamaciones y mensajes de contacto',
   'reclamaciones.responder': 'Responder reclamaciones',
   'aprobaciones.gestionar': 'Aprobar o rechazar solicitudes',
@@ -62,7 +60,6 @@ const ESPECIALES: Record<string, string> = {
   'auditoria.ver': 'Ver el historial de actividad',
   'auditoria.exportar': 'Descargar el historial de actividad',
   'matriculas.eliminar': 'Eliminar matrículas',
-  'servicios.publicar': 'Publicar servicios en la web',
 };
 
 const legible = (texto: string) => {

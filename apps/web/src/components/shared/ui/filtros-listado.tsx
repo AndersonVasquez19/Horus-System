@@ -14,10 +14,6 @@ const ESTILOS: Record<TonoUi, { control: string; boton: string }> = {
     control: 'focus:border-academico-700 focus:ring-academico-700/30',
     boton: 'bg-academico-700 hover:bg-academico-800 focus-visible:outline-academico-700',
   },
-  servicios: {
-    control: 'focus:border-servicios-700 focus:ring-servicios-700/30',
-    boton: 'bg-servicios-700 hover:bg-servicios-800 focus-visible:outline-servicios-700',
-  },
 };
 
 export function claseControl(tono: TonoUi): string {

@@ -13,7 +13,7 @@ export interface SesionPanel {
   usuario: UsuarioSesion;
   roles: string[];
   permisos: string[];
-  paneles: { academico: boolean; servicios: boolean };
+  paneles: { academico: boolean };
   csrf_token: string;
   expira_en: number | null;
 }

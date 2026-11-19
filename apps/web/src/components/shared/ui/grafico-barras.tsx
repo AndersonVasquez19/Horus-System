@@ -2,7 +2,6 @@ import type { TonoUi } from './boton';
 
 const BARRA: Record<TonoUi, string> = {
   academico: 'bg-academico-600',
-  servicios: 'bg-servicios-600',
 };
 
 interface GraficoBarrasProps {

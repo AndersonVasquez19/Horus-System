@@ -5,7 +5,6 @@ import type { TonoUi } from './boton';
 
 const FOCO: Record<TonoUi, string> = {
   academico: 'focus:border-academico-700 focus:ring-academico-700/30',
-  servicios: 'focus:border-servicios-700 focus:ring-servicios-700/30',
 };
 
 /**

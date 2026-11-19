@@ -24,12 +24,6 @@ const TONOS: Record<TonoPanel, { franja: string; foco: string; enlace: string }>
     foco: 'focus-visible:outline-academico-700',
     enlace: 'text-academico-700 focus-visible:outline-academico-700',
   },
-  // Variante de color sin panel propio (el panel de servicios tecnológicos se retiró); solo satisface al tipo compartido.
-  servicios: {
-    franja: '',
-    foco: 'focus-visible:outline-servicios-700',
-    enlace: 'text-servicios-700 focus-visible:outline-servicios-700',
-  },
 };
 
 interface PanelShellProps {

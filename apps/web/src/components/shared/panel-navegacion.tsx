@@ -17,11 +17,6 @@ const TONOS: Record<TonoPanel, { foco: string; reposo: string; activo: string }>
     reposo: 'hover:bg-white/10 hover:text-white',
     activo: 'border-oro-400 bg-white/10 text-white',
   },
-  servicios: {
-    foco: 'focus-visible:outline-oro-300',
-    reposo: 'hover:bg-white/10 hover:text-white',
-    activo: 'border-oro-400 bg-white/10 text-white',
-  },
 };
 
 /** `exacta`: es la página actual; `prefijo`: es una subruta de la entrada; `null`: inactiva. */

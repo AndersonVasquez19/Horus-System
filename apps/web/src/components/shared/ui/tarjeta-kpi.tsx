@@ -3,12 +3,10 @@ import type { TonoUi } from './boton';
 
 const REGLA: Record<TonoUi, string> = {
   academico: 'border-t-academico-700',
-  servicios: 'border-t-servicios-700',
 };
 
 const ICONO: Record<TonoUi, string> = {
   academico: 'text-academico-600',
-  servicios: 'text-servicios-600',
 };
 
 interface TarjetaKpiProps {

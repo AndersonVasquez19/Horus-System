@@ -1,7 +1,7 @@
 import type { NombreIconoPanel } from './panel-iconos';
 
 /** Identidad visual de cada panel administrativo. */
-export type TonoPanel = 'academico' | 'servicios';
+export type TonoPanel = 'academico';
 
 /**
  * Identificador de permiso tal como lo publica Laravel en `GET /api/panel/v1/auth/sesion` (cadena opaca).

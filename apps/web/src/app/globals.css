@@ -17,7 +17,6 @@
  * Paneles administrativos. Solo definen variables y utilidades nuevas: no alteran ningún token
  * ni estilo del sitio público.
  *   academico-*  -> panel de gestión académica (azul)
- *   servicios-*  -> panel de servicios tecnológicos (verde)
  *   panel-*      -> neutros compartidos por ambos paneles (tema claro)
  *   estado-*     -> éxito, aviso, error e información
  * `static` emite todas las variables siempre: las reglas de aislamiento de más abajo dependen de ellas.
@@ -37,17 +36,6 @@
   --color-academico-900: #0D2744;
   --color-academico-950: #081A30;
 
-  --color-servicios-50: #ECFDF5;
-  --color-servicios-100: #D1FAE5;
-  --color-servicios-200: #A7F3D0;
-  --color-servicios-300: #6EE7B7;
-  --color-servicios-400: #34D399;
-  --color-servicios-500: #10B981;
-  --color-servicios-600: #059669;
-  --color-servicios-700: #047857;
-  --color-servicios-800: #065F46;
-  --color-servicios-900: #064E3B;
-  --color-servicios-950: #022C22;
 
   --color-tinta: #0B2340;
   --color-tinta-profunda: #07172B;
@@ -126,11 +114,6 @@ body:has([data-panel-root]) [data-chrome-publico] {
 :root:has([data-panel-root] [data-panel-tono="academico"]) ::selection {
   background: var(--color-academico-200);
   color: var(--color-academico-950);
-}
-
-:root:has([data-panel-root] [data-panel-tono="servicios"]) ::selection {
-  background: var(--color-servicios-200);
-  color: var(--color-servicios-950);
 }
 
 :root {
