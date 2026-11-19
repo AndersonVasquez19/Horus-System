@@ -17,7 +17,7 @@ final class MensajesEspanolPanelTest extends PanelApiTestCase
         $admin = $this->usuarioConRol('admin', 'admin@horus.test');
         $rutas = [
             ['POST', 'academico/estudiantes'], ['POST', 'academico/cursos'], ['POST', 'academico/matriculas'],
-            ['PUT', 'academico/cursos/1/publicacion'], ['POST', 'servicios/servicios'], ['PUT', 'servicios/servicios/1/publicacion'],
+            ['PUT', 'academico/cursos/1/publicacion'],
         ];
 
         foreach ($rutas as [$metodo, $ruta]) {

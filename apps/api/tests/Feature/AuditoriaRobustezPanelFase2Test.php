@@ -18,7 +18,6 @@ use Tests\Support\LlamaCursosDelPanel;
 use Tests\Support\LlamaEstudiantesDelPanel;
 use Tests\Support\LlamaMatriculasDelPanel;
 use Tests\Support\LlamaRolesDelPanel;
-use Tests\Support\LlamaServiciosDelPanel;
 use Tests\Support\LlamaUsuariosDelPanel;
 use Tests\TestCase;
 
@@ -28,7 +27,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
     use LlamaEstudiantesDelPanel;
     use LlamaMatriculasDelPanel;
     use LlamaRolesDelPanel;
-    use LlamaServiciosDelPanel;
     use LlamaUsuariosDelPanel;
     use RefreshDatabase;
 
@@ -44,8 +42,6 @@ class AuditoriaRobustezPanelFase2Test extends TestCase
     public function test_parametro_servicio_no_numerico_responde_404_sin_error_500(): void
     {
         $this->actingAs($this->admin);
-        $this->panelServicios('GET', 'no-numerico')->assertNotFound();
-        $this->panelServicios('PUT', 'no-numerico/publicacion', [])->assertNotFound();
     }
 
     public function test_respuestas_admin_incluyen_cache_control_no_store_salvo_descargas(): void

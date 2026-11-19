@@ -179,3 +179,7 @@ Si existe un valor predeterminado seguro y reversible, declararlo, aplicarlo y c
 | Seguridad | [`docs/seguridad-l1.1.md`](docs/seguridad-l1.1.md) |
 | PostgreSQL aislado e integridad | [`docs/postgresql-l2.2-c-integridad.md`](docs/postgresql-l2.2-c-integridad.md) |
 | Horus Academic: plan, decisiones, ERD, diccionario, permisos, finanzas, contratos, pruebas y migraciones (Fase 1) | [`docs/horus-academic/README.md`](docs/horus-academic/README.md) |
+
+## Retiro del panel de servicios tecnológicos (19/11/2026)
+
+Se retiró la API de edición de fichas (`/api/panel/v1/servicios/*`), los permisos `panel.servicios.acceder` y `servicios.ver|crear|editar` y el tono «servicios» de apps/web. El catálogo público, las cotizaciones públicas y Horus AI **no** son panel y siguen. `servicios.publicar` se conserva como marca editorial del catálogo (oculta en Roles y permisos). Detalle: [`docs/retiro-panel-servicios.md`](docs/retiro-panel-servicios.md). No reintroducir un panel de servicios sin decisión expresa del propietario.

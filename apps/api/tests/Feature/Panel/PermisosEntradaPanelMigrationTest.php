@@ -13,11 +13,14 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /**
- * Migración 000042: instalación nueva y base ya sembrada antes de existir los permisos de entrada.
+ * Migración 000042: instalación nueva y base ya sembrada antes de existir los permisos de entrada. La migración conserva su
+ * propia lista (incluye `panel.servicios.acceder`, que la 000086 retira después: el panel de servicios ya no existe).
  */
 final class PermisosEntradaPanelMigrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const ENTRADAS = ['panel.academico.acceder', 'panel.servicios.acceder'];
 
     private function migracion(): Migration
     {
@@ -28,15 +31,15 @@ final class PermisosEntradaPanelMigrationTest extends TestCase
     private function baseAnterior(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
-        Permission::query()->whereIn('name', RolesAndPermissionsSeeder::PANEL_PERMISSIONS)->delete();
+        Permission::query()->whereIn('name', self::ENTRADAS)->delete();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
-    public function test_instalacion_nueva_crea_los_permisos_aunque_no_existan_roles(): void
+    public function test_instalacion_nueva_solo_deja_la_entrada_academica_aunque_no_existan_roles(): void
     {
-        foreach (RolesAndPermissionsSeeder::PANEL_PERMISSIONS as $permiso) {
-            $this->assertDatabaseHas('permissions', ['name' => $permiso, 'guard_name' => 'web']);
-        }
+        // La 000042 crea las dos entradas y la 000086 retira la de servicios.
+        $this->assertDatabaseHas('permissions', ['name' => 'panel.academico.acceder', 'guard_name' => 'web']);
+        $this->assertDatabaseMissing('permissions', ['name' => 'panel.servicios.acceder']);
         $this->assertSame(0, Role::query()->count());
     }
 
@@ -63,19 +66,18 @@ final class PermisosEntradaPanelMigrationTest extends TestCase
 
         $migracion->up();
         $migracion->up();
-        $this->assertSame(2, Permission::query()->whereIn('name', RolesAndPermissionsSeeder::PANEL_PERMISSIONS)->count());
+        $this->assertSame(2, Permission::query()->whereIn('name', self::ENTRADAS)->count());
 
         $migracion->down();
-        $this->assertSame(0, Permission::query()->whereIn('name', RolesAndPermissionsSeeder::PANEL_PERMISSIONS)->count());
+        $this->assertSame(0, Permission::query()->whereIn('name', self::ENTRADAS)->count());
         $this->assertTrue(Role::findByName('admin', 'web')->hasPermissionTo('usuarios.ver'));
     }
 
-    public function test_el_seeder_coincide_con_la_distribucion_de_la_migracion(): void
+    public function test_el_seeder_solo_conoce_la_entrada_academica(): void
     {
         $this->assertContains('panel.academico.acceder', RolesAndPermissionsSeeder::COORDINADOR_PERMISSIONS);
         $this->assertContains('panel.academico.acceder', RolesAndPermissionsSeeder::SECRETARIA_PERMISSIONS);
-        $this->assertNotContains('panel.servicios.acceder', RolesAndPermissionsSeeder::COORDINADOR_PERMISSIONS);
-        $this->assertNotContains('panel.servicios.acceder', RolesAndPermissionsSeeder::SECRETARIA_PERMISSIONS);
-        $this->assertContains('panel.servicios.acceder', RolesAndPermissionsSeeder::PERMISSIONS);
+        $this->assertSame(['panel.academico.acceder'], RolesAndPermissionsSeeder::PANEL_PERMISSIONS);
+        $this->assertNotContains('panel.servicios.acceder', RolesAndPermissionsSeeder::PERMISSIONS);
     }
 }

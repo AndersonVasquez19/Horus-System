@@ -11,7 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Tests\Support\LlamaServiciosDelPanel;
+use Tests\Support\FichasDeServiciosParaPruebas;
 use Tests\TestCase;
 
 /**
@@ -20,7 +20,7 @@ use Tests\TestCase;
  */
 class ApiPublicaServiciosTest extends TestCase
 {
-    use LlamaServiciosDelPanel;
+    use FichasDeServiciosParaPruebas;
     use RefreshDatabase;
 
     private const TOKEN = 'token-de-prueba-bff-0123456789abcdefghij';
@@ -53,15 +53,15 @@ class ApiPublicaServiciosTest extends TestCase
         $this->guardarFichaPanel($id, [
             'titulo' => $titulo, 'resumen' => 'Resumen público', 'descripcion' => "Primer párrafo.\n\nSegundo párrafo.",
             'vigente_desde' => '2026-11-01', 'vigente_hasta' => '2026-12-31', 'titulo_tarjetas' => 'Tarjetas del servicio',
-        ])->assertOk();
+        ]);
 
         return $id;
     }
 
     private function publicar(int $id): void
     {
-        $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
-        $this->autorizarFichaPanel($id)->assertOk();
+        $this->cambiarEstadoServicioPanel($id, 'activo');
+        $this->autorizarFichaPanel($id);
     }
 
     public function test_ficha_sin_autorizar_no_aparece_y_publicada_si_y_retirada_desaparece(): void
@@ -88,8 +88,8 @@ class ApiPublicaServiciosTest extends TestCase
         // Otra página sin ficha sigue sin contenido.
         $this->getJson('/api/public/v1/paginas/camaras-seguridad', $this->bff())->assertOk()->assertJsonPath('contenido', null);
 
-        $this->retirarFichaPanel($id)->assertOk();
-        $this->retirarFichaPanel($generico)->assertOk();
+        $this->retirarFichaPanel($id);
+        $this->retirarFichaPanel($generico);
         $this->getJson('/api/public/v1/servicios', $this->bff())->assertJsonPath('total', 0);
         $this->getJson('/api/public/v1/paginas/cableado-estructurado', $this->bff())->assertJsonPath('contenido', null);
     }
@@ -98,10 +98,8 @@ class ApiPublicaServiciosTest extends TestCase
     {
         $this->actingAs($this->adminUser());
         $id = $this->servicio('VIDEOVIGILANCIA', 'Videovigilancia con imagen');
-        $this->panelServiciosArchivo("$id/elementos", [
-            'titulo' => 'Tarjeta con imagen', 'descripcion' => 'Descripción', 'imagen' => UploadedFile::fake()->image('foto.png', 200, 150),
-        ], ['If-Match' => $this->etag($id)])->assertCreated();
-        // El panel nunca publica rutas de almacenamiento: se lee la ruta guardada directamente de la base.
+        // Ruta de imagen válida de almacenamiento, como la dejaría una carga previa.
+        $this->crearTarjetaPanel($id, ['titulo' => 'Tarjeta con imagen', 'descripcion' => 'Descripción', 'imagen_ruta' => 'servicios/'.\Illuminate\Support\Str::uuid().'.png']);
         $ruta = (string) DB::table('servicio_publicacion_elementos')->value('imagen_ruta');
         $this->publicar($id);
 

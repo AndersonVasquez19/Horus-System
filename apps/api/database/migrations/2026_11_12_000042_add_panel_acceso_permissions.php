@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
@@ -18,17 +17,20 @@ use Spatie\Permission\PermissionRegistrar;
  */
 return new class extends Migration
 {
+    /** Permisos de entrada de esta migración (propios: el panel de servicios se retiró). @var list<string> */
+    private const PANELES = ['panel.academico.acceder', 'panel.servicios.acceder'];
+
     /** @var array<string, list<string>> */
     private const DISTRIBUCION = [
-        'admin' => [RolesAndPermissionsSeeder::PANEL_ACADEMICO, RolesAndPermissionsSeeder::PANEL_SERVICIOS],
-        'coordinador' => [RolesAndPermissionsSeeder::PANEL_ACADEMICO],
-        'secretaria' => [RolesAndPermissionsSeeder::PANEL_ACADEMICO],
+        'admin' => ['panel.academico.acceder', 'panel.servicios.acceder'],
+        'coordinador' => ['panel.academico.acceder'],
+        'secretaria' => ['panel.academico.acceder'],
     ];
 
     public function up(): void
     {
         DB::transaction(function (): void {
-            foreach (RolesAndPermissionsSeeder::PANEL_PERMISSIONS as $name) {
+            foreach (self::PANELES as $name) {
                 Permission::findOrCreate($name, 'web');
             }
 
@@ -45,7 +47,7 @@ return new class extends Migration
         // a otros permisos. Spatie elimina en cascada sus asignaciones a roles y usuarios.
         DB::transaction(function (): void {
             Permission::query()->where('guard_name', 'web')
-                ->whereIn('name', RolesAndPermissionsSeeder::PANEL_PERMISSIONS)
+                ->whereIn('name', self::PANELES)
                 ->get()
                 ->each(fn (Permission $permiso) => $permiso->delete());
         });

@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\Panel\Academico;
 use App\Http\Controllers\Api\Panel\AutenticacionController;
 use App\Http\Controllers\Api\Panel\Compartido;
-use App\Http\Controllers\Api\Panel\Servicios;
 use App\Http\Middleware\SesionPanelVigente;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Route;
@@ -233,32 +232,3 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         });
     });
 
-// Catálogo de servicios tecnológicos: SOLO la edición de fichas públicas (el panel comercial se retiró). Sin pantalla en apps/web;
-// la API se conserva porque es la única vía de autoría del catálogo público y de Horus AI.
-Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPermissionsSeeder::PANEL_SERVICIOS])
-    ->prefix('servicios')
-    ->name('servicios.')
-    ->group(function (): void {
-        Route::get('servicios', [Servicios\ServicioController::class, 'index'])->name('servicios.index');
-        Route::get('servicios/{servicio}', [Servicios\ServicioController::class, 'show'])->whereNumber('servicio')->name('servicios.show');
-        Route::get('servicios/{servicio}/imagen', [Servicios\ServicioContenidoController::class, 'verImagenPrincipal'])
-            ->whereNumber('servicio')->middleware('throttle:admin-opciones')->name('servicios.imagen.ver');
-        Route::get('servicios/{servicio}/elementos/{elemento}/imagen', [Servicios\ServicioContenidoController::class, 'verImagenElemento'])
-            ->whereNumber(['servicio', 'elemento'])->middleware('throttle:admin-opciones')->name('servicios.elementos.imagen.ver');
-
-        Route::middleware('throttle:admin-write')->group(function (): void {
-            Route::post('servicios', [Servicios\ServicioController::class, 'store'])->name('servicios.store');
-            Route::put('servicios/{servicio}', [Servicios\ServicioController::class, 'update'])->whereNumber('servicio')->name('servicios.update');
-            Route::post('servicios/{servicio}/estado', [Servicios\ServicioController::class, 'estado'])->whereNumber('servicio')->name('servicios.estado');
-            Route::put('servicios/{servicio}/publicacion', [Servicios\ServicioController::class, 'preparar'])->whereNumber('servicio')->name('servicios.publicacion.preparar');
-            Route::post('servicios/{servicio}/publicacion/autorizar', [Servicios\ServicioController::class, 'autorizar'])->whereNumber('servicio')->name('servicios.publicacion.autorizar');
-            Route::post('servicios/{servicio}/publicacion/retirar', [Servicios\ServicioController::class, 'retirar'])->whereNumber('servicio')->name('servicios.publicacion.retirar');
-
-            // Imagen principal y tarjetas de la ficha (multipart; revisión en `_revision`).
-            Route::post('servicios/{servicio}/imagen', [Servicios\ServicioContenidoController::class, 'imagenPrincipal'])->whereNumber('servicio')->name('servicios.imagen.subir');
-            Route::post('servicios/{servicio}/imagen/quitar', [Servicios\ServicioContenidoController::class, 'quitarImagenPrincipal'])->whereNumber('servicio')->name('servicios.imagen.quitar');
-            Route::post('servicios/{servicio}/elementos', [Servicios\ServicioContenidoController::class, 'elementoStore'])->whereNumber('servicio')->name('servicios.elementos.store');
-            Route::post('servicios/{servicio}/elementos/{elemento}', [Servicios\ServicioContenidoController::class, 'elementoUpdate'])->whereNumber(['servicio', 'elemento'])->name('servicios.elementos.update');
-            Route::post('servicios/{servicio}/elementos/{elemento}/eliminar', [Servicios\ServicioContenidoController::class, 'elementoDestroy'])->whereNumber(['servicio', 'elemento'])->name('servicios.elementos.destroy');
-        });
-    });

@@ -130,7 +130,6 @@ it('los permisos concedidos por el seeder existen y los tres roles base conserva
         expect($permisos)->toContain(RolesAndPermissionsSeeder::PANEL_ACADEMICO);
         expect(array_diff($permisos, RolesAndPermissionsSeeder::PERMISSIONS))->toBe([], "{$rol} tiene permisos fuera del catálogo");
     }
-    // Servicios sigue siendo solo del admin hasta la Fase 7.
-    expect(RolesAndPermissionsSeeder::COORDINADOR_PERMISSIONS)->not->toContain(RolesAndPermissionsSeeder::PANEL_SERVICIOS)
-        ->and(RolesAndPermissionsSeeder::SECRETARIA_PERMISSIONS)->not->toContain(RolesAndPermissionsSeeder::PANEL_SERVICIOS);
+    // El panel de servicios tecnológicos se retiró: la única entrada es la académica.
+    expect(RolesAndPermissionsSeeder::PANEL_PERMISSIONS)->toBe([RolesAndPermissionsSeeder::PANEL_ACADEMICO]);
 });

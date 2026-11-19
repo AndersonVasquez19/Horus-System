@@ -73,7 +73,6 @@ final class SesionPanel
             'permisos' => $permisos,
             'paneles' => [
                 'academico' => in_array(RolesAndPermissionsSeeder::PANEL_ACADEMICO, $permisos, true),
-                'servicios' => in_array(RolesAndPermissionsSeeder::PANEL_SERVICIOS, $permisos, true),
             ],
             'csrf_token' => $request->session()->token(),
             'expira_en' => self::expiraEn($request),

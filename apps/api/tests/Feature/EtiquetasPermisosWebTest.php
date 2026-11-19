@@ -27,7 +27,8 @@ class EtiquetasPermisosWebTest extends TestCase
         $especiales = $bloque('ESPECIALES');
 
         $faltan = [];
-        foreach (RolesAndPermissionsSeeder::PERMISSIONS as $clave) {
+        // Los permisos ocultos en Roles y permisos (retirados y la marca editorial del catálogo) no se muestran, así que no necesitan etiqueta.
+        foreach (array_diff(RolesAndPermissionsSeeder::PERMISSIONS, \App\Services\GestionRoles::PERMISOS_RETIRADOS) as $clave) {
             [$modulo] = explode('.', $clave, 2);
             $accion = substr($clave, strlen($modulo) + 1);
             $moduloOk = (bool) preg_match('/^\s*'.preg_quote($modulo, '/').':/m', $modulos);

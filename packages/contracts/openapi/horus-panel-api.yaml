@@ -18,10 +18,10 @@ info:
     `no_encontrado`, `csrf`, `validacion`, `demasiadas_solicitudes`, `error_interno`…).
 
     Seguridad por capas: token de servicio (`X-Horus-Web-Token`), sesión web, CSRF, `SesionPanelVigente`,
-    permiso de entrada al panel (`panel.academico.acceder` / `panel.servicios.acceder`) y permiso por acción (se indica
+    permiso de entrada al panel (`panel.academico.acceder`) y permiso por acción (se indica
     en cada operación). Las cotizaciones son además solo del rol `admin`.
 
-    Concurrencia: las escrituras sobre servicios y fichas exigen la revisión (`If-Match`; el BFF la envía
+    Concurrencia: las escrituras sobre ediciones y sesiones exigen la revisión (`If-Match`; el BFF la envía
     como `_revision`) y responden 428 si falta y 412 si está obsoleta. Las creaciones y seguimientos de cotizaciones
     son idempotentes con `Idempotency-Key` (el BFF envía `_clave`). Mensajes de validación en español.
 
@@ -37,8 +37,6 @@ security:
 tags:
   - name: auth
   - name: academico
-  - name: servicios
-    description: Se retira en la Fase 7 de Horus Academic (decisión del propietario, 16/11/2026)
 paths:
   /auth/csrf:
     get:
@@ -641,305 +639,6 @@ paths:
         '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios:
-    get:
-      tags: [servicios]
-      summary: "Catálogo interno de servicios"
-      description: "Permiso: `servicios.ver`."
-      parameters:
-        - { $ref: '#/components/parameters/Pagina' }
-        - { $ref: '#/components/parameters/PorPagina' }
-        - { name: sort, in: query, schema: { type: string, enum: [nombre, -nombre, codigo, -codigo, actualizado, -actualizado] } }
-        - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: estado, in: query, schema: { type: string, enum: [activo, inactivo, archivado] } }
-        - { name: publicacion, in: query, schema: { type: string, enum: [sin_ficha, borrador, publicada, retirada] } }
-      responses:
-        '200': { $ref: '#/components/responses/Listado' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    post:
-      tags: [servicios]
-      summary: "Registra un servicio (código en mayúsculas, único e inmutable)"
-      description: "Permiso: `servicios.crear`."
-      parameters:
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ServicioEntrada' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}:
-    get:
-      tags: [servicios]
-      summary: "Detalle con ficha pública y `estado_editorial` calculado (cabecera `ETag`)"
-      description: "Permiso: `servicios.ver`."
-      parameters:
-        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    put:
-      tags: [servicios]
-      summary: "Edita el servicio"
-      description: "Permiso: `servicios.editar`."
-      parameters:
-        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ServicioEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/estado:
-    post:
-      tags: [servicios]
-      summary: "Cambia el estado; si deja de estar activo su ficha publicada se retira automáticamente"
-      description: "Permiso: `servicios.editar`."
-      parameters:
-        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/EstadoServicio' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/publicacion:
-    put:
-      tags: [servicios]
-      summary: "Guarda el borrador editorial (retira cualquier autorización anterior). La imagen principal y las tarjetas se gestionan en las rutas `imagen` y `elementos`"
-      description: "Permiso: `servicios.editar`."
-      parameters:
-        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/FichaServicioEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/publicacion/autorizar:
-    post:
-      tags: [servicios]
-      summary: "Autoriza la publicación (obliga a `confirmacion_publica`)"
-      description: "Permiso: `servicios.publicar`."
-      parameters:
-        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/AutorizarFicha' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/publicacion/retirar:
-    post:
-      tags: [servicios]
-      summary: "Retira la ficha pública"
-      description: "Permiso: `servicios.publicar`."
-      parameters:
-        - { name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }
-        - { $ref: '#/components/parameters/Csrf' }
-        - { $ref: '#/components/parameters/IfMatch' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SoloRevision' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/imagen:
-    get:
-      tags: [servicios]
-      summary: "Vista previa autenticada de la imagen principal (nunca se exponen rutas de almacenamiento)"
-      description: "Permiso: `servicios.ver`. Cabeceras `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, `Cache-Control: no-store, private`."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }]
-      responses:
-        '200': { description: Imagen con el tipo real detectado por contenido, headers: { X-Content-Type-Options: { schema: { type: string, enum: [nosniff] } } }, content: { image/jpeg: { schema: { type: string, format: binary } }, image/png: { schema: { type: string, format: binary } }, image/webp: { schema: { type: string, format: binary } } } }
-        '401': { description: "No autenticado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin permiso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "No hay imagen o la ruta guardada no es válida", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    post:
-      tags: [servicios]
-      summary: "Sube o reemplaza la imagen principal de la ficha (multipart; una sola imagen)"
-      description: "Permiso: `servicios.editar`. Reglas de `ImagenesServicios`: JPG, PNG o WebP por contenido real, hasta 3 MB, 100–8000 px. Nombre generado (`servicios/<uuid>.<ext>`) en el disco privado; la imagen reemplazada se borra tras confirmar la transacción si nadie más la usa. Retira la autorización si la ficha estaba retirada (vuelve a borrador). Con la ficha publicada responde 409."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' }]
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema: { $ref: '#/components/schemas/ImagenPrincipalEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado o sesión caducada", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El servicio, la ficha o la tarjeta no existen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "La ficha está publicada (retírala antes) o no tiene borrador", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "Revisión obsoleta: releer el servicio", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '413': { description: "La imagen supera los 3 MB (también la rechaza el BFF antes de reenviarla)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '415': { description: "Tipo no permitido: solo JPG, PNG y WebP según su contenido real, no su extensión", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos: dimensiones fuera de 100–8000 px, más de una imagen, ruta enviada por el cliente, etc.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la revisión (`If-Match` / `_revision`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/imagen/quitar:
-    post:
-      tags: [servicios]
-      summary: "Quita la imagen principal y libera el archivo si queda huérfano"
-      description: "Permiso: `servicios.editar`."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SoloRevision' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado o sesión caducada", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El servicio, la ficha o la tarjeta no existen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "La ficha está publicada (retírala antes) o no tiene borrador", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "Revisión obsoleta: releer el servicio", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '413': { description: "La imagen supera los 3 MB (también la rechaza el BFF antes de reenviarla)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '415': { description: "Tipo no permitido: solo JPG, PNG y WebP según su contenido real, no su extensión", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos: dimensiones fuera de 100–8000 px, más de una imagen, ruta enviada por el cliente, etc.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la revisión (`If-Match` / `_revision`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/elementos:
-    post:
-      tags: [servicios]
-      summary: "Crea una tarjeta de la ficha (multipart con imagen opcional; máximo 30 tarjetas)"
-      description: "Permiso: `servicios.editar`. `caracteristicas` admite una por línea."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' }]
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema: { $ref: '#/components/schemas/TarjetaEntrada' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado o sesión caducada", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El servicio, la ficha o la tarjeta no existen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "La ficha está publicada (retírala antes) o no tiene borrador", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "Revisión obsoleta: releer el servicio", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '413': { description: "La imagen supera los 3 MB (también la rechaza el BFF antes de reenviarla)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '415': { description: "Tipo no permitido: solo JPG, PNG y WebP según su contenido real, no su extensión", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos: dimensiones fuera de 100–8000 px, más de una imagen, ruta enviada por el cliente, etc.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la revisión (`If-Match` / `_revision`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/elementos/{elemento}:
-    post:
-      tags: [servicios]
-      summary: "Edita una tarjeta; reemplaza (`imagen`) o quita (`quitar_imagen`) su imagen"
-      description: "Permiso: `servicios.editar`. Se usa POST porque multipart no admite PUT de forma fiable."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }, { name: elemento, in: path, required: true, schema: { type: integer, minimum: 1 } }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' }]
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema: { $ref: '#/components/schemas/TarjetaEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado o sesión caducada", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El servicio, la ficha o la tarjeta no existen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "La ficha está publicada (retírala antes) o no tiene borrador", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "Revisión obsoleta: releer el servicio", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '413': { description: "La imagen supera los 3 MB (también la rechaza el BFF antes de reenviarla)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '415': { description: "Tipo no permitido: solo JPG, PNG y WebP según su contenido real, no su extensión", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos: dimensiones fuera de 100–8000 px, más de una imagen, ruta enviada por el cliente, etc.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la revisión (`If-Match` / `_revision`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/elementos/{elemento}/eliminar:
-    post:
-      tags: [servicios]
-      summary: "Elimina una tarjeta y su imagen (si nadie más la usa)"
-      description: "Permiso: `servicios.editar`."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }, { name: elemento, in: path, required: true, schema: { type: integer, minimum: 1 } }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SoloRevision' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { description: "No autenticado o sesión caducada", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin el permiso exigido (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "El servicio, la ficha o la tarjeta no existen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '409': { description: "La ficha está publicada (retírala antes) o no tiene borrador", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '412': { description: "Revisión obsoleta: releer el servicio", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '413': { description: "La imagen supera los 3 MB (también la rechaza el BFF antes de reenviarla)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '415': { description: "Tipo no permitido: solo JPG, PNG y WebP según su contenido real, no su extensión", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: "Datos inválidos: dimensiones fuera de 100–8000 px, más de una imagen, ruta enviada por el cliente, etc.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '428': { description: "Falta la revisión (`If-Match` / `_revision`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: "Demasiadas solicitudes", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-  /servicios/servicios/{servicio}/elementos/{elemento}/imagen:
-    get:
-      tags: [servicios]
-      summary: "Vista previa autenticada de la imagen de una tarjeta"
-      description: "Permiso: `servicios.ver`."
-      parameters: [{ name: servicio, in: path, required: true, schema: { type: integer, minimum: 1 } }, { name: elemento, in: path, required: true, schema: { type: integer, minimum: 1 } }]
-      responses:
-        '200': { description: Imagen con el tipo real detectado por contenido, headers: { X-Content-Type-Options: { schema: { type: string, enum: [nosniff] } } }, content: { image/jpeg: { schema: { type: string, format: binary } }, image/png: { schema: { type: string, format: binary } }, image/webp: { schema: { type: string, format: binary } } } }
-        '401': { description: "No autenticado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '403': { description: "Sin permiso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '404': { description: "La tarjeta no tiene imagen", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/convocatorias:
     get:
       tags: [academico]
@@ -1761,7 +1460,7 @@ components:
                   usuario: { type: object, properties: { id: { type: integer }, nombre: { type: string }, email: { type: string } } }
                   roles: { type: array, items: { type: string } }
                   permisos: { type: array, items: { type: string } }
-                  paneles: { type: object, properties: { academico: { type: boolean }, servicios: { type: boolean } } }
+                  paneles: { type: object, properties: { academico: { type: boolean } } }
                   csrf_token: { type: string }
                   expira_en: { type: [integer, 'null'], description: Fin de la vida absoluta (epoch en segundos) }
     Listado:
@@ -1855,32 +1554,6 @@ components:
         estado: { type: string, enum: [pendiente, pagada, anulada] }
         monto_pagado: { type: [number, 'null'], minimum: 0 }
         observaciones: { type: [string, 'null'] }
-    ServicioEntrada:
-      type: object
-      required: [codigo, nombre]
-      properties:
-        codigo: { type: string, pattern: '^[A-Za-z0-9_-]+$' }
-        nombre: { type: string }
-        categoria: { type: [string, 'null'] }
-        estado: { type: string, enum: [activo, inactivo, archivado] }
-        _revision: { type: string }
-    EstadoServicio:
-      type: object
-      required: [estado, _revision]
-      properties: { estado: { type: string, enum: [activo, inactivo, archivado] }, _revision: { type: string } }
-    FichaServicioEntrada:
-      type: object
-      required: [titulo, resumen, descripcion, vigente_desde, vigente_hasta, _revision]
-      properties:
-        titulo: { type: string }
-        resumen: { type: string }
-        descripcion: { type: string }
-        categoria: { type: [string, 'null'] }
-        vigente_desde: { type: string, format: date }
-        vigente_hasta: { type: string, format: date }
-        titulo_tarjetas: { type: [string, 'null'] }
-        imagen_principal_alt: { type: [string, 'null'] }
-        _revision: { type: string }
     AutorizarFicha:
       type: object
       required: [confirmacion_publica, _revision]

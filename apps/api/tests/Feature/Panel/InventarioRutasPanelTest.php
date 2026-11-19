@@ -38,7 +38,6 @@ final class InventarioRutasPanelTest extends TestCase
     private const SOLO_ENTRADA = [
         'api/panel/v1/academico/resumen',
         'api/panel/v1/academico/busqueda',
-        'api/panel/v1/servicios/resumen',
     ];
 
     /**
@@ -122,15 +121,12 @@ final class InventarioRutasPanelTest extends TestCase
             $middleware = $ruta->gatherMiddleware();
             if (str_starts_with($ruta->uri(), 'api/panel/v1/academico/')) {
                 $this->assertContains('permission:panel.academico.acceder', $middleware, $ruta->uri());
-                $this->assertNotContains('permission:panel.servicios.acceder', $middleware, $ruta->uri());
             }
             if (str_starts_with($ruta->uri(), 'api/panel/v1/servicios/')) {
-                $this->assertContains('permission:panel.servicios.acceder', $middleware, $ruta->uri());
-                $this->assertNotContains('permission:panel.academico.acceder', $middleware, $ruta->uri());
+                $this->fail('El panel de servicios tecnológicos se retiró: no debe haber rutas '.$ruta->uri());
             }
             if (str_starts_with($ruta->uri(), 'api/panel/v1/compartido/')) {
-                // Basta cualquiera de los dos permisos de entrada (nunca uno solo de ellos).
-                $this->assertContains('permission:panel.academico.acceder|panel.servicios.acceder', $middleware, $ruta->uri());
+                $this->assertContains('permission:panel.academico.acceder', $middleware, $ruta->uri());
             }
         }
     }

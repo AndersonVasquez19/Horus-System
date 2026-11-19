@@ -30,6 +30,8 @@ final class GestionRoles
         'seguimientos.editar',
         'seguimientos.eliminar',
         'asistente.entrenar',
+        // Marca editorial del catálogo público (no hay panel de servicios): no se asigna desde Roles y permisos.
+        'servicios.publicar',
     ];
 
     public function __construct(private readonly AdminProtection $adminProtection) {}
@@ -86,7 +88,9 @@ final class GestionRoles
             ];
 
             $role->update(['name' => $nombre]);
-            $role->syncPermissions($permisos);
+            // Lo oculto en pantalla (permisos retirados y la marca editorial del catálogo) no viene en `$permisos`: se conserva tal cual.
+            $ocultos = $role->permissions->pluck('name')->intersect(self::PERMISOS_RETIRADOS)->values()->all();
+            $role->syncPermissions([...$permisos, ...$ocultos]);
             $this->adminProtection->forgetPermissionCacheAfterCommit();
 
             $after = [

@@ -9,7 +9,6 @@ use App\Models\ServicioPublicacion;
 use App\Models\ServicioTecnologico;
 use App\Models\SolicitudCotizacion;
 use App\Models\User;
-use App\Services\GestionServiciosTecnologicos;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
@@ -215,40 +214,4 @@ class PanelConcurrenciaPostgresTest extends TestCase
         $this->assertSame(1, AuditLog::where('action', 'cotizacion_creada')->count(), 'La repetición no audita una segunda creación.');
     }
 
-    // 4. Imágenes: fallo forzado a mitad de transacción -----------------------------------------------------------------
-
-    public function test_fallo_forzado_tras_guardar_la_imagen_no_deja_archivo_ni_registro(): void
-    {
-        Storage::fake('public');
-        $admin = $this->admin();
-        $servicio = $this->servicioConFicha('IMG-1');
-        $revision = $servicio->etag();
-
-        $peticion = Request::create('/panel', 'POST');
-        $peticion->headers->set('If-Match', $revision);
-        $peticion->setUserResolver(fn () => $admin);
-        $gestion = app(GestionServiciosTecnologicos::class);
-        $datos = ['titulo' => 'Tarjeta', 'descripcion' => 'Descripción de la tarjeta.', 'orden' => 10000]; // viola el CHECK de la 000033
-
-        try {
-            $gestion->contenido($peticion, $servicio->id, 'elemento_crear', $datos, UploadedFile::fake()->image('a.png', 200, 200));
-            $this->fail('El CHECK de orden debía rechazar la tarjeta.');
-        } catch (QueryException $e) {
-            $this->assertSame(self::CHECK_VIOLATION, $e->getCode());
-        }
-
-        $this->assertSame([], Storage::disk('public')->allFiles(), 'El archivo recién subido se borró al fallar la transacción.');
-        $this->assertSame(0, DB::table('servicio_publicacion_elementos')->count(), 'Sin registro de tarjeta.');
-        $this->assertSame(1, (int) $servicio->refresh()->revision, 'La revisión no avanzó.');
-        $this->assertSame(0, AuditLog::where('action', 'servicio_elemento_creado')->count());
-
-        // Con datos válidos, archivo y registro nacen juntos.
-        $datos['orden'] = 1;
-        $gestion->contenido($peticion, $servicio->id, 'elemento_crear', $datos, UploadedFile::fake()->image('b.png', 200, 200));
-
-        $this->assertCount(1, Storage::disk('public')->allFiles());
-        $this->assertSame(1, DB::table('servicio_publicacion_elementos')->whereNotNull('imagen_ruta')->count());
-        $this->assertSame(2, (int) $servicio->refresh()->revision);
-        $this->assertSame(1, AuditLog::where('action', 'servicio_elemento_creado')->count());
-    }
 }

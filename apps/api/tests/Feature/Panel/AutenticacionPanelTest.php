@@ -52,9 +52,9 @@ final class AutenticacionPanelTest extends PanelApiTestCase
         ])->assertOk();
 
         $respuesta->assertJsonPath('data.usuario.email', 'admin@horus.test')
-            ->assertJsonPath('data.paneles', ['academico' => true, 'servicios' => true])
+            ->assertJsonPath('data.paneles', ['academico' => true])
             ->assertJsonPath('data.roles', ['admin']);
-        $this->assertContains('panel.servicios.acceder', $respuesta->json('data.permisos'));
+        $this->assertNotContains('panel.servicios.acceder', $respuesta->json('data.permisos'));
         $this->assertArrayNotHasKey('password', $respuesta->json('data.usuario'));
 
         // Fijación de sesión: cambian identificador de sesión y token CSRF.
@@ -73,7 +73,7 @@ final class AutenticacionPanelTest extends PanelApiTestCase
             $this->usuarioConRol($rol, $email);
 
             $this->iniciarSesion($email)->assertOk()
-                ->assertJsonPath('data.paneles', ['academico' => true, 'servicios' => false]);
+                ->assertJsonPath('data.paneles', ['academico' => true]);
         }
     }
 

@@ -177,10 +177,10 @@ final class EstudiantesPanelTest extends PanelApiTestCase
         $this->como($coordinador, 'DELETE', "estudiantes/{$estudiante->id}")->assertForbidden();
         $this->como($coordinador, 'POST', "estudiantes/{$estudiante->id}/restaurar")->assertForbidden();
 
-        // Un usuario de servicios no entra al panel académico.
+        // Sin permiso de entrada al panel académico no se accede, aunque tenga el permiso del módulo.
         $sinPanel = $this->usuarioConRol('admin', 'servicios@horus.test');
         $sinPanel->syncRoles([]);
-        $sinPanel->givePermissionTo(['panel.servicios.acceder', 'estudiantes.ver']);
+        $sinPanel->givePermissionTo(['estudiantes.ver']);
         $this->como($sinPanel->fresh(), 'GET', 'estudiantes')->assertForbidden();
 
         $this->assertDatabaseHas('estudiantes', ['id' => $estudiante->id, 'deleted_at' => null]);

@@ -16,8 +16,12 @@ use Spatie\Permission\PermissionRegistrar;
  */
 class RolesAndPermissionsSeeder extends Seeder
 {
-    /** Solo admin por defecto; no concede acceso a otros roles administrativos. @var list<string> */
-    public const SERVICIOS_PERMISSIONS = ['servicios.ver', 'servicios.crear', 'servicios.editar', 'servicios.publicar'];
+    /**
+     * Ya no hay panel de servicios tecnológicos. `servicios.publicar` se conserva como marca editorial del catálogo público: solo
+     * las fichas autorizadas por quien la tiene aparecen en /tecnologias/* y en Horus AI. No se asigna desde Roles y permisos (se
+     * oculta) y solo la tiene admin. @var list<string>
+     */
+    public const SERVICIOS_PERMISSIONS = ['servicios.publicar'];
 
     /** Académico, Ola 3: convocatorias y horarios. Admin y coordinador todos; secretaria solo `ver`. @var list<string> */
     public const CONVOCATORIAS_PERMISSIONS = ['convocatorias.ver', 'convocatorias.crear', 'convocatorias.editar', 'convocatorias.cerrar'];
@@ -57,16 +61,13 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Entrada al panel académico de apps/web (/admin/academico). */
     public const PANEL_ACADEMICO = 'panel.academico.acceder';
 
-    /** Entrada al panel de servicios tecnológicos de apps/web (/admin/servicios). Solo admin por defecto. */
-    public const PANEL_SERVICIOS = 'panel.servicios.acceder';
-
     /**
      * Permisos de entrada a los paneles de apps/web. Son necesarios, no suficientes: cada operación
      * de la API del panel exige además su permiso de módulo.
      *
      * @var list<string>
      */
-    public const PANEL_PERMISSIONS = [self::PANEL_ACADEMICO, self::PANEL_SERVICIOS];
+    public const PANEL_PERMISSIONS = [self::PANEL_ACADEMICO];
 
     /** @var list<string> */
     public const PERMISSIONS = [

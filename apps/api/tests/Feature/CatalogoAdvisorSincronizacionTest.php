@@ -20,13 +20,13 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\Support\LlamaCursosDelPanel;
-use Tests\Support\LlamaServiciosDelPanel;
+use Tests\Support\FichasDeServiciosParaPruebas;
 use Tests\TestCase;
 
 class CatalogoAdvisorSincronizacionTest extends TestCase
 {
     use LlamaCursosDelPanel;
-    use LlamaServiciosDelPanel;
+    use FichasDeServiciosParaPruebas;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -176,9 +176,9 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
             'descripcion' => 'Ayuda técnica autorizada para equipos informáticos.',
             'vigente_desde' => now('America/Lima')->toDateString(), 'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(),
             'titulo_tarjetas' => 'Cobertura',
-        ])->assertOk();
-        $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
-        $this->autorizarFichaPanel($id)->assertOk();
+        ]);
+        $this->cambiarEstadoServicioPanel($id, 'activo');
+        $this->autorizarFichaPanel($id);
 
         $catalog = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
 
@@ -189,21 +189,21 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
         $this->assertFalse(config('catalogo-servicios.enabled'));
         $this->assertTrue(app(FirmaCatalogoAdvisor::class)->verificar($catalog));
 
-        $this->retirarFichaPanel($id)->assertOk();
+        $this->retirarFichaPanel($id);
         $this->guardarFichaPanel($id, [
             'titulo' => 'Soporte de catálogo actualizado', 'resumen' => 'Servicio tecnológico actualizado y público.',
             'descripcion' => 'Orientación técnica actualizada para equipos informáticos.',
             'vigente_desde' => now('America/Lima')->toDateString(), 'vigente_hasta' => now('America/Lima')->addMonth()->toDateString(),
             'titulo_tarjetas' => 'Cobertura actualizada',
-        ])->assertOk();
-        $this->autorizarFichaPanel($id)->assertOk();
+        ]);
+        $this->autorizarFichaPanel($id);
         $updated = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
         $updatedService = collect($updated['items'])->firstWhere('stable_id', $stableId);
         $this->assertNotNull($updatedService);
         $this->assertSame('Soporte de catálogo actualizado', $updatedService['title']);
         $this->assertNotSame($catalog['catalog_version'], $updated['catalog_version']);
 
-        $this->retirarFichaPanel($id)->assertOk();
+        $this->retirarFichaPanel($id);
         $retired = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
         $this->assertNull(collect($retired['items'])->firstWhere('stable_id', $stableId));
     }

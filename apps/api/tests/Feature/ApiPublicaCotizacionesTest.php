@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Support\LlamaServiciosDelPanel;
+use Tests\Support\FichasDeServiciosParaPruebas;
 use Tests\TestCase;
 
 /**
@@ -29,7 +29,7 @@ use Tests\TestCase;
  */
 class ApiPublicaCotizacionesTest extends TestCase
 {
-    use LlamaServiciosDelPanel;
+    use FichasDeServiciosParaPruebas;
     use RefreshDatabase;
 
     private const TOKEN = 'token-de-prueba-bff-0123456789abcdefghij';
@@ -73,13 +73,13 @@ class ApiPublicaCotizacionesTest extends TestCase
             $this->guardarFichaPanel($id, [
                 'titulo' => $titulo, 'resumen' => 'Resumen público', 'descripcion' => 'Descripción pública.',
                 'vigente_desde' => '2026-11-01', 'vigente_hasta' => '2026-12-31',
-            ])->assertOk();
+            ]);
         }
         if ($activo) {
-            $this->cambiarEstadoServicioPanel($id, 'activo')->assertOk();
+            $this->cambiarEstadoServicioPanel($id, 'activo');
         }
         if ($titulo !== null && $activo && $codigo !== 'BORRADOR') {
-            $this->autorizarFichaPanel($id)->assertOk();
+            $this->autorizarFichaPanel($id);
         }
     }
 

@@ -4912,3 +4912,7 @@ persona se agrega a un grupo de WhatsApp según el curso. Por eso se retiraron l
 (sedes, aulas, plataformas virtuales). Detalle, orden y riesgos: [`docs/retiro-docentes-infraestructura.md`](docs/retiro-docentes-infraestructura.md).
 No reintroducir esos módulos, sus permisos (`docentes.*`, `infraestructura.*`, `sesiones.ver-enlace`) ni el docente, el aula, la
 plataforma o el enlace de las clases sin decisión expresa del propietario.
+
+## Retiro del panel de servicios tecnológicos (19/11/2026)
+
+Se retiró del panel todo lo de servicios tecnológicos (API de edición de fichas, permisos de panel y tono de interfaz). El catálogo público, las cotizaciones y Horus AI siguen; `servicios.publicar` se conserva oculta como marca editorial. Ver `docs/retiro-panel-servicios.md`.

@@ -73,7 +73,7 @@ final class AuditoriaPanelTest extends PanelApiTestCase
         $soloVer = User::factory()->create();
         $soloVer->givePermissionTo(['panel.academico.acceder', 'auditoria.ver']);
         $soloExportar = User::factory()->create();
-        $soloExportar->givePermissionTo(['panel.servicios.acceder', 'auditoria.exportar']);
+        $soloExportar->givePermissionTo(['panel.academico.acceder', 'auditoria.exportar']);
 
         $this->como($soloVer, 'GET', '')->assertOk();
         $this->como($soloVer, 'POST', '/exportar')->assertForbidden();

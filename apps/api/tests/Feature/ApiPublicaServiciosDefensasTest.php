@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
-use Tests\Support\LlamaServiciosDelPanel;
+use Tests\Support\FichasDeServiciosParaPruebas;
 use Tests\TestCase;
 
 /**
@@ -29,7 +29,7 @@ use Tests\TestCase;
  */
 class ApiPublicaServiciosDefensasTest extends TestCase
 {
-    use LlamaServiciosDelPanel;
+    use FichasDeServiciosParaPruebas;
     use RefreshDatabase;
 
     private const TOKEN = 'token-de-prueba-bff-0123456789abcdefghij';
@@ -268,17 +268,16 @@ class ApiPublicaServiciosDefensasTest extends TestCase
         $id = $this->crearServicioPanel(['codigo' => 'FLUJO-FICTICIO', 'nombre' => 'Nombre interno de prueba', 'estado' => 'activo']);
         $this->guardarFichaPanel($id, ['titulo' => 'Servicio del flujo de prueba',
             'resumen' => 'Información sintética', 'descripcion' => 'Detalle público sintético',
-            'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-11-01'])->assertOk();
+            'vigente_desde' => '2026-10-29', 'vigente_hasta' => '2026-11-01']);
         auth()->forgetGuards();
         $this->servicios()->assertOk()->assertJsonPath('servicios', []);
         $this->actingAs($autor);
-        $this->autorizarFichaPanel($id)->assertOk();
+        $this->autorizarFichaPanel($id);
         auth()->forgetGuards();
         $this->servicios()->assertOk()->assertJsonPath('servicios.0.titulo', 'Servicio del flujo de prueba');
         $this->actingAs($autor);
-        $this->retirarFichaPanel($id)->assertOk();
+        $this->retirarFichaPanel($id);
         auth()->forgetGuards();
         $this->servicios()->assertOk()->assertJsonPath('servicios', []);
-        $this->assertDatabaseCount('audit_logs', 4);
     }
 }

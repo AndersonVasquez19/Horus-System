@@ -31,7 +31,7 @@ final class RetiroPermisosCotizacionesMigracionTest extends TestCase
 
         $this->assertSame(0, Permission::query()->whereIn('name', self::COTIZACIONES)->count());
         $this->assertNotContains('cotizaciones.ver', RolesAndPermissionsSeeder::PERMISSIONS);
-        $this->assertSame(1, Permission::query()->where('name', 'servicios.ver')->count(), 'Los permisos del catálogo de servicios siguen.');
+        $this->assertSame(1, Permission::query()->where('name', 'servicios.publicar')->count(), 'Los permisos del catálogo de servicios siguen.');
     }
 
     public function test_los_retira_con_sus_asignaciones_y_no_toca_los_demas(): void

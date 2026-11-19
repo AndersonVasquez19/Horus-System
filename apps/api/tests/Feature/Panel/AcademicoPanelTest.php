@@ -63,7 +63,7 @@ final class AcademicoPanelTest extends PanelApiTestCase
 
     public function test_sin_permiso_de_entrada_academico_responde_403(): void
     {
-        $soloServicios = $this->usuarioConPermisos(['panel.servicios.acceder', 'cursos.ver']);
+        $soloServicios = $this->usuarioConPermisos(['cursos.ver']); // sin entrada a ningún panel
 
         $this->como($soloServicios, 'academico/resumen')->assertForbidden()->assertJsonPath('code', 'prohibido');
         $this->como($soloServicios, 'academico/cursos')->assertForbidden();
