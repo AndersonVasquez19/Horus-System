@@ -33,6 +33,7 @@ export function FormularioUsuario({ usuario, roles, tono, onGuardado, onCancelar
   const [email, setEmail] = useState(usuario?.email ?? '');
   const [clave, setClave] = useState('');
   const [confirmacion, setConfirmacion] = useState('');
+  const [temporal, setTemporal] = useState(!usuario);
   const [seleccion, setSeleccion] = useState<string[]>(usuario?.roles ?? []);
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -49,6 +50,7 @@ export function FormularioUsuario({ usuario, roles, tono, onGuardado, onCancelar
     if (clave !== '' || !usuario) {
       cuerpo.password = clave;
       cuerpo.password_confirmation = confirmacion;
+      cuerpo.temporal = temporal;
     }
     if (puedeAsignar) cuerpo.roles = seleccion;
 
@@ -87,6 +89,18 @@ export function FormularioUsuario({ usuario, roles, tono, onGuardado, onCancelar
         />
         <Campo tono={tono} etiqueta="Confirmar contraseña" type="password" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} required={!usuario} autoComplete="new-password" />
       </div>
+
+      {!usuario || clave !== '' ? (
+        <label className="flex items-start gap-2 text-sm text-panel-text">
+          <input
+            type="checkbox"
+            checked={temporal}
+            onChange={(e) => setTemporal(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-panel-border"
+          />
+          <span>Contraseña temporal (exigir que el usuario la cambie en su próximo inicio de sesión)</span>
+        </label>
+      ) : null}
 
       {puedeAsignar ? (
         <fieldset className="space-y-2">

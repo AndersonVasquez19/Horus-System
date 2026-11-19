@@ -5,6 +5,8 @@ import type { TonoUi } from '@/components/shared/ui/boton';
 import type { PerfilPropio, SesionActiva } from '@/features/notificaciones/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { FormularioPerfil } from './formulario-perfil';
+import { PreferenciasPerfil } from './preferencias-perfil';
+import { Seguridad2fa } from './seguridad-2fa';
 import { SesionesActivas } from './sesiones-activas';
 
 /** Perfil propio y sesiones activas. La monta cada panel bajo su propia ruta: `/admin/<panel>/perfil`. */
@@ -37,6 +39,12 @@ async function Contenido({ tono }: { tono: TonoUi }) {
     <div className="grid gap-6 xl:grid-cols-2">
       <FormularioPerfil perfil={perfil.datos.data} tono={tono} />
       <SesionesActivas sesiones={sesiones.datos.data.sesiones} disponible={sesiones.datos.data.disponible} tono={tono} />
+      <PreferenciasPerfil
+        telefonoInicial={perfil.datos.data.telefono}
+        inicial={perfil.datos.data.preferencias_notificacion}
+        tono={tono}
+      />
+      <Seguridad2fa activo={Boolean(perfil.datos.data.two_factor_habilitado)} tono={tono} />
     </div>
   );
 }

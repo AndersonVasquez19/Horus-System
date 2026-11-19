@@ -31,6 +31,7 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Email::uniqueRule()],
             'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
+            'temporal' => ['nullable', 'boolean'],
             'roles' => ['nullable', 'array', 'max:20'],
             'roles.*' => ['string', 'max:100', 'distinct', 'exists:roles,name'],
         ];

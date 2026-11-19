@@ -119,9 +119,9 @@ class AdminAuthorizationTest extends TestCase
 
         foreach (['coordinador', 'secretaria'] as $role) {
             $this->actingAs($this->staff($role))
-                ->panelMatriculas('POST', $matricula->id.'/anular')
+                ->panelMatriculas('POST', $matricula->id.'/anular', ['motivo' => 'Prueba sin permiso'])
                 ->assertForbidden();
-            $this->panelMatriculas('DELETE', (string) $matricula->id)->assertForbidden();
+            $this->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Prueba sin permiso'])->assertForbidden();
         }
 
         $this->actingAs($this->staff('secretaria'));
@@ -146,7 +146,7 @@ class AdminAuthorizationTest extends TestCase
         $matricula = $this->makeEnrollment($this->makeStudent('70000007'), $curso);
 
         $this->actingAs($this->staff('admin'))
-            ->panelMatriculas('DELETE', (string) $matricula->id)
+            ->panelMatriculas('DELETE', (string) $matricula->id, ['motivo' => 'Eliminación autorizada'])
             ->assertOk();
         $this->assertSoftDeleted($matricula);
 

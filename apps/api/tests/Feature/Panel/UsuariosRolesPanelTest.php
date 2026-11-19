@@ -104,7 +104,10 @@ final class UsuariosRolesPanelTest extends PanelApiTestCase
         foreach (['password', 'remember_token', 'jwt_version'] as $secreto) {
             $this->assertStringNotContainsString($secreto, $crudo);
         }
-        $this->assertSame(['creado_en', 'email', 'id', 'nombre', 'roles', 'verificado'], collect($todos->json('data.0'))->keys()->sort()->values()->all());
+        $this->assertSame([
+            'bloqueado_hasta', 'creado_en', 'debe_cambiar_clave', 'eliminado',
+            'email', 'id', 'motivo_bloqueo', 'nombre', 'roles', 'suspendido', 'two_factor_habilitado', 'verificado',
+        ], collect($todos->json('data.0'))->keys()->sort()->values()->all());
     }
 
     public function test_el_comodin_de_busqueda_no_amplia_resultados(): void
@@ -371,5 +374,32 @@ final class UsuariosRolesPanelTest extends PanelApiTestCase
 
         $this->assertDatabaseMissing('roles', ['name' => 'poderoso']);
         $this->assertGreaterThanOrEqual(3, AuditLog::query()->where('action', 'acceso_denegado')->count());
+    }
+
+    public function test_el_listado_de_usuarios_filtra_por_rol_y_estado_de_verificacion(): void
+    {
+        $admin = $this->admin();
+        $coordinador = $this->usuarioConRol('coordinador', 'coord@example.test');
+        $coordinador->forceFill(['email_verified_at' => null])->save();
+        User::factory()->create(['email' => 'sinrol@example.test', 'email_verified_at' => now()]);
+
+        $this->como($admin, 'GET', 'usuarios?rol=coordinador')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.email', 'coord@example.test');
+
+        $this->como($admin, 'GET', 'usuarios?rol=sin_rol')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.email', 'sinrol@example.test');
+
+        $this->como($admin, 'GET', 'usuarios?estado=no_verificado')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.email', 'coord@example.test');
+
+        $this->como($admin, 'GET', 'usuarios?estado=verificado')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 }

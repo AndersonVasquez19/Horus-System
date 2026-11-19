@@ -465,6 +465,8 @@ class AdminProtection
     public function activeAdminCount(): int
     {
         return User::query()
+            ->whereNull('deleted_at')
+            ->where(fn ($q) => $q->whereNull('bloqueado_hasta')->orWhere('bloqueado_hasta', '<=', now()))
             ->whereHas('roles', fn ($roles) => $roles
                 ->where('name', self::ROLE)
                 ->where('guard_name', self::GUARD))
@@ -550,9 +552,24 @@ class AdminProtection
             ]);
         }
 
-        if ($this->isAdmin($target) && $this->activeAdminCount() <= 1) {
+        if ($this->isAdmin($target) && ! $target->estaDadoDeBaja() && ! $target->estaSuspendido() && $this->activeAdminCount() <= 1) {
             throw ValidationException::withMessages([
                 'usuario' => 'No se puede eliminar al último administrador del sistema.',
+            ]);
+        }
+    }
+
+    public function assertUserCanBeSuspended(User $target, ?User $actor): void
+    {
+        if ($actor !== null && $actor->is($target)) {
+            throw ValidationException::withMessages([
+                'usuario' => 'No puedes suspender tu propio usuario.',
+            ]);
+        }
+
+        if ($this->isAdmin($target) && ! $target->estaDadoDeBaja() && ! $target->estaSuspendido() && $this->activeAdminCount() <= 1) {
+            throw ValidationException::withMessages([
+                'usuario' => 'No se puede suspender al último administrador activo del sistema.',
             ]);
         }
     }

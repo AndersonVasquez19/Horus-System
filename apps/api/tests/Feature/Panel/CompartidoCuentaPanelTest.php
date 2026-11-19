@@ -43,7 +43,7 @@ final class CompartidoCuentaPanelTest extends PanelApiTestCase
 
         $this->seed(RolesAndPermissionsSeeder::class);
         $sinPanel = User::factory()->create();
-        foreach (['notificaciones', 'notificaciones/recientes', 'perfil', 'perfil/sesiones'] as $ruta) {
+        foreach (['notificaciones', 'notificaciones/recientes', 'notificaciones/conteos', 'perfil', 'perfil/sesiones'] as $ruta) {
             $this->como($sinPanel, 'GET', $ruta)->assertForbidden();
         }
 
@@ -95,9 +95,20 @@ final class CompartidoCuentaPanelTest extends PanelApiTestCase
         $this->personal($yo, 'Ya leída', ['leida' => true]);
 
         $respuesta = $this->como($yo, 'GET', 'notificaciones/recientes')->assertOk()
-            ->assertJsonCount(NotificacionController::RECIENTES, 'data')->assertJsonPath('meta.pendientes', 7);
+            ->assertJsonCount(NotificacionController::RECIENTES, 'data')
+            ->assertJsonPath('meta.pendientes', 7)
+            ->assertJsonPath('meta.conteos.notificaciones_sin_leer', 7)
+            ->assertJsonPath('meta.conteos.aprobaciones_pendientes', 0)
+            ->assertJsonPath('meta.conteos.reclamaciones_por_vencer', 0)
+            ->assertJsonPath('meta.conteos.mensajes_nuevos', 0);
         $this->assertLessThanOrEqual(143, mb_strlen((string) $respuesta->json('data.0.mensaje')));
         $this->assertNotContains('Ya leída', $respuesta->json('data.*.titulo'));
+
+        $this->como($yo, 'GET', 'notificaciones/conteos')->assertOk()
+            ->assertJsonPath('data.notificaciones_sin_leer', 7)
+            ->assertJsonPath('data.aprobaciones_pendientes', 0)
+            ->assertJsonPath('data.reclamaciones_por_vencer', 0)
+            ->assertJsonPath('data.mensajes_nuevos', 0);
     }
 
     public function test_el_vinculo_solo_se_entrega_si_es_una_ruta_interna_segura(): void

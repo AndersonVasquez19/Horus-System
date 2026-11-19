@@ -51,10 +51,12 @@ final class SesionPanel
         $request->session()->regenerateToken();
     }
 
-    /** Un usuario puede usar la API del panel si tiene al menos un permiso de entrada. */
+    /** Un usuario puede usar la API del panel si tiene al menos un permiso de entrada y está vigente. */
     public static function tieneAccesoAlgunPanel(User $user): bool
     {
-        return $user->hasAnyPermission(RolesAndPermissionsSeeder::PANEL_PERMISSIONS);
+        return ! $user->estaDadoDeBaja()
+            && ! $user->estaSuspendido()
+            && $user->hasAnyPermission(RolesAndPermissionsSeeder::PANEL_PERMISSIONS);
     }
 
     /**
@@ -74,6 +76,8 @@ final class SesionPanel
             'paneles' => [
                 'academico' => in_array(RolesAndPermissionsSeeder::PANEL_ACADEMICO, $permisos, true),
             ],
+            'debe_cambiar_clave' => (bool) $user->debe_cambiar_password,
+            'two_factor_habilitado' => $user->tiene2faActivo(),
             'csrf_token' => $request->session()->token(),
             'expira_en' => self::expiraEn($request),
         ];

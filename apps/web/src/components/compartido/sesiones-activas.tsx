@@ -12,6 +12,27 @@ import type { SesionActiva } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
+/** Resume un User-Agent crudo a «Navegador · Sistema»; el texto completo queda en el atributo `title`. */
+function describirNavegador(ua: string | null): string {
+  if (!ua || ua.trim() === '') return 'Navegador desconocido';
+
+  let navegador = 'Navegador web';
+  if (/Edg\//i.test(ua)) navegador = 'Microsoft Edge';
+  else if (/OPR\/|Opera/i.test(ua)) navegador = 'Opera';
+  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) navegador = 'Google Chrome';
+  else if (/Firefox\//i.test(ua)) navegador = 'Mozilla Firefox';
+  else if (/Safari\//i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua)) navegador = 'Safari';
+
+  let sistema = '';
+  if (/Windows NT/i.test(ua)) sistema = 'Windows';
+  else if (/Android/i.test(ua)) sistema = 'Android';
+  else if (/iPhone|iPad|iPod/i.test(ua)) sistema = 'iOS';
+  else if (/Mac OS X|Macintosh/i.test(ua)) sistema = 'macOS';
+  else if (/Linux/i.test(ua)) sistema = 'Linux';
+
+  return sistema !== '' ? `${navegador} · ${sistema}` : navegador;
+}
+
 /**
  * Sesiones activas de la cuenta. Cerrar una o todas las demás exige la contraseña actual: así una sesión desatendida
  * no basta para expulsar al titular de sus otros dispositivos. Laravel identifica cada sesión por una huella, nunca
@@ -59,7 +80,7 @@ export function SesionesActivas({ sesiones, disponible, tono }: { sesiones: Sesi
     <section aria-labelledby="titulo-sesiones" className="space-y-4 rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titulo-sesiones" className="font-heading text-base font-semibold text-panel-text">Sesiones activas</h2>
-        <Boton tono={tono} variante="secundario" onClick={() => { setError(null); setObjetivo('otras'); }}>
+        <Boton tono={tono} variante="secundario" disabled={otras === 0} onClick={() => { setError(null); setObjetivo('otras'); }}>
           Cerrar las demás sesiones
         </Boton>
       </div>
@@ -69,7 +90,9 @@ export function SesionesActivas({ sesiones, disponible, tono }: { sesiones: Sesi
         {sesiones.map((sesion) => (
           <li key={sesion.identificador} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
             <div className="min-w-0">
-              <p className="truncate font-medium text-panel-text">{sesion.navegador ?? 'Navegador desconocido'}</p>
+              <p className="truncate font-medium text-panel-text" title={sesion.navegador ?? undefined}>
+                {describirNavegador(sesion.navegador)}
+              </p>
               <p className="text-xs text-panel-muted">
                 {sesion.ip ?? 'IP desconocida'} · última actividad {new Date(sesion.ultima_actividad).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
               </p>

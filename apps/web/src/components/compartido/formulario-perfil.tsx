@@ -7,8 +7,10 @@ import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
+import { Insignia } from '@/components/shared/ui/insignia';
 import type { PerfilPropio } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
+import { etiqueta } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
 /**
@@ -57,7 +59,18 @@ export function FormularioPerfil({ perfil, tono }: { perfil: PerfilPropio; tono:
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-4 rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm">
-      <h2 className="font-heading text-base font-semibold text-panel-text">Datos de la cuenta</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-heading text-base font-semibold text-panel-text">Datos de la cuenta</h2>
+        {perfil.roles.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5" aria-label="Roles asignados">
+            {perfil.roles.map((r) => (
+              <Insignia key={r} color={r === 'admin' ? 'azul' : 'gris'}>
+                {etiqueta('rol', r)}
+              </Insignia>
+            ))}
+          </div>
+        ) : null}
+      </div>
       {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo tono={tono} etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={err('name')} required maxLength={255} autoComplete="name" />

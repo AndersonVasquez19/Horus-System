@@ -7,5 +7,5 @@ export async function POST(request: NextRequest) {
   const cuerpo = await leerMutacion(request);
   if (cuerpo instanceof Response) return cuerpo;
 
-  return operacionConCsrf(request, 'auth/login', campos(cuerpo, ['email', 'password']));
+  return operacionConCsrf(request, 'auth/login', campos(cuerpo, ['email', 'password', 'codigo_2fa']));
 }

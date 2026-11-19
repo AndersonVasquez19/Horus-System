@@ -14,6 +14,8 @@ export function FormularioLogin() {
   const parametros = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [codigo2fa, setCodigo2fa] = useState('');
+  const [requiere2fa, setRequiere2fa] = useState(false);
   const [verClave, setVerClave] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
@@ -24,9 +26,13 @@ export function FormularioLogin() {
     setEnviando(true);
     setError(null);
 
-    const resultado = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/login', { cuerpo: { email, password } });
+    const cuerpo: Record<string, string> = { email, password };
+    if (requiere2fa || codigo2fa.trim() !== '') cuerpo.codigo_2fa = codigo2fa.trim();
+
+    const resultado = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/login', { cuerpo });
     if (resultado.ok) {
       setPassword('');
+      setCodigo2fa('');
       // Sin destino pedido se entra directo al panel académico: `/admin` solo resuelve la sesión y redirige, y pasar por él
       // dejaba ver un instante otro título antes del definitivo. Quien no tenga acceso verá el aviso de acceso denegado.
       const destino = destinoSeguro(parametros.get('next'));
@@ -35,14 +41,19 @@ export function FormularioLogin() {
       return;
     }
 
-    setPassword('');
+    if (resultado.error.code === '2fa_requerido') {
+      setRequiere2fa(true);
+    } else {
+      setPassword('');
+    }
     setError(resultado.error);
     setEnviando(false);
   }
 
   const errorEmail = errorDeCampo(error, 'email');
   const errorClave = errorDeCampo(error, 'password');
-  const errorGeneral = error && !errorEmail && !errorClave ? error.message : null;
+  const error2fa = errorDeCampo(error, 'codigo_2fa');
+  const errorGeneral = error && !errorEmail && !errorClave && !error2fa ? error.message : null;
 
   const claseInput = (conError: boolean) =>
     `w-full rounded-xl border bg-[#F9FAFC] py-3 pl-10 pr-3 text-sm text-tinta outline-none transition placeholder:text-slate-500 focus:bg-white focus:ring-4 ${
@@ -126,6 +137,36 @@ export function FormularioLogin() {
           </p>
         ) : null}
       </div>
+
+      {requiere2fa ? (
+        <div>
+          <label htmlFor="codigo_2fa" className="mb-1.5 block text-sm font-semibold text-tinta">
+            Código de verificación en dos pasos (2FA)
+          </label>
+          <input
+            id="codigo_2fa"
+            type="text"
+            name="codigo_2fa"
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            maxLength={32}
+            placeholder="000000 o código de recuperación"
+            value={codigo2fa}
+            onChange={(evento) => setCodigo2fa(evento.target.value)}
+            aria-invalid={error2fa ? true : undefined}
+            aria-describedby={error2fa ? 'codigo-2fa-error' : undefined}
+            autoFocus
+            className={`${claseInput(Boolean(error2fa))} pl-3.5 tracking-wider`}
+          />
+          {error2fa ? (
+            <p id="codigo-2fa-error" className="mt-1.5 text-sm text-estado-error">
+              {error2fa}
+            </p>
+          ) : (
+            <p className="mt-1.5 text-xs text-panel-muted">Ingresa el código de 6 dígitos de tu aplicación autenticadora.</p>
+          )}
+        </div>
+      ) : null}
 
       <button
         type="submit"

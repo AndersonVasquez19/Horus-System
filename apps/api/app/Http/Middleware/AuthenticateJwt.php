@@ -29,7 +29,7 @@ class AuthenticateJwt
             $claims = $this->tokens->decode($token);
             $user = User::query()->find($claims->sub ?? null);
 
-            if (! $user || (int) ($claims->ver ?? -1) !== (int) $user->jwt_version) {
+            if (! $user || $user->estaDadoDeBaja() || $user->estaSuspendido() || (int) ($claims->ver ?? -1) !== (int) $user->jwt_version) {
                 return new JsonResponse(['message' => 'El token no es válido o fue revocado.'], 401);
             }
         } catch (UnexpectedValueException|DomainException|InvalidArgumentException) {

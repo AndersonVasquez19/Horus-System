@@ -12,13 +12,16 @@ use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
 use App\Support\RestablecimientoContrasena;
+use App\Support\SeguridadCuentas;
 use App\Support\SesionPanel;
+use App\Support\Totp;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -43,6 +46,7 @@ final class AutenticacionController extends Controller
         $credenciales = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'max:1024'],
+            'codigo_2fa' => ['nullable', 'string', 'max:32'],
         ], [
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'Ingresa un correo electrónico válido.',
@@ -50,35 +54,85 @@ final class AutenticacionController extends Controller
         ]);
 
         // Igualar el trabajo de hash cuando la cuenta no existe: no revelar por latencia qué cuentas hay.
-        $cuentaExiste = User::query()->where('email', $credenciales['email'])->exists();
-        if (! $cuentaExiste) {
-            CredentialTiming::check($credenciales['password'], null);
-        }
+        $user = User::query()->where('email', $credenciales['email'])->first();
+        $cuentaExiste = $user instanceof User;
+        $claveValida = CredentialTiming::check($credenciales['password'], $user?->password);
+        $habilitada = $cuentaExiste && SesionPanel::tieneAccesoAlgunPanel($user);
 
-        // Una cuenta sin permiso de entrada a ningún panel recibe la misma respuesta que unas credenciales
-        // incorrectas y no abre sesión.
-        $aceptada = Auth::guard('web')->attemptWhen(
-            ['email' => $credenciales['email'], 'password' => $credenciales['password']],
-            fn (User $user): bool => SesionPanel::tieneAccesoAlgunPanel($user),
-        );
-
-        if (! $aceptada) {
+        if (! $claveValida || ! $habilitada) {
             AuditLog::record('login_failed', User::class, null, [
                 'canal' => 'panel',
                 'cuenta_existente' => $cuentaExiste,
                 'huella_correo' => substr(hash_hmac('sha256', $credenciales['email'], (string) config('app.key')), 0, 16),
             ], null);
+            if ($cuentaExiste) {
+                SeguridadCuentas::registrarFalloParaCuentaExistente($credenciales['email']);
+            }
 
             throw ValidationException::withMessages(['email' => self::CREDENCIALES_INVALIDAS]);
         }
+
+        if ($user->tiene2faActivo()) {
+            $codigo = trim((string) ($credenciales['codigo_2fa'] ?? ''));
+            if ($codigo === '') {
+                return response()->json([
+                    'message' => 'Ingresa el código de verificación en dos pasos.',
+                    'code' => '2fa_requerido',
+                    'errors' => ['codigo_2fa' => ['Ingresa tu código TOTP o un código de recuperación.']],
+                ], 422);
+            }
+
+            // Límite propio de intentos de 2FA por cuenta (además del `throttle:login`): 5 fallos cada 5 minutos.
+            $claveLimite = '2fa-login:'.$user->getKey();
+            if (RateLimiter::tooManyAttempts($claveLimite, 5)) {
+                return response()->json([
+                    'message' => 'Demasiados intentos con el código de verificación. Espera unos minutos e inténtalo de nuevo.',
+                    'code' => '2fa_limite',
+                ], 429, ['Retry-After' => (string) RateLimiter::availableIn($claveLimite)]);
+            }
+
+            // Un código TOTP no puede usarse dos veces: solo se acepta un paso posterior al último usado (actualización atómica).
+            $paso = Totp::pasoValido((string) $user->two_factor_secret, $codigo);
+            $validoTotp = $paso !== null && User::query()->whereKey($user->getKey())
+                ->where(fn ($q) => $q->whereNull('two_factor_last_step')->orWhere('two_factor_last_step', '<', $paso))
+                ->update(['two_factor_last_step' => $paso]) === 1;
+            $recuperacionRestante = null;
+            if (! $validoTotp && is_array($user->two_factor_recovery_codes)) {
+                $recuperacionRestante = Totp::consumirCodigoRecuperacion($user->two_factor_recovery_codes, $codigo);
+            }
+
+            if (! $validoTotp && $recuperacionRestante === null) {
+                AuditLog::record('login_failed', User::class, null, [
+                    'canal' => 'panel',
+                    'cuenta_existente' => true,
+                    'motivo' => '2fa_invalido',
+                    'huella_correo' => substr(hash_hmac('sha256', $credenciales['email'], (string) config('app.key')), 0, 16),
+                ], null);
+                SeguridadCuentas::registrarFalloParaCuentaExistente($credenciales['email']);
+                RateLimiter::hit($claveLimite, 300);
+
+                return response()->json([
+                    'message' => 'El código de verificación no es válido.',
+                    'code' => '2fa_requerido',
+                    'errors' => ['codigo_2fa' => ['El código de verificación en dos pasos no es válido.']],
+                ], 422);
+            }
+
+            RateLimiter::clear($claveLimite);
+            if ($recuperacionRestante !== null) {
+                $user->forceFill(['two_factor_recovery_codes' => $recuperacionRestante])->save();
+                AuditLog::record('two_factor_recovery_used', User::class, $user->getKey(), [], $user->getKey());
+            }
+        }
+
+        Auth::guard('web')->login($user);
 
         // Nuevo identificador de sesión y nuevo token CSRF: evita la fijación de sesión.
         $request->session()->regenerate();
         $request->session()->regenerateToken();
         SesionPanel::iniciar($request);
+        SeguridadCuentas::limpiarIntentos($user);
 
-        /** @var User $user */
-        $user = $request->user();
         AuditLog::record('login', User::class, $user->getKey(), ['canal' => 'panel', 'personal_panel' => true]);
 
         return response()->json(['data' => SesionPanel::representar($request, $user)]);

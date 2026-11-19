@@ -9,6 +9,7 @@ use App\Services\JwtTokenService;
 use App\Support\CredentialTiming;
 use App\Support\Email;
 use App\Support\PasswordPolicy;
+use App\Support\SeguridadCuentas;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,16 +54,28 @@ class AuthController extends Controller
         // Una única comprobación de hash, exista o no la cuenta, para no revelarlo por latencia.
         $valid = CredentialTiming::check($data['password'], $user?->password);
 
-        if (! $valid || ! $user) {
+        if (! $valid || ! $user || $user->estaDadoDeBaja() || $user->estaSuspendido()) {
             AuditLog::record('login_failed', User::class, null, [
                 'canal' => 'api',
                 'cuenta_existente' => $user !== null,
                 'huella_correo' => substr(hash_hmac('sha256', $data['email'], (string) config('app.key')), 0, 16),
             ], null);
+            SeguridadCuentas::registrarFalloParaCuentaExistente($data['email']);
 
             return response()->json(['message' => 'Las credenciales no son válidas.'], 422);
         }
 
+        // Esta vía no tiene segundo factor ni cambio de contraseña: las cuentas que los exigen deben entrar por el panel.
+        if ($user->tiene2faActivo() || $user->debe_cambiar_password) {
+            return response()->json([
+                'message' => $user->tiene2faActivo()
+                    ? 'Esta cuenta usa verificación en dos pasos: inicia sesión desde el panel.'
+                    : 'Esta cuenta debe cambiar su contraseña: inicia sesión desde el panel.',
+                'code' => $user->tiene2faActivo() ? '2fa_requerido' : 'cambio_clave_requerido',
+            ], 403);
+        }
+
+        SeguridadCuentas::limpiarIntentos($user);
         AuditLog::record('login', User::class, $user->getKey(), [
             'canal' => 'api',
             'personal_panel' => $user->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES),
