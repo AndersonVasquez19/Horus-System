@@ -8,12 +8,43 @@ export interface ResumenAcademico {
     cupos_maximos?: number;
     matriculas_mes?: number;
     matriculas_pendientes?: number;
+    /** Matrículas del mes anterior (para la tendencia). */
+    matriculas_mes_anterior?: number;
     /** Solo para el rol admin. */
     ingresos_mes?: string;
   };
   bloques: {
     matriculas_por_mes?: { periodo: string; etiqueta: string; total: number }[];
     ultimas_matriculas?: { id: number; estudiante: string | null; curso: string | null; estado: string; fecha: string | null }[];
+  };
+  /** Cada bloque llega solo si la persona tiene el permiso de su módulo (el servidor no envía lo que no puede consultar). */
+  acciones?: {
+    pagos_por_confirmar?: { cantidad: number; monto: string };
+    matriculas_con_saldo?: { cantidad: number; monto: string };
+    ediciones?: { por_iniciar: number; por_cerrar: number; lista_por_cerrar: { identificador: string; codigo: string; curso: string | null }[] };
+  };
+  negocio?: { cobrado_mes?: string; saldo_por_cobrar?: string };
+  academico?: {
+    cupos?: { identificador: string; codigo: string; curso: string | null; maximo: number; ocupados: number; libres: number }[];
+    asistencia_minima?: number;
+    asistencia?: { identificador: string; codigo: string; curso: string | null; sesiones_realizadas: number; promedio: number | null; bajo_minimo: boolean }[];
+  };
+  /** Pendientes y actividad reciente; cada bloque llega solo con su permiso (`aprobaciones.ver`, `auditoria.ver`). */
+  seguimiento?: {
+    aprobaciones_pendientes?: number;
+    notificaciones_sin_leer?: number;
+    auditoria_reciente?: { id: number; fecha_local: string; usuario: string | null; accion: string }[];
+  };
+}
+
+/** Resultado de `GET academico/busqueda`: cada grupo solo si la persona tiene el permiso de su módulo. */
+export interface ResultadoBusqueda {
+  consulta: string;
+  grupos: {
+    estudiantes?: { id: number; texto: string; detalle: string }[];
+    docentes?: { identificador: string; texto: string; detalle: string }[];
+    matriculas?: { id: number; texto: string; detalle: string }[];
+    ediciones?: { identificador: string; texto: string; detalle: string }[];
   };
 }
 
@@ -164,6 +195,8 @@ export interface FilaActa {
   notas: Record<string, string>;
   nota_final: string | null;
   resultado: 'aprobado' | 'desaprobado' | null;
+  /** % de asistencia; `null` si no hay sesiones computables o la persona no puede ver la asistencia. */
+  asistencia: number | null;
 }
 
 /** Evaluaciones y matriz de notas de una convocatoria (`convocatorias/{id}/calificaciones`). */
@@ -171,6 +204,8 @@ export interface ActaCalificaciones {
   convocatoria: { identificador: string; codigo: string; curso: string | null; estado: EstadoConvocatoria; revision: string };
   nota_aprobatoria: number;
   peso_total: string;
+  /** La persona puede ver la asistencia (`asistencias.ver`). */
+  asistencia_visible: boolean;
   evaluaciones: EvaluacionActa[];
   matriculas: FilaActa[];
 }
@@ -184,8 +219,18 @@ export interface HorarioConvocatoria {
   docente: string | null;
 }
 
+export interface InfraestructuraEdicion {
+  /** Las ediciones nuevas deben tener su infraestructura antes de abrirse; las históricas no. */
+  exigida: boolean;
+  completa: boolean;
+  sede: { identificador: string; codigo: string; nombre: string } | null;
+  aula: { identificador: string; codigo: string; nombre: string; capacidad: number } | null;
+  plataforma_virtual: { identificador: string; nombre: string; tipo: string } | null;
+}
+
 export interface ConvocatoriaDetalle extends ConvocatoriaResumen {
   horarios: HorarioConvocatoria[];
+  infraestructura: InfraestructuraEdicion;
   creado_en: string | null;
   revision: string;
 }
@@ -198,3 +243,158 @@ export const TRANSICIONES_CONVOCATORIA: Record<EstadoConvocatoria, readonly Esta
   cerrada: [],
   cancelada: [],
 };
+
+export type EstadoActivo = 'activo' | 'inactivo';
+
+export interface SedeResumen {
+  identificador: string;
+  codigo: string;
+  nombre: string;
+  direccion: string;
+  ciudad: string;
+  estado: EstadoActivo;
+  aulas: number;
+  creado_en: string | null;
+}
+
+export interface AulaResumen {
+  identificador: string;
+  codigo: string;
+  nombre: string;
+  capacidad: number;
+  estado: EstadoActivo;
+  sede: { identificador: string; codigo: string; nombre: string } | null;
+  creado_en: string | null;
+}
+
+export type TipoPlataforma = 'meet' | 'zoom' | 'teams' | 'otra';
+
+export interface PlataformaResumen {
+  identificador: string;
+  nombre: string;
+  tipo: TipoPlataforma;
+  estado: EstadoActivo;
+  creado_en: string | null;
+}
+
+/** Listado de docentes: sin correo ni teléfono (el detalle sí los trae). */
+export interface DocenteResumen {
+  identificador: string;
+  dni: string;
+  nombres: string;
+  apellidos: string;
+  especialidad: string | null;
+  estado: EstadoActivo;
+  eliminado: boolean;
+}
+
+export interface DocenteDetalle extends DocenteResumen {
+  email: string | null;
+  telefono: string | null;
+  ediciones_vigentes: number;
+  creado_en: string | null;
+}
+
+export type RolDocente = 'principal' | 'apoyo';
+
+export interface DocenteAsignado {
+  docente: string;
+  dni: string;
+  nombres: string;
+  apellidos: string;
+  rol: RolDocente;
+  estado: EstadoActivo;
+}
+
+/** Respuesta de la consulta de DNI (JSON.pe vía Laravel). Solo consulta: no registra a nadie. */
+export interface PersonaDni {
+  dni: string;
+  nombres: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  apellidos: string;
+  ya_registrado_como_estudiante?: boolean;
+  ya_registrado_como_docente?: boolean;
+}
+
+export interface SesionClase {
+  identificador: string;
+  edicion: string | null;
+  numero: number;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  tema: string | null;
+  estado: 'programada' | 'realizada' | 'cancelada';
+  motivo_cancelacion: string | null;
+  docente: { identificador: string; nombres: string; apellidos: string } | null;
+  aula: { identificador: string; codigo: string; nombre: string; sede: string | null } | null;
+  plataforma_virtual: { identificador: string; nombre: string; tipo: string } | null;
+  /** El enlace nunca viaja en listados: solo se pide aparte con `sesiones.ver-enlace`. */
+  tiene_enlace: boolean;
+  revision: string;
+}
+
+export type EstadoAsistencia = 'presente' | 'ausente' | 'tardanza' | 'justificada';
+
+export interface AsistenciaFila {
+  matricula_id: number;
+  estudiante: { dni: string; nombre: string };
+  estado: EstadoAsistencia | null;
+  observacion: string | null;
+  corregida: boolean;
+}
+
+export interface ListaAsistencia {
+  sesion: { identificador: string; numero: number; fecha: string; hora_inicio: string; hora_fin: string; estado: string };
+  matriculas: AsistenciaFila[];
+}
+
+export interface ResumenAsistenciaFila {
+  matricula_id: number;
+  estudiante: { dni: string; nombre: string };
+  presentes: number;
+  tardanzas: number;
+  ausentes: number;
+  justificadas: number;
+  sin_registro: number;
+  porcentaje: number | null;
+}
+
+export type EstadoCobro = 'pendiente' | 'parcial' | 'pagada' | 'anulada';
+
+export interface ObligacionResumen {
+  identificador: string;
+  matricula_id: number;
+  estudiante: { dni: string; nombre: string };
+  edicion: string | null;
+  concepto: string;
+  plan: 'completo' | 'fraccionado';
+  estado: EstadoCobro;
+  moneda: 'PEN';
+  monto_total: string;
+  pagado: string;
+  pendiente_confirmar: string;
+  saldo: string;
+}
+
+export interface TransaccionPagoVista {
+  identificador: string;
+  tipo: 'pago' | 'reverso';
+  estado: 'pendiente' | 'confirmada' | 'rechazada';
+  monto: string;
+  metodo: string;
+  fecha_pago: string;
+  referencia: string | null;
+  motivo: string | null;
+  reversa_de: string | null;
+  revertida: boolean;
+  /** Hay una captura de comprobante adjunta (la imagen se pide aparte, con permiso). */
+  tiene_comprobante: boolean;
+}
+
+export interface ObligacionDetalle extends ObligacionResumen {
+  motivo_anulacion: string | null;
+  cuotas: { numero: number; monto: string; vence: string; pagado: string; saldo: string }[];
+  transacciones: TransaccionPagoVista[];
+}

@@ -11,6 +11,8 @@ const RUTAS_NEXT: Record<string, string> = {
   '/quienes-somos': '/quienes-somos',
   '/preguntas-frecuentes': '/legales/preguntas-frecuentes',
   '/politicas-devolucion': '/legales/politicas-devolucion',
+  '/libro-reclamaciones': '/legales/libro-reclamaciones',
+  '/solicitar-cotizacion': '/tecnologias/solicitar-cotizacion',
   '/tecnologias/camaras-seguridad': '/tecnologias/camaras-seguridad',
   '/tecnologias/cableado-estructurado': '/tecnologias/cableado-estructurado',
   '/tecnologias/soporte-mantenimiento': '/tecnologias/soporte-mantenimiento',

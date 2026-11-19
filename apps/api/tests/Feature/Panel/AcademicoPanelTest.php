@@ -106,7 +106,7 @@ final class AcademicoPanelTest extends PanelApiTestCase
         $this->curso('C-1');
 
         $this->como($soloEntrada, 'academico/resumen')->assertOk()
-            ->assertExactJson(['data' => ['indicadores' => [], 'bloques' => []]]);
+            ->assertExactJson(['data' => ['indicadores' => [], 'bloques' => [], 'acciones' => [], 'negocio' => [], 'academico' => [], 'seguimiento' => ['notificaciones_sin_leer' => 0]]]);
     }
 
     public function test_cursos_exige_cursos_ver(): void

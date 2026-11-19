@@ -18,9 +18,9 @@ final class PaginasServicios
 
     /** @var array<string, array{etiqueta: string, ruta: string}> */
     private const PAGINAS = [
-        self::CABLEADO => ['etiqueta' => 'Cableado estructurado', 'ruta' => 'tecnologias.cableado'],
-        self::VIDEOVIGILANCIA => ['etiqueta' => 'Sistema de videovigilancia', 'ruta' => 'tecnologias.camaras'],
-        self::SOPORTE => ['etiqueta' => 'Soporte y mantenimiento', 'ruta' => 'tecnologias.soporte'],
+        self::CABLEADO => ['etiqueta' => 'Cableado estructurado', 'ruta' => '/tecnologias/cableado-estructurado'],
+        self::VIDEOVIGILANCIA => ['etiqueta' => 'Sistema de videovigilancia', 'ruta' => '/tecnologias/camaras-seguridad'],
+        self::SOPORTE => ['etiqueta' => 'Soporte y mantenimiento', 'ruta' => '/tecnologias/soporte-mantenimiento'],
     ];
 
     /** @return list<string> */
@@ -43,6 +43,6 @@ final class PaginasServicios
         }
         $pagina = self::PAGINAS[$codigo];
 
-        return ['codigo' => $codigo, 'etiqueta' => $pagina['etiqueta'], 'ruta' => $pagina['ruta'], 'url' => route($pagina['ruta'], [], false)];
+        return ['codigo' => $codigo, 'etiqueta' => $pagina['etiqueta'], 'ruta' => $pagina['ruta'], 'url' => $pagina['ruta']];
     }
 }

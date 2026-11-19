@@ -33,8 +33,30 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  /**
+   * Direcciones que antes servía Laravel (Blade) y que siguen guardadas en notificaciones, aprobaciones, correos y en las
+   * respuestas del chat. Son temporales (307): el destino puede cambiar sin que un navegador recuerde el anterior.
+   */
+  async redirects() {
+    const modulosDelPanel = ["matriculas", "estudiantes", "cursos", "reportes", "buscar", "respaldo", "asistente"];
+    return [
+      ...modulosDelPanel.map((modulo) => ({
+        source: `/admin/${modulo}/:path*`,
+        destination: `/admin/academico/${modulo}/:path*`,
+        permanent: false,
+      })),
+      { source: "/register", destination: "/registro", permanent: false },
+      { source: "/forgot-password", destination: "/recuperar-contrasena", permanent: false },
+      { source: "/libro-reclamaciones", destination: "/legales/libro-reclamaciones", permanent: false },
+      { source: "/solicitar-cotizacion", destination: "/tecnologias/solicitar-cotizacion", permanent: false },
+      { source: "/politicas-devolucion", destination: "/legales/politicas-devolucion", permanent: false },
+      { source: "/politicas-privacidad", destination: "/legales/politicas-privacidad", permanent: false },
+      { source: "/politicas-cookies", destination: "/legales/politicas-cookies", permanent: false },
+      { source: "/preguntas-frecuentes", destination: "/legales/preguntas-frecuentes", permanent: false },
+    ];
+  },
   async headers() {
-    return ["/admin/:path*", "/login", "/recuperar-contrasena", "/restablecer-contrasena", "/api/bff/:path*"].map((source) => ({
+    return ["/admin/:path*", "/login", "/registro", "/recuperar-contrasena", "/restablecer-contrasena", "/api/bff/:path*"].map((source) => ({
       source,
       headers: CABECERAS_PANEL,
     }));

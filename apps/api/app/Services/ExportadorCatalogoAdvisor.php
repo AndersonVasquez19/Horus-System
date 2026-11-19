@@ -165,7 +165,7 @@ class ExportadorCatalogoAdvisor
                         $detalles = trim($detalles.' '.$caracteristica.'.');
                     }
                 }
-                $ruta = route($paginaPublica['ruta'], [], false);
+                $ruta = $paginaPublica['ruta'];
                 $resultado[] = $this->itemServicio(
                     'servicio:pagina-'.strtolower($codigo), (string) $ficha['titulo'], $resumen,
                     $detalles === '' ? $resumen : $detalles, $ruta, null, null, $ahora, $vence,

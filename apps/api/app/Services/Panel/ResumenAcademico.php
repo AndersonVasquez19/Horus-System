@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Panel;
 
+use App\Models\AprobacionInterna;
+use App\Models\AuditLog;
+use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
+use App\Services\GestionAsistencias;
+use App\Services\GestionPagos;
 use App\Support\HoraLocal;
+use App\Support\NotificacionesPendientes;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -19,6 +25,13 @@ use LogicException;
  *
  * Mismos criterios que el dashboard Blade (V-03): los ingresos solo para el rol `admin`, y las últimas
  * matrículas minimizadas (sin montos ni observaciones).
+ *
+ * Tablero de Horus Academic (ocho cifras, cada una SOLO si la persona tiene el permiso de su módulo; el servidor no envía lo que no
+ * puede consultar):
+ *  - `acciones`  → pagos por confirmar y saldo pendiente (`pagos.ver`), ediciones que requieren acción (`convocatorias.ver`);
+ *  - `negocio`   → cobrado del mes y saldo por cobrar (`pagos.ver`); las matrículas del mes y del mes anterior van en `indicadores`;
+ *  - `academico` → cupos por edición (`convocatorias.ver`), asistencia por edición en curso (`asistencias.ver`).
+ * Los importes salen del libro de pagos (confirmado neto de reversos), nunca de `matriculas.monto_pagado`.
  */
 final class ResumenAcademico
 {
@@ -29,6 +42,10 @@ final class ResumenAcademico
     {
         $indicadores = [];
         $bloques = [];
+        $acciones = [];
+        $negocio = [];
+        $academico = [];
+        $seguimiento = [];
 
         if ($user->can('estudiantes.ver')) {
             $indicadores['estudiantes_activos'] = Estudiante::query()->where('estado', 'activo')->count();
@@ -53,6 +70,8 @@ final class ResumenAcademico
                 ->toBase()->first();
 
             $indicadores['matriculas_mes'] = (int) $resumen->total;
+            $indicadores['matriculas_mes_anterior'] = Matricula::query()
+                ->whereBetween('fecha_matricula', [$inicioMes->subMonthNoOverflow()->startOfMonth(), $inicioMes->subMonthNoOverflow()->endOfMonth()])->count();
             if ($verIngresos) {
                 $indicadores['ingresos_mes'] = number_format((float) $resumen->ingresos, 2, '.', '');
             }
@@ -78,7 +97,107 @@ final class ResumenAcademico
                 ->all();
         }
 
-        return ['indicadores' => $indicadores, 'bloques' => $bloques];
+        if ($user->can('pagos.ver')) {
+            $pendientes = DB::table('transacciones_pago')->where('tipo', 'pago')->where('estado', 'pendiente')->pluck('monto');
+            $acciones['pagos_por_confirmar'] = ['cantidad' => $pendientes->count(), 'monto' => GestionPagos::formato($pendientes->sum(fn ($m): int => GestionPagos::leer($m)))];
+
+            [$conSaldo, $saldo] = $this->saldoPorCobrar();
+            $acciones['matriculas_con_saldo'] = ['cantidad' => $conSaldo, 'monto' => GestionPagos::formato($saldo)];
+
+            $negocio['cobrado_mes'] = GestionPagos::formato($this->cobradoDelMes());
+            $negocio['saldo_por_cobrar'] = GestionPagos::formato($saldo);
+        }
+
+        if ($user->can('convocatorias.ver')) {
+            $hoy = HoraLocal::hoy();
+            $porCerrar = Convocatoria::query()->with('curso:id,nombre')->where('estado', 'en_curso')->whereDate('fecha_fin', '<', $hoy);
+            $acciones['ediciones'] = [
+                'por_iniciar' => Convocatoria::query()->where('estado', 'abierta')->whereDate('fecha_inicio', '<=', $hoy)->count(),
+                'por_cerrar' => (clone $porCerrar)->count(),
+                'lista_por_cerrar' => (clone $porCerrar)->orderBy('fecha_fin')->limit(5)->get()->map(fn (Convocatoria $c): array => [
+                    'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre,
+                ])->all(),
+            ];
+
+            $academico['cupos'] = Convocatoria::query()->with('curso:id,nombre')->whereIn('estado', ['abierta', 'en_curso'])
+                ->orderBy('cupos_disponibles')->orderBy('id')->limit(8)->get()->map(fn (Convocatoria $c): array => [
+                    'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre, 'maximo' => $c->cupos_maximos,
+                    'ocupados' => $c->cupos_maximos - $c->cupos_disponibles, 'libres' => $c->cupos_disponibles,
+                ])->all();
+        }
+
+        if ($user->can('asistencias.ver')) {
+            $minimo = (int) config('academico.asistencia_minima', 80);
+            $academico['asistencia_minima'] = $minimo;
+            $academico['asistencia'] = Convocatoria::query()->with('curso:id,nombre')->where('estado', 'en_curso')->orderBy('fecha_fin')->limit(8)->get()
+                ->map(function (Convocatoria $c) use ($minimo): array {
+                    $r = app(GestionAsistencias::class)->resumen($c);
+                    $valores = collect($r['matriculas'])->pluck('porcentaje')->filter(fn ($p): bool => $p !== null);
+                    $promedio = $valores->isEmpty() ? null : round((float) $valores->avg(), 1);
+
+                    return [
+                        'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre, 'sesiones_realizadas' => $r['sesiones_realizadas'],
+                        'promedio' => $promedio, 'bajo_minimo' => $promedio !== null && $promedio < $minimo,
+                    ];
+                })->all();
+        }
+
+
+        // Seguimiento (equivale a los bloques de pendientes y actividad del tablero Blade): cada bloque solo con su permiso.
+        if ($user->can('aprobaciones.ver')) {
+            $seguimiento['aprobaciones_pendientes'] = AprobacionInterna::query()->where('estado', 'pendiente')->count();
+        }
+        $seguimiento['notificaciones_sin_leer'] = NotificacionesPendientes::para($user);
+        if ($user->can('auditoria.ver')) {
+            $seguimiento['auditoria_reciente'] = AuditLog::query()->with('user:id,name')->latest('created_at')->limit(5)->get()
+                ->map(fn (AuditLog $a): array => [
+                    'id' => $a->id,
+                    'fecha_local' => HoraLocal::formato($a->created_at, 'd/m/Y H:i'),
+                    'usuario' => $a->user?->name,
+                    'accion' => $a->action,
+                ])->all();
+        }
+
+        return ['indicadores' => $indicadores, 'bloques' => $bloques, 'acciones' => $acciones, 'negocio' => $negocio, 'academico' => $academico, 'seguimiento' => $seguimiento];
+    }
+
+    /**
+     * Matrículas con obligación vigente que aún deben algo (lo confirmado neto de reversos es menor que el total) y el saldo total, en
+     * céntimos.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function saldoPorCobrar(): array
+    {
+        $filas = DB::table('obligaciones_pago as o')
+            ->leftJoin('transacciones_pago as t', fn ($j) => $j->on('t.obligacion_pago_id', '=', 'o.id')->where('t.estado', 'confirmada'))
+            ->where('o.estado', 'vigente')
+            ->groupBy('o.id', 'o.monto_total')
+            ->selectRaw("o.monto_total, COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN t.monto ELSE -t.monto END), 0) as confirmado")
+            ->get();
+
+        $cantidad = 0;
+        $saldo = 0;
+        foreach ($filas as $f) {
+            $debe = GestionPagos::leer($f->monto_total) - GestionPagos::leer($f->confirmado);
+            if ($debe > 0) {
+                $cantidad++;
+                $saldo += $debe;
+            }
+        }
+
+        return [$cantidad, $saldo];
+    }
+
+    /** Lo cobrado en el mes (Lima) según el libro: pagos confirmados menos reversos confirmados, por fecha de pago. En céntimos. */
+    private function cobradoDelMes(): int
+    {
+        $ahora = HoraLocal::ahora();
+        $filas = DB::table('transacciones_pago')->where('estado', 'confirmada')
+            ->whereBetween('fecha_pago', [$ahora->startOfMonth()->toDateString(), $ahora->endOfMonth()->toDateString()])
+            ->get(['tipo', 'monto']);
+
+        return (int) $filas->sum(fn ($t): int => $t->tipo === 'pago' ? GestionPagos::leer($t->monto) : -GestionPagos::leer($t->monto));
     }
 
     /** @return list<array{periodo: string, etiqueta: string, total: int}> */
