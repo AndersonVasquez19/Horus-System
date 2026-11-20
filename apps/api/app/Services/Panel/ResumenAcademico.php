@@ -47,6 +47,7 @@ final class ResumenAcademico
         $negocio = [];
         $academico = [];
         $seguimiento = [];
+        $saludGrupo = [];
 
         if ($user->can('estudiantes.ver')) {
             $indicadores['estudiantes_activos'] = Estudiante::query()->where('estado', 'activo')->count();
@@ -155,7 +156,14 @@ final class ResumenAcademico
                 ])->all();
         }
 
-        return ['indicadores' => $indicadores, 'bloques' => $bloques, 'acciones' => $acciones, 'negocio' => $negocio, 'academico' => $academico, 'seguimiento' => $seguimiento];
+        if ($user->can('pagos.ver')) {
+            $saludGrupo['cuotas_vencidas'] = $this->cuotasVencidasDetalle();
+        }
+        if ($user->can('asistencias.ver')) {
+            $saludGrupo['inasistencias'] = $this->inasistenciasReiteradas();
+        }
+
+        return ['indicadores' => $indicadores, 'bloques' => $bloques, 'acciones' => $acciones, 'negocio' => $negocio, 'academico' => $academico, 'seguimiento' => $seguimiento, 'salud_grupo' => $saludGrupo];
     }
 
     /**
@@ -269,5 +277,107 @@ final class ResumenAcademico
                 'total' => Entrada::entero(($totales[$periodo] ?? 0)),
             ];
         })->all());
+    }
+
+    /** @return list<array{obligacion: string, estudiante: string, telefono: string|null, concepto: string, vence: string, saldo: string}> */
+    private function cuotasVencidasDetalle(): array
+    {
+        $hoy = HoraLocal::hoy();
+
+        $filas = DB::table('cuotas_obligacion as c')
+            ->join('obligaciones_pago as o', 'o.id', '=', 'c.obligacion_pago_id')
+            ->join('matriculas as m', 'm.id', '=', 'o.matricula_id')
+            ->join('estudiantes as e', 'e.id', '=', 'm.estudiante_id')
+            ->leftJoin('asignaciones_pago as a', 'a.cuota_obligacion_id', '=', 'c.id')
+            ->where('o.estado', 'vigente')
+            ->whereNull('m.deleted_at')
+            ->where('m.estado', '!=', 'anulada')
+            ->whereDate('c.vence', '<', $hoy)
+            ->groupBy('c.id', 'o.identificador', 'o.concepto', 'e.nombres', 'e.apellidos', 'e.telefono', 'c.monto', 'c.vence')
+            ->selectRaw('o.identificador as obligacion, o.concepto, e.nombres, e.apellidos, e.telefono, c.monto, c.vence, COALESCE(SUM(a.monto), 0) as pagado')
+            ->orderBy('c.vence')
+            ->limit(25)
+            ->get();
+
+        $resultado = [];
+        foreach ($filas as $f) {
+            $saldo = GestionPagos::leer($f->monto) - GestionPagos::leer($f->pagado);
+            if ($saldo <= 0) {
+                continue;
+            }
+            $tel = Entrada::texto($f->telefono ?? '');
+            $resultado[] = [
+                'obligacion' => Entrada::texto($f->obligacion),
+                'estudiante' => trim(Entrada::texto($f->nombres).' '.Entrada::texto($f->apellidos)),
+                'telefono' => $tel !== '' ? $tel : null,
+                'concepto' => Entrada::texto($f->concepto),
+                'vence' => substr(Entrada::texto($f->vence), 0, 10),
+                'saldo' => GestionPagos::formato($saldo),
+            ];
+            if (count($resultado) >= 6) {
+                break;
+            }
+        }
+
+        return $resultado;
+    }
+
+    /** @return list<array{matricula_id: int, estudiante: string, telefono: string|null, edicion: string, faltas_seguidas: int}> */
+    private function inasistenciasReiteradas(): array
+    {
+        $filas = DB::table('asistencias as a')
+            ->join('sesiones_clase as s', 's.id', '=', 'a.sesion_clase_id')
+            ->join('matriculas as m', 'm.id', '=', 'a.matricula_id')
+            ->join('convocatorias as c', 'c.id', '=', 'm.convocatoria_id')
+            ->join('estudiantes as e', 'e.id', '=', 'm.estudiante_id')
+            ->where('c.estado', 'en_curso')
+            ->whereNull('m.deleted_at')
+            ->where('m.estado', '!=', 'anulada')
+            ->whereIn('s.estado', ['programada', 'realizada'])
+            ->orderBy('m.id')
+            ->orderByDesc('s.fecha')
+            ->orderByDesc('s.numero')
+            ->select(['m.id as matricula_id', 'e.nombres', 'e.apellidos', 'e.telefono', 'c.codigo as edicion', 'a.estado'])
+            ->get();
+
+        $agrupadas = [];
+        foreach ($filas as $f) {
+            $id = Entrada::entero($f->matricula_id);
+            if (! isset($agrupadas[$id])) {
+                $tel = Entrada::texto($f->telefono ?? '');
+                $agrupadas[$id] = [
+                    'matricula_id' => $id,
+                    'estudiante' => trim(Entrada::texto($f->nombres).' '.Entrada::texto($f->apellidos)),
+                    'telefono' => $tel !== '' ? $tel : null,
+                    'edicion' => Entrada::texto($f->edicion),
+                    'faltas_seguidas' => 0,
+                    'cortado' => false,
+                ];
+            }
+            if ($agrupadas[$id]['cortado']) {
+                continue;
+            }
+            if (Entrada::texto($f->estado) === 'ausente') {
+                $agrupadas[$id]['faltas_seguidas']++;
+            } else {
+                $agrupadas[$id]['cortado'] = true;
+            }
+        }
+
+        $alertas = [];
+        foreach ($agrupadas as $item) {
+            if ($item['faltas_seguidas'] >= 2) {
+                $alertas[] = [
+                    'matricula_id' => $item['matricula_id'],
+                    'estudiante' => $item['estudiante'],
+                    'telefono' => $item['telefono'],
+                    'edicion' => $item['edicion'],
+                    'faltas_seguidas' => $item['faltas_seguidas'],
+                ];
+            }
+        }
+        usort($alertas, static fn (array $a, array $b): int => $b['faltas_seguidas'] <=> $a['faltas_seguidas']);
+
+        return array_slice($alertas, 0, 6);
     }
 }

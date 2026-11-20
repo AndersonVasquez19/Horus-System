@@ -50,13 +50,133 @@ final class PagoController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'show', 'deMatricula', 'verComprobante', 'recibo']),
-            new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante']),
+            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'show', 'deMatricula', 'verComprobante', 'recibo', 'cajaDiariaResumen', 'cajaDiariaPdf']),
+            new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante', 'registrar', 'verificarReferencia']),
             new Middleware('permission:pagos.planificar', only: ['crearObligacion', 'anular']),
-            new Middleware('permission:pagos.registrar', only: ['registrar']),
             new Middleware('permission:pagos.confirmar', only: ['confirmar', 'rechazar']),
             new Middleware('permission:pagos.reversar', only: ['reversar']),
             new Middleware('permission:pagos.exportar', only: ['exportar']),
+        ];
+    }
+
+    /** Verifica si un código de operación (Yape/banco) ya fue usado en otra transacción no rechazada ni reversada. */
+    public function verificarReferencia(Request $request): JsonResponse
+    {
+        $referencia = trim(\App\Support\Entrada::texto($request->query('referencia', '')));
+        if (mb_strlen($referencia) < 3) {
+            return response()->json(['data' => ['duplicada' => false, 'coincidencias' => []]]);
+        }
+
+        $filas = TransaccionPago::query()
+            ->where('tipo', 'pago')
+            ->whereIn('estado', ['pendiente', 'confirmada'])
+            ->whereRaw('LOWER(referencia) = ?', [mb_strtolower($referencia)])
+            ->whereNotExists(function (\Illuminate\Database\Query\Builder $q): void {
+                $q->from('transacciones_pago as rev')
+                    ->whereColumn('rev.reversa_de_id', 'transacciones_pago.id')
+                    ->where('rev.estado', 'confirmada');
+            })
+            ->with(['obligacion:id,identificador,matricula_id'])
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        $coincidencias = [];
+        foreach ($filas as $t) {
+            if ($t->obligacion === null) {
+                continue;
+            }
+            $coincidencias[] = [
+                'obligacion' => $t->obligacion->identificador,
+                'matricula_id' => $t->obligacion->matricula_id,
+                'estado' => $t->estado,
+                'fecha_pago' => substr(\App\Support\Entrada::texto($t->fecha_pago), 0, 10),
+            ];
+        }
+
+        return response()->json([
+            'data' => [
+                'duplicada' => $coincidencias !== [],
+                'coincidencias' => $coincidencias,
+            ],
+        ]);
+    }
+
+    /** Resumen JSON de pagos confirmados del día (o fecha indicada) agrupado por método. */
+    public function cajaDiariaResumen(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->datosCajaDiaria($request)]);
+    }
+
+    /** Reporte PDF de 1 hoja con el cierre de caja diario. */
+    public function cajaDiariaPdf(Request $request): Response
+    {
+        $datos = $this->datosCajaDiaria($request);
+        $pdf = Pdf::loadView('pdf.caja-diaria', [
+            'fechaCaja' => $datos['fecha'],
+            'fechaEmision' => HoraLocal::ahora()->format('d/m/Y H:i'),
+            'cantidad' => $datos['cantidad'],
+            'total' => $datos['total'],
+            'porMetodo' => $datos['por_metodo'],
+            'movimientos' => $datos['movimientos'],
+        ]);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"caja-diaria-{$datos['fecha']}.pdf\"",
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    /** @return array{fecha: string, cantidad: int, total: string, por_metodo: list<array{metodo: string, cantidad: int, total: string}>, movimientos: list<array{matricula_id: int, estudiante: string, metodo: string, referencia: string|null, monto: string}>} */
+    private function datosCajaDiaria(Request $request): array
+    {
+        $fecha = ListFilter::date($request, 'fecha') ?: HoraLocal::hoy();
+
+        $txs = TransaccionPago::query()
+            ->where('tipo', 'pago')
+            ->where('estado', 'confirmada')
+            ->whereDate('fecha_pago', $fecha)
+            ->with(['metodo:id,nombre', 'obligacion.matricula.estudiante:id,nombres,apellidos'])
+            ->orderBy('id')
+            ->get();
+
+        $totalCentimos = 0;
+        $grupos = [];
+        $movimientos = [];
+
+        foreach ($txs as $tx) {
+            $centimos = GestionPagos::leer($tx->monto);
+            $totalCentimos += $centimos;
+            $metodo = $tx->metodo->nombre ?? 'Otro';
+            if (! isset($grupos[$metodo])) {
+                $grupos[$metodo] = ['metodo' => $metodo, 'cantidad' => 0, 'centimos' => 0];
+            }
+            $grupos[$metodo]['cantidad']++;
+            $grupos[$metodo]['centimos'] += $centimos;
+
+            $est = $tx->obligacion?->matricula?->estudiante;
+            $movimientos[] = [
+                'matricula_id' => $tx->obligacion->matricula_id ?? 0,
+                'estudiante' => $est ? trim($est->nombres.' '.$est->apellidos) : 'Estudiante',
+                'metodo' => $metodo,
+                'referencia' => $tx->referencia,
+                'monto' => GestionPagos::formato($centimos),
+            ];
+        }
+
+        $porMetodo = array_values(array_map(static fn (array $g): array => [
+            'metodo' => $g['metodo'],
+            'cantidad' => $g['cantidad'],
+            'total' => GestionPagos::formato($g['centimos']),
+        ], $grupos));
+
+        return [
+            'fecha' => $fecha,
+            'cantidad' => $txs->count(),
+            'total' => GestionPagos::formato($totalCentimos),
+            'por_metodo' => $porMetodo,
+            'movimientos' => $movimientos,
         ];
     }
 

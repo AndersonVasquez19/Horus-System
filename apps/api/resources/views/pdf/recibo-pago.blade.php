@@ -18,6 +18,15 @@
         'subtitulo' => 'Comprobante interno emitido desde Horus Academic · Matrícula #'.$obligacion->matricula_id,
     ])
 
+    @php
+        $esCancelado = ($detalle['estado'] ?? '') === 'pagada' && ((float) ($detalle['saldo'] ?? 1)) <= 0.0;
+        $cuotasPendientes = collect($detalle['cuotas'] ?? [])->filter(fn ($c) => ((float) ($c['saldo'] ?? 0)) > 0)->values();
+    @endphp
+
+    <div style="margin-bottom: 12px; padding: 8px 12px; border-radius: 6px; border: 1px solid {{ $esCancelado ? '#16a34a' : '#d97706' }}; background: {{ $esCancelado ? '#f0fdf4' : '#fffbeb' }}; color: {{ $esCancelado ? '#166534' : '#92400e' }}; font-weight: bold; font-size: 12px; text-align: center;">
+        {{ $esCancelado ? 'CANCELADO AL 100 %' : 'ABONO PARCIAL · SALDO PENDIENTE: '.\App\Support\ConfiguracionSistema::monto($detalle['saldo']) }}
+    </div>
+
     <div class="meta-card">
         <table class="meta-table">
             <tr>
@@ -122,6 +131,30 @@
             @endforelse
         </tbody>
     </table>
+
+    @if ($cuotasPendientes->isNotEmpty())
+        <table class="data-table" style="margin-top: 14px;">
+            <thead>
+                <tr>
+                    <th class="text-left" colspan="3">Cuotas pendientes</th>
+                </tr>
+                <tr>
+                    <th class="text-left">Cuota</th>
+                    <th class="text-left">Vencimiento</th>
+                    <th class="text-right">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($cuotasPendientes as $cuota)
+                    <tr>
+                        <td>Cuota #{{ $cuota['numero'] }}</td>
+                        <td>{{ $cuota['vence'] }}</td>
+                        <td class="text-right">{{ \App\Support\ConfiguracionSistema::monto($cuota['saldo']) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 @endsection
 
 @section('footer')

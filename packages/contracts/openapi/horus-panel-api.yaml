@@ -376,6 +376,20 @@ paths:
         '429': { description: "Límite del panel (`demasiadas_solicitudes`) o del proveedor (`dni_limite_proveedor`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '502': { description: "Respuesta incompleta del proveedor (`dni_respuesta_incompleta`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '503': { description: "Servicio no configurado, no autorizado o no disponible (`dni_servicio_no_configurado`, `dni_servicio_no_autorizado`, `dni_servicio_no_disponible`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/estudiantes/{estudiante}/historial/pdf:
+    post:
+      tags: [academico]
+      summary: "Descarga el historial académico del estudiante en PDF"
+      description: "Permiso: `estudiantes.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo PDF }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /academico/estudiantes/exportar:
     post:
       tags: [academico]
@@ -623,6 +637,35 @@ paths:
         '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/matriculas/{matricula}/etiqueta:
+    post:
+      tags: [academico]
+      summary: "Asigna o limpia la etiqueta operativa fija de la matrícula"
+      description: "Permiso: `matriculas.editar`."
+      x-estado: vigente
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/{matricula}/encuesta:
+    post:
+      tags: [academico]
+      summary: "Crea o devuelve el token de encuesta post-clase de la matrícula"
+      description: "Permiso: `matriculas.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /academico/matriculas/{matricula}/anular:
     post:
       tags: [academico]
@@ -819,6 +862,89 @@ paths:
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/siguiente:
+    post:
+      tags: [academico]
+      summary: "Crea una nueva edición copiando curso, modalidad, cupos y horarios"
+      description: "Permiso: `convocatorias.crear`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fecha_inicio, fecha_fin]
+              properties:
+                fecha_inicio: { type: string, format: date }
+                fecha_fin: { type: string, format: date }
+                nombre: { type: string, nullable: true }
+                cupos_maximos: { type: integer, nullable: true }
+                abrir: { type: boolean, nullable: true }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/encuestas:
+    get:
+      tags: [academico]
+      summary: "Resumen agregado de encuestas post-clase de la edición"
+      description: "Permiso: `convocatorias.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/calendario.ics:
+    get:
+      tags: [academico]
+      summary: "Descarga el calendario .ics de la edición"
+      description: "Permiso: `convocatorias.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Archivo .ics }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/lista-aula/pdf:
+    post:
+      tags: [academico]
+      summary: "Descarga lista imprimible de aula en PDF"
+      description: "Permiso: `matriculas.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo PDF }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/contactos/csv:
+    post:
+      tags: [academico]
+      summary: "Exporta contactos CSV para importar a WhatsApp"
+      description: "Permiso: `matriculas.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo CSV }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /academico/convocatorias/{identificador}/horarios:
     put:
       tags: [academico]
@@ -1293,6 +1419,41 @@ paths:
       description: "Permiso: `pagos.ver`."
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/pagos/verificar-referencia:
+    get:
+      tags: [academico]
+      summary: "Verifica si un número de operación ya existe en otra transacción"
+      description: "Permiso: `pagos.registrar`."
+      x-estado: vigente
+      parameters:
+        - { name: referencia, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/caja-diaria/resumen:
+    get:
+      tags: [academico]
+      summary: "Resumen JSON de pagos confirmados del día"
+      description: "Permiso: `pagos.ver`."
+      x-estado: vigente
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/pagos/caja-diaria/pdf:
+    post:
+      tags: [academico]
+      summary: "Reporte PDF de 1 página con la caja diaria"
+      description: "Permiso: `pagos.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Archivo PDF }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
   /academico/pagos/obligaciones:

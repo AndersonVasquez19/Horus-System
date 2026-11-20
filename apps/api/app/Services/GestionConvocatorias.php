@@ -56,6 +56,73 @@ class GestionConvocatorias
         });
     }
 
+    /**
+     * Abre una nueva edición copiando curso, modalidad (si es nueva), cupos y horarios de una edición existente.
+     *
+     * @param  array<string, mixed>  $datos  `fecha_inicio`, `fecha_fin` y opcionales `nombre`, `cupos_maximos`, `abrir`
+     */
+    public function abrirSiguiente(Request $request, string $identificador, array $datos): Convocatoria
+    {
+        return DB::transaction(function () use ($request, $identificador, $datos): Convocatoria {
+            $origen = $this->bloquear($identificador);
+            $autor = $this->autorizar($request, 'convocatorias.crear');
+
+            $curso = Curso::withTrashed()->lockForUpdate()->find($origen->curso_id);
+            if ($curso === null || $curso->trashed() || $curso->estado !== 'activo') {
+                throw ValidationException::withMessages(['curso_id' => 'El curso de esta edición ya no está activo o disponible.']);
+            }
+
+            $modalidad = $origen->modalidad;
+            if (! in_array($modalidad, Convocatoria::MODALIDADES_NUEVAS, true)) {
+                throw ValidationException::withMessages(['modalidad' => 'Las ediciones nuevas son presenciales o virtuales.']);
+            }
+
+            $abrir = (bool) ($datos['abrir'] ?? false);
+            $fechaFin = Entrada::texto($datos['fecha_fin'] ?? '');
+            if ($abrir && $fechaFin < HoraLocal::hoy()) {
+                throw ValidationException::withMessages(['fecha_fin' => 'No se puede abrir una edición cuyo periodo ya terminó.']);
+            }
+
+            $cupos = isset($datos['cupos_maximos']) ? max(1, Entrada::entero($datos['cupos_maximos'])) : $origen->cupos_maximos;
+
+            $nueva = new Convocatoria([
+                'nombre' => array_key_exists('nombre', $datos) ? $datos['nombre'] : $origen->nombre,
+                'modalidad' => $modalidad,
+                'fecha_inicio' => $datos['fecha_inicio'],
+                'fecha_fin' => $fechaFin,
+                'cupos_maximos' => $cupos,
+            ]);
+            $nueva->identificador = (string) Str::uuid();
+            $nueva->codigo = CodigoSecuencial::siguiente('CNV');
+            $nueva->curso_id = $curso->id;
+            $nueva->estado = $abrir ? 'abierta' : 'borrador';
+            $nueva->cupos_disponibles = $cupos;
+            $nueva->revision = 1;
+            $nueva->save();
+
+            $bloques = $origen->horarios()->orderBy('dia_semana')->orderBy('hora_inicio')->get();
+            foreach ($bloques as $bloque) {
+                $horario = new ConvocatoriaHorario([
+                    'dia_semana' => $bloque->dia_semana,
+                    'hora_inicio' => $bloque->hora_inicio,
+                    'hora_fin' => $bloque->hora_fin,
+                ]);
+                $horario->convocatoria_id = $nueva->id;
+                $horario->save();
+            }
+
+            AuditLog::record(
+                'convocatoria_siguiente_creada',
+                Convocatoria::class,
+                $nueva->id,
+                ['origen_id' => $origen->id, 'estado' => $nueva->estado, 'bloques' => $bloques->count()],
+                $autor->id,
+            );
+
+            return $nueva;
+        });
+    }
+
     /** @param array<string, mixed> $datos */
     public function actualizar(Request $request, string $identificador, array $datos): Convocatoria
     {

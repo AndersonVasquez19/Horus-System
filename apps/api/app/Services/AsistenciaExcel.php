@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Support\SafeSpreadsheet;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 use ZipArchive;
@@ -36,8 +37,15 @@ final class AsistenciaExcel
             SafeSpreadsheet::writeRow($sheet, 4, $cabecera);
 
             $fila = 5;
+            $colPorcentaje = count($cabecera);
             foreach ($matriz['filas'] as $f) {
-                SafeSpreadsheet::writeRow($sheet, $fila++, [$f['dni'], $f['nombre'], ...$f['estados'], $f['porcentaje'] ?? '']);
+                SafeSpreadsheet::writeRow($sheet, $fila, [$f['dni'], $f['nombre'], ...$f['estados'], $f['porcentaje'] ?? '']);
+                if ($f['porcentaje'] !== null && $f['porcentaje'] < 75.0) {
+                    $sheet->getStyle([$colPorcentaje, $fila])->getFill()
+                        ->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()->setARGB('FFFEE2E2');
+                }
+                $fila++;
             }
 
             $writer = new Xlsx($libro);

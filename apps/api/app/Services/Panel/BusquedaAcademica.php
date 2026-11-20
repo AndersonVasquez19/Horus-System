@@ -7,7 +7,9 @@ namespace App\Services\Panel;
 use App\Models\Convocatoria;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Models\TransaccionPago;
 use App\Models\User;
+use App\Services\GestionPagos;
 use App\Support\BusquedaLike;
 
 /**
@@ -35,9 +37,11 @@ final class BusquedaAcademica
 
         if ($user->can('estudiantes.ver')) {
             $q = Estudiante::query();
-            BusquedaLike::contiene($q, ['dni', 'nombres', 'apellidos'], $texto);
+            BusquedaLike::contiene($q, ['dni', 'nombres', 'apellidos', 'telefono'], $texto);
             $grupos['estudiantes'] = $q->orderBy('apellidos')->orderBy('id')->limit(self::POR_GRUPO)->get()->map(fn (Estudiante $e): array => [
-                'id' => $e->id, 'texto' => trim($e->apellidos.', '.$e->nombres), 'detalle' => 'DNI '.$e->dni,
+                'id' => $e->id,
+                'texto' => trim($e->apellidos.', '.$e->nombres),
+                'detalle' => implode(' · ', array_filter(['DNI '.$e->dni, $e->telefono ? 'Tel. '.$e->telefono : null])),
             ])->all();
         }
 
@@ -81,6 +85,24 @@ final class BusquedaAcademica
             $grupos['ediciones'] = $q->orderByDesc('fecha_inicio')->limit(self::POR_GRUPO)->get()->map(fn (Convocatoria $c): array => [
                 'identificador' => $c->identificador, 'texto' => $c->codigo, 'detalle' => $c->curso->nombre ?? '',
             ])->all();
+        }
+
+        if ($user->can('pagos.ver')) {
+            $q = TransaccionPago::query()
+                ->where('tipo', 'pago')
+                ->whereNotNull('referencia')
+                ->with(['obligacion.matricula.estudiante:id,nombres,apellidos']);
+            BusquedaLike::contiene($q, ['referencia'], $texto);
+            $grupos['pagos'] = $q->latest('id')->limit(self::POR_GRUPO)->get()->map(function (TransaccionPago $t): array {
+                $est = $t->obligacion?->matricula?->estudiante;
+                $nombre = $est ? trim($est->apellidos.', '.$est->nombres) : 'Pago';
+
+                return [
+                    'identificador' => $t->obligacion->identificador ?? '',
+                    'texto' => 'Op. '.($t->referencia ?? '').' · '.$nombre,
+                    'detalle' => 'S/ '.GestionPagos::formato(GestionPagos::leer($t->monto)).' · '.$t->estado,
+                ];
+            })->filter(fn (array $item): bool => $item['identificador'] !== '')->values()->all();
         }
 
         return array_map(static fn (array $grupo): array => array_values($grupo), $grupos);
