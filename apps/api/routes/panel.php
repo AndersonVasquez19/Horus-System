@@ -164,6 +164,12 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::post('convocatorias/exportar', [Academico\ConvocatoriaController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('convocatorias.exportar');
         Route::get('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'show'])->name('convocatorias.show');
+        Route::get('convocatorias/{identificador}/encuestas', [Academico\ConvocatoriaController::class, 'encuestas'])->name('convocatorias.encuestas');
+        Route::get('convocatorias/{identificador}/calendario.ics', [Academico\ConvocatoriaController::class, 'calendarioIcs'])->name('convocatorias.calendario-ics');
+        Route::post('convocatorias/{identificador}/lista-aula/pdf', [Academico\ConvocatoriaController::class, 'listaAulaPdf'])
+            ->middleware('throttle:admin-export')->name('convocatorias.lista-aula.pdf');
+        Route::post('convocatorias/{identificador}/contactos/csv', [Academico\ConvocatoriaController::class, 'contactosCsv'])
+            ->middleware('throttle:admin-export')->name('convocatorias.contactos.csv');
         // Calificaciones (Ola 3): evaluaciones, notas y acta de una convocatoria.
         Route::get('convocatorias/{identificador}/calificaciones', [Academico\CalificacionController::class, 'index'])->name('calificaciones.index');
         Route::post('convocatorias/{identificador}/acta/exportar', [Academico\CalificacionController::class, 'exportarActa'])
@@ -179,6 +185,7 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         });
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('convocatorias', [Academico\ConvocatoriaController::class, 'store'])->name('convocatorias.store');
+            Route::post('convocatorias/{identificador}/siguiente', [Academico\ConvocatoriaController::class, 'siguiente'])->name('convocatorias.siguiente');
             Route::put('convocatorias/{identificador}', [Academico\ConvocatoriaController::class, 'update'])->name('convocatorias.update');
             Route::post('convocatorias/{identificador}/estado', [Academico\ConvocatoriaController::class, 'estado'])->name('convocatorias.estado');
             Route::put('convocatorias/{identificador}/horarios', [Academico\ConvocatoriaController::class, 'horarios'])->name('convocatorias.horarios');
@@ -207,6 +214,11 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
 
         // Finanzas (Horus Academic, Fase 7): libro de pagos inmutable. El permiso (`pagos.*`) lo declara el controlador.
         Route::get('pagos/metodos', [Academico\PagoController::class, 'metodos'])->name('pagos.metodos');
+        Route::get('pagos/verificar-referencia', [Academico\PagoController::class, 'verificarReferencia'])
+            ->middleware('throttle:admin-opciones')->name('pagos.verificar-referencia');
+        Route::get('pagos/caja-diaria/resumen', [Academico\PagoController::class, 'cajaDiariaResumen'])->name('pagos.caja-diaria.resumen');
+        Route::post('pagos/caja-diaria/pdf', [Academico\PagoController::class, 'cajaDiariaPdf'])
+            ->middleware('throttle:admin-export')->name('pagos.caja-diaria.pdf');
         Route::get('pagos/obligaciones', [Academico\PagoController::class, 'index'])
             ->middleware('throttle:admin-heavy-read')->name('pagos.obligaciones.index');
         Route::get('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'verComprobante'])->middleware('throttle:60,1')->name('pagos.comprobante.ver');
@@ -233,6 +245,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::post('estudiantes/exportar', [Academico\EstudianteController::class, 'exportar'])
             ->middleware('throttle:admin-export')->name('estudiantes.exportar');
         Route::get('estudiantes/{estudiante}', [Academico\EstudianteController::class, 'show'])->whereNumber('estudiante')->name('estudiantes.show');
+        Route::post('estudiantes/{estudiante}/historial/pdf', [Academico\EstudianteController::class, 'historialPdf'])
+            ->whereNumber('estudiante')->middleware('throttle:admin-export')->name('estudiantes.historial.pdf');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('estudiantes', [Academico\EstudianteController::class, 'store'])->name('estudiantes.store');
             Route::put('estudiantes/{estudiante}', [Academico\EstudianteController::class, 'update'])->whereNumber('estudiante')->name('estudiantes.update');
@@ -263,6 +277,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('matriculas', [Academico\MatriculaController::class, 'store'])->name('matriculas.store');
             Route::put('matriculas/{matricula}', [Academico\MatriculaController::class, 'update'])->whereNumber('matricula')->name('matriculas.update');
+            Route::post('matriculas/{matricula}/etiqueta', [Academico\MatriculaController::class, 'etiqueta'])->whereNumber('matricula')->name('matriculas.etiqueta');
+            Route::post('matriculas/{matricula}/encuesta', [Academico\MatriculaController::class, 'encuesta'])->whereNumber('matricula')->name('matriculas.encuesta');
             Route::post('matriculas/{matricula}/anular', [Academico\MatriculaController::class, 'anular'])->whereNumber('matricula')->name('matriculas.anular');
             Route::delete('matriculas/{matricula}', [Academico\MatriculaController::class, 'destroy'])->whereNumber('matricula')->name('matriculas.destroy');
             Route::post('matriculas/{matricula}/restaurar', [Academico\MatriculaController::class, 'restaurar'])->whereNumber('matricula')->name('matriculas.restaurar');

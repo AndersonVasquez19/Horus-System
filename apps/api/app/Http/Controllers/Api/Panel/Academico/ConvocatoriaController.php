@@ -27,6 +27,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Response;
 
 /**
  * Convocatorias y horarios del panel académico. El permiso de cada acción lo declara este controlador
@@ -46,8 +48,9 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:convocatorias.ver', only: ['index', 'show', 'exportar']),
-            new Middleware('permission:convocatorias.crear', only: ['store']),
+            new Middleware('permission:convocatorias.ver', only: ['index', 'show', 'exportar', 'calendarioIcs', 'encuestas']),
+            new Middleware('permission:matriculas.ver', only: ['listaAulaPdf', 'contactosCsv']),
+            new Middleware('permission:convocatorias.crear', only: ['store', 'siguiente']),
             // `estado` exige además `convocatorias.cerrar` para cerrar o cancelar: lo comprueba el servicio.
             new Middleware('permission:convocatorias.editar|convocatorias.cerrar', only: ['estado']),
             new Middleware('permission:convocatorias.editar', only: ['update', 'horarios']),
@@ -182,6 +185,179 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
         $this->gestion->sustituirHorarios($request, $this->buscar($identificador)->identificador, $horarios);
 
         return $this->detalle($this->buscar($identificador), 200, 'El horario se actualizó.', $request->user());
+    }
+
+    /** Crea una nueva edición copiando estructura y horarios de la actual. */
+    public function siguiente(Request $request, string $identificador): JsonResponse
+    {
+        $datos = $request->validate([
+            'fecha_inicio' => ['required', 'date_format:Y-m-d'],
+            'fecha_fin' => ['required', 'date_format:Y-m-d', 'after_or_equal:fecha_inicio'],
+            'nombre' => ['nullable', 'string', 'max:120'],
+            'cupos_maximos' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'abrir' => ['nullable', 'boolean'],
+        ], [
+            'fecha_inicio.required' => 'Indica la fecha de inicio.',
+            'fecha_fin.required' => 'Indica la fecha de fin.',
+            'fecha_fin.after_or_equal' => 'La fecha de fin debe ser igual o posterior al inicio.',
+        ]);
+
+        $origen = $this->buscar($identificador);
+        $nueva = $this->gestion->abrirSiguiente($request, $origen->identificador, $datos);
+
+        return $this->detalle($this->buscar($nueva->identificador), 201, 'La siguiente edición se creó con los mismos horarios.', $request->user());
+    }
+
+    /** Descarga archivo .ics (RFC 5545) con las sesiones vigentes de la edición. */
+    public function calendarioIcs(string $identificador): Response
+    {
+        $convocatoria = $this->buscar($identificador);
+        $sesiones = \App\Models\SesionClase::query()
+            ->where('convocatoria_id', $convocatoria->id)
+            ->where('estado', '!=', 'cancelada')
+            ->orderBy('fecha')
+            ->orderBy('hora_inicio')
+            ->get();
+
+        $cursoNombre = $convocatoria->curso->nombre ?? $convocatoria->codigo;
+        $lineas = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Horus Group//Horus Academic//ES',
+            'CALSCALE:GREGORIAN',
+            'X-WR-CALNAME:'.$this->escaparIcs($cursoNombre.' ('.$convocatoria->codigo.')'),
+        ];
+
+        foreach ($sesiones as $s) {
+            $fechaLimpia = str_replace('-', '', substr((string) $s->fecha, 0, 10));
+            $ini = str_replace(':', '', substr((string) $s->hora_inicio, 0, 5)).'00';
+            $fin = str_replace(':', '', substr((string) $s->hora_fin, 0, 5)).'00';
+            $titulo = 'Sesión '.$s->numero.': '.$cursoNombre.($s->tema ? ' — '.$s->tema : '');
+
+            $lineas[] = 'BEGIN:VEVENT';
+            $lineas[] = 'UID:horus-sesion-'.$s->identificador.'@horusgroup';
+            $lineas[] = 'DTSTART;TZID=America/Lima:'.$fechaLimpia.'T'.$ini;
+            $lineas[] = 'DTEND;TZID=America/Lima:'.$fechaLimpia.'T'.$fin;
+            $lineas[] = 'SUMMARY:'.$this->escaparIcs($titulo);
+            $lineas[] = 'DESCRIPTION:'.$this->escaparIcs('Edición '.$convocatoria->codigo.' · Modalidad: '.$convocatoria->modalidad);
+            $lineas[] = 'END:VEVENT';
+        }
+        $lineas[] = 'END:VCALENDAR';
+
+        return response(implode("\r\n", $lineas)."\r\n", 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"calendario-{$convocatoria->codigo}.ics\"",
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    /** Lista imprimible de aula (PDF de 1 hoja) con los matriculados vigentes de la edición. */
+    public function listaAulaPdf(Request $request, string $identificador): Response
+    {
+        $convocatoria = $this->buscar($identificador);
+        $alumnos = Matricula::query()
+            ->where('convocatoria_id', $convocatoria->id)
+            ->where('estado', '!=', 'anulada')
+            ->with('estudiante:id,dni,nombres,apellidos,telefono')
+            ->get()
+            ->sortBy(fn (Matricula $m): string => ($m->estudiante->apellidos ?? '').' '.($m->estudiante->nombres ?? ''))
+            ->values()
+            ->map(fn (Matricula $m): array => [
+                'dni' => $m->estudiante->dni ?? '—',
+                'nombre' => $m->estudiante ? trim($m->estudiante->apellidos.', '.$m->estudiante->nombres) : '—',
+                'telefono' => $m->estudiante?->telefono,
+            ])
+            ->all();
+
+        $pdf = Pdf::loadView('pdf.lista-aula', [
+            'convocatoria' => $convocatoria,
+            'alumnos' => $alumnos,
+            'fecha' => \App\Support\HoraLocal::ahora()->format('d/m/Y H:i'),
+        ]);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"lista-aula-{$convocatoria->codigo}.pdf\"",
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    /** Exportación CSV de contactos lista para importar a Google Contacts / WhatsApp. */
+    public function contactosCsv(string $identificador): StreamedResponse
+    {
+        $convocatoria = $this->buscar($identificador);
+        $matriculas = Matricula::query()
+            ->where('convocatoria_id', $convocatoria->id)
+            ->where('estado', '!=', 'anulada')
+            ->with('estudiante:id,nombres,apellidos,telefono')
+            ->get();
+
+        $prefijo = $convocatoria->codigo;
+
+        return response()->streamDownload(function () use ($matriculas, $prefijo): void {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Name', 'Phone 1 - Value']);
+            foreach ($matriculas as $m) {
+                $est = $m->estudiante;
+                if ($est === null || ! $est->telefono) {
+                    continue;
+                }
+                $digitos = preg_replace('/\D+/', '', (string) $est->telefono) ?? '';
+                if (strlen($digitos) === 9 && str_starts_with($digitos, '9')) {
+                    $digitos = '+51'.$digitos;
+                }
+                $nombre = $prefijo.' '.trim($est->nombres.' '.$est->apellidos);
+                if (preg_match('/^[=+\-@]/', $nombre) === 1) {
+                    $nombre = "'".$nombre;
+                }
+                fputcsv($out, [$nombre, $digitos]);
+            }
+            fclose($out);
+        }, "contactos-{$convocatoria->codigo}.csv", [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    /** Resumen agregado de encuestas post-clase de la edición. */
+    public function encuestas(string $identificador): JsonResponse
+    {
+        $convocatoria = $this->buscar($identificador);
+        $respondidas = \App\Models\EncuestaCurso::query()
+            ->where('convocatoria_id', $convocatoria->id)
+            ->whereNotNull('respondida_at')
+            ->get();
+
+        $conteos = [1 => 0, 2 => 0, 3 => 0];
+        $sugerencias = [];
+        foreach ($respondidas as $e) {
+            $cal = (int) ($e->calificacion ?? 0);
+            if (isset($conteos[$cal])) {
+                $conteos[$cal]++;
+            }
+            if ($e->sugerencia_curso !== null && trim($e->sugerencia_curso) !== '') {
+                $sugerencias[] = trim($e->sugerencia_curso);
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'total_respondidas' => $respondidas->count(),
+                'triste' => $conteos[1],
+                'normal' => $conteos[2],
+                'feliz' => $conteos[3],
+                'sugerencias' => array_values(array_unique($sugerencias)),
+            ],
+        ]);
+    }
+
+    private function escaparIcs(string $texto): string
+    {
+        return str_replace(["\\", ";", ",", "\r\n", "\n"], ["\\\\", "\\;", "\\,", "\\n", "\\n"], $texto);
     }
 
     private function buscar(string $identificador): Convocatoria

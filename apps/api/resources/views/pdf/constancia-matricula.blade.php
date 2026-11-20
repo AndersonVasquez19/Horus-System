@@ -87,8 +87,30 @@
                     @endif
                 </td>
             </tr>
+            @if (!empty($horarios))
+                <tr>
+                    <td class="font-semibold">Horarios de clase</td>
+                    <td>{{ implode(' · ', $horarios) }}</td>
+                </tr>
+            @endif
         </tbody>
     </table>
+
+    @if (!empty($qrDataUri))
+        <div class="meta-card" style="margin-bottom: 14px; text-align: right;">
+            <table class="meta-table">
+                <tr>
+                    <td style="vertical-align: middle; text-align: left;">
+                        <span class="meta-label">Validación rápida</span>
+                        <span class="meta-value" style="font-size: 11px;">Constancia #{{ $matricula->id }} · {{ strtoupper((string) $matricula->estado) }}</span>
+                    </td>
+                    <td style="width: 82px; text-align: right;">
+                        <img src="{{ $qrDataUri }}" alt="QR Constancia" style="width: 72px; height: 72px;" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+    @endif
 
     @if ($mostrarMontos ?? false)
     <table class="data-table">

@@ -12,14 +12,17 @@ use App\Models\Matricula;
 use App\Services\GestionEstudiantes;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
+use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\HistorialAuditoria;
 use App\Support\Panel\Listado;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -49,7 +52,7 @@ final class EstudianteController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:estudiantes.ver', only: ['index', 'show', 'exportar']),
+            new Middleware('permission:estudiantes.ver', only: ['index', 'show', 'exportar', 'historialPdf']),
             new Middleware('permission:estudiantes.crear', only: ['store']),
             new Middleware('permission:estudiantes.editar', only: ['update']),
             new Middleware('permission:estudiantes.eliminar', only: ['destroy']),
@@ -133,6 +136,38 @@ final class EstudianteController extends Controller implements HasMiddleware
         $modelo = Estudiante::withTrashed()->findOrFail($estudiante);
 
         return response()->json(['data' => $this->detalle($modelo, $request->user()?->can('matriculas.ver') === true)]);
+    }
+
+    /** Descarga el historial académico del estudiante en PDF. */
+    public function historialPdf(Request $request, int $estudiante): Response
+    {
+        $modelo = Estudiante::withTrashed()->findOrFail($estudiante);
+        $matriculas = Matricula::withTrashed()
+            ->where('estudiante_id', $modelo->id)
+            ->with(['curso:id,codigo,nombre', 'convocatoria:id,codigo'])
+            ->orderByDesc('fecha_matricula')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Matricula $m): array => [
+                'id' => $m->id,
+                'curso' => $m->curso ? ($m->curso->codigo.' · '.$m->curso->nombre) : '—',
+                'edicion' => $m->convocatoria?->codigo,
+                'fecha' => $m->fecha_matricula->format('d/m/Y'),
+                'estado' => (string) $m->estado,
+            ])
+            ->all();
+
+        $pdf = Pdf::loadView('pdf.historial-estudiante', [
+            'estudiante' => $modelo,
+            'matriculas' => $matriculas,
+            'fecha' => HoraLocal::ahora()->format('d/m/Y H:i'),
+        ]);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"historial-estudiante-{$modelo->dni}.pdf\"",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     public function store(StoreEstudianteRequest $request): JsonResponse

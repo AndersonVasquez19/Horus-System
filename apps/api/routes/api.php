@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Publico\AcademicoPublicoController;
 use App\Http\Controllers\Api\Publico\CatalogoPublicoController;
 use App\Http\Controllers\Api\Publico\ChatPublicoController;
 use App\Http\Controllers\Api\Publico\ContactoPublicoController;
@@ -25,6 +26,9 @@ Route::prefix('public/v1')->name('api.publico.')->middleware([AutenticarServicio
     Route::get('/cursos', [CatalogoPublicoController::class, 'cursos'])->name('cursos');
     Route::get('/servicios', [CatalogoPublicoController::class, 'servicios'])->name('servicios');
     Route::get('/paginas/{pagina}', [CatalogoPublicoController::class, 'pagina'])->where('pagina', '[a-z-]{1,40}')->name('paginas');
+    Route::get('/ediciones/{codigo}/cronograma', [AcademicoPublicoController::class, 'cronograma'])->name('ediciones.cronograma');
+    Route::get('/encuestas/{identificador}', [AcademicoPublicoController::class, 'verEncuesta'])->whereUuid('identificador')->name('encuestas.show');
+    Route::post('/encuestas/{identificador}', [AcademicoPublicoController::class, 'responderEncuesta'])->whereUuid('identificador')->name('encuestas.responder');
     // Fase 2b: chat de Horus AI; límite propio por visitante además del global del BFF.
     Route::post('/chat', [ChatPublicoController::class, 'mensaje'])->middleware('throttle:chat-bff')->name('chat');
     // Fase 2c.1: Libro de Reclamaciones (solo envío; no hay consulta pública). Apagado, el POST responde 404 antes de leer el cuerpo.

@@ -63,9 +63,9 @@ final class MatriculaController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:matriculas.ver', only: ['index', 'show', 'constancia']),
+            new Middleware('permission:matriculas.ver', only: ['index', 'show', 'constancia', 'encuesta']),
             new Middleware('permission:matriculas.crear', only: ['store']),
-            new Middleware('permission:matriculas.editar', only: ['update']),
+            new Middleware('permission:matriculas.editar', only: ['update', 'etiqueta']),
             new Middleware('permission:matriculas.anular', only: ['anular']),
             new Middleware('permission:matriculas.eliminar', only: ['destroy']),
             new Middleware('permission:matriculas.restaurar', only: ['restaurar']),
@@ -110,11 +110,23 @@ final class MatriculaController extends Controller implements HasMiddleware
     public function constancia(Request $request, int $matricula): Response
     {
         $modelo = Matricula::withTrashed()
-            ->with(['estudiante', 'curso', 'convocatoria', 'obligacionPago.transacciones'])
+            ->with(['estudiante', 'curso', 'convocatoria.horarios', 'obligacionPago.transacciones'])
             ->findOrFail($matricula);
 
         $obligacion = $modelo->obligacionPago;
         $saldos = $obligacion === null ? null : app(GestionPagos::class)->saldos($obligacion);
+
+        $dias = [1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb', 7 => 'Dom'];
+        $horarios = [];
+        if ($modelo->convocatoria !== null) {
+            foreach ($modelo->convocatoria->horarios->sortBy(['dia_semana', 'hora_inicio']) as $h) {
+                $dia = $dias[(int) $h->dia_semana] ?? 'Día '.$h->dia_semana;
+                $horarios[] = $dia.' '.substr((string) $h->hora_inicio, 0, 5).'–'.substr((string) $h->hora_fin, 0, 5);
+            }
+        }
+
+        $qrPayload = sprintf('HORUS-MAT-%d|%s|%s', $modelo->id, (string) $modelo->estado, $modelo->curso->codigo ?? '');
+        $qrDataUri = (new \chillerlan\QRCode\QRCode)->render($qrPayload);
 
         AuditLog::record(
             'matricula_constancia_pdf',
@@ -127,6 +139,8 @@ final class MatriculaController extends Controller implements HasMiddleware
         $pdf = Pdf::loadView('pdf.constancia-matricula', [
             'matricula' => $modelo,
             'saldos' => $saldos,
+            'horarios' => $horarios,
+            'qrDataUri' => $qrDataUri,
             'mostrarMontos' => (bool) $request->user()?->can('pagos.ver'),
             'fecha' => HoraLocal::ahora()->format('d/m/Y H:i'),
         ]);
@@ -160,6 +174,46 @@ final class MatriculaController extends Controller implements HasMiddleware
         return response()->json([
             'message' => 'La matrícula se actualizó correctamente.',
             'data' => $this->detalle($actualizada->refresh()->load(['estudiante', 'curso', 'convocatoria', 'obligacionPago.transacciones']), false),
+        ]);
+    }
+
+    /** Asigna o limpia la etiqueta operativa fija de una matrícula. */
+    public function etiqueta(Request $request, int $matricula): JsonResponse
+    {
+        $datos = $request->validate([
+            'etiqueta' => ['nullable', 'string', 'in:factura,becado,seguimiento,empresa'],
+        ]);
+
+        $modelo = Matricula::query()->findOrFail($matricula);
+        $modelo->setAttribute('etiqueta', $datos['etiqueta'] ?? null);
+        $modelo->save();
+
+        return response()->json([
+            'message' => 'Etiqueta actualizada.',
+            'data' => ['etiqueta' => $modelo->getAttribute('etiqueta')],
+        ]);
+    }
+
+    /** Crea o devuelve el enlace de encuesta post-clase de la matrícula. */
+    public function encuesta(int $matricula): JsonResponse
+    {
+        $modelo = Matricula::query()->findOrFail($matricula);
+        abort_if($modelo->convocatoria_id === null, 422, 'La matrícula debe pertenecer a una edición.');
+
+        $encuesta = \App\Models\EncuestaCurso::query()->where('matricula_id', $modelo->id)->first();
+        if ($encuesta === null) {
+            $encuesta = new \App\Models\EncuestaCurso();
+            $encuesta->identificador = (string) \Illuminate\Support\Str::uuid();
+            $encuesta->matricula_id = $modelo->id;
+            $encuesta->convocatoria_id = (int) $modelo->convocatoria_id;
+            $encuesta->save();
+        }
+
+        return response()->json([
+            'data' => [
+                'identificador' => $encuesta->identificador,
+                'respondida' => $encuesta->respondida_at !== null,
+            ],
         ]);
     }
 
@@ -423,6 +477,7 @@ final class MatriculaController extends Controller implements HasMiddleware
                 'codigo' => $convocatoria->codigo,
             ],
             'estado' => $matricula->estado,
+            'etiqueta' => $matricula->getAttribute('etiqueta'),
             'estado_cobro' => $estadoCobro,
             'obligacion_identificador' => $obligacion?->identificador,
             'saldo_cobro' => $saldoCobro,
