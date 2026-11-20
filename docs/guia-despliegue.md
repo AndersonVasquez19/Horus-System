@@ -7,6 +7,7 @@ No duplica lo ya escrito; lo enlaza:
 - Seguridad, secretos, CSP y sesiones: [`seguridad-l1.1.md`](seguridad-l1.1.md) (§8 y §9).
 - Migraciones, correo con Resend y Libro de Reclamaciones: [`sprint-15-preparacion-integracion.md`](sprint-15-preparacion-integracion.md) (§8.4 es la lista explícita de migraciones).
 - Operación de Horus AI: [`horus-ai-operacion.md`](horus-ai-operacion.md).
+- Despliegue gestionado (web en Vercel; API, chatbot y PostgreSQL en Railway): [`despliegue-vercel-railway.md`](despliegue-vercel-railway.md).
 - Registro de cambios del panel y migraciones aplicadas: [`auditoria-panel-2026-11.md`](auditoria-panel-2026-11.md).
 
 ## 1. Requisitos
