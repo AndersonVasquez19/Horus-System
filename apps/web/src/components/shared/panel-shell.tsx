@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { ShieldAlert, WifiOff } from 'lucide-react';
 import { Suspense, type ReactNode } from 'react';
 import { LogoHorus, MarcaHorus } from './marca-horus';
@@ -64,6 +65,7 @@ export function PanelShell({ tono, titulo, navegacion, children }: PanelShellPro
 }
 
 async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellProps) {
+  await connection();
   const resultado = await obtenerSesion();
 
   if (resultado.estado === 'anonimo') redirect(urlLogin(`/admin/${tono}`));
