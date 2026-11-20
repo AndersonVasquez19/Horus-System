@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { obtenerCursos } from '@/lib/horus-api';
+import { obtenerCursos, urlPublicaImagen } from '@/lib/horus-api';
 import CursosView, { type EstadoCatalogo } from './cursos-view';
 
 /**
@@ -14,7 +14,14 @@ async function CatalogoDesdeLaravel() {
   if (!resultado.ok) estado = 'no_disponible';
   else if (!resultado.data.habilitado) estado = 'apagado';
 
-  return <CursosView cursos={resultado.ok ? resultado.data.cursos : []} estado={estado} />;
+  const cursos = resultado.ok
+    ? resultado.data.cursos.map((curso) => ({
+        ...curso,
+        imagen_url: urlPublicaImagen(curso.imagen_url ?? null),
+      }))
+    : [];
+
+  return <CursosView cursos={cursos} estado={estado} />;
 }
 
 export default function CursosPage() {
