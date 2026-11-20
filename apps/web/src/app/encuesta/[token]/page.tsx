@@ -11,6 +11,9 @@ interface EncuestaPublica {
   };
 }
 
+// Lee Laravel por petición (params + horusGet): sin esto `cacheComponents` intenta prerenderizarla y el build falla.
+export const instant = false;
+
 export default async function EncuestaPublicaPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const res = await horusGet<EncuestaPublica>(`/encuestas/${encodeURIComponent(token)}`);
