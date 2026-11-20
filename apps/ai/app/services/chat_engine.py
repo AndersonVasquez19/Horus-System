@@ -753,6 +753,14 @@ class AdvisorEngine:
         # 4. Atributo no publicado sobre un tema concreto.
         unavailable = [a for a in u.attributes if a in self.kb.intents.unavailable_attributes]
         if unavailable:
+            if (
+                unavailable == ["contenido"]
+                and hits
+                and hits[0].record.stable_id is not None
+                and hits[0].record.status == "verified"
+                and hits[0].score >= ANSWER_THRESHOLD
+            ):
+                return self._answer_from_hits(hits, terms)
             reply = self._unavailable_attribute(unavailable, u, hits, current)
             if reply is not None:
                 return reply
@@ -764,20 +772,41 @@ class AdvisorEngine:
         if (u.attributes and set(u.attributes) != {"audiencia"} and hits
             and hits[0].record.stable_id is not None and hits[0].record.status == "verified"
             and hits[0].score >= ANSWER_THRESHOLD and not (plan and plan.browse)
-            and (len(hits) == 1 or hits[0].score - hits[1].score >= AMBIGUITY_MARGIN)):
+            and (len(hits) == 1 or hits[1].record.stable_id is None or hits[0].score - hits[1].score >= AMBIGUITY_MARGIN)):
             return self._followup([hits[0].record], u)
         if plan is not None:
             if plan.enrollment:
                 contact = self.kb.get(self.kb.intents.human_handoff.record_id)
+                sources = [self._source(contact)] if contact else []
+                prefix = ""
+                if (
+                    hits
+                    and hits[0].record.source.kind == "catalogo_laravel"
+                    and hits[0].record.status == "verified"
+                    and hits[0].score >= ANSWER_THRESHOLD
+                ):
+                    rec = hits[0].record
+                    sources.insert(0, self._source(rec))
+                    detalles = []
+                    if rec.modalities:
+                        detalles.append("modalidad " + ", ".join(MODALITY_LABEL[m] for m in rec.modalities))
+                    if rec.schedule:
+                        detalles.append(f"horario {rec.schedule}")
+                    extra = f" ({'; '.join(detalles)})" if detalles else ""
+                    prefix = f"Para el curso «{rec.title}»{extra}: "
                 return self._reply(
-                    answer=("Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: "
+                    answer=(f"{prefix}Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: "
                             f"{WHATSAPP_MATRICULA_URL}. No compartas datos personales en este chat."),
                     intent="enrollment_request", match_level="alta",
-                    sources=[self._source(contact)] if contact else [],
+                    sources=sources,
                 )
             if plan.ambiguous:
                 return self._clarify_goal()
             if plan.browse:
+                if plan.goal == "learn" and self.kb.catalog is not None and not self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+                    catalog_reply = self._browse_courses_reply(current.modality, recommend=False)
+                    if catalog_reply is not None:
+                        return catalog_reply
                 listing_id = "cat_listado_formacion" if plan.goal == "learn" else "cat_listado_servicios"
                 listing = self.kb.get(listing_id)
                 if listing is not None and not self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
@@ -788,6 +817,10 @@ class AdvisorEngine:
                     intent="unavailable_info", match_level="ninguna", abstained=True)
             if plan.recommend:
                 if not plan.subject:
+                    if plan.goal == "learn" and self.kb.catalog is not None and not self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+                        catalog_reply = self._browse_courses_reply(current.modality, recommend=True)
+                        if catalog_reply is not None:
+                            return catalog_reply
                     return self._clarify_goal()
                 if unpublished:
                     return self._unpublished_topic(plan.goal, corrected)
@@ -963,6 +996,65 @@ class AdvisorEngine:
             evidence_text=evidence,
             next_step=f"Para consultar la {action}, continúa por el WhatsApp oficial: {url}.",
             match_level=_retrieval_level(hit.score), url_path=record.source.url_path)
+
+    def _browse_courses_reply(self, modality: str, recommend: bool) -> AdvisorReply | None:
+        courses = [
+            r for r in self.kb.search_records
+            if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
+        ]
+        if not courses:
+            return None
+        if modality != "cualquiera":
+            matches = [
+                r for r in courses
+                if modality in {"virtual" if m == "online" else m for m in r.modalities}
+            ]
+            if len(matches) == 1 and recommend and matches[0].kind == "course":
+                rec = matches[0]
+                return self._reply(
+                    answer=rec.answer,
+                    intent="course_recommendation",
+                    match_level="alta",
+                    sources=[self._source(rec)],
+                    recommendations=[self._recommendation(Hit(record=rec, score=1.0))],
+                )
+            if matches:
+                titles = ", ".join(r.title for r in matches[:8])
+                return self._reply(
+                    answer=(f"En modalidad {MODALITY_LABEL[modality]} están vigentes: {titles}. "
+                            "Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su horario o detalles."),
+                    intent="training_info",
+                    match_level="alta",
+                    sources=[self._source(r) for r in matches[:5]],
+                )
+            other = ", ".join(
+                f"{r.title} ({', '.join(MODALITY_LABEL[m] for m in r.modalities)})" if r.modalities else r.title
+                for r in courses[:6]
+            )
+            return self._reply(
+                answer=f"Por ahora no hay cursos publicados en modalidad {MODALITY_LABEL[modality]}. En otras modalidades están vigentes: {other}.",
+                intent="training_info",
+                match_level="media",
+                sources=[self._source(r) for r in courses[:5]],
+            )
+        if recommend and len(courses) == 1 and courses[0].kind == "course":
+            rec = courses[0]
+            return self._reply(
+                answer=rec.answer,
+                intent="course_recommendation",
+                match_level="alta",
+                sources=[self._source(rec)],
+                recommendations=[self._recommendation(Hit(record=rec, score=1.0))],
+            )
+        listing = self.kb.get("cat_listado_formacion")
+        if listing is None:
+            return None
+        return self._reply(
+            answer=listing.answer,
+            intent="training_info",
+            match_level="alta",
+            sources=[self._source(listing)],
+        )
 
     def _clarify_goal(self) -> AdvisorReply:
         return self._reply(answer="Puedo ayudarte a encontrar información publicada de Horus Group.",
