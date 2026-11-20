@@ -156,6 +156,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::delete('cursos/{curso}', [Academico\CursoController::class, 'destroy'])->whereNumber('curso')->name('cursos.destroy');
             Route::post('cursos/{curso}/restaurar', [Academico\CursoController::class, 'restaurar'])->whereNumber('curso')->name('cursos.restaurar');
             Route::put('cursos/{curso}/publicacion', [Academico\CursoPublicacionController::class, 'update'])->whereNumber('curso')->name('cursos.publicacion.update');
+            Route::post('cursos/{curso}/publicacion/imagen', [Academico\CursoPublicacionController::class, 'subirImagen'])->whereNumber('curso')->name('cursos.publicacion.imagen');
+            Route::post('cursos/{curso}/publicacion/imagen/eliminar', [Academico\CursoPublicacionController::class, 'eliminarImagen'])->whereNumber('curso')->name('cursos.publicacion.imagen.eliminar');
             Route::post('cursos/{curso}/publicacion/retirar', [Academico\CursoPublicacionController::class, 'retirar'])->whereNumber('curso')->name('cursos.publicacion.retirar');
         });
 
