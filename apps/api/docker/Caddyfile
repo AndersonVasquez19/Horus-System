@@ -1,0 +1,19 @@
+# FrankenPHP para Railway. Railway termina TLS en su borde y reenvía HTTP al puerto $PORT del contenedor.
+{
+	frankenphp
+	admin off
+	auto_https off
+	persist_config off
+}
+
+:{$PORT:8080} {
+	root * /srv/horus/api/public
+	encode zstd gzip
+
+	# Archivos ocultos (.htaccess, .env) y registros nunca se sirven, aunque existieran en public/.
+	@bloqueados path_regexp (/\.|\.(log|sqlite)$)
+	respond @bloqueados 404
+
+	# /api/panel/v1/* y /api/public/v1/* siguen protegidos por el token del BFF (X-Horus-Web-Token) en Laravel.
+	php_server
+}
