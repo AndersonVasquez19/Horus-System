@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarPlus, Check, Pencil, Plus, Wand2, X } from 'lucide-react';
+import { CalendarPlus, Check, Copy, Pencil, Plus, Wand2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ import { Dialogo } from '@/components/shared/ui/dialogo';
 import { Insignia } from '@/components/shared/ui/insignia';
 import type { SesionClase } from '@/features/academico/tipos';
 import { fecha } from '@/lib/panel/formato';
+import { copiarAlPortapapeles, mensajeAvisoSesion } from '@/lib/panel/whatsapp-plantillas';
 
 const ESTADOS = { programada: 'Programada', realizada: 'Realizada', cancelada: 'Cancelada' } as const;
 const COLORES = { programada: 'azul', realizada: 'verde', cancelada: 'rojo' } as const;
@@ -104,6 +105,25 @@ export function PanelSesionesEdicion({ convocatoriaId, sesiones, total, editable
               </div>
               {s.estado === 'programada' ? (
                 <div className="flex flex-wrap gap-1">
+                  <Boton
+                    variante="fantasma"
+                    icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+                    onClick={async () => {
+                      const ok = await copiarAlPortapapeles(
+                        mensajeAvisoSesion({
+                          curso: 'Clase programada',
+                          numero: s.numero,
+                          fecha: fecha(s.fecha),
+                          horaInicio: s.hora_inicio,
+                          horaFin: s.hora_fin,
+                          tema: s.tema,
+                        }),
+                      );
+                      mostrar(ok ? 'exito' : 'error', ok ? 'Aviso de sesión copiado para WhatsApp.' : 'No se pudo copiar al portapapeles.');
+                    }}
+                  >
+                    Copiar aviso
+                  </Boton>
                   {puedeEditar ? <Boton variante="fantasma" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => setFormulario(s)}>Editar</Boton> : null}
                   {puedeEditar ? <Boton variante="fantasma" icono={<Check className="h-4 w-4" aria-hidden="true" />} onClick={() => accion(`academico/sesiones/${s.identificador}/realizada`, 'POST', {}, 'La sesión se marcó como realizada.')}>Marcar realizada</Boton> : null}
                   {puedeCancelar ? <Boton variante="fantasma" icono={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => setCancelando(s)}>Cancelar</Boton> : null}

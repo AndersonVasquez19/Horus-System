@@ -11,6 +11,7 @@ import { CampanaNotificaciones, CampanaSinConteo, obtenerInsigniasNavegacion } f
 import { MarcaPanel } from './marca-panel';
 import { MenuUsuarioPanel } from './menu-usuario-panel';
 import { PanelNavegacion } from './panel-navegacion';
+import { PaletaComandos } from './paleta-comandos';
 import { filtrarNavegacion, type ModeloNavegacion, type TonoPanel } from './panel-tipos';
 import { RenovadorSesion } from './renovador-sesion';
 import { ProveedorSesionPanel } from './sesion-panel-contexto';
@@ -117,6 +118,7 @@ async function GuardiaPanel({ tono, titulo, navegacion, children }: PanelShellPr
           titulo={titulo}
           acciones={
             <>
+              <PaletaComandos />
               <Suspense fallback={<CampanaSinConteo tono={tono} />}>
                 <CampanaNotificaciones tono={tono} />
               </Suspense>

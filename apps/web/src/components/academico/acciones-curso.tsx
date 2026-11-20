@@ -10,6 +10,7 @@ import { Boton } from '@/components/shared/ui/boton';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
 import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import type { CursoDetalle, CursoResumen } from '@/features/academico/tipos';
+import { copiarAlPortapapeles, mensajeFichaCurso } from '@/lib/panel/whatsapp-plantillas';
 import { FormularioCurso } from './formulario-curso';
 
 const LISTADO = '/admin/academico/cursos';
@@ -128,6 +129,25 @@ export function AccionesCurso({ curso }: { curso: CursoDetalle }) {
               Copiar enlace público
             </Boton>
           ) : null}
+          <Boton
+            variante="fantasma"
+            icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+            onClick={async () => {
+              const ok = await copiarAlPortapapeles(
+                mensajeFichaCurso({
+                  nombre: curso.nombre,
+                  modalidad: curso.modalidad,
+                  duracionHoras: curso.duracion_horas,
+                  precio: curso.precio,
+                  descripcion: curso.descripcion,
+                  urlPublica: curso.publicado ? urlCatalogoPublico() : null,
+                }),
+              );
+              mostrar(ok ? 'exito' : 'error', ok ? 'Ficha del curso copiada para WhatsApp.' : 'No se pudo copiar.');
+            }}
+          >
+            Copiar informes
+          </Boton>
           {puedeCrear ? (
             <Boton variante="secundario" icono={<Copy className="h-4 w-4" aria-hidden="true" />} onClick={duplicar} cargando={duplicando}>
               Duplicar

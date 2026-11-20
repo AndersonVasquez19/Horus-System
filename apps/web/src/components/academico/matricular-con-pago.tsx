@@ -1,9 +1,9 @@
 'use client';
 
-import { HandCoins } from 'lucide-react';
+import { Copy, HandCoins } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useFormularioPanel } from '@/components/shared/use-formulario-panel';
@@ -14,6 +14,7 @@ import { Boton } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
 import { Dialogo } from '@/components/shared/ui/dialogo';
 import { SelectorRemoto, type OpcionRemota } from '@/components/shared/ui/selector-remoto';
+import { copiarAlPortapapeles, mensajeBienvenidaMatricula } from '@/lib/panel/whatsapp-plantillas';
 
 const IMPORTE = /^(0|[1-9]\d{0,7})(\.\d{1,2})?$/;
 const MAX_CAPTURA = 3 * 1024 * 1024;
@@ -70,6 +71,7 @@ function Formulario({ convocatoria, precio, onOcupado, onCerrar }: { convocatori
   const [errorEstudiante, setErrorEstudiante] = useState<string | undefined>();
   const [captura, setCaptura] = useState<File | null>(null);
   const [errorCaptura, setErrorCaptura] = useState<string | undefined>();
+  const [alertaReferencia, setAlertaReferencia] = useState<string | null>(null);
   const [creada, setCreada] = useState<{ obligacion: string } | null>(null);
   // Una intención = una clave: si la red falla y se reintenta, Laravel devuelve lo ya creado sin duplicar nada.
   const clave = useRef(crypto.randomUUID());
@@ -115,11 +117,52 @@ function Formulario({ convocatoria, precio, onOcupado, onCerrar }: { convocatori
     },
   });
 
+  const refActual = f.form.watch('referencia');
+  useEffect(() => {
+    const limpio = (refActual ?? '').trim();
+    if (limpio.length < 3) {
+      setAlertaReferencia(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const r = await ejecutar<{ data: { duplicada: boolean; coincidencias: { matricula_id: number; fecha_pago: string }[] } }>(
+        `academico/pagos/verificar-referencia?referencia=${encodeURIComponent(limpio)}`,
+        'GET',
+      );
+      if (r.ok && r.datos.data.duplicada) {
+        const primera = r.datos.data.coincidencias[0];
+        setAlertaReferencia(
+          primera
+            ? `Advertencia: este código de operación ya se registró en la matrícula #${primera.matricula_id} (${primera.fecha_pago}).`
+            : 'Advertencia: este código de operación ya fue registrado anteriormente.',
+        );
+      } else {
+        setAlertaReferencia(null);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [ejecutar, refActual]);
+
   if (creada) {
     return (
       <div className="space-y-4">
         <Alerta tipo="exito">La matrícula quedó registrada, pagada y con su comprobante.</Alerta>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Boton
+            variante="fantasma"
+            icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+            onClick={async () => {
+              const ok = await copiarAlPortapapeles(
+                mensajeBienvenidaMatricula({
+                  estudiante: estudiante?.texto ?? 'estudiante',
+                  curso: 'tu curso en Horus Group',
+                }),
+              );
+              mostrar(ok ? 'exito' : 'error', ok ? 'Mensaje de bienvenida copiado para WhatsApp.' : 'No se pudo copiar.');
+            }}
+          >
+            Copiar bienvenida
+          </Boton>
           <Link href={`/admin/academico/pagos/${creada.obligacion}`} className="text-sm font-semibold text-academico-700 hover:underline sm:self-center">Ver el pago</Link>
           <Boton onClick={onCerrar}>Cerrar</Boton>
         </div>
@@ -143,6 +186,7 @@ function Formulario({ convocatoria, precio, onOcupado, onCerrar }: { convocatori
         <Campo etiqueta="Fecha del pago" type="date" {...f.registro('fecha_pago')} error={f.error('fecha_pago')} />
       </div>
       <Campo etiqueta="Código de operación Yape (opcional)" {...f.registro('referencia')} error={f.error('referencia')} />
+      {alertaReferencia ? <Alerta tipo="aviso">{alertaReferencia}</Alerta> : null}
       <Campo
         etiqueta="Captura del comprobante de Yape"
         type="file"
