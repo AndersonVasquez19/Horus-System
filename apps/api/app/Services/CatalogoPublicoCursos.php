@@ -8,30 +8,60 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
+use stdClass;
 
 class CatalogoPublicoCursos
 {
     /** @return list<array{titulo: string, resumen: string, modalidad: string, horario: ?string, inscripcion: ?string, vigente_desde: string, vigente_hasta: string}> */
     public function vigentes(): array
     {
-        return $this->consultar(false);
+        return array_map(
+            static fn (object $p): array => [
+                'titulo' => (string) $p->titulo,
+                'resumen' => (string) $p->resumen,
+                'modalidad' => (string) $p->modalidad,
+                'horario' => $p->horario === null ? null : (string) $p->horario,
+                'inscripcion' => $p->inscripcion === null ? null : (string) $p->inscripcion,
+                'vigente_desde' => substr((string) $p->vigente_desde, 0, 10),
+                'vigente_hasta' => substr((string) $p->vigente_hasta, 0, 10),
+            ],
+            $this->consultarFilas(false),
+        );
     }
 
     /**
      * Contrato de lectura para una conexión futura de la web; no es un endpoint.
      *
-     * @return array{version: string, habilitado: bool, total: int, cursos: list<array{titulo: string, resumen: string, modalidad: string, horario: ?string, inscripcion: ?string, vigente_desde: string, vigente_hasta: string}>}
+     * @return array{version: string, habilitado: bool, total: int, cursos: list<array{titulo: string, resumen: string, imagen_url: ?string, modalidad: string, horario: ?string, fecha_inicio: ?string, duracion: ?string, certificacion: ?string, temario: ?string, inscripcion: ?string, vigente_desde: string, vigente_hasta: string}>}
      */
     public function paraWeb(): array
     {
         $habilitado = (bool) config('catalogo-publico.enabled', false);
-        $fichas = $habilitado ? $this->consultar(true) : [];
+        $fichas = $habilitado
+            ? array_map(
+                static fn (stdClass $p): array => [
+                    'titulo' => (string) $p->titulo,
+                    'resumen' => (string) $p->resumen,
+                    'imagen_url' => ImagenesCursos::url(isset($p->imagen_ruta) ? (string) $p->imagen_ruta : null),
+                    'modalidad' => (string) $p->modalidad,
+                    'horario' => $p->horario === null ? null : (string) $p->horario,
+                    'fecha_inicio' => isset($p->fecha_inicio) ? substr((string) $p->fecha_inicio, 0, 10) : null,
+                    'duracion' => isset($p->duracion) ? (string) $p->duracion : null,
+                    'certificacion' => isset($p->certificacion) ? (string) $p->certificacion : null,
+                    'temario' => isset($p->temario) ? (string) $p->temario : null,
+                    'inscripcion' => $p->inscripcion === null ? null : (string) $p->inscripcion,
+                    'vigente_desde' => substr((string) $p->vigente_desde, 0, 10),
+                    'vigente_hasta' => substr((string) $p->vigente_hasta, 0, 10),
+                ],
+                $this->consultarFilas(true),
+            )
+            : [];
 
         return ['version' => '1.0', 'habilitado' => $habilitado, 'total' => count($fichas), 'cursos' => $fichas];
     }
 
-    /** @return list<array{titulo: string, resumen: string, modalidad: string, horario: ?string, inscripcion: ?string, vigente_desde: string, vigente_hasta: string}> */
-    private function consultar(bool $autorizacionActual): array
+    /** @return list<stdClass> */
+    private function consultarFilas(bool $autorizacionActual): array
     {
         // Un despliegue sin esta migración nunca convierte datos administrativos en públicos.
         if (! Schema::hasTable('curso_publicaciones')) {
@@ -55,12 +85,11 @@ class CatalogoPublicoCursos
                 ->whereIn('p.autorizado_por', $autores);
         }
 
-        return array_values($consulta->get(['p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta'])
-            ->map(fn (object $p): array => [
-                'titulo' => (string) $p->titulo, 'resumen' => (string) $p->resumen, 'modalidad' => (string) $p->modalidad,
-                'horario' => $p->horario === null ? null : (string) $p->horario,
-                'inscripcion' => $p->inscripcion === null ? null : (string) $p->inscripcion,
-                'vigente_desde' => substr((string) $p->vigente_desde, 0, 10), 'vigente_hasta' => substr((string) $p->vigente_hasta, 0, 10),
-            ])->all());
+        $columnas = ['p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta'];
+        if ($autorizacionActual) {
+            $columnas = [...$columnas, 'p.imagen_ruta', 'p.fecha_inicio', 'p.duracion', 'p.certificacion', 'p.temario'];
+        }
+
+        return array_values($consulta->get($columnas)->all());
     }
 }
