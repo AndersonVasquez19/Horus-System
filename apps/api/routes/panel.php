@@ -221,6 +221,8 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::get('pagos/caja-diaria/resumen', [Academico\PagoController::class, 'cajaDiariaResumen'])->name('pagos.caja-diaria.resumen');
         Route::post('pagos/caja-diaria/pdf', [Academico\PagoController::class, 'cajaDiariaPdf'])
             ->middleware('throttle:admin-export')->name('pagos.caja-diaria.pdf');
+        Route::get('pagos/comprobantes', [Academico\PagoController::class, 'comprobantes'])
+            ->middleware('throttle:admin-heavy-read')->name('pagos.comprobantes.index');
         Route::get('pagos/obligaciones', [Academico\PagoController::class, 'index'])
             ->middleware('throttle:admin-heavy-read')->name('pagos.obligaciones.index');
         Route::get('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'verComprobante'])->middleware('throttle:60,1')->name('pagos.comprobante.ver');
@@ -230,6 +232,7 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::get('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'deMatricula'])->whereNumber('matricula')->name('pagos.obligaciones.matricula');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'crearObligacion'])->whereNumber('matricula')->name('pagos.obligaciones.store');
+            Route::post('matriculas/{matricula}/pagos', [Academico\PagoController::class, 'registrarDeMatricula'])->whereNumber('matricula')->name('pagos.registrar-matricula');
             Route::post('pagos/obligaciones/{obligacion}/pagos', [Academico\PagoController::class, 'registrar'])->name('pagos.registrar');
             Route::post('pagos/obligaciones/{obligacion}/anular', [Academico\PagoController::class, 'anular'])->name('pagos.obligaciones.anular');
             Route::post('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'adjuntarComprobante'])->name('pagos.comprobante.adjuntar');

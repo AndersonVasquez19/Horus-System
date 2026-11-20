@@ -72,6 +72,15 @@ class GestionMatriculaConPago
         // La imagen se guarda antes (decodifica y vuelve a codificar; rechaza lo corrupto) y se borra si algo falla después.
         $guardado = $this->comprobantes->guardar($imagen);
 
+        // Aquí el pago se confirma en el acto: no queda una persona que revise después, así que la misma captura de otro pago vigente se
+        // rechaza (en los demás flujos solo se avisa, porque confirmar es otro paso).
+        $repetida = $this->pagos->imagenYaUsada($guardado['sha256']);
+        if ($repetida !== null) {
+            $this->comprobantes->borrar($guardado['ruta']);
+
+            throw ValidationException::withMessages(['imagen' => "Esta captura ya se usó en un pago de la matrícula #{$repetida['matricula_id']} ({$repetida['fecha_pago']}). Sube el comprobante de este pago."]);
+        }
+
         try {
             return DB::transaction(function () use ($request, $datos, $clave, $convocatoria, $monto, $referencia, $guardado, $actor): array {
                 $matricula = $this->matriculas->crear([

@@ -138,6 +138,10 @@ class RolesAndPermissionsSeeder extends Seeder
         'reportes.exportar.pdf',
         'asistente.ver',
         'respaldo.ver',
+        // Pagos (decisión del propietario, 20/11/2026): ver y registrar, igual que secretaría. Así conserva el tope de roles para gestionar
+        // sus cuentas. Confirmar, reversar, planificar y exportar siguen solo en admin.
+        'pagos.ver',
+        'pagos.registrar',
         ...self::CONVOCATORIAS_PERMISSIONS,
         ...self::CALIFICACIONES_PERMISSIONS,
         ...self::SESIONES_PERMISSIONS,
@@ -159,6 +163,9 @@ class RolesAndPermissionsSeeder extends Seeder
         'calificaciones.registrar',
         'sesiones.ver',
         'asistencias.ver',
+        // Pagos (decisión del propietario, 20/11/2026): secretaría sube los comprobantes. Confirmar, reversar, planificar y exportar siguen solo en admin.
+        'pagos.ver',
+        'pagos.registrar',
     ];
 
     /** Roles con acceso al panel /admin (ver routes/web.php). */

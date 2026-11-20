@@ -469,6 +469,7 @@ final class MatriculaController extends Controller implements HasMiddleware
                 'id' => $curso->id,
                 'codigo' => $curso->codigo,
                 'nombre' => $curso->nombre,
+                'precio' => GestionPagos::formato(GestionPagos::leer($curso->precio)),
                 'enlace_grupo_whatsapp' => $matricula->estado !== 'anulada' ? \App\Models\Curso::enlaceGrupoVisible($curso->enlace_grupo_whatsapp) : null,
                 'eliminado' => $curso->trashed(),
             ],

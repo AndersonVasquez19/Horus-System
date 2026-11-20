@@ -77,55 +77,108 @@ class GestionPagos
         return DB::transaction(function () use ($request, $matriculaId, $datos): ObligacionPago {
             $matricula = Matricula::query()->lockForUpdate()->findOrFail($matriculaId);
             $autor = $this->autorizar($request, 'pagos.planificar');
-            abort_if($matricula->trashed() || $matricula->estado === 'anulada', 409, 'La matrícula no admite obligaciones de pago.');
-            abort_if($matricula->convocatoria_id === null, 409, 'Solo las matrículas con edición tienen obligaciones de pago.');
-            if (ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->exists()) {
-                throw ValidationException::withMessages(['plan' => 'La matrícula ya tiene una obligación de pago vigente.']);
-            }
 
-            $total = self::centimos($datos['monto_total'], 'monto_total');
-            $cuotas = [];
-            if ($datos['plan'] === 'completo') {
-                if (! empty($datos['cuotas'])) {
-                    throw ValidationException::withMessages(['cuotas' => 'El pago completo no lleva cuotas.']);
-                }
-                $cuotas[] = ['monto' => $total, 'vence' => CarbonImmutable::now('America/Lima')->toDateString()];
-            } else {
-                $lista = $datos['cuotas'] ?? [];
-                if (count($lista) < 2 || count($lista) > self::MAX_CUOTAS) {
-                    throw ValidationException::withMessages(['cuotas' => 'Un plan fraccionado lleva entre 2 y '.self::MAX_CUOTAS.' cuotas.']);
-                }
-                $previa = '';
-                foreach ($lista as $i => $c) {
-                    $vence = $c['vence'];
-                    if ($vence < $previa) {
-                        throw ValidationException::withMessages(["cuotas.{$i}.vence" => 'Las cuotas deben ir en orden de vencimiento.']);
-                    }
-                    $previa = $vence;
-                    $cuotas[] = ['monto' => self::centimos($c['monto'] ?? null, "cuotas.{$i}.monto"), 'vence' => $vence];
-                }
-                if (array_sum(array_column($cuotas, 'monto')) !== $total) {
-                    throw ValidationException::withMessages(['cuotas' => 'La suma de las cuotas debe igualar el monto total.']);
-                }
-            }
-
-            $obligacion = new ObligacionPago;
-            $obligacion->identificador = (string) Str::uuid();
-            $obligacion->matricula_id = $matricula->id;
-            $obligacion->concepto = $datos['concepto'];
-            $obligacion->plan = $datos['plan'];
-            $obligacion->monto_total = self::formato($total);
-            $obligacion->moneda = 'PEN';
-            $obligacion->estado = 'vigente';
-            $obligacion->creado_por = $autor->id;
-            $obligacion->save();
-            foreach ($cuotas as $n => $c) {
-                CuotaObligacion::query()->create(['obligacion_pago_id' => $obligacion->id, 'numero' => $n + 1, 'monto' => self::formato($c['monto']), 'vence' => $c['vence']]);
-            }
-            AuditLog::record('obligacion_pago_creada', ObligacionPago::class, $obligacion->id, ['matricula' => $matricula->id, 'plan' => $obligacion->plan, 'monto_total' => $obligacion->monto_total, 'cuotas' => count($cuotas)], $autor->id);
-
-            return $obligacion;
+            return $this->crearObligacionBloqueada($matricula, $autor, $datos);
         });
+    }
+
+    /**
+     * Registra un pago sobre una MATRÍCULA. Si todavía no tiene obligación vigente, la crea en la misma transacción como pago
+     * completo por el precio del curso: quien cobra no planifica nada, solo sube lo que la persona pagó. Basta `pagos.registrar`
+     * (crear la obligación aquí es una consecuencia del pago, no una planificación); confirmar sigue exigiendo `pagos.confirmar`.
+     * Reutiliza {@see self::registrarPago()}: mismas reglas de importe, saldo, fecha, método e idempotencia.
+     *
+     * @param  array{metodo: string, monto: mixed, fecha_pago: string, referencia?: ?string, confirmar?: bool}  $datos
+     * @return array{0: TransaccionPago, 1: ObligacionPago, 2: bool} el pago, su obligación y si se creó ahora (false = repetición idempotente)
+     */
+    public function registrarPagoDeMatricula(Request $request, int $matriculaId, array $datos, ?string $clave): array
+    {
+        if ($clave === null || ! preg_match('/\A[A-Za-z0-9_-]{8,64}\z/', $clave)) {
+            abort(428, 'Envía una Idempotency-Key (8 a 64 caracteres) por cada intención de pago.');
+        }
+
+        return DB::transaction(function () use ($request, $matriculaId, $datos, $clave): array {
+            // Orden de bloqueo: matrícula → obligación (dentro de registrarPago) → transacción.
+            $matricula = Matricula::query()->lockForUpdate()->findOrFail($matriculaId);
+            $autor = $this->autorizar($request, 'pagos.registrar');
+
+            $obligacion = ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->first();
+            if ($obligacion === null) {
+                abort_if($matricula->trashed() || $matricula->estado === 'anulada', 409, 'La matrícula no admite pagos.');
+                $curso = $matricula->curso;
+                $convocatoria = $matricula->convocatoria;
+                abort_if($curso === null || $convocatoria === null, 409, 'Solo las matrículas con edición tienen obligaciones de pago.');
+                $precio = self::leer($curso->precio);
+                if ($precio <= 0) {
+                    throw ValidationException::withMessages(['monto' => 'El curso no tiene un precio definido: define el precio del curso antes de registrar pagos.']);
+                }
+                $concepto = mb_substr('Matrícula · '.$convocatoria->codigo.' '.$curso->nombre, 0, 120);
+                $obligacion = $this->crearObligacionBloqueada($matricula, $autor, [
+                    'concepto' => trim($concepto), 'plan' => 'completo', 'monto_total' => self::formato($precio),
+                ]);
+            }
+
+            [$t, $creada] = $this->registrarPago($request, $obligacion->identificador, $datos, $clave);
+
+            return [$t, $obligacion, $creada];
+        });
+    }
+
+    /**
+     * Crea la obligación con la matrícula ya bloqueada y la persona ya autorizada (el permiso lo comprueba quien llama).
+     *
+     * @param  array{concepto: string, plan: string, monto_total: mixed, cuotas?: list<array{monto: mixed, vence: string}>}  $datos
+     */
+    private function crearObligacionBloqueada(Matricula $matricula, User $autor, array $datos): ObligacionPago
+    {
+        abort_if($matricula->trashed() || $matricula->estado === 'anulada', 409, 'La matrícula no admite obligaciones de pago.');
+        abort_if($matricula->convocatoria_id === null, 409, 'Solo las matrículas con edición tienen obligaciones de pago.');
+        if (ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->exists()) {
+            throw ValidationException::withMessages(['plan' => 'La matrícula ya tiene una obligación de pago vigente.']);
+        }
+
+        $total = self::centimos($datos['monto_total'], 'monto_total');
+        $cuotas = [];
+        if ($datos['plan'] === 'completo') {
+            if (! empty($datos['cuotas'])) {
+                throw ValidationException::withMessages(['cuotas' => 'El pago completo no lleva cuotas.']);
+            }
+            $cuotas[] = ['monto' => $total, 'vence' => CarbonImmutable::now('America/Lima')->toDateString()];
+        } else {
+            $lista = $datos['cuotas'] ?? [];
+            if (count($lista) < 2 || count($lista) > self::MAX_CUOTAS) {
+                throw ValidationException::withMessages(['cuotas' => 'Un plan fraccionado lleva entre 2 y '.self::MAX_CUOTAS.' cuotas.']);
+            }
+            $previa = '';
+            foreach ($lista as $i => $c) {
+                $vence = $c['vence'];
+                if ($vence < $previa) {
+                    throw ValidationException::withMessages(["cuotas.{$i}.vence" => 'Las cuotas deben ir en orden de vencimiento.']);
+                }
+                $previa = $vence;
+                $cuotas[] = ['monto' => self::centimos($c['monto'] ?? null, "cuotas.{$i}.monto"), 'vence' => $vence];
+            }
+            if (array_sum(array_column($cuotas, 'monto')) !== $total) {
+                throw ValidationException::withMessages(['cuotas' => 'La suma de las cuotas debe igualar el monto total.']);
+            }
+        }
+
+        $obligacion = new ObligacionPago;
+        $obligacion->identificador = (string) Str::uuid();
+        $obligacion->matricula_id = $matricula->id;
+        $obligacion->concepto = $datos['concepto'];
+        $obligacion->plan = $datos['plan'];
+        $obligacion->monto_total = self::formato($total);
+        $obligacion->moneda = 'PEN';
+        $obligacion->estado = 'vigente';
+        $obligacion->creado_por = $autor->id;
+        $obligacion->save();
+        foreach ($cuotas as $n => $c) {
+            CuotaObligacion::query()->create(['obligacion_pago_id' => $obligacion->id, 'numero' => $n + 1, 'monto' => self::formato($c['monto']), 'vence' => $c['vence']]);
+        }
+        AuditLog::record('obligacion_pago_creada', ObligacionPago::class, $obligacion->id, ['matricula' => $matricula->id, 'plan' => $obligacion->plan, 'monto_total' => $obligacion->monto_total, 'cuotas' => count($cuotas)], $autor->id);
+
+        return $obligacion;
     }
 
     public function anularObligacion(Request $request, string $identificador, string $motivo): ObligacionPago
@@ -228,7 +281,7 @@ class GestionPagos
                 abort_unless($t->tipo === 'pago' && $t->estado === 'pendiente', 409, 'El comprobante solo se adjunta a un pago por confirmar.');
                 abort_unless($obligacion->estado === 'vigente', 409, 'La obligación está anulada.');
 
-                $guardado = $comprobantes->guardar($archivo);
+                $guardado = $comprobantes->guardar($archivo, permitirPdf: true);
                 $existente = ComprobantePago::query()->where('transaccion_pago_id', $t->id)->first();
                 $anterior = $existente?->ruta;
                 $existente?->delete();
@@ -237,6 +290,10 @@ class GestionPagos
                     'sha256' => $guardado['sha256'], 'subido_por' => $autor->id,
                 ]);
                 AuditLog::record('comprobante_adjuntado', TransaccionPago::class, $t->id, ['obligacion' => $obligacion->id, 'reemplazo' => $anterior !== null], $autor->id);
+                $repetida = $this->imagenesRepetidas([$t->id])[$t->id] ?? null;
+                if ($repetida !== null) {
+                    AuditLog::record('comprobante_imagen_repetida', TransaccionPago::class, $t->id, ['obligacion' => $obligacion->id, 'coincide_con_matricula' => $repetida['matricula_id']], $autor->id);
+                }
 
                 return $t;
             });
@@ -248,6 +305,78 @@ class GestionPagos
         $comprobantes->borrar($anterior);
 
         return $t;
+    }
+
+    /**
+     * Pagos cuya captura es EXACTAMENTE la misma imagen (misma huella `sha256`) que la de otro pago vigente (pendiente o confirmado y
+     * no reversado). Solo avisa: la misma captura en dos pagos casi siempre es un error o un intento de cobrar dos veces, pero la
+     * decisión es de quien confirma. Una captura recomprimida o recortada tiene otra huella y no se detecta aquí.
+     *
+     * @param  list<int>  $transaccionIds
+     * @return array<int, array{matricula_id: int, fecha_pago: string}> por id de transacción, la coincidencia más reciente
+     */
+    public function imagenesRepetidas(array $transaccionIds): array
+    {
+        if ($transaccionIds === []) {
+            return [];
+        }
+        /** @var array<int, string> $propias */
+        $propias = [];
+        foreach (DB::table('comprobantes_pago')->whereIn('transaccion_pago_id', $transaccionIds)->get(['transaccion_pago_id', 'sha256']) as $fila) {
+            $propias[(int) $fila->transaccion_pago_id] = (string) $fila->sha256;
+        }
+        if ($propias === []) {
+            return [];
+        }
+
+        $otros = $this->pagosVigentesConHuella(array_values(array_unique($propias)));
+
+        $resultado = [];
+        foreach ($propias as $id => $sha) {
+            foreach ($otros as $otro) {
+                if ((string) $otro->sha256 === $sha && (int) $otro->transaccion_pago_id !== $id) {
+                    $resultado[$id] = ['matricula_id' => (int) $otro->matricula_id, 'fecha_pago' => substr((string) $otro->fecha_pago, 0, 10)];
+
+                    break;
+                }
+            }
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * ¿Ya hay un pago vigente con esta misma imagen (huella `sha256` de lo guardado)? Para los flujos que confirman en el acto, donde
+     * un aviso llegaría tarde.
+     *
+     * @return array{matricula_id: int, fecha_pago: string}|null
+     */
+    public function imagenYaUsada(string $sha256): ?array
+    {
+        $otro = $this->pagosVigentesConHuella([$sha256])->first();
+
+        return $otro === null ? null : ['matricula_id' => (int) $otro->matricula_id, 'fecha_pago' => substr((string) $otro->fecha_pago, 0, 10)];
+    }
+
+    /**
+     * Comprobantes de pagos vigentes (pendientes o confirmados y no reversados) con alguna de las huellas, el más reciente primero.
+     *
+     * @param  list<string>  $huellas
+     * @return \Illuminate\Support\Collection<int, \stdClass>
+     */
+    private function pagosVigentesConHuella(array $huellas): \Illuminate\Support\Collection
+    {
+        return DB::table('comprobantes_pago as c')
+            ->join('transacciones_pago as t', 't.id', '=', 'c.transaccion_pago_id')
+            ->join('obligaciones_pago as o', 'o.id', '=', 't.obligacion_pago_id')
+            ->whereIn('c.sha256', $huellas)
+            ->where('t.tipo', 'pago')
+            ->whereIn('t.estado', ['pendiente', 'confirmada'])
+            ->whereNotExists(function (\Illuminate\Database\Query\Builder $q): void {
+                $q->from('transacciones_pago as rev')->whereColumn('rev.reversa_de_id', 't.id')->where('rev.estado', 'confirmada');
+            })
+            ->orderByDesc('t.id')
+            ->get(['c.sha256', 'c.transaccion_pago_id', 'o.matricula_id', 't.fecha_pago']);
     }
 
     /**

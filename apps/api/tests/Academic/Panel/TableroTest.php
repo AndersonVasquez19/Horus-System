@@ -140,16 +140,16 @@ it('cada rol recibe solo las cifras de los módulos que puede ver; el dinero nun
 
     $c = $this->panelComo($coord, 'GET', 'academico/resumen')->assertOk();
     $datos = $c->json('data');
-    expect($datos['acciones'])->not->toHaveKey('pagos_por_confirmar')->not->toHaveKey('matriculas_con_saldo')->toHaveKey('ediciones')
-        ->and($datos['negocio'])->toBe([])
+    // Coordinación y secretaría tienen `pagos.ver` desde el 20/11/2026 (suben comprobantes): ven las cifras de cobro del tablero.
+    // El ingreso del mes del indicador principal sigue siendo solo del administrador.
+    expect($datos['acciones'])->toHaveKeys(['pagos_por_confirmar', 'matriculas_con_saldo', 'ediciones'])
+        ->and($datos['negocio'])->toHaveKeys(['cobrado_mes', 'saldo_por_cobrar'])
         ->and($datos['academico'])->toHaveKeys(['cupos', 'asistencia'])
         ->and($datos['indicadores'])->not->toHaveKey('ingresos_mes');
-    // Ni una sola de las cifras de dinero viaja en la respuesta.
-    expect($c->getContent())->not->toContain('cobrado_mes')->not->toContain('saldo_por_cobrar')->not->toContain('pagos_por_confirmar')->not->toContain('200.00');
 
     $s = $this->panelComo($sec, 'GET', 'academico/resumen')->assertOk();
-    expect($s->json('data.negocio'))->toBe([])->and($s->json('data.acciones'))->not->toHaveKey('pagos_por_confirmar')
-        ->and($s->getContent())->not->toContain('cobrado_mes')->not->toContain('saldo_por_cobrar');
+    expect($s->json('data.negocio'))->toHaveKeys(['cobrado_mes', 'saldo_por_cobrar'])->and($s->json('data.acciones'))->toHaveKey('pagos_por_confirmar')
+        ->and($s->json('data.indicadores'))->not->toHaveKey('ingresos_mes');
 
     // Solo con permisos directos: sin matrículas, cursos ni nada, el tablero llega vacío.
     $vacio = tbSoloPermisos('v@example.invalid', []);

@@ -83,17 +83,15 @@ function pagoOperador(object $t, string $email, array $permisos): User
     return $u;
 }
 
-it('los roles coordinador y secretaria ya no traen permisos de pagos', function (): void {
+it('solo admin lleva todos los permisos de pagos: secretaría y coordinación solo ven y registran', function (): void {
     $this->seed(RolesAndPermissionsSeeder::class);
-    foreach (['coordinador', 'secretaria'] as $rol) {
-        $permisos = Role::findByName($rol, 'web')->permissions->pluck('name')->filter(fn ($p) => str_starts_with($p, 'pagos.'))->all();
-        expect($permisos)->toBe([]);
-    }
+    $de = fn (string $rol) => Role::findByName($rol, 'web')->permissions->pluck('name')->filter(fn ($p) => str_starts_with($p, 'pagos.'))->sort()->values()->all();
+    expect($de('coordinador'))->toBe(['pagos.registrar', 'pagos.ver'])->and($de('secretaria'))->toBe(['pagos.registrar', 'pagos.ver']);
     expect(Role::findByName('admin', 'web')->hasAllPermissions(RolesAndPermissionsSeeder::PAGOS_PERMISSIONS))->toBeTrue();
 });
 
-it('crea las tablas con Yape como único método y una obligación vigente por matrícula', function (): void {
-    expect(DB::table('metodos_pago')->pluck('codigo')->all())->toBe(['yape']);
+it('crea las tablas con los métodos manuales (Yape, Plin, transferencia, depósito y efectivo) y una obligación vigente por matrícula', function (): void {
+    expect(DB::table('metodos_pago')->pluck('codigo')->sort()->values()->all())->toBe(['deposito', 'efectivo', 'plin', 'transferencia', 'yape']);
     $unicos = collect(Schema::getIndexes('obligaciones_pago'))->filter(fn ($i) => $i['unique'])->pluck('name')->all();
     expect($unicos)->toContain('obligaciones_pago_una_vigente');
 });
@@ -104,7 +102,7 @@ it('exige autenticación y el permiso de cada operación', function (): void {
     $coord = pagoOperador($this, 'c@example.invalid', ['pagos.ver', 'pagos.planificar', 'pagos.registrar']);
     $sec = pagoOperador($this, 's@example.invalid', ['pagos.ver', 'pagos.registrar']);
     $this->panelComo(null, 'GET', 'academico/pagos/metodos')->assertUnauthorized();
-    $this->panelComo($sec, 'GET', 'academico/pagos/metodos')->assertOk()->assertJsonPath('data.0.codigo', 'yape');
+    $this->panelComo($sec, 'GET', 'academico/pagos/metodos')->assertOk()->assertJsonFragment(['codigo' => 'yape', 'nombre' => 'Yape']);
     $this->panelComo($sec, 'POST', "academico/matriculas/{$m->id}/obligacion", ['concepto' => 'Mensualidad', 'plan' => 'completo', 'monto_total' => '100'])->assertForbidden();
 
     $id = pagoObligacion($this, $coord, $m);
@@ -176,7 +174,7 @@ it('impide sobrepagos, tiene en cuenta lo pendiente y valida método, fecha y re
 
     pagoRegistrar($this, $admin, $id, '300.01', 'clave-0001-abcd')->assertStatus(422)->assertJsonValidationErrors('monto');
     pagoRegistrar($this, $admin, $id, '0', 'clave-0002-abcd')->assertStatus(422)->assertJsonValidationErrors('monto');
-    pagoRegistrar($this, $admin, $id, '100', 'clave-0003-abcd', ['metodo' => 'efectivo'])->assertStatus(422)->assertJsonValidationErrors('metodo');
+    pagoRegistrar($this, $admin, $id, '100', 'clave-0003-abcd', ['metodo' => 'criptomoneda'])->assertStatus(422)->assertJsonValidationErrors('metodo');
     pagoRegistrar($this, $admin, $id, '100', 'clave-0004-abcd', ['fecha_pago' => now()->addDays(2)->toDateString()])->assertStatus(422)->assertJsonValidationErrors('fecha_pago');
     pagoRegistrar($this, $admin, $id, '100', 'clave-0005-abcd', ['referencia' => '<script>'])->assertStatus(422)->assertJsonValidationErrors('referencia');
 
@@ -456,4 +454,187 @@ it('exporta obligaciones respetando los filtros y expone cabeceras de límite', 
             unlink($archivo);
         }
     }
+});
+
+/** Registra un pago directamente sobre la matrícula (sin obligación previa). */
+function pagoDeMatricula(object $t, $usuario, int $matricula, string $monto, string $clave, array $extra = [])
+{
+    return (fn () => $this->panelComo($usuario, 'POST', "academico/matriculas/{$matricula}/pagos", ['metodo' => 'yape', 'monto' => $monto, 'fecha_pago' => now('America/Lima')->toDateString(), 'referencia' => 'OP-77001', ...$extra], ['Idempotency-Key' => $clave]))->call($t);
+}
+
+it('crea la obligación sola al registrar el primer pago de una matrícula, con el precio del curso', function (): void {
+    $m = pagoMatricula();
+    $sec = pagoOperador($this, 'sec-auto@example.invalid', ['pagos.ver', 'pagos.registrar']);
+    expect(ObligacionPago::query()->count())->toBe(0);
+
+    $r = pagoDeMatricula($this, $sec, $m->id, '40', 'clave-auto-0001')->assertCreated();
+
+    $o = ObligacionPago::query()->sole();
+    expect($o->matricula_id)->toBe($m->id)->and($o->plan)->toBe('completo')->and($o->estado)->toBe('vigente')->and(\App\Services\GestionPagos::leer($o->monto_total))->toBe(10000);
+    $r->assertJsonPath('data.monto_total', '100.00')->assertJsonPath('data.saldo', '100.00')->assertJsonPath('data.pendiente_confirmar', '40.00');
+    expect($r->json('transaccion'))->toBe(TransaccionPago::query()->sole()->identificador);
+    expect(AuditLog::query()->where('action', 'obligacion_pago_creada')->count())->toBe(1);
+});
+
+it('reutiliza la obligación vigente y repetir la clave no duplica el pago ni la obligación', function (): void {
+    $m = pagoMatricula();
+    $sec = pagoOperador($this, 'sec-rep@example.invalid', ['pagos.ver', 'pagos.registrar']);
+
+    pagoDeMatricula($this, $sec, $m->id, '30', 'clave-rep-00001')->assertCreated();
+    pagoDeMatricula($this, $sec, $m->id, '30', 'clave-rep-00001')->assertOk();
+    pagoDeMatricula($this, $sec, $m->id, '20', 'clave-rep-00002')->assertCreated();
+    pagoDeMatricula($this, $sec, $m->id, '99', 'clave-rep-00001')->assertStatus(409);
+
+    expect(ObligacionPago::query()->count())->toBe(1)->and(TransaccionPago::query()->count())->toBe(2);
+});
+
+it('rechaza el sobrepago sobre una matrícula sin obligación y no deja la obligación creada', function (): void {
+    $m = pagoMatricula();
+    $sec = pagoOperador($this, 'sec-sobre@example.invalid', ['pagos.ver', 'pagos.registrar']);
+
+    pagoDeMatricula($this, $sec, $m->id, '150', 'clave-sobre-0001')->assertStatus(422)->assertJsonValidationErrors('monto');
+
+    expect(ObligacionPago::query()->count())->toBe(0)->and(TransaccionPago::query()->count())->toBe(0);
+});
+
+it('no registra pagos de una matrícula anulada ni de un curso sin precio', function (): void {
+    $sec = pagoOperador($this, 'sec-inv@example.invalid', ['pagos.ver', 'pagos.registrar']);
+    $anulada = pagoMatricula('60000011');
+    $anulada->forceFill(['estado' => 'anulada'])->save();
+    pagoDeMatricula($this, $sec, $anulada->id, '10', 'clave-anul-00001')->assertStatus(409);
+
+    $gratis = pagoMatricula('60000012');
+    $gratis->curso->forceFill(['precio' => 0])->save();
+    pagoDeMatricula($this, $sec, $gratis->id, '10', 'clave-gratis-0001')->assertStatus(422)->assertJsonValidationErrors('monto');
+
+    expect(ObligacionPago::query()->count())->toBe(0);
+});
+
+it('el pago por matrícula exige pagos.registrar y la Idempotency-Key, y confirmar sigue siendo de quien tiene pagos.confirmar', function (): void {
+    $m = pagoMatricula();
+    $soloVer = pagoOperador($this, 'solo-ver@example.invalid', ['pagos.ver']);
+    $sec = pagoOperador($this, 'sec-perm@example.invalid', ['pagos.ver', 'pagos.registrar']);
+
+    pagoDeMatricula($this, $soloVer, $m->id, '10', 'clave-perm-00001')->assertForbidden();
+    (fn () => $this->panelComo($sec, 'POST', "academico/matriculas/{$m->id}/pagos", ['metodo' => 'yape', 'monto' => '10', 'fecha_pago' => now('America/Lima')->toDateString()]))->call($this)->assertStatus(428);
+    pagoDeMatricula($this, $sec, $m->id, '10', 'clave-perm-00002', ['confirmar' => true])->assertForbidden();
+
+    expect(ObligacionPago::query()->count())->toBe(0);
+});
+
+it('un pago por matrícula que completa el precio deja la matrícula pagada al confirmarse', function (): void {
+    $m = pagoMatricula();
+    $admin = $this->usuarioConRol('admin', 'adm-auto@example.invalid');
+    $sec = pagoOperador($this, 'sec-total@example.invalid', ['pagos.ver', 'pagos.registrar']);
+
+    $a = pagoDeMatricula($this, $sec, $m->id, '60', 'clave-total-0001')->assertCreated();
+    pagoComprobante($this, $sec, $a->json('transaccion'))->assertOk();
+    $this->panelComo($admin, 'POST', 'academico/pagos/transacciones/'.$a->json('transaccion').'/confirmar')->assertOk()->assertJsonPath('data.saldo', '40.00');
+    expect($m->refresh()->estado)->toBe('pendiente');
+
+    $b = pagoDeMatricula($this, $sec, $m->id, '40', 'clave-total-0002')->assertCreated();
+    pagoComprobante($this, $sec, $b->json('transaccion'))->assertOk();
+    $this->panelComo($admin, 'POST', 'academico/pagos/transacciones/'.$b->json('transaccion').'/confirmar')->assertOk()->assertJsonPath('data.estado', 'pagada');
+    expect($m->refresh()->estado)->toBe('pagada')->and((string) $m->monto_pagado)->toBe('100.00');
+});
+
+it('lista los pagos con su comprobante y el saldo pendiente de cada matrícula, con filtros', function (): void {
+    $a = pagoMatricula('60000021');
+    $b = pagoMatricula('60000022');
+    $sec = pagoOperador($this, 'sec-lista@example.invalid', ['pagos.ver', 'pagos.registrar']);
+
+    $p1 = pagoDeMatricula($this, $sec, $a->id, '30', 'clave-lista-0001')->assertCreated();
+    pagoComprobante($this, $sec, $p1->json('transaccion'))->assertOk();
+    pagoDeMatricula($this, $sec, $b->id, '100', 'clave-lista-0002', ['referencia' => 'OP-SIN-IMG'])->assertCreated();
+
+    $r = $this->panelComo($sec, 'GET', 'academico/pagos/comprobantes')->assertOk();
+    expect($r->json('meta.total'))->toBe(2);
+    $porDni = collect($r->json('data'))->keyBy('estudiante.dni');
+    expect($porDni['60000021']['tiene_comprobante'])->toBeTrue()
+        ->and($porDni['60000021']['monto'])->toBe('30.00')
+        ->and($porDni['60000021']['saldo'])->toBe('70.00')
+        ->and($porDni['60000021']['estado'])->toBe('pendiente')
+        ->and($porDni['60000022']['tiene_comprobante'])->toBeFalse()
+        ->and($porDni['60000022']['saldo'])->toBe('0.00');
+
+    expect($this->panelComo($sec, 'GET', 'academico/pagos/comprobantes?comprobante=sin')->json('meta.total'))->toBe(1);
+    expect($this->panelComo($sec, 'GET', 'academico/pagos/comprobantes?busqueda=60000021')->json('meta.total'))->toBe(1);
+    expect($this->panelComo($sec, 'GET', 'academico/pagos/comprobantes?busqueda=OP-SIN-IMG')->json('data.0.estudiante.dni'))->toBe('60000022');
+    expect($this->panelComo($sec, 'GET', 'academico/pagos/comprobantes?estado=confirmada')->json('meta.total'))->toBe(0);
+    expect($this->panelComo($sec, 'GET', 'academico/pagos/comprobantes?estado=por_confirmar')->json('meta.total'))->toBe(2);
+});
+
+it('el listado por comprobante exige autenticación y pagos.ver y no expone claves ni rutas de archivo', function (): void {
+    $m = pagoMatricula('60000031');
+    $sec = pagoOperador($this, 'sec-ver@example.invalid', ['pagos.ver', 'pagos.registrar']);
+    $sinVer = pagoOperador($this, 'sin-ver@example.invalid', ['pagos.registrar']);
+    $this->panelComo(null, 'GET', 'academico/pagos/comprobantes')->assertUnauthorized();
+    pagoDeMatricula($this, $sec, $m->id, '10', 'clave-ver-000001')->assertCreated();
+
+    $this->panelComo($sinVer, 'GET', 'academico/pagos/comprobantes')->assertForbidden();
+    $texto = $this->panelComo($sec, 'GET', 'academico/pagos/comprobantes')->assertOk()->getContent();
+    expect($texto)->not->toContain('clave-ver-000001')->and($texto)->not->toContain('comprobantes/');
+});
+
+it('acepta métodos manuales como efectivo, y confirmar sigue exigiendo el comprobante adjunto', function (): void {
+    $m = pagoMatricula('60000051');
+    $admin = $this->usuarioConRol('admin', 'adm-efectivo@example.invalid');
+
+    $r = pagoDeMatricula($this, $admin, $m->id, '100', 'clave-efectivo-001', ['metodo' => 'efectivo', 'referencia' => null])->assertCreated();
+    $tx = $r->json('transaccion');
+    $this->panelComo($admin, 'POST', "academico/pagos/transacciones/{$tx}/confirmar")->assertStatus(409);
+    pagoComprobante($this, $admin, $tx)->assertOk();
+    $this->panelComo($admin, 'POST', "academico/pagos/transacciones/{$tx}/confirmar")->assertOk()->assertJsonPath('data.estado', 'pagada');
+    pagoDeMatricula($this, $admin, pagoMatricula('60000052')->id, '10', 'clave-efectivo-002', ['metodo' => 'bitcoin'])->assertStatus(422)->assertJsonValidationErrors('metodo');
+});
+
+it('avisa cuando la misma captura ya respalda otro pago vigente, sin bloquear, y lo deja en auditoría', function (): void {
+    $a = pagoMatricula('60000061');
+    $b = pagoMatricula('60000062');
+    $sec = pagoOperador($this, 'sec-dup@example.invalid', ['pagos.ver', 'pagos.registrar']);
+
+    $p1 = pagoDeMatricula($this, $sec, $a->id, '30', 'clave-dup-0000001')->assertCreated();
+    pagoComprobante($this, $sec, $p1->json('transaccion'), UploadedFile::fake()->image('yape.png', 300, 400))->assertOk()
+        ->assertJsonPath('advertencias.imagen_repetida', null);
+
+    // Otra captura distinta: sin aviso.
+    $p2 = pagoDeMatricula($this, $sec, $b->id, '40', 'clave-dup-0000002', ['referencia' => 'OP-DUP-2'])->assertCreated();
+    pagoComprobante($this, $sec, $p2->json('transaccion'), UploadedFile::fake()->image('otra.png', 320, 410))->assertOk()
+        ->assertJsonPath('advertencias.imagen_repetida', null);
+
+    // La MISMA captura del primer pago, subida al segundo: aviso con la matrícula y la fecha del primero.
+    $r = pagoComprobante($this, $sec, $p2->json('transaccion'), UploadedFile::fake()->image('yape.png', 300, 400))->assertOk();
+    $r->assertJsonPath('advertencias.imagen_repetida.matricula_id', $a->id);
+    expect($r->json('advertencias.imagen_repetida.fecha_pago'))->toBe(now('America/Lima')->toDateString())
+        ->and(AuditLog::query()->where('action', 'comprobante_imagen_repetida')->count())->toBe(1);
+
+    // Se ve en el detalle y en la lista de comprobantes (en ambos pagos), para quien revisa antes de confirmar.
+    $detalle = collect($r->json('data.transacciones'))->firstWhere('identificador', $p2->json('transaccion'));
+    expect($detalle['imagen_repetida']['matricula_id'])->toBe($a->id);
+    $lista = collect($this->panelComo($sec, 'GET', 'academico/pagos/comprobantes')->assertOk()->json('data'))->keyBy('matricula_id');
+    expect($lista[$b->id]['imagen_repetida']['matricula_id'])->toBe($a->id)->and($lista[$a->id]['imagen_repetida']['matricula_id'])->toBe($b->id);
+});
+
+it('una captura repetida no se señala si el otro pago fue rechazado o reversado', function (): void {
+    $a = pagoMatricula('60000071');
+    $b = pagoMatricula('60000072');
+    $admin = $this->usuarioConRol('admin', 'adm-dup@example.invalid');
+    $imagen = fn () => UploadedFile::fake()->image('yape.png', 300, 400);
+
+    $p1 = pagoDeMatricula($this, $admin, $a->id, '30', 'clave-dup-1000001')->assertCreated();
+    pagoComprobante($this, $admin, $p1->json('transaccion'), $imagen())->assertOk();
+    $this->panelComo($admin, 'POST', 'academico/pagos/transacciones/'.$p1->json('transaccion').'/rechazar', ['motivo' => 'Comprobante ilegible o incompleto'])->assertOk();
+
+    $p2 = pagoDeMatricula($this, $admin, $b->id, '40', 'clave-dup-1000002')->assertCreated();
+    pagoComprobante($this, $admin, $p2->json('transaccion'), $imagen())->assertOk()->assertJsonPath('advertencias.imagen_repetida', null);
+
+    // Un pago confirmado y luego reversado tampoco cuenta.
+    $c = pagoMatricula('60000073');
+    $p3 = pagoDeMatricula($this, $admin, $c->id, '20', 'clave-dup-1000003')->assertCreated();
+    pagoComprobante($this, $admin, $p3->json('transaccion'), UploadedFile::fake()->image('otro.png', 330, 420))->assertOk();
+    $this->panelComo($admin, 'POST', 'academico/pagos/transacciones/'.$p3->json('transaccion').'/confirmar')->assertOk();
+    $this->panelComo($admin, 'POST', 'academico/pagos/transacciones/'.$p3->json('transaccion').'/reversar', ['motivo' => 'Yape devuelto al cliente'])->assertOk();
+    $d = pagoMatricula('60000074');
+    $p4 = pagoDeMatricula($this, $admin, $d->id, '20', 'clave-dup-1000004')->assertCreated();
+    pagoComprobante($this, $admin, $p4->json('transaccion'), UploadedFile::fake()->image('otro.png', 330, 420))->assertOk()->assertJsonPath('advertencias.imagen_repetida', null);
 });
