@@ -30,6 +30,39 @@ LEARNING = (
     "curso sobre",
     "capacitacion sobre",
     "capacitacion en",
+    "taller de",
+    "diplomado de",
+    "programa de",
+    "quiero llevar un curso",
+    "me gustaria llevar",
+    "tienen cursos",
+    "tienen algun curso",
+    "dictan cursos",
+    "dan cursos",
+    "que puedo estudiar",
+    "en que puedo capacitarme",
+    "opciones de estudio",
+    "que opciones tienen",
+    "me interesa un curso",
+    "como es el curso de",
+    "informacion de cursos",
+    "info de cursos",
+    "recomiendame un curso",
+    "recomiendame cursos",
+    "me recomiendas un curso",
+    "me recomiendas cursos",
+    "sugiereme un curso",
+    "quiero un curso",
+    "necesito un curso",
+    "busco cursos",
+    "ver cursos",
+    "ver los cursos",
+    "lista de cursos",
+    "dame los cursos",
+    "pasame los cursos",
+    "mostrar cursos",
+    "cursos disponibles",
+    "cursos vigentes",
 )
 HIRING = (
     "necesito contratar",
@@ -68,11 +101,39 @@ _AUDIENCE = {
     "organizaciones",
 }
 _SCAFFOLD = re.compile(
-    r"\b(que|cual|cuales|son|sus|tienen|ofrecen|ofrece|hay|disponibles|publicados|publicadas|"
-    r"quiero|quisiera|deseo|necesito|busco|algun|alguna|un|una|de|del|en|sobre|para|mi|"
-    r"porfa|porfavor|por|favor|realizan|ofrecen|y|o|con|el|la|los|las)\b"
+    r"\b(que|cual|cuales|son|sus|tienen|tiene|ofrecen|ofrece|hay|disponible|disponibles|publicado|publicados|publicada|publicadas|"
+    r"vigente|vigentes|actual|actuales|abierto|abiertos|abierta|abiertas|"
+    r"quiero|quisiera|deseo|necesito|busco|llevar|algun|alguna|alguno|un|una|de|del|en|sobre|acerca|para|mi|"
+    r"recomiendame|recomiendas|sugiereme|sugieres|dame|pasame|ver|mostrar|muestra|lista|listado|me|info|informacion|"
+    r"dictan|dicta|dan|ensenan|ensena|opciones|porfa|porfavor|por|favor|realizan|y|o|con|el|la|los|las)\b"
 )
-_BROAD_LEARNING = {"curso", "cursos", "capacitacion", "capacitaciones", "formacion", "formaciones", "cursito"}
+_BROAD_LEARNING = {
+    "curso",
+    "cursos",
+    "capacitacion",
+    "capacitaciones",
+    "formacion",
+    "formaciones",
+    "cursito",
+    "taller",
+    "talleres",
+    "programa",
+    "programas",
+    "diplomado",
+    "diplomados",
+    "especializacion",
+}
+_MODALITY_WORDS = {
+    "presencial",
+    "presenciales",
+    "virtual",
+    "virtuales",
+    "online",
+    "semipresencial",
+    "semipresenciales",
+    "hibrido",
+    "hibrida",
+}
 _BROAD_SERVICE = {
     "servicio",
     "servicios",
@@ -119,7 +180,10 @@ def plan_query(text: str) -> QueryPlan:
     hire = any(contains_phrase(normalized, p) for p in HIRING)
     # Una mención aislada («mi poema dice curso») no constituye una solicitud.
     request = bool(
-        re.search(r"^(que|cual|cuales|tienen|ofrecen|hay|(?:(?:el|la|los|las)\s+)?(?:cursos?$|capacitaciones?$|servicios?$))", normalized)
+        re.search(
+            r"^(que|cual|cuales|tienen|dictan|dan|ofrecen|hay|dame|pasame|muestra|muestrame|ver|recomiendame|me recomiendas|sugiereme|quiero ver|quisiera ver|quiero llevar|opciones de|informacion de|info de|lista de|listado de|(?:(?:el|la|los|las)\s+)?(?:cursos?$|capacitaciones?$|talleres?$|servicios?$))",
+            normalized,
+        )
     )
     words = set(normalized.split())
     learn = learn or (request and bool(words & _BROAD_LEARNING))
@@ -134,8 +198,10 @@ def plan_query(text: str) -> QueryPlan:
     subject = " ".join(_SCAFFOLD.sub(" ", subject).split())
     broad = _BROAD_LEARNING if learn and not hire else _BROAD_SERVICE
     specific = " ".join(t for t in subject.split() if t not in broad)
-    if request and specific and set(specific.split()) <= _AUDIENCE:
+    if request and specific and set(specific.split()) <= (_AUDIENCE | _MODALITY_WORDS):
         specific = ""
+    elif request and specific:
+        specific = " ".join(t for t in specific.split() if t not in _MODALITY_WORDS)
     return QueryPlan(
         goal="unknown" if learn == hire else "learn" if learn else "service",
         subject=specific,
