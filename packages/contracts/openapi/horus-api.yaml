@@ -1,0 +1,815 @@
+openapi: 3.1.0
+info:
+  title: Horus Group - contratos HTTP existentes
+  version: 0.1.0
+  description: |
+    Documenta SOLO lo que ya existe y se verificó en el código el 11/11/2026. No es una especificación de diseño:
+    cualquier cambio de comportamiento se hace primero en la aplicación y después aquí.
+
+    Fuentes: `routes/api.php` y `app/Http/Controllers/Api/AuthController.php` (Laravel),
+    `routes/web.php` y `app/Http/Controllers/ChatWidgetController.php` (chat público) y
+    `apps/ai/app/api/routes.py` y `apps/ai/app/schemas/chat.py` (Horus AI).
+
+    Fase 2 (12/11/2026): `/api/public/v1/*` (`routes/api.php`, `Api/Publico/CatalogoPublicoController.php` y
+    `Api/Publico/ChatPublicoController.php`) es la lectura y el chat que consume el servidor de apps/web (BFF); lo
+    protege `X-Horus-Web-Token` y nunca se llama desde el navegador.
+
+    Fuera de este documento, a propósito: `/api/v1/catalog/*` (sincronización firmada entre Laravel y Horus AI) y todo
+    `/admin` (sesión, CSRF y permisos de Spatie; no es una API pública). La API de los paneles de apps/web
+    (`/api/panel/v1/*`) tiene su propio contrato: `horus-panel-api.yaml`.
+servers:
+  - url: http://127.0.0.1:8000
+    description: Laravel local (`php artisan serve`)
+  - url: http://127.0.0.1:18081
+    description: Horus AI local (solo loopback; lo consume Laravel, nunca el navegador)
+tags:
+  - name: auth
+    description: Autenticación JWT de Laravel (`/api/auth`).
+  - name: chat-publico
+    description: Chat del sitio web (sesión y CSRF de Laravel).
+  - name: bff-publico
+    description: API pública para el servidor de apps/web (token de servicio, solo servidor a servidor).
+  - name: horus-ai
+    description: Servicio Python de Horus AI.
+paths:
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Registrar una cuenta (nunca asigna roles)
+      description: |
+        Limitado por `throttle:register`. Responde 201 con usuario y token (la verificación de correo del registro se retiró el 13/11/2026).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation]
+              properties:
+                name: {type: string, maxLength: 120}
+                email: {type: string, format: email, maxLength: 255}
+                password: {type: string, description: "Sujeta a `PasswordPolicy`."}
+                password_confirmation: {type: string}
+      responses:
+        "201":
+          description: Cuenta creada.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SesionJwt"}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Demasiados intentos.}
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Iniciar sesión y obtener un JWT
+      description: Limitado por `throttle:login`. Las credenciales inválidas devuelven 422 con un mensaje genérico.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string}
+      responses:
+        "200":
+          description: Sesión emitida.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SesionJwt"}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Demasiados intentos.}
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Usuario del token actual
+      security: [{bearerJwt: []}]
+      responses:
+        "200":
+          description: Usuario autenticado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: {$ref: "#/components/schemas/Usuario"}
+        "401": {description: Token ausente, inválido, vencido o revocado (`jwt_version`).}
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Cerrar la sesión JWT
+      security: [{bearerJwt: []}]
+      responses:
+        "200":
+          description: Sesión cerrada.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Mensaje"}
+        "401": {description: Token ausente, inválido, vencido o revocado.}
+  /chat/mensaje:
+    post:
+      tags: [chat-publico]
+      summary: Enviar un mensaje al asistente del sitio web
+      description: |
+        Usa la sesión y el token CSRF de Laravel (`X-CSRF-TOKEN`) y `throttle:chat`. Con `HORUS_ADVISOR_ENABLED=true`
+        responde Horus AI; si no, o ante fallo, una contingencia institucional. Solo se almacenan metadatos, nunca el
+        texto libre. La forma completa de la respuesta aún no está documentada: aquí solo constan los campos
+        verificados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mensaje, session_id]
+              properties:
+                mensaje: {type: string, maxLength: 2000}
+                session_id: {type: string, maxLength: 64}
+      responses:
+        "200":
+          description: Respuesta del asistente.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                properties:
+                  respuesta: {type: string}
+                  fuente: {type: string, description: "Origen de la respuesta (p. ej. `advisor` o `respaldo`)."}
+        "419": {description: Token CSRF ausente o vencido.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Demasiadas solicitudes.}
+  /api/public/v1/cursos:
+    get:
+      tags: [bff-publico]
+      summary: Fichas de cursos autorizadas para publicación
+      description: |
+        Solo fichas con autorización editorial vigentes (`CatalogoPublicoCursos::paraWeb()`); nunca precio, cupos,
+        matrículas ni datos administrativos. Con el catálogo apagado responde `habilitado: false` sin consultar datos.
+        Hasta 50 fichas.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: modalidad
+          in: query
+          required: false
+          schema: {type: string, enum: [presencial, semipresencial, virtual, hibrido]}
+      responses:
+        "200":
+          description: Catálogo (posiblemente vacío).
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CatalogoCursos"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin `HORUS_WEB_SERVICE_TOKEN` configurado (o de menos de 32 caracteres) la ruta no existe.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Límite `publico-web` (300 por minuto).}
+        "503": {$ref: "#/components/responses/ErrorBff"}
+  /api/public/v1/servicios:
+    get:
+      tags: [bff-publico]
+      summary: Fichas de servicios tecnológicos autorizadas (catálogo genérico)
+      description: |
+        Páginas de 12. Excluye los tres servicios que ya tienen página propia (`CABLEADO`, `VIDEOVIGILANCIA`,
+        `SOPORTE`; ver `/api/public/v1/paginas/{pagina}`). Con el catálogo apagado, `habilitado: false`.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: pagina
+          in: query
+          required: false
+          schema: {type: integer, minimum: 1, maximum: 1000000, default: 1}
+      responses:
+        "200":
+          description: Página del catálogo.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CatalogoServicios"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Límite `publico-web`.}
+        "503": {$ref: "#/components/responses/ErrorBff"}
+  /api/public/v1/paginas/{pagina}:
+    get:
+      tags: [bff-publico]
+      summary: Contenido editorial autorizado de una página de tecnologías
+      description: |
+        `contenido: null` significa que no hay ficha autorizada (o el catálogo está apagado): la página usa su texto
+        estático. `imagen_url` es una URL absoluta construida con el host de la petición; el consumidor debe
+        conservar solo la ruta (`/assets/...` o `/storage/...`) y anteponer la base pública de Laravel.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: pagina
+          in: path
+          required: true
+          schema: {type: string, enum: [cableado-estructurado, camaras-seguridad, soporte-mantenimiento]}
+      responses:
+        "200":
+          description: Contenido de la página.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PaginaServicio"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Página desconocida o sin token de servicio configurado.}
+        "429": {description: Límite `publico-web`.}
+  /api/public/v1/chat:
+    post:
+      tags: [bff-publico]
+      summary: Consulta al asistente Horus AI (motor del chat público, sin sesión ni CSRF)
+      description: |
+        Reutiliza `AsistenteVirtualService`: barrera de privacidad, contingencia institucional y Horus AI. Solo orienta;
+        no crea ni modifica matrículas, cotizaciones, reclamaciones ni otros datos. Solo se guardan metadatos, nunca el
+        texto libre. La cabecera opcional `X-Horus-Visitante` (HMAC-SHA256 de 64 hex que calcula el BFF a partir de la
+        IP; nunca la IP) agrupa el límite `chat-bff` (20 por minuto); sin ella o mal formada se usa un único cubo
+        «anonimo». La respuesta no incluye la intención interna.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mensaje, session_id]
+              properties:
+                mensaje: {type: string, minLength: 1, maxLength: 2000}
+                session_id: {type: string, pattern: "^[A-Za-z0-9_-]{8,64}$"}
+      responses:
+        "200":
+          description: Respuesta del asistente.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RespuestaChat"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: Límite `chat-bff` o `publico-web`.}
+        "503": {$ref: "#/components/responses/ErrorBff"}
+  /api/public/v1/reclamaciones/formulario:
+    get:
+      tags: [bff-publico]
+      summary: Estado del Libro de Reclamaciones y credenciales de un solo uso del formulario
+      description: |
+        Entrega la marca de tiempo firmada y el token de envío (UUID) que exige el alta. Con el libro apagado
+        (`RECLAMACIONES_ENABLED` o sin correo real) devuelve `habilitado: false` y no emite marca ni token.
+        `X-Horus-Visitante` (HMAC de 64 hex que calcula el BFF; nunca la IP) agrupa el límite
+        `reclamaciones-bff-formulario` (30 por minuto).
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      responses:
+        "200":
+          description: Estado del libro.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/FormularioReclamacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "429": {description: Límite `reclamaciones-bff-formulario` o `publico-web`.}
+  /api/public/v1/reclamaciones:
+    post:
+      tags: [bff-publico]
+      summary: Registra una hoja del Libro de Reclamaciones (reclamo o queja)
+      description: |
+        Solo envío: no existe ninguna ruta pública para consultar reclamaciones. Reutiliza `GestionReclamaciones`
+        (numeración correlativa, plazo, idempotencia por `token_envio`, historial, copia por correo en bandeja y
+        auditoría sin IP). Las reglas de campos son las del alta Blade (`StoreReclamacionRequest`) más
+        `acepta_privacidad`. La reclamación queda `abierta`, sin responsable y sin clasificar por dominio; ni este
+        endpoint ni Horus AI asignan, cierran o modifican reclamaciones. Libro apagado: 404 antes de leer el cuerpo.
+        Límites tras validar: 3 por 10 min y 10 por día por visitante y 3 por día por correo; un reenvío del mismo
+        token (200) devuelve su cupo. `reclamaciones-bff-intentos` (20 por 10 min por visitante) acota los inválidos.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, tipo_documento, numero_documento, nombres, apellidos, telefono, email, domicilio, detalle, pedido, marca, token_envio, acepta_privacidad]
+              properties:
+                tipo: {type: string, enum: [reclamo, queja]}
+                tipo_documento: {type: string, enum: [dni, ce, pasaporte, ruc]}
+                numero_documento: {type: string, maxLength: 20}
+                nombres: {type: string, minLength: 2, maxLength: 120}
+                apellidos: {type: string, minLength: 2, maxLength: 120}
+                telefono: {type: string, maxLength: 30}
+                email: {type: string, format: email, maxLength: 254}
+                domicilio: {type: string, minLength: 5, maxLength: 255}
+                es_menor: {type: boolean}
+                representante_nombre: {type: string, maxLength: 120, description: Obligatorio si `es_menor`.}
+                representante_domicilio: {type: string, maxLength: 255}
+                representante_telefono: {type: string, maxLength: 30}
+                representante_email: {type: string, format: email, maxLength: 254}
+                bien_tipo: {type: string, enum: [producto, servicio], description: Obligatorio en reclamos.}
+                bien_descripcion: {type: string, maxLength: 500, description: Obligatorio en reclamos.}
+                monto_bien: {type: string, description: "Hasta dos decimales; obligatorio en reclamos salvo `monto_no_aplica`."}
+                monto_no_aplica: {type: boolean}
+                detalle: {type: string, minLength: 10, maxLength: 3000}
+                pedido: {type: string, minLength: 5, maxLength: 1500}
+                acepta_privacidad: {type: boolean, description: Debe ser verdadero.}
+                marca: {type: string, description: Marca firmada de `/reclamaciones/formulario` (entre 5 s y 2 h de antigüedad).}
+                token_envio: {type: string, format: uuid}
+                sitio_web: {type: string, maxLength: 0, description: Señuelo anti-bots; debe ir vacío (el nombre lo informa `/formulario`).}
+      responses:
+        "200":
+          description: Reenvío del mismo `token_envio`; devuelve la hoja ya registrada.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionReclamacion"}
+        "201":
+          description: Hoja registrada.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionReclamacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Libro apagado o sin token de servicio configurado.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: "Límite de envíos o de intentos (cabecera `Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
+  /api/public/v1/cotizaciones/formulario:
+    get:
+      tags: [bff-publico]
+      summary: Servicios que se pueden solicitar y marca de un solo uso del formulario de cotización
+      description: |
+        La oferta se calcula en el servidor: las tres líneas con página propia (si el servicio está activo) y las fichas
+        publicadas y vigentes del catálogo, con su título público. Recepción apagada
+        (`recepcion-cotizaciones.enabled` distinto de `true`) devuelve `habilitado: false`, sin marca ni servicios.
+        `X-Horus-Visitante` agrupa el límite `cotizaciones-bff-formulario`.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      responses:
+        "200":
+          description: Estado del formulario.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/FormularioCotizacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "404": {description: Sin token de servicio configurado.}
+        "429": {description: Límite `cotizaciones-bff-formulario` o `publico-web`.}
+  /api/public/v1/cotizaciones:
+    post:
+      tags: [bff-publico]
+      summary: Registra una solicitud de cotización (la necesidad del cliente; no es una cotización emitida)
+      description: |
+        Entra al módulo comercial existente (`solicitudes_cotizacion`, `origen = publico`, estado inicial `recibida`,
+        sin responsable) y se gestiona en `/admin/cotizaciones`. No lleva precios, no genera documentos ni compromisos
+        económicos. Los servicios se resuelven en el servidor por `identificador_publico` (hasta 5); el primero es el
+        servicio asociado y todos se conservan en el texto de la necesidad. Idempotente por `marca`; el mismo contenido
+        de una solicitud abierta devuelve la existente (200). No existe ruta pública para consultar solicitudes.
+        Límites tras validar: 5 por 10 min y 10 por día por visitante y 5 por día por correo; reintentos y rechazos
+        del servicio devuelven su cupo. Recepción apagada: 503 sin leer el cuerpo.
+      security: [{webServiceToken: []}]
+      parameters:
+        - name: X-Horus-Visitante
+          in: header
+          required: false
+          schema: {type: string, pattern: "^[a-f0-9]{64}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [servicios, nombre, email, ubicacion, necesidad, consentimiento, marca]
+              properties:
+                servicios:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  items: {type: string, format: uuid, description: "`valor` de `/cotizaciones/formulario`."}
+                nombre: {type: string, minLength: 2, maxLength: 120}
+                empresa: {type: string, maxLength: 120}
+                email: {type: string, format: email, maxLength: 254}
+                telefono: {type: string, maxLength: 30}
+                ubicacion: {type: string, minLength: 2, maxLength: 120}
+                necesidad: {type: string, minLength: 10, maxLength: 3000}
+                informacion: {type: string, maxLength: 1000}
+                consentimiento: {type: boolean, description: Debe ser verdadero.}
+                marca: {type: string, description: Marca de `/cotizaciones/formulario` (entre 3 s y 2 h de antigüedad; un solo uso por solicitud).}
+                sitio_web: {type: string, maxLength: 0, description: Señuelo anti-bots; debe ir vacío.}
+      responses:
+        "200":
+          description: Repetición del mismo formulario o solicitud abierta existente con el mismo contenido.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionCotizacion"}
+        "201":
+          description: Solicitud registrada.
+          headers:
+            Cache-Control: {schema: {type: string, example: "no-store, private"}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConfirmacionCotizacion"}
+        "401": {description: Token de servicio ausente o incorrecto.}
+        "422": {$ref: "#/components/responses/ValidacionLaravel"}
+        "429": {description: "Límite de envíos o de intentos (`Retry-After`); cuerpo `{error: {code: demasiadas_solicitudes}}`."}
+        "503": {description: Recepción apagada.}
+  /health:
+    get:
+      tags: [horus-ai]
+      summary: Vivacidad de Horus AI (público y mínimo)
+      responses:
+        "200":
+          description: Servicio vivo.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: {type: string, enum: [ok]}
+  /ready:
+    get:
+      tags: [horus-ai]
+      summary: Disponibilidad de Horus AI (público y mínimo)
+      responses:
+        "200":
+          description: Estado de los componentes.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Ready"}
+  /api/v1/chat:
+    post:
+      tags: [horus-ai]
+      summary: Consulta conversacional (contrato Laravel a Horus AI)
+      description: "Laravel envía siempre `history: []` y no envía identificador de sesión propio. El token nunca llega al navegador."
+      security: [{serviceToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ChatRequest"}
+      responses:
+        "200":
+          description: Respuesta verificada o abstención.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ChatResponse"}
+        "401": {$ref: "#/components/responses/ErrorHorus"}
+        "413": {$ref: "#/components/responses/ErrorHorus"}
+        "422": {$ref: "#/components/responses/ErrorHorus"}
+        "503": {$ref: "#/components/responses/ErrorHorus"}
+components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    serviceToken:
+      type: apiKey
+      in: header
+      name: X-Horus-Service-Token
+      description: Secreto compartido (`HORUS_AI_SERVICE_TOKEN`).
+    webServiceToken:
+      type: apiKey
+      in: header
+      name: X-Horus-Web-Token
+      description: Secreto compartido entre Laravel y el servidor de apps/web (`HORUS_WEB_SERVICE_TOKEN`, 32 caracteres o más).
+  responses:
+    ValidacionLaravel:
+      description: Validación fallida (formato estándar de Laravel).
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: {type: string}
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: {type: string}
+    ErrorBff:
+      description: Fallo técnico del catálogo o del asistente; código genérico, sin SQL, contenido ni excepciones.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: object
+                required: [code, message]
+                properties:
+                  code: {type: string, enum: [catalogo_no_disponible, chat_no_disponible]}
+                  message: {type: string}
+    ErrorHorus:
+      description: Error de Horus AI.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorHorus"}
+  schemas:
+    CursoPublico:
+      type: object
+      required: [titulo, resumen, modalidad, horario, inscripcion, vigente_desde, vigente_hasta]
+      properties:
+        titulo: {type: string, maxLength: 120}
+        resumen: {type: string, maxLength: 500}
+        modalidad: {type: string, enum: [presencial, semipresencial, virtual, hibrido]}
+        horario: {type: [string, "null"], maxLength: 200}
+        inscripcion: {type: [string, "null"], maxLength: 400}
+        vigente_desde: {type: string, format: date}
+        vigente_hasta: {type: string, format: date}
+    CatalogoCursos:
+      type: object
+      required: [habilitado, modalidad, total, cursos]
+      properties:
+        habilitado: {type: boolean}
+        modalidad: {type: [string, "null"]}
+        total: {type: integer}
+        cursos:
+          type: array
+          maxItems: 50
+          items: {$ref: "#/components/schemas/CursoPublico"}
+    ServicioPublico:
+      type: object
+      required: [titulo, resumen, descripcion]
+      properties:
+        titulo: {type: string, maxLength: 120}
+        resumen: {type: string, maxLength: 500}
+        descripcion: {type: string, maxLength: 5000}
+        categoria: {type: [string, "null"], maxLength: 80}
+    CatalogoServicios:
+      type: object
+      required: [habilitado, total, pagina, por_pagina, servicios]
+      properties:
+        habilitado: {type: boolean}
+        total: {type: integer}
+        pagina: {type: integer}
+        por_pagina: {type: integer, const: 12}
+        servicios:
+          type: array
+          items: {$ref: "#/components/schemas/ServicioPublico"}
+    TarjetaServicio:
+      type: object
+      required: [titulo, descripcion, caracteristicas, icono, variante, imagen_url, imagen_alt]
+      properties:
+        titulo: {type: string}
+        descripcion: {type: string}
+        caracteristicas: {type: array, items: {type: string}}
+        icono: {type: [string, "null"], description: "Clase Font Awesome validada (`fas fa-video`)."}
+        variante: {type: [string, "null"], enum: [producto, escena, null]}
+        imagen_url: {type: [string, "null"], format: uri}
+        imagen_alt: {type: string}
+    ContenidoPagina:
+      type: object
+      required: [titulo, parrafos, imagen_url, imagen_alt, titulo_tarjetas, tarjetas]
+      properties:
+        titulo: {type: string}
+        parrafos: {type: array, items: {type: string}}
+        imagen_url: {type: [string, "null"], format: uri}
+        imagen_alt: {type: string}
+        titulo_tarjetas: {type: [string, "null"]}
+        tarjetas:
+          type: array
+          maxItems: 60
+          items: {$ref: "#/components/schemas/TarjetaServicio"}
+    PaginaServicio:
+      type: object
+      required: [pagina, contenido]
+      properties:
+        pagina: {type: string, enum: [cableado-estructurado, camaras-seguridad, soporte-mantenimiento]}
+        contenido:
+          oneOf:
+            - {$ref: "#/components/schemas/ContenidoPagina"}
+            - {type: "null"}
+    TarjetaChat:
+      type: object
+      description: Referencia verificada del catálogo público; nunca se deriva del texto de la respuesta.
+      required: [id, tipo, titulo, descripcion, imagen, url, accion]
+      properties:
+        id: {type: string, maxLength: 64}
+        tipo: {type: string, enum: [curso, servicio]}
+        titulo: {type: string, maxLength: 120}
+        descripcion: {type: string, maxLength: 500}
+        imagen: {type: [string, "null"], description: "Ruta `/assets/...` o `/storage/...`."}
+        url: {type: string, description: "Ruta del sitio anterior (lista blanca); el consumidor la traduce a su propia ruta."}
+        accion: {type: string}
+        procedencia: {type: object, additionalProperties: true}
+    FormularioReclamacion:
+      type: object
+      required: [habilitado, marca, token_envio, correo_activo, plazo_dias_habiles, honeypot]
+      properties:
+        habilitado: {type: boolean}
+        marca: {type: string, nullable: true}
+        token_envio: {type: string, format: uuid, nullable: true}
+        correo_activo: {type: boolean, description: Si la copia automática por correo está activa.}
+        plazo_dias_habiles: {type: integer, example: 15}
+        honeypot: {type: string, example: sitio_web}
+    ConfirmacionReclamacion:
+      type: object
+      description: Sin datos personales; solo lo necesario para que el consumidor conserve su registro.
+      required: [numero, tipo, fecha_limite, repetida, correo_activo]
+      properties:
+        numero: {type: string, example: 000000001-2026}
+        tipo: {type: string, enum: [reclamo, queja]}
+        fecha_limite: {type: string, format: date}
+        repetida: {type: boolean}
+        correo_activo: {type: boolean}
+    FormularioMatricula:
+      type: object
+      required: [habilitado, marca, cursos]
+      properties:
+        habilitado: {type: boolean}
+        marca: {type: string, nullable: true}
+        cursos:
+          type: array
+          items:
+            type: object
+            required: [valor, titulo, resumen, modalidad, horario, inscripcion, vigente_hasta]
+            properties:
+              valor: {type: string, pattern: "^[a-f0-9]{64}$"}
+              titulo: {type: string}
+              resumen: {type: string}
+              modalidad: {type: string}
+              horario: {type: string, nullable: true}
+              inscripcion: {type: string, nullable: true}
+              vigente_hasta: {type: string, format: date}
+    ConfirmacionMatricula:
+      type: object
+      description: Sin datos personales. No indica matrícula ni cupo.
+      required: [codigo, curso, modalidad, repetida]
+      properties:
+        codigo: {type: string, example: SM-1A2B3C4D}
+        curso: {type: string}
+        modalidad: {type: string}
+        repetida: {type: boolean}
+    FormularioCotizacion:
+      type: object
+      required: [habilitado, marca, servicios, max_servicios]
+      properties:
+        habilitado: {type: boolean}
+        marca: {type: string, nullable: true}
+        max_servicios: {type: integer, example: 5}
+        servicios:
+          type: array
+          items:
+            type: object
+            required: [valor, titulo, resumen]
+            properties:
+              valor: {type: string, format: uuid}
+              titulo: {type: string}
+              resumen: {type: string, nullable: true}
+    ConfirmacionCotizacion:
+      type: object
+      description: Sin datos personales. No es una cotización ni incluye precios.
+      required: [codigo, recibida_at, repetida]
+      properties:
+        codigo: {type: string, example: SOL-0A7631A6-54F5-45F8-8C12-8198BFD15DA1}
+        recibida_at: {type: string, format: date-time}
+        repetida: {type: boolean}
+    RespuestaChat:
+      type: object
+      required: [respuesta, fuente]
+      properties:
+        respuesta: {type: string}
+        fuente: {type: string, description: "`advisor` (Horus AI) o `respaldo` (contingencia institucional)."}
+        tarjetas:
+          type: array
+          maxItems: 5
+          items: {$ref: "#/components/schemas/TarjetaChat"}
+    Mensaje:
+      type: object
+      required: [message]
+      properties:
+        message: {type: string}
+    Usuario:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        email: {type: string, format: email}
+    SesionJwt:
+      type: object
+      required: [user, access_token, token_type, expires_in]
+      properties:
+        user: {$ref: "#/components/schemas/Usuario"}
+        access_token: {type: string}
+        token_type: {type: string, enum: [Bearer]}
+        expires_in: {type: integer, description: Segundos hasta el vencimiento.}
+    Ready:
+      type: object
+      required: [status, knowledge, semantic, auth]
+      properties:
+        status: {type: string, enum: [ready, not_ready]}
+        knowledge: {type: string, enum: [loaded, unavailable]}
+        semantic: {type: string, enum: [loaded, loading, disabled, unavailable]}
+        auth: {type: string, enum: [configured, missing]}
+        catalog: {type: string, enum: [none, loaded, stale, error]}
+        catalog_version: {type: string}
+        catalog_pending_version: {type: string, pattern: "^[a-f0-9]{40}$"}
+    HistoryItem:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role: {type: string, enum: [user, assistant]}
+        content: {type: string, minLength: 1, maxLength: 4000}
+    ChatRequest:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message: {type: string, minLength: 1, maxLength: 4000}
+        session_id: {type: [string, "null"], pattern: "^[A-Za-z0-9_\\-]{1,64}$"}
+        history:
+          type: array
+          maxItems: 30
+          items: {$ref: "#/components/schemas/HistoryItem"}
+    MatchLevel:
+      type: string
+      enum: [alta, media, baja, ninguna]
+      description: Calidad de la coincidencia. No es una probabilidad de acierto.
+    SourceRef:
+      type: object
+      required: [id, title]
+      properties:
+        id: {type: string}
+        title: {type: string}
+        url_path: {type: [string, "null"]}
+    Recommendation:
+      type: object
+      required: [id, title, kind, reason, evidence, match_level]
+      properties:
+        id: {type: string}
+        title: {type: string}
+        kind: {type: string}
+        reason: {type: string}
+        evidence: {type: array, items: {type: string}, description: Identificadores de registros verificados.}
+        match_level: {$ref: "#/components/schemas/MatchLevel"}
+        url_path: {type: [string, "null"]}
+        evidence_text: {type: [string, "null"]}
+        signals: {type: array, items: {type: string}}
+        limitations: {type: array, items: {type: string}}
+        needs_clarification: {type: boolean}
+        clarification_question: {type: [string, "null"]}
+        next_step: {type: [string, "null"]}
+    ConversationContext:
+      type: object
+      required: [turns_considered]
+      properties:
+        turns_considered: {type: integer}
+        topics: {type: array, items: {type: string}}
+        level: {type: [string, "null"]}
+        modality: {type: [string, "null"]}
+        focus_ids: {type: array, items: {type: string}}
+        topic_changed: {type: boolean}
+        referential: {type: boolean}
+    ChatResponse:
+      type: object
+      required: [answer, intent, match_level]
+      properties:
+        answer: {type: string}
+        intent: {type: string}
+        match_level: {$ref: "#/components/schemas/MatchLevel"}
+        needs_clarification: {type: boolean}
+        clarification_question: {type: [string, "null"]}
+        abstained: {type: boolean, description: "Verdadero si el motor no pudo afirmar nada confirmado."}
+        recommendations: {type: array, items: {$ref: "#/components/schemas/Recommendation"}}
+        missing_data: {type: array, items: {type: string}}
+        general_guidance: {type: [string, "null"], description: Orientación general NO atribuida a Horus Group.}
+        sources: {type: array, items: {$ref: "#/components/schemas/SourceRef"}}
+        mode: {type: string, enum: [lexical, hybrid]}
+        context: {oneOf: [{$ref: "#/components/schemas/ConversationContext"}, {type: "null"}]}
+        session_id: {type: [string, "null"]}
+    ErrorHorus:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            details:
+              type: [array, "null"]
+              items: {type: object, additionalProperties: {type: string}}

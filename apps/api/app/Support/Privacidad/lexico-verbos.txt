@@ -1,0 +1,26 @@
+# Infinitivos regulares (normalizados) cuyas formas conjugadas se generan en scripts/privacidad-generar-lexico.php.
+# Sin nombres propios. Un verbo irregular se escribe a mano en lexico-base.txt.
+hablar llamar buscar mirar esperar pensar cambiar necesitar ayudar explicar mostrar indicar informar recomendar comparar elegir escoger
+cancelar reprogramar reservar asistir participar certificar obtener lograr mejorar usar utilizar manejar crear disenar programar configurar
+mantener revisar probar entender repetir tardar demorar durar incluir contar proteger guardar almacenar compartir escribir leer imprimir conectar
+instalar reparar cotizar matricular inscribir pagar comprar vender enviar recibir solicitar consultar preguntar responder ofrecer dictar brindar
+ensenar aprender estudiar practicar capacitar trabajar entrenar evaluar aprobar desaprobar calificar aplicar desarrollar implementar integrar
+organizar planificar administrar gestionar controlar supervisar coordinar atender orientar asesorar acompanar apoyar resolver solucionar
+arreglar actualizar desinstalar descargar subir bajar abrir cerrar iniciar terminar finalizar comenzar empezar continuar seguir
+cobrar facturar depositar transferir devolver reembolsar descontar ahorrar gastar invertir presupuestar contratar alquilar
+visitar viajar llegar regresar volver salir entrar quedar vivir ubicar encontrar localizar recoger entregar mandar traer llevar
+conocer reconocer aceptar rechazar autorizar permitir prohibir exigir requerir pedir suponer considerar decidir preferir gustar importar
+interesar preocupar dudar confiar creer saber imaginar recordar olvidar avisar notificar confirmar verificar validar registrar anotar
+tomar dejar poner sacar quitar agregar anadir eliminar borrar copiar pegar editar modificar corregir ajustar medir sumar
+comunicar contactar conversar saludar agradecer disculpar perdonar felicitar invitar convocar reunir juntar separar dividir
+distribuir publicar anunciar difundir promocionar presentar exponer demostrar comprobar chequear
+celebrar festejar jugar competir ganar perder mover correr caminar conducir construir levantar armar montar cablear
+fortalecer reforzar potenciar optimizar automatizar digitalizar modernizar renovar reemplazar sustituir limpiar
+investigar analizar averiguar diagnosticar monitorear soldar cortar pulir pintar dibujar editar grabar filmar fotografiar transmitir emitir sincronizar respaldar restaurar
+recuperar bloquear desbloquear cifrar descifrar autenticar acceder ingresar apagar encender reiniciar formatear acelerar ampliar reducir aumentar disminuir calcular
+contabilizar declarar tributar liquidar abonar retirar prestar financiar asegurar garantizar acreditar homologar convalidar egresar graduar titular licenciar adiestrar
+instruir ejercitar repasar memorizar reprobar nivelar motivar guiar proponer sugerir contestar agendar anular separar apartar desear optar diferenciar clasificar ordenar
+dirigir auditar fiscalizar inspeccionar pesar restar multiplicar dividir resolver alquilar rentar comprar vender negociar cotizar licitar contratar subcontratar tercerizar
+cablear canalizar tender conectar etiquetar certificar mapear escanear digitalizar imprimir fotocopiar archivar clasificar custodiar proteger vigilar monitorear alertar
+revelar ocultar obedecer ignorar evadir burlar vulnerar hackear filtrar extraer exponer divulgar desactivar sobrescribir simular fingir actuar comportar responder contestar olvidar
+saltar romper forzar desbloquear liberar permitir negar rechazar bloquear restringir limitar mostrar imprimir repetir copiar pegar escribir decir contar explicar describir listar

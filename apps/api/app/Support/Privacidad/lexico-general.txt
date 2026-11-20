@@ -1,0 +1,162 @@
+# Vocabulario general del español (sustantivos, adjetivos, adverbios) y términos de marca/tecnología frecuentes en consultas.
+# Redactado por categorías semánticas, NO a partir de casos de evaluación. Normalizado: minúsculas, sin tildes, ñ -> n.
+# EXCLUIDOS a propósito: nombres de pila, apellidos y sus homónimos (luz, rosa, flor, cruz, vega, leon, luna, silva, campos, salas, rios,
+# castillo, portal, mesa, calle, torre, rojas...). Si una palabra es a la vez común y apellido frecuente, NO se lista aquí.
+# --- naturaleza, geografía y ambiente ---
+rio rios mar lago laguna montana monte cerro valle cordillera volcan isla playa costa selva sierra desierto bosque jungla campo pradera
+pampa quebrada catarata manantial arroyo cascada cielo nube lluvia nieve viento tormenta trueno clima temperatura calor frio humedad sequia
+sol estrella planeta universo espacio tierra suelo arena piedra roca barro arcilla grava cemento ladrillo madera metal hierro acero cobre oro plata
+aluminio plastico vidrio cristal papel carton tela cuero lana algodon seda fibra goma caucho cera aceite gasolina petroleo gas carbon agua fuego aire
+planta plantas arbol arboles hoja hojas raiz tallo semilla semillas fruto frutos fruta frutas verdura verduras hortaliza cultivo cultivos cosecha siembra
+jardin huerto vivero abono fertilizante pesticida riego cereal trigo maiz arroz papa papas camote yuca quinua cebada avena
+animal animales perro gato caballo vaca toro oveja cabra cerdo gallina pato conejo cuy llama alpaca vicuna ave aves pajaro pez peces insecto abeja
+mariposa serpiente oso zorro lobo tigre elefante mono delfin ballena tiburon
+agrario agraria agricola agropecuario agropecuaria ganadero ganaderia pecuario pecuaria forestal pesquero minero minera ambiental ecologico ecologica ecologia
+sostenible sustentable renovable biodiversidad reciclaje residuo residuos basura limpieza contaminacion
+# --- colores, formas, tamaños y cualidades ---
+color colores rojo roja azul verde amarillo amarilla naranja morado morada violeta rosado rosada marron cafe negro negra blanco blanca gris plomo celeste
+dorado dorada plateado plateada claro clara oscuro oscura brillante opaco transparente suave duro blando liso rugoso fino fina grueso gruesa ancho ancha
+angosto angosta estrecho estrecha profundo profunda plano plana redondo redonda cuadrado cuadrada recto recta curvo curva puntiagudo punta esquina borde
+bonito bonita lindo linda hermoso hermosa feo fea elegante sencillo moderno moderna clasico clasica tradicional original unico unica raro rara comun
+famoso famosa conocido conocida popular reconocido reconocida prestigioso prestigiosa lider referente exitoso exitosa
+fuerte debil sano sana enfermo enferma cansado cansada feliz triste contento contenta molesto molesta preocupado preocupada tranquilo tranquila
+rico rica pobre caro cara barato barata economico economica costoso costosa accesible asequible
+joven viejo vieja mayor menor medio mediano mediana
+# --- tiempo y cantidad ---
+siglo decada lustro ano anos semestre bimestre trimestre cuatrimestre quincena fin semana finde feriado vacaciones verano invierno otono primavera
+amanecer atardecer anochecer madrugada mediodia medianoche instante segundo segundos momento epoca periodo temporada ciclo
+cantidad numero cifra monto suma resta total promedio porcentaje porciento mitad tercio cuarto docena centenar
+muchisimo bastantes sobra falta exceso limite maximo minimo aproximado aproximada exacto exacta
+# --- cuerpo, salud, comida, vestido ---
+cuerpo cabeza cara ojo ojos oreja nariz boca diente dientes lengua cuello hombro brazo mano manos dedo dedos pecho espalda cintura pierna rodilla pie pies piel
+corazon cerebro sangre hueso huesos musculo salud enfermedad dolor fiebre tos gripe resfriado covid vacuna vacunas medicina medicamento pastilla receta consultorio emergencia
+alimento alimentos comida desayuno almuerzo cena bebida pan leche queso carne pollo pescado huevo huevos sopa ensalada postre dulce torta pastel galleta chocolate cafe te jugo cerveza vino
+cocina horno olla plato vaso taza cuchara tenedor cuchillo silla cama sofa puerta ventana pared techo escalera ascensor pasillo baño bano
+ropa camisa pantalon falda vestido zapato zapatos zapatilla gorra sombrero chompa casaca uniforme mochila bolso cartera maleta
+# --- objetos, herramientas, transporte, comercio ---
+objeto objetos cosa herramienta herramientas maquina maquinas motor llave candado cerradura martillo taladro tornillo clavo cinta tubo manguera
+coche carro auto camioneta camion bus micro combi moto motocicleta bicicleta avion barco tren taxi mototaxi vehiculo vehiculos transporte flota ruta carretera autopista puente camino senda
+semaforo estacionamiento cochera garaje terminal aeropuerto puerto muelle estacion
+producto productos articulo articulos mercaderia mercancia insumo insumos repuesto repuestos accesorio accesorios envase empaque caja cajas bolsa paquete encomienda envio
+oferta demanda stock marca modelo version edicion serie lote unidad unidades pieza piezas juego set kit combo paquete pack
+dinero plata efectivo sencillo vuelto cambio ahorro ahorros deuda deudas credito prestamo interes ganancia utilidad perdida gasto gastos ingreso ingresos sueldo salario jornal propina
+# --- sociedad, trabajo, instituciones, derecho ---
+sociedad cultura tradicion costumbre fiesta festival evento eventos feria concurso competencia campeonato torneo deporte futbol voleibol basquet natacion atletismo ajedrez
+musica cancion baile danza teatro pelicula cine television radio periodico revista noticia noticias prensa medio medios
+arte pintura dibujo escultura fotografia literatura poesia cuento novela historia leyenda mito religion fe iglesia capilla templo
+ley leyes norma normas reglamento reglamentos decreto resolucion ordenanza codigo derecho derechos deber deberes obligacion obligaciones responsabilidad
+justicia juicio proceso demanda denuncia contrato clausula acuerdo convenio acta escritura notarial registral licencia permiso autorizacion
+gobierno estado nacion republica congreso ministerio prefectura alcaldia municipio municipalidad gobernacion
+politica politicas programa plan planes estrategia objetivo meta mision vision valores principios
+trabajo empleo puesto cargo funcion tarea actividad oficio profesion carrera especialidad mencion maestria doctorado postgrado licenciatura pregrado grado
+experiencia habilidad habilidades destreza destrezas competencia competencias capacidad capacidades conocimiento conocimientos saber aprendizaje ensenanza educacion pedagogia didactica
+colaboracion cooperacion trabajo equipo reunion junta asamblea comite comision directorio consejo gerencia direccion jefatura area departamento division seccion unidad oficina
+cliente proveedor proveedores socio aliado aliados patrocinador auspiciador donante beneficiario beneficiarios
+pyme pymes mype mypes microempresa microempresas emprendimiento emprendimientos startup startups franquicia franquicias
+# --- ocupaciones y roles laborales que la morfología de oficio no reconoce (sin apellidos homónimos: herrero, zapatero, pastor, alcalde...) ---
+auxiliar auxiliares jueza fiscal fiscales concejal concejales coach influencer youtuber streamer bailarina bailarin arbitro cura monja
+conserje aprendiz aprendices mentor mentora limpiador limpiadora ayudante ayudantes cosmetologa cosmetologo comunero rondero cobrador cobradora
+ambulante ambulantes carnicero carnicera videojuego videojuegos
+idea ideas opinion punto vista aspecto elemento factor criterio base fundamento principio concepto definicion significado sentido
+causa efecto consecuencia resultado resultados logro logros avance avances progreso mejora mejoras cambio cambios novedad novedades tendencia tendencias
+inicio principio comienzo final cierre termino resumen detalle detalles descripcion explicacion ejemplo ejemplos modelo muestra
+problema pregunta duda respuesta solucion alternativa opcion posibilidad probabilidad riesgo oportunidad ventaja desventaja beneficio costo valor precio calidad nivel grado categoria clase tipo genero especie
+acceso entrada salida ingreso egreso paso puerta llave clave senal aviso alerta alarma notificacion recordatorio
+verdad mentira realidad fantasia sueno deseo necesidad interes gusto preferencia prioridad urgencia importancia
+seguro seguros seguridad proteccion cobertura poliza siniestro
+nuevamente nuevamente antes despues luego mientras durante entonces cuando siempre nunca jamas pronto tarde temprano rapidamente lentamente
+cerca lejos junto aparte afuera adentro dentro encima debajo arriba abajo
+gratis gratuito libre abierto cerrado completo parcial total entero entera
+cierto verdadero falso real virtual digital fisico fisica manual automatico automatica electronico electronica mecanico mecanica
+alguna algun ningun ninguna cualquier ciertos
+# --- tecnología, productos y marcas (sin personas) ---
+tecnologia tecnologias innovacion innovador innovadora ingenieria cientifico cientifica investigacion laboratorio prototipo prototipos
+software hardware firmware driver drivers sistema operativo aplicacion plugin extension modulo paquete libreria framework entorno
+red redes nodo nodos protocolo protocolos direccion ip dhcp dns vlan vpn proxy gateway puerta enlace subred mascara ancho banda velocidad latencia
+servidor cliente nube datacenter virtualizacion maquina virtual contenedor contenedores respaldo copia restauracion recuperacion desastre
+pantalla tactil tactiles resolucion pixel pixeles imagen imagenes foto fotos video videos audio sonido grabacion transmision streaming senal
+camara lente zoom vision nocturna infrarroja infrarrojo exterior interior domo bala ptz poe nvr dvr hdd disco almacenamiento terabyte gigabyte megabyte byte
+laptop notebook ultrabook desktop todo en uno all in one workstation gamer gaming
+designer studio pro premium plus max lite mini ultra smart home office business enterprise standard basic starter free trial online offline
+visio project publisher onedrive onenote planner forms stream yammer dynamics azure defender intune exchange
+affinity designer publisher sketch inkscape gimp krita blender unity unreal godot figma canva miro notion trello slack asana jira confluence
+autodesk maya revit navisworks inventor fusion archicad lumion enscape vray rhino grasshopper civil sap2000 etabs safe staad
+quickbooks contasis concar softland siigo odoo spss stata matlab r minitab eviews tableau qlik looker metabase
+bitdefender kaspersky eset norton avast mcafee fortinet sophos paloalto checkpoint
+dell hp lenovo asus acer msi toshiba samsung lg sony philips panasonic xiaomi huawei oppo honor motorola nokia realme zte infinix tecno
+epson canon brother ricoh xerox kyocera lexmark
+hikvision dahua uniview axis hanwha ezviz imou reolink tplink netgear dlink linksys ubiquiti unifi mikrotik cisco juniper aruba ruckus
+apc forza cdp tripp eaton schneider
+# --- educación y capacitación ---
+pedagogico didactico metodologia metodologico evaluacion rubrica competencia logro indicador sesion unidad silabo cronograma
+aprendizaje aprender ensenanza ensenar capacitar capacitacion instruccion adiestramiento actualizacion especializacion perfeccionamiento
+presencial virtual semipresencial hibrido sincronico asincronico autoformativo
+inicial primaria secundaria superior tecnico profesional universitaria posgrado
+tutoria asesoria mentoria coaching taller laboratorio practica pasantia practicas preprofesionales
+certificado constancia diploma credencial insignia acreditacion acreditado licenciamiento
+beca crédito credito pension matricula cuota derecho
+# --- cortesía y relleno conversacional ---
+por favor porfavor gracias muchas muchisimas agradezco agradecido agradecida atento atenta amable cordial saludo saludos cordiales atentos
+estimado estimada estimados estimadas senor senora senores senoras senorita caballero dama
+disculpe disculpa perdon molestia molestar consulta consultar duda dudas pregunta preguntar informacion informes info
+quisiera quiero necesito deseo busco requiero solicito pregunto consulto averiguar averiguo saber conocer
+urgente urgencia pronto rapido cuanto antes lo antes posible
+# --- inglés técnico y de uso común en consultas (sin nombres propios) ---
+the and you your are is was were be been being have has had do does did will would can could should may might must shall not no yes
+this that these those with without from into onto over under about after before between through during for of on in at by to as or if then than so too very
+what which who whom whose when where why how all any each every some many much more most other another such only own same just also now here there
+ignore previous instructions instruction system prompt reveal show tell give print repeat say write read delete remove update insert select drop table
+alter create grant where values union join order group having limit script alert onerror onload src href img div span iframe javascript eval exec
+admin administrator root user users password token key secret config configuration environment variable variables env database server client request response
+act as free mode jailbreak developer rules rule policy policies ignore forget override bypass unlock safe unsafe
+hello hi hey thanks thank please sorry welcome good morning afternoon evening night bye
+course courses class classes training price prices cost schedule quote quotation service services support camera cameras security network
+name phone email address number code account card bank
+open close start stop run stop save load download upload install setup login logout sign register submit send reply message chat bot assistant
+web site page pages link links file files folder image images photo video audio text data info information
+new old big small high low long short first last next back front left right top bottom
+yes no ok okay
+# --- agro, comercio, turismo, construcción, banca y servicios (campos semánticos) ---
+cafe cafetal cafetalero cafetalera cafetaleros cacao cana azucar algodon platano banano mango palta aguacate limon naranja uva fresa tomate cebolla ajo zanahoria lechuga
+productor productora productores productoras produccion productivo productiva exportador exportadora exportadores importador importadora acopio acopiador cooperativas
+ganaderia lacteos lacteo queseria quesera artesania artesanias artesanal artesanales textil textiles confeccion confecciones tejido tejidos bordado bordados ceramica
+turismo turistico turisticos hotelero hotelera hoteleria hospedaje albergue hostal restaurantes gastronomia gastronomico agencia viajes excursion excursiones guiado
+construccion constructor constructores obra obras edificacion edificaciones topografia topografo topografos plano planos maqueta metrado metrados estructura estructuras
+cimentacion concreto acero encofrado albanileria acabados pintura sanitaria sanitarias electricas
+banca bancario bancaria financiera financieras caja municipal rural cooperativa ahorro ahorros prestamo prestamos credito creditos tarjeta tarjetas cuenta cuentas
+transporte transportes carga cargas logistica distribucion reparto delivery courier mensajeria
+salud sanitario sanitaria clinico clinica clinicos hospitalario hospitalaria consultorio consultorios laboratorio analisis paciente pacientes terapia rehabilitacion
+gestion publica publicas publico invierte pe invierte contrataciones estado licitacion licitaciones expediente expedientes
+juridico juridica legal legales notarial notariales registral registrales tributario tributaria laboral laborales
+educativa educativas educativo educativos instruccion pedagogica pedagogico ugel dre minedu sunedu magisterio magisterial
+productores cafetaleros asociacion asociaciones federacion federaciones confederacion junta juntas regantes regante usuarios comite comites
+fotografico fotografica fotograficos retoque retoques edicion editar editado disenar diseno disenos ilustracion ilustraciones logotipo logotipos
+# --- software, plataformas y marcas conocidas (productos, no personas) ---
+corel coreldraw draw davinci resolve premiere elements acrobat reader sumatra winrar winzip vlc obs camtasia filmora capcut looker query pivot teamviewer anydesk rustdesk
+webex discord evernote dropbox mega icloud pfsense opnsense fortinet fortigate sophos routeros winbox wireshark nmap kali metasploit nessus openvas splunk grafana zabbix nagios
+prometheus ansible terraform jenkins nginx apache tomcat redis rabbitmq kafka elasticsearch kibana mariadb sqlserver firebird delphi cobol fortran pascal ruby rails golang rust kotlin
+swift flutter dart ionic xamarin scratch geogebra octave erp crm moodle chamilo blackboard classroom kahoot genially prezi lumion enscape twinmotion zbrush substance
+anydesk ultraviewer chrome firefox edge safari opera brave tor thunderbird outlook zimbra whatsapp telegram signal messenger instagram tiktok snapchat pinterest twitch
+alexa siri cortana copilot gemini claude chatgpt openai midjourney dalle stable diffusion
+windows server linux ubuntu debian centos fedora mint android ios macos chromeos proxmox vmware virtualbox hyper
+sony canon nikon fujifilm gopro dji logitech razer corsair jbl bose philips tcl hisense midea oster lg
+# --- oficina, comercio y puntos de venta ---
+ticket tickets lector lectores barras codigo etiqueta etiquetas balanza balanzas registradora pos posnet termica termicas escaner caja cajero cajeros inventario kardex facturador
+comprobante comprobantes ticketera ticketeras lectora lectoras huellero huelleros
+club clubes pertenecer pertenece pertenezco
+# --- más tecnología, finanzas y servicios de uso corriente ---
+visual basic apex apps power automate virtual sharepoint synology qnap nas san raid backup huawei matebook macbook ipad iphone imac airpods thinkpad ideapad latitude inspiron optiplex vostro pavilion elitebook probook
+kasnet agente agentes yape plin tunki lukita bim izipay niubiz culqi mercadopago paypal visa mastercard amex diners
+siaf siga sigapeg seace sunat sunarp reniec essalud afp onp
+autenticacion verificacion factor factores biometria token tokens phishing spam malware ransomware antivirus firewall vpn proxy
+sospechoso sospechosa sospechosos pidiendo piden pidieron banco bancos bancaria bancario clave claves
+videoportero videoporteros intercomunicador intercomunicadores citofono citofonos portero electrico
+condominio condominios residencial residenciales edificio edificios multifamiliar
+avicola avicolas granja granjas porcino porcina piscicola truchas acuicultura apicultura
+mate book
+# --- instrucciones, reglas y seguridad del asistente (vocabulario de consultas sobre el propio sistema) ---
+secreto secretos secreta secretas confidencial confidenciales oculto oculta ocultos ocultas interno interna internos internas privado privada privados privadas restringido restringida
+instruccion instrucciones indicacion indicaciones regla reglas restriccion restricciones limite limites filtro filtros politica politicas orden ordenes comando comandos directiva directivas
+prompt jailbreak hack hacker hackers exploit vulnerabilidad vulnerabilidades privilegio privilegios permiso permisos modo modos rol roles personaje personajes
+configuracion configuraciones ajuste ajustes parametro parametros variable variables entorno codigo fuente sistema sistemas administrador administradores root superusuario
+asistente asistentes bot bots robot modelo modelos lenguaje inteligencia artificial

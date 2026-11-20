@@ -1,0 +1,52 @@
+[
+  {
+    "id": "cep-cr13",
+    "nombre": "Colegio de Enfermeros de Cajamarca - CR XIII",
+    "siglas": "CEP / CR XIII",
+    "vigencia": "18 de julio del 2027",
+    "descripcion": "Convenio Interinstitucional con Colegio de Enfermeros de Cajamarca. La empresa Horus Group SRL firma convenio con el Colegio de Enfermeros de Cajamarca - CR XIII a través de su representante el Decano Mg. Manuel Hoyos Torres para la realización de talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería. Dicho convenio beneficia a los participantes en los certificados emitidos de dichos eventos con firma del Decano del Colegio de Enfermeros de Cajamarca, así como representantes de la Empresa. Dichos certificados son válidos para las postulaciones a entidades públicas y privadas según los requisitos establecidos de las mismas.",
+    "imagen": "assets/images/index/convenios-fotos/convenio-cep-cr13.jpg",
+    "posicion": "center 40%",
+    "logo": "assets/images/index/logos/logo-convenio-enfermeros.png"
+  },
+  {
+    "id": "corlad",
+    "nombre": "Colegio Regional de Licenciados en Administración de Cajamarca",
+    "siglas": "CORLAD",
+    "vigencia": "17 de febrero del 2027",
+    "descripcion": "Convenio Interinstitucional con Colegio Regional de Licenciados en Administración de Cajamarca. La empresa Horus Group SRL firma convenio con el Colegio Regional de Licenciados en Administración de Cajamarca - CORLAD - a través de su representante el Decano Dr. José Luis Medina para la realización de talleres, charlas, cursos y diplomados en las distintas ramas de las Ciencias Administrativas. Dicho convenio beneficia a los participantes en los certificados emitidos de dichos eventos con firma del Decano del Colegio Regional de Licenciados en Administración de Cajamarca, así como representantes de la Empresa. Dichos certificados son válidos para las postulaciones a entidades públicas y privadas según los requisitos establecidos de las mismas.",
+    "imagen": "assets/images/index/convenios-fotos/convenio-corlad.jpg",
+    "posicion": "center 45%",
+    "logo": "assets/images/index/logos/logo-convenio-administracion.jpg"
+  },
+  {
+    "id": "economistas",
+    "nombre": "Colegio de Economistas de Cajamarca",
+    "siglas": "CEC",
+    "vigencia": "6 de febrero del 2027",
+    "descripcion": "Convenio Interinstitucional con Colegio de Economistas de Cajamarca. La empresa Horus Group SRL firma convenio con el Colegio de Economistas de Cajamarca a través de su representante el Decano Dr. José Luis Medina para la realización de talleres, charlas, cursos y diplomados en las distintas ramas de la Ciencia Económica. Dicho convenio beneficia a los participantes en los certificados emitidos de dichos eventos con firma del Decano del Colegio de Economistas, así como representantes de la Empresa. Dichos certificados son válidos para las postulaciones a entidades públicas y privadas según los requisitos establecidos de las mismas.",
+    "imagen": "assets/images/index/convenios-fotos/convenio-economistas.jpg",
+    "posicion": "center 35%",
+    "logo": "assets/images/index/logos/logo-convenio-economistas.jpg"
+  },
+  {
+    "id": "isam",
+    "nombre": "Instituto de Educación Superior ISAM",
+    "siglas": "ISAM",
+    "vigencia": "6 de enero del 2027",
+    "descripcion": "Convenio Interinstitucional con el Instituto de Educación Superior ISAM. La empresa Horus Group SRL firma convenio con el instituto para la realización de talleres, charlas y cursos, con entrega de certificados a los participantes.",
+    "imagen": "assets/images/index/convenios-fotos/convenio-isam.jpg",
+    "posicion": "center",
+    "logo": "assets/images/index/logos/logo-convenio-isam.png"
+  },
+  {
+    "id": "cep-cr2",
+    "nombre": "Colegio de Enfermeros del Perú - CR II La Libertad",
+    "siglas": "CEP / CR II",
+    "vigencia": "4 de junio del 2029",
+    "descripcion": "Convenio Interinstitucional con el Colegio de Enfermeros del Perú - Consejo Regional II La Libertad. La empresa Horus Group SRL firma convenio con el CEP / CR II para la realización de talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería, en beneficio de los participantes.",
+    "imagen": null,
+    "posicion": null,
+    "logo": "assets/images/index/logos/logo-convenio-enfermeros.png"
+  }
+]

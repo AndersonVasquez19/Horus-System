@@ -1,0 +1,78 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Models\User;
+use App\Support\Entrada;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Illuminate\Support\Carbon;
+use RuntimeException;
+use UnexpectedValueException;
+
+class JwtTokenService
+{
+    private const MAX_TTL = 86400;
+
+    private const MAX_LEEWAY = 60;
+
+    /** @return array{access_token: string, token_type: string, expires_in: int} */
+    public function issue(User $user): array
+    {
+        $now = Carbon::now()->getTimestamp();
+        $expiresAt = $now + min(self::MAX_TTL, max(60, Entrada::entero(config('jwt.ttl', 900))));
+        $token = JWT::encode([
+            'iss' => $this->issuer(),
+            'aud' => $this->issuer(),
+            'sub' => Entrada::texto($user->id),
+            'iat' => $now,
+            'nbf' => $now,
+            'exp' => $expiresAt,
+            'jti' => bin2hex(random_bytes(16)),
+            'ver' => (int) $user->jwt_version,
+        ], $this->secret(), 'HS256');
+
+        return ['access_token' => $token, 'token_type' => 'Bearer', 'expires_in' => $expiresAt - $now];
+    }
+
+    public function decode(string $token): object
+    {
+        // `JWT::$leeway` es estático y global: acotarlo y restaurarlo para no alterar otros usos de la librería.
+        $anterior = JWT::$leeway;
+        JWT::$leeway = min(self::MAX_LEEWAY, max(0, Entrada::entero(config('jwt.leeway', 0))));
+
+        try {
+            $claims = JWT::decode($token, new Key($this->secret(), 'HS256'));
+        } finally {
+            JWT::$leeway = $anterior;
+        }
+
+        if (($claims->iss ?? null) !== $this->issuer() || ($claims->aud ?? null) !== $this->issuer()) {
+            throw new UnexpectedValueException('Invalid token issuer or audience.');
+        }
+
+        return $claims;
+    }
+
+    private function secret(): string
+    {
+        $secret = Entrada::texto(config('jwt.secret'));
+
+        if (str_starts_with($secret, 'base64:')) {
+            $secret = base64_decode(substr($secret, 7), true) ?: '';
+        }
+
+        if (strlen($secret) < 32) {
+            throw new RuntimeException('JWT_SECRET must contain at least 32 bytes.');
+        }
+
+        return $secret;
+    }
+
+    private function issuer(): string
+    {
+        return Entrada::texto(config('jwt.issuer'));
+    }
+}

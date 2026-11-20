@@ -1,0 +1,13 @@
+{
+  "name": "horus-system",
+  "private": true,
+  "description": "Atajos de orquestación del monorepo. Sin dependencias ni lockfile: cada aplicación gestiona las suyas.",
+  "scripts": {
+    "gateway": "node ops/gateway/gateway.mjs",
+    "gateway:test": "node --test ops/gateway/gateway.test.mjs",
+    "api:test": "php apps/api/artisan test --compact",
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "web:verify": "npm --prefix apps/web run verify:assets"
+  }
+}

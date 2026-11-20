@@ -1,0 +1,134 @@
+[
+  {
+    "query": "que camaras tienen",
+    "reply": {
+      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "quiero saber sobre las camaras de seguridad",
+    "reply": {
+      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Informacion sobre Camaras de seguridad y videovigilancia",
+    "reply": {
+      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "y que incluye de Camaras de seguridad y videovigilancia",
+    "reply": {
+      "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones. La web presenta cámaras IP, analógicas, Full HD, domo, de 360° y fijas tipo bala, con funciones como sensores de movimiento, alarma vía email, visión nocturna y visualización desde tu computadora o celular. Detalle en /tecnologias/camaras-seguridad.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": true
+      }
+    }
+  }
+]

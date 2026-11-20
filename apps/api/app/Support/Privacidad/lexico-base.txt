@@ -1,0 +1,188 @@
+# Léxico base de vocabulario común (español de consulta comercial y educativa + términos técnicos y marcas).
+# Palabras normalizadas: minúsculas, sin tildes, ñ -> n. Una palabra no listada se trata como posible nombre propio.
+# NO incluir nombres de pila ni apellidos (ni homónimos: luz, rosa, flor, cruz, vega, leon, marcos, pilar, angel, santos...).
+# Los plurales y el género se resuelven en la consulta (ver LexicoPublico); aquí basta una forma por palabra.
+# --- funcionales ---
+a ante bajo cabe con contra de desde durante en entre hacia hasta mediante para por segun sin sobre tras
+el la los las un una unos unas lo al del este esta esto estos estas ese esa eso esos esas aquel aquella aquello
+yo tu usted ustedes nosotros nosotras vosotros ellos ellas el ella me te se nos os le les mi mis tu tus su sus
+nuestro nuestra nuestros nuestras vuestro mio mia mios mias tuyo tuya suyo suya mismo misma mismos mismas
+que quien quienes cual cuales cuyo cuanto cuanta cuantos cuantas como donde adonde cuando cuan porque pues
+y e o u ni pero sino aunque mas menos muy tan tanto tanta tantos tantas poco poca pocos pocas mucho mucha muchos muchas
+todo toda todos todas algo alguien alguno alguna algunos algunas ninguno ninguna nada nadie otro otra otros otras
+varios varias cada cualquier cualquiera demas ambos ambas bastante demasiado suficiente
+si no ya aun todavia tambien tampoco solo solamente apenas casi siempre nunca jamas luego despues antes ahora
+entonces ayer hoy manana tarde temprano pronto aqui ahi alli alla aca alla cerca lejos dentro fuera arriba abajo
+adelante atras encima debajo delante detras junto enfrente alrededor bien mal mejor peor asi tal igual
+ademas incluso inclusive tampoco acaso quiza quizas talvez seguramente claro obvio ojala
+hola ola buenas buenos buen buena bueno dia dias noche noches tardes saludos gracias gracia favor porfavor
+chao adios hasta luego bienvenido bienvenida disculpa disculpe perdon perdone permiso
+ok okay vale listo listos entendido perfecto genial excelente
+uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince veinte treinta cuarenta cincuenta
+sesenta setenta ochenta noventa cien ciento doscientos trescientos quinientos mil millon primero segundo tercero
+cuarto quinto ultimo ultima medio media mitad doble triple par pares
+# --- verbos (formas frecuentes; los regulares se generan desde lexico-verbos.txt) ---
+soy eres es somos son era eran fue fueron sera seran seria serian sea sean sido siendo ser
+estoy estas esta estamos estan estaba estaban estuvo estare estaria este esten estado estando estar
+he has ha hemos han habia habian hubo habra habria haya hayan habido haber hay
+tengo tienes tiene tenemos tienen tenia tenian tuvo tendra tendria tenga tengan tenido teniendo tener
+hago haces hace hacemos hacen hacia hacian hizo hara haria haga hagan hecho haciendo hacer haz
+voy vas va vamos van iba iban fue ire ira iria vaya vayan ido yendo ir ve
+doy das da damos dan daba dieron dara daria de den dado dando dar
+puedo puedes puede podemos pueden podia podian pudo podra podria podrian pueda puedan podido pudiendo poder
+quiero quieres quiere queremos quieren queria querian quiso querra querria quisiera quisieras quisieran quiera quieran querido queriendo querer
+se sabe sabes saben sabemos sabia supo sabra sabria sepa sepan sabido sabiendo saber
+digo dices dice decimos dicen decia dijo dira diria diga digan dicho diciendo decir
+vengo vienes viene venimos vienen venia vino vendra vendria venga vengan venido viniendo venir
+pongo pones pone ponemos ponen ponia puso pondra pondria ponga pongan puesto poniendo poner
+veo ves ve vemos ven veia vio vera veria vea vean visto viendo ver
+salgo sales sale salimos salen salia salio saldra saldria salga salgan salido saliendo salir
+traigo traes trae traemos traen traia trajo traera traiga traigan traido trayendo traer
+conozco conoces conoce conocemos conocen conocia conocio conozca conocido conociendo conocer
+necesito necesitas necesita necesitamos necesitan necesitaba necesitaria necesite necesiten necesitado necesitando necesitar
+parece parecen parecia parezca parecido parecer
+oye oiga oigan oir oido
+sigo sigue siguen seguir seguido siguiente siguientes
+pido pides pide piden pedir pedido pidiendo pida pidan
+cuesta cuestan costaba costo costaria costar cueste
+vale valen valia valdra valdria valer
+duerme duermen dormir
+doler duele
+gusta gustan gustaria gustaria gustar
+interesa interesan interesaria interesar interesado interesada interesados interesadas
+sirve sirven servia serviria servir sirva
+# --- sustantivos y adjetivos generales ---
+persona personas gente hombre mujer ninos nino nina adulto adulta adultos joven jovenes adolescente adolescentes menor menores mayor mayores anciano
+familia familiar familiares padre madre padres papa mama papas mamas hijo hija hijos hijas hermano hermana hermanos hermanas esposo esposa esposos
+abuelo abuela abuelos tio tia tios sobrino sobrina sobrinos primo prima primos cunado cuniada suegro suegra yerno nuera nieto nieta nietos
+pareja novio novia amigo amiga amigos amigas vecino vecina vecinos companero companera companeros companeras colega colegas conocido conocida
+cliente clientes usuario usuarios consumidor socio socia socios miembro miembros representante contacto contactos responsable encargado encargada
+estudiante estudiantes alumno alumna alumnos alumnas aspirante aspirantes postulante postulantes participante participantes asistente asistentes
+egresado egresada egresados graduado graduada titulado titulada bachiller universitario universitaria escolar docente docentes profesor profesora
+profesores maestro maestra maestros instructor instructora instructores capacitador capacitadora tutor tutora expositor ponente facilitador
+director directora directores gerente gerentes jefe jefa jefes coordinador coordinadora supervisor supervisora administrador administradora
+secretario secretaria recepcionista ejecutivo ejecutiva asesor asesora asesores consultor consultora vendedor vendedora cajero cajera
+empleado empleada empleados trabajador trabajadora trabajadores obrero obrera operario operaria personal equipo equipos staff
+empresario empresaria emprendedor emprendedora independiente freelance freelancer autonomo propietario propietaria dueno duena
+ingeniero ingeniera tecnico tecnica tecnicos arquitecto arquitecta abogado abogada contador contadora contadores economista economistas
+medico medica doctor doctora enfermero enfermera enfermeros obstetra psicologo psicologa odontologo odontologa dentista veterinario veterinaria
+farmaceutico farmaceutica nutricionista kinesiologo fisioterapeuta terapeuta cirujano pediatra cardiologo
+periodista fotografo fotografa disenador disenadora programador programadora desarrollador desarrolladora analista
+chef cocinero cocinera pastelero pastelera panadero panadera mozo mesero mesera barista bartender sommelier
+mecanico mecanica electricista gasfitero soldador carpintero carpintera albanil pintor pintora plomero chofer conductor transportista taxista mototaxista
+policia policias militar bombero bombera serenazgo seguridad vigilante guardia guardian
+agricultor agricultora ganadero ganadera campesino campesina minero minera pescador comerciante comerciantes tendero bodeguero
+guia turistico turistica turista turistas artesano artesana costurera sastre modista peluquero peluquera estilista barbero
+actor actriz musico musica cantante bailarin artista escritor escritora poeta editor
+religioso sacerdote pastor catequista voluntario voluntaria dirigente presidente presidenta alcalde regidor congresista gobernador
+retirado retirada jubilado jubilada pensionista desempleado desempleada practicante pasante becario becaria
+curso cursos clase clases taller talleres seminario seminarios diplomado diplomados charla charlas conferencia capacitacion capacitaciones
+formacion entrenamiento programa programas modulo modulos sesion sesiones leccion lecciones tema temas contenido contenidos silabo temario
+nivel niveles basico basica intermedio intermedia avanzado avanzada inicial iniciales experto experta principiante principiantes novato
+modalidad modalidades presencial presenciales virtual virtuales online linea semipresencial hibrido hibrida remoto remota distancia sincrono asincrono
+horario horarios turno turnos hora horas minuto minutos duracion semana semanas mes meses ano anos fecha fechas inicio inicia inician fin termino
+lunes martes miercoles jueves viernes sabado sabados domingo domingos enero febrero marzo abril mayo junio julio agosto setiembre septiembre octubre noviembre diciembre
+vacante vacantes cupo cupos grupo grupos aula aulas salon laboratorio laboratorios sede sedes local locales sucursal sucursales oficina oficinas
+matricula matriculas inscripcion inscripciones registro registros admision requisito requisitos documento documentos formulario formularios ficha
+certificado certificados certificacion certificaciones constancia constancias diploma diplomas titulo titulos credencial validez valido valida vigente vigentes
+evaluacion evaluaciones examen examenes nota notas calificacion practica practicas teoria teorico practico proyecto proyectos tarea tareas ejercicio ejercicios
+asistencia asistencias puntualidad tardanza falta faltas permiso licencia reprogramacion reprogramar recuperacion recuperar reposicion
+material materiales libro libros manual manuales guia guias apunte apuntes video videos grabacion grabaciones clase grabada plataforma plataformas campus aula virtual
+beca becas descuento descuentos promocion promociones oferta ofertas convenio convenios alianza alianzas beneficio beneficios gratis gratuito gratuita
+precio precios costo costos tarifa tarifas pago pagos cuota cuotas cuenta cuentas deposito transferencia efectivo tarjeta tarjetas yape plin
+comprobante comprobantes boleta boletas factura facturas recibo recibos voucher igv impuesto impuestos moneda soles sol dolares devolucion reembolso
+cotizacion cotizaciones presupuesto presupuestos propuesta propuestas proforma contrato contratos orden pedido pedidos compra compras venta ventas
+servicio servicios atencion soporte asistencia mantenimiento reparacion reparaciones instalacion instalaciones configuracion revision diagnostico
+garantia garantias visita visitas cita citas consulta consultas pregunta preguntas duda dudas respuesta respuestas informacion informes informe info datos
+recomendacion recomendaciones sugerencia sugerencias opcion opciones alternativa alternativas comparacion diferencia diferencias ventaja ventajas
+solicitud solicitudes reclamo reclamos queja quejas sugerencia consulta tramite tramites proceso procesos procedimiento procedimientos paso pasos
+estado situacion caso casos problema problemas error errores falla fallas solucion soluciones ayuda apoyo orientacion asesoria asesoramiento
+empresa empresas negocio negocios institucion instituciones organizacion organizaciones entidad entidades compania companias sociedad corporacion
+fundacion asociacion asociaciones cooperativa cooperativas comunidad comunidades municipalidad municipalidades gobierno gobiernos ministerio ministerios
+colegio colegios escuela escuelas instituto institutos universidad universidades academia academias centro centros hospital hospitales clinica clinicas
+posta farmacia farmacias hotel hoteles restaurante restaurantes tienda tiendas bodega bodegas bazar bazares mercado mercados banco bancos caja cajas
+taller talleres fabrica fabricas almacen almacenes ferreteria ferreterias imprenta libreria bibliotecas biblioteca notaria juzgado iglesia parroquia
+constructora constructoras minera mineras agencia agencias consorcio consorcios sindicato gremio colegiatura colegio profesional
+region regional regionales provincia provincial provincias distrito distritos ciudad ciudades pueblo pueblos caserio centro poblado zona zonas barrio
+pais nacional internacional extranjero extranjera lugar lugares ubicacion direccion direcciones calle avenida jiron pasaje plaza parque plazuela
+norte sur este oeste centro central
+casa casas hogar domicilio vivienda edificio edificios piso pisos pabellon pabellones sala salas cuarto cuartos ambiente ambientes
+nombre nombres apellido apellidos cuenta clave contrasena usuario codigo codigos numero numeros telefono telefonos celular celulares correo correos
+tema titulo frase palabra palabras texto textos mensaje mensajes chat conversacion respuesta
+tiempo vez veces momento momentos rato dia dias etapa fase parte partes tipo tipos clase clases forma formas manera maneras modo modos
+cosa cosas algo asunto asuntos motivo motivos razon razones objetivo objetivos meta metas fin fines uso usos
+nuevo nueva nuevos nuevas viejo vieja antiguo antigua actual actuales reciente recientes proximo proxima proximos proximas anterior anteriores
+primer primera primeros primeras ultimo ultimos siguiente mismo mismos distinto distinta diferente diferentes similar similares parecido parecida
+grande grandes pequeno pequena pequenos pequenas chico chica mediano mediana largo larga corto corta breve breves alto alta bajo baja amplio amplia
+bueno buena buenos buenas malo mala mejor mejores peor excelente optimo optima ideal ideales
+facil faciles dificil dificiles sencillo sencilla simple simples complejo compleja rapido rapida rapidos lento lenta flexible flexibles
+completo completa completos completas total totales parcial general generales especial especiales especifico especifica basico basicos
+disponible disponibles ocupado ocupada libre libres abierto abierta cerrado cerrada lleno llena vacio vacia activo activa activos inactivo
+publico publica publicos privado privada privados personal personales oficial oficiales propio propia propios propias particular particulares
+seguro segura seguros seguras confiable confiables profesional profesionales laboral laborales comercial comerciales empresarial empresariales
+educativo educativa educativos educativas academico academica tecnico tecnica tecnologico tecnologica digital digitales informatico informatica
+cierto cierta ciertos ciertas posible posibles necesario necesaria necesarios importante importantes util utiles obligatorio opcional
+interesante interesantes urgente urgentes inmediato inmediata especial adicional adicionales extra
+ficticio ficticia ficticios ficticias simulado simulada simulados ejemplo ejemplos prueba pruebas demo
+mensual mensuales semanal semanales diario diaria diarios anual anuales trimestral
+con sin sobre bajo entre hacia desde hasta segun
+# --- educación e informática ---
+computacion computadora computadoras computador computadores pc pcs laptop laptops notebook notebooks portatil portatiles tablet tablets celular smartphone
+informatica ofimatica sistemas sistema software hardware programacion programar programa codigo codigos lenguaje lenguajes algoritmo algoritmos logica
+aplicacion aplicaciones app apps aplicativo aplicativos web sitio sitios pagina paginas portal portales plataforma tienda virtual comercio electronico ecommerce
+base bases datos dato database sql nosql mysql postgresql postgres mongodb sqlite oracle access
+excel word powerpoint power point outlook onenote teams sharepoint office microsoft windows linux ubuntu macos mac android ios apple google
+drive sheets docs slides gmail workspace calendar meet zoom skype whatsapp telegram facebook instagram tiktok youtube twitter linkedin canva figma
+photoshop illustrator indesign premiere after effects lightroom corel coreldraw autocad sketchup revit blender solidworks civil3d arcgis
+python java javascript typescript php html css html5 css3 react angular vue laravel django flask node nodejs bootstrap tailwind wordpress joomla
+git github gitlab docker kubernetes aws azure cloud nube hosting dominio dominios servidor servidores server backup respaldo respaldos
+power bi tableau analytics analitica datos dashboards dashboard reporte reportes grafico graficos tabla tablas formula formulas macro macros vba
+inteligencia artificial ia chatgpt machine learning aprendizaje automatico ciencia ciberseguridad seguridad informatica redes red lan wan wifi wi fi
+internet banda ancha fibra optica ethernet utp stp cable cables cat5 cat6 cat6a conector conectores rj45 patch panel rack gabinete switch switches router
+routers modem access point antena antenas mikrotik ubiquiti cisco tplink tp link huawei zte dlink netgear hikvision dahua epson canon hp dell lenovo asus acer
+samsung lg sony xiaomi apple logitech kingston intel amd nvidia ups estabilizador regulador impresora impresoras impresion scanner escaner proyector
+monitor monitores pantalla pantallas teclado mouse raton camara camaras webcam microfono parlante parlantes audifonos disco duro ssd hdd memoria ram
+procesador placa tarjeta grafica fuente cargador bateria baterias puerto puertos usb hdmi vga bluetooth
+videovigilancia cctv dvr nvr grabador ip biometrico biometricos huella reloj control acceso asistencia alarma alarmas sensor sensores domotica
+cercos electricos electrico electrica electricidad energia solar paneles panel inversor instalaciones electricas tablero
+robotica robot robots arduino raspberry electronica electronico circuito circuitos impresion 3d drone drones
+pagina web sitio web tienda online landing seo sem marketing digital publicidad redes sociales community manager contenido contenidos diseno grafico
+edicion video audio animacion modelado fotografia logo logos marca marcas branding imagen imagenes
+contabilidad contable tributacion tributario finanzas financiero financiera financieros administracion gestion proyectos proyecto liderazgo
+recursos humanos rrhh logistica almacen inventario inventarios stock kardex ventas marketing comercial negociacion atencion cliente
+sunat sunarp reniec sunedu minedu essalud sis afp onp osce seace mef
+ingles idioma idiomas aleman frances portugues quechua espanol traduccion
+estadistica matematica matematicas fisica quimica biologia historia geografia lenguaje comunicacion razonamiento
+tributos planilla planillas remuneraciones nomina boletas liquidacion costos presupuesto presupuestos finanzas personales tesoreria
+sistema operativo sistemas operativos antivirus virus malware firewall vpn cifrado encriptacion contrasenas autenticacion
+nube almacenamiento sincronizacion colaboracion teletrabajo videollamada videoconferencia reunion reuniones
+proyecto proyectos gantt cronograma cronogramas project projectlibre scrum agile metodologia metodologias
+cableado estructurado puntos punto certificacion certificar mediciones fusion fusiones
+domotica automatizacion automatizar industrial industriales
+# --- institucional Horus ---
+horus group srl sac eirl isam cajamarca peru lima trujillo chiclayo piura arequipa cusco puno tacna huancayo iquitos pucallpa tarapoto
+banos inca otuzco llacanora namora encanada magdalena asuncion matara cospan cajabamba celendin chota cutervo jaen bambamarca hualgayoc
+ contumaza san gallo cajamarquino cajamarquina cajamarquinos
+colegio enfermeros economistas licenciados administracion colegiado colegiada
+# --- términos variados de consulta ---
+quien quienes cuanto cuantos cuanta cuantas cual cuales que como cuando donde adonde por que porque porqué
+informar informarme informarse saber conocer entender comprender aprender enseñar ensenar estudiar practicar capacitar capacitarse capacitarme
+matricularme matricularse matricular inscribirme inscribirse inscribir registrarme registrarse registrar anotarme anotar
+llamar contactar comunicar comunicarme escribir escribirme hablar conversar atender atenderme atenderlo responder respondan
+recomendar recomiendas recomiendan recomiendo sugerir sugieres orientar orientame orientarme comparar compara compararme elegir elige elijo escoger ayudar ayudame ayudarme
+cotizar cotiza cotizo cotizamos cotizacion instalar instala instalan instalo reparar repara reparan arreglar arregla mantener mantiene
+ofrecer ofrece ofrecen ofrezco brindar brinda brindan dictar dicta dictan impartir imparte imparten incluir incluye incluyen contar cuenta cuentan
+funcionar funciona funcionan durar dura duran tardar tarda tardan demorar demora demoran iniciar inicia inician empezar empieza empiezan comenzar
+pagar paga pagan pago depositar deposita transferir transfiere cancelar cancela cancelan reservar reserva reservan
+asistir asiste asisten faltar falta faltan recuperar recupera olvidar olvide olvido perder perdi
+usar usa usan uso utilizar utiliza utilizan manejar maneja manejan emplear
+llevar lleva llevan llevo tomar toma toman tomo cursar cursa cursan
+trabajar trabaja trabajan trabajo trabajos vivir vive viven vivo estudiar estudia estudian estudio
+proteger protege protegen guardar guarda guardan almacenar almacena compartir comparte comparten enviar envia envian envio mandar manda
+solicitar solicita solicitan solicito pedir pide piden pido
+privacidad proteccion datos personales confidencial confidenciales confidencialidad politica politicas terminos condiciones
+seguro seguridad inseguro riesgo riesgos riesgoso
+tardes noches dias buenas buenos gracias gracias
+mandame mandenme dime dime digame digan expliqueme explicame explica explique cuentame cuentenme muestrame muestreme
+mira mire miren ve vean escucha escuche perdona perdone
+por favor porfa plis

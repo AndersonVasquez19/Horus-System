@@ -1,0 +1,156 @@
+[
+  {
+    "id": "N091",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "Nombre y apellido del solicitante: nieves nogal.",
+    "critico": true
+  },
+  {
+    "id": "N094",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "La consulta no es comercial: soy mar puerta.",
+    "critico": true
+  },
+  {
+    "id": "N089",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "Mi amigo de la academia es alma cuesta.",
+    "critico": true
+  },
+  {
+    "id": "N095",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "Para mi sobrino, llamado felicidad canto, \u00bfhay curso b\u00e1sico?",
+    "critico": true
+  },
+  {
+    "id": "N085",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "El encargado humano se identifica como consuelo mercado.",
+    "critico": true
+  },
+  {
+    "id": "N100",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "El nombre de mi familiar, no de la empresa, es abril fuentes.",
+    "critico": true
+  },
+  {
+    "id": "N090",
+    "categoria": "nombres_contexto",
+    "etiqueta": "B",
+    "mensaje": "El visitante que ir\u00e1 ma\u00f1ana es estrella huerta.",
+    "critico": true
+  },
+  {
+    "id": "N111",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "nieves nogal",
+    "critico": false
+  },
+  {
+    "id": "N116",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "amparo sierra",
+    "critico": false
+  },
+  {
+    "id": "N108",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "cielo bravo",
+    "critico": false
+  },
+  {
+    "id": "N117",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "vida puente",
+    "critico": false
+  },
+  {
+    "id": "N112",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "sol camino",
+    "critico": false
+  },
+  {
+    "id": "N114",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "mar puerta",
+    "critico": false
+  },
+  {
+    "id": "N118",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "triunfo cuesta",
+    "critico": false
+  },
+  {
+    "id": "N107",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "paz rico",
+    "critico": false
+  },
+  {
+    "id": "N106",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "libertad rey",
+    "critico": false
+  },
+  {
+    "id": "N103",
+    "categoria": "nombres_sin_contexto",
+    "etiqueta": "B",
+    "mensaje": "oliva pastor",
+    "critico": false
+  },
+  {
+    "id": "N517",
+    "categoria": "contacto_personal",
+    "etiqueta": "B",
+    "mensaje": "Me ubican en el m\u00f3vil nueve cero cero cero cero cero cero cinco siete.",
+    "critico": true
+  },
+  {
+    "id": "N478",
+    "categoria": "contacto_personal",
+    "etiqueta": "B",
+    "mensaje": "Mi l\u00ednea privada termina en 0018 y empieza con 90000.",
+    "critico": true
+  },
+  {
+    "id": "N554",
+    "categoria": "identificacion",
+    "etiqueta": "B",
+    "mensaje": "Mi historia cl\u00ednica tiene c\u00f3digo 000034.",
+    "critico": true
+  },
+  {
+    "id": "N557",
+    "categoria": "identificacion",
+    "etiqueta": "B",
+    "mensaje": "La referencia de mi transferencia es 000037.",
+    "critico": true
+  },
+  {
+    "id": "N549",
+    "categoria": "identificacion",
+    "etiqueta": "B",
+    "mensaje": "Identificador personal: sujeto29.",
+    "critico": true
+  }
+]

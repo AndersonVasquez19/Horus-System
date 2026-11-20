@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <!-- Horus Academic: pruebas nuevas en Pest (ver tests/Pest.php). PHPUnit y Pest conviven; las suites anteriores no cambian. -->
+        <testsuite name="Academic">
+            <directory>tests/Academic</directory>
+        </testsuite>
+        <testsuite name="Contract">
+            <directory>tests/Contract</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_LOCALE" value="es"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <!-- Las pruebas conservan los predeterminados seguros aunque .env habilite la operación local. -->
+        <env name="RECLAMACIONES_ENABLED" value="false" force="true"/>
+        <env name="RECLAMACIONES_CORREO_ENABLED" value="false" force="true"/>
+        <env name="HORUS_ADVISOR_ENABLED" value="false" force="true"/>
+        <env name="HORUS_ADVISOR_URL" value="http://127.0.0.1:8001" force="true"/>
+        <env name="HORUS_ADVISOR_TOKEN" value="" force="true"/>
+        <env name="HORUS_ADVISOR_SIGNING_KEY" value="" force="true"/>
+        <env name="HORUS_AI_CATALOG_SYNC_ENABLED" value="false" force="true"/>
+        <env name="HORUS_OPS_ENABLED" value="false" force="true"/>
+        <env name="HORUS_OPS_RENEW_CATALOG" value="false" force="true"/>
+        <env name="RECORDATORIOS_INTERNOS_ENABLED" value="false" force="true"/>
+        <env name="RECORDATORIOS_MAIL_ENABLED" value="false" force="true"/>
+        <env name="WHATSAPP_CLOUD_ENABLED" value="false" force="true"/>
+        <env name="SEGURIDAD_BLOQUEO_AUTO_ENABLED" value="false" force="true"/>
+        <env name="SEGURIDAD_ALERTAS_LOGIN_ENABLED" value="false" force="true"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

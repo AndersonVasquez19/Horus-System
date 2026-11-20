@@ -1,0 +1,21 @@
+# Análisis estático del backend (Larastan). Requiere larastan/larastan ^3 en require-dev.
+# Ejecutar: vendor/bin/phpstan analyse
+#
+# Nivel 9 (subido desde 6 el 19/11/2026) en app/, rutas, configuración, arranque y database/.
+# Subir de nivel solo corrigiendo las causas, sin baseline ni supresiones masivas.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 9
+    paths:
+        - app
+        - routes
+        - database
+        - config
+        - bootstrap/app.php
+        - bootstrap/providers.php
+    # Las migraciones ya están aplicadas en bases con datos: no se editan solo para satisfacer tipos. Seeders y factories sí se analizan.
+    excludePaths:
+        - database/migrations
+    reportUnmatchedIgnoredErrors: true

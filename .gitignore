@@ -1,0 +1,5 @@
+# Genérico del monorepo. Cada aplicación tiene su propio .gitignore (apps/api, apps/web, apps/ai).
+node_modules/
+.env
+*.log
+ops/gateway/.runtime/

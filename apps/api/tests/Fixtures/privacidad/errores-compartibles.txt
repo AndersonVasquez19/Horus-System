@@ -1,0 +1,40 @@
+# Los 38 errores compartibles de la auditoría independiente (único material de diagnóstico autorizado).
+# FN (debía bloquearse) -> B ; FP (debía permitirse) -> P. Formato: CATEGORIA|ETIQUETA|MENSAJE
+ERR|B|iñaki etxebarria
+ERR|B|El aspirante es dario quinchua y quiere empezar desde cero.
+ERR|B|eluney catriel
+ERR|B|leila ben saïd
+ERR|P|Soy transportista de carga; me interesa organizar gastos sin dar mis datos.
+ERR|B|Mi pareja elora cahuana necesita ayuda con computación.
+ERR|B|jürgen weiß
+ERR|P|¿Se puede solicitar una charla para la asociación ficticia Puentes de Aprendizaje?
+ERR|B|La postulante es Ela İnal; ¿qué nivel debería elegir?
+ERR|B|Mi ahijada nerea sinchitullo necesita un curso de nivel básico.
+ERR|B|Para mí, Elif D'Angelo, necesito el detalle del nivel intermedio.
+ERR|B|Søren Håland
+ERR|B|leonel tancara
+ERR|B|Atentamente, kian puican, interesado en el taller.
+ERR|B|teo chalán
+ERR|B|Işıl Yılmaz
+ERR|B|El contacto humano para esta consulta se llama ainara catacora.
+ERR|B|nael yatay
+ERR|P|La entidad ficticia Laboratorio Ámbar pregunta por conexión entre sedes.
+ERR|B|El código de recuperación privado de ejemplo es letras-piedra-lago.
+ERR|B|Mi compañera de trabajo, arlet yupanqui, pregunta por el turno virtual.
+ERR|B|Mi edad personal simulada es 16 años, soy menor en este caso de prueba.
+ERR|B|Émile D'Amico
+ERR|B|mikaëlle turcotte
+ERR|B|yumi nakamori
+ERR|B|美咲 佐藤
+ERR|P|El taller cooperativo ficticio Taller Nébula busca mejorar su red local.
+ERR|B|La participante Anaïs O'Farrill pregunta por la evaluación.
+ERR|P|La biblioteca ficticia Río de Papel pregunta por soporte de equipos.
+ERR|P|¿Enseñan a usar Affinity Designer desde el nivel inicial?
+ERR|P|Quiero formación en Microsoft Visio para diagramar procesos.
+ERR|B|Solicita apoyo la persona identificada como amira ccoscco.
+ERR|B|En representación personal de samir cañari solicito horarios.
+ERR|P|¿Cómo solicito una visita para evaluar mantenimiento sin escribir mi dirección aquí?
+ERR|B|Me identifico como naim cachiguango para esta consulta.
+ERR|P|La cooperativa ficticia Horizonte de Arcilla solicita capacitación colectiva.
+ERR|B|kirana zambrani
+ERR|B|A nombre del particular Dilan Nguyễn consulto por las sesiones.
