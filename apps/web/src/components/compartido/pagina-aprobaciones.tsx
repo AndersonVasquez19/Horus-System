@@ -4,7 +4,7 @@ import { BotonNuevaAprobacion, AccionesAprobacion } from '@/components/compartid
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
-import { CampoBusqueda, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
+import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, type ColorInsignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado } from '@/components/shared/ui/tabla';
@@ -15,7 +15,7 @@ import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 
 type Parametros = Record<string, string | string[] | undefined>;
 
-const PARAMETROS = ['busqueda', 'estado', 'tipo', 'alcance', 'page'] as const;
+const PARAMETROS = ['busqueda', 'estado', 'tipo', 'alcance', 'per_page', 'page'] as const;
 
 function enlaceDeReferencia(referencia: string, tono: TonoUi): string | null {
   const limpia = referencia.trim();
@@ -92,6 +92,7 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
         <CampoBusqueda tono={tono} nombre="busqueda" valor={parametro(parametros, 'busqueda')} marcador="Título, descripción o referencia" />
         <SelectorFiltro tono={tono} nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={Object.fromEntries(Object.entries(ESTADOS).map(([clave, { texto }]) => [clave, texto]))} />
         <SelectorFiltro tono={tono} nombre="tipo" etiqueta="Tipo" valor={parametro(parametros, 'tipo')} opciones={ETIQUETAS_TIPO_APROBACION} />
+        <SelectorPorPagina tono={tono} valor={parametro(parametros, 'per_page')} />
       </FiltrosListado>
 
       <div className="flex justify-end">
@@ -159,7 +160,7 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
           })}
         </ul>
       )}
-      {filas.length > 0 ? <Paginacion meta={meta} ruta={ruta} parametros={actuales} /> : null}
+      {filas.length > 0 ? <Paginacion suelta meta={meta} ruta={ruta} parametros={actuales} /> : null}
     </div>
   );
 }

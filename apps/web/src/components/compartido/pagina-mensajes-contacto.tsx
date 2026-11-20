@@ -109,7 +109,7 @@ export async function MensajesContacto({ tono, parametros }: { tono: TonoUi; par
         </ul>
       )}
 
-      <Paginacion meta={meta} ruta={ruta} parametros={actuales} />
+      <Paginacion suelta meta={meta} ruta={ruta} parametros={actuales} />
     </div>
   );
 }

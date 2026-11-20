@@ -5,7 +5,7 @@ import { UserPlus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { Campo, CampoClave } from '@/components/shared/ui/campo';
 import { errorDeCampo, llamarBff } from '@/lib/panel/cliente';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
@@ -28,10 +28,11 @@ export function FormularioRegistro() {
     const resultado = await llamarBff<{ message: string }>('/api/bff/auth/registro', {
       cuerpo: { name: nombre, email, password, password_confirmation: confirmacion, terms: acepta ? '1' : '' },
     });
-    setPassword('');
-    setConfirmacion('');
     setEnviando(false);
     if (resultado.ok) {
+      // Solo se limpian al terminar con éxito: en un 422 (p. ej. correo duplicado) el usuario conserva lo escrito.
+      setPassword('');
+      setConfirmacion('');
       setCreada(resultado.datos.message);
       return;
     }
@@ -60,9 +61,8 @@ export function FormularioRegistro() {
 
       <Campo etiqueta="Nombre completo" name="name" autoComplete="name" required maxLength={120} value={nombre} onChange={(e) => setNombre(e.target.value)} error={errorNombre} />
       <Campo etiqueta="Correo electrónico" type="email" name="email" autoComplete="email" inputMode="email" required maxLength={255} value={email} onChange={(e) => setEmail(e.target.value)} error={errorEmail} />
-      <Campo
+      <CampoClave
         etiqueta="Contraseña"
-        type="password"
         name="password"
         autoComplete="new-password"
         required
@@ -73,7 +73,7 @@ export function FormularioRegistro() {
         error={errorClave}
         ayuda="Al menos 10 caracteres, con mayúsculas, minúsculas y un número."
       />
-      <Campo etiqueta="Confirma tu contraseña" type="password" name="password_confirmation" autoComplete="new-password" required maxLength={72} value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} />
+      <CampoClave etiqueta="Confirma tu contraseña" name="password_confirmation" autoComplete="new-password" required maxLength={72} value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} />
 
       <div>
         <label className="flex items-start gap-3 text-sm text-panel-text">

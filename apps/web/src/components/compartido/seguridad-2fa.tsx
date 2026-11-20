@@ -6,7 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { Campo, CampoClave } from '@/components/shared/ui/campo';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { errorDeCampo } from '@/lib/panel/cliente';
@@ -117,10 +117,9 @@ export function Seguridad2fa({ activo, tono }: { activo: boolean; tono: TonoUi }
 
       {!activo && paso === 'inactivo' ? (
         <form onSubmit={iniciar} noValidate className="space-y-3 border-t border-panel-border pt-3">
-          <Campo
+          <CampoClave
             tono={tono}
             etiqueta="Contraseña actual para configurar 2FA"
-            type="password"
             value={clave}
             onChange={(e) => setClave(e.target.value)}
             error={errorDeCampo(error, 'current_password')}
@@ -184,10 +183,9 @@ export function Seguridad2fa({ activo, tono }: { activo: boolean; tono: TonoUi }
 
       {activo && paso === 'desactivar' ? (
         <form onSubmit={desactivar} noValidate className="space-y-3 border-t border-panel-border pt-3">
-          <Campo
+          <CampoClave
             tono={tono}
             etiqueta="Contraseña actual"
-            type="password"
             value={clave}
             onChange={(e) => setClave(e.target.value)}
             error={errorDeCampo(error, 'current_password')}

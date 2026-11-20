@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useMemo } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
+import { useFormularioPanel } from '@/components/shared/use-formulario-panel';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { Campo, CampoClave } from '@/components/shared/ui/campo';
+import { Casilla } from '@/components/shared/ui/casilla';
 import type { UsuarioPanel } from '@/features/notificaciones/tipos';
-import { errorDeCampo } from '@/lib/panel/cliente';
-import type { ErrorPanel } from '@/lib/panel/tipos';
+import { crearEsquemaUsuario, cuerpoUsuario } from '@/lib/panel/esquemas';
 
 interface FormularioUsuarioProps {
   /** Sin usuario: alta. Con usuario: edición. */
@@ -24,102 +25,85 @@ interface FormularioUsuarioProps {
 /**
  * Alta y edición de usuarios. Laravel aplica todas las reglas (correo único, clave segura, escalada de privilegios,
  * último administrador); aquí solo se muestran sus errores. La sección de roles aparece con `usuarios.asignar-roles`
- * y, al editar, solo entonces se envía el campo `roles` (su ausencia no significa «quitar todos»).
+ * y, al editar, solo entonces se envía el campo `roles` (su ausencia no significa «quitar todos»). Los campos usan los
+ * nombres de Laravel (`name`, `password`…) para que cada error del servidor caiga en su campo.
  */
 export function FormularioUsuario({ usuario, roles, tono, onGuardado, onCancelar, onOcupado }: FormularioUsuarioProps) {
   const { ejecutar } = useOperacionPanel();
   const puedeAsignar = usePuede('usuarios.asignar-roles');
-  const [nombre, setNombre] = useState(usuario?.nombre ?? '');
-  const [email, setEmail] = useState(usuario?.email ?? '');
-  const [clave, setClave] = useState('');
-  const [confirmacion, setConfirmacion] = useState('');
-  const [temporal, setTemporal] = useState(!usuario);
-  const [seleccion, setSeleccion] = useState<string[]>(usuario?.roles ?? []);
-  const [error, setError] = useState<ErrorPanel | null>(null);
-  const [guardando, setGuardando] = useState(false);
+  const edicion = usuario !== undefined;
+  const esquema = useMemo(() => crearEsquemaUsuario(edicion), [edicion]);
 
-  const alternar = (rol: string) => setSeleccion((actual) => (actual.includes(rol) ? actual.filter((nombreRol) => nombreRol !== rol) : [...actual, rol]));
+  const f = useFormularioPanel({
+    esquema,
+    valores: {
+      name: usuario?.nombre ?? '',
+      email: usuario?.email ?? '',
+      password: '',
+      password_confirmation: '',
+      temporal: !usuario,
+      roles: usuario?.roles ?? [],
+    },
+    onOcupado,
+    enviar: (datos) => {
+      const cuerpo = cuerpoUsuario(datos, { edicion, puedeAsignarRoles: puedeAsignar });
+      return usuario
+        ? ejecutar<{ message: string }>(`compartido/usuarios/${usuario.id}`, 'PUT', cuerpo)
+        : ejecutar<{ message: string }>('compartido/usuarios', 'POST', cuerpo);
+    },
+    onExito: (respuesta) => onGuardado(respuesta.message),
+  });
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    setGuardando(true);
-    onOcupado?.(true);
-    setError(null);
-
-    const cuerpo: Record<string, unknown> = { name: nombre.trim(), email: email.trim() };
-    if (clave !== '' || !usuario) {
-      cuerpo.password = clave;
-      cuerpo.password_confirmation = confirmacion;
-      cuerpo.temporal = temporal;
-    }
-    if (puedeAsignar) cuerpo.roles = seleccion;
-
-    const resultado = usuario
-      ? await ejecutar<{ message: string }>(`compartido/usuarios/${usuario.id}`, 'PUT', cuerpo)
-      : await ejecutar<{ message: string }>('compartido/usuarios', 'POST', cuerpo);
-    setGuardando(false);
-    onOcupado?.(false);
-
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
-    }
-    onGuardado(resultado.datos.message);
-  }
-
-  const err = (campo: string) => errorDeCampo(error, campo);
-  const errorRoles = err('roles') ?? Object.keys(error?.errors ?? {}).filter((campo) => campo.startsWith('roles.')).map((campo) => err(campo)).find(Boolean);
+  const clave = f.form.watch('password');
+  const seleccion = f.form.watch('roles');
+  const alternar = (rol: string) =>
+    f.form.setValue('roles', seleccion.includes(rol) ? seleccion.filter((nombreRol) => nombreRol !== rol) : [...seleccion, rol], { shouldDirty: true });
 
   return (
-    <form onSubmit={enviar} noValidate className="space-y-4">
-      {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
+    <form onSubmit={f.enviar} noValidate className="space-y-4">
+      {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo tono={tono} etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={err('name')} required maxLength={255} autoComplete="off" />
-        <Campo tono={tono} etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={err('email')} required maxLength={255} autoComplete="off" />
-        <Campo
+        <Campo tono={tono} etiqueta="Nombre" {...f.registro('name')} error={f.error('name')} required maxLength={255} autoComplete="off" />
+        <Campo tono={tono} etiqueta="Correo electrónico" type="email" {...f.registro('email')} error={f.error('email')} required maxLength={255} autoComplete="off" />
+        <CampoClave
           tono={tono}
           etiqueta={usuario ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-          type="password"
-          value={clave}
-          onChange={(e) => setClave(e.target.value)}
-          error={err('password')}
+          {...f.registro('password')}
+          error={f.error('password')}
           required={!usuario}
+          politica={!usuario}
           ayuda={usuario ? 'Déjala vacía para conservar la actual. Al cambiarla se cierran las demás sesiones de esa persona.' : undefined}
           autoComplete="new-password"
         />
-        <Campo tono={tono} etiqueta="Confirmar contraseña" type="password" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} required={!usuario} autoComplete="new-password" />
+        <CampoClave
+          tono={tono}
+          etiqueta="Confirmar contraseña"
+          {...f.registro('password_confirmation')}
+          error={f.error('password_confirmation')}
+          required={!usuario}
+          autoComplete="new-password"
+        />
       </div>
 
       {!usuario || clave !== '' ? (
-        <label className="flex items-start gap-2 text-sm text-panel-text">
-          <input
-            type="checkbox"
-            checked={temporal}
-            onChange={(e) => setTemporal(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-panel-border"
-          />
-          <span>Contraseña temporal (exigir que el usuario la cambie en su próximo inicio de sesión)</span>
-        </label>
+        <Casilla etiqueta="Contraseña temporal (exigir que el usuario la cambie en su próximo inicio de sesión)" {...f.registro('temporal')} />
       ) : null}
 
       {puedeAsignar ? (
-        <fieldset className="space-y-2">
+        <fieldset className="space-y-1">
           <legend className="text-sm font-medium text-panel-text">Roles</legend>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
+          <div className="flex flex-wrap gap-x-5">
             {roles.map((rol) => (
-              <label key={rol} className="inline-flex items-center gap-2 text-sm text-panel-text">
-                <input type="checkbox" checked={seleccion.includes(rol)} onChange={() => alternar(rol)} className="h-4 w-4 rounded border-panel-border" />
-                {rol}
-              </label>
+              <Casilla key={rol} etiqueta={rol} checked={seleccion.includes(rol)} onChange={() => alternar(rol)} />
             ))}
           </div>
-          {errorRoles ? <p role="alert" className="text-sm text-estado-error">{errorRoles}</p> : null}
+          {f.errorLista('roles') ? <p role="alert" className="text-sm text-estado-error">{f.errorLista('roles')}</p> : null}
         </fieldset>
       ) : null}
 
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
-        <Boton tono={tono} variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
-        <Boton tono={tono} type="submit" cargando={guardando}>{usuario ? 'Guardar cambios' : 'Crear usuario'}</Boton>
+      <div className="pie-acciones">
+        <Boton tono={tono} variante="secundario" onClick={onCancelar} disabled={f.guardando}>Cancelar</Boton>
+        <Boton tono={tono} type="submit" cargando={f.guardando}>{usuario ? 'Guardar cambios' : 'Crear usuario'}</Boton>
       </div>
     </form>
   );

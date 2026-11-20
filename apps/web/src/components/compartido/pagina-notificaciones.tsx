@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
-import { CampoFecha, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
+import { CampoFecha, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado } from '@/components/shared/ui/tabla';
@@ -13,7 +13,7 @@ import { BotonMarcarLeida, BotonMarcarTodas, EnlaceNotificacion } from './accion
 type Parametros = Record<string, string | string[] | undefined>;
 
 const COLOR_TIPO: Record<string, 'verde' | 'ambar' | 'rojo' | 'azul'> = { success: 'verde', warning: 'ambar', danger: 'rojo', reclamacion: 'azul', reclamacion_plazo: 'ambar', contacto: 'azul' };
-const PARAMETROS = ['estado', 'tipo', 'desde', 'hasta', 'page'] as const;
+const PARAMETROS = ['estado', 'tipo', 'desde', 'hasta', 'per_page', 'page'] as const;
 
 /** Bandeja de notificaciones del usuario. La monta cada panel bajo su propia ruta: `/admin/<panel>/notificaciones`. */
 export function PaginaNotificaciones({ tono, searchParams }: { tono: TonoUi; searchParams: Promise<Parametros> }) {
@@ -52,6 +52,7 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
         <SelectorFiltro tono={tono} nombre="tipo" etiqueta="Tipo de aviso" valor={parametro(parametros, 'tipo')} opciones={Object.fromEntries((meta.tipos ?? []).map((t) => [t.clave, t.etiqueta]))} todos="Todos" />
         <CampoFecha tono={tono} nombre="desde" etiqueta="Desde" valor={parametro(parametros, 'desde')} />
         <CampoFecha tono={tono} nombre="hasta" etiqueta="Hasta" valor={parametro(parametros, 'hasta')} />
+        <SelectorPorPagina tono={tono} valor={parametro(parametros, 'per_page')} />
       </FiltrosListado>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -89,7 +90,7 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
       </ul>
       )}
 
-      <Paginacion meta={meta} ruta={ruta} parametros={actuales} />
+      <Paginacion suelta meta={meta} ruta={ruta} parametros={actuales} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import type { PreferenciasNotificacion } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
@@ -85,32 +86,19 @@ export function PreferenciasPerfil({
       <fieldset className="space-y-2">
         <legend className="text-xs font-semibold uppercase tracking-wide text-panel-muted">Canales</legend>
         <div className="grid gap-2 sm:grid-cols-3 text-sm">
-          <label className="flex items-center gap-2 text-panel-text">
-            <input type="checkbox" checked={prefs.interno} onChange={() => alternar('interno')} className="h-4 w-4 rounded border-panel-border" />
-            <span>Campana del panel</span>
-          </label>
-          <label className="flex items-center gap-2 text-panel-text">
-            <input type="checkbox" checked={prefs.email} onChange={() => alternar('email')} className="h-4 w-4 rounded border-panel-border" />
-            <span>Correo electrónico</span>
-          </label>
-          <label className="flex items-center gap-2 text-panel-text">
-            <input type="checkbox" checked={prefs.whatsapp} onChange={() => alternar('whatsapp')} className="h-4 w-4 rounded border-panel-border" />
-            <span>WhatsApp</span>
-          </label>
+          <Casilla etiqueta="Campana del panel" checked={prefs.interno} onChange={() => alternar('interno')} />
+          <Casilla etiqueta="Correo electrónico" checked={prefs.email} onChange={() => alternar('email')} />
+          <Casilla etiqueta="WhatsApp" checked={prefs.whatsapp} onChange={() => alternar('whatsapp')} />
         </div>
       </fieldset>
 
       {prefs.whatsapp ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-950">
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={prefs.whatsapp_consentimiento}
-              onChange={() => alternar('whatsapp_consentimiento')}
-              className="mt-0.5 h-4 w-4 rounded border-amber-400"
-            />
-            <span>Autorizo recibir recordatorios académicos/operativos vía WhatsApp conforme a la Ley N.º 29733 de Protección de Datos Personales.</span>
-          </label>
+          <Casilla
+            etiqueta="Autorizo recibir recordatorios académicos/operativos vía WhatsApp conforme a la Ley N.º 29733 de Protección de Datos Personales."
+            checked={prefs.whatsapp_consentimiento}
+            onChange={() => alternar('whatsapp_consentimiento')}
+          />
           {errorDeCampo(error, 'whatsapp_consentimiento') ? (
             <p role="alert" className="mt-1 font-medium text-red-700">{errorDeCampo(error, 'whatsapp_consentimiento')}</p>
           ) : null}
@@ -126,10 +114,7 @@ export function PreferenciasPerfil({
             ['recordatorio_reclamaciones', 'Plazos y mensajes de reclamaciones'],
             ['alerta_accesos', 'Alertas de intentos de acceso'],
           ] as const).map(([clave, etiqueta]) => (
-            <label key={clave} className="flex items-center gap-2 text-panel-text">
-              <input type="checkbox" checked={prefs[clave]} onChange={() => alternar(clave)} className="h-4 w-4 rounded border-panel-border" />
-              <span>{etiqueta}</span>
-            </label>
+            <Casilla key={clave} etiqueta={etiqueta} checked={prefs[clave]} onChange={() => alternar(clave)} />
           ))}
         </div>
       </fieldset>

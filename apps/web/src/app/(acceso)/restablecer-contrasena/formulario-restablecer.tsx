@@ -5,7 +5,7 @@ import { KeyRound } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { CampoClave } from '@/components/shared/ui/campo';
 import { errorDeCampo, llamarBff } from '@/lib/panel/cliente';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
@@ -102,9 +102,8 @@ export function FormularioRestablecer() {
         Cuenta: <span className="font-medium text-panel-text">{enlace.email}</span>
       </p>
       <input type="email" name="username" autoComplete="username" value={enlace.email} readOnly hidden />
-      <Campo
+      <CampoClave
         etiqueta="Contraseña nueva"
-        type="password"
         name="password"
         autoComplete="new-password"
         required
@@ -114,9 +113,8 @@ export function FormularioRestablecer() {
         ayuda="Entre 10 y 72 caracteres, con mayúsculas, minúsculas y al menos un número."
         maxLength={72}
       />
-      <Campo
+      <CampoClave
         etiqueta="Repite la contraseña"
-        type="password"
         name="password_confirmation"
         autoComplete="new-password"
         required
