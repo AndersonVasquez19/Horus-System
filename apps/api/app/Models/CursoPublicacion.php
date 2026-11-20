@@ -11,12 +11,19 @@ class CursoPublicacion extends Model
     protected $table = 'curso_publicaciones';
 
     protected $fillable = [
-        'curso_id', 'titulo', 'resumen', 'modalidad', 'horario', 'inscripcion',
+        'curso_id', 'titulo', 'resumen', 'imagen_ruta', 'modalidad', 'horario',
+        'fecha_inicio', 'duracion', 'certificacion', 'temario', 'inscripcion',
         'vigente_desde', 'vigente_hasta', 'publicada', 'autorizado_por', 'autorizado_at',
     ];
 
     protected function casts(): array
     {
-        return ['publicada' => 'boolean', 'vigente_desde' => 'date', 'vigente_hasta' => 'date', 'autorizado_at' => 'datetime'];
+        return [
+            'publicada' => 'boolean',
+            'fecha_inicio' => 'date',
+            'vigente_desde' => 'date',
+            'vigente_hasta' => 'date',
+            'autorizado_at' => 'datetime',
+        ];
     }
 }
