@@ -175,8 +175,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.catalog_sync_lock = asyncio.Lock()
     app.state.slots = asyncio.Semaphore(settings.max_concurrent_requests)
 
-    # Protección frente a DNS rebinding: solo nombres de host locales. Sin CORS: es un servicio interno.
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
+    # Protección frente a DNS rebinding: solo nombres de host locales (más los explícitos de despliegue, p. ej. la
+    # red privada de Railway, con HORUS_AI_EXTRA_ALLOWED_HOSTS). Sin CORS: es un servicio interno.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(
         BodySizeLimitMiddleware,
         max_bytes=settings.max_body_bytes,

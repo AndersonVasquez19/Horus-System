@@ -107,6 +107,26 @@ def test_untrusted_host_rejected(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_extra_allowed_hosts_require_non_loopback_opt_in() -> None:
+    privado = "horus-ai.railway.internal"
+    # Sin HORUS_AI_ALLOW_NON_LOOPBACK los extras se ignoran: el despliegue local no cambia.
+    with TestClient(create_app(make_settings(extra_allowed_hosts=privado))) as c:
+        assert c.get("/health", headers={"Host": privado}).status_code == 400
+    abierto = make_settings(
+        host="::", allow_non_loopback=True, extra_allowed_hosts=f"{privado}, healthcheck.railway.app"
+    )
+    with TestClient(create_app(abierto)) as c:
+        assert c.get("/health", headers={"Host": privado}).status_code == 200
+        assert c.get("/health", headers={"Host": "healthcheck.railway.app"}).status_code == 200
+        assert c.get("/health", headers={"Host": "evil.example.com"}).status_code == 400
+
+
+@pytest.mark.parametrize("valor", ["*", "*.railway.internal", "horus:8001", "http://horus", "a b"])
+def test_extra_allowed_hosts_reject_wildcards_and_non_hostnames(valor: str) -> None:
+    with pytest.raises(ValueError):
+        make_settings(extra_allowed_hosts=valor)
+
+
 def test_no_cors_headers(client: TestClient) -> None:
     response = client.options(
         "/api/v1/chat",
