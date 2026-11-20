@@ -35,6 +35,8 @@ export interface Operacion {
    * imagen JPEG, PNG o WebP de hasta `MAX_IMAGEN` bytes); cualquier otro campo o archivo se descarta.
    */
   multipart?: readonly string[];
+  /** Con `multipart`: además de una imagen, admite un PDF (solo los comprobantes de pago). Laravel lo revisa y lo sirve solo como descarga. */
+  pdf?: boolean;
 }
 
 /** Tamaño máximo de la imagen adjunta (comprobantes de pago en `PagoController`: 3 MB). */
@@ -152,11 +154,20 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/recibo$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: /^academico\/matriculas\/[0-9]{1,10}\/obligacion$/, campos: ['concepto', 'plan', 'monto_total'], cuotas: true },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/pagos$`), campos: ['metodo', 'monto', 'fecha_pago', 'referencia', 'confirmar', '_clave'] },
+  // «Subir comprobante» de Pagos: busca la matrícula, lee su obligación (si la tiene) y registra el pago sobre la matrícula
+  // (Laravel crea la obligación si falta). Caja diaria y aviso de código de operación repetido, usados desde la misma pantalla.
+  { metodo: 'GET', patron: /^academico\/matriculas$/, consulta: ['busqueda', 'estado', 'per_page'] },
+  { metodo: 'GET', patron: new RegExp(`^academico/matriculas/${ID}/obligacion$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/pagos$`), campos: ['metodo', 'monto', 'fecha_pago', 'referencia', 'confirmar', '_clave'] },
+  { metodo: 'GET', patron: /^academico\/pagos\/verificar-referencia$/, consulta: ['referencia'] },
+  { metodo: 'GET', patron: /^academico\/pagos\/caja-diaria\/resumen$/, consulta: ['fecha'] },
+  { metodo: 'POST', patron: /^academico\/pagos\/caja-diaria\/pdf$/, archivo: ['application/pdf'] },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/anular$`), campos: ['motivo'] },
   { metodo: 'POST', patron: /^academico\/pagos\/exportar$/, consulta: ['busqueda', 'estado', 'desde', 'hasta', 'sort'], archivo: [XLSX] },
   // Captura del comprobante: una sola imagen (campo `imagen`); se muestra en línea y solo con permiso en Laravel
-  { metodo: 'GET', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), archivo: IMAGENES, enLinea: true },
-  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), multipart: [] },
+  // Una captura se muestra en línea; un PDF solo se descarga (el BFF lo fuerza, aunque `enLinea` esté activo).
+  { metodo: 'GET', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), archivo: [...IMAGENES, 'application/pdf'], enLinea: true },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), multipart: [], pdf: true },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/confirmar$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/(rechazar|reversar)$`), campos: ['motivo'] },
 

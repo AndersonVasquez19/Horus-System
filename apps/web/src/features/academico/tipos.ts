@@ -144,7 +144,7 @@ export interface EstudianteDetalle extends EstudianteResumen {
 export interface MatriculaResumen {
   id: number;
   estudiante: { id: number; dni: string; nombre: string; email?: string | null; telefono?: string | null; eliminado: boolean } | null;
-  curso: { id: number; codigo: string; nombre: string; enlace_grupo_whatsapp?: string | null; eliminado: boolean } | null;
+  curso: { id: number; codigo: string; nombre: string; precio?: string; enlace_grupo_whatsapp?: string | null; eliminado: boolean } | null;
   /** Convocatoria de la que sale el cupo; sin ella, el cupo es el del curso. */
   convocatoria: { identificador: string; codigo: string } | null;
   estado: 'pendiente' | 'pagada' | 'anulada';
@@ -332,6 +332,34 @@ export interface ObligacionResumen {
   proxima_cuota?: { numero: number; vence: string; saldo: string; vencida: boolean } | null;
 }
 
+/** La misma captura ya respalda otro pago vigente (de esta matrícula u otra): solo un aviso para quien confirma. */
+export interface ImagenRepetida {
+  matricula_id: number;
+  fecha_pago: string;
+}
+
+/** Fila de la vista principal de Pagos: un pago con su comprobante y lo que aún debe la matrícula (`pagos/comprobantes`). */
+export interface ComprobanteFila {
+  identificador: string;
+  obligacion: string;
+  matricula_id: number;
+  estudiante: { id: number; dni: string; nombre: string };
+  edicion: string | null;
+  monto: string;
+  metodo: string;
+  fecha_pago: string;
+  referencia: string | null;
+  estado: 'pendiente' | 'confirmada' | 'rechazada';
+  tiene_comprobante: boolean;
+  imagen_repetida: ImagenRepetida | null;
+  tipo_comprobante: 'imagen' | 'pdf' | null;
+  revertida: boolean;
+  total: string;
+  pagado: string;
+  por_confirmar: string;
+  saldo: string;
+}
+
 export interface TransaccionPagoVista {
   identificador: string;
   tipo: 'pago' | 'reverso';
@@ -345,6 +373,10 @@ export interface TransaccionPagoVista {
   revertida: boolean;
   /** Hay una captura de comprobante adjunta (la imagen se pide aparte, con permiso). */
   tiene_comprobante: boolean;
+  /** La misma captura ya respalda otro pago vigente. Puede faltar en respuestas anteriores a este campo. */
+  imagen_repetida?: ImagenRepetida | null;
+  /** `pdf` solo se descarga (nunca se muestra en la página); `imagen` se ve en un diálogo. */
+  tipo_comprobante?: 'imagen' | 'pdf' | null;
 }
 
 export interface ObligacionDetalle extends ObligacionResumen {

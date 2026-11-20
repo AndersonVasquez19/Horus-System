@@ -56,12 +56,17 @@ async function atender(request: NextRequest, metodo: Metodo, { params }: Context
     const archivo = await descargarDeLaravel(destino, operacion.archivo, opciones);
     if (!archivo.ok) return cerrarSiExpiro(aplicarCookieSesion(errorJson(archivo.estado, archivo.error), archivo.cookie), archivo.estado);
 
+    // Solo una imagen puede verse en la página. Un PDF (comprobantes) se descarga SIEMPRE, aunque la operación admita vista en línea:
+    // puede traer contenido activo y no debe abrirse dentro del navegador.
+    const esPdf = archivo.tipo === 'application/pdf';
+    const enLinea = operacion.enLinea === true && archivo.tipo.startsWith('image/');
     const cabeceras: Record<string, string> = {
-      'Content-Type': operacion.enLinea ? archivo.tipo : `${archivo.tipo}; charset=UTF-8`,
-      'Content-Disposition': operacion.enLinea ? 'inline' : `attachment; filename="${archivo.nombre}"`,
+      'Content-Type': enLinea || esPdf ? archivo.tipo : `${archivo.tipo}; charset=UTF-8`,
+      'Content-Disposition': enLinea ? 'inline' : `attachment; filename="${archivo.nombre}"`,
       'Cache-Control': 'no-store, private',
       'X-Content-Type-Options': 'nosniff',
     };
+    if (esPdf) cabeceras['Content-Security-Policy'] = "default-src 'none'; sandbox";
     if (archivo.aviso) {
       cabeceras['X-Export-Truncated'] = 'true';
       cabeceras['X-Export-Message'] = archivo.aviso;

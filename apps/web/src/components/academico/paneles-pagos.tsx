@@ -14,7 +14,7 @@ import { Boton } from '@/components/shared/ui/boton';
 import { Campo, CampoSeleccion } from '@/components/shared/ui/campo';
 import { Dialogo } from '@/components/shared/ui/dialogo';
 import { Insignia } from '@/components/shared/ui/insignia';
-import type { ObligacionDetalle, TransaccionPagoVista } from '@/features/academico/tipos';
+import type { ImagenRepetida, ObligacionDetalle, TransaccionPagoVista } from '@/features/academico/tipos';
 import { fecha, moneda } from '@/lib/panel/formato';
 import { copiarAlPortapapeles, enlaceWaMe, mensajeRecordatorioCuota } from '@/lib/panel/whatsapp-plantillas';
 
@@ -145,11 +145,17 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
   const [motivo, setMotivo] = useState<Motivo | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Antes de confirmar, quien lo hace comprueba en su app (Yape o banco) que la operación existe: una captura puede estar editada.
+  const [porVerificar, setPorVerificar] = useState<TransaccionPagoVista | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
   const vigente = o.estado !== 'anulada';
 
   async function confirmar(t: TransaccionPagoVista) {
     setError(null);
+    setConfirmando(true);
     const r = await ejecutar<{ message: string }>(`academico/pagos/transacciones/${t.identificador}/confirmar`, 'POST', {});
+    setConfirmando(false);
+    setPorVerificar(null);
     if (!r.ok) return setError(r.error.message);
     mostrar('exito', r.datos.message);
     router.refresh();
@@ -216,11 +222,12 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
               </div>
               {t.referencia ? <p className="text-sm text-panel-muted">Referencia: {t.referencia}</p> : null}
               {t.motivo ? <p className="text-sm text-panel-muted">Motivo: {t.motivo}</p> : null}
+              {t.tipo === 'pago' && t.estado !== 'rechazada' && t.imagen_repetida ? <AvisoCapturaRepetida repetida={t.imagen_repetida} /> : null}
               <div className="flex flex-wrap gap-1">
                 {t.tipo === 'pago' ? <ComprobanteTransaccion transaccion={t} puedeAdjuntar={t.estado === 'pendiente' && puedeRegistrar && vigente} /> : null}
                 {t.tipo === 'pago' && t.estado === 'pendiente' && puedeConfirmar && vigente ? (
                   <>
-                    <Boton variante="fantasma" disabled={!t.tiene_comprobante} title={t.tiene_comprobante ? undefined : 'Adjunta primero la captura del comprobante'} icono={<Check className="h-4 w-4" aria-hidden="true" />} onClick={() => void confirmar(t)}>Confirmar</Boton>
+                    <Boton variante="fantasma" disabled={!t.tiene_comprobante} title={t.tiene_comprobante ? undefined : 'Adjunta primero la captura del comprobante'} icono={<Check className="h-4 w-4" aria-hidden="true" />} onClick={() => setPorVerificar(t)}>Confirmar</Boton>
                     <Boton variante="fantasma" icono={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => setMotivo({ tipo: 'rechazar', destino: `academico/pagos/transacciones/${t.identificador}/rechazar`, titulo: 'Rechazar pago', boton: 'Rechazar' })}>Rechazar</Boton>
                   </>
                 ) : null}
@@ -235,6 +242,21 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
 
       <Dialogo abierto={pago} titulo="Registrar pago" descripcion={`Yape · saldo disponible ${moneda(String(Number(o.saldo) - Number(o.pendiente_confirmar)))}`} onCerrar={() => setPago(false)} bloqueado={ocupado}>
         {pago ? <FormularioPago obligacion={o} puedeConfirmar={puedeConfirmar} onOcupado={setOcupado} onCerrar={() => setPago(false)} /> : null}
+      </Dialogo>
+      <Dialogo abierto={porVerificar !== null} titulo="Antes de confirmar" descripcion="Comprueba el pago en tu app, no solo en la captura." onCerrar={() => setPorVerificar(null)} bloqueado={confirmando}>
+        {porVerificar ? (
+          <div className="space-y-4">
+            <p className="text-sm text-panel-text">
+              Abre tu app de Yape (o la del banco) y comprueba que existe una operación{porVerificar.referencia ? <> con código <strong className="font-mono">{porVerificar.referencia}</strong></> : ''} por{' '}
+              <strong>{moneda(porVerificar.monto)}</strong> del {fecha(porVerificar.fecha_pago)}. Una captura puede estar editada; confirma solo si el dinero ya está en tu cuenta.
+            </p>
+            {porVerificar.imagen_repetida ? <AvisoCapturaRepetida repetida={porVerificar.imagen_repetida} /> : null}
+            <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+              <Boton variante="secundario" onClick={() => setPorVerificar(null)} disabled={confirmando}>Volver</Boton>
+              <Boton cargando={confirmando} icono={<Check className="h-4 w-4" aria-hidden="true" />} onClick={() => void confirmar(porVerificar)}>Ya lo verifiqué: confirmar</Boton>
+            </div>
+          </div>
+        ) : null}
       </Dialogo>
       <Dialogo abierto={motivo !== null} titulo={motivo?.titulo ?? ''} descripcion={motivo?.tipo === 'reversar' ? 'El pago original no se modifica: se registra una transacción compensatoria.' : undefined} onCerrar={() => setMotivo(null)} bloqueado={ocupado}>
         {motivo ? <FormularioMotivo motivo={motivo} onOcupado={setOcupado} onCerrar={() => setMotivo(null)} /> : null}
@@ -329,10 +351,10 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
       <Campo
         etiqueta="Captura del comprobante de pago"
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
         onChange={(e) => setCaptura(e.target.files?.[0] ?? null)}
         error={errorCaptura ?? undefined}
-        ayuda="JPG, PNG o WebP de hasta 3 MB. Es obligatoria."
+        ayuda="JPG, PNG, WebP o PDF de hasta 3 MB. Es obligatorio."
       />
       {puedeConfirmar ? (
         <label className="flex items-center gap-2 text-sm text-panel-text">
@@ -350,13 +372,23 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
   );
 }
 
+/** Aviso (no bloquea): la misma captura ya respalda otro pago vigente. Decide quien confirma. */
+function AvisoCapturaRepetida({ repetida }: { repetida: ImagenRepetida }) {
+  return (
+    <Alerta tipo="error">
+      Esta misma captura ya respalda un pago de la matrícula #{repetida.matricula_id} ({fecha(repetida.fecha_pago)}). Puede ser un error o un intento de cobrar dos veces:
+      revisa ambos pagos antes de confirmar.
+    </Alerta>
+  );
+}
+
 const MAX_CAPTURA = 3 * 1024 * 1024;
 
 /** Validación de ayuda en el navegador; Laravel vuelve a validar el tipo real y el tamaño. */
 function validarCaptura(archivo: File | null): string | null {
-  if (archivo === null) return 'Adjunta la captura del comprobante.';
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(archivo.type)) return 'Sube una captura en JPG, PNG o WebP.';
-  if (archivo.size > MAX_CAPTURA) return 'La captura no puede pasar de 3 MB.';
+  if (archivo === null) return 'Adjunta el comprobante de pago.';
+  if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(archivo.type)) return 'Sube una captura en JPG, PNG o WebP, o un PDF.';
+  if (archivo.size > MAX_CAPTURA) return 'El comprobante no puede pasar de 3 MB.';
   return null;
 }
 
@@ -390,10 +422,20 @@ function ComprobanteTransaccion({ transaccion: t, puedeAdjuntar }: { transaccion
   return (
     <>
       {error ? <p className="w-full text-sm text-estado-error">{error}</p> : null}
-      {t.tiene_comprobante && puedeVer ? <Boton variante="fantasma" onClick={() => setViendo(true)}>Ver comprobante</Boton> : null}
+      {t.tiene_comprobante && puedeVer && t.tipo_comprobante === 'pdf' ? (
+        // Un PDF solo se descarga: nunca se abre dentro del navegador.
+        <a
+          href={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`}
+          download="comprobante-de-pago.pdf"
+          className="inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-semibold text-panel-text underline transition hover:bg-panel-bg"
+        >
+          Descargar comprobante (PDF)
+        </a>
+      ) : null}
+      {t.tiene_comprobante && puedeVer && t.tipo_comprobante !== 'pdf' ? <Boton variante="fantasma" onClick={() => setViendo(true)}>Ver comprobante</Boton> : null}
       {puedeAdjuntar ? (
         <>
-          <input ref={entrada} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Elegir captura del comprobante" onChange={(e) => void adjuntar(e.target.files?.[0])} />
+          <input ref={entrada} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only" aria-label="Elegir comprobante (captura o PDF)" onChange={(e) => void adjuntar(e.target.files?.[0])} />
           <Boton variante="fantasma" cargando={subiendo} onClick={() => entrada.current?.click()}>{t.tiene_comprobante ? 'Reemplazar comprobante' : 'Adjuntar comprobante'}</Boton>
         </>
       ) : null}
@@ -489,6 +531,7 @@ export function ComprobantesDeLaMatricula({ obligacion: o }: { obligacion: Oblig
             <div className="flex gap-1">
               <Insignia color={COLOR_TX[t.estado]}>{t.estado === 'confirmada' ? 'Confirmado' : t.estado === 'pendiente' ? 'Por confirmar' : 'Rechazado'}</Insignia>
               <Insignia color={t.tiene_comprobante ? 'verde' : 'gris'}>{t.tiene_comprobante ? 'Con comprobante' : 'Sin comprobante'}</Insignia>
+              {t.imagen_repetida && t.estado !== 'rechazada' ? <Insignia color="rojo">Captura repetida</Insignia> : null}
             </div>
           </div>
           {t.referencia ? <p className="text-xs text-panel-muted">N.º de operación: {t.referencia}</p> : null}
