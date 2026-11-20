@@ -84,8 +84,13 @@ export interface EventoHistorialBasico {
 export interface FichaPublica {
   titulo: string;
   resumen: string;
+  imagen_url?: string | null;
   modalidad: string;
   horario: string | null;
+  fecha_inicio?: string | null;
+  duracion?: string | null;
+  certificacion?: string | null;
+  temario?: string | null;
   inscripcion: string | null;
   vigente_desde: string;
   vigente_hasta: string;
