@@ -14,8 +14,13 @@ export type ResultadoApi<T> =
 export interface CursoPublico {
   titulo: string;
   resumen: string;
+  imagen_url?: string | null;
   modalidad: 'presencial' | 'semipresencial' | 'virtual' | 'hibrido';
   horario: string | null;
+  fecha_inicio?: string | null;
+  duracion?: string | null;
+  certificacion?: string | null;
+  temario?: string | null;
   inscripcion: string | null;
   vigente_desde: string;
   vigente_hasta: string;
