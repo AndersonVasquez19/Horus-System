@@ -83,6 +83,11 @@ export function tipoDeImagen(bytes: Uint8Array): { tipo: string; extension: stri
   return null;
 }
 
+/** ¿Empieza con la firma de un PDF (`%PDF-`)? Solo se usa donde la operación admite PDF; Laravel revisa el contenido. */
+export function esPdf(bytes: Uint8Array): boolean {
+  return [0x25, 0x50, 0x44, 0x46, 0x2d].every((valor, indice) => bytes[indice] === valor);
+}
+
 /** Lee el cuerpo con un tope duro de bytes, sin fiarse de `Content-Length`. `null` = se excedió el tope. */
 async function leerAcotado(request: NextRequest, maximo: number): Promise<Uint8Array | null> {
   const lector = request.body?.getReader();
@@ -158,9 +163,11 @@ export async function leerMultipart(request: NextRequest, operacion: Operacion):
     if (archivo.size > MAX_IMAGEN) {
       return errorJson(413, { message: 'La imagen supera el tamaño máximo de 3 MB.', code: 'contenido_demasiado_grande', errors: { imagen: ['La imagen no puede superar los 3 MB.'] } });
     }
-    const detectado = tipoDeImagen(new Uint8Array(await archivo.slice(0, 16).arrayBuffer()));
+    const primeros = new Uint8Array(await archivo.slice(0, 16).arrayBuffer());
+    const detectado = tipoDeImagen(primeros) ?? (operacion.pdf === true && esPdf(primeros) ? { tipo: 'application/pdf', extension: 'pdf' } : null);
     if (detectado === null) {
-      return errorJson(415, { message: 'Formato de imagen no permitido.', code: 'tipo_no_admitido', errors: { imagen: ['Solo se admiten imágenes JPG, PNG o WebP.'] } });
+      const permitido = operacion.pdf === true ? 'Solo se admiten imágenes JPG, PNG o WebP, o un PDF.' : 'Solo se admiten imágenes JPG, PNG o WebP.';
+      return errorJson(415, { message: 'Formato de archivo no permitido.', code: 'tipo_no_admitido', errors: { imagen: [permitido] } });
     }
     salida.append('imagen', new Blob([await archivo.arrayBuffer()], { type: detectado.tipo }), `imagen.${detectado.extension}`);
   }
