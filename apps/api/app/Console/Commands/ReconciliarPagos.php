@@ -101,7 +101,7 @@ final class ReconciliarPagos extends Command
         return self::SUCCESS;
     }
 
-    /** @return array{0: list<array<string, mixed>>, 1: list<array<string, mixed>>} */
+    /** @return array{0: list<array{matricula_id: int, estado_actual: string, estado_esperado: string, monto_actual: string, monto_esperado: string}>, 1: list<array{matricula_id: int, estado: string, monto_pagado: string}>} */
     private function analizar(GestionPagos $pagos): array
     {
         $obligacionesVigentes = ObligacionPago::query()
@@ -152,8 +152,8 @@ final class ReconciliarPagos extends Command
     }
 
     /**
-     * @param  list<array<string, mixed>>  $desalineadas
-     * @param  list<array<string, mixed>>  $sinLibroConPago
+     * @param  list<array{matricula_id: int, estado_actual: string, estado_esperado: string, monto_actual: string, monto_esperado: string}>  $desalineadas
+     * @param  list<array{matricula_id: int, estado: string, monto_pagado: string}>  $sinLibroConPago
      */
     private function guardarInforme(string $ruta, array $desalineadas, array $sinLibroConPago): void
     {

@@ -23,12 +23,6 @@ class SolicitudCotizacion extends Model
         return '"cotizacion-'.$this->identificador.'-v'.$this->revision.'"';
     }
 
-    /** @return BelongsTo<Cliente, $this> */
-    public function cliente(): BelongsTo
-    {
-        return $this->belongsTo(Cliente::class);
-    }
-
     /** @return BelongsTo<User, $this> */
     public function responsable(): BelongsTo
     {

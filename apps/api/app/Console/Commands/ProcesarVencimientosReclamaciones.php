@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Reclamacion;
 use App\Services\GestionReclamaciones;
 use App\Support\DiasHabiles;
+use App\Support\Entrada;
 use App\Support\Reclamaciones;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
@@ -48,7 +49,7 @@ class ProcesarVencimientosReclamaciones extends Command
             return self::FAILURE;
         }
 
-        $hoy = CarbonImmutable::now((string) config('reclamaciones.zona_horaria', 'America/Lima'))->startOfDay();
+        $hoy = CarbonImmutable::now(Entrada::texto(config('reclamaciones.zona_horaria', 'America/Lima')))->startOfDay();
         $propuestas = $this->propuestas($gestion, $hoy->toDateString(), $limite);
         $avisos = $this->avisos($gestion, $hoy, $limite);
 
@@ -125,7 +126,7 @@ class ProcesarVencimientosReclamaciones extends Command
     {
         $dry = (bool) $this->option('dry-run');
         // Cota superior segura: lo que está a más de N días hábiles de hoy no tiene aviso que dar.
-        $techo = DiasHabiles::sumar($hoy, (int) config('reclamaciones.aviso_dias_habiles', 3))->toDateString();
+        $techo = DiasHabiles::sumar($hoy, Entrada::entero(config('reclamaciones.aviso_dias_habiles', 3)))->toDateString();
         $candidatas = Reclamacion::query()
             ->where('estado', 'abierto')
             ->whereNull('suspension_desde')

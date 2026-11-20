@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Support\Entrada;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use LogicException;
 
@@ -18,12 +20,15 @@ use LogicException;
  */
 final class RestablecerContrasenaWebNotification extends ResetPassword
 {
+    /**
+     * @param  CanResetPassword  $notifiable
+     */
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject('Restablece tu contraseña | Horus Group SRL')
             ->view('auth.emails.reset-link', [
-                'url' => self::enlace((string) config('horus-web.url'), $this->token, $notifiable->getEmailForPasswordReset()),
+                'url' => self::enlace(Entrada::texto(config('horus-web.url')), $this->token, $notifiable->getEmailForPasswordReset()),
                 'user' => $notifiable,
                 'appName' => config('app.name'),
             ]);

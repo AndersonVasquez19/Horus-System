@@ -9,6 +9,7 @@ use App\Models\Curso;
 use App\Models\CursoPublicacion;
 use App\Models\ServicioPublicacion;
 use App\Models\ServicioTecnologico;
+use App\Support\Entrada;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -44,7 +45,7 @@ class PublicacionCatalogoAdvisorObserver implements ShouldHandleEventsAfterCommi
 
         Cache::add('horus-ai.catalog.generation', 0);
         Cache::increment('horus-ai.catalog.generation');
-        Cache::forget(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'));
+        Cache::forget(Entrada::texto(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')));
         try {
             SincronizarCatalogoAdvisor::dispatch()->afterCommit();
         } catch (Throwable) {

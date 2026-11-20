@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Entrada;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,7 +85,7 @@ class NotificacionInterna extends Model
     {
         $query->where(function (Builder $q) use ($usuario): void {
             $q->where(function (Builder $personal) use ($usuario): void {
-                $personal->where('audiencia', self::AUDIENCIA_PERSONAL)->where('user_id', $usuario->getKey());
+                $personal->where('audiencia', self::AUDIENCIA_PERSONAL)->where('user_id', $usuario->id);
             })->orWhere(function (Builder $general): void {
                 $general->where('audiencia', self::AUDIENCIA_GENERAL)->whereNull('user_id');
             });
@@ -94,7 +95,7 @@ class NotificacionInterna extends Model
     public function esVisiblePara(User $usuario): bool
     {
         return match ($this->audiencia) {
-            self::AUDIENCIA_PERSONAL => $this->user_id !== null && (int) $this->user_id === (int) $usuario->getKey(),
+            self::AUDIENCIA_PERSONAL => $this->user_id !== null && Entrada::entero($this->user_id) === $usuario->id,
             self::AUDIENCIA_GENERAL => $this->user_id === null,
             default => false,
         };
@@ -112,7 +113,7 @@ class NotificacionInterna extends Model
         $query->where('leida', false)->where(function (Builder $q) use ($usuario): void {
             $q->where('audiencia', '!=', self::AUDIENCIA_GENERAL)
                 ->orWhereDoesntHave('lecturas', function (Builder $lectura) use ($usuario): void {
-                    $lectura->where('user_id', $usuario->getKey());
+                    $lectura->where('user_id', $usuario->id);
                 });
         });
     }
@@ -125,7 +126,7 @@ class NotificacionInterna extends Model
     public function scopeConLecturaDe(Builder $query, User $usuario): void
     {
         $query->with(['lecturas' => function ($lectura) use ($usuario): void {
-            $lectura->where('user_id', $usuario->getKey());
+            $lectura->where('user_id', $usuario->id);
         }]);
     }
 
@@ -136,10 +137,10 @@ class NotificacionInterna extends Model
         }
 
         if ($this->relationLoaded('lecturas')) {
-            return $this->lecturas->contains('user_id', $usuario->getKey());
+            return $this->lecturas->contains('user_id', $usuario->id);
         }
 
-        return $this->lecturas()->where('user_id', $usuario->getKey())->exists();
+        return $this->lecturas()->where('user_id', $usuario->id)->exists();
     }
 
     /**
@@ -163,7 +164,7 @@ class NotificacionInterna extends Model
 
         NotificacionLectura::query()->insertOrIgnore([
             'notificacion_id' => $this->getKey(),
-            'user_id' => $usuario->getKey(),
+            'user_id' => $usuario->id,
             'leida_at' => now(),
         ]);
         $this->unsetRelation('lecturas');

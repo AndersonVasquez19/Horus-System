@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Support\Email;
+use App\Support\Entrada;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -41,8 +42,8 @@ class CrearUsuarioPanel extends Command
             return self::FAILURE;
         }
 
-        $email = Email::normalize((string) ($this->option('email') ?: $this->ask('Correo')));
-        $name = trim((string) ($this->option('name') ?: $this->ask('Nombre')));
+        $email = Email::normalize(Entrada::texto(($this->option('email') ?: $this->ask('Correo'))));
+        $name = trim(Entrada::texto(($this->option('name') ?: $this->ask('Nombre'))));
 
         // Sin distinguir mayúsculas, como el registro y el panel: una fila histórica con mayúsculas es la misma cuenta.
         if (User::query()->whereRaw('lower(email) = ?', [$email])->exists()) {
@@ -51,8 +52,8 @@ class CrearUsuarioPanel extends Command
             return self::FAILURE;
         }
 
-        $password = (string) $this->secret('Contraseña (no se mostrará)');
-        $confirmation = (string) $this->secret('Repite la contraseña');
+        $password = Entrada::texto($this->secret('Contraseña (no se mostrará)'));
+        $confirmation = Entrada::texto($this->secret('Repite la contraseña'));
 
         $validator = Validator::make(
             ['email' => $email, 'name' => $name, 'password' => $password, 'password_confirmation' => $confirmation],

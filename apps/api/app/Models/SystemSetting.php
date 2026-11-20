@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Entrada;
 use Illuminate\Database\Eloquent\Model;
 
 class SystemSetting extends Model
@@ -22,7 +23,7 @@ class SystemSetting extends Model
         return static::updateOrCreate(
             ['key' => $key],
             [
-                'value' => is_array($value) ? json_encode($value) : (string) $value,
+                'value' => is_array($value) ? json_encode($value) : Entrada::texto($value),
                 'description' => $description,
             ],
         );

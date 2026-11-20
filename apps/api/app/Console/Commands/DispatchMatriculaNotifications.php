@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\MatriculaNotification;
 use App\Services\MatriculaNotificationService;
+use App\Support\Entrada;
 use Illuminate\Console\Command;
 
 class DispatchMatriculaNotifications extends Command
@@ -17,13 +18,13 @@ class DispatchMatriculaNotifications extends Command
         if ($this->option('status')) {
             $counts = MatriculaNotification::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
             foreach ($counts as $status => $total) {
-                $this->line($status.': '.$total);
+                $this->line($status.': '.Entrada::texto($total));
             }
             // Retenidas por motivo: nunca se despachan automáticamente y quedan para revisión.
             $held = MatriculaNotification::query()->where('status', MatriculaNotificationService::HELD)
                 ->selectRaw('last_error, count(*) as total')->groupBy('last_error')->pluck('total', 'last_error');
             foreach ($held as $reason => $total) {
-                $this->line(MatriculaNotificationService::HELD.'/'.($reason ?: 'sin_motivo').': '.$total);
+                $this->line(MatriculaNotificationService::HELD.'/'.($reason ?: 'sin_motivo').': '.Entrada::texto($total));
             }
 
             return self::SUCCESS;

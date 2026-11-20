@@ -59,7 +59,8 @@ class VerificarFinanzas extends Command
             }
         }
 
-        $reversosDuplicados = DB::table('transacciones_pago')->select('reversa_de_id')->whereNotNull('reversa_de_id')->groupBy('reversa_de_id')->havingRaw('count(*) > 1')->get()->count();
+        $gruposDuplicados = DB::table('transacciones_pago')->select('reversa_de_id')->whereNotNull('reversa_de_id')->groupBy('reversa_de_id')->havingRaw('count(*) > 1')->get();
+        $reversosDuplicados = count($gruposDuplicados);
         if ($reversosDuplicados > 0) {
             $problemas[] = "{$reversosDuplicados} pago(s) con más de un reverso";
         }

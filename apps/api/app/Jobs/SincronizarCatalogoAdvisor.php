@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Services\ExportadorCatalogoAdvisor;
 use App\Services\HorusAdvisorClient;
+use App\Support\Entrada;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Jobs\SyncJob;
@@ -54,7 +55,7 @@ class SincronizarCatalogoAdvisor implements ShouldQueue
 
         $versionClave = config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version');
         $generacionClave = 'horus-ai.catalog.generation';
-        $generacion = (int) Cache::get($generacionClave, 0);
+        $generacion = Entrada::entero(Cache::get($generacionClave, 0));
         $pendienteClave = $this->clavePendiente();
         // DatabaseQueue libera el payload original, sin serializar los cambios de handle().
         $pendiente = Cache::get($pendienteClave);
@@ -83,7 +84,7 @@ class SincronizarCatalogoAdvisor implements ShouldQueue
                 throw new RuntimeException('No se confirmó la aplicación del catálogo.');
             }
             // Una publicación posterior invalida esta respuesta, aunque el HTTP anterior haya terminado después.
-            if ((int) Cache::get($generacionClave, 0) !== $generacion) {
+            if (Entrada::entero(Cache::get($generacionClave, 0)) !== $generacion) {
                 Cache::forget($pendienteClave);
 
                 return;
@@ -101,7 +102,7 @@ class SincronizarCatalogoAdvisor implements ShouldQueue
 
                 return;
             }
-            Cache::forever($versionClave, $resultado['catalog_version']);
+            Cache::forever(Entrada::texto($versionClave), $resultado['catalog_version']);
             Cache::forget($pendienteClave);
             Log::info('advisor_catalog.sync', ['outcome' => 'loaded', 'version' => $resultado['catalog_version']]);
         } catch (Throwable $error) {

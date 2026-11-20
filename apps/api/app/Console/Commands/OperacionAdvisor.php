@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\SincronizarCatalogoAdvisor;
 use App\Services\OperacionHorus;
+use App\Support\Entrada;
 use Illuminate\Console\Command;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -81,7 +82,7 @@ class OperacionAdvisor extends Command
 
             return self::FAILURE;
         }
-        $connection = (string) config('queue.default');
+        $connection = Entrada::texto(config('queue.default'));
         $beat = ['at' => 0, 'attempts' => 0, 'failures' => 0];
         $this->workerActivo = true;
         $pulse = function (Looping|JobProcessed|JobFailed $event) use (&$beat, $connection): void {

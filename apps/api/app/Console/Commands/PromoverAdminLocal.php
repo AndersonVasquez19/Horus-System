@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Email;
+use App\Support\Entrada;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -34,8 +35,8 @@ class PromoverAdminLocal extends Command
 
     public function handle(): int
     {
-        $connection = (string) config('database.default');
-        $config = (array) config("database.connections.{$connection}", []);
+        $connection = Entrada::texto(config('database.default'));
+        $config = Entrada::lista(config("database.connections.{$connection}", []));
 
         if (($problem = $this->entornoNoAutorizado($config)) !== null
             || ($problem = $this->baseNoLocal($config)) !== null) {
@@ -47,7 +48,7 @@ class PromoverAdminLocal extends Command
         $baseActual = $this->nombreDeBase($config);
         $this->line("Destino: conexión «{$connection}», base «{$baseActual}», entorno «{$this->laravel->environment()}».");
 
-        $confirmada = (string) ($this->option('base') ?: $this->ask('Escribe el nombre de esta base de datos para confirmar'));
+        $confirmada = Entrada::texto(($this->option('base') ?: $this->ask('Escribe el nombre de esta base de datos para confirmar')));
         if ($confirmada === '' || ! hash_equals($baseActual, $confirmada)) {
             $this->error('La base indicada no coincide con la base conectada. No se cambió nada.');
 
@@ -63,7 +64,7 @@ class PromoverAdminLocal extends Command
 
         $existentes = Role::query()->where('guard_name', 'web')
             ->whereIn('name', RolesAndPermissionsSeeder::STAFF_ROLES)->pluck('name')->all();
-        $faltantes = array_values(array_diff(RolesAndPermissionsSeeder::STAFF_ROLES, $existentes));
+        $faltantes = array_values(array_diff(RolesAndPermissionsSeeder::STAFF_ROLES, Entrada::listaDeTexto($existentes)));
         if ($faltantes !== []) {
             $this->error('Faltan roles en esta base: '.implode(', ', $faltantes).'.');
             $this->line('Este comando no ejecuta seeders. Si es una base local desechable, revisa y ejecuta tú mismo:');
@@ -87,7 +88,7 @@ class PromoverAdminLocal extends Command
         $usuario = $usuarios->first();
 
         if ($usuario->hasRole('admin')) {
-            $this->info("La cuenta #{$usuario->getKey()} ya tiene el rol admin. No se cambió nada.");
+            $this->info("La cuenta #{$usuario->id} ya tiene el rol admin. No se cambió nada.");
 
             return self::SUCCESS;
         }
@@ -95,18 +96,18 @@ class PromoverAdminLocal extends Command
         DB::transaction(function () use ($usuario): void {
             $usuario->assignRole('admin');
 
-            AuditLog::record('admin_role_granted_local', User::class, $usuario->getKey(), [
+            AuditLog::record('admin_role_granted_local', User::class, $usuario->id, [
                 'via' => 'artisan horus:promover-admin',
             ], null);
         });
 
-        $this->info("Listo: la cuenta #{$usuario->getKey()} ahora tiene el rol admin en la base «{$baseActual}».");
+        $this->info("Listo: la cuenta #{$usuario->id} ahora tiene el rol admin en la base «{$baseActual}».");
         $this->line('Inicia sesión en el login de la interfaz web (HORUS_WEB_URL/login) para entrar al panel.');
 
         return self::SUCCESS;
     }
 
-    /** @param array<string, mixed> $config */
+    /** @param array<mixed> $config */
     private function entornoNoAutorizado(array $config): ?string
     {
         $entorno = (string) $this->laravel->environment();
@@ -124,13 +125,13 @@ class PromoverAdminLocal extends Command
             : "Entorno «{$entorno}» no autorizado. Solo se permite en: ".implode(', ', self::ENTORNOS_PERMITIDOS).'.';
     }
 
-    /** @param array<string, mixed> $config */
+    /** @param array<mixed> $config */
     private function baseNoLocal(array $config): ?string
     {
         $host = $config['host'] ?? null;
 
         if (! empty($config['url'])) {
-            $host = parse_url((string) $config['url'], PHP_URL_HOST) ?: null;
+            $host = parse_url(Entrada::texto($config['url']), PHP_URL_HOST) ?: null;
         }
 
         if ($host === null || $host === '') {
@@ -148,10 +149,10 @@ class PromoverAdminLocal extends Command
         return 'La base no está en esta máquina (host no local). Por seguridad el comando no se ejecuta contra servidores remotos.';
     }
 
-    /** @param array<string, mixed> $config */
+    /** @param array<mixed> $config */
     private function nombreDeBase(array $config): string
     {
-        $base = (string) ($config['database'] ?? '');
+        $base = Entrada::texto(($config['database'] ?? ''));
 
         if (($config['driver'] ?? null) === 'sqlite' && $base !== ':memory:') {
             return basename($base);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Services\EnvioReclamaciones;
+use App\Support\Entrada;
 use App\Support\Reclamaciones;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -33,7 +34,7 @@ class EnviarReclamacionCorreo implements ShouldQueue
     {
         $segundos = config('reclamaciones.correo.retroceso_segundos', [60, 300, 900]);
 
-        return is_array($segundos) ? array_values(array_map('intval', $segundos)) : [60, 300, 900];
+        return is_array($segundos) ? array_values(array_map(static fn (mixed $valor): int => Entrada::entero($valor), $segundos)) : [60, 300, 900];
     }
 
     public function handle(EnvioReclamaciones $servicio): void

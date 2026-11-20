@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Entrada;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -121,13 +122,13 @@ class AprobacionInterna extends Model
             return [];
         }
 
-        return User::query()
+        return array_values(User::query()
             ->whereHas('roles', fn ($q) => $q->where('name', $rol)->where('guard_name', 'web'))
             ->orderBy('id')
             ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
+            ->map(fn ($id): int => Entrada::entero($id))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -147,7 +148,7 @@ class AprobacionInterna extends Model
 
     public function esSolicitante(?User $user): bool
     {
-        return $user !== null && $this->solicitante_id !== null && (int) $this->solicitante_id === (int) $user->getKey();
+        return $user !== null && $this->solicitante_id !== null && Entrada::entero($this->solicitante_id) === $user->id;
     }
 
     /**

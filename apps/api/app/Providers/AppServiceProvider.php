@@ -9,6 +9,7 @@ use App\Models\ServicioPublicacion;
 use App\Models\ServicioTecnologico;
 use App\Observers\PublicacionCatalogoAdvisorObserver;
 use App\Support\Email;
+use App\Support\Entrada;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -48,30 +49,30 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('password-recovery', fn (Request $request) => Limit::perMinute(5)->by('password-recovery:'.$request->ip()));
         // Perfil propio: la contraseña actual se comprueba en cada intento, así que se limita por usuario
         // para que una sesión robada no sirva para adivinarla.
-        RateLimiter::for('perfil', fn (Request $request) => Limit::perMinute(5)->by('perfil:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('perfil', fn (Request $request) => Limit::perMinute(5)->by('perfil:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip())));
         // Exportaciones del panel (CSV, Excel, PDF, auditoría, respaldo): costosas y, en varias, con efecto lateral
         // en la auditoría. Se limitan por usuario autenticado y comparten un único cupo.
         RateLimiter::for('admin-export', fn (Request $request) => Limit::perMinute(6)->by(
-            'admin-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+            'admin-export:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
         // Lecturas pesadas del panel (reportes, auditoría, respaldo, obligaciones de pago).
         RateLimiter::for('admin-heavy-read', fn (Request $request) => Limit::perMinute(60)->by(
-            'admin-heavy-read:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+            'admin-heavy-read:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
         // Selectores de matrícula: una consulta por pausa al teclear; se limita por usuario sin estorbar el uso normal.
         RateLimiter::for('admin-opciones', fn (Request $request) => Limit::perMinute(120)->by(
-            'admin-opciones:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+            'admin-opciones:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
         // Escrituras y subidas de archivos del panel: acota ráfagas automatizadas sin afectar la operación humana.
         RateLimiter::for('admin-write', fn (Request $request) => Limit::perMinute(120)->by(
-            'admin-write:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
+            'admin-write:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
         // BFF de apps/web: un solo cubo por servicio (el visitante final no llega a Laravel con su IP en las lecturas).
         RateLimiter::for('publico-web', fn (Request $request) => Limit::perMinute(300)->by('publico-web'));
         // Chat del BFF: el visitante lo identifica el servidor de Next con un HMAC de su IP (opaco, sin IP en claro).
         RateLimiter::for('chat-bff', fn (Request $request) => Limit::perMinute(20)->by('chat-bff:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('chat', fn (Request $request) => Limit::perMinute(30)->by(
-            $request->user() !== null ? 'chat-user:'.$request->user()->getAuthIdentifier() : 'chat-ip:'.$request->ip(),
+            $request->user() !== null ? 'chat-user:'.Entrada::texto($request->user()->getAuthIdentifier()) : 'chat-ip:'.$request->ip(),
         ));
 
         // Login web y API: límite por IP y también por correo, para frenar ataques distribuidos
@@ -84,9 +85,9 @@ class AppServiceProvider extends ServiceProvider
         // Libro de Reclamaciones (Sprint 20): por IP (corto y diario) y por correo normalizado. La clave del correo
         // se guarda como hash para no dejar datos personales en la caché. Aún no hay ruta pública que lo use.
         RateLimiter::for('reclamaciones', fn (Request $request) => [
-            Limit::perMinutes(10, (int) config('reclamaciones.antispam.limite_ip_10min', 3))->by('reclamaciones-ip10:'.$request->ip()),
-            Limit::perDay((int) config('reclamaciones.antispam.limite_ip_dia', 10))->by('reclamaciones-ipdia:'.$request->ip()),
-            Limit::perDay((int) config('reclamaciones.antispam.limite_correo_dia', 3))->by('reclamaciones-correo:'.hash('sha256', Email::normalize($request->input('email')))),
+            Limit::perMinutes(10, Entrada::entero(config('reclamaciones.antispam.limite_ip_10min', 3)))->by('reclamaciones-ip10:'.$request->ip()),
+            Limit::perDay(Entrada::entero(config('reclamaciones.antispam.limite_ip_dia', 10)))->by('reclamaciones-ipdia:'.$request->ip()),
+            Limit::perDay(Entrada::entero(config('reclamaciones.antispam.limite_correo_dia', 3)))->by('reclamaciones-correo:'.hash('sha256', Email::normalize($request->input('email')))),
         ]);
         // Fase 2c.1 (BFF): todas las peticiones llegan desde el servidor de Next, así que se agrupa por el visitante que
         // este calcula (HMAC, nunca la IP). Aquí solo hay topes amplios contra ráfagas, incluidas las inválidas; los
