@@ -1,6 +1,6 @@
 'use client';
 
-import { ArchiveRestore, Pencil, UserMinus, UserPlus } from 'lucide-react';
+import { ArchiveRestore, FileText, MessageCircle, Pencil, UserMinus, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -9,6 +9,7 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
 import type { EstudianteDetalle } from '@/features/academico/tipos';
+import { enlaceWaMe } from '@/lib/panel/whatsapp-plantillas';
 import { FormularioEstudiante } from './formulario-estudiante';
 
 const LISTADO = '/admin/academico/estudiantes';
@@ -49,7 +50,7 @@ type Confirmacion = 'desactivar' | 'restaurar' | null;
 export function AccionesEstudiante({ estudiante }: { estudiante: EstudianteDetalle }) {
   const router = useRouter();
   const { mostrar } = useAvisos();
-  const { ejecutar } = useOperacionPanel();
+  const { ejecutar, descargar } = useOperacionPanel();
   const puedeEditar = usePuede('estudiantes.editar');
   const puedeEliminar = usePuede('estudiantes.eliminar');
   const puedeRestaurar = usePuede('estudiantes.restaurar');
@@ -91,6 +92,26 @@ export function AccionesEstudiante({ estudiante }: { estudiante: EstudianteDetal
         ) : null
       ) : (
         <>
+          <Boton
+            variante="fantasma"
+            icono={<FileText className="h-4 w-4" aria-hidden="true" />}
+            onClick={async () => {
+              const r = await descargar(`academico/estudiantes/${estudiante.id}/historial/pdf`);
+              mostrar(r.ok ? 'exito' : 'error', r.ok ? 'Historial académico descargado en PDF.' : r.error.message);
+            }}
+          >
+            Historial PDF
+          </Boton>
+          {enlaceWaMe(estudiante.telefono) ? (
+            <a
+              href={enlaceWaMe(estudiante.telefono) ?? '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp
+            </a>
+          ) : null}
           {puedeEditar ? (
             <Boton variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => setEditando(true)}>
               Editar

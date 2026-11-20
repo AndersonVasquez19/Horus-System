@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, Check, CirclePlus, FileText, Plus, Trash2, Undo2, X } from 'lucide-react';
+import { Ban, Check, CirclePlus, Copy, FileText, MessageCircle, Plus, Trash2, Undo2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -16,6 +16,7 @@ import { Dialogo } from '@/components/shared/ui/dialogo';
 import { Insignia } from '@/components/shared/ui/insignia';
 import type { ObligacionDetalle, TransaccionPagoVista } from '@/features/academico/tipos';
 import { fecha, moneda } from '@/lib/panel/formato';
+import { copiarAlPortapapeles, enlaceWaMe, mensajeRecordatorioCuota } from '@/lib/panel/whatsapp-plantillas';
 
 const IMPORTE = /^(0|[1-9]\d{0,7})(\.\d{1,2})?$/;
 const COLOR_COBRO = { pendiente: 'ambar', parcial: 'azul', pagada: 'verde', anulada: 'rojo' } as const;
@@ -160,6 +161,39 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
       {vigente ? (
         <div className="flex flex-wrap gap-2">
           {puedeRegistrar && Number(o.saldo) - Number(o.pendiente_confirmar) > 0 ? <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setPago(true)}>Registrar pago</Boton> : null}
+          {Number(o.saldo) > 0 ? (() => {
+            const textoRecordatorio = mensajeRecordatorioCuota({
+              estudiante: o.estudiante.nombre,
+              curso: o.concepto,
+              saldo: o.saldo,
+              vence: o.proxima_cuota ? fecha(o.proxima_cuota.vence) : null,
+            });
+            const urlWa = enlaceWaMe(o.estudiante.telefono, textoRecordatorio);
+            return (
+              <>
+                <Boton
+                  variante="fantasma"
+                  icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+                  onClick={async () => {
+                    const ok = await copiarAlPortapapeles(textoRecordatorio);
+                    mostrar(ok ? 'exito' : 'error', ok ? 'Recordatorio de pago copiado para WhatsApp.' : 'No se pudo copiar.');
+                  }}
+                >
+                  Copiar recordatorio
+                </Boton>
+                {urlWa ? (
+                  <a
+                    href={urlWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" /> Recordar WhatsApp
+                  </a>
+                ) : null}
+              </>
+            );
+          })() : null}
           {puedePlanificar ? <Boton variante="secundario" icono={<Ban className="h-4 w-4" aria-hidden="true" />} onClick={() => setMotivo({ tipo: 'anular', destino: `academico/pagos/obligaciones/${o.identificador}/anular`, titulo: 'Anular obligación', boton: 'Anular obligación' })}>Anular obligación</Boton> : null}
         </div>
       ) : null}
@@ -469,13 +503,15 @@ export function ComprobantesDeLaMatricula({ obligacion: o }: { obligacion: Oblig
 
 /** Exporta las obligaciones a Excel (solo con `pagos.exportar`) conservando los filtros activos. */
 export function BotonExportarPagos({ filtros = '' }: { filtros?: string }) {
-  const { descargar } = useOperacionPanel();
+  const { descargar, ejecutar } = useOperacionPanel();
   const { mostrar } = useAvisos();
-  const puede = usePuede('pagos.exportar');
+  const puedeExportar = usePuede('pagos.exportar');
+  const puedeVer = usePuede('pagos.ver');
   const [ocupado, setOcupado] = useState(false);
+  const [cajaOcupada, setCajaOcupada] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  if (!puede) return null;
+  if (!puedeExportar && !puedeVer) return null;
 
   async function exportar() {
     setOcupado(true);
@@ -491,11 +527,43 @@ export function BotonExportarPagos({ filtros = '' }: { filtros?: string }) {
     else mostrar('exito', 'Exportación de pagos generada.');
   }
 
+  async function cajaPdf() {
+    setCajaOcupada(true);
+    const r = await descargar('academico/pagos/caja-diaria/pdf');
+    setCajaOcupada(false);
+    mostrar(r.ok ? 'exito' : 'error', r.ok ? 'Reporte de Caja Diaria descargado.' : r.error.message);
+  }
+
+  async function copiarResumenCaja() {
+    const r = await ejecutar<{ data: { fecha: string; cantidad: number; total: string; por_metodo: { metodo: string; cantidad: number; total: string }[] } }>('academico/pagos/caja-diaria/resumen', 'GET');
+    if (!r.ok) {
+      mostrar('error', r.error.message);
+      return;
+    }
+    const d = r.datos.data;
+    const metodos = d.por_metodo.map((m) => `• ${m.metodo}: S/ ${m.total} (${m.cantidad})`).join('\n');
+    const texto = `📊 *Cierre de Caja Horus (${d.fecha})*\nOperaciones confirmadas: ${d.cantidad}\n${metodos ? `${metodos}\n` : ''}*Total recaudado: S/ ${d.total}*`;
+    const ok = await copiarAlPortapapeles(texto);
+    mostrar(ok ? 'exito' : 'error', ok ? 'Resumen de caja copiado para WhatsApp.' : 'No se pudo copiar.');
+  }
+
   return (
     <div className="space-y-2">
       {error ? <Alerta tipo="error">{error}</Alerta> : null}
       {aviso ? <Alerta tipo="aviso">{aviso}</Alerta> : null}
-      <Boton variante="secundario" cargando={ocupado} onClick={() => void exportar()}>Exportar Excel</Boton>
+      <div className="flex flex-wrap gap-2">
+        {puedeVer ? (
+          <>
+            <Boton variante="secundario" icono={<FileText className="h-4 w-4" aria-hidden="true" />} cargando={cajaOcupada} onClick={() => void cajaPdf()}>
+              Caja Hoy (PDF)
+            </Boton>
+            <Boton variante="fantasma" icono={<Copy className="h-4 w-4" aria-hidden="true" />} onClick={() => void copiarResumenCaja()}>
+              Copiar resumen caja
+            </Boton>
+          </>
+        ) : null}
+        {puedeExportar ? <Boton variante="secundario" cargando={ocupado} onClick={() => void exportar()}>Exportar Excel</Boton> : null}
+      </div>
     </div>
   );
 }

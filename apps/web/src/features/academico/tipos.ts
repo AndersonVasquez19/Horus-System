@@ -36,6 +36,10 @@ export interface ResumenAcademico {
     notificaciones_sin_leer?: number;
     auditoria_reciente?: { id: number; fecha_local: string; usuario: string | null; accion: string; accion_etiqueta?: string }[];
   };
+  salud_grupo?: {
+    cuotas_vencidas?: { obligacion: string; estudiante: string; telefono: string | null; concepto: string; vence: string; saldo: string }[];
+    inasistencias?: { matricula_id: number; estudiante: string; telefono: string | null; edicion: string; faltas_seguidas: number }[];
+  };
 }
 
 /** Resultado de `GET academico/busqueda`: cada grupo solo si la persona tiene el permiso de su módulo. */
@@ -45,6 +49,7 @@ export interface ResultadoBusqueda {
     estudiantes?: { id: number; texto: string; detalle: string }[];
     matriculas?: { id: number; texto: string; detalle: string }[];
     ediciones?: { identificador: string; texto: string; detalle: string }[];
+    pagos?: { identificador: string; texto: string; detalle: string }[];
   };
 }
 
@@ -138,6 +143,7 @@ export interface MatriculaResumen {
   /** Convocatoria de la que sale el cupo; sin ella, el cupo es el del curso. */
   convocatoria: { identificador: string; codigo: string } | null;
   estado: 'pendiente' | 'pagada' | 'anulada';
+  etiqueta?: 'factura' | 'becado' | 'seguimiento' | 'empresa' | null;
   estado_cobro?: 'pendiente' | 'parcial' | 'pagada' | 'anulada' | 'sin_obligacion';
   obligacion_identificador?: string | null;
   saldo_cobro?: string | null;

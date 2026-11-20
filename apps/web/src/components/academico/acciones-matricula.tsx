@@ -1,6 +1,6 @@
 'use client';
 
-import { ArchiveRestore, Ban, Download, FileText, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArchiveRestore, Ban, Copy, Download, FileText, MessageCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
@@ -12,6 +12,7 @@ import { CampoArea } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
 import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import type { MatriculaDetalle } from '@/features/academico/tipos';
+import { copiarAlPortapapeles, enlaceWaMe, mensajeBienvenidaMatricula } from '@/lib/panel/whatsapp-plantillas';
 
 const LISTADO = '/admin/academico/matriculas';
 const ENLACE = 'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold outline-offset-2 transition focus-visible:outline-2 focus-visible:outline-academico-700';
@@ -184,8 +185,9 @@ export function MenuFilaMatricula({ matricula, elementos }: { matricula: { id: n
 
 /** Acciones de la ficha de una matrícula: constancia PDF, edición, anulación/eliminación con motivo obligatorio y restauración. */
 export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }) {
+  const router = useRouter();
   const { mostrar } = useAvisos();
-  const { descargar } = useOperacionPanel();
+  const { descargar, ejecutar } = useOperacionPanel();
   const puedeVer = usePuede('matriculas.ver');
   const puedeEditar = usePuede('matriculas.editar');
   const puedeAnular = usePuede('matriculas.anular');
@@ -193,6 +195,7 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
   const puedeRestaurar = usePuede('matriculas.restaurar');
   const [operacion, setOperacion] = useState<Operacion | null>(null);
   const [descargandoConstancia, setDescargandoConstancia] = useState(false);
+  const [etiquetaActual, setEtiquetaActual] = useState(matricula.etiqueta ?? '');
 
   async function descargarConstancia() {
     setDescargandoConstancia(true);
@@ -202,17 +205,89 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
     else mostrar('error', resultado.error.message);
   }
 
+  const textoBienvenida = mensajeBienvenidaMatricula({
+    estudiante: matricula.estudiante?.nombre ?? 'estudiante',
+    curso: matricula.curso?.nombre ?? 'curso',
+    edicion: matricula.convocatoria?.codigo,
+    enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
+  });
+  const urlWa = enlaceWaMe(matricula.estudiante?.telefono, textoBienvenida);
+
   return (
     <>
       {puedeVer ? (
-        <Boton
-          variante="secundario"
-          icono={<FileText className="h-4 w-4" aria-hidden="true" />}
-          cargando={descargandoConstancia}
-          onClick={descargarConstancia}
-        >
-          Constancia PDF
-        </Boton>
+        <>
+          <Boton
+            variante="secundario"
+            icono={<FileText className="h-4 w-4" aria-hidden="true" />}
+            cargando={descargandoConstancia}
+            onClick={descargarConstancia}
+          >
+            Constancia PDF
+          </Boton>
+          <Boton
+            variante="fantasma"
+            icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+            onClick={async () => {
+              const ok = await copiarAlPortapapeles(textoBienvenida);
+              mostrar(ok ? 'exito' : 'error', ok ? 'Mensaje de bienvenida copiado para WhatsApp.' : 'No se pudo copiar.');
+            }}
+          >
+            Copiar bienvenida
+          </Boton>
+          {urlWa ? (
+            <a
+              href={urlWa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${ENLACE} border border-emerald-600/30 bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden="true" /> Enviar WhatsApp
+            </a>
+          ) : null}
+          {matricula.convocatoria ? (
+            <Boton
+              variante="fantasma"
+              icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+              onClick={async () => {
+                const r = await ejecutar<{ data: { identificador: string } }>(`academico/matriculas/${matricula.id}/encuesta`, 'POST', {});
+                if (!r.ok) {
+                  mostrar('error', r.error.message);
+                  return;
+                }
+                const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/encuesta/${r.datos.data.identificador}`;
+                const ok = await copiarAlPortapapeles(url);
+                mostrar(ok ? 'exito' : 'error', ok ? 'Enlace de encuesta copiado.' : 'No se pudo copiar.');
+              }}
+            >
+              Copiar encuesta
+            </Boton>
+          ) : null}
+          {puedeEditar ? (
+            <select
+              aria-label="Etiqueta operativa"
+              value={etiquetaActual}
+              onChange={async (e) => {
+                const valor = e.target.value;
+                setEtiquetaActual(valor);
+                const r = await ejecutar<{ message: string }>(`academico/matriculas/${matricula.id}/etiqueta`, 'POST', { etiqueta: valor || null });
+                if (r.ok) {
+                  mostrar('exito', r.datos.message);
+                  router.refresh();
+                } else {
+                  mostrar('error', r.error.message);
+                }
+              }}
+              className="rounded-lg border border-panel-border bg-panel-surface px-2.5 py-2 text-sm text-panel-text"
+            >
+              <option value="">Sin etiqueta</option>
+              <option value="factura">Requiere factura</option>
+              <option value="becado">Becado</option>
+              <option value="seguimiento">Seguimiento</option>
+              <option value="empresa">Empresa</option>
+            </select>
+          ) : null}
+        </>
       ) : null}
 
       {matricula.eliminado ? (

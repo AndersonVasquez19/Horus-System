@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, CircleX, Pencil, Play, Plus, Trash2, DoorOpen, CheckCheck } from 'lucide-react';
+import { CalendarClock, CalendarDays, CircleX, Contact, Copy, CopyPlus, FileText, Pencil, Play, Plus, Trash2, DoorOpen, CheckCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -14,6 +14,7 @@ import type { ConvocatoriaDetalle, EstadoConvocatoria, HorarioConvocatoria } fro
 import { errorDeCampo } from '@/lib/panel/cliente';
 import { ETIQUETAS } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
+import { copiarAlPortapapeles } from '@/lib/panel/whatsapp-plantillas';
 
 const LISTADO = '/admin/academico/convocatorias';
 type Respuesta = { message: string; data: ConvocatoriaDetalle };
@@ -41,7 +42,7 @@ function FormularioConvocatoria({ convocatoria, cursoInicial, onGuardado, onCanc
   onCancelar: () => void;
   onOcupado: (ocupado: boolean) => void;
 }) {
-  const { ejecutar } = useOperacionPanel();
+  const { ejecutar, descargar } = useOperacionPanel();
   const [datos, setDatos] = useState<DatosConvocatoria>({
     nombre: convocatoria?.nombre_propio ?? '',
     modalidad: convocatoria?.modalidad ?? 'presencial',
@@ -184,17 +185,24 @@ const ACCION_ESTADO: Record<EstadoConvocatoria, { texto: string; icono: typeof P
 /** Acciones del detalle: cambios de estado permitidos y edición. Cerrar y cancelar piden confirmación y su permiso propio. */
 export function AccionesConvocatoria({ convocatoria, transiciones }: { convocatoria: ConvocatoriaDetalle; transiciones: readonly EstadoConvocatoria[] }) {
   const puedeEditar = usePuede('convocatorias.editar');
+  const puedeCrear = usePuede('convocatorias.crear');
   const puedeCerrar = usePuede('convocatorias.cerrar');
   const router = useRouter();
   const { mostrar } = useAvisos();
-  const { ejecutar } = useOperacionPanel();
+  const { ejecutar, descargar } = useOperacionPanel();
   const [editando, setEditando] = useState(false);
+  const [duplicando, setDuplicando] = useState(false);
+  const [sigNombre, setSigNombre] = useState(convocatoria.nombre_propio ?? '');
+  const [sigInicio, setSigInicio] = useState('');
+  const [sigFin, setSigFin] = useState('');
+  const [sigCupos, setSigCupos] = useState(String(convocatoria.cupos.maximos));
+  const [sigAbrir, setSigAbrir] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [confirmar, setConfirmar] = useState<'cerrada' | 'cancelada' | null>(null);
 
   const visibles = transiciones.filter((estado) => (estado === 'cerrada' || estado === 'cancelada' ? puedeCerrar : puedeEditar));
-  if (visibles.length === 0 && !puedeEditar) return null;
+  if (visibles.length === 0 && !puedeEditar && !puedeCrear) return null;
 
   async function cambiarEstado(estado: EstadoConvocatoria) {
     setOcupado(true);
@@ -232,7 +240,62 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
         );
       })}
       {puedeEditar && vigente ? <Boton variante="secundario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => { setError(null); setEditando(true); }}>Editar</Boton> : null}
-      {error && !editando && confirmar === null ? <p role="alert" className="basis-full text-sm text-estado-error">{error.message}</p> : null}
+      {puedeCrear && (convocatoria.modalidad === 'presencial' || convocatoria.modalidad === 'virtual') ? (
+        <Boton
+          variante="fantasma"
+          icono={<CopyPlus className="h-4 w-4" aria-hidden="true" />}
+          onClick={() => {
+            setError(null);
+            setSigNombre(convocatoria.nombre_propio ?? '');
+            setSigCupos(String(convocatoria.cupos.maximos));
+            setDuplicando(true);
+          }}
+        >
+          Abrir siguiente edición
+        </Boton>
+      ) : null}
+      <Boton
+        variante="fantasma"
+        icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+        onClick={async () => {
+          const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/edicion/${convocatoria.codigo}`;
+          const ok = await copiarAlPortapapeles(url);
+          mostrar(ok ? 'exito' : 'error', ok ? 'Enlace público del cronograma copiado.' : 'No se pudo copiar.');
+        }}
+      >
+        Copiar cronograma
+      </Boton>
+      <Boton
+        variante="fantasma"
+        icono={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
+        onClick={async () => {
+          const r = await descargar(`academico/convocatorias/${convocatoria.identificador}/calendario.ics`, 'GET');
+          mostrar(r.ok ? 'exito' : 'error', r.ok ? 'Calendario .ics descargado.' : r.error.message);
+        }}
+      >
+        Calendario .ics
+      </Boton>
+      <Boton
+        variante="fantasma"
+        icono={<FileText className="h-4 w-4" aria-hidden="true" />}
+        onClick={async () => {
+          const r = await descargar(`academico/convocatorias/${convocatoria.identificador}/lista-aula/pdf`);
+          mostrar(r.ok ? 'exito' : 'error', r.ok ? 'Lista imprimible de aula descargada.' : r.error.message);
+        }}
+      >
+        Lista aula PDF
+      </Boton>
+      <Boton
+        variante="fantasma"
+        icono={<Contact className="h-4 w-4" aria-hidden="true" />}
+        onClick={async () => {
+          const r = await descargar(`academico/convocatorias/${convocatoria.identificador}/contactos/csv`);
+          mostrar(r.ok ? 'exito' : 'error', r.ok ? 'Contactos CSV descargados para WhatsApp.' : r.error.message);
+        }}
+      >
+        Contactos WhatsApp
+      </Boton>
+      {error && !editando && !duplicando && confirmar === null ? <p role="alert" className="basis-full text-sm text-estado-error">{error.message}</p> : null}
 
       <Dialogo abierto={editando} titulo="Editar edición" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioConvocatoria
@@ -257,6 +320,48 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
           </div>
         </div>
       </Dialogo>
+
+      <Dialogo abierto={duplicando} titulo="Abrir siguiente edición" descripcion={`Copia curso, modalidad (${convocatoria.modalidad}) y ${convocatoria.horarios.length} bloque(s) de horario.`} onCerrar={() => setDuplicando(false)} bloqueado={ocupado} ancho="sm">
+        <form
+          onSubmit={async (evento) => {
+            evento.preventDefault();
+            setOcupado(true);
+            setError(null);
+            const r = await ejecutar<Respuesta>(`academico/convocatorias/${convocatoria.identificador}/siguiente`, 'POST', {
+              fecha_inicio: sigInicio,
+              fecha_fin: sigFin,
+              nombre: opcional(sigNombre),
+              cupos_maximos: sigCupos.trim() === '' ? null : Number(sigCupos),
+              abrir: sigAbrir,
+            });
+            setOcupado(false);
+            if (!r.ok) {
+              setError(r.error);
+              return;
+            }
+            setDuplicando(false);
+            mostrar('exito', r.datos.message);
+            router.push(`${LISTADO}/${r.datos.data.identificador}`);
+          }}
+          className="space-y-4"
+        >
+          {error ? <Alerta tipo="error">{error.message}</Alerta> : null}
+          <Campo etiqueta="Nombre de la nueva edición (opcional)" value={sigNombre} onChange={(e) => setSigNombre(e.target.value)} maxLength={120} error={errorDeCampo(error, 'nombre')} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Campo etiqueta="Fecha de inicio" type="date" required value={sigInicio} onChange={(e) => setSigInicio(e.target.value)} error={errorDeCampo(error, 'fecha_inicio')} />
+            <Campo etiqueta="Fecha de fin" type="date" required value={sigFin} onChange={(e) => setSigFin(e.target.value)} error={errorDeCampo(error, 'fecha_fin')} />
+          </div>
+          <Campo etiqueta="Cupos máximos" type="number" min={1} max={10000} value={sigCupos} onChange={(e) => setSigCupos(e.target.value)} error={errorDeCampo(error, 'cupos_maximos')} />
+          <label className="flex items-center gap-2 text-sm text-panel-text">
+            <input type="checkbox" checked={sigAbrir} onChange={(e) => setSigAbrir(e.target.checked)} className="h-4 w-4 rounded border-panel-border" />
+            Abrir inmediatamente para matrículas
+          </label>
+          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+            <Boton variante="secundario" onClick={() => setDuplicando(false)} disabled={ocupado}>Cancelar</Boton>
+            <Boton type="submit" cargando={ocupado}>Crear edición</Boton>
+          </div>
+        </form>
+      </Dialogo>
     </>
   );
 }
@@ -274,7 +379,7 @@ export function EditorHorarios({ convocatoria, editable }: { convocatoria: Convo
   const puede = usePuede('convocatorias.editar') && editable;
   const router = useRouter();
   const { mostrar } = useAvisos();
-  const { ejecutar } = useOperacionPanel();
+  const { ejecutar, descargar } = useOperacionPanel();
   const [editando, setEditando] = useState(false);
   const [bloques, setBloques] = useState<BloqueEditable[]>([]);
   const [ocupado, setOcupado] = useState(false);

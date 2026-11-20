@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { Bell, CalendarClock, ClipboardCheck, CircleDollarSign, Gauge, Hourglass, Landmark, Users } from 'lucide-react';
+import { Bell, CalendarClock, ClipboardCheck, CircleDollarSign, Gauge, Hourglass, Landmark, MessageCircle, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
 import type { ResumenAcademico } from '@/features/academico/tipos';
-import { moneda, numero } from '@/lib/panel/formato';
+import { fecha, moneda, numero } from '@/lib/panel/formato';
+import { enlaceWaMe, mensajeRecordatorioCuota } from '@/lib/panel/whatsapp-plantillas';
 
 type Datos = ResumenAcademico;
 
@@ -41,6 +42,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
   const n = datos.negocio ?? {};
   const ac = datos.academico ?? {};
   const sg = datos.seguimiento ?? {};
+  const sal = datos.salud_grupo ?? {};
   const i = datos.indicadores;
 
   const acciones = [
@@ -198,6 +200,64 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
                     </span>
                   </li>
                 ))}
+              </Lista>
+            ) : null}
+          </div>
+        </Seccion>
+      ) : null}
+
+      {sal.cuotas_vencidas || sal.inasistencias ? (
+        <Seccion id="tablero-salud-grupo" titulo="Salud del grupo" descripcion="Alertas accionables de mora e inasistencias reiteradas con contacto directo por WhatsApp.">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {sal.cuotas_vencidas ? (
+              <Lista titulo="Cuotas vencidas" vacio="No hay cuotas vencidas.">
+                {sal.cuotas_vencidas.map((c) => {
+                  const wa = enlaceWaMe(c.telefono, mensajeRecordatorioCuota({ estudiante: c.estudiante, curso: c.concepto, saldo: c.saldo, vence: fecha(c.vence) }));
+                  return (
+                    <li key={`${c.obligacion}-${c.vence}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                      <div className="min-w-0">
+                        <Link href={`/admin/academico/pagos/${c.obligacion}`} className="block truncate font-medium text-panel-text hover:text-academico-800 hover:underline">
+                          {c.estudiante}
+                        </Link>
+                        <p className="truncate text-xs text-panel-muted">{c.concepto} · venció {fecha(c.vence)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Insignia color="rojo">{moneda(c.saldo)}</Insignia>
+                        {wa ? (
+                          <a href={wa} target="_blank" rel="noopener noreferrer" title="Recordar por WhatsApp" className="rounded-lg border border-emerald-600/30 bg-emerald-50 p-1.5 text-emerald-800 hover:bg-emerald-100">
+                            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </Lista>
+            ) : null}
+
+            {sal.inasistencias ? (
+              <Lista titulo="Alumnos con 2+ faltas seguidas" vacio="Sin alertas de inasistencia en ediciones en curso.">
+                {sal.inasistencias.map((a) => {
+                  const wa = enlaceWaMe(a.telefono, `Hola ${a.estudiante}, te saludamos de Horus Group 👋. Notamos que faltaste a las últimas ${a.faltas_seguidas} sesiones de ${a.edicion}. ¿Todo bien?`);
+                  return (
+                    <li key={a.matricula_id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                      <div className="min-w-0">
+                        <Link href={`/admin/academico/matriculas/${a.matricula_id}`} className="block truncate font-medium text-panel-text hover:text-academico-800 hover:underline">
+                          {a.estudiante}
+                        </Link>
+                        <p className="truncate text-xs text-panel-muted">Edición {a.edicion}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Insignia color="ambar">{a.faltas_seguidas} faltas</Insignia>
+                        {wa ? (
+                          <a href={wa} target="_blank" rel="noopener noreferrer" title="Escribir por WhatsApp" className="rounded-lg border border-emerald-600/30 bg-emerald-50 p-1.5 text-emerald-800 hover:bg-emerald-100">
+                            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
               </Lista>
             ) : null}
           </div>

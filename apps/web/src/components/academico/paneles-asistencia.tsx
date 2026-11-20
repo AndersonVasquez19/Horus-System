@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardCheck, FileSpreadsheet } from 'lucide-react';
+import { Check, ClipboardCheck, FileSpreadsheet, X, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -32,6 +32,7 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
   const [elegidos, setElegidos] = useState<Record<number, EstadoAsistencia>>({});
   const [observaciones, setObservaciones] = useState<Record<number, string>>({});
   const [guardando, setGuardando] = useState(false);
+  const [modoFlash, setModoFlash] = useState(false);
   const [corrigiendo, setCorrigiendo] = useState<{ id: number; estado: EstadoAsistencia; motivo: string } | null>(null);
 
   const cargar = useCallback(async () => {
@@ -92,13 +93,25 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
           {lista && lista.matriculas.length > 0 ? (
             <>
               {puedeRegistrar && pendientes.length > 0 ? (
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs text-panel-muted">{pendientes.length} por registrar</span>
-                  <Boton variante="secundario" onClick={marcarTodosPresentes} disabled={guardando}>Todos presentes</Boton>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Boton
+                      variante={modoFlash ? 'primario' : 'fantasma'}
+                      icono={<Zap className="h-4 w-4" aria-hidden="true" />}
+                      onClick={() => setModoFlash((v) => !v)}
+                      disabled={guardando}
+                    >
+                      {modoFlash ? 'Vista normal' : 'Modo Flash'}
+                    </Boton>
+                    <Boton variante="secundario" onClick={marcarTodosPresentes} disabled={guardando}>Todos presentes</Boton>
+                  </div>
                 </div>
               ) : null}
               <ul className="divide-y divide-panel-border rounded-xl border border-panel-border">
-                {lista.matriculas.map((m) => (
+                {lista.matriculas.map((m) => {
+                  const estadoElegido = elegidos[m.matricula_id] ?? 'presente';
+                  return (
                   <li key={m.matricula_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-panel-text">{m.estudiante.nombre}</p>
@@ -109,10 +122,36 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
                     </div>
                     {m.estado === null ? (
                       puedeRegistrar ? (
+                        modoFlash ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setElegidos((p) => ({ ...p, [m.matricula_id]: 'presente' }))}
+                              className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
+                                estadoElegido === 'presente'
+                                  ? 'border-emerald-600 bg-emerald-600 text-white'
+                                  : 'border-panel-border bg-panel-surface text-panel-text hover:bg-panel-bg'
+                              }`}
+                            >
+                              <Check className="h-4 w-4" aria-hidden="true" /> Presente
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setElegidos((p) => ({ ...p, [m.matricula_id]: 'ausente' }))}
+                              className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
+                                estadoElegido === 'ausente'
+                                  ? 'border-rose-600 bg-rose-600 text-white'
+                                  : 'border-panel-border bg-panel-surface text-panel-text hover:bg-panel-bg'
+                              }`}
+                            >
+                              <X className="h-4 w-4" aria-hidden="true" /> Ausente
+                            </button>
+                          </div>
+                        ) : (
                         <div className="flex flex-wrap items-center gap-2">
                           <select
                             aria-label={`Asistencia de ${m.estudiante.nombre}`}
-                            value={elegidos[m.matricula_id] ?? 'presente'}
+                            value={estadoElegido}
                             onChange={(e) => setElegidos((p) => ({ ...p, [m.matricula_id]: e.target.value as EstadoAsistencia }))}
                             className="rounded-lg border border-panel-border bg-panel-surface px-2 py-1.5 text-sm"
                           >
@@ -128,6 +167,7 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
                             className="w-44 rounded-lg border border-panel-border bg-panel-surface px-2 py-1.5 text-sm text-panel-text"
                           />
                         </div>
+                        )
                       ) : (
                         <span className="text-sm text-panel-muted">Sin registrar</span>
                       )
@@ -139,7 +179,8 @@ export function AsistenciaSesion({ sesion }: { sesion: SesionClase }) {
                       </div>
                     )}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </>
           ) : null}
