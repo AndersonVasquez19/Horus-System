@@ -1,0 +1,53 @@
+# Contexto de construcción de las imágenes de Railway (Laravel se construye desde la raíz del repositorio porque
+# también lee apps/ai/data/knowledge.json). Nada de secretos, dependencias locales, cachés ni registros.
+
+# Control de versiones y herramientas locales
+.git
+.github
+.vscode
+.idea
+.claude
+**/.DS_Store
+
+# Secretos y entornos locales (las variables reales viven en Railway/Vercel)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Interfaz web: se despliega en Vercel, no en Railway
+apps/web
+
+# Laravel: dependencias, compilados, cachés y datos locales
+apps/api/vendor
+apps/api/node_modules
+apps/api/public/build
+apps/api/public/hot
+apps/api/public/storage
+apps/api/public/*.log
+apps/api/bootstrap/cache/*.php
+apps/api/storage/app/private
+apps/api/storage/app/public
+apps/api/storage/app/testing
+apps/api/storage/framework/cache/data
+apps/api/storage/framework/sessions
+apps/api/storage/framework/views
+apps/api/storage/logs
+apps/api/storage/*.key
+apps/api/.phpunit.cache
+apps/api/.phpunit.result.cache
+apps/api/database/*.sqlite*
+apps/api/horus.db
+**/*.log
+
+# Horus AI: entorno virtual, modelo (477 MB, no versionado), cachés e informes
+apps/ai/.venv
+apps/ai/models
+apps/ai/reports
+apps/ai/.pytest_cache
+apps/ai/.ruff_cache
+**/__pycache__
+**/*.py[cod]
+
+# Herramientas de desarrollo local
+ops/gateway/.runtime
+docs
