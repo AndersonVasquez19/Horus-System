@@ -52,6 +52,7 @@ export function colorEstado(estado: string | null | undefined): ColorInsignia {
     case 'en_curso':
     case 'abierto':
     case 'en_progreso':
+    case 'parcial':
     case 'media':
       return 'azul';
     case 'anulada':

@@ -39,6 +39,7 @@
 
   --color-tinta: #0B2340;
   --color-tinta-profunda: #07172B;
+  --color-oro-200: #F0DFB0;
   --color-oro-300: #E4C987;
   --color-oro-400: #D4AE5E;
   --color-oro-500: #C9A24B;
@@ -114,6 +115,124 @@ body:has([data-panel-root]) [data-chrome-publico] {
 :root:has([data-panel-root] [data-panel-tono="academico"]) ::selection {
   background: var(--color-academico-200);
   color: var(--color-academico-950);
+}
+
+/*
+ * Base de accesibilidad del panel (Fase 1). Va en `@layer base`: cualquier utilidad de un componente
+ * (`focus-visible:outline-*`, `outline-none` + anillo propio, `accent-*`, `animate-*`) prevalece, de modo
+ * que estas reglas solo cubren lo que hoy no tiene ningún estilo.
+ */
+@layer base {
+  /* Foco de teclado visible en todo control interactivo que no defina el suyo. */
+  :root:has([data-panel-root]) :where(a, button, summary, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--color-academico-700);
+    outline-offset: 2px;
+  }
+
+  /* Casillas y radios nativos con el color del panel (había mezcla de azul del navegador y `accent-*`). */
+  :root:has([data-panel-root]) :where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--color-academico-700);
+  }
+
+  /* Placeholder con contraste suficiente (slate-400 sobre blanco queda en ~2,6:1; slate-500 supera 4,5:1). */
+  :root:has([data-panel-root]) :where(input, textarea)::placeholder {
+    color: #64748B;
+  }
+
+  /* Movimiento reducido: sin pulso ni transiciones. El spinner de carga se mantiene (es información de estado). */
+  @media (prefers-reduced-motion: reduce) {
+    :root:has([data-panel-root]) .animate-pulse {
+      animation: none;
+    }
+    :root:has([data-panel-root]) * {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+ * Impresión (Fase 5). `print:hidden` en el riel, la barra superior, los filtros, la paginación y las acciones de
+ * cabecera ya los saca del papel; aquí se ajusta el resto para que lo que imprime Ctrl+P sea el contenido y no la interfaz.
+ */
+.zona-impresion {
+  display: none;
+}
+
+@layer base {
+  @media print {
+    /* «Imprimir» de la vista previa: solo queda la hoja propia (ver `ui/zona-impresion.tsx`). */
+    body.imprimiendo-zona > *:not(.zona-impresion) {
+      display: none !important;
+    }
+    body.imprimiendo-zona > .zona-impresion {
+      display: block !important;
+    }
+
+    :root:has([data-panel-root]) body {
+      background: #fff !important;
+      color: #000;
+    }
+
+    /* Controles que no tienen sentido en papel, y avisos flotantes. */
+    :root:has([data-panel-root]) :is(button, [role="menu"], [data-sonner-toaster], .pie-acciones) {
+      display: none !important;
+    }
+
+    /* Las tablas se imprimen completas: sin recorte horizontal, sin ancho mínimo ni columna pegada. */
+    :root:has([data-panel-root]) .overflow-x-auto {
+      overflow: visible !important;
+    }
+    :root:has([data-panel-root]) table {
+      min-width: 0 !important;
+    }
+    :root:has([data-panel-root]) :is(td, th) {
+      position: static !important;
+      box-shadow: none !important;
+    }
+    :root:has([data-panel-root]) thead {
+      display: table-header-group;
+    }
+    :root:has([data-panel-root]) tr {
+      break-inside: avoid;
+    }
+    :root:has([data-panel-root]) * {
+      box-shadow: none !important;
+    }
+  }
+}
+
+/*
+ * Barra de botones al pie de un formulario (Fase 3). Fuera de un diálogo es una fila normal; dentro de un
+ * `<dialog>` queda fija al borde inferior del área con scroll, de modo que «Guardar» nunca queda bajo el pliegue.
+ * Los márgenes negativos la hacen llegar de borde a borde del cuerpo (`px-5 py-4` en `Dialogo`).
+ */
+@layer components {
+  .pie-acciones {
+    @apply flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end;
+  }
+
+  dialog .pie-acciones {
+    /* `-bottom-4`: el sticky se mide contra el área de contenido, sin el relleno del contenedor (py-4 = 1 rem). */
+    @apply sticky -bottom-4 z-10 -mx-5 -mb-4 bg-panel-surface px-5 pb-4;
+  }
+}
+
+/* Entrada del panel lateral; solo con movimiento permitido. */
+@media (prefers-reduced-motion: no-preference) {
+  dialog[data-lado="derecha"][open] {
+    animation: panel-derecha-entra 0.22s ease-out;
+  }
+
+  @keyframes panel-derecha-entra {
+    from {
+      transform: translateX(2rem);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
 }
 
 :root {

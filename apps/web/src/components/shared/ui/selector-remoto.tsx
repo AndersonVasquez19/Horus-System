@@ -126,7 +126,7 @@ export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, a
               setAbierto(false);
             }
           }}
-          className={`block w-full rounded-lg border bg-panel-surface py-2.5 pl-3 pr-10 text-sm text-panel-text shadow-sm outline-none transition placeholder:text-slate-400 focus:ring-4 disabled:opacity-60 ${
+          className={`block w-full rounded-lg border bg-panel-surface py-2.5 pl-3 pr-10 text-sm text-panel-text shadow-sm outline-none transition placeholder:text-slate-500 focus:ring-4 disabled:opacity-60 ${
             error ? 'border-estado-error' : 'border-panel-border'
           } ${FOCO[tono]}`}
         />

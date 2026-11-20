@@ -15,6 +15,10 @@ interface PaginacionProps {
   ruta: string;
   /** Parámetros actuales que deben conservarse al cambiar de página. */
   parametros: Record<string, string>;
+  /** Fuera de una tarjeta (bajo una lista de tarjetas): sin el borde superior, que quedaría como una línea suelta. */
+  suelta?: boolean;
+  /** Cómo se llama cada tramo: «Página» (por omisión) o «Lote» en los reportes, que se pagina por lotes. */
+  unidad?: 'Página' | 'Lote';
 }
 
 function href(ruta: string, parametros: Record<string, string>, pagina: number): string {
@@ -25,13 +29,13 @@ function href(ruta: string, parametros: Record<string, string>, pagina: number):
   return texto ? `${ruta}?${texto}` : ruta;
 }
 
-export function Paginacion({ meta, ruta, parametros }: PaginacionProps) {
+export function Paginacion({ meta, ruta, parametros, suelta = false, unidad = 'Página' }: PaginacionProps) {
   const desde = meta.total === 0 ? 0 : (meta.pagina - 1) * meta.por_pagina + 1;
   const hasta = Math.min(meta.pagina * meta.por_pagina, meta.total);
-  const clase = 'inline-flex items-center gap-1 rounded-lg border border-panel-border bg-panel-surface px-3 py-1.5 text-sm font-medium text-panel-text';
+  const clase = 'inline-flex items-center gap-1 rounded-lg border border-panel-border bg-panel-surface min-h-10 px-3 py-2 text-sm font-medium text-panel-text';
 
   return (
-    <nav aria-label="Paginación" className="flex flex-wrap items-center justify-between gap-3 border-t border-panel-border px-4 py-3">
+    <nav aria-label="Paginación" className={`flex flex-wrap items-center justify-between gap-3 print:hidden ${suelta ? 'px-1 py-1' : 'border-t border-panel-border px-4 py-3'}`}>
       <p className="text-sm text-panel-muted">
         {meta.total === 0 ? 'Sin resultados' : `${desde}–${hasta} de ${meta.total}`}
       </p>
@@ -46,7 +50,7 @@ export function Paginacion({ meta, ruta, parametros }: PaginacionProps) {
           </span>
         )}
         <span className="text-sm text-panel-muted">
-          Página {meta.pagina} de {Math.max(1, meta.paginas)}
+          {unidad} {meta.pagina} de {Math.max(1, meta.paginas)}
         </span>
         {meta.pagina < meta.paginas ? (
           <Link href={href(ruta, parametros, meta.pagina + 1)} className={`${clase} hover:bg-panel-bg`} rel="next">

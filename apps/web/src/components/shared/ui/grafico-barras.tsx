@@ -24,10 +24,15 @@ export function GraficoBarras({ tono, titulo, datos }: GraficoBarrasProps) {
         {datos.map((dato) => (
           <div key={dato.etiqueta} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
             <span className="text-xs font-semibold text-panel-text">{dato.total}</span>
-            <div
-              className={`w-full max-w-12 rounded-t-md ${BARRA[tono]} transition-all`}
-              style={{ height: `${dato.total === 0 ? 2 : Math.max(6, (dato.total / maximo) * 100)}%` }}
-            />
+            {/* Un cero no se dibuja como una barra mínima: parecería un dato. Queda la cifra y la base. */}
+            {dato.total > 0 ? (
+              <div
+                className={`w-full max-w-12 rounded-t-md ${BARRA[tono]} transition-all`}
+                style={{ height: `${Math.max(6, (dato.total / maximo) * 100)}%` }}
+              />
+            ) : (
+              <div className="h-px w-full max-w-12 bg-panel-border" />
+            )}
             <span className="text-xs text-panel-muted">{dato.etiqueta}</span>
           </div>
         ))}
