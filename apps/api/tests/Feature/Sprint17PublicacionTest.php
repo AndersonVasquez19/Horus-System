@@ -190,7 +190,7 @@ class Sprint17PublicacionTest extends TestCase
         $this->assertSame($antes, $service->paraWeb());
         $this->assertSame(2, $antes['total']);
         $this->assertSame('Alfabetización digital', $antes['cursos'][0]['titulo']);
-        $this->assertSame(['titulo', 'resumen', 'modalidad', 'horario', 'inscripcion', 'vigente_desde', 'vigente_hasta'], array_keys($antes['cursos'][0]));
+        $this->assertSame(['titulo', 'resumen', 'imagen_url', 'modalidad', 'horario', 'fecha_inicio', 'duracion', 'certificacion', 'temario', 'inscripcion', 'vigente_desde', 'vigente_hasta'], array_keys($antes['cursos'][0]));
         foreach (['Nombre interno', '9876', 'autorizado_por', 'cupos', 'curso_id'] as $privado) {
             $this->assertStringNotContainsString($privado, json_encode($antes));
         }
