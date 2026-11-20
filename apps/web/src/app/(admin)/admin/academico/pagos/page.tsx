@@ -82,9 +82,9 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
             <EstadoVacio titulo="Aún no hay comprobantes" texto="Usa «Subir comprobante» para registrar el primer pago de un estudiante." />
           )
         ) : (
-          <Tabla
+          <Tabla accionesFijas
             titulo={`Comprobantes (${meta.total})`}
-            columnas={['Comprobante', 'Estudiante', 'Edición', { texto: 'Pagó', orden: 'monto' }, { texto: 'Fecha', orden: 'fecha' }, 'Falta pagar', 'Estado', { texto: 'Acciones', oculta: true, derecha: true }]}
+            columnas={['Comprobante', 'Estudiante', 'Edición', { texto: 'Pagó', orden: 'monto', derecha: true }, { texto: 'Fecha', orden: 'fecha' }, { texto: 'Falta pagar', derecha: true }, 'Estado', { texto: 'Acciones', oculta: true, derecha: true }]}
             ordenActual={meta.orden}
             rutaOrden={RUTA}
             parametrosOrden={actuales}
@@ -105,12 +105,12 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
                     <p className="font-mono text-xs text-panel-muted">{p.estudiante.dni}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-panel-muted">{p.edicion ?? '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
                     <span className="font-semibold">{moneda(p.monto)}</span>
                     <p className="text-xs text-panel-muted">{p.metodo}{p.referencia ? ` · ${p.referencia}` : ''}</p>
                   </td>
                   <td className="px-4 py-3 text-xs">{fecha(p.fecha_pago)}</td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
                     {debe ? (
                       <>
                         <span className="font-semibold">{moneda(p.saldo)}</span>

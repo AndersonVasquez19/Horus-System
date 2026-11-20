@@ -9,7 +9,7 @@ import { enlaceWaMe, mensajeRecordatorioCuota } from '@/lib/panel/whatsapp-plant
 
 type Datos = ResumenAcademico;
 
-function Seccion({ id, titulo, descripcion, children }: { id: string; titulo: string; descripcion?: string; children: ReactNode }) {
+function GrupoTablero({ id, titulo, descripcion, children }: { id: string; titulo: string; descripcion?: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="space-y-3">
       <div>
@@ -107,7 +107,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
   return (
     <div className="space-y-8">
       {acciones.length > 0 ? (
-        <Seccion id="titulo-acciones" titulo="Requiere tu atención" descripcion="Lo pendiente de resolver hoy.">
+        <GrupoTablero id="titulo-acciones" titulo="Requiere tu atención" descripcion="Lo pendiente de resolver hoy.">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{acciones}</div>
           {a.ediciones && a.ediciones.lista_por_cerrar.length > 0 ? (
             <p className="text-sm text-panel-muted">
@@ -123,11 +123,11 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
               .
             </p>
           ) : null}
-        </Seccion>
+        </GrupoTablero>
       ) : null}
 
       {haySeguimiento ? (
-        <Seccion id="titulo-seguimiento" titulo="Seguimiento" descripcion="Pendientes propios y actividad reciente del sistema.">
+        <GrupoTablero id="titulo-seguimiento" titulo="Seguimiento" descripcion="Pendientes propios y actividad reciente del sistema.">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sg.aprobaciones_pendientes !== undefined ? (
               <TarjetaAccion
@@ -160,17 +160,17 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
               ))}
             </Lista>
           ) : null}
-        </Seccion>
+        </GrupoTablero>
       ) : null}
 
       {negocio.length > 0 ? (
-        <Seccion id="titulo-negocio" titulo="Negocio" descripcion="Cobranza y captación.">
+        <GrupoTablero id="titulo-negocio" titulo="Negocio" descripcion="Cobranza y captación.">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{negocio}</div>
-        </Seccion>
+        </GrupoTablero>
       ) : null}
 
       {ac.cupos || ac.asistencia ? (
-        <Seccion id="titulo-academico" titulo="Calidad académica" descripcion="Cupos y asistencia.">
+        <GrupoTablero id="titulo-academico" titulo="Calidad académica" descripcion="Cupos y asistencia.">
           <div className="grid gap-6 xl:grid-cols-2">
             {ac.cupos ? (
               <Lista titulo="Cupos por edición" vacio="No hay ediciones abiertas ni en curso.">
@@ -203,11 +203,11 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
               </Lista>
             ) : null}
           </div>
-        </Seccion>
+        </GrupoTablero>
       ) : null}
 
       {sal.cuotas_vencidas || sal.inasistencias ? (
-        <Seccion id="tablero-salud-grupo" titulo="Salud del grupo" descripcion="Alertas accionables de mora e inasistencias reiteradas con contacto directo por WhatsApp.">
+        <GrupoTablero id="tablero-salud-grupo" titulo="Salud del grupo" descripcion="Alertas accionables de mora e inasistencias reiteradas con contacto directo por WhatsApp.">
           <div className="grid gap-4 lg:grid-cols-2">
             {sal.cuotas_vencidas ? (
               <Lista titulo="Cuotas vencidas" vacio="No hay cuotas vencidas.">
@@ -261,7 +261,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
               </Lista>
             ) : null}
           </div>
-        </Seccion>
+        </GrupoTablero>
       ) : null}
     </div>
   );

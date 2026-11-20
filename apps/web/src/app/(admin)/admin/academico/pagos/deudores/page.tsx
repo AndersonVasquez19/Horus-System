@@ -92,9 +92,9 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
             <EstadoVacio titulo="Nadie tiene saldo pendiente" texto="Cuando alguien pague solo una parte, aparecerá aquí con lo que debe." />
           )
         ) : (
-          <Tabla
+          <Tabla accionesFijas
             titulo={`Matrículas con cobro (${meta.total})`}
-            columnas={['Estudiante', 'Edición', { texto: 'Total', orden: 'monto' }, 'Pagado', 'Por confirmar', 'Debe', 'Próx. vencimiento', 'Estado', { texto: 'Acciones', oculta: true, derecha: true }]}
+            columnas={['Estudiante', 'Edición', { texto: 'Total', orden: 'monto', derecha: true }, { texto: 'Pagado', derecha: true }, { texto: 'Por confirmar', derecha: true }, { texto: 'Debe', derecha: true }, 'Próx. vencimiento', 'Estado', { texto: 'Acciones', oculta: true, derecha: true }]}
             ordenActual={meta.orden}
             rutaOrden={RUTA}
             parametrosOrden={actuales}
@@ -121,10 +121,10 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
                     <p className="font-mono text-xs text-panel-muted">{o.estudiante.dni}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-panel-muted">{o.edicion ?? '—'}</td>
-                  <td className="px-4 py-3">{moneda(o.monto_total)}</td>
-                  <td className="px-4 py-3">{moneda(o.pagado)}</td>
-                  <td className="px-4 py-3">{Number(o.pendiente_confirmar) > 0 ? moneda(o.pendiente_confirmar) : '—'}</td>
-                  <td className="px-4 py-3 font-semibold">{moneda(o.saldo)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{moneda(o.monto_total)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{moneda(o.pagado)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{Number(o.pendiente_confirmar) > 0 ? moneda(o.pendiente_confirmar) : '—'}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{moneda(o.saldo)}</td>
                   <td className="px-4 py-3 text-xs">
                     {o.proxima_cuota ? (
                       <div className="flex flex-wrap items-center gap-1.5">

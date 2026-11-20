@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AccionesListadoMatriculas, MenuFilaMatricula } from '@/components/academico/acciones-matricula';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado, type ColorInsignia } from '@/components/shared/ui/insignia';
@@ -102,10 +103,7 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
           />
           <SelectorPorPagina tono="academico" valor={parametro(parametros, 'per_page')} />
           {/^\d{1,18}$/.test(cursoFiltrado) ? <input type="hidden" name="curso_id" value={cursoFiltrado} /> : null}
-          <label className="flex items-center gap-2 pb-2 text-sm text-panel-text">
-            <input type="checkbox" name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-            Eliminadas
-          </label>
+          <Casilla compacta name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} etiqueta="Eliminadas" className="pb-0.5" />
         </FiltrosListado>
 
         {meta.filtros.curso_id ? (
@@ -122,7 +120,7 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
             <EstadoVacio titulo="Todavía no hay matrículas registradas" />
           )
         ) : (
-          <Tabla
+          <Tabla accionesFijas
             titulo={`Matrículas (${meta.total})`}
             columnas={['Estudiante', 'Curso', 'Edición', { texto: 'Fecha', orden: 'fecha' }, { texto: 'Monto', derecha: true }, 'Cobro', { texto: 'Estado', orden: 'estado' }, { texto: 'Acciones', oculta: true, derecha: true }]}
             ordenActual={meta.orden}

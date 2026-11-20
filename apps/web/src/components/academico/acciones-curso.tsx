@@ -36,7 +36,7 @@ export function BotonNuevoCurso() {
       <Boton icono={<BookPlus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>
         Nuevo curso
       </Boton>
-      <Dialogo abierto={abierto} titulo="Registrar curso" descripcion="La ficha pública se autoriza aparte, desde el detalle del curso." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Registrar curso" descripcion="La ficha pública se autoriza aparte, desde el detalle del curso." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <FormularioCurso
           onOcupado={setOcupado}
           onCancelar={() => setAbierto(false)}
@@ -166,7 +166,7 @@ export function AccionesCurso({ curso }: { curso: CursoDetalle }) {
         </>
       )}
 
-      <Dialogo abierto={editando} titulo="Editar curso" descripcion={`${curso.codigo} · ${curso.nombre}`} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+      <Dialogo abierto={editando} lado="derecha" titulo="Editar curso" descripcion={`${curso.codigo} · ${curso.nombre}`} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioCurso
           curso={curso}
           onOcupado={setOcupado}

@@ -29,7 +29,7 @@ export function BotonNuevoEstudiante() {
       <Boton icono={<UserPlus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>
         Nuevo estudiante
       </Boton>
-      <Dialogo abierto={abierto} titulo="Registrar estudiante" descripcion="Los campos opcionales pueden completarse después." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Registrar estudiante" descripcion="Los campos opcionales pueden completarse después." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <FormularioEstudiante
           onOcupado={setOcupado}
           onCancelar={() => setAbierto(false)}
@@ -125,7 +125,7 @@ export function AccionesEstudiante({ estudiante }: { estudiante: EstudianteDetal
         </>
       )}
 
-      <Dialogo abierto={editando} titulo="Editar estudiante" descripcion={`${estudiante.nombres} ${estudiante.apellidos}`} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+      <Dialogo abierto={editando} lado="derecha" titulo="Editar estudiante" descripcion={`${estudiante.nombres} ${estudiante.apellidos}`} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioEstudiante
           estudiante={estudiante}
           onOcupado={setOcupado}

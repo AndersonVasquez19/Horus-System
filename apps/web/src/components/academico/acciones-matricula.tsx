@@ -139,7 +139,7 @@ export function OperacionMatricula({ matriculaId, operacion, onCerrar }: { matri
             required
           />
           {error ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-estado-error">{error}</p> : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton variante="secundario" onClick={cerrar} disabled={ocupado}>Cancelar</Boton>
             <Boton type="submit" variante="peligro" cargando={ocupado}>{textos?.confirmar ?? 'Confirmar'}</Boton>
           </div>
@@ -169,10 +169,10 @@ export function MenuFilaMatricula({ matricula, elementos }: { matricula: { id: n
   const [operacion, setOperacion] = useState<Operacion | null>(null);
 
   const propios: ElementoMenuFila[] = matricula.eliminado
-    ? puedeRestaurar ? [{ tipo: 'accion', etiqueta: 'Restaurar matrícula', onClick: () => setOperacion('restaurar') }] : []
+    ? puedeRestaurar ? [{ tipo: 'accion', etiqueta: 'Restaurar matrícula', icono: ArchiveRestore, onClick: () => setOperacion('restaurar') }] : []
     : [
-        ...(puedeAnular && matricula.estado !== 'anulada' ? [{ tipo: 'accion' as const, etiqueta: 'Anular matrícula', peligro: true, onClick: () => setOperacion('anular') }] : []),
-        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar matrícula', peligro: true, onClick: () => setOperacion('eliminar') }] : []),
+        ...(puedeAnular && matricula.estado !== 'anulada' ? [{ tipo: 'accion' as const, etiqueta: 'Anular matrícula', icono: Ban, peligro: true, onClick: () => setOperacion('anular') }] : []),
+        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar matrícula', icono: Trash2, peligro: true, onClick: () => setOperacion('eliminar') }] : []),
       ];
 
   return (

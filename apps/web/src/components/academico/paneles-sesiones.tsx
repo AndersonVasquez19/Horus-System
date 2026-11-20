@@ -196,7 +196,7 @@ function FormularioSesion({ convocatoriaId, sesion, onOcupado, onCerrar }: { con
         <Campo etiqueta="Hora de fin" type="time" {...f.registro('hora_fin')} error={f.error('hora_fin')} />
       </div>
       <Campo etiqueta="Tema" {...f.registro('tema')} error={f.error('tema')} />
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={f.guardando} icono={<CalendarPlus className="h-4 w-4" aria-hidden="true" />}>Guardar</Boton>
       </div>
@@ -227,9 +227,9 @@ function FormularioCancelar({ sesion, onOcupado, onCerrar }: { sesion: SesionCla
       {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
       <p className="text-sm text-panel-muted">Sesión {sesion.numero} del {fecha(sesion.fecha)}. Una sesión cancelada no se puede reactivar.</p>
       <Campo etiqueta="Motivo" {...f.registro('motivo')} error={f.error('motivo')} />
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Volver</Boton>
-        <Boton type="submit" cargando={f.guardando}>Cancelar sesión</Boton>
+        <Boton type="submit" variante="peligro" cargando={f.guardando}>Cancelar sesión</Boton>
       </div>
     </form>
   );

@@ -8,7 +8,7 @@ import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/ac
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
-import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
+import { EsqueletoFicha, ListaDatos, Seccion, Tabla } from '@/components/shared/ui/tabla';
 import type { EstudianteDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { mensajeEstudiante } from '@/lib/panel/contacto';
@@ -117,27 +117,17 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
             {estudiante.matriculas.length === 0 ? (
               <p className="px-5 py-12 text-center text-sm text-panel-muted">Este estudiante todavía no tiene matrículas.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <caption className="sr-only">Matrículas de {nombre}</caption>
-                  <thead className="border-y border-panel-border bg-panel-bg text-xs uppercase tracking-wide text-panel-muted">
-                    <tr>
-                      <th scope="col" className="px-5 py-2.5 font-semibold">Curso</th>
-                      <th scope="col" className="px-5 py-2.5 font-semibold">Fecha</th>
-                      <th scope="col" className="px-5 py-2.5 font-semibold">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-panel-border">
+              <Tabla plana titulo={`Matrículas de ${nombre}`} columnas={['Curso', 'Fecha', 'Estado']}>
                     {estudiante.matriculas.map((matricula) => (
                       <tr key={matricula.id}>
-                        <td className="px-5 py-3">
+                        <td className="px-4 py-3">
                           <Link href={`/admin/academico/matriculas/${matricula.id}`} className="font-medium text-panel-text hover:text-academico-800 hover:underline">
                             {matricula.curso?.nombre ?? 'Curso no disponible'}
                           </Link>
                           {matricula.curso ? <p className="text-xs text-panel-muted">{matricula.curso.codigo}</p> : null}
                         </td>
-                        <td className="whitespace-nowrap px-5 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
-                        <td className="px-5 py-3">
+                        <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
+                        <td className="px-4 py-3">
                           <div className="space-y-1.5">
                             <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
                             {matricula.curso?.enlace_grupo_whatsapp ? (
@@ -147,9 +137,8 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+
+</Tabla>
             )}
           </Seccion>
         ) : null}

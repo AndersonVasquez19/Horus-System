@@ -183,7 +183,7 @@ export function PanelPublicacion({ curso }: { curso: CursoDetalle }) {
 
       {datos ? (
         <>
-          <Dialogo abierto={editando} titulo={ficha ? 'Editar ficha pública' : 'Autorizar ficha pública'} descripcion={`${curso.codigo} · ${curso.nombre}`} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+          <Dialogo abierto={editando} lado="derecha" titulo={ficha ? 'Editar ficha pública' : 'Autorizar ficha pública'} descripcion={`${curso.codigo} · ${curso.nombre}`} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
             {editando ? (
               <FormularioFicha
                 curso={curso}
@@ -440,7 +440,7 @@ function FormularioFicha({ curso, datos, onGuardado, onCancelar, onOcupado, onEx
         {err('confirmacion_publica') ? <p className="mt-1.5 text-sm text-estado-error">{err('confirmacion_publica')}</p> : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={guardando}>Autorizar y publicar</Boton>
       </div>

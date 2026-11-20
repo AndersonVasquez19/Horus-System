@@ -137,7 +137,7 @@ function FormularioConvocatoria({ convocatoria, cursoInicial, onGuardado, onCanc
         <Campo etiqueta="Inicio" type="date" value={datos.fecha_inicio} onChange={cambiar('fecha_inicio')} error={err('fecha_inicio')} required />
         <Campo etiqueta="Fin" type="date" value={datos.fecha_fin} onChange={cambiar('fecha_fin')} error={err('fecha_fin')} required />
       </div>
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={guardando} disabled={!convocatoria && curso === ''}>{convocatoria ? 'Guardar cambios' : 'Registrar edición'}</Boton>
       </div>
@@ -158,7 +158,7 @@ export function BotonNuevaConvocatoria({ cursoInicial }: { cursoInicial?: CursoO
   return (
     <>
       <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Nueva edición</Boton>
-      <Dialogo abierto={abierto} titulo="Registrar edición" descripcion="Una edición de un curso con sus fechas, cupos y horario." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Registrar edición" descripcion="Una edición de un curso con sus fechas, cupos y horario." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <FormularioConvocatoria
           cursoInicial={cursoInicial}
           onOcupado={setOcupado}
@@ -297,7 +297,7 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
       </Boton>
       {error && !editando && !duplicando && confirmar === null ? <p role="alert" className="basis-full text-sm text-estado-error">{error.message}</p> : null}
 
-      <Dialogo abierto={editando} titulo="Editar edición" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+      <Dialogo abierto={editando} lado="derecha" titulo="Editar edición" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioConvocatoria
           convocatoria={convocatoria}
           onOcupado={setOcupado}
@@ -314,9 +314,9 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
         <div className="space-y-4">
           {error ? <Alerta tipo="error">{error.message}</Alerta> : null}
           <p className="text-sm text-panel-text">Una edición {confirmar === 'cerrada' ? 'cerrada' : 'cancelada'} ya no se puede editar ni reabrir.</p>
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton variante="secundario" onClick={() => setConfirmar(null)} disabled={ocupado}>Volver</Boton>
-            <Boton cargando={ocupado} onClick={() => confirmar !== null && void cambiarEstado(confirmar)}>{confirmar === 'cerrada' ? 'Cerrar edición' : 'Cancelar edición'}</Boton>
+            <Boton variante="peligro" cargando={ocupado} onClick={() => confirmar !== null && void cambiarEstado(confirmar)}>{confirmar === 'cerrada' ? 'Cerrar edición' : 'Cancelar edición'}</Boton>
           </div>
         </div>
       </Dialogo>
@@ -356,7 +356,7 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
             <input type="checkbox" checked={sigAbrir} onChange={(e) => setSigAbrir(e.target.checked)} className="h-4 w-4 rounded border-panel-border" />
             Abrir inmediatamente para matrículas
           </label>
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton variante="secundario" onClick={() => setDuplicando(false)} disabled={ocupado}>Cancelar</Boton>
             <Boton type="submit" cargando={ocupado}>Crear edición</Boton>
           </div>
@@ -429,7 +429,7 @@ export function EditorHorarios({ convocatoria, editable }: { convocatoria: Convo
       )}
       {puede ? <Boton variante="secundario" icono={<CalendarClock className="h-4 w-4" aria-hidden="true" />} onClick={abrir}>Editar horario</Boton> : null}
 
-      <Dialogo abierto={editando} titulo="Editar horario" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+      <Dialogo abierto={editando} lado="derecha" titulo="Editar horario" descripcion={convocatoria.codigo} onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <form onSubmit={(evento) => void guardar(evento)} noValidate className="space-y-4">
           {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
           {error?.code === 'validacion' ? <Alerta tipo="error">{Object.values(error.errors ?? {})[0]?.[0] ?? 'Revisa los bloques marcados.'}</Alerta> : null}
@@ -446,7 +446,7 @@ export function EditorHorarios({ convocatoria, editable }: { convocatoria: Convo
             </fieldset>
           ))}
           <Boton variante="secundario" icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setBloques((actuales) => [...actuales, { dia_semana: '1', hora_inicio: '', hora_fin: '' }])}>Agregar bloque</Boton>
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton variante="secundario" onClick={() => setEditando(false)} disabled={ocupado}>Cancelar</Boton>
             <Boton type="submit" cargando={ocupado}>Guardar horario</Boton>
           </div>

@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useFormularioPanel } from '@/components/shared/use-formulario-panel';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton } from '@/components/shared/ui/boton';
 import { Campo, CampoArea, CampoSeleccion } from '@/components/shared/ui/campo';
 import type { CursoDetalle } from '@/features/academico/tipos';
-import { errorDeCampo } from '@/lib/panel/cliente';
+import { esquemaCurso, type DatosCurso } from '@/lib/panel/esquemas';
 import { ETIQUETAS } from '@/lib/panel/formato';
-import type { ErrorPanel } from '@/lib/panel/tipos';
-
-const CAMPOS = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado', 'enlace_grupo_whatsapp'] as const;
-type Datos = Record<(typeof CAMPOS)[number], string>;
 
 interface FormularioCursoProps {
   /** Sin curso: registro. Con curso: edición. */
@@ -21,7 +17,7 @@ interface FormularioCursoProps {
   onOcupado?: (ocupado: boolean) => void;
 }
 
-function inicial(curso?: CursoDetalle): Datos {
+function inicial(curso?: CursoDetalle): DatosCurso {
   return {
     codigo: curso?.codigo ?? '',
     nombre: curso?.nombre ?? '',
@@ -39,52 +35,40 @@ function inicial(curso?: CursoDetalle): Datos {
 
 /**
  * Registro y edición de cursos. Las reglas (código único, límites numéricos, cupos no inferiores a las matrículas
- * activas…) las aplica Laravel con StoreCursoRequest / UpdateCursoRequest y GestionCursos; aquí solo se muestran sus
- * errores campo a campo. Los cupos disponibles nunca se envían: los calcula el servidor.
+ * activas…) las aplica Laravel con StoreCursoRequest / UpdateCursoRequest y GestionCursos; el esquema de
+ * `lib/panel/esquemas.ts` solo ayuda en el navegador y los errores del servidor se muestran campo a campo. Los cupos
+ * disponibles nunca se envían: los calcula el servidor.
  */
 export function FormularioCurso({ curso, onGuardado, onCancelar, onOcupado }: FormularioCursoProps) {
   const { ejecutar } = useOperacionPanel();
-  const [datos, setDatos] = useState<Datos>(() => inicial(curso));
-  const [error, setError] = useState<ErrorPanel | null>(null);
-  const [guardando, setGuardando] = useState(false);
 
-  const cambiar = (campo: keyof Datos) => (evento: { target: { value: string } }) =>
-    setDatos((actuales) => ({ ...actuales, [campo]: evento.target.value }));
-
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    setGuardando(true);
-    onOcupado?.(true);
-    setError(null);
-
-    const cuerpo = Object.fromEntries(CAMPOS.map((campo) => [campo, datos[campo].trim()]));
-    const resultado = curso
-      ? await ejecutar<{ message: string; data: CursoDetalle }>(`academico/cursos/${curso.id}`, 'PUT', cuerpo)
-      : await ejecutar<{ message: string; data: CursoDetalle }>('academico/cursos', 'POST', cuerpo);
-
-    setGuardando(false);
-    onOcupado?.(false);
-    if (resultado.ok) onGuardado(resultado.datos.data, resultado.datos.message);
-    else setError(resultado.error);
-  }
-
-  const err = (campo: string) => errorDeCampo(error, campo);
+  const f = useFormularioPanel({
+    esquema: esquemaCurso,
+    valores: inicial(curso),
+    onOcupado,
+    // El esquema ya recorta los textos: el cuerpo son los mismos campos de siempre, como cadenas.
+    enviar: (datos) =>
+      curso
+        ? ejecutar<{ message: string; data: CursoDetalle }>(`academico/cursos/${curso.id}`, 'PUT', datos)
+        : ejecutar<{ message: string; data: CursoDetalle }>('academico/cursos', 'POST', datos),
+    onExito: (respuesta) => onGuardado(respuesta.data, respuesta.message),
+  });
 
   return (
-    <form onSubmit={enviar} noValidate className="space-y-4">
-      {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
-      {error?.code === 'validacion' ? <Alerta tipo="error">Revisa los campos marcados.</Alerta> : null}
+    <form onSubmit={f.enviar} noValidate className="space-y-4">
+      {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
+      {f.hayErroresDeCampo ? <Alerta tipo="error">Revisa los campos marcados.</Alerta> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="Código" value={datos.codigo} onChange={cambiar('codigo')} error={err('codigo')} required maxLength={20} autoComplete="off" />
-        <CampoSeleccion etiqueta="Estado" value={datos.estado} onChange={cambiar('estado')} error={err('estado')} opciones={ETIQUETAS.estadoCurso} />
-        <Campo etiqueta="Nombre" value={datos.nombre} onChange={cambiar('nombre')} error={err('nombre')} required maxLength={150} autoComplete="off" className="sm:col-span-2" />
-        <CampoArea etiqueta="Descripción" value={datos.descripcion} onChange={cambiar('descripcion')} error={err('descripcion')} required rows={4} maxLength={5000} className="sm:col-span-2" />
-        <CampoSeleccion etiqueta="Categoría" value={datos.categoria} onChange={cambiar('categoria')} error={err('categoria')} opciones={ETIQUETAS.categoria} />
-        <CampoSeleccion etiqueta="Modalidad" value={datos.modalidad} onChange={cambiar('modalidad')} error={err('modalidad')} opciones={ETIQUETAS.modalidad} />
-        <Campo etiqueta="Duración (horas)" type="number" inputMode="numeric" min={1} step={1} value={datos.duracion_horas} onChange={cambiar('duracion_horas')} error={err('duracion_horas')} required />
-        <Campo etiqueta="Precio (S/)" type="number" inputMode="decimal" min={0} step="0.01" value={datos.precio} onChange={cambiar('precio')} error={err('precio')} required />
-        <Campo etiqueta="Horario" value={datos.horario} onChange={cambiar('horario')} error={err('horario')} required maxLength={100} autoComplete="off" />
+        <Campo etiqueta="Código" {...f.registro('codigo')} error={f.error('codigo')} required maxLength={20} autoComplete="off" />
+        <CampoSeleccion etiqueta="Estado" {...f.registro('estado')} error={f.error('estado')} opciones={ETIQUETAS.estadoCurso} />
+        <Campo etiqueta="Nombre" {...f.registro('nombre')} error={f.error('nombre')} required maxLength={150} autoComplete="off" className="sm:col-span-2" />
+        <CampoArea etiqueta="Descripción" {...f.registro('descripcion')} error={f.error('descripcion')} required rows={4} maxLength={5000} className="sm:col-span-2" />
+        <CampoSeleccion etiqueta="Categoría" {...f.registro('categoria')} error={f.error('categoria')} opciones={ETIQUETAS.categoria} />
+        <CampoSeleccion etiqueta="Modalidad" {...f.registro('modalidad')} error={f.error('modalidad')} opciones={ETIQUETAS.modalidad} />
+        <Campo etiqueta="Duración (horas)" type="number" inputMode="numeric" min={1} step={1} {...f.registro('duracion_horas')} error={f.error('duracion_horas')} required />
+        <Campo etiqueta="Precio (S/)" type="number" inputMode="decimal" min={0} step="0.01" {...f.registro('precio')} error={f.error('precio')} required />
+        <Campo etiqueta="Horario" {...f.registro('horario')} error={f.error('horario')} required maxLength={100} autoComplete="off" />
         <Campo
           etiqueta="Cupos máximos"
           type="number"
@@ -92,18 +76,16 @@ export function FormularioCurso({ curso, onGuardado, onCancelar, onOcupado }: Fo
           min={1}
           max={10}
           step={1}
-          value={datos.cupos_maximos}
-          onChange={cambiar('cupos_maximos')}
-          error={err('cupos_maximos')}
+          {...f.registro('cupos_maximos')}
+          error={f.error('cupos_maximos')}
           required
           ayuda={curso ? 'Máximo 10. No puede ser menor que las matrículas vigentes.' : 'Máximo 10. Los cupos disponibles empiezan igual al máximo.'}
         />
         <Campo
           etiqueta="Grupo de WhatsApp (opcional)"
           type="url"
-          value={datos.enlace_grupo_whatsapp}
-          onChange={cambiar('enlace_grupo_whatsapp')}
-          error={err('enlace_grupo_whatsapp')}
+          {...f.registro('enlace_grupo_whatsapp')}
+          error={f.error('enlace_grupo_whatsapp')}
           maxLength={255}
           placeholder="https://chat.whatsapp.com/..."
           ayuda="Enlace de invitación al grupo del curso. Se incluye al dar la bienvenida por WhatsApp."
@@ -111,9 +93,9 @@ export function FormularioCurso({ curso, onGuardado, onCancelar, onOcupado }: Fo
         />
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
-        <Boton variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
-        <Boton type="submit" cargando={guardando}>{curso ? 'Guardar cambios' : 'Registrar curso'}</Boton>
+      <div className="pie-acciones">
+        <Boton variante="secundario" onClick={onCancelar} disabled={f.guardando}>Cancelar</Boton>
+        <Boton type="submit" cargando={f.guardando}>{curso ? 'Guardar cambios' : 'Registrar curso'}</Boton>
       </div>
     </form>
   );

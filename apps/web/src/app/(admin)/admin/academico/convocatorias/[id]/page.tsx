@@ -118,7 +118,7 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
             {c.matriculados.length === 0 ? (
               <p className="text-sm text-panel-muted">Todavía no hay estudiantes matriculados en esta edición.</p>
             ) : (
-              <Tabla titulo={`Matriculados en ${c.codigo}`} columnas={['Estudiante', 'Matrícula', 'Cobro', 'Fecha', { texto: 'Contacto', derecha: true }]}>
+              <Tabla plana titulo={`Matriculados en ${c.codigo}`} columnas={['Estudiante', 'Matrícula', 'Cobro', 'Fecha', { texto: 'Contacto', derecha: true }]}>
                 {c.matriculados.map((m) => {
                   const estCobro = m.obligacion ? ESTADOS_COBRO[m.obligacion.estado] : null;
                   return (

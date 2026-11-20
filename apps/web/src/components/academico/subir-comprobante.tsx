@@ -11,20 +11,17 @@ import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
-import { Campo, CampoSeleccion } from '@/components/shared/ui/campo';
+import { Campo, CampoArchivo, CampoSeleccion } from '@/components/shared/ui/campo';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { Dialogo } from '@/components/shared/ui/dialogo';
 import { SelectorRemoto, type OpcionRemota } from '@/components/shared/ui/selector-remoto';
 import type { ImagenRepetida, MatriculaResumen, ObligacionDetalle } from '@/features/academico/tipos';
-import { fecha, moneda } from '@/lib/panel/formato';
-
-const IMPORTE = /^(0|[1-9]\d{0,7})(\.\d{1,2})?$/;
-const MAX_CAPTURA = 3 * 1024 * 1024;
-const TIPOS_CAPTURA = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-const hoyLima = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
+import { ACEPTA_CAPTURA, IMPORTE, importeValido, normalizarImporte, validarCaptura } from '@/lib/panel/captura';
+import { fecha, hoyLima, moneda } from '@/lib/panel/formato';
 
 const esquema = z.object({
   metodo: z.string().min(1, 'Elige cómo pagó la persona.'),
-  monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales.').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
+  monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales (por ejemplo 25,50).').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
   fecha_pago: z.string().min(1, 'Indica la fecha del pago.'),
   referencia: z.string().max(80, 'Hasta 80 caracteres.'),
 });
@@ -42,13 +39,6 @@ interface Cuenta {
 
 const centimos = (valor: string | null | undefined) => Math.round(Number(valor ?? 0) * 100);
 const soles = (c: number) => moneda((c / 100).toFixed(2));
-
-function validarCaptura(archivo: File | null): string | null {
-  if (archivo === null) return 'Adjunta el comprobante de pago.';
-  if (!TIPOS_CAPTURA.includes(archivo.type)) return 'Sube una captura en JPG, PNG o WebP, o un PDF.';
-  if (archivo.size > MAX_CAPTURA) return 'El comprobante no puede pasar de 3 MB.';
-  return null;
-}
 
 /**
  * «Subir comprobante»: el flujo natural de Pagos. Se busca la matrícula, se ve cuánto debe, se indica lo que la persona pagó y se
@@ -211,9 +201,8 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
     return () => clearTimeout(timer);
   }, [ejecutar, refActual]);
 
-  const montoEscrito = f.form.watch('monto') ?? '';
-  const montoValido = IMPORTE.test(montoEscrito) && Number(montoEscrito) > 0;
-  const restante = cuenta === null || !montoValido ? null : cuenta.disponible - centimos(montoEscrito);
+  const montoEscrito = normalizarImporte(f.form.watch('monto') ?? '');
+  const restante = cuenta === null || !importeValido(montoEscrito) ? null : cuenta.disponible - centimos(montoEscrito);
 
   if (resultado) {
     const pagoTodo = resultado.restante <= 0;
@@ -271,7 +260,14 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
         </div>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="Importe pagado (S/)" inputMode="decimal" {...f.registro('monto')} error={f.error('monto')} />
+        <Campo
+          etiqueta="Importe pagado (S/)"
+          inputMode="decimal"
+          required
+          ayuda="Puedes escribir coma o punto: 25,50"
+          {...f.registro('monto', { setValueAs: normalizarImporte })}
+          error={f.error('monto')}
+        />
         <Campo etiqueta="Fecha del pago" type="date" {...f.registro('fecha_pago')} error={f.error('fecha_pago')} />
       </div>
       {restante !== null ? (
@@ -284,26 +280,25 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
         <Campo etiqueta="Código de operación (opcional)" {...f.registro('referencia')} error={f.error('referencia')} />
       </div>
       {alertaReferencia && (refActual ?? '').trim().length >= 3 ? <Alerta tipo="aviso">{alertaReferencia}</Alerta> : null}
-      <Campo
+      <CampoArchivo
         etiqueta="Comprobante de pago"
-        type="file"
-        accept={TIPOS_CAPTURA.join(',')}
-        onChange={(e) => setCaptura(e.target.files?.[0] ?? null)}
+        requerido
+        accept={ACEPTA_CAPTURA}
+        onArchivo={setCaptura}
         error={errorCaptura}
         ayuda="JPG, PNG, WebP o PDF de hasta 3 MB. Es obligatorio. Se rechaza un PDF con scripts o archivos incrustados."
       />
       {puedeConfirmar ? (
-        <div className="space-y-1">
-          <label className="flex items-center gap-2 text-sm text-panel-text">
-            <input type="checkbox" checked={confirmar} onChange={(e) => setConfirmar(e.target.checked)} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-            Confirmar el pago ahora
-          </label>
-          <p className="text-xs text-panel-muted">Marca esto solo si ya comprobaste en tu app de Yape que la operación existe: una captura puede estar editada.</p>
-        </div>
+        <Casilla
+          etiqueta="Confirmar el pago ahora"
+          ayuda="Marca esto solo si ya comprobaste en tu app de Yape que la operación existe: una captura puede estar editada."
+          checked={confirmar}
+          onChange={(e) => setConfirmar(e.target.checked)}
+        />
       ) : (
         <p className="text-xs text-panel-muted">El pago quedará «por confirmar» hasta que lo revise una persona autorizada.</p>
       )}
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={f.guardando} disabled={cuenta !== null && cuenta.disponible <= 0}>Guardar pago</Boton>
       </div>

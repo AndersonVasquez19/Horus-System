@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { BotonNuevoEstudiante } from '@/components/academico/acciones-estudiante';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
-import { CampoBusqueda, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
+import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
@@ -17,7 +18,7 @@ import { ETIQUETAS, etiqueta, fecha } from '@/lib/panel/formato';
 export const metadata = { title: 'Estudiantes · Gestión académica' };
 
 const RUTA = '/admin/academico/estudiantes';
-const PARAMETROS = ['busqueda', 'estado', 'eliminados', 'sort', 'page'] as const;
+const PARAMETROS = ['busqueda', 'estado', 'eliminados', 'sort', 'per_page', 'page'] as const;
 
 type Parametros = Record<string, string | string[] | undefined>;
 
@@ -64,10 +65,8 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
           todos={null}
           opciones={{ apellidos: 'Apellidos (A–Z)', '-apellidos': 'Apellidos (Z–A)', dni: 'DNI', '-creado': 'Más recientes' }}
         />
-        <label className="flex items-center gap-2 pb-2 text-sm text-panel-text">
-          <input type="checkbox" name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-          Desactivados
-        </label>
+        <SelectorPorPagina tono="academico" valor={parametro(parametros, 'per_page')} />
+        <Casilla compacta name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} etiqueta="Desactivados" className="pb-0.5" />
       </FiltrosListado>
 
       <div className="flex justify-end">
@@ -85,7 +84,7 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
           <EstadoVacio titulo="Todavía no hay estudiantes registrados" texto="Registra el primero con «Nuevo estudiante»." />
         )
       ) : (
-        <Tabla
+        <Tabla accionesFijas
           titulo={`Estudiantes (${meta.total})`}
           columnas={['Estudiante', 'DNI', { texto: 'Contacto' }, 'Registrado', 'Estado', { texto: 'Acciones', oculta: true, derecha: true }]}
           pie={<Paginacion meta={meta} ruta={RUTA} parametros={actuales} />}
