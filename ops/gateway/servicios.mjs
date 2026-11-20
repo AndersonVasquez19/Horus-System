@@ -38,6 +38,7 @@ export function resolverConfig(argv, env = process.env) {
     build: opciones.build,
     chatbot: opciones.chatbot,
     semantico: opciones.semantico && opciones.chatbot,
+    syncCatalogo: opciones.chatbot && String(env.HORUS_AI_CATALOG_SYNC_ENABLED ?? '').toLowerCase() === 'true',
     puertos: {
       gateway: puerto(opciones.puerto, 'gateway'),
       laravel: puerto(env.HORUS_LARAVEL_PORT ?? '8000', 'laravel'),
@@ -76,12 +77,6 @@ export function definirServicios(cfg) {
         HORUS_ADVISOR_ENABLED: cfg.chatbot ? 'true' : 'false',
         HORUS_ADVISOR_URL: `http://127.0.0.1:${puertos.ai}`,
         HORUS_ADVISOR_TOKEN: tokens.ai,
-        // Con la sincronización de catálogo activa (la deja así apps/api/.env), Laravel descarta a Horus AI mientras este no tenga un
-        // catálogo firmado cargado: el chatbot respondería siempre con la contingencia. El gateway lo arranca sin catálogo, con su
-        // conocimiento público; el escenario con catálogo firmado y su renovación es el de `apps/api/scripts/horus-local.php`.
-        HORUS_AI_CATALOG_SYNC_ENABLED: 'false',
-        HORUS_OPS_ENABLED: 'false',
-        HORUS_OPS_RENEW_CATALOG: 'false',
         // `php -S` es de un solo hilo en Windows; en Linux/macOS se admiten varios trabajadores.
         ...(ES_WINDOWS ? {} : { PHP_CLI_SERVER_WORKERS: '4' }),
       },
@@ -110,8 +105,44 @@ export function definirServicios(cfg) {
       env: { HORUS_AI_SERVICE_TOKEN: tokens.ai, ...(cfg.semantico ? { HORUS_AI_SEMANTIC_ENABLED: 'true' } : {}) },
       salud: { puerto: puertos.ai, ruta: '/health', maxSegundos: 180, contiene: '"status"' },
     });
+    if (cfg.syncCatalogo) {
+      servicios.push({
+        nombre: 'worker',
+        cwd: path.join(RAIZ, 'apps', 'api'),
+        comando: 'php',
+        args: ['artisan', 'horus:advisor-operacion', 'worker', '--execute'],
+        env: {
+          HORUS_ADVISOR_ENABLED: 'true',
+          HORUS_ADVISOR_URL: `http://127.0.0.1:${puertos.ai}`,
+          HORUS_ADVISOR_TOKEN: tokens.ai,
+          HORUS_AI_CATALOG_SYNC_ENABLED: 'true',
+          HORUS_OPS_ENABLED: 'true',
+        },
+      });
+    }
   }
   return servicios;
+}
+
+/** Completa `HORUS_AI_SERVICE_TOKEN` y `HORUS_AI_CATALOG_SYNC_ENABLED` desde `apps/api/.env` si faltan en el entorno. */
+export function entornoConDefaultsApi(env = process.env) {
+  let texto = '';
+  try {
+    texto = fs.readFileSync(path.join(RAIZ, 'apps', 'api', '.env'), 'utf8');
+  } catch {
+    return env;
+  }
+  const leer = (clave) => (texto.match(new RegExp(`^${clave}=(.*)$`, 'm'))?.[1] ?? '').trim().replace(/^["']|["']$/g, '');
+  const salida = { ...env };
+  if (!(typeof salida.HORUS_AI_SERVICE_TOKEN === 'string' && salida.HORUS_AI_SERVICE_TOKEN.length >= 32)) {
+    const tokenApi = leer('HORUS_ADVISOR_TOKEN');
+    if (tokenApi.length >= 32) salida.HORUS_AI_SERVICE_TOKEN = tokenApi;
+  }
+  if (salida.HORUS_AI_CATALOG_SYNC_ENABLED === undefined) {
+    const syncApi = leer('HORUS_AI_CATALOG_SYNC_ENABLED');
+    if (syncApi !== '') salida.HORUS_AI_CATALOG_SYNC_ENABLED = syncApi;
+  }
+  return salida;
 }
 
 /** Lo que falta para poder arrancar; vacío si todo está. */
