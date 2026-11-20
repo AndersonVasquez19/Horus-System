@@ -7,6 +7,7 @@ namespace App\Http\Requests;
 use App\Services\GestionReclamaciones;
 use App\Support\AntispamReclamaciones;
 use App\Support\Email;
+use App\Support\Entrada;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -51,7 +52,7 @@ class StoreReclamacionRequest extends FormRequest
     {
         $menor = fn () => $this->boolean('es_menor');
         $reclamo = fn () => $this->input('tipo') === 'reclamo';
-        $honeypot = (string) config('reclamaciones.antispam.honeypot', 'sitio_web');
+        $honeypot = Entrada::texto(config('reclamaciones.antispam.honeypot', 'sitio_web'));
 
         return [
             $honeypot => ['nullable', 'max:0'],
@@ -100,7 +101,7 @@ class StoreReclamacionRequest extends FormRequest
             if (! AntispamReclamaciones::marcaValida($this->input('marca'))) {
                 $v->errors()->add('marca', 'El formulario caducó o se envió demasiado rápido. Inténtalo de nuevo.');
             }
-            $numero = (string) $this->input('numero_documento');
+            $numero = Entrada::texto($this->input('numero_documento'));
             $valido = match ($this->input('tipo_documento')) {
                 'dni' => preg_match('/\A\d{8}\z/D', $numero) === 1,
                 'ruc' => preg_match('/\A\d{11}\z/D', $numero) === 1,
@@ -125,7 +126,7 @@ class StoreReclamacionRequest extends FormRequest
      */
     public function datosReclamacion(): array
     {
-        $datos = $this->safe()->except(['marca', 'token_envio', 'monto_no_aplica', (string) config('reclamaciones.antispam.honeypot', 'sitio_web')]);
+        $datos = $this->safe()->except(['marca', 'token_envio', 'monto_no_aplica', Entrada::texto(config('reclamaciones.antispam.honeypot', 'sitio_web'))]);
         if ($this->boolean('monto_no_aplica') || blank($datos['monto_bien'] ?? null)) {
             $datos['monto_bien'] = null;
         }
@@ -138,6 +139,6 @@ class StoreReclamacionRequest extends FormRequest
 
     public function tokenEnvio(): string
     {
-        return (string) $this->validated('token_envio');
+        return Entrada::texto($this->validated('token_envio'));
     }
 }

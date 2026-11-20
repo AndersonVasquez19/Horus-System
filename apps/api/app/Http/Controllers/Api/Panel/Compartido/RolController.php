@@ -9,6 +9,7 @@ use App\Http\Requests\StoreRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
 use App\Services\AdminProtection;
 use App\Services\GestionRoles;
+use App\Support\Entrada;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -52,7 +53,7 @@ final class RolController extends Controller implements HasMiddleware
     public function store(StoreRoleRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $rol = $this->gestion->crear($request->user(), $data['name'], $data['permissions'] ?? []);
+        $rol = $this->gestion->crear($this->usuarioAutenticado($request), Entrada::texto($data['name']), Entrada::listaDeTexto($data['permissions'] ?? []));
 
         return response()->json([
             'message' => 'El rol se creó correctamente.',
@@ -63,7 +64,7 @@ final class RolController extends Controller implements HasMiddleware
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
         $data = $request->validated();
-        $this->gestion->actualizar($request->user(), $role, $data['name'], $data['permissions'] ?? []);
+        $this->gestion->actualizar($this->usuarioAutenticado($request), $role, Entrada::texto($data['name']), Entrada::listaDeTexto($data['permissions'] ?? []));
 
         return response()->json([
             'message' => 'El rol se actualizó correctamente.',
@@ -73,7 +74,7 @@ final class RolController extends Controller implements HasMiddleware
 
     public function destroy(Request $request, Role $role): JsonResponse
     {
-        $this->gestion->eliminar($request->user(), $role);
+        $this->gestion->eliminar($this->usuarioAutenticado($request), $role);
 
         return response()->json(['message' => 'El rol se eliminó correctamente.']);
     }

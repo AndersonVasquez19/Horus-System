@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Models\User;
 use App\Support\Email;
+use App\Support\Entrada;
 use App\Support\PasswordPolicy;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,7 +30,7 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $user = $this->route('user');
-        $userId = $user instanceof User ? (int) $user->getKey() : null;
+        $userId = $user instanceof User ? $user->id : null;
 
         return [
             'name' => ['required', 'string', 'max:255'],

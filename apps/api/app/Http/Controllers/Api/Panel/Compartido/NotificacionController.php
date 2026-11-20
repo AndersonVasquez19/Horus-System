@@ -78,7 +78,7 @@ final class NotificacionController extends Controller
             $filtros,
         );
 
-        $cuerpo = $respuesta->getData(true);
+        $cuerpo = Listado::contenido($respuesta);
         $cuerpo['meta']['pendientes'] = NotificacionesPendientes::para($usuario);
         $cuerpo['meta']['tipos'] = collect(self::TIPOS)->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])->values()->all();
 
@@ -175,7 +175,7 @@ final class NotificacionController extends Controller
             $lecturas = $pendientes->where('audiencia', NotificacionInterna::AUDIENCIA_GENERAL)
                 ->map(fn (NotificacionInterna $general): array => [
                     'notificacion_id' => $general->getKey(),
-                    'user_id' => $usuario->getKey(),
+                    'user_id' => $usuario->id,
                     'leida_at' => $ahora,
                 ])->values()->all();
             if ($lecturas !== []) {

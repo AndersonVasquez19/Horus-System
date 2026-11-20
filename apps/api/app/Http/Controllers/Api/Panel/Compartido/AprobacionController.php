@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\GestionAprobaciones;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use App\Support\Panel\ExportacionListado;
@@ -59,7 +60,7 @@ final class AprobacionController extends Controller implements HasMiddleware
 
         return Listado::responder(
             $paginas,
-            fn (AprobacionInterna $a): array => $this->representar($a, $usuario, $historiales->get($a->id, collect())->all()),
+            fn (AprobacionInterna $a): array => $this->representar($a, $usuario, array_values($historiales->get($a->id, collect())->all())),
             'pendientes',
             $filtros,
         )->withHeaders(self::CABECERAS);
@@ -137,21 +138,21 @@ final class AprobacionController extends Controller implements HasMiddleware
 
     public function store(StoreAprobacionRequest $request): JsonResponse
     {
-        $aprobacion = $this->gestion->registrar($this->usuario($request), $request->validated());
+        $aprobacion = $this->gestion->registrar($this->usuario($request), $this->datosRegistro($request->validated()));
 
         return $this->respuesta($aprobacion, $request, 'La solicitud de aprobación se registró correctamente.', 201);
     }
 
     public function update(UpdateAprobacionRequest $request, AprobacionInterna $aprobacion): JsonResponse
     {
-        $actualizada = $this->gestion->actualizar($this->usuario($request), (int) $aprobacion->getKey(), $request->validated());
+        $actualizada = $this->gestion->actualizar($this->usuario($request), $aprobacion->id, $this->datosActualizacion($request->validated()));
 
         return $this->respuesta($actualizada, $request, 'La solicitud de aprobación se actualizó correctamente.');
     }
 
     public function destroy(Request $request, AprobacionInterna $aprobacion): JsonResponse
     {
-        $this->gestion->eliminar($this->usuario($request), (int) $aprobacion->getKey());
+        $this->gestion->eliminar($this->usuario($request), $aprobacion->id);
 
         return response()->json(['message' => 'La solicitud de aprobación se eliminó correctamente.'], 200, self::CABECERAS);
     }
@@ -159,7 +160,7 @@ final class AprobacionController extends Controller implements HasMiddleware
     public function aprobar(Request $request, AprobacionInterna $aprobacion): JsonResponse
     {
         $datos = $request->validate(['comentario' => ['nullable', 'string', 'max:1000']]);
-        $resuelta = $this->gestion->aprobar($this->usuario($request), (int) $aprobacion->getKey(), $datos['comentario'] ?? null);
+        $resuelta = $this->gestion->aprobar($this->usuario($request), $aprobacion->id, $datos['comentario'] ?? null);
 
         return $this->respuesta($resuelta, $request, 'La solicitud ha sido aprobada correctamente.');
     }
@@ -167,7 +168,7 @@ final class AprobacionController extends Controller implements HasMiddleware
     public function rechazar(Request $request, AprobacionInterna $aprobacion): JsonResponse
     {
         $datos = $request->validate($this->reglasMotivo(), $this->mensajesMotivo('rechazo'));
-        $resuelta = $this->gestion->rechazar($this->usuario($request), (int) $aprobacion->getKey(), trim($datos['motivo']));
+        $resuelta = $this->gestion->rechazar($this->usuario($request), $aprobacion->id, trim($datos['motivo']));
 
         return $this->respuesta($resuelta, $request, 'La solicitud ha sido rechazada.');
     }
@@ -175,18 +176,18 @@ final class AprobacionController extends Controller implements HasMiddleware
     public function reabrir(Request $request, AprobacionInterna $aprobacion): JsonResponse
     {
         $datos = $request->validate($this->reglasMotivo(), $this->mensajesMotivo('reapertura'));
-        $abierta = $this->gestion->reabrir($this->usuario($request), (int) $aprobacion->getKey(), trim($datos['motivo']));
+        $abierta = $this->gestion->reabrir($this->usuario($request), $aprobacion->id, trim($datos['motivo']));
 
         return $this->respuesta($abierta, $request, 'La solicitud ha sido reabierta para una nueva evaluación.');
     }
 
     private function respuesta(AprobacionInterna $aprobacion, Request $request, string $mensaje, int $estado = 200): JsonResponse
     {
-        $actual = AprobacionInterna::query()->with(['solicitante:id,name', 'aprobador:id,name'])->findOrFail($aprobacion->getKey());
+        $actual = AprobacionInterna::query()->with(['solicitante:id,name', 'aprobador:id,name'])->findOrFail($aprobacion->id);
         $historial = AprobacionInterna::historialesDe([(int) $actual->id])->get($actual->id, collect())->all();
 
         return response()->json(
-            ['message' => $mensaje, 'data' => $this->representar($actual, $this->usuario($request), $historial)],
+            ['message' => $mensaje, 'data' => $this->representar($actual, $this->usuario($request), array_values($historial))],
             $estado,
             self::CABECERAS,
         );
@@ -235,6 +236,38 @@ final class AprobacionController extends Controller implements HasMiddleware
                 ];
             }, $historial),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{titulo: string, tipo: string, descripcion?: string|null, comentario?: string|null, referencia?: string|null}
+     */
+    private function datosRegistro(array $data): array
+    {
+        $datos = ['titulo' => Entrada::texto($data['titulo']), 'tipo' => Entrada::texto($data['tipo'])];
+        foreach (['descripcion', 'comentario', 'referencia'] as $campo) {
+            if (array_key_exists($campo, $data)) {
+                $datos[$campo] = $data[$campo] === null ? null : Entrada::texto($data[$campo]);
+            }
+        }
+
+        return $datos;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{titulo: string, descripcion?: string|null, comentario?: string|null, referencia?: string|null}
+     */
+    private function datosActualizacion(array $data): array
+    {
+        $datos = ['titulo' => Entrada::texto($data['titulo'])];
+        foreach (['descripcion', 'comentario', 'referencia'] as $campo) {
+            if (array_key_exists($campo, $data)) {
+                $datos[$campo] = $data[$campo] === null ? null : Entrada::texto($data[$campo]);
+            }
+        }
+
+        return $datos;
     }
 
     private function usuario(Request $request): User

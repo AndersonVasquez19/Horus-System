@@ -13,6 +13,7 @@ use App\Models\Matricula;
 use App\Models\User;
 use App\Services\ActaExcel;
 use App\Services\GestionCalificaciones;
+use App\Support\Entrada;
 use App\Support\Panel\PrecondicionesPanel;
 use App\Support\TemporaryExportFile;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,8 @@ use Throwable;
  * Evaluaciones, notas y acta de una convocatoria. Las notas son datos personales del estudiante: toda respuesta va con
  * `Cache-Control: no-store, private` y el acta exportada deja constancia de acceso. La regla vive en
  * {@see GestionCalificaciones}; aquí solo se validan los datos de entrada y se da forma a la respuesta.
+ *
+ * @phpstan-import-type Acta from ActaExcel
  */
 final class CalificacionController extends Controller implements HasMiddleware
 {
@@ -204,7 +207,7 @@ final class CalificacionController extends Controller implements HasMiddleware
      * Evaluaciones y matriz de notas de las matrículas vigentes de la convocatoria. Sin paginar: una convocatoria no pasa de
      * sus cupos máximos.
      *
-     * @return array<string, mixed>
+     * @return Acta
      */
     private function matriz(Convocatoria $convocatoria): array
     {
@@ -235,23 +238,23 @@ final class CalificacionController extends Controller implements HasMiddleware
             'nota_aprobatoria' => Calificacion::NOTA_APROBATORIA,
             'peso_total' => number_format($total / 100, 2, '.', ''),
             'asistencia_visible' => $asistencia !== null,
-            'evaluaciones' => $evaluaciones->map(fn (Evaluacion $e): array => [
+            'evaluaciones' => array_values($evaluaciones->map(fn (Evaluacion $e): array => [
                 'identificador' => $e->identificador,
                 'nombre' => $e->nombre,
                 'peso' => number_format((float) $e->peso, 2, '.', ''),
                 'fecha' => $e->fecha?->toDateString(),
                 'con_notas' => $conNotas->has($e->id),
-            ])->all(),
-            'matriculas' => $matriculas->map(fn (Matricula $m): array => [
+            ])->all()),
+            'matriculas' => array_values($matriculas->map(fn (Matricula $m): array => [
                 'id' => $m->id,
                 'estudiante' => ['dni' => $m->estudiante?->dni, 'nombre' => trim(($m->estudiante->nombres ?? '').' '.($m->estudiante->apellidos ?? ''))],
                 'notas' => ($notas[$m->id] ?? collect())->mapWithKeys(
-                    fn (Calificacion $c): array => [$identificadores[$c->evaluacion_id] => number_format((float) $c->nota, 2, '.', '')],
+                    fn (Calificacion $c): array => [Entrada::texto($identificadores[$c->evaluacion_id] ?? '') => number_format((float) $c->nota, 2, '.', '')],
                 )->all(),
                 'nota_final' => $m->nota_final === null ? null : number_format((float) $m->nota_final, 2, '.', ''),
                 'resultado' => $m->resultado,
                 'asistencia' => $asistencia?->get($m->id)['porcentaje'] ?? null,
-            ])->all(),
+            ])->all()),
         ];
     }
 }

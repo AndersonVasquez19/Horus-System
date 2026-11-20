@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Matricula;
+use App\Support\Entrada;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -54,8 +55,8 @@ class StoreMatriculaRequest extends FormRequest
                     return;
                 }
 
-                $estudianteId = (int) $this->input('estudiante_id');
-                $cursoId = (int) $this->input('curso_id');
+                $estudianteId = Entrada::entero($this->input('estudiante_id'));
+                $cursoId = Entrada::entero($this->input('curso_id'));
 
                 if (Matricula::query()
                     ->where('estudiante_id', $estudianteId)

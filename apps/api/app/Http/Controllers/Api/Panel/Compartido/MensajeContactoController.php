@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\MensajeContacto;
 use App\Models\User;
 use App\Support\BusquedaLike;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use App\Support\Panel\Listado;
@@ -83,7 +84,7 @@ final class MensajeContactoController extends Controller implements HasMiddlewar
             $filtros,
         );
 
-        $cuerpo = $respuesta->getData(true);
+        $cuerpo = Listado::contenido($respuesta);
         $cuerpo['meta']['nuevos'] = MensajeContacto::query()->where('estado', MensajeContacto::ESTADO_NUEVO)->count();
         $cuerpo['meta']['asuntos'] = MensajeContacto::query()->distinct()->orderBy('asunto')->pluck('asunto')->values()->all();
 
@@ -112,10 +113,10 @@ final class MensajeContactoController extends Controller implements HasMiddlewar
             foreach ($mensajes as $mensaje) {
                 $mensaje->forceFill([
                     'estado' => MensajeContacto::ESTADO_ATENDIDO,
-                    'atendido_por' => $usuario->getKey(),
+                    'atendido_por' => $usuario->id,
                     'atendido_at' => $ahora,
                 ])->save();
-                AuditLog::record('contacto_atendido', MensajeContacto::class, $mensaje->id, [], (int) $usuario->getKey());
+                AuditLog::record('contacto_atendido', MensajeContacto::class, $mensaje->id, [], $usuario->id);
             }
 
             return $mensajes->count();
@@ -142,8 +143,8 @@ final class MensajeContactoController extends Controller implements HasMiddlewar
             if ($mensaje->estado === MensajeContacto::ESTADO_ATENDIDO) {
                 return;
             }
-            $mensaje->forceFill(['estado' => MensajeContacto::ESTADO_ATENDIDO, 'atendido_por' => $usuario->getKey(), 'atendido_at' => now()])->save();
-            AuditLog::record('contacto_atendido', MensajeContacto::class, $mensaje->id, [], (int) $usuario->getKey());
+            $mensaje->forceFill(['estado' => MensajeContacto::ESTADO_ATENDIDO, 'atendido_por' => $usuario->id, 'atendido_at' => now()])->save();
+            AuditLog::record('contacto_atendido', MensajeContacto::class, $mensaje->id, [], $usuario->id);
         });
 
         return response()->json(['message' => 'El mensaje se marcó como atendido.'], 200, self::CABECERAS);

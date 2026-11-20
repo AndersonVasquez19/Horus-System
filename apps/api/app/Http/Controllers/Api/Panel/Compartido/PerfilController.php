@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePerfilRequest;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Entrada;
 use App\Support\SesionesActivas;
 use App\Support\SessionRevoker;
 use App\Support\Totp;
@@ -31,7 +32,7 @@ final class PerfilController extends Controller
         $usuario = $request->user();
 
         return response()->json(['data' => [
-            'id' => $usuario->getKey(),
+            'id' => $usuario->id,
             'nombre' => $usuario->name,
             'email' => $usuario->email,
             'telefono' => $usuario->telefono,
@@ -56,7 +57,7 @@ final class PerfilController extends Controller
             $user->fill(['name' => $data['name'], 'email' => $data['email']]);
 
             if ($cambiaClave) {
-                $user->password = Hash::make($data['password']);
+                $user->password = Hash::make(Entrada::texto($data['password']));
                 // Revoca los JWT emitidos con la contraseña anterior y limpia la marca de clave temporal.
                 $user->jwt_version = (int) $user->jwt_version + 1;
                 $user->debe_cambiar_password = false;
@@ -202,7 +203,7 @@ final class PerfilController extends Controller
             'whatsapp' => $whatsapp,
             'whatsapp_consentimiento' => $consentimiento,
             'whatsapp_consentimiento_at' => $consentimiento ? ($conservaConsentimiento ? ($previas['whatsapp_consentimiento_at'] ?? now()->toIso8601String()) : now()->toIso8601String()) : null,
-            'whatsapp_consentimiento_version' => $consentimiento ? (string) config('reclamaciones.privacidad_version', 'sin-version') : null,
+            'whatsapp_consentimiento_version' => $consentimiento ? Entrada::texto(config('reclamaciones.privacidad_version', 'sin-version')) : null,
             'recordatorio_cuotas' => (bool) $datos['recordatorio_cuotas'],
             'recordatorio_sesiones' => (bool) $datos['recordatorio_sesiones'],
             'recordatorio_reclamaciones' => (bool) $datos['recordatorio_reclamaciones'],
@@ -259,7 +260,7 @@ final class PerfilController extends Controller
             'message' => 'Escanea o copia la clave en tu aplicación autenticadora y confirma con un código de 6 dígitos.',
             'data' => [
                 'secreto' => $secreto,
-                'uri' => Totp::uriProvision((string) config('seguridad.totp_issuer', 'Horus Academic'), $user->email, $secreto),
+                'uri' => Totp::uriProvision(Entrada::texto(config('seguridad.totp_issuer', 'Horus Academic')), $user->email, $secreto),
             ],
         ]);
     }
@@ -315,7 +316,7 @@ final class PerfilController extends Controller
 
         /** @var User $actual */
         $actual = $request->user();
-        $codigo = trim((string) $request->input('codigo'));
+        $codigo = trim(Entrada::texto($request->input('codigo')));
 
         DB::transaction(function () use ($actual, $codigo): void {
             $user = User::query()->whereKey($actual->getKey())->lockForUpdate()->firstOrFail();

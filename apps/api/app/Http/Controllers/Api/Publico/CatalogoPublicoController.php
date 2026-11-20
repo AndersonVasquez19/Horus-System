@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Services\CatalogoPublicoCursos;
 use App\Services\CatalogoPublicoServicios;
 use App\Services\ContenidoPublicoServicios;
+use App\Support\Entrada;
 use App\Support\PaginasServicios;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -85,7 +86,7 @@ final class CatalogoPublicoController extends Controller
         $total = 0;
         if ($habilitado) {
             try {
-                $tablas = array_unique(array_merge(['servicios_tecnologicos', 'servicio_publicaciones', 'users'], array_values(config('permission.table_names', []))));
+                $tablas = array_unique(array_merge(['servicios_tecnologicos', 'servicio_publicaciones', 'users'], Entrada::listaDeTexto(config('permission.table_names', []))));
                 foreach ($tablas as $tabla) {
                     if (! Schema::hasTable($tabla)) {
                         Log::warning('servicios_web_esquema_incompleto');

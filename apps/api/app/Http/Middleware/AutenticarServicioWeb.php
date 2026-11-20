@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\Entrada;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,7 @@ final class AutenticarServicioWeb
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $esperado = (string) config('horus-web.service_token');
+        $esperado = Entrada::texto(config('horus-web.service_token'));
         abort_if(strlen($esperado) < 32, 404);
 
         $recibido = $request->header('X-Horus-Web-Token');

@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\MensajeContacto;
 use App\Models\NotificacionInterna;
 use App\Models\User;
+use App\Support\Entrada;
 use App\Support\LimitesEnvioPublico;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ final class ContactoPublicoController extends Controller
     {
         // Topes estrictos tras validar, por visitante (HMAC del BFF) y por medio de contacto (hash): equivocarse al rellenar no bloquea.
         $visitante = ChatPublicoController::visitante($request);
-        $medio = strtolower((string) ($request->input('correo') ?: $request->input('telefono')));
+        $medio = strtolower(Entrada::texto(($request->input('correo') ?: $request->input('telefono'))));
         $limites = [
             'contacto-bff-v10:'.$visitante => [3, 600],
             'contacto-bff-vdia:'.$visitante => [8, 86400],
@@ -46,11 +47,11 @@ final class ContactoPublicoController extends Controller
         $datos = $request->validated();
         $mensaje = DB::transaction(function () use ($datos, $visitante): MensajeContacto {
             $mensaje = MensajeContacto::create([
-                'nombre' => trim((string) $datos['nombre']),
+                'nombre' => trim(Entrada::texto($datos['nombre'])),
                 'telefono' => ($datos['telefono'] ?? null) ?: null,
-                'correo' => isset($datos['correo']) && $datos['correo'] !== '' ? strtolower((string) $datos['correo']) : null,
+                'correo' => isset($datos['correo']) && $datos['correo'] !== '' ? strtolower(Entrada::texto($datos['correo'])) : null,
                 'asunto' => $datos['asunto'],
-                'mensaje' => trim((string) $datos['mensaje']),
+                'mensaje' => trim(Entrada::texto($datos['mensaje'])),
                 'visitante' => $visitante === 'anonimo' ? null : $visitante,
             ]);
             AuditLog::record('contacto_recibido', MensajeContacto::class, $mensaje->id, ['asunto' => $mensaje->asunto], null);

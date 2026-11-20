@@ -11,6 +11,7 @@ use App\Models\Matricula;
 use App\Services\MatriculasExcelExport;
 use App\Services\ReportesMatriculas;
 use App\Support\ConfiguracionSistema;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -46,15 +47,15 @@ final class ReporteController extends Controller implements HasMiddleware
 
         $consulta = $this->reportes->consulta($request);
         $resumen = $this->reportes->resumen($consulta);
-        $lote = $this->reportes->lote($consulta, $request, (int) $resumen->total);
+        $lote = $this->reportes->lote($consulta, $request, $resumen['total']);
 
         $totales = [
-            'estudiantes' => (int) $resumen->estudiantes,
-            'cursos' => (int) $resumen->cursos,
+            'estudiantes' => $resumen['estudiantes'],
+            'cursos' => $resumen['cursos'],
             'matriculas' => $lote->total(),
         ];
         if ($request->user()?->hasRole('admin') === true) {
-            $totales['ingresos'] = number_format((float) $resumen->ingresos, 2, '.', '');
+            $totales['ingresos'] = number_format($resumen['ingresos'], 2, '.', '');
         }
 
         return response()->json([
@@ -144,8 +145,8 @@ final class ReporteController extends Controller implements HasMiddleware
             $filas = $registros->map(fn (Matricula $m): array => [
                 (string) $m->id,
                 $m->estudiante ? trim($m->estudiante->nombres.' '.$m->estudiante->apellidos) : '—',
-                $m->curso?->nombre ?? '—',
-                $m->fecha_matricula?->format('d/m/Y') ?? '—',
+                $m->curso->nombre ?? '—',
+                $m->fecha_matricula->format('d/m/Y'),
                 ucfirst((string) $m->estado),
                 $m->monto_pagado !== null ? ConfiguracionSistema::monto($m->monto_pagado) : '—',
             ])->all();
@@ -199,7 +200,7 @@ final class ReporteController extends Controller implements HasMiddleware
         $total = count($todas);
         $porPagina = ReportesMatriculas::TAMANO_LOTE;
         $ultima = max(1, (int) ceil($total / $porPagina));
-        $pagina = (int) ($request->validated('lote') ?? 1);
+        $pagina = Entrada::entero(($request->validated('lote') ?? 1));
         abort_if($pagina > $ultima, 404, 'El lote solicitado no existe. Vuelve a aplicar los filtros.');
 
         return response()->json([
@@ -234,7 +235,7 @@ final class ReporteController extends Controller implements HasMiddleware
                     $r['total'],
                     $r['pagado'],
                     $r['saldo'],
-                    ucfirst((string) $r['estado']),
+                    ucfirst(Entrada::texto($r['estado'])),
                 ], $d['rows']),
                 'Reporte de Cobranza',
                 'Estado de obligaciones y saldos derivados del libro de pagos',
@@ -254,16 +255,16 @@ final class ReporteController extends Controller implements HasMiddleware
                 array_map(fn (array $r): array => [
                     $r['codigo'].' · '.$r['edicion'],
                     $r['curso'] ? $r['curso']['codigo'].' · '.$r['curso']['nombre'] : null,
-                    (string) $r['sesiones_realizadas'],
-                    (string) $r['matriculados'],
+                    Entrada::texto($r['sesiones_realizadas']),
+                    Entrada::texto($r['matriculados']),
                     $r['promedio'] !== null ? $r['promedio'].'%' : 'Sin sesiones',
-                    ucfirst((string) $r['estado']),
+                    ucfirst(Entrada::texto($r['estado'])),
                 ], $d['rows']),
                 'Reporte de Asistencia',
                 'Consolidado de sesiones realizadas y asistencia por edición',
                 [
-                    'Ediciones' => (string) $d['resumen']['ediciones'],
-                    'Sesiones realizadas' => (string) $d['resumen']['sesiones_realizadas'],
+                    'Ediciones' => Entrada::texto($d['resumen']['ediciones']),
+                    'Sesiones realizadas' => Entrada::texto($d['resumen']['sesiones_realizadas']),
                     'Promedio' => $d['resumen']['promedio_asistencia'] !== null ? $d['resumen']['promedio_asistencia'].'%' : '—',
                 ],
             ];
@@ -276,20 +277,20 @@ final class ReporteController extends Controller implements HasMiddleware
             array_map(fn (array $r): array => [
                 $r['codigo'].' · '.$r['edicion'],
                 $r['curso'] ? $r['curso']['codigo'].' · '.$r['curso']['nombre'] : null,
-                (string) $r['matriculados'],
-                (string) $r['con_nota'],
-                (string) $r['aprobados'],
-                (string) $r['desaprobados'],
-                $r['promedio'] !== null ? number_format((float) $r['promedio'], 2) : '—',
-                ucfirst((string) $r['estado']),
+                Entrada::texto($r['matriculados']),
+                Entrada::texto($r['con_nota']),
+                Entrada::texto($r['aprobados']),
+                Entrada::texto($r['desaprobados']),
+                $r['promedio'] !== null ? number_format(Entrada::decimal($r['promedio']), 2) : '—',
+                ucfirst(Entrada::texto($r['estado'])),
             ], $d['rows']),
             'Reporte de Calificaciones',
             'Consolidado de notas finales y aprobación por edición',
             [
-                'Ediciones' => (string) $d['resumen']['ediciones'],
-                'Evaluados' => (string) $d['resumen']['evaluados'],
-                'Aprobados' => (string) $d['resumen']['aprobados'],
-                'Promedio general' => $d['resumen']['promedio_general'] !== null ? number_format((float) $d['resumen']['promedio_general'], 2) : '—',
+                'Ediciones' => Entrada::texto($d['resumen']['ediciones']),
+                'Evaluados' => Entrada::texto($d['resumen']['evaluados']),
+                'Aprobados' => Entrada::texto($d['resumen']['aprobados']),
+                'Promedio general' => $d['resumen']['promedio_general'] !== null ? number_format(Entrada::decimal($d['resumen']['promedio_general']), 2) : '—',
             ],
         ];
     }
@@ -310,10 +311,10 @@ final class ReporteController extends Controller implements HasMiddleware
     /** @return list<array{id: int, codigo: string, nombre: string}> */
     private function cursosDisponibles(): array
     {
-        return Curso::withTrashed()
+        return array_values(Curso::withTrashed()
             ->orderBy('nombre')
             ->get(['id', 'codigo', 'nombre'])
             ->map(fn (Curso $c): array => ['id' => $c->id, 'codigo' => $c->codigo, 'nombre' => $c->nombre])
-            ->all();
+            ->all());
     }
 }

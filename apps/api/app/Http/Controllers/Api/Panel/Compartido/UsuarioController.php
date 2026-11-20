@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\GestionUsuarios;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
+use App\Support\Entrada;
 use App\Support\ListFilter;
 use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\Listado;
@@ -137,7 +138,15 @@ final class UsuarioController extends Controller implements HasMiddleware
     public function store(StoreUserRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $usuario = $this->gestion->crear($request->user(), $data, $data['roles'] ?? []);
+        $datos = [
+            'name' => Entrada::texto($data['name']),
+            'email' => Entrada::texto($data['email']),
+            'password' => Entrada::texto($data['password']),
+        ];
+        if (array_key_exists('temporal', $data)) {
+            $datos['temporal'] = $data['temporal'] === null ? null : Entrada::booleano($data['temporal']);
+        }
+        $usuario = $this->gestion->crear($this->usuarioAutenticado($request), $datos, Entrada::listaDeTexto($data['roles'] ?? []));
 
         return response()->json([
             'message' => 'El usuario se registró correctamente.',
@@ -148,7 +157,17 @@ final class UsuarioController extends Controller implements HasMiddleware
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $data = $request->validated();
-        $this->gestion->actualizar($request->user(), $user, $data, $data['roles'] ?? [], $request->has('roles'), $request->session()->getId());
+        $datos = [
+            'name' => Entrada::texto($data['name']),
+            'email' => Entrada::texto($data['email']),
+        ];
+        if (array_key_exists('password', $data)) {
+            $datos['password'] = $data['password'] === null ? null : Entrada::texto($data['password']);
+        }
+        if (array_key_exists('temporal', $data)) {
+            $datos['temporal'] = $data['temporal'] === null ? null : Entrada::booleano($data['temporal']);
+        }
+        $this->gestion->actualizar($this->usuarioAutenticado($request), $user, $datos, Entrada::listaDeTexto($data['roles'] ?? []), $request->has('roles'), $request->session()->getId());
 
         return response()->json([
             'message' => 'Los datos del usuario se actualizaron correctamente.',
@@ -158,7 +177,7 @@ final class UsuarioController extends Controller implements HasMiddleware
 
     public function desactivar(Request $request, User $user): JsonResponse
     {
-        $this->gestion->desactivar($request->user(), $user);
+        $this->gestion->desactivar($this->usuarioAutenticado($request), $user);
 
         return response()->json([
             'message' => 'El usuario se dio de baja lógica correctamente.',
@@ -168,14 +187,14 @@ final class UsuarioController extends Controller implements HasMiddleware
 
     public function destroy(Request $request, User $user): JsonResponse
     {
-        $this->gestion->eliminar($request->user(), $user);
+        $this->gestion->eliminar($this->usuarioAutenticado($request), $user);
 
         return response()->json(['message' => 'El usuario se eliminó permanentemente.']);
     }
 
     public function restaurar(Request $request, int $user): JsonResponse
     {
-        $restaurado = $this->gestion->restaurar($request->user(), $user);
+        $restaurado = $this->gestion->restaurar($this->usuarioAutenticado($request), $user);
 
         return response()->json([
             'message' => 'El usuario se restauró correctamente.',
@@ -192,7 +211,7 @@ final class UsuarioController extends Controller implements HasMiddleware
         $dias = (int) ($datos['dias'] ?? 30);
         $hasta = Carbon::now()->addDays($dias);
 
-        $this->gestion->suspender($request->user(), $user, $hasta, $datos['motivo'] ?? null);
+        $this->gestion->suspender($this->usuarioAutenticado($request), $user, $hasta, isset($datos['motivo']) ? Entrada::texto($datos['motivo']) : null);
 
         return response()->json([
             'message' => "Cuenta suspendida por {$dias} día(s).",
@@ -202,7 +221,7 @@ final class UsuarioController extends Controller implements HasMiddleware
 
     public function desbloquear(Request $request, User $user): JsonResponse
     {
-        $this->gestion->desbloquear($request->user(), $user);
+        $this->gestion->desbloquear($this->usuarioAutenticado($request), $user);
 
         return response()->json([
             'message' => 'La suspensión de la cuenta se levantó correctamente.',
@@ -212,7 +231,7 @@ final class UsuarioController extends Controller implements HasMiddleware
 
     public function cerrarSesiones(Request $request, User $user): JsonResponse
     {
-        $this->gestion->cerrarSesiones($request->user(), $user, $request->session()->getId());
+        $this->gestion->cerrarSesiones($this->usuarioAutenticado($request), $user, $request->session()->getId());
 
         return response()->json([
             'message' => 'Se cerraron todas las sesiones activas de la cuenta.',
@@ -221,7 +240,7 @@ final class UsuarioController extends Controller implements HasMiddleware
 
     public function invitar(Request $request, User $user): JsonResponse
     {
-        $this->gestion->invitar($request->user(), $user);
+        $this->gestion->invitar($this->usuarioAutenticado($request), $user);
 
         return response()->json([
             'message' => 'Se generó y envió el enlace de acceso/restablecimiento al correo registrado.',

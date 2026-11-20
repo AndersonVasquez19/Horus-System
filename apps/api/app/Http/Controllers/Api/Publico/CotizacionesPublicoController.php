@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\Publico;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCotizacionPublicaRequest;
 use App\Services\RecepcionCotizacionesPublicas;
+use App\Support\Entrada;
 use App\Support\FormularioCotizacionPublica;
 use App\Support\LimitesEnvioPublico;
 use Illuminate\Http\JsonResponse;
@@ -40,7 +41,7 @@ final class CotizacionesPublicoController extends Controller
         $limites = [
             'cotizaciones-bff-v10:'.$visitante => [5, 600],
             'cotizaciones-bff-vdia:'.$visitante => [10, 86400],
-            'cotizaciones-bff-correo:'.hash('sha256', (string) $request->input('email')) => [5, 86400],
+            'cotizaciones-bff-correo:'.hash('sha256', Entrada::texto($request->input('email'))) => [5, 86400],
         ];
         $superada = LimitesEnvioPublico::consumir($limites);
         if ($superada !== null) {
@@ -64,7 +65,7 @@ final class CotizacionesPublicoController extends Controller
 
         return response()->json([
             'codigo' => $solicitud->codigo,
-            'recibida_at' => $solicitud->recibida_at->toIso8601String(),
+            'recibida_at' => $solicitud->recibida_at?->toIso8601String(),
             'repetida' => $repetida,
         ], $repetida ? 200 : 201)->header('Cache-Control', 'no-store, private');
     }

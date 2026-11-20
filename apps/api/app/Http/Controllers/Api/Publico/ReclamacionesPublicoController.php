@@ -9,6 +9,7 @@ use App\Http\Requests\StoreReclamacionBffRequest;
 use App\Services\GestionReclamaciones;
 use App\Support\AntispamReclamaciones;
 use App\Support\Email;
+use App\Support\Entrada;
 use App\Support\Reclamaciones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\RateLimiter;
@@ -39,8 +40,8 @@ final class ReclamacionesPublicoController extends Controller
             'marca' => $habilitado ? AntispamReclamaciones::emitirMarca() : null,
             'token_envio' => $habilitado ? (string) Str::uuid() : null,
             'correo_activo' => $habilitado && Reclamaciones::envioHabilitado(),
-            'plazo_dias_habiles' => (int) config('reclamaciones.plazo_dias_habiles', 15),
-            'honeypot' => (string) config('reclamaciones.antispam.honeypot', 'sitio_web'),
+            'plazo_dias_habiles' => Entrada::entero(config('reclamaciones.plazo_dias_habiles', 15)),
+            'honeypot' => Entrada::texto(config('reclamaciones.antispam.honeypot', 'sitio_web')),
         ])->header('Cache-Control', 'no-store, private');
     }
 
@@ -96,9 +97,9 @@ final class ReclamacionesPublicoController extends Controller
         $correo = hash('sha256', Email::normalize($request->input('email')));
 
         return [
-            'reclamaciones-bff-v10:'.$visitante => (int) config('reclamaciones.antispam.limite_ip_10min', 3),
-            'reclamaciones-bff-vdia:'.$visitante => (int) config('reclamaciones.antispam.limite_ip_dia', 10),
-            'reclamaciones-bff-correo:'.$correo => (int) config('reclamaciones.antispam.limite_correo_dia', 3),
+            'reclamaciones-bff-v10:'.$visitante => Entrada::entero(config('reclamaciones.antispam.limite_ip_10min', 3)),
+            'reclamaciones-bff-vdia:'.$visitante => Entrada::entero(config('reclamaciones.antispam.limite_ip_dia', 10)),
+            'reclamaciones-bff-correo:'.$correo => Entrada::entero(config('reclamaciones.antispam.limite_correo_dia', 3)),
         ];
     }
 

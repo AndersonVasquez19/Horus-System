@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\JwtTokenService;
 use App\Support\CredentialTiming;
 use App\Support\Email;
+use App\Support\Entrada;
 use App\Support\PasswordPolicy;
 use App\Support\SeguridadCuentas;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -58,7 +59,7 @@ class AuthController extends Controller
             AuditLog::record('login_failed', User::class, null, [
                 'canal' => 'api',
                 'cuenta_existente' => $user !== null,
-                'huella_correo' => substr(hash_hmac('sha256', $data['email'], (string) config('app.key')), 0, 16),
+                'huella_correo' => substr(hash_hmac('sha256', $data['email'], Entrada::texto(config('app.key'))), 0, 16),
             ], null);
             SeguridadCuentas::registrarFalloParaCuentaExistente($data['email']);
 
@@ -76,10 +77,10 @@ class AuthController extends Controller
         }
 
         SeguridadCuentas::limpiarIntentos($user);
-        AuditLog::record('login', User::class, $user->getKey(), [
+        AuditLog::record('login', User::class, $user->id, [
             'canal' => 'api',
             'personal_panel' => $user->hasAnyRole(RolesAndPermissionsSeeder::STAFF_ROLES),
-        ], $user->getKey());
+        ], $user->id);
 
         return response()->json([
             'user' => $this->userPayload($user),
@@ -89,7 +90,10 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $this->userPayload($request->attributes->get('jwt_user'))]);
+        $usuario = $request->attributes->get('jwt_user');
+        abort_unless($usuario instanceof User, 401);
+
+        return response()->json(['user' => $this->userPayload($usuario)]);
     }
 
     public function logout(Request $request): JsonResponse
@@ -98,7 +102,7 @@ class AuthController extends Controller
         $user = $request->attributes->get('jwt_user');
         $user->increment('jwt_version');
 
-        AuditLog::record('logout', User::class, $user->getKey(), ['canal' => 'api'], $user->getKey());
+        AuditLog::record('logout', User::class, $user->id, ['canal' => 'api'], $user->id);
 
         return response()->json(['message' => 'Sesión JWT cerrada.']);
     }
@@ -106,6 +110,6 @@ class AuthController extends Controller
     /** @return array{id: int, name: string, email: string} */
     private function userPayload(User $user): array
     {
-        return ['id' => $user->getKey(), 'name' => $user->name, 'email' => $user->email];
+        return ['id' => $user->id, 'name' => $user->name, 'email' => $user->email];
     }
 }

@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Models\AprobacionInterna;
 use App\Models\User;
+use App\Support\Entrada;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -71,12 +72,12 @@ class UpdateAprobacionRequest extends FormRequest
                 }
 
                 $solicitanteId = $this->input('solicitante_id');
-                if ($solicitanteId !== null && (int) $solicitanteId !== (int) $aprobacion->solicitante_id) {
+                if ($solicitanteId !== null && Entrada::entero($solicitanteId) !== Entrada::entero($aprobacion->solicitante_id)) {
                     $validator->errors()->add('solicitante_id', 'No se puede sustituir al solicitante original de una solicitud.');
                 }
 
                 $aprobadorId = $this->input('aprobador_id');
-                if ($aprobadorId !== null && (int) $aprobadorId !== (int) $aprobacion->aprobador_id) {
+                if ($aprobadorId !== null && Entrada::entero($aprobadorId) !== Entrada::entero($aprobacion->aprobador_id)) {
                     $validator->errors()->add('aprobador_id', 'El responsable de la decisión solo se registra al aprobar o rechazar.');
                 }
             },

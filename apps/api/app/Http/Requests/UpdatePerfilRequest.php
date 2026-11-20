@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Models\User;
 use App\Support\Email;
+use App\Support\Entrada;
 use App\Support\PasswordPolicy;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -31,12 +32,12 @@ class UpdatePerfilRequest extends FormRequest
         /** @var User $actual */
         $actual = $this->user();
 
-        $cambiaCorreo = $this->has('email') && (string) $this->input('email') !== $actual->email;
+        $cambiaCorreo = $this->has('email') && Entrada::texto($this->input('email')) !== $actual->email;
         $cambiaClave = $this->filled('password');
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Email::uniqueRule((int) $actual->getKey())],
+            'email' => ['required', 'email', 'max:255', Email::uniqueRule(Entrada::entero($actual->getKey()))],
             'password' => ['nullable', 'string', 'confirmed', PasswordPolicy::rule()],
             // Solo se pide (y se comprueba contra la contraseña guardada) al cambiar credenciales.
             'current_password' => $cambiaCorreo || $cambiaClave ? ['required', 'string', 'current_password'] : ['nullable'],

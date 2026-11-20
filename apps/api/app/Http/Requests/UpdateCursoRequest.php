@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Curso;
+use App\Support\Entrada;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
@@ -32,7 +33,7 @@ class UpdateCursoRequest extends FormRequest
             'modalidad' => ['required', Rule::in(['presencial', 'semipresencial', 'virtual', 'hibrido'])],
             'horario' => ['required', 'string', 'max:100'],
             'enlace_grupo_whatsapp' => ['nullable', 'string', 'max:255', 'regex:/\Ahttps:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,120}\z/'],
-            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:'.(int) config('academico.cupos_maximos', 10)],
+            'cupos_maximos' => ['required', 'integer', 'min:1', 'max:'.Entrada::entero(config('academico.cupos_maximos', 10))],
             'estado' => ['required', Rule::in(['activo', 'inactivo', 'archivado'])],
         ];
     }
@@ -47,11 +48,15 @@ class UpdateCursoRequest extends FormRequest
                 }
 
                 $curso = $this->route('curso');
+                if (! $curso instanceof Curso) {
+                    return;
+                }
+
                 $matriculasActivas = $curso->matriculas()
                     ->where('estado', '!=', 'anulada')
                     ->count();
 
-                if ((int) $this->input('cupos_maximos') < $matriculasActivas) {
+                if (Entrada::entero($this->input('cupos_maximos')) < $matriculasActivas) {
                     $validator->errors()->add(
                         'cupos_maximos',
                         "No puedes reducir los cupos por debajo de las {$matriculasActivas} matrículas activas.",
@@ -87,7 +92,7 @@ class UpdateCursoRequest extends FormRequest
             'cupos_maximos.required' => 'Debes indicar la cantidad de cupos.',
             'cupos_maximos.integer' => 'Los cupos deben ser un número entero.',
             'cupos_maximos.min' => 'Los cupos deben ser al menos 1.',
-            'cupos_maximos.max' => 'Un curso admite como máximo '.(int) config('academico.cupos_maximos', 10).' cupos.',
+            'cupos_maximos.max' => 'Un curso admite como máximo '.Entrada::entero(config('academico.cupos_maximos', 10)).' cupos.',
             'estado.required' => 'Debes seleccionar el estado del curso.',
             'estado.in' => 'El estado seleccionado no es válido.',
         ];

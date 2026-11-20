@@ -84,7 +84,7 @@ final class PagoController extends Controller implements HasMiddleware
 
         $coleccion = $consulta->limit(self::LIMITE_EXPORTACION + 1)->get();
         $truncado = $coleccion->count() > self::LIMITE_EXPORTACION;
-        $filas = $coleccion->take(self::LIMITE_EXPORTACION)->map(fn (ObligacionPago $o): array => $this->resumen($o))->all();
+        $filas = array_values($coleccion->take(self::LIMITE_EXPORTACION)->map(fn (ObligacionPago $o): array => $this->resumen($o))->all());
 
         $nombre = 'pagos-'.now()->format('Ymd-His').'.xlsx';
         $disco = Storage::disk('local');
@@ -353,7 +353,14 @@ final class PagoController extends Controller implements HasMiddleware
     private function resumen(ObligacionPago $o): array
     {
         $s = $this->gestion->saldos($o);
-        $e = $o->matricula->estudiante;
+        $matricula = $o->matricula;
+        if ($matricula === null) {
+            throw new RuntimeException("La obligación {$o->identificador} no tiene matrícula asociada.");
+        }
+        $e = $matricula->estudiante;
+        if ($e === null) {
+            throw new RuntimeException("La matrícula {$matricula->id} no tiene estudiante asociado.");
+        }
         $proximaCuota = null;
         if ($o->estado === 'vigente' && $s['total'] > $s['confirmado']) {
             $o->loadMissing('cuotas');
@@ -380,7 +387,7 @@ final class PagoController extends Controller implements HasMiddleware
 
         return [
             'identificador' => $o->identificador,
-            'matricula_id' => $o->matricula->id,
+            'matricula_id' => $matricula->id,
             'estudiante' => [
                 'id' => $e->id,
                 'dni' => $e->dni,
@@ -388,7 +395,7 @@ final class PagoController extends Controller implements HasMiddleware
                 'telefono' => $e->telefono,
                 'email' => $e->email,
             ],
-            'edicion' => $o->matricula->convocatoria?->codigo,
+            'edicion' => $matricula->convocatoria?->codigo,
             'concepto' => $o->concepto,
             'plan' => $o->plan,
             'estado' => $this->estadoCobro($o, $s),
@@ -421,7 +428,7 @@ final class PagoController extends Controller implements HasMiddleware
                 'tipo' => $t->tipo,
                 'estado' => $t->estado,
                 'monto' => GestionPagos::formato(GestionPagos::leer($t->monto)),
-                'metodo' => $t->metodo->nombre,
+                'metodo' => $t->metodo->nombre ?? '',
                 'fecha_pago' => substr((string) $t->fecha_pago, 0, 10),
                 'referencia' => $t->referencia,
                 'motivo' => $t->motivo,

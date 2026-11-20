@@ -9,6 +9,7 @@ use App\Http\Requests\PublicarCursoRequest;
 use App\Models\Curso;
 use App\Models\CursoPublicacion;
 use App\Services\PublicacionCursos;
+use App\Support\Entrada;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -61,7 +62,7 @@ final class CursoPublicacionController extends Controller implements HasMiddlewa
 
         return response()->json([
             'message' => 'La ficha pública fue autorizada. Su visibilidad depende de la vigencia indicada y del estado del curso.',
-        ] + $this->show($curso)->getData(true));
+        ] + Entrada::lista($this->show($curso)->getData(true)));
     }
 
     public function retirar(Request $request, int $curso): JsonResponse
@@ -76,7 +77,7 @@ final class CursoPublicacionController extends Controller implements HasMiddlewa
             fn (Curso $bloqueado, ?CursoPublicacion $ficha) => $this->comprobarRevision($request, $bloqueado, $ficha),
         );
 
-        return response()->json(['message' => 'La ficha dejó de estar publicada.'] + $this->show($curso)->getData(true));
+        return response()->json(['message' => 'La ficha dejó de estar publicada.'] + Entrada::lista($this->show($curso)->getData(true)));
     }
 
     /** @return array<string, mixed> */
@@ -91,7 +92,7 @@ final class CursoPublicacionController extends Controller implements HasMiddlewa
             'vigente_desde' => Carbon::parse($ficha->vigente_desde)->toDateString(),
             'vigente_hasta' => Carbon::parse($ficha->vigente_hasta)->toDateString(),
             'publicada' => $ficha->publicada,
-            'autorizado_en' => $ficha->autorizado_at === null ? null : Carbon::parse($ficha->autorizado_at)->toIso8601String(),
+            'autorizado_en' => Carbon::parse($ficha->autorizado_at)->toIso8601String(),
         ];
     }
 

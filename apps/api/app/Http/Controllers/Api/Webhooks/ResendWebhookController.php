@@ -10,6 +10,7 @@ use App\Models\MatriculaNotification;
 use App\Models\NotificacionInterna;
 use App\Models\ReclamacionEnvio;
 use App\Models\User;
+use App\Support\Entrada;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -28,7 +29,7 @@ final class ResendWebhookController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        $secret = trim((string) config('recordatorios.webhooks.resend_secret', ''));
+        $secret = trim(Entrada::texto(config('recordatorios.webhooks.resend_secret', '')));
         if ($secret === '') {
             return response()->json(['message' => 'Webhook de correo no configurado.'], 503);
         }
@@ -41,7 +42,7 @@ final class ResendWebhookController extends Controller
             return response()->json(['message' => 'Cabeceras de firma incompletas.'], 401);
         }
 
-        $tolerancia = max(30, (int) config('recordatorios.webhooks.resend_tolerancia_segundos', 300));
+        $tolerancia = max(30, Entrada::entero(config('recordatorios.webhooks.resend_tolerancia_segundos', 300)));
         if (abs(time() - (int) $svixTimestamp) > $tolerancia) {
             return response()->json(['message' => 'Firma de webhook expirada.'], 401);
         }
@@ -63,8 +64,8 @@ final class ResendWebhookController extends Controller
             return response()->json(['message' => 'Carga JSON inválida.'], 400);
         }
 
-        $tipo = (string) ($payload['type'] ?? '');
-        $emailId = $payload['data']['email_id'] ?? null;
+        $tipo = Entrada::texto(($payload['type'] ?? ''));
+        $emailId = Entrada::lista($payload['data'] ?? [])['email_id'] ?? null;
         if (! is_string($emailId) || $emailId === '' || strlen($emailId) > 100) {
             return response()->json(['ok' => true, 'ignored' => true]);
         }

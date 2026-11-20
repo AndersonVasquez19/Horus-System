@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Services\GestionReclamaciones;
+use App\Support\Entrada;
 use App\Support\Reclamaciones;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,7 +30,7 @@ class GestionarReclamacionRequest extends FormRequest
 
     public function authorize(): bool
     {
-        $permiso = self::PERMISOS[(string) $this->input('operacion')] ?? null;
+        $permiso = self::PERMISOS[Entrada::texto($this->input('operacion'))] ?? null;
 
         return $permiso !== null && $this->user() !== null && $this->user()->can($permiso);
     }
@@ -41,7 +42,7 @@ class GestionarReclamacionRequest extends FormRequest
             return false;
         }
 
-        return match ((string) $this->input('operacion')) {
+        return match (Entrada::texto($this->input('operacion'))) {
             'propuesta', 'reintento' => true,
             'respuesta' => $this->input('canal') === 'correo',
             default => false,
@@ -54,7 +55,7 @@ class GestionarReclamacionRequest extends FormRequest
         $base = ['operacion' => ['required', Rule::in(array_keys(self::PERMISOS))]];
         $confirmacion = $this->enviaCorreoReal() ? ['confirmar_envio' => ['accepted']] : [];
 
-        return $base + $confirmacion + match ((string) $this->input('operacion')) {
+        return $base + $confirmacion + match (Entrada::texto($this->input('operacion'))) {
             'responsable' => ['responsable_id' => ['present', 'nullable', 'integer', 'min:1']],
             'tipo' => ['tipo' => ['required', Rule::in(['reclamo', 'queja'])]],
             'nota' => ['nota' => ['required', 'string', 'max:2000']],

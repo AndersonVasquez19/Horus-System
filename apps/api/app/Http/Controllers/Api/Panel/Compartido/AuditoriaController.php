@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Support\AuditoriaAcademica;
 use App\Support\ConsultaAuditoria;
+use App\Support\Entrada;
 use App\Support\Panel\ConsultaListadoAuditoria;
 use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\Listado;
@@ -64,7 +65,7 @@ final class AuditoriaController extends Controller implements HasMiddleware
         );
 
         // Opciones de los filtros «Acción» y «Qué se tocó», con su texto en español (excluyendo módulos retirados).
-        $contenido = $respuesta->getData(true);
+        $contenido = Listado::contenido($respuesta);
         $contenido['meta']['acciones'] = collect(PresentadorAuditoria::accionesSelector())
             ->map(fn (string $etiqueta, string $clave): array => ['clave' => $clave, 'etiqueta' => $etiqueta])
             ->sortBy('etiqueta')->values()->all();
@@ -81,9 +82,9 @@ final class AuditoriaController extends Controller implements HasMiddleware
     public function exportar(Request $request): StreamedResponse|BinaryFileResponse
     {
         $filtros = ConsultaAuditoria::filtros($request);
-        $formato = strtolower(trim((string) $request->query('formato', $request->input('formato', 'json'))));
+        $formato = strtolower(trim(Entrada::texto($request->query('formato', $request->input('formato', 'json')))));
 
-        $maxId = (int) AuditLog::query()->max('id');
+        $maxId = Entrada::entero(AuditLog::query()->max('id'));
         $contextoFiltros = [
             'accion' => $filtros['accion'] !== '' ? $filtros['accion'] : null,
             'modelo' => $filtros['modelo'] !== '' ? $filtros['modelo'] : null,
@@ -107,7 +108,7 @@ final class AuditoriaController extends Controller implements HasMiddleware
                 $log->ip_address,
                 $log->changes === null || $log->changes === []
                     ? null
-                    : json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE),
+                    : (json_encode($log->redactedChanges(), JSON_UNESCAPED_UNICODE) ?: null),
             ]);
 
             return ExportacionListado::responder(

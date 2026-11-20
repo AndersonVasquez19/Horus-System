@@ -137,7 +137,7 @@ final class AsistenciaController extends Controller implements HasMiddleware
     private function cabecera(SesionClase $s): array
     {
         return [
-            'identificador' => $s->identificador, 'edicion' => $s->convocatoria->identificador, 'numero' => $s->numero, 'fecha' => $s->fecha,
+            'identificador' => $s->identificador, 'edicion' => $s->convocatoria->identificador ?? '', 'numero' => $s->numero, 'fecha' => $s->fecha,
             'hora_inicio' => substr($s->hora_inicio, 0, 5), 'hora_fin' => substr($s->hora_fin, 0, 5), 'estado' => $s->estado,
         ];
     }

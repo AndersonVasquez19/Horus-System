@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Notifications\RestablecerContrasenaWebNotification;
 use App\Support\CredentialTiming;
 use App\Support\Email;
+use App\Support\Entrada;
 use App\Support\PasswordPolicy;
 use App\Support\RestablecimientoContrasena;
 use App\Support\SeguridadCuentas;
@@ -63,7 +64,7 @@ final class AutenticacionController extends Controller
             AuditLog::record('login_failed', User::class, null, [
                 'canal' => 'panel',
                 'cuenta_existente' => $cuentaExiste,
-                'huella_correo' => substr(hash_hmac('sha256', $credenciales['email'], (string) config('app.key')), 0, 16),
+                'huella_correo' => substr(hash_hmac('sha256', $credenciales['email'], Entrada::texto(config('app.key'))), 0, 16),
             ], null);
             if ($cuentaExiste) {
                 SeguridadCuentas::registrarFalloParaCuentaExistente($credenciales['email']);
@@ -83,7 +84,7 @@ final class AutenticacionController extends Controller
             }
 
             // Límite propio de intentos de 2FA por cuenta (además del `throttle:login`): 5 fallos cada 5 minutos.
-            $claveLimite = '2fa-login:'.$user->getKey();
+            $claveLimite = '2fa-login:'.$user->id;
             if (RateLimiter::tooManyAttempts($claveLimite, 5)) {
                 return response()->json([
                     'message' => 'Demasiados intentos con el código de verificación. Espera unos minutos e inténtalo de nuevo.',
@@ -93,7 +94,7 @@ final class AutenticacionController extends Controller
 
             // Un código TOTP no puede usarse dos veces: solo se acepta un paso posterior al último usado (actualización atómica).
             $paso = Totp::pasoValido((string) $user->two_factor_secret, $codigo);
-            $validoTotp = $paso !== null && User::query()->whereKey($user->getKey())
+            $validoTotp = $paso !== null && User::query()->whereKey($user->id)
                 ->where(fn ($q) => $q->whereNull('two_factor_last_step')->orWhere('two_factor_last_step', '<', $paso))
                 ->update(['two_factor_last_step' => $paso]) === 1;
             $recuperacionRestante = null;
@@ -106,7 +107,7 @@ final class AutenticacionController extends Controller
                     'canal' => 'panel',
                     'cuenta_existente' => true,
                     'motivo' => '2fa_invalido',
-                    'huella_correo' => substr(hash_hmac('sha256', $credenciales['email'], (string) config('app.key')), 0, 16),
+                    'huella_correo' => substr(hash_hmac('sha256', $credenciales['email'], Entrada::texto(config('app.key'))), 0, 16),
                 ], null);
                 SeguridadCuentas::registrarFalloParaCuentaExistente($credenciales['email']);
                 RateLimiter::hit($claveLimite, 300);
@@ -121,7 +122,7 @@ final class AutenticacionController extends Controller
             RateLimiter::clear($claveLimite);
             if ($recuperacionRestante !== null) {
                 $user->forceFill(['two_factor_recovery_codes' => $recuperacionRestante])->save();
-                AuditLog::record('two_factor_recovery_used', User::class, $user->getKey(), [], $user->getKey());
+                AuditLog::record('two_factor_recovery_used', User::class, $user->id, [], $user->id);
             }
         }
 
@@ -133,7 +134,7 @@ final class AutenticacionController extends Controller
         SesionPanel::iniciar($request);
         SeguridadCuentas::limpiarIntentos($user);
 
-        AuditLog::record('login', User::class, $user->getKey(), ['canal' => 'panel', 'personal_panel' => true]);
+        AuditLog::record('login', User::class, $user->id, ['canal' => 'panel', 'personal_panel' => true]);
 
         return response()->json(['data' => SesionPanel::representar($request, $user)]);
     }
@@ -150,7 +151,7 @@ final class AutenticacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        AuditLog::record('logout', User::class, $user->getKey(), ['canal' => 'panel']);
+        AuditLog::record('logout', User::class, $user->id, ['canal' => 'panel']);
         // Igual que el cierre de sesión web: revoca también los JWT vigentes de la cuenta.
         $user->increment('jwt_version');
         SesionPanel::cerrar($request);

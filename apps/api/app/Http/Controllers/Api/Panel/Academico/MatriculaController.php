@@ -86,7 +86,7 @@ final class MatriculaController extends Controller implements HasMiddleware
             $orden,
             $filtros,
         );
-        $contenido = $respuesta->getData(true);
+        $contenido = Listado::contenido($respuesta);
         $contenido['meta']['convocatorias'] = Convocatoria::query()
             ->orderByDesc('fecha_inicio')
             ->orderBy('codigo')
@@ -460,7 +460,7 @@ final class MatriculaController extends Controller implements HasMiddleware
      */
     private function historial(Matricula $matricula): array
     {
-        return AuditLog::query()
+        return array_values(AuditLog::query()
             ->with('user:id,name')
             ->where('model_type', Matricula::class)
             ->where('model_id', $matricula->id)
@@ -492,6 +492,6 @@ final class MatriculaController extends Controller implements HasMiddleware
                     },
                 ];
             })
-            ->all();
+            ->all());
     }
 }

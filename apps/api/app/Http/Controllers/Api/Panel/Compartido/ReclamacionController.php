@@ -15,6 +15,7 @@ use App\Services\GestionReclamaciones;
 use App\Services\OperacionesReclamacion;
 use App\Support\AuditoriaAcademica;
 use App\Support\ConsultaReclamaciones;
+use App\Support\Entrada;
 use App\Support\HojaReclamacion;
 use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\Listado;
@@ -116,10 +117,10 @@ final class ReclamacionController extends Controller implements HasMiddleware
                 'plazo_suspendido' => $r->suspension_desde !== null,
             ],
             $orden,
-            array_filter(array_intersect_key($filtros, array_flip(ConsultaReclamaciones::FILTROS)), fn ($v) => trim((string) $v) !== ''),
+            array_filter(array_intersect_key($filtros, array_flip(ConsultaReclamaciones::FILTROS)), fn ($v) => trim(Entrada::texto($v)) !== ''),
         );
 
-        $datos = $respuesta->getData(true);
+        $datos = Listado::contenido($respuesta);
         $datos['meta']['metricas'] = ConsultaReclamaciones::metricas();
         $datos['meta']['plazos'] = ConsultaReclamaciones::plazos();
         $datos['meta']['responsables'] = $this->operaciones->responsablesDisponibles();
@@ -259,7 +260,7 @@ final class ReclamacionController extends Controller implements HasMiddleware
             'suspension_hasta' => $r->suspension_hasta?->format('Y-m-d'),
             'respondida_local' => $r->respondida_at === null ? null : $this->local($r->respondida_at),
             'respuesta' => $r->respuesta,
-            'responsable' => $r->responsable_id === null ? null : ['id' => (int) $r->responsable_id, 'nombre' => $responsable === null ? null : (string) $responsable],
+            'responsable' => $r->responsable_id === null ? null : ['id' => (int) $r->responsable_id, 'nombre' => $responsable === null ? null : Entrada::texto($responsable)],
             'consumidor' => [
                 'nombres' => $r->nombres,
                 'apellidos' => $r->apellidos,
@@ -321,8 +322,12 @@ final class ReclamacionController extends Controller implements HasMiddleware
         ];
     }
 
-    private function local(\DateTimeInterface $fecha): string
+    private function local(?\DateTimeInterface $fecha): string
     {
+        if ($fecha === null) {
+            return '—';
+        }
+
         return CarbonImmutable::instance($fecha)->timezone(self::ZONA)->format('d/m/Y H:i');
     }
 

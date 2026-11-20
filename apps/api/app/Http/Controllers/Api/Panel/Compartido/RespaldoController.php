@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Panel\Compartido;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\Entrada;
 use App\Support\GeneraExportacionAdministrativa;
 use App\Support\ListFilter;
 use Illuminate\Http\JsonResponse;
@@ -79,7 +80,7 @@ class RespaldoController extends Controller implements HasMiddleware
         return response()->json(['data' => [
             'tablas' => self::TABLAS,
             'contenido' => array_map(
-                static fn (string $tabla): array => ['clave' => $tabla, 'etiqueta' => self::ETIQUETAS[$tabla] ?? $tabla],
+                static fn (string $tabla): array => ['clave' => $tabla, 'etiqueta' => self::ETIQUETAS[$tabla]],
                 self::TABLAS,
             ),
             'es_respaldo_restaurable' => false,
@@ -95,7 +96,7 @@ class RespaldoController extends Controller implements HasMiddleware
 
         $brutoTablas = $request->input('tablas', $request->query('tablas'));
         $seleccionadas = match (true) {
-            is_array($brutoTablas) => array_values(array_filter(array_map('strval', $brutoTablas))),
+            is_array($brutoTablas) => array_values(array_filter(array_map(static fn (mixed $tabla): string => Entrada::texto($tabla), $brutoTablas))),
             is_string($brutoTablas) && trim($brutoTablas) !== '' => array_values(array_filter(array_map('trim', explode(',', $brutoTablas)))),
             default => null,
         };

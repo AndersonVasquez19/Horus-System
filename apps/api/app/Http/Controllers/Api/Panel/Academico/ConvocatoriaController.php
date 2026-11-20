@@ -59,7 +59,7 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
         [$consulta, $filtros, $orden] = $this->consultaFiltrada($request);
 
         $respuesta = Listado::responder(Listado::paginar($consulta, $request), fn (Convocatoria $c): array => $this->resumen($c), $orden, $filtros);
-        $contenido = $respuesta->getData(true);
+        $contenido = Listado::contenido($respuesta);
         $contenido['meta']['cursos'] = Curso::withTrashed()
             ->orderBy('nombre')
             ->get(['id', 'codigo', 'nombre'])
@@ -74,11 +74,11 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
         [$consulta, $filtros] = $this->consultaFiltrada($request);
         $filas = $consulta->get()->map(fn (Convocatoria $c): array => [
             $c->codigo,
-            $c->nombre ?: ($c->curso?->nombre ?? $c->codigo),
+            $c->nombre ?: ($c->curso->nombre ?? $c->codigo),
             $c->curso ? $c->curso->codigo.' · '.$c->curso->nombre : null,
             $c->modalidad,
-            $c->fecha_inicio?->toDateString(),
-            $c->fecha_fin?->toDateString(),
+            $c->fecha_inicio->toDateString(),
+            $c->fecha_fin->toDateString(),
             $c->cupos_disponibles,
             $c->cupos_maximos,
             ucfirst((string) $c->estado),

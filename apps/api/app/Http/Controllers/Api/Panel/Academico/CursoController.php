@@ -12,6 +12,7 @@ use App\Models\Estudiante;
 use App\Services\GestionCursos;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
+use App\Support\Entrada;
 use App\Support\ListFilter;
 use App\Support\Panel\ExportacionListado;
 use App\Support\Panel\HistorialAuditoria;
@@ -224,7 +225,7 @@ final class CursoController extends Controller implements HasMiddleware
                 'matricula_id' => self::pivote($estudiante, 'id'),
                 'nombre' => trim($estudiante->nombres.' '.$estudiante->apellidos),
                 'estado_matricula' => self::pivote($estudiante, 'estado'),
-                'fecha_matricula' => substr((string) self::pivote($estudiante, 'fecha_matricula'), 0, 10) ?: null,
+                'fecha_matricula' => substr(Entrada::texto(self::pivote($estudiante, 'fecha_matricula')), 0, 10) ?: null,
             ])->all(),
             'historial' => HistorialAuditoria::de(Curso::class, $modelo->id, self::ACCIONES_HISTORIAL),
         ];
@@ -250,7 +251,7 @@ final class CursoController extends Controller implements HasMiddleware
             'precio' => $curso->precio,
             'modalidad' => $curso->modalidad,
             'estado' => $curso->estado,
-            'publicado' => $curso->relationLoaded('publicacion') && (bool) ($curso->publicacion?->publicada ?? false),
+            'publicado' => $curso->relationLoaded('publicacion') && (bool) ($curso->publicacion->publicada ?? false),
             'enlace_grupo_whatsapp' => Curso::enlaceGrupoVisible($curso->enlace_grupo_whatsapp),
             'cupos_maximos' => $curso->cupos_maximos,
             'cupos_disponibles' => $curso->cupos_disponibles,

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use Illuminate\Http\JsonResponse;
@@ -65,7 +66,7 @@ final class AsistenteController extends Controller implements HasMiddleware
                 'filtro' => $intentValido,
                 'horus_ai' => [
                     'habilitado' => (bool) config('horus-advisor.enabled'),
-                    'url_configurada' => trim((string) config('horus-advisor.url', '')) !== '',
+                    'url_configurada' => trim(Entrada::texto(config('horus-advisor.url', ''))) !== '',
                 ],
             ],
             'meta' => [
