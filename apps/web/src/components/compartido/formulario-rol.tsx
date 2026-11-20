@@ -1,15 +1,16 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useSesionPanel } from '@/components/shared/sesion-panel-contexto';
+import { useFormularioPanel } from '@/components/shared/use-formulario-panel';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
+import { Casilla } from '@/components/shared/ui/casilla';
 import type { RolPanel } from '@/features/notificaciones/tipos';
-import { errorDeCampo } from '@/lib/panel/cliente';
+import { esquemaRol } from '@/lib/panel/esquemas';
 import { agruparPermisos } from '@/lib/permisos-etiquetas';
-import type { ErrorPanel } from '@/lib/panel/tipos';
 
 interface FormularioRolProps {
   /** Sin rol: alta. Con rol: edición. */
@@ -33,14 +34,27 @@ export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCanc
   const { ejecutar } = useOperacionPanel();
   const esAdmin = sesion.roles.includes('admin');
   const misPermisos = useMemo(() => new Set(sesion.permisos), [sesion.permisos]);
-  const [nombre, setNombre] = useState(rol?.nombre ?? inicial?.nombre ?? '');
-  const [seleccion, setSeleccion] = useState<string[]>(() => {
-    const origen = rol?.permisos ?? inicial?.permisos ?? [];
-    return esAdmin ? [...origen] : origen.filter((p) => misPermisos.has(p));
-  });
   const [busqueda, setBusqueda] = useState('');
-  const [error, setError] = useState<ErrorPanel | null>(null);
-  const [guardando, setGuardando] = useState(false);
+
+  const f = useFormularioPanel({
+    esquema: esquemaRol,
+    valores: {
+      name: rol?.nombre ?? inicial?.nombre ?? '',
+      permissions: (() => {
+        const origen = rol?.permisos ?? inicial?.permisos ?? [];
+        return esAdmin ? [...origen] : origen.filter((p) => misPermisos.has(p));
+      })(),
+    },
+    onOcupado,
+    enviar: (datos) => {
+      const cuerpo = { name: datos.name, permissions: datos.permissions };
+      return rol
+        ? ejecutar<{ message: string }>(`compartido/roles/${rol.id}`, 'PUT', cuerpo)
+        : ejecutar<{ message: string }>('compartido/roles', 'POST', cuerpo);
+    },
+    onExito: (respuesta) => onGuardado(respuesta.message),
+  });
+  const seleccion = f.form.watch('permissions');
   const grupos = useMemo(() => agruparPermisos(permisos), [permisos]);
   const gruposFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -60,45 +74,25 @@ export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCanc
   const alternarGrupo = (claves: string[]) => {
     const permitidas = claves.filter(puedeConceder);
     if (permitidas.length === 0) return;
-    setSeleccion((actual) => (permitidas.every((c) => actual.includes(c)) ? actual.filter((p) => !permitidas.includes(p)) : [...new Set([...actual, ...permitidas])]));
+    const actual = f.form.getValues('permissions');
+    f.form.setValue('permissions', permitidas.every((c) => actual.includes(c)) ? actual.filter((p) => !permitidas.includes(p)) : [...new Set([...actual, ...permitidas])], { shouldDirty: true });
   };
 
   const alternar = (permiso: string) => {
     if (!puedeConceder(permiso)) return;
-    setSeleccion((actual) => (actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso]));
+    const actual = f.form.getValues('permissions');
+    f.form.setValue('permissions', actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso], { shouldDirty: true });
   };
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    setGuardando(true);
-    onOcupado?.(true);
-    setError(null);
-
-    const cuerpo = { name: nombre.trim(), permissions: seleccion };
-    const resultado = rol
-      ? await ejecutar<{ message: string }>(`compartido/roles/${rol.id}`, 'PUT', cuerpo)
-      : await ejecutar<{ message: string }>('compartido/roles', 'POST', cuerpo);
-    setGuardando(false);
-    onOcupado?.(false);
-
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
-    }
-    onGuardado(resultado.datos.message);
-  }
-
-  const errorPermisos = errorDeCampo(error, 'permissions') ?? Object.keys(error?.errors ?? {}).filter((campo) => campo.startsWith('permissions.')).map((campo) => errorDeCampo(error, campo)).find(Boolean);
-
   return (
-    <form onSubmit={enviar} noValidate className="space-y-4">
-      {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
+    <form onSubmit={f.enviar} noValidate className="space-y-4">
+      {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
       {rol && rol.usuarios > 0 ? (
         <Alerta tipo="aviso">
           Los cambios en este rol afectarán a {rol.usuarios === 1 ? '1 persona' : `${rol.usuarios} personas`} asignadas actualmente.
         </Alerta>
       ) : null}
-      <Campo tono={tono} etiqueta="Nombre del rol" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errorDeCampo(error, 'name')} required maxLength={255} autoComplete="off" />
+      <Campo tono={tono} etiqueta="Nombre del rol" {...f.registro('name')} error={f.error('name')} required maxLength={255} autoComplete="off" />
 
       <fieldset className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -132,16 +126,14 @@ export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCanc
                   {grupo.permisos.map((permiso) => {
                     const bloqueado = !puedeConceder(permiso.clave);
                     return (
-                      <label key={permiso.clave} className={`inline-flex items-center gap-2 text-sm ${bloqueado ? 'cursor-not-allowed text-panel-muted opacity-60' : 'text-panel-text'}`}>
-                        <input
-                          type="checkbox"
-                          checked={seleccion.includes(permiso.clave)}
-                          disabled={bloqueado}
-                          onChange={() => alternar(permiso.clave)}
-                          className="h-4 w-4 rounded border-panel-border"
-                        />
-                        <span>{permiso.etiqueta}</span>
-                      </label>
+                      <Casilla
+                        key={permiso.clave}
+                        compacta
+                        etiqueta={permiso.etiqueta}
+                        checked={seleccion.includes(permiso.clave)}
+                        disabled={bloqueado}
+                        onChange={() => alternar(permiso.clave)}
+                      />
                     );
                   })}
                 </div>
@@ -149,12 +141,12 @@ export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCanc
             );
           })}
         </div>
-        {errorPermisos ? <p role="alert" className="text-sm text-estado-error">{errorPermisos}</p> : null}
+        {f.errorLista('permissions') ? <p role="alert" className="text-sm text-estado-error">{f.errorLista('permissions')}</p> : null}
       </fieldset>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
-        <Boton tono={tono} variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
-        <Boton tono={tono} type="submit" cargando={guardando}>{rol ? 'Guardar cambios' : 'Crear rol'}</Boton>
+      <div className="pie-acciones">
+        <Boton tono={tono} variante="secundario" onClick={onCancelar} disabled={f.guardando}>Cancelar</Boton>
+        <Boton tono={tono} type="submit" cargando={f.guardando}>{rol ? 'Guardar cambios' : 'Crear rol'}</Boton>
       </div>
     </form>
   );

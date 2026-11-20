@@ -204,7 +204,7 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
           <EstadoVacio titulo="Todavía no hay reclamaciones" texto="Las quejas y reclamos del libro aparecerán aquí." />
         )
       ) : (
-        <Tabla
+        <Tabla accionesFijas
           titulo={`Reclamaciones (${meta.total})`}
           columnas={[
             { texto: 'N.º', orden: 'numero' },

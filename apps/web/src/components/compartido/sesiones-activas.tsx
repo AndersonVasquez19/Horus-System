@@ -6,7 +6,7 @@ import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { CampoClave } from '@/components/shared/ui/campo';
 import { Insignia } from '@/components/shared/ui/insignia';
 import type { SesionActiva } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
@@ -114,7 +114,7 @@ export function SesionesActivas({ sesiones, disponible, tono }: { sesiones: Sesi
             {objetivo === 'otras' ? `Se cerrarán ${otras} sesión(es) y se cerrará el acceso desde otros dispositivos.` : 'Se cerrará esa sesión.'} Confirma con tu contraseña actual.
           </p>
           {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
-          <Campo tono={tono} etiqueta="Contraseña actual" type="password" value={clave} onChange={(e) => setClave(e.target.value)} error={errorDeCampo(error, 'current_password')} autoComplete="current-password" required />
+          <CampoClave tono={tono} etiqueta="Contraseña actual" value={clave} onChange={(e) => setClave(e.target.value)} error={errorDeCampo(error, 'current_password')} autoComplete="current-password" required />
           <div className="flex justify-end gap-2">
             <Boton tono={tono} variante="secundario" onClick={() => { setObjetivo(null); setClave(''); setError(null); }} disabled={cargando}>Cancelar</Boton>
             <Boton tono={tono} type="submit" variante="peligro" cargando={cargando}>Cerrar sesión</Boton>

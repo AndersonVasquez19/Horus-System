@@ -1,6 +1,6 @@
 'use client';
 
-import { UserPlus } from 'lucide-react';
+import { Ban, History, LogOut, Mail, Pencil, RotateCcw, Trash2, Unlock, UserPlus, UserX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -29,7 +29,7 @@ export function BotonNuevoUsuario({ roles, tono }: { roles: readonly string[]; t
       <Boton tono={tono} icono={<UserPlus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>
         Nuevo usuario
       </Boton>
-      <Dialogo abierto={abierto} titulo="Registrar usuario" descripcion="La cuenta queda con el correo verificado y puede entrar de inmediato." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Registrar usuario" descripcion="La cuenta queda con el correo verificado y puede entrar de inmediato." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <FormularioUsuario
           roles={roles}
           tono={tono}
@@ -60,17 +60,23 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
   const [eliminando, setEliminando] = useState(false);
   const [suspendiendo, setSuspendiendo] = useState(false);
   const [cerrandoSesiones, setCerrandoSesiones] = useState(false);
+  const [invitando, setInvitando] = useState(false);
   const [diasSuspension, setDiasSuspension] = useState('30');
   const [motivoSuspension, setMotivoSuspension] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  async function ejecutarAccion(ruta: string, metodo: 'POST' | 'DELETE' = 'POST', cuerpo?: Record<string, unknown>) {
+  /**
+   * `avisarError`: para acciones lanzadas directo desde el menú, sin diálogo donde mostrar el error en línea;
+   * sin él, un fallo no se vería en ninguna parte.
+   */
+  async function ejecutarAccion(ruta: string, metodo: 'POST' | 'DELETE' = 'POST', cuerpo?: Record<string, unknown>, avisarError = false) {
     setOcupado(true);
     setError(null);
     const resultado = await ejecutar<{ message: string }>(ruta, metodo, cuerpo);
     setOcupado(false);
     if (!resultado.ok) {
       setError(resultado.error.message);
+      if (avisarError) mostrar('error', resultado.error.message);
       return false;
     }
     mostrar('exito', resultado.datos.message);
@@ -84,42 +90,53 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
     }
   }
 
+  const verActividad: ElementoMenuFila[] = puedeAuditoria
+    ? [{ tipo: 'enlace', etiqueta: 'Ver actividad', icono: History, href: `/admin/${tono}/auditoria?usuario=${encodeURIComponent(usuario.email)}` }]
+    : [];
+
+  // Orden: consultar → editar → seguridad de la sesión → destructivas (el menú las separa y las pone al final).
   const elementos: ElementoMenuFila[] = usuario.eliminado
     ? [
-        ...(puedeAuditoria
-          ? [{ tipo: 'enlace' as const, etiqueta: 'Ver actividad', href: `/admin/${tono}/auditoria?usuario=${encodeURIComponent(usuario.email)}` }]
-          : []),
+        ...verActividad,
         ...(puedeEliminar
-          ? [{ tipo: 'accion' as const, etiqueta: 'Restaurar usuario', onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/restaurar`) }]
+          ? [{
+              tipo: 'accion' as const,
+              etiqueta: 'Restaurar usuario',
+              icono: RotateCcw,
+              onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/restaurar`, 'POST', undefined, true),
+            }]
           : []),
       ]
     : [
-        ...(puedeAuditoria
-          ? [{ tipo: 'enlace' as const, etiqueta: 'Ver actividad', href: `/admin/${tono}/auditoria?usuario=${encodeURIComponent(usuario.email)}` }]
-          : []),
+        ...verActividad,
         { tipo: 'copiar', etiqueta: 'Copiar correo', valor: usuario.email, aviso: 'Correo copiado.' },
-        ...(puedeEditar ? [{ tipo: 'accion' as const, etiqueta: 'Editar', onClick: () => setEditando(true) }] : []),
+        ...(puedeEditar ? [{ tipo: 'accion' as const, etiqueta: 'Editar', icono: Pencil, onClick: () => setEditando(true) }] : []),
         ...(puedeEditar && !usuario.suspendido
-          ? [{ tipo: 'accion' as const, etiqueta: 'Enviar enlace de acceso', onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/invitar`) }]
+          ? [{ tipo: 'accion' as const, etiqueta: 'Enviar enlace de acceso', icono: Mail, onClick: () => { setError(null); setInvitando(true); } }]
           : []),
         ...(puedeEditar
-          ? [{ tipo: 'accion' as const, etiqueta: 'Cerrar sus sesiones', onClick: () => { setError(null); setCerrandoSesiones(true); } }]
+          ? [{ tipo: 'accion' as const, etiqueta: 'Cerrar sus sesiones', icono: LogOut, onClick: () => { setError(null); setCerrandoSesiones(true); } }]
           : []),
         ...(puedeEditar && usuario.suspendido
-          ? [{ tipo: 'accion' as const, etiqueta: 'Levantar suspensión', onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/desbloquear`) }]
+          ? [{
+              tipo: 'accion' as const,
+              etiqueta: 'Levantar suspensión',
+              icono: Unlock,
+              onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/desbloquear`, 'POST', undefined, true),
+            }]
           : []),
         ...(puedeEditar && !usuario.suspendido
-          ? [{ tipo: 'accion' as const, etiqueta: 'Suspender cuenta', peligro: true, onClick: () => { setError(null); setSuspendiendo(true); } }]
+          ? [{ tipo: 'accion' as const, etiqueta: 'Suspender cuenta', icono: Ban, peligro: true, onClick: () => { setError(null); setSuspendiendo(true); } }]
           : []),
-        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Dar de baja lógica', peligro: true, onClick: () => { setError(null); setDesactivando(true); } }] : []),
-        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar definitivamente', peligro: true, onClick: () => { setError(null); setEliminando(true); } }] : []),
+        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Dar de baja (reversible)', icono: UserX, peligro: true, onClick: () => { setError(null); setDesactivando(true); } }] : []),
+        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar definitivamente', icono: Trash2, peligro: true, onClick: () => { setError(null); setEliminando(true); } }] : []),
       ];
 
   return (
     <div className="flex justify-end">
       <MenuFila etiqueta={`Acciones para ${usuario.nombre}`} elementos={elementos} />
 
-      <Dialogo abierto={editando} titulo="Editar usuario" onCerrar={() => setEditando(false)} bloqueado={ocupado}>
+      <Dialogo abierto={editando} lado="derecha" titulo="Editar usuario" onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioUsuario
           usuario={usuario}
           roles={roles}
@@ -160,12 +177,27 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
           {error ? <Alerta tipo="error">{error}</Alerta> : null}
           <Campo tono={tono} etiqueta="Días de suspensión" type="number" min="1" max="3650" value={diasSuspension} onChange={(e) => setDiasSuspension(e.target.value)} required />
           <Campo tono={tono} etiqueta="Motivo (opcional)" maxLength={255} value={motivoSuspension} onChange={(e) => setMotivoSuspension(e.target.value)} />
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton tono={tono} variante="secundario" type="button" onClick={() => setSuspendiendo(false)} disabled={ocupado}>Cancelar</Boton>
-            <Boton tono={tono} type="submit" cargando={ocupado}>Suspender cuenta</Boton>
+            <Boton tono={tono} variante="peligro" type="submit" cargando={ocupado}>Suspender cuenta</Boton>
           </div>
         </form>
       </Dialogo>
+      <DialogoConfirmacion
+        abierto={invitando}
+        titulo="Enviar enlace de acceso"
+        texto={<>Se enviará un correo a <strong>{usuario.email}</strong> con un enlace para que <strong>{usuario.nombre}</strong> establezca su contraseña.</>}
+        confirmar="Enviar enlace"
+        tono={tono}
+        cargando={ocupado}
+        error={error}
+        onConfirmar={() => {
+          void ejecutarAccion(`compartido/usuarios/${usuario.id}/invitar`).then((ok) => {
+            if (ok) setInvitando(false);
+          });
+        }}
+        onCerrar={() => { setInvitando(false); setError(null); }}
+      />
       <DialogoConfirmacion
         abierto={cerrandoSesiones}
         titulo="Cerrar sesiones de usuario"

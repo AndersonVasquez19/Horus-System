@@ -264,7 +264,7 @@ export function BotonReintento({ expedienteId, envioId, correoActivo, tono }: { 
             </label>
           ) : null}
           {error ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-estado-error">{error}</p> : null}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton tono={tono} variante="secundario" onClick={() => setAbierto(false)} disabled={enviando}>Cancelar</Boton>
             <Boton tono={tono} onClick={reintentar} cargando={enviando}>Reintentar envío</Boton>
           </div>

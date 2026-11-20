@@ -6,7 +6,7 @@ import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { Campo, CampoClave } from '@/components/shared/ui/campo';
 import { Insignia } from '@/components/shared/ui/insignia';
 import type { PerfilPropio } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
@@ -75,13 +75,12 @@ export function FormularioPerfil({ perfil, tono }: { perfil: PerfilPropio; tono:
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo tono={tono} etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={err('name')} required maxLength={255} autoComplete="name" />
         <Campo tono={tono} etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={err('email')} required maxLength={255} autoComplete="email" />
-        <Campo tono={tono} etiqueta="Nueva contraseña (opcional)" type="password" value={clave} onChange={(e) => setClave(e.target.value)} error={err('password')} autoComplete="new-password" />
-        <Campo tono={tono} etiqueta="Confirmar nueva contraseña" type="password" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} autoComplete="new-password" />
+        <CampoClave tono={tono} etiqueta="Nueva contraseña (opcional)" politica value={clave} onChange={(e) => setClave(e.target.value)} error={err('password')} autoComplete="new-password" />
+        <CampoClave tono={tono} etiqueta="Confirmar nueva contraseña" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} autoComplete="new-password" />
         {cambiaCredenciales ? (
-          <Campo
+          <CampoClave
             tono={tono}
             etiqueta="Contraseña actual"
-            type="password"
             value={actual}
             onChange={(e) => setActual(e.target.value)}
             error={err('current_password')}

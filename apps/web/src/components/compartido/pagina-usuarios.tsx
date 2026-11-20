@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
@@ -77,10 +78,7 @@ async function Listado({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
           <CampoBusqueda tono={tono} nombre="busqueda" valor={busqueda} marcador="Nombre o correo" />
           <SelectorFiltro tono={tono} nombre="rol" etiqueta="Rol" valor={rol} opciones={opcionesRol} />
           <SelectorFiltro tono={tono} nombre="estado" etiqueta="Estado" valor={estado} opciones={ESTADOS_USUARIO} />
-          <label className="inline-flex items-center gap-2 pb-2 text-xs font-medium text-panel-text">
-            <input type="checkbox" name="eliminados" value="1" defaultChecked={eliminados} className="h-4 w-4 rounded border-panel-border" />
-            Solo dadas de baja
-          </label>
+          <Casilla compacta name="eliminados" value="1" defaultChecked={eliminados} etiqueta="Solo dadas de baja" className="pb-0.5" />
           <SelectorPorPagina tono={tono} valor={porPagina} />
         </FiltrosListado>
         <BotonNuevoUsuario roles={nombresRol} tono={tono} />
@@ -101,7 +99,7 @@ async function Listado({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
           <EstadoVacio titulo="Todavía no hay usuarios" texto="Registra la primera cuenta con «Nuevo usuario»." />
         )
       ) : (
-        <Tabla
+        <Tabla accionesFijas
           titulo={`Usuarios (${meta.total})`}
           columnas={[
             { texto: 'Nombre', orden: 'nombre' },

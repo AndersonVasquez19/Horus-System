@@ -148,7 +148,10 @@ export function FormularioLogin() {
             type="text"
             name="codigo_2fa"
             autoComplete="one-time-code"
-            inputMode="numeric"
+            inputMode="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             maxLength={32}
             placeholder="000000 o código de recuperación"
             value={codigo2fa}
@@ -163,7 +166,7 @@ export function FormularioLogin() {
               {error2fa}
             </p>
           ) : (
-            <p className="mt-1.5 text-xs text-panel-muted">Ingresa el código de 6 dígitos de tu aplicación autenticadora.</p>
+            <p className="mt-1.5 text-xs text-panel-muted">Ingresa el código de 6 dígitos de tu aplicación autenticadora o un código de recuperación.</p>
           )}
         </div>
       ) : null}

@@ -67,14 +67,14 @@ export function BotonNuevaAprobacion({ tono }: { tono: TonoUi }) {
   return (
     <>
       <Boton tono={tono} icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => { setError(null); setAbierto(true); }}>Nueva solicitud</Boton>
-      <Dialogo abierto={abierto} titulo="Nueva solicitud" descripcion="Se enviará a la autoridad competente según el tipo." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Nueva solicitud" descripcion="Se enviará a la autoridad competente según el tipo." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <form onSubmit={(e) => void enviar(e)} noValidate className="space-y-4">
           {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
           <Campo tono={tono} etiqueta="Título" maxLength={255} value={campos.titulo} onChange={poner('titulo')} error={errorDeCampo(error, 'titulo')} required autoFocus />
           <CampoSeleccion tono={tono} etiqueta="Tipo" value={campos.tipo} onChange={poner('tipo')} error={errorDeCampo(error, 'tipo')} opciones={ETIQUETAS_TIPO_APROBACION} ayuda="Compras las resuelve Gerencia; las operativas, Coordinación." />
           <CampoArea tono={tono} etiqueta="Descripción (opcional)" maxLength={5000} rows={4} value={campos.descripcion} onChange={poner('descripcion')} error={errorDeCampo(error, 'descripcion')} />
           <Campo tono={tono} etiqueta="Referencia (opcional)" maxLength={255} value={campos.referencia} onChange={poner('referencia')} error={errorDeCampo(error, 'referencia')} />
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton tono={tono} variante="secundario" onClick={() => setAbierto(false)} disabled={ocupado}>Cancelar</Boton>
             <Boton tono={tono} type="submit" cargando={ocupado}>Registrar solicitud</Boton>
           </div>
@@ -140,15 +140,9 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
   }
 
   const pendiente = fila.estado === 'pendiente';
+  // Editar, Aprobar, Rechazar, Reabrir y Eliminar ya son botones visibles en la fila: el menú ⋯ solo lleva lo que no está a la vista.
   const menuElementos: ElementoMenuFila[] = [
-    ...(fila.puede_editar ? [{ tipo: 'accion' as const, etiqueta: 'Editar solicitud', onClick: abrirEdicion }] : []),
     ...(fila.referencia ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar referencia', valor: fila.referencia, aviso: 'Referencia copiada.' }] : []),
-    ...(pendiente && fila.puede_resolver ? [
-      { tipo: 'accion' as const, etiqueta: 'Aprobar', onClick: () => setPanel('aprobar') },
-      { tipo: 'accion' as const, etiqueta: 'Rechazar', peligro: true, onClick: () => setPanel('rechazar') },
-    ] : []),
-    ...(!pendiente && fila.puede_reabrir ? [{ tipo: 'accion' as const, etiqueta: 'Reabrir solicitud', onClick: () => setPanel('reabrir') }] : []),
-    ...(fila.puede_eliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar', peligro: true, onClick: () => setPanel('eliminar') }] : []),
   ];
 
   return (
@@ -194,7 +188,7 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
         </div>
       </div>
 
-      <Dialogo abierto={panel === 'editar'} titulo="Editar solicitud" descripcion="Solo se actualizan las solicitudes pendientes. El tipo no puede cambiarse." onCerrar={cerrar} bloqueado={ocupado}>
+      <Dialogo abierto={panel === 'editar'} lado="derecha" titulo="Editar solicitud" descripcion="Solo se actualizan las solicitudes pendientes. El tipo no puede cambiarse." onCerrar={cerrar} bloqueado={ocupado}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -215,7 +209,7 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
           <CampoArea tono={tono} etiqueta="Descripción (opcional)" maxLength={5000} rows={4} value={edicion.descripcion} onChange={(e) => setEdicion((a) => ({ ...a, descripcion: e.target.value }))} error={errorDeCampo(error, 'descripcion')} />
           <Campo tono={tono} etiqueta="Referencia (opcional)" maxLength={255} value={edicion.referencia} onChange={(e) => setEdicion((a) => ({ ...a, referencia: e.target.value }))} error={errorDeCampo(error, 'referencia')} />
           <CampoArea tono={tono} etiqueta="Comentario (opcional)" maxLength={2000} rows={2} value={edicion.comentario} onChange={(e) => setEdicion((a) => ({ ...a, comentario: e.target.value }))} error={errorDeCampo(error, 'comentario')} />
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton tono={tono} variante="secundario" onClick={cerrar} disabled={ocupado}>Cancelar</Boton>
             <Boton tono={tono} type="submit" cargando={ocupado}>Guardar cambios</Boton>
           </div>
@@ -244,7 +238,7 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
             error={errorDeCampo(error, 'comentario')}
             autoFocus
           />
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton tono={tono} variante="secundario" onClick={() => { setComentarioAprobar(''); cerrar(); }} disabled={ocupado}>Cancelar</Boton>
             <Boton tono={tono} type="submit" cargando={ocupado}>Aprobar</Boton>
           </div>
@@ -284,9 +278,9 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
             ayuda={panel === 'rechazar' ? 'El solicitante lo verá.' : 'La decisión anterior se conserva en el historial.'}
             required
           />
-          <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+          <div className="pie-acciones">
             <Boton tono={tono} variante="secundario" onClick={cerrar} disabled={ocupado}>Cancelar</Boton>
-            <Boton tono={tono} type="submit" cargando={ocupado}>{panel === 'rechazar' ? 'Rechazar' : 'Reabrir'}</Boton>
+            <Boton tono={tono} variante={panel === 'rechazar' ? 'peligro' : 'primario'} type="submit" cargando={ocupado}>{panel === 'rechazar' ? 'Rechazar' : 'Reabrir'}</Boton>
           </div>
         </form>
       </Dialogo>
