@@ -8,14 +8,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicarCursoRequest;
 use App\Models\Curso;
 use App\Models\CursoPublicacion;
+use App\Services\ImagenesCursos;
 use App\Services\PublicacionCursos;
 use App\Support\Entrada;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Ficha pública de un curso (publicar y retirar) para el panel de apps/web. Mismas reglas, Form Request y servicio
@@ -25,7 +28,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class CursoPublicacionController extends Controller implements HasMiddleware
 {
-    public function __construct(private readonly PublicacionCursos $publicacion) {}
+    public function __construct(
+        private readonly PublicacionCursos $publicacion,
+        private readonly ImagenesCursos $imagenes,
+    ) {}
 
     /** @return list<Middleware> */
     public static function middleware(): array
@@ -80,14 +86,76 @@ final class CursoPublicacionController extends Controller implements HasMiddlewa
         return response()->json(['message' => 'La ficha dejó de estar publicada.'] + Entrada::lista($this->show($curso)->getData(true)));
     }
 
+    public function subirImagen(Request $request, int $curso): JsonResponse
+    {
+        $modelo = Curso::withTrashed()->findOrFail($curso);
+        $actual = $request->user();
+        abort_unless($actual !== null, 403);
+
+        $request->validate([
+            'imagen' => ImagenesCursos::reglas(true),
+        ]);
+
+        $archivo = $request->file('imagen');
+        if (! $archivo instanceof UploadedFile) {
+            throw ValidationException::withMessages(['imagen' => 'Adjunta una imagen válida.']);
+        }
+
+        $ruta = $this->imagenes->guardar($archivo);
+
+        try {
+            $anterior = $this->publicacion->actualizarImagen(
+                $modelo,
+                $ruta,
+                $actual,
+                fn (Curso $bloqueado, ?CursoPublicacion $ficha) => $this->comprobarRevision($request, $bloqueado, $ficha),
+            );
+        } catch (Throwable $e) {
+            $this->imagenes->liberarSiHuerfana($ruta);
+            throw $e;
+        }
+
+        if ($anterior !== null && $anterior !== $ruta) {
+            $this->imagenes->liberarSiHuerfana($anterior);
+        }
+
+        return response()->json([
+            'message' => 'La imagen referencial del curso fue actualizada.',
+        ] + Entrada::lista($this->show($curso)->getData(true)));
+    }
+
+    public function eliminarImagen(Request $request, int $curso): JsonResponse
+    {
+        $modelo = Curso::withTrashed()->findOrFail($curso);
+        $actual = $request->user();
+        abort_unless($actual !== null, 403);
+
+        $anterior = $this->publicacion->eliminarImagen(
+            $modelo,
+            $actual,
+            fn (Curso $bloqueado, ?CursoPublicacion $ficha) => $this->comprobarRevision($request, $bloqueado, $ficha),
+        );
+
+        $this->imagenes->liberarSiHuerfana($anterior);
+
+        return response()->json([
+            'message' => 'La imagen referencial fue retirada de la ficha.',
+        ] + Entrada::lista($this->show($curso)->getData(true)));
+    }
+
     /** @return array<string, mixed> */
     private static function ficha(CursoPublicacion $ficha): array
     {
         return [
             'titulo' => $ficha->titulo,
             'resumen' => $ficha->resumen,
+            'imagen_url' => ImagenesCursos::url($ficha->imagen_ruta),
             'modalidad' => $ficha->modalidad,
             'horario' => $ficha->horario,
+            'fecha_inicio' => $ficha->fecha_inicio === null ? null : Carbon::parse($ficha->fecha_inicio)->toDateString(),
+            'duracion' => $ficha->duracion,
+            'certificacion' => $ficha->certificacion,
+            'temario' => $ficha->temario,
             'inscripcion' => $ficha->inscripcion,
             'vigente_desde' => Carbon::parse($ficha->vigente_desde)->toDateString(),
             'vigente_hasta' => Carbon::parse($ficha->vigente_hasta)->toDateString(),
