@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -13,6 +14,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 
 MIN_SERVICE_TOKEN_LENGTH = 32
+
+# Nombre de host DNS (etiquetas alfanuméricas con guiones, separadas por puntos). Sin «*», puertos ni esquemas.
+_HOSTNAME = re.compile(
+    r"(?i)(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*"
+)
 
 
 def _is_loopback(host: str) -> bool:
@@ -38,6 +44,10 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = Field(default=8001, ge=1, le=65535)
     allow_non_loopback: bool = False
+    # Nombres de host adicionales aceptados por TrustedHostMiddleware, separados por comas (p. ej. el dominio
+    # privado de Railway). Vacío = solo 127.0.0.1/localhost. Sin comodines: conserva la protección frente a DNS
+    # rebinding. Solo surte efecto con HORUS_AI_ALLOW_NON_LOOPBACK=true.
+    extra_allowed_hosts: str = ""
 
     service_token: SecretStr | None = None
 
@@ -107,6 +117,24 @@ class Settings(BaseSettings):
         if not self.allow_non_loopback and not _is_loopback(self.host):
             raise ValueError("HORUS_AI_HOST debe ser una dirección loopback (127.0.0.1) en esta fase.")
         return self
+
+    @field_validator("extra_allowed_hosts", mode="after")
+    @classmethod
+    def _validate_extra_hosts(cls, value: str) -> str:
+        for host in (h.strip() for h in value.split(",")):
+            if host and not _HOSTNAME.fullmatch(host):
+                raise ValueError(
+                    "HORUS_AI_EXTRA_ALLOWED_HOSTS solo admite nombres de host, sin comodines ni puertos."
+                )
+        return value
+
+    @property
+    def allowed_hosts(self) -> list[str]:
+        base = ["127.0.0.1", "localhost", "testserver"]
+        if not self.allow_non_loopback:
+            return base
+        extras = [h.strip().lower() for h in self.extra_allowed_hosts.split(",") if h.strip()]
+        return base + [h for h in extras if h not in base]
 
     @property
     def service_token_configured(self) -> bool:
