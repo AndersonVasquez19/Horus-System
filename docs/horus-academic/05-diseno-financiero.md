@@ -144,3 +144,44 @@ Esto es un cambio de contrato de matrículas: requiere actualizar `tests/Feature
 | Sobrepago/pago duplicado por reintento del navegador | Idempotencia obligatoria, sin sobrepagos, bloqueo de obligación. |
 | Fraude interno (cobrar y borrar) | Libro inmutable, separación registrar/confirmar/reversar, auditoría, `pagos.reversar` solo admin. |
 | Alcance fiscal (SUNAT) no definido | Fuera de alcance; el `numero_comprobante` es interno y no sustituye comprobante electrónico. Decisión del propietario. |
+
+## 11. Pagos como registro de comprobantes (20/11/2026)
+
+Decisión del propietario: la sección **Pagos** deja de presentarse como lista de «obligaciones» y pasa a ser el lugar donde se
+suben los comprobantes de quienes pagaron todo o una parte, con lo que aún deben. El libro de §3–§9 no cambia; cambia el flujo.
+
+- **La obligación es invisible.** `POST academico/matriculas/{matricula}/pagos` (`GestionPagos::registrarPagoDeMatricula`) registra
+  un pago sobre la matrícula y, si no tiene obligación vigente, crea una de plan `completo` por el precio del curso en la misma
+  transacción. Basta `pagos.registrar` (no `pagos.planificar`). Si el curso no tiene precio, responde 422; si la matrícula está
+  anulada o eliminada, 409. Bloqueo: matrícula → obligación → transacción. Las reglas de importe, saldo, fecha, método e
+  idempotencia son las de `registrarPago`. Un fallo posterior revierte también la obligación creada. La creación manual con
+  cuotas (`POST …/obligacion`) se conserva para planes fraccionados.
+- **Vista principal por comprobante.** `GET academico/pagos/comprobantes` (`pagos.ver`) lista pagos (no reversos) con estado,
+  si tienen comprobante, lo pagado y el saldo de su matrícula. Filtros: `busqueda`, `estado` (`por_confirmar`, `confirmada`,
+  `rechazada`), `comprobante=sin`, `desde`, `hasta`. La vista «Quién debe» (`/admin/academico/pagos/deudores`) reutiliza
+  `pagos/obligaciones` con `estado=con_saldo` por defecto.
+- **Permisos.** Secretaría recibe `pagos.ver` y `pagos.registrar` (constante en `RolesAndPermissionsSeeder` y migración
+  `2026_11_20_000094`, que no resincroniza). Confirmar, rechazar, reversar, planificar y exportar siguen solo en `admin`. «Matricular
+  con pago» sigue siendo solo de `admin`.
+- **Métodos de pago.** La migración `2026_11_20_000095` añade Plin, transferencia, depósito y efectivo. Son etiquetas de cómo pagó
+  la persona, no pasarelas: no hay cobro en línea ni integración externa. Todo pago, también en efectivo, exige comprobante
+  adjunto para poder confirmarse; esa regla no se relaja.
+- **Captura repetida y verificación al confirmar.** `GestionPagos::imagenesRepetidas()` compara la huella `sha256` de cada captura con la
+  de otros pagos vigentes (pendientes o confirmados y no reversados; los rechazados y reversados no cuentan). Al adjuntar, la
+  respuesta lleva `advertencias.imagen_repetida` y queda `comprobante_imagen_repetida` en auditoría (solo ids). El detalle de
+  cada pago y la lista de comprobantes traen `imagen_repetida` y la pantalla muestra «Captura repetida». Solo avisa y no
+  bloquea; si se marcó «Confirmar ahora», un aviso de captura repetida impide la confirmación automática. «Matricular con
+  pago» sí la rechaza (422), porque confirma en el acto y nadie revisaría después. Límite: una captura recomprimida o recortada
+  tiene otra huella y no se detecta. Confirmar abre un diálogo que pide comprobar la operación en la app de Yape o del banco: la
+  captura puede estar editada y el sistema no puede verificarlo.
+- **Comprobante en PDF (solo `POST pagos/transacciones/{t}/comprobante`).** Además de JPG, PNG y WebP se admite un PDF de hasta 3 MB.
+  Un PDF no se puede volver a codificar como una imagen (las capturas sí, y así pierden EXIF), así que se guarda tal cual o se
+  rechaza. `ComprobantesPago::validarPdf()` revisa de **mejor esfuerzo, no como garantía**: exige la firma `%PDF-`, rechaza
+  `/JavaScript`, `/JS`, `/Launch`, `/EmbeddedFile(s)`, `/FileAttachment`, `/RichMedia`, `/XFA`, `/SubmitForm`, `/ImportData`, `/GoToR`,
+  `/GoToE` y `/Encrypt` (también escritos con `#xx`), y descomprime los flujos `/ObjStm`, donde un PDF puede esconderlos; si no se pueden
+  descomprimir, se rechaza. No escanea el cuerpo de los demás flujos (imágenes, texto) para no confundir bytes binarios con
+  nombres. **Un PDF solo se descarga**: Laravel lo sirve con `Content-Disposition: attachment` y el servidor web de Next.js lo
+  fuerza aunque la operación admita vista en línea; la pantalla solo ofrece «Descargar comprobante (PDF)» y nunca lo incrusta.
+  «Matricular con pago» sigue aceptando solo capturas. Las respuestas traen `tipo_comprobante` (`imagen`, `pdf` o `null`). La
+  detección de captura repetida también cubre dos PDF idénticos. Un PDF aceptado puede seguir siendo hostil para un lector de PDF
+  vulnerable: se descarga al equipo de quien lo abre.
