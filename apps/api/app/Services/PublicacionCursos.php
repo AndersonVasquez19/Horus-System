@@ -79,6 +79,56 @@ final class PublicacionCursos
         });
     }
 
+    /**
+     * Asigna o reemplaza la imagen referencial de una ficha existente. Devuelve la ruta anterior para liberarla fuera de transacción.
+     *
+     * @param  Closure(Curso, ?CursoPublicacion): void  $comprobar
+     */
+    public function actualizarImagen(Curso $curso, string $ruta, User $actual, Closure $comprobar): ?string
+    {
+        return DB::transaction(function () use ($curso, $ruta, $actual, $comprobar): ?string {
+            $curso = Curso::withTrashed()->lockForUpdate()->findOrFail($curso->id);
+            $autor = $this->autorizar($actual);
+            $publicacion = CursoPublicacion::where('curso_id', $curso->id)->lockForUpdate()->first();
+            $comprobar($curso, $publicacion);
+
+            if ($publicacion === null) {
+                throw ValidationException::withMessages(['imagen' => 'Primero autoriza y guarda la ficha pública antes de subir su imagen.']);
+            }
+
+            $anterior = $publicacion->imagen_ruta;
+            $publicacion->update(['imagen_ruta' => $ruta]);
+            AuditLog::record('curso_publicacion_imagen_actualizada', Curso::class, $curso->id, ['tiene_imagen' => true], $autor->id);
+
+            return $anterior;
+        });
+    }
+
+    /**
+     * Quita la imagen referencial de una ficha existente. Devuelve la ruta anterior para liberarla fuera de transacción.
+     *
+     * @param  Closure(Curso, ?CursoPublicacion): void  $comprobar
+     */
+    public function eliminarImagen(Curso $curso, User $actual, Closure $comprobar): ?string
+    {
+        return DB::transaction(function () use ($curso, $actual, $comprobar): ?string {
+            $curso = Curso::withTrashed()->lockForUpdate()->findOrFail($curso->id);
+            $autor = $this->autorizar($actual);
+            $publicacion = CursoPublicacion::where('curso_id', $curso->id)->lockForUpdate()->first();
+            $comprobar($curso, $publicacion);
+
+            if ($publicacion === null || $publicacion->imagen_ruta === null) {
+                return null;
+            }
+
+            $anterior = $publicacion->imagen_ruta;
+            $publicacion->update(['imagen_ruta' => null]);
+            AuditLog::record('curso_publicacion_imagen_eliminada', Curso::class, $curso->id, ['tiene_imagen' => false], $autor->id);
+
+            return $anterior;
+        });
+    }
+
     /** Se relee el usuario: un cambio de rol o permiso entre la petición y el bloqueo debe verse. */
     private function autorizar(User $actual): User
     {
