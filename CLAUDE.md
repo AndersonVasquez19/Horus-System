@@ -43,7 +43,7 @@ Entorno Windows: PowerShell, ejecutando desde `apps/api` (`cd apps/api`). Existe
 | Interfaz web (Next.js) | Desde la raíz: `npm run web:dev` / `npm run web:build`; Laravel no sirve interfaz |
 | Prueba PHP acotada | `php artisan test --filter=NombreTest` |
 | Suite PHP completa | `php artisan test --compact` |
-| Análisis estático | `vendor/bin/phpstan analyse` (nivel 6 sobre `app/`, `routes/`, `database/`, `config/` y los archivos de arranque indicados en `phpstan.neon.dist`) |
+| Análisis estático | `vendor/bin/phpstan analyse` (nivel 9, sin baseline, sobre `app/`, `routes/`, `database/` y los archivos de arranque indicados en `phpstan.neon.dist`; `database/migrations` se excluye porque son migraciones ya aplicadas. Para entradas sin tipo usa `App\Support\Entrada`, no casts sueltos) |
 | Estilo | `vendor/bin/pint --test <archivos propios>` |
 | Diff limpio | `git diff --check` |
 
