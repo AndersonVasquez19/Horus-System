@@ -31,7 +31,7 @@ final class HojaReclamacion
             $linea('Dirección del establecimiento', self::proveedor('direccion') ?? $no),
             $linea('Código de identificación del libro', self::proveedor('codigo_libro') ?? $no),
             $linea('Número', $r->numero),
-            $linea('Fecha de registro', $r->recibida_at->setTimezone((string) config('reclamaciones.zona_horaria', 'America/Lima'))->format('d/m/Y H:i')),
+            $linea('Fecha de registro', ($r->recibida_at?->setTimezone(Entrada::texto(config('reclamaciones.zona_horaria', 'America/Lima')))->format('d/m/Y H:i') ?? '')),
             '',
             '1. IDENTIFICACIÓN DEL CONSUMIDOR RECLAMANTE',
             $linea('Nombres y apellidos', $r->nombres.' '.$r->apellidos),

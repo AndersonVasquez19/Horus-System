@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Testing;
 
+use App\Support\Entrada;
 use Closure;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Connectors\ConnectorInterface;
@@ -76,7 +77,7 @@ final class PostgresTestPreflight
             || $result['protocol'] !== self::PROTOCOL || ! is_array($result['identity'])) {
             (new PostgresTestGuard)->reject('preflight result unreadable; PHPUnit refused.');
         }
-        self::assertIdentity($result['identity']);
+        self::assertIdentity(Entrada::mapa($result['identity']));
     }
 
     /** @param list<string> $arguments */
@@ -117,7 +118,7 @@ final class PostgresTestPreflight
         }
         $connection = $app->make('db')->connection('pgsql');
         $connection->getPdo(); // Marker, least privilege and physical identity: unchanged guarded path.
-        $identity = (array) $connection->selectOne(<<<'SQL'
+        $identity = Entrada::mapa($connection->selectOne(<<<'SQL'
             SELECT current_setting('server_version') AS server_version,
                 (SELECT system_identifier::text FROM pg_control_system()) AS system_identifier,
                 current_setting('cluster_name') AS cluster_name,
@@ -125,7 +126,7 @@ final class PostgresTestPreflight
                 current_database() AS database, current_user AS username,
                 current_setting('transaction_read_only') AS transaction_read_only,
                 current_setting('default_transaction_read_only') AS default_transaction_read_only
-            SQL);
+            SQL));
         self::assertIdentity($identity);
 
         return $identity;

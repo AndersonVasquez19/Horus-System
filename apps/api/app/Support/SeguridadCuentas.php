@@ -38,7 +38,7 @@ final class SeguridadCuentas
     /** Reinicia el contador de la cuenta desde la IP actual (los de otras IP caducan solos con su ventana). */
     public static function limpiarIntentos(User $user): void
     {
-        Cache::forget(self::claveIntentos((int) $user->getKey(), self::ip()));
+        Cache::forget(self::claveIntentos($user->id, self::ip()));
     }
 
     public static function registrarFalloParaCuentaExistente(string $email): void
@@ -48,9 +48,9 @@ final class SeguridadCuentas
             return;
         }
 
-        $ventanaMinutos = max(5, (int) config('seguridad.bloqueo_minutos', 15));
-        $umbral = max(3, (int) config('seguridad.bloqueo_intentos', 5));
-        $clave = self::claveIntentos((int) $user->getKey(), self::ip());
+        $ventanaMinutos = max(5, Entrada::entero(config('seguridad.bloqueo_minutos', 15)));
+        $umbral = max(3, Entrada::entero(config('seguridad.bloqueo_intentos', 5)));
+        $clave = self::claveIntentos($user->id, self::ip());
 
         // Ventana fija: el TTL se fija una sola vez al primer fallo y no se renueva.
         Cache::add($clave, 0, now()->addMinutes($ventanaMinutos));
@@ -66,7 +66,7 @@ final class SeguridadCuentas
             && ! app(AdminProtection::class)->isAdmin($user)) {
             $hasta = now()->addMinutes($ventanaMinutos);
             DB::transaction(function () use ($user, $hasta): void {
-                $fresco = User::query()->whereKey($user->getKey())->lockForUpdate()->first();
+                $fresco = User::query()->whereKey($user->id)->lockForUpdate()->first();
                 if (! $fresco instanceof User) {
                     return;
                 }
@@ -91,12 +91,12 @@ final class SeguridadCuentas
     {
         $destinatarios = [$afectado->id];
         if (class_exists(RolesAndPermissionsSeeder::class)) {
-            $admins = User::query()->whereNull('deleted_at')->whereHas('roles', fn ($q) => $q->where('name', 'admin')->where('guard_name', 'web'))->pluck('id')->all();
+            $admins = array_map(static fn (mixed $id): int => Entrada::entero($id), User::query()->whereNull('deleted_at')->whereHas('roles', fn ($q) => $q->where('name', 'admin')->where('guard_name', 'web'))->pluck('id')->all());
             $destinatarios = array_values(array_unique([...$destinatarios, ...$admins]));
         }
 
         foreach ($destinatarios as $uid) {
-            NotificacionInterna::crearPersonal((int) $uid, [
+            NotificacionInterna::crearPersonal(Entrada::entero($uid), [
                 'titulo' => 'Alerta de seguridad: intentos fallidos de acceso',
                 'mensaje' => "Se detectaron {$intentos} intentos fallidos recientes sobre la cuenta {$afectado->name}.",
                 'tipo' => 'danger',

@@ -81,12 +81,29 @@ final class SpreadsheetCellCache extends SimpleCache3
         $this->pending = '';
     }
 
+    /**
+     * @return array{offset: int, length: int, expires: int}
+     */
+    private function leerEntrada(string $empaquetado): array
+    {
+        $entrada = unpack('Joffset/Jlength/Jexpires', $empaquetado);
+        if ($entrada === false) {
+            throw new RuntimeException('Entrada corrupta en la caché de celdas.');
+        }
+
+        return [
+            'offset' => Entrada::entero($entrada['offset'] ?? 0),
+            'length' => Entrada::entero($entrada['length'] ?? 0),
+            'expires' => Entrada::entero($entrada['expires'] ?? 0),
+        ];
+    }
+
     public function get(string $key, mixed $default = null): mixed
     {
         if (! $this->has($key)) {
             return $default;
         }
-        $entry = unpack('Joffset/Jlength/Jexpires', $this->offsets[$key]);
+        $entry = $this->leerEntrada($this->offsets[$key]);
         if ($entry['offset'] >= $this->writtenBytes) {
             $data = substr($this->pending, $entry['offset'] - $this->writtenBytes, $entry['length']);
         } else {
@@ -118,7 +135,7 @@ final class SpreadsheetCellCache extends SimpleCache3
         if (! isset($this->offsets[$key])) {
             return false;
         }
-        $entry = unpack('Joffset/Jlength/Jexpires', $this->offsets[$key]);
+        $entry = $this->leerEntrada($this->offsets[$key]);
         if ($entry['expires'] !== 0 && $entry['expires'] <= time()) {
             $this->delete($key);
 

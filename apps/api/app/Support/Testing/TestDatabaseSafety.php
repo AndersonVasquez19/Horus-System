@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Testing;
 
+use App\Support\Entrada;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Client\Factory;
@@ -25,10 +26,10 @@ final class TestDatabaseSafety
     public static function install(Application $app, ?PostgresTestPreflight $preflight = null): void
     {
         $config = $app->make('config');
-        $profile = (string) Env::get('HORUS_PG_TEST_PROFILE', '');
+        $profile = Entrada::texto(Env::get('HORUS_PG_TEST_PROFILE', ''));
         $testing = $config->get('app.env') === 'testing' || Env::get('APP_ENV') === 'testing'
             || defined('PHPUNIT_COMPOSER_INSTALL');
-        $testTarget = isset(PostgresTestGuard::TARGETS[$config->get('database.connections.pgsql.database', '')]);
+        $testTarget = isset(PostgresTestGuard::TARGETS[Entrada::texto($config->get('database.connections.pgsql.database', ''))]);
 
         if (! $testing && $profile === '' && ! $testTarget) {
             return;
@@ -92,7 +93,7 @@ final class TestDatabaseSafety
             $environment[$key] = is_scalar($value) ? (string) $value : $value;
             // Reject conflicting PHP/environment sources instead of relying on their precedence.
             foreach ([$_ENV[$key] ?? null, $_SERVER[$key] ?? null, getenv($key) === false ? null : getenv($key)] as $source) {
-                if ($source !== null && (string) $source !== (string) $environment[$key]) {
+                if ($source !== null && Entrada::texto($source) !== Entrada::texto($environment[$key])) {
                     (new PostgresTestGuard)->reject('conflicting environment sources.');
                 }
             }

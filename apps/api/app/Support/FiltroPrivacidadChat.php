@@ -375,7 +375,8 @@ final class FiltroPrivacidadChat
         }
         if (preg_match_all('/\b'.$persona.'\b[^.;!?]{0,90}\b(?:es|son|firma(?: electronicamente)? como)\s+('.$valor.')/u', $n, $declaraciones)) {
             foreach ($declaraciones[1] as $declaracion) {
-                $primera = preg_split('/\s+/u', $declaracion)[0];
+                $partesDeclaracion = preg_split('/\s+/u', $declaracion);
+                $primera = $partesDeclaracion === false ? '' : $partesDeclaracion[0];
                 // «El alumno es principiante» describe un rol, no entrega un nombre.
                 if (! in_array($primera, array_merge(self::PALABRAS_NO_PERSONALES, self::TERMINOS_INSTITUCIONALES, self::VOCABULARIO_COMUN, ['especialista', 'responsable']), true)) {
                     return true;

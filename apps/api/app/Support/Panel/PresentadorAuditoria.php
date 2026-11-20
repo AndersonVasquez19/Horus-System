@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Panel;
 
 use App\Models\AuditLog;
+use App\Support\Entrada;
 
 /**
  * Presenta un registro de auditoría en lenguaje común: etiqueta de la acción, de lo que se tocó y un resumen de los cambios en
@@ -280,7 +281,7 @@ final class PresentadorAuditoria
         }
 
         foreach ($cambios as $clave => $valor) {
-            if (! is_string($clave) || in_array($clave, [...self::OCULTOS, 'antes', 'despues'], true)) {
+            if (in_array($clave, [...self::OCULTOS, 'antes', 'despues'], true)) {
                 continue;
             }
             if ($clave === 'valores' && is_array($valor)) {
@@ -340,11 +341,11 @@ final class PresentadorAuditoria
             return $valor ? 'Sí' : 'No';
         }
         if (is_array($valor)) {
-            $partes = array_map(static fn (mixed $v): string => is_scalar($v) ? (string) $v : '', array_filter($valor, 'is_scalar'));
+            $partes = array_map(static fn (bool|float|int|string $v): string => (string) $v, array_filter($valor, 'is_scalar'));
 
             return implode(', ', array_filter($partes, static fn (string $p): bool => $p !== ''));
         }
-        $texto = (string) $valor;
+        $texto = Entrada::texto($valor);
         if ($campo === 'estado') {
             return self::ESTADOS[$texto] ?? self::legible($texto);
         }

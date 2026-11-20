@@ -23,9 +23,9 @@ final class SessionRevoker
             return;
         }
 
-        $query = DB::connection(config('session.connection'))
-            ->table((string) config('session.table', 'sessions'))
-            ->where('user_id', $user->getKey());
+        $query = DB::connection(Entrada::textoONulo(config('session.connection')))
+            ->table(Entrada::texto(config('session.table', 'sessions')))
+            ->where('user_id', $user->id);
 
         if ($exceptSessionId !== null) {
             $query->where('id', '!=', $exceptSessionId);

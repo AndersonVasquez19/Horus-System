@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+
 /**
  * Marca de tiempo firmada para el formulario público: «segundos.firma». Se emite al mostrar el formulario
  * y se exige que haya transcurrido un mínimo (los bots rellenan al instante) y un máximo (marcas reutilizadas).
@@ -28,8 +29,8 @@ final class AntispamReclamaciones
         }
         $transcurrido = ($ahora ?? time()) - (int) $m[1];
 
-        return $transcurrido >= (int) config('reclamaciones.antispam.segundos_minimos', 5)
-            && $transcurrido <= (int) config('reclamaciones.antispam.segundos_maximos', 7200);
+        return $transcurrido >= Entrada::entero(config('reclamaciones.antispam.segundos_minimos', 5))
+            && $transcurrido <= Entrada::entero(config('reclamaciones.antispam.segundos_maximos', 7200));
     }
 
     private static function firma(string $ts): string

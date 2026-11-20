@@ -49,7 +49,7 @@ final class RestablecimientoContrasena
      */
     public static function restablecer(array $credenciales): string
     {
-        return DB::transaction(fn () => Password::reset($credenciales, function (User $user, string $password): void {
+        return Entrada::texto(DB::transaction(fn () => Password::reset($credenciales, function (User $user, string $password): void {
             $user->forceFill([
                 'password' => Hash::make($password),
                 'jwt_version' => (int) $user->jwt_version + 1,
@@ -59,9 +59,9 @@ final class RestablecimientoContrasena
             SessionRevoker::revokeSessions($user);
 
             // Actor explícito: en el reset no hay sesión autenticada. Sin la contraseña ni el token.
-            AuditLog::record('password_reset', $user::class, $user->getKey(), [], (int) $user->getKey());
+            AuditLog::record('password_reset', $user::class, $user->id, [], $user->id);
 
             event(new PasswordReset($user));
-        }));
+        })));
     }
 }

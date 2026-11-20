@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+
 /**
  * Detecta y enmascara datos de autenticación o secretos antes de auditarlos o exportarlos.
  *
@@ -79,7 +80,7 @@ final class SensitiveData
      */
     public static function csvSafe(mixed $value): string
     {
-        $text = (string) ($value ?? '');
+        $text = Entrada::texto(($value ?? ''));
 
         // Los números (incluidos negativos) no pueden ser fórmulas y deben conservarse tal cual.
         if (is_numeric($text)) {

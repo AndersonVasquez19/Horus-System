@@ -28,7 +28,7 @@ final class SesionesActivas
 
     public static function huella(string $sessionId): string
     {
-        return substr(hash_hmac('sha256', $sessionId, (string) config('app.key')), 0, 32);
+        return substr(hash_hmac('sha256', $sessionId, Entrada::texto(config('app.key'))), 0, 32);
     }
 
     /**
@@ -40,7 +40,7 @@ final class SesionesActivas
             return [];
         }
 
-        return self::vigentes($user)
+        return array_values(self::vigentes($user)
             ->orderByDesc('last_activity')
             ->get(['id', 'ip_address', 'user_agent', 'last_activity'])
             ->map(static fn (object $fila): array => [
@@ -51,7 +51,7 @@ final class SesionesActivas
                 'actual' => hash_equals((string) $fila->id, $sesionActual),
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /** Cierra todas las sesiones del usuario salvo la actual. Devuelve cuántas cerró. */
@@ -62,7 +62,7 @@ final class SesionesActivas
         }
 
         return self::tabla()
-            ->where('user_id', $user->getKey())
+            ->where('user_id', $user->id)
             ->where('id', '!=', $sesionActual)
             ->delete();
     }
@@ -77,12 +77,12 @@ final class SesionesActivas
             return false;
         }
 
-        $ids = self::tabla()->where('user_id', $user->getKey())->pluck('id');
+        $ids = self::tabla()->where('user_id', $user->id)->pluck('id');
 
         foreach ($ids as $id) {
-            $id = (string) $id;
+            $id = Entrada::texto($id);
             if ($id !== $sesionActual && hash_equals(self::huella($id), $identificador)) {
-                return self::tabla()->where('user_id', $user->getKey())->where('id', $id)->delete() === 1;
+                return self::tabla()->where('user_id', $user->id)->where('id', $id)->delete() === 1;
             }
         }
 
@@ -92,15 +92,15 @@ final class SesionesActivas
     /** Filas no caducadas según `session.lifetime` (las caducadas ya no autentican). */
     private static function vigentes(User $user): Builder
     {
-        $limite = now()->subMinutes((int) config('session.lifetime', 120))->getTimestamp();
+        $limite = now()->subMinutes(Entrada::entero(config('session.lifetime', 120)))->getTimestamp();
 
         return self::tabla()
-            ->where('user_id', $user->getKey())
+            ->where('user_id', $user->id)
             ->where('last_activity', '>=', $limite);
     }
 
     private static function tabla(): Builder
     {
-        return DB::connection(config('session.connection'))->table((string) config('session.table', 'sessions'));
+        return DB::connection(Entrada::textoONulo(config('session.connection')))->table(Entrada::texto(config('session.table', 'sessions')));
     }
 }

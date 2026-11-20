@@ -18,7 +18,7 @@ final class OldInput
 {
     public static function value(string $key, mixed $default = ''): string
     {
-        $value = old($key, $default);
+        $value = old($key, Entrada::texto($default));
 
         return is_scalar($value) ? (string) $value : '';
     }

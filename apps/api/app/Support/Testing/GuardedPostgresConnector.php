@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Testing;
 
+use App\Support\Entrada;
 use Closure;
 use Illuminate\Database\Connectors\ConnectorInterface;
 use Illuminate\Database\Connectors\PostgresConnector;
@@ -78,18 +79,18 @@ final class GuardedPostgresConnector implements ConnectorInterface
     /** @return array<string, mixed> */
     public static function clusterIdentity(PDO $pdo): array
     {
-        return $pdo->query(<<<'SQL'
+        return self::fila($pdo, <<<'SQL'
             SELECT current_setting('cluster_name') AS cluster_name,
                 (SELECT system_identifier::text FROM pg_control_system()) AS system_identifier,
                 current_setting('transaction_read_only') AS transaction_read_only,
                 current_setting('default_transaction_read_only') AS default_transaction_read_only
-            SQL)->fetch(PDO::FETCH_ASSOC);
+            SQL);
     }
 
     /** @return array<string, mixed> */
     public static function identity(PDO $pdo): array
     {
-        return $pdo->query(<<<'SQL'
+        return self::fila($pdo, <<<'SQL'
             SELECT current_database() AS database, current_user AS username,
                 host(inet_server_addr()) AS server_address, inet_server_port()::text AS server_port,
                 CASE WHEN current_setting('search_path') IN ('public', '"public"')
@@ -117,6 +118,22 @@ final class GuardedPostgresConnector implements ConnectorInterface
                         WHERE n.nspname = 'horus_test_control' AND c.relname = 'authorization'
                         AND pg_has_role(current_user, c.relowner, 'MEMBER'))
                     THEN 1 ELSE 0 END AS writable_marker
-            SQL)->fetch(PDO::FETCH_ASSOC);
+            SQL);
+    }
+
+    /**
+     * Una sola fila de identidad. Si la consulta no devuelve una fila legible se rechaza (nunca se continúa sin identidad).
+     *
+     * @return array<string, mixed>
+     */
+    private static function fila(PDO $pdo, string $sql): array
+    {
+        $consulta = $pdo->query($sql);
+        $fila = $consulta === false ? false : $consulta->fetch(PDO::FETCH_ASSOC);
+        if (! is_array($fila)) {
+            throw new \RuntimeException('Horus PostgreSQL test safety: identity query failed; PHPUnit refused.');
+        }
+
+        return Entrada::mapa($fila);
     }
 }

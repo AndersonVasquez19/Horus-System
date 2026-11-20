@@ -33,7 +33,7 @@ final class SesionPanel
     {
         $inicio = $request->session()->get(self::CLAVE_INICIO);
 
-        return is_int($inicio) ? $inicio + ((int) config('panel.sesion_absoluta_minutos')) * 60 : null;
+        return is_int($inicio) ? $inicio + (Entrada::entero(config('panel.sesion_absoluta_minutos'))) * 60 : null;
     }
 
     public static function expirada(Request $request): bool
@@ -70,7 +70,7 @@ final class SesionPanel
         $permisos = $user->getAllPermissions()->pluck('name')->sort()->values()->all();
 
         return [
-            'usuario' => ['id' => $user->getKey(), 'nombre' => $user->name, 'email' => $user->email],
+            'usuario' => ['id' => $user->id, 'nombre' => $user->name, 'email' => $user->email],
             'roles' => $user->getRoleNames()->sort()->values()->all(),
             'permisos' => $permisos,
             'paneles' => [

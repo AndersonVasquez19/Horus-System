@@ -36,12 +36,14 @@ final class FormularioCotizacionPublica
         } catch (DecryptException|JsonException) {
             return null;
         }
-        if (! is_array($datos) || ! is_string($datos['identificador'] ?? null) || ! Str::isUuid($datos['identificador']) || ! is_int($datos['emitido'] ?? null)) {
+        $emitido = is_array($datos) ? ($datos['emitido'] ?? null) : null;
+        $identificador = is_array($datos) ? ($datos['identificador'] ?? null) : null;
+        if (! is_string($identificador) || ! Str::isUuid($identificador) || ! is_int($emitido)) {
             return null;
         }
-        $edad = now()->timestamp - $datos['emitido'];
+        $edad = now()->getTimestamp() - $emitido;
 
         return $edad >= self::SEGUNDOS_MINIMOS && $edad <= self::SEGUNDOS_MAXIMOS
-            ? ['identificador' => $datos['identificador'], 'emitido' => $datos['emitido']] : null;
+            ? ['identificador' => $identificador, 'emitido' => $emitido] : null;
     }
 }

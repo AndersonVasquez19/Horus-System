@@ -19,7 +19,7 @@ final class Totp
 
     public static function generarSecreto(int $bytes = 20): string
     {
-        return self::codificarBase32(random_bytes($bytes));
+        return self::codificarBase32(random_bytes(max(1, $bytes)));
     }
 
     public static function uriProvision(string $emisor, string $cuenta, string $secreto): string
@@ -147,7 +147,7 @@ final class Totp
         $salida = '';
         foreach (str_split($bits, 5) as $chunk) {
             $chunk = str_pad($chunk, 5, '0', STR_PAD_RIGHT);
-            $salida .= self::ALFABETO[bindec($chunk)];
+            $salida .= substr(self::ALFABETO, (int) bindec($chunk), 1);
         }
 
         return $salida;

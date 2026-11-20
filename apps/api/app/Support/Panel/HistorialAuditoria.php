@@ -21,7 +21,7 @@ final class HistorialAuditoria
      */
     public static function de(string $modelo, int $id, array $acciones, int $limite = 50): array
     {
-        return AuditLog::query()
+        return array_values(AuditLog::query()
             ->with('user:id,name')
             ->where('model_type', $modelo)
             ->where('model_id', $id)
@@ -52,6 +52,6 @@ final class HistorialAuditoria
                     },
                 ];
             })
-            ->all();
+            ->all());
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Testing;
 
+use App\Support\Entrada;
 use Closure;
 use RuntimeException;
 use Throwable;
@@ -59,7 +60,7 @@ final class PostgresTestGuard
     }
 
     /**
-     * @param  array<string, mixed>  $config
+     * @param  array{app?: array<string, mixed>, database?: array{default?: mixed, connections?: array<string, array<string, mixed>>}, cache?: array<string, mixed>, session?: array<string, mixed>, queue?: array<string, mixed>, mail?: array<string, mixed>, broadcasting?: array<string, mixed>}  $config
      * @param  array<string, mixed>  $environment
      * @return array<string, mixed>
      */
@@ -80,12 +81,13 @@ final class PostgresTestGuard
         }
 
         $database = $config['database'] ?? [];
+        $connections = $database['connections'] ?? [];
         if (($database['default'] ?? null) !== 'pgsql'
-            || array_keys($database['connections'] ?? []) !== ['pgsql']) {
+            || array_keys($connections) !== ['pgsql']) {
             $this->reject('only the pgsql connection may be configured.');
         }
 
-        $connection = $database['connections']['pgsql'];
+        $connection = $connections['pgsql'];
         $name = $connection['database'] ?? '';
         if (! is_string($name) || ! isset(self::TARGETS[$name])) {
             $this->reject('database is not on the fixed test allowlist.');
@@ -157,7 +159,7 @@ final class PostgresTestGuard
      */
     public function assertIdentity(array $connection, array $identity): void
     {
-        if (in_array((string) ($identity['server_port'] ?? ''), self::RETIRED_PORTS, true)) {
+        if (in_array(Entrada::texto($identity['server_port'] ?? ''), self::RETIRED_PORTS, true)) {
             $this->reject('server reports the retired S7 port; no writes authorized.');
         }
 
@@ -165,13 +167,13 @@ final class PostgresTestGuard
             'server_address' => self::HOST, 'server_port' => self::PORT,
             'search_path' => 'public', 'read_only' => 'on', 'timezone' => 'UTC',
             'isolation' => 'read committed', 'marker' => 'horus-l2-destructive-tests'] as $key => $expected) {
-            if ((string) ($identity[$key] ?? '') !== $expected) {
+            if (Entrada::texto($identity[$key] ?? '') !== $expected) {
                 $this->reject('server identity or independent authorization mismatch: '.$key.'.');
             }
         }
 
         foreach (['unsafe_role', 'role_memberships', 'other_database_access', 'writable_marker'] as $key) {
-            if (! array_key_exists($key, $identity) || (string) $identity[$key] !== '0') {
+            if (! array_key_exists($key, $identity) || Entrada::texto($identity[$key]) !== '0') {
                 $this->reject('least-privilege or marker ownership check failed.');
             }
         }
@@ -186,7 +188,7 @@ final class PostgresTestGuard
     {
         foreach (['cluster_name' => self::CLUSTER_NAME, 'system_identifier' => self::SYSTEM_IDENTIFIER,
             'transaction_read_only' => 'on', 'default_transaction_read_only' => 'on'] as $key => $expected) {
-            if ((string) ($cluster[$key] ?? '') !== $expected) {
+            if (Entrada::texto($cluster[$key] ?? '') !== $expected) {
                 $this->reject('cluster identity or read-only state mismatch: '.$key.'.');
             }
         }

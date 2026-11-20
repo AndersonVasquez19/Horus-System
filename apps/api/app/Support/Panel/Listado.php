@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Support\Panel;
 
+use App\Support\Entrada;
 use Closure;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -29,6 +31,9 @@ final class Listado
     public const MAX_POR_PAGINA = 100;
 
     /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      * @param  array<string, string>  $ordenables  nombre público => columna
      */
     public static function ordenar(Builder $query, Request $request, array $ordenables, string $porDefecto): string
@@ -43,6 +48,12 @@ final class Listado
         return $orden;
     }
 
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return LengthAwarePaginator<int, TModel>
+     */
     public static function paginar(Builder $query, Request $request): LengthAwarePaginator
     {
         $porPagina = filter_var($request->query('per_page'), FILTER_VALIDATE_INT, [
@@ -51,6 +62,18 @@ final class Listado
         $pagina = filter_var($request->query('page'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
         return $query->paginate(perPage: $porPagina ?: self::POR_PAGINA, page: $pagina ?: 1);
+    }
+
+    /**
+     * Cuerpo de una respuesta de {@see responder()} como arreglo, para añadirle opciones a `meta` (filtros, totales).
+     *
+     * @return array{data: mixed, meta: array<mixed>}
+     */
+    public static function contenido(JsonResponse $respuesta): array
+    {
+        $contenido = Entrada::lista($respuesta->getData(true));
+
+        return ['data' => $contenido['data'] ?? [], 'meta' => Entrada::lista($contenido['meta'] ?? [])];
     }
 
     /**

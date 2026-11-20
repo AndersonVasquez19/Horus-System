@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Panel;
 
 use App\Models\AuditLog;
+use App\Support\Entrada;
 use App\Support\SafeSpreadsheet;
 use App\Support\SensitiveData;
 use App\Support\SpreadsheetCellCache;
@@ -30,7 +31,7 @@ final class ExportacionListado
 
     public static function formato(Request $request, string $predeterminado = 'csv'): string
     {
-        $valor = strtolower(trim((string) $request->query('formato', $request->input('formato', $predeterminado))));
+        $valor = strtolower(trim(Entrada::texto($request->query('formato', $request->input('formato', $predeterminado)))));
 
         return in_array($valor, ['csv', 'xlsx'], true) ? $valor : $predeterminado;
     }

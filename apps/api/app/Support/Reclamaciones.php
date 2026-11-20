@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+
 /**
  * Estado de activación del Libro de Reclamaciones.
  *
@@ -36,6 +37,6 @@ final class Reclamaciones
 
     public static function maxIntentos(): int
     {
-        return max(1, (int) config('reclamaciones.correo.max_intentos', 4));
+        return max(1, Entrada::entero(config('reclamaciones.correo.max_intentos', 4)));
     }
 }

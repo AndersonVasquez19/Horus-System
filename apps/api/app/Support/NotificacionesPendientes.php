@@ -17,7 +17,7 @@ final class NotificacionesPendientes
 
     public static function para(User $usuario): int
     {
-        $clave = self::ATRIBUTO.'.'.$usuario->getKey();
+        $clave = self::ATRIBUTO.'.'.$usuario->id;
         $atributos = request()->attributes;
 
         if (! $atributos->has($clave)) {
@@ -27,11 +27,11 @@ final class NotificacionesPendientes
                 ->count());
         }
 
-        return (int) $atributos->get($clave);
+        return Entrada::entero($atributos->get($clave));
     }
 
     public static function olvidar(User $usuario): void
     {
-        request()->attributes->remove(self::ATRIBUTO.'.'.$usuario->getKey());
+        request()->attributes->remove(self::ATRIBUTO.'.'.$usuario->id);
     }
 }

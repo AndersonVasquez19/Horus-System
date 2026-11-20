@@ -49,7 +49,7 @@ final class ConsultaReclamaciones
      */
     public static function aplicar(Builder $consulta, array $filtros, ?int $usuarioId = null): void
     {
-        $busqueda = trim((string) ($filtros['busqueda'] ?? ''));
+        $busqueda = trim(Entrada::texto(($filtros['busqueda'] ?? '')));
         if ($busqueda !== '') {
             $termino = '%'.strtr($busqueda, ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
             // Escape explícito compartido: SQLite no define el escape implícito de PostgreSQL.
@@ -72,11 +72,11 @@ final class ConsultaReclamaciones
         }
 
         if (! empty($filtros['desde'])) {
-            $consulta->where('recibida_at', '>=', CarbonImmutable::parse((string) $filtros['desde'], 'America/Lima')->startOfDay()->utc());
+            $consulta->where('recibida_at', '>=', CarbonImmutable::parse(Entrada::texto($filtros['desde']), 'America/Lima')->startOfDay()->utc());
         }
 
         if (! empty($filtros['hasta'])) {
-            $consulta->where('recibida_at', '<=', CarbonImmutable::parse((string) $filtros['hasta'], 'America/Lima')->endOfDay()->utc());
+            $consulta->where('recibida_at', '<=', CarbonImmutable::parse(Entrada::texto($filtros['hasta']), 'America/Lima')->endOfDay()->utc());
         }
 
         if (! empty($filtros['canal'])) {
@@ -91,14 +91,14 @@ final class ConsultaReclamaciones
                     $consulta->where('responsable_id', $usuarioId);
                 }
             } else {
-                $consulta->where('responsable_id', (int) $filtros['responsable']);
+                $consulta->where('responsable_id', Entrada::entero($filtros['responsable']));
             }
         }
 
         if (! empty($filtros['plazo'])) {
             $hoy = HoraLocal::ahora()->startOfDay();
             $hoyTexto = $hoy->toDateString();
-            $limiteAviso = DiasHabiles::sumar($hoy, (int) config('reclamaciones.aviso_dias_habiles', 3))->toDateString();
+            $limiteAviso = DiasHabiles::sumar($hoy, Entrada::entero(config('reclamaciones.aviso_dias_habiles', 3)))->toDateString();
             $consulta->where('estado', 'abierto')->whereNull('suspension_desde');
             match ($filtros['plazo']) {
                 'vencidas' => $consulta->whereDate('fecha_limite', '<', $hoyTexto),
@@ -119,7 +119,7 @@ final class ConsultaReclamaciones
     {
         return array_values(array_filter(
             self::FILTROS,
-            fn (string $filtro): bool => trim((string) ($filtros[$filtro] ?? '')) !== '',
+            fn (string $filtro): bool => trim(Entrada::texto(($filtros[$filtro] ?? ''))) !== '',
         ));
     }
 
@@ -140,10 +140,10 @@ final class ConsultaReclamaciones
             ->first();
 
         return [
-            'total' => (int) ($metricas?->getAttribute('total') ?? 0),
-            'quejas' => (int) ($metricas?->getAttribute('total_quejas') ?? 0),
-            'reclamos' => (int) ($metricas?->getAttribute('total_reclamos') ?? 0),
-            'abiertos' => (int) ($metricas?->getAttribute('total_abiertos') ?? 0),
+            'total' => Entrada::entero(($metricas?->getAttribute('total') ?? 0)),
+            'quejas' => Entrada::entero(($metricas?->getAttribute('total_quejas') ?? 0)),
+            'reclamos' => Entrada::entero(($metricas?->getAttribute('total_reclamos') ?? 0)),
+            'abiertos' => Entrada::entero(($metricas?->getAttribute('total_abiertos') ?? 0)),
         ];
     }
 
@@ -156,7 +156,7 @@ final class ConsultaReclamaciones
     {
         $hoy = HoraLocal::ahora()->startOfDay();
         $hoyTexto = $hoy->toDateString();
-        $limiteAviso = DiasHabiles::sumar($hoy, (int) config('reclamaciones.aviso_dias_habiles', 3))->toDateString();
+        $limiteAviso = DiasHabiles::sumar($hoy, Entrada::entero(config('reclamaciones.aviso_dias_habiles', 3)))->toDateString();
 
         $fila = Reclamacion::query()
             ->where('estado', 'abierto')
@@ -169,9 +169,9 @@ final class ConsultaReclamaciones
             ->first();
 
         return [
-            'vencidas' => (int) ($fila?->getAttribute('vencidas') ?? 0),
-            'vencen_hoy' => (int) ($fila?->getAttribute('vencen_hoy') ?? 0),
-            'por_vencer' => (int) ($fila?->getAttribute('por_vencer') ?? 0),
+            'vencidas' => Entrada::entero(($fila?->getAttribute('vencidas') ?? 0)),
+            'vencen_hoy' => Entrada::entero(($fila?->getAttribute('vencen_hoy') ?? 0)),
+            'por_vencer' => Entrada::entero(($fila?->getAttribute('por_vencer') ?? 0)),
         ];
     }
 }

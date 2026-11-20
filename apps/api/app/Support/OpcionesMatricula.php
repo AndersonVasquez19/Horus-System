@@ -44,14 +44,14 @@ final class OpcionesMatricula
         $consulta = self::consultaEstudiantes($contexto);
         BusquedaLike::contiene($consulta, ['dni', 'nombres', 'apellidos'], $texto);
 
-        return $consulta
+        return array_values($consulta
             ->orderBy('apellidos')
             ->orderBy('nombres')
             ->orderBy('id')
             ->limit(self::LIMITE)
             ->get(self::COLUMNAS_ESTUDIANTE)
             ->map(fn (Estudiante $estudiante): array => self::opcionEstudiante($estudiante))
-            ->all();
+            ->all());
     }
 
     /**
@@ -62,13 +62,13 @@ final class OpcionesMatricula
         $consulta = self::consultaCursos($contexto);
         BusquedaLike::contiene($consulta, ['codigo', 'nombre'], $texto);
 
-        return $consulta
+        return array_values($consulta
             ->orderBy('nombre')
             ->orderBy('id')
             ->limit(self::LIMITE)
             ->get(self::COLUMNAS_CURSO)
             ->map(fn (Curso $curso): array => self::opcionCurso($curso, $contexto))
-            ->all();
+            ->all());
     }
 
     /**
@@ -133,7 +133,7 @@ final class OpcionesMatricula
     private static function opcionEstudiante(Estudiante $estudiante): array
     {
         return [
-            'id' => (int) $estudiante->getKey(),
+            'id' => Entrada::entero($estudiante->getKey()),
             'texto' => "{$estudiante->dni} · {$estudiante->nombres} {$estudiante->apellidos}".($estudiante->trashed() ? ' (eliminado)' : ''),
             'eliminado' => $estudiante->trashed(),
         ];
@@ -146,7 +146,7 @@ final class OpcionesMatricula
         $cupos = $contexto === self::FILTRO ? '' : " ({$curso->cupos_disponibles} cupos)";
 
         return [
-            'id' => (int) $curso->getKey(),
+            'id' => Entrada::entero($curso->getKey()),
             'texto' => "{$curso->codigo} · {$curso->nombre}{$cupos}".($curso->trashed() ? ' (eliminado)' : ''),
             'eliminado' => $curso->trashed(),
         ];

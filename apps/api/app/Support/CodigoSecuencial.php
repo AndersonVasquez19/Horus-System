@@ -19,7 +19,10 @@ final class CodigoSecuencial
         $anio = (int) CarbonImmutable::now('America/Lima')->format('Y');
         DB::table('secuencias_codigo')->insertOrIgnore(['tipo' => $tipo, 'anio' => $anio, 'ultimo' => 0]);
         $fila = DB::table('secuencias_codigo')->where('tipo', $tipo)->where('anio', $anio)->lockForUpdate()->first();
-        $numero = ((int) $fila->ultimo) + 1;
+        if ($fila === null) {
+            throw new \RuntimeException("No se pudo reservar la secuencia de códigos «{$tipo}» del año {$anio}.");
+        }
+        $numero = Entrada::entero($fila->ultimo) + 1;
         DB::table('secuencias_codigo')->where('id', $fila->id)->update(['ultimo' => $numero]);
 
         return sprintf('%s-%d-%04d', $tipo, $anio, $numero);

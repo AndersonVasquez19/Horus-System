@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Testing;
 
+use App\Support\Entrada;
 use Illuminate\Database\Connection;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Env;
@@ -32,7 +33,7 @@ final class ConcurrentTestSession
     {
         $guard = new PostgresTestGuard;
 
-        if ((string) Env::get('HORUS_PG_TEST_PROFILE', '') !== '1') {
+        if (Entrada::texto(Env::get('HORUS_PG_TEST_PROFILE', '')) !== '1') {
             $guard->reject('a second session requires the isolated PostgreSQL profile.');
         }
 
