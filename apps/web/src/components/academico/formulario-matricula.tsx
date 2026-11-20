@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
+import { useAdvertirCambios } from '@/components/shared/use-advertir-cambios';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
@@ -53,6 +54,9 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
   const [observaciones, setObservaciones] = useState(matricula?.observaciones ?? '');
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
+  /** Se activa en cuanto la persona escribe o elige algo; avisa antes de cerrar la pestaña con cambios sin guardar. */
+  const [sucio, setSucio] = useState(false);
+  useAdvertirCambios(sucio && !guardando);
 
   // Convocatorias matriculables del curso elegido (solo al registrar; después la convocatoria queda fija).
   const [convocatorias, setConvocatorias] = useState<ConvocatoriaResumen[]>([]);
@@ -181,7 +185,13 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
   const cancelar = matricula ? `${DETALLE}/${matricula.id}` : DETALLE;
 
   return (
-    <form onSubmit={enviar} noValidate className="space-y-5 rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm sm:p-6">
+    <form
+      onSubmit={enviar}
+      onInput={() => setSucio(true)}
+      onChange={() => setSucio(true)}
+      noValidate
+      className="space-y-5 rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm sm:p-6"
+    >
       {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
       {error?.code === 'validacion' ? <Alerta tipo="error" titulo="No se pudo guardar la matrícula">Revisa los campos marcados.</Alerta> : null}
 
@@ -313,7 +323,7 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
         ) : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={() => router.push(cancelar)} disabled={guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={guardando}>
           {matricula ? 'Guardar cambios' : conPagoInicial && admitePagoInicial ? 'Matricular y registrar pago' : 'Registrar matrícula'}

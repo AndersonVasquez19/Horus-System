@@ -11,14 +11,15 @@ import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
-import { Campo, CampoSeleccion } from '@/components/shared/ui/campo';
+import { Campo, CampoArchivo, CampoSeleccion } from '@/components/shared/ui/campo';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { Dialogo } from '@/components/shared/ui/dialogo';
 import { Insignia } from '@/components/shared/ui/insignia';
 import type { ImagenRepetida, ObligacionDetalle, TransaccionPagoVista } from '@/features/academico/tipos';
-import { fecha, moneda } from '@/lib/panel/formato';
+import { ACEPTA_CAPTURA, IMPORTE, normalizarImporte, validarCaptura } from '@/lib/panel/captura';
+import { fecha, hoyLima, moneda } from '@/lib/panel/formato';
 import { copiarAlPortapapeles, enlaceWaMe, mensajeRecordatorioCuota } from '@/lib/panel/whatsapp-plantillas';
 
-const IMPORTE = /^(0|[1-9]\d{0,7})(\.\d{1,2})?$/;
 const COLOR_COBRO = { pendiente: 'ambar', parcial: 'azul', pagada: 'verde', anulada: 'rojo' } as const;
 const COLOR_TX = { pendiente: 'ambar', confirmada: 'verde', rechazada: 'rojo' } as const;
 export const ETIQUETA_COBRO = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', anulada: 'Anulada' } as const;
@@ -29,7 +30,6 @@ const MOTIVOS_FRECUENTES = [
   'Operación duplicada o inexistente',
   'Solicitud de anulación del estudiante',
 ] as const;
-const hoyLima = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
 const clave = () => crypto.randomUUID();
 
 // ---- Obligación desde la ficha de la matrícula ------------------------------------------------------------------------
@@ -37,7 +37,7 @@ const clave = () => crypto.randomUUID();
 const esquemaObligacion = z.object({
   concepto: z.string().trim().min(3, 'Indica el concepto.').max(120, 'Hasta 120 caracteres.'),
   plan: z.enum(['completo', 'fraccionado']),
-  monto_total: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales.').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
+  monto_total: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales (por ejemplo 25,50).').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
 });
 
 /** Crea la obligación de pago de una matrícula (completo o fraccionado). La suma de cuotas se valida aquí y en Laravel. */
@@ -49,7 +49,7 @@ export function BotonCrearObligacion({ matriculaId }: { matriculaId: number }) {
   return (
     <>
       <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Crear obligación de pago</Boton>
-      <Dialogo abierto={abierto} titulo="Obligación de pago" descripcion="Solo soles (PEN), monto fijo." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Obligación de pago" descripcion="Solo soles (PEN), monto fijo." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
         <FormularioObligacion matriculaId={matriculaId} onOcupado={setOcupado} onCerrar={() => setAbierto(false)} />
       </Dialogo>
     </>
@@ -96,7 +96,7 @@ function FormularioObligacion({ matriculaId, onOcupado, onCerrar }: { matriculaI
       <Campo etiqueta="Concepto" {...f.registro('concepto')} error={f.error('concepto')} />
       <div className="grid gap-4 sm:grid-cols-2">
         <CampoSeleccion etiqueta="Plan" {...f.registro('plan')} error={f.error('plan')} opciones={{ completo: 'Pago completo', fraccionado: 'Fraccionado en cuotas' }} />
-        <Campo etiqueta="Monto total (S/)" inputMode="decimal" {...f.registro('monto_total')} error={f.error('monto_total')} />
+        <Campo etiqueta="Monto total (S/)" inputMode="decimal" required ayuda="Puedes escribir coma o punto: 250,00" {...f.registro('monto_total', { setValueAs: normalizarImporte })} error={f.error('monto_total')} />
       </div>
       {fraccionado ? (
         <fieldset className="space-y-2">
@@ -112,7 +112,7 @@ function FormularioObligacion({ matriculaId, onOcupado, onCerrar }: { matriculaI
           <Boton variante="secundario" disabled={cuotas.length >= 24} onClick={() => setCuotas((p) => [...p, { monto: '', vence: '' }])} icono={<CirclePlus className="h-4 w-4" aria-hidden="true" />}>Añadir cuota</Boton>
         </fieldset>
       ) : null}
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={f.guardando}>Crear</Boton>
       </div>
@@ -124,7 +124,7 @@ function FormularioObligacion({ matriculaId, onOcupado, onCerrar }: { matriculaI
 
 const esquemaPago = z.object({
   metodo: z.string().min(1, 'Elige el método de pago.'),
-  monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales.').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
+  monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales (por ejemplo 25,50).').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
   fecha_pago: z.string().min(1, 'Indica la fecha del pago.'),
   referencia: z.string().max(80, 'Hasta 80 caracteres.'),
 });
@@ -240,7 +240,7 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
         </ul>
       )}
 
-      <Dialogo abierto={pago} titulo="Registrar pago" descripcion={`Yape · saldo disponible ${moneda(String(Number(o.saldo) - Number(o.pendiente_confirmar)))}`} onCerrar={() => setPago(false)} bloqueado={ocupado}>
+      <Dialogo abierto={pago} lado="derecha" titulo="Registrar pago" descripcion={`Yape · saldo disponible ${moneda(String(Number(o.saldo) - Number(o.pendiente_confirmar)))}`} onCerrar={() => setPago(false)} bloqueado={ocupado}>
         {pago ? <FormularioPago obligacion={o} puedeConfirmar={puedeConfirmar} onOcupado={setOcupado} onCerrar={() => setPago(false)} /> : null}
       </Dialogo>
       <Dialogo abierto={porVerificar !== null} titulo="Antes de confirmar" descripcion="Comprueba el pago en tu app, no solo en la captura." onCerrar={() => setPorVerificar(null)} bloqueado={confirmando}>
@@ -251,7 +251,7 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
               <strong>{moneda(porVerificar.monto)}</strong> del {fecha(porVerificar.fecha_pago)}. Una captura puede estar editada; confirma solo si el dinero ya está en tu cuenta.
             </p>
             {porVerificar.imagen_repetida ? <AvisoCapturaRepetida repetida={porVerificar.imagen_repetida} /> : null}
-            <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+            <div className="pie-acciones">
               <Boton variante="secundario" onClick={() => setPorVerificar(null)} disabled={confirmando}>Volver</Boton>
               <Boton cargando={confirmando} icono={<Check className="h-4 w-4" aria-hidden="true" />} onClick={() => void confirmar(porVerificar)}>Ya lo verifiqué: confirmar</Boton>
             </div>
@@ -336,7 +336,14 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
     <form onSubmit={f.enviar} noValidate className="space-y-4">
       {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="Importe (S/)" inputMode="decimal" {...f.registro('monto')} error={f.error('monto')} />
+        <Campo
+          etiqueta="Importe (S/)"
+          inputMode="decimal"
+          required
+          ayuda="Puedes escribir coma o punto: 25,50"
+          {...f.registro('monto', { setValueAs: normalizarImporte })}
+          error={f.error('monto')}
+        />
         <Campo etiqueta="Fecha del pago" type="date" {...f.registro('fecha_pago')} error={f.error('fecha_pago')} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -348,23 +355,20 @@ function FormularioPago({ obligacion: o, puedeConfirmar, onOcupado, onCerrar }: 
         />
         <Campo etiqueta="Código de operación (opcional)" {...f.registro('referencia')} error={f.error('referencia')} />
       </div>
-      <Campo
+      <CampoArchivo
         etiqueta="Captura del comprobante de pago"
-        type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
-        onChange={(e) => setCaptura(e.target.files?.[0] ?? null)}
+        requerido
+        accept={ACEPTA_CAPTURA}
+        onArchivo={setCaptura}
         error={errorCaptura ?? undefined}
         ayuda="JPG, PNG, WebP o PDF de hasta 3 MB. Es obligatorio."
       />
       {puedeConfirmar ? (
-        <label className="flex items-center gap-2 text-sm text-panel-text">
-          <input type="checkbox" checked={confirmar} onChange={(e) => setConfirmar(e.target.checked)} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-          Confirmar el pago ahora
-        </label>
+        <Casilla etiqueta="Confirmar el pago ahora" checked={confirmar} onChange={(e) => setConfirmar(e.target.checked)} />
       ) : (
         <p className="text-xs text-panel-muted">El pago quedará «por confirmar» hasta que lo confirme otra persona autorizada.</p>
       )}
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={f.guardando}>Registrar</Boton>
       </div>
@@ -380,16 +384,6 @@ function AvisoCapturaRepetida({ repetida }: { repetida: ImagenRepetida }) {
       revisa ambos pagos antes de confirmar.
     </Alerta>
   );
-}
-
-const MAX_CAPTURA = 3 * 1024 * 1024;
-
-/** Validación de ayuda en el navegador; Laravel vuelve a validar el tipo real y el tamaño. */
-function validarCaptura(archivo: File | null): string | null {
-  if (archivo === null) return 'Adjunta el comprobante de pago.';
-  if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(archivo.type)) return 'Sube una captura en JPG, PNG o WebP, o un PDF.';
-  if (archivo.size > MAX_CAPTURA) return 'El comprobante no puede pasar de 3 MB.';
-  return null;
 }
 
 /** Ver la captura del comprobante (solo con `pagos.ver`) y adjuntar o reemplazar la de un pago por confirmar. */
@@ -492,9 +486,9 @@ function FormularioMotivo({ motivo, onOcupado, onCerrar }: { motivo: Motivo; onO
         </div>
       </div>
       <Campo etiqueta="Motivo" {...f.registro('motivo')} error={f.error('motivo')} maxLength={200} />
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Volver</Boton>
-        <Boton type="submit" cargando={f.guardando}>{motivo.boton}</Boton>
+        <Boton type="submit" variante="peligro" cargando={f.guardando}>{motivo.boton}</Boton>
       </div>
     </form>
   );

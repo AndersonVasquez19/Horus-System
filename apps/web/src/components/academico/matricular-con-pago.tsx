@@ -14,11 +14,9 @@ import { Boton } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
 import { Dialogo } from '@/components/shared/ui/dialogo';
 import { SelectorRemoto, type OpcionRemota } from '@/components/shared/ui/selector-remoto';
+import { IMPORTE, MAX_CAPTURA } from '@/lib/panel/captura';
+import { hoyLima } from '@/lib/panel/formato';
 import { copiarAlPortapapeles, mensajeBienvenidaMatricula } from '@/lib/panel/whatsapp-plantillas';
-
-const IMPORTE = /^(0|[1-9]\d{0,7})(\.\d{1,2})?$/;
-const MAX_CAPTURA = 3 * 1024 * 1024;
-const hoyLima = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
 
 const esquema = z.object({
   monto: z.string().refine((v) => v === '' || (IMPORTE.test(v) && Number(v) > 0), 'Importe válido (mayor que cero, hasta 2 decimales) o déjalo vacío para usar el precio del curso.'),
@@ -195,7 +193,7 @@ function Formulario({ convocatoria, precio, onOcupado, onCerrar }: { convocatori
         error={errorCaptura}
         ayuda="JPG, PNG o WebP de hasta 3 MB. Es obligatoria."
       />
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+      <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={f.guardando}>Matricular y registrar pago</Boton>
       </div>

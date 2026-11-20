@@ -1,8 +1,9 @@
 'use client';
 
-import { Search } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { Loader2, Search } from 'lucide-react';
+import { useState } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
+import { useFormularioPanel } from '@/components/shared/use-formulario-panel';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
@@ -10,11 +11,8 @@ import { Boton } from '@/components/shared/ui/boton';
 import { Campo, CampoSeleccion } from '@/components/shared/ui/campo';
 import type { EstudianteDetalle, PersonaDni } from '@/features/academico/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
+import { cuerpoEstudiante, esquemaEstudiante, type DatosEstudiante } from '@/lib/panel/esquemas';
 import { ETIQUETAS } from '@/lib/panel/formato';
-import type { ErrorPanel } from '@/lib/panel/tipos';
-
-const CAMPOS = ['dni', 'nombres', 'apellidos', 'email', 'telefono', 'fecha_nacimiento', 'direccion', 'estado'] as const;
-type Datos = Record<(typeof CAMPOS)[number], string>;
 
 interface FormularioEstudianteProps {
   /** Sin estudiante: registro. Con estudiante: edición. */
@@ -24,7 +22,7 @@ interface FormularioEstudianteProps {
   onOcupado?: (ocupado: boolean) => void;
 }
 
-function inicial(estudiante?: EstudianteDetalle): Datos {
+function inicial(estudiante?: EstudianteDetalle): DatosEstudiante {
   return {
     dni: estudiante?.dni ?? '',
     nombres: estudiante?.nombres ?? '',
@@ -37,44 +35,53 @@ function inicial(estudiante?: EstudianteDetalle): Datos {
   };
 }
 
+const DNI_COMPLETO = /^\d{8}$/;
+
 /**
  * Registro y edición de estudiantes. Las reglas (DNI de 8 dígitos y único, correo único, fecha no futura…) las
- * aplica Laravel con StoreEstudianteRequest / UpdateEstudianteRequest; aquí solo se ayudan con atributos HTML y se
- * muestran sus errores campo a campo.
+ * aplica Laravel con StoreEstudianteRequest / UpdateEstudianteRequest; el esquema de `lib/panel/esquemas.ts` solo
+ * ayuda en el navegador y los errores del servidor se muestran campo a campo.
  */
 export function FormularioEstudiante({ estudiante, onGuardado, onCancelar, onOcupado }: FormularioEstudianteProps) {
   const { ejecutar } = useOperacionPanel();
   const { mostrar } = useAvisos();
   const puedeConsultarDni = usePuede('estudiantes.crear');
-  const [datos, setDatos] = useState<Datos>(() => inicial(estudiante));
-  const [error, setError] = useState<ErrorPanel | null>(null);
-  const [guardando, setGuardando] = useState(false);
   const [consultandoDni, setConsultandoDni] = useState(false);
+  const [errorDni, setErrorDni] = useState<string | null>(null);
   const [avisoDni, setAvisoDni] = useState<string | null>(null);
 
-  const cambiar = (campo: keyof Datos) => (evento: { target: { value: string } }) => {
-    if (campo === 'dni') setAvisoDni(null);
-    setDatos((actuales) => ({ ...actuales, [campo]: evento.target.value }));
-  };
+  const f = useFormularioPanel({
+    esquema: esquemaEstudiante,
+    valores: inicial(estudiante),
+    onOcupado,
+    // Los opcionales vacíos viajan como null (los Form Requests los declaran `nullable`).
+    enviar: (datos) => {
+      const cuerpo = cuerpoEstudiante(datos);
+      return estudiante
+        ? ejecutar<{ message: string; data: EstudianteDetalle }>(`academico/estudiantes/${estudiante.id}`, 'PUT', cuerpo)
+        : ejecutar<{ message: string; data: EstudianteDetalle }>('academico/estudiantes', 'POST', cuerpo);
+    },
+    onExito: (respuesta) => onGuardado(respuesta.data, respuesta.message),
+  });
+
+  const dniEscrito = f.form.watch('dni');
+  const dniListo = DNI_COMPLETO.test(dniEscrito.trim());
 
   async function consultarDni() {
-    const dni = datos.dni.trim();
-    if (!/^\d{8}$/.test(dni) || consultandoDni) return;
+    const dni = f.form.getValues('dni').trim();
+    if (!DNI_COMPLETO.test(dni) || consultandoDni) return;
     setConsultandoDni(true);
-    setError(null);
+    setErrorDni(null);
     setAvisoDni(null);
     const resultado = await ejecutar<{ data: PersonaDni }>('academico/consultas/dni', 'POST', { dni });
     setConsultandoDni(false);
     if (!resultado.ok) {
-      setError(resultado.error);
+      setErrorDni(errorDeCampo(resultado.error, 'dni') ?? resultado.error.message);
       return;
     }
     const persona = resultado.datos.data;
-    setDatos((actuales) => ({
-      ...actuales,
-      nombres: persona.nombres || actuales.nombres,
-      apellidos: persona.apellidos || actuales.apellidos,
-    }));
+    if (persona.nombres) f.form.setValue('nombres', persona.nombres, { shouldDirty: true });
+    if (persona.apellidos) f.form.setValue('apellidos', persona.apellidos, { shouldDirty: true });
     if (persona.ya_registrado_como_estudiante && (!estudiante || estudiante.dni !== dni)) {
       setAvisoDni('Este DNI ya figura registrado como estudiante en el sistema.');
     } else {
@@ -82,61 +89,50 @@ export function FormularioEstudiante({ estudiante, onGuardado, onCancelar, onOcu
     }
   }
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    setGuardando(true);
-    onOcupado?.(true);
-    setError(null);
-
-    // Los opcionales vacíos viajan como null (los Form Requests los declaran `nullable`).
-    const cuerpo = Object.fromEntries(CAMPOS.map((campo) => [campo, datos[campo].trim() === '' ? null : datos[campo].trim()]));
-    const resultado = estudiante
-      ? await ejecutar<{ message: string; data: EstudianteDetalle }>(`academico/estudiantes/${estudiante.id}`, 'PUT', cuerpo)
-      : await ejecutar<{ message: string; data: EstudianteDetalle }>('academico/estudiantes', 'POST', cuerpo);
-
-    setGuardando(false);
-    onOcupado?.(false);
-    if (resultado.ok) onGuardado(resultado.datos.data, resultado.datos.message);
-    else setError(resultado.error);
-  }
-
-  const err = (campo: string) => errorDeCampo(error, campo);
-
   return (
-    <form onSubmit={enviar} noValidate className="space-y-4">
-      {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
-      {error?.code === 'validacion' ? <Alerta tipo="error">Revisa los campos marcados.</Alerta> : null}
+    <form onSubmit={f.enviar} noValidate className="space-y-4">
+      {f.errorGeneral ? <Alerta tipo="error">{f.errorGeneral}</Alerta> : null}
+      {f.hayErroresDeCampo ? <Alerta tipo="error">Revisa los campos marcados.</Alerta> : null}
+      {errorDni ? <Alerta tipo="error">{errorDni}</Alerta> : null}
       {avisoDni ? <Alerta tipo="aviso">{avisoDni}</Alerta> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex items-start gap-2">
-          <Campo etiqueta="DNI" className="flex-1" value={datos.dni} onChange={cambiar('dni')} error={err('dni')} required inputMode="numeric" maxLength={8} pattern="\d{8}" autoComplete="off" ayuda="8 dígitos" />
-          {puedeConsultarDni ? (
-            <Boton
-              type="button"
-              variante="secundario"
-              className="mt-[26px] shrink-0"
-              cargando={consultandoDni}
-              disabled={guardando || !/^\d{8}$/.test(datos.dni.trim())}
-              icono={<Search className="h-4 w-4" aria-hidden="true" />}
-              onClick={() => void consultarDni()}
-            >
-              Consultar DNI
-            </Boton>
-          ) : null}
-        </div>
-        <CampoSeleccion etiqueta="Estado" value={datos.estado} onChange={cambiar('estado')} error={err('estado')} opciones={ETIQUETAS.estadoEstudiante} />
-        <Campo etiqueta="Nombres" value={datos.nombres} onChange={cambiar('nombres')} error={err('nombres')} required maxLength={100} autoComplete="off" />
-        <Campo etiqueta="Apellidos" value={datos.apellidos} onChange={cambiar('apellidos')} error={err('apellidos')} required maxLength={100} autoComplete="off" />
-        <Campo etiqueta="Correo (opcional)" type="email" value={datos.email} onChange={cambiar('email')} error={err('email')} maxLength={150} autoComplete="off" />
-        <Campo etiqueta="Teléfono (opcional)" type="tel" value={datos.telefono} onChange={cambiar('telefono')} error={err('telefono')} maxLength={20} autoComplete="off" />
-        <Campo etiqueta="Fecha de nacimiento (opcional)" type="date" value={datos.fecha_nacimiento} onChange={cambiar('fecha_nacimiento')} error={err('fecha_nacimiento')} />
-        <Campo etiqueta="Dirección (opcional)" value={datos.direccion} onChange={cambiar('direccion')} error={err('direccion')} maxLength={255} autoComplete="off" />
+        <Campo
+          etiqueta="DNI"
+          required
+          inputMode="numeric"
+          maxLength={8}
+          autoComplete="off"
+          ayuda={puedeConsultarDni ? '8 dígitos. La lupa carga los nombres.' : '8 dígitos'}
+          {...f.registro('dni', { onChange: () => setAvisoDni(null) })}
+          error={f.error('dni')}
+          accesorio={
+            puedeConsultarDni ? (
+              <button
+                type="button"
+                onClick={() => void consultarDni()}
+                disabled={f.guardando || consultandoDni || !dniListo}
+                aria-label="Consultar DNI"
+                title="Consultar DNI"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-academico-700 hover:bg-academico-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {consultandoDni ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Search className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            ) : undefined
+          }
+        />
+        <CampoSeleccion etiqueta="Estado" {...f.registro('estado')} error={f.error('estado')} opciones={ETIQUETAS.estadoEstudiante} />
+        <Campo etiqueta="Nombres" {...f.registro('nombres')} error={f.error('nombres')} required maxLength={100} autoComplete="off" />
+        <Campo etiqueta="Apellidos" {...f.registro('apellidos')} error={f.error('apellidos')} required maxLength={100} autoComplete="off" />
+        <Campo etiqueta="Correo (opcional)" type="email" {...f.registro('email')} error={f.error('email')} maxLength={150} autoComplete="off" />
+        <Campo etiqueta="Teléfono (opcional)" type="tel" {...f.registro('telefono')} error={f.error('telefono')} maxLength={20} autoComplete="off" />
+        <Campo etiqueta="Fecha de nacimiento (opcional)" type="date" {...f.registro('fecha_nacimiento')} error={f.error('fecha_nacimiento')} />
+        <Campo etiqueta="Dirección (opcional)" {...f.registro('direccion')} error={f.error('direccion')} maxLength={255} autoComplete="off" />
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
-        <Boton variante="secundario" onClick={onCancelar} disabled={guardando}>Cancelar</Boton>
-        <Boton type="submit" cargando={guardando}>{estudiante ? 'Guardar cambios' : 'Registrar estudiante'}</Boton>
+      <div className="pie-acciones">
+        <Boton variante="secundario" onClick={onCancelar} disabled={f.guardando}>Cancelar</Boton>
+        <Boton type="submit" cargando={f.guardando}>{estudiante ? 'Guardar cambios' : 'Registrar estudiante'}</Boton>
       </div>
     </form>
   );

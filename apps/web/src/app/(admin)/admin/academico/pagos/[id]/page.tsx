@@ -76,7 +76,7 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         </Seccion>
         <div className="space-y-6 xl:col-span-2">
           <Seccion id="titulo-cuotas" titulo="Cuotas">
-            <Tabla titulo="Cuotas" columnas={['N.º', 'Vence', 'Monto', 'Pagado', 'Saldo']}>
+            <Tabla plana titulo="Cuotas" columnas={['N.º', 'Vence', 'Monto', 'Pagado', 'Saldo']}>
               {o.cuotas.map((c) => (
                 <tr key={c.numero}>
                   <td className="px-4 py-3">{c.numero}</td>

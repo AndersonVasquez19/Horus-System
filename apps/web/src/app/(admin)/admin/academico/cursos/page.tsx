@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { BotonNuevoCurso, MenuFilaCurso } from '@/components/academico/acciones-curso';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
@@ -83,14 +84,8 @@ async function ListadoCursos({ searchParams }: { searchParams: Promise<Parametro
           }}
         />
         <SelectorPorPagina tono="academico" valor={parametro(parametros, 'per_page')} />
-        <label className="flex items-center gap-2 pb-2 text-sm text-panel-text">
-          <input type="checkbox" name="con_cupos" value="1" defaultChecked={parametro(parametros, 'con_cupos') === '1'} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-          Con cupos
-        </label>
-        <label className="flex items-center gap-2 pb-2 text-sm text-panel-text">
-          <input type="checkbox" name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-          Archivados
-        </label>
+        <Casilla compacta name="con_cupos" value="1" defaultChecked={parametro(parametros, 'con_cupos') === '1'} etiqueta="Con cupos" className="pb-0.5" />
+        <Casilla compacta name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} etiqueta="Archivados" className="pb-0.5" />
       </FiltrosListado>
 
       <div className="flex justify-end">
@@ -108,7 +103,7 @@ async function ListadoCursos({ searchParams }: { searchParams: Promise<Parametro
           <EstadoVacio titulo="Todavía no hay cursos registrados" texto="Registra el primero con «Nuevo curso»." />
         )
       ) : (
-        <Tabla
+        <Tabla accionesFijas
           titulo={`Cursos (${meta.total})`}
           ordenActual={ordenActual}
           rutaOrden={RUTA}

@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { BotonNuevaConvocatoria } from '@/components/academico/acciones-convocatoria';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, CampoFecha, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
@@ -72,10 +73,7 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
           opciones={{ '-inicio': 'Inicio más reciente', inicio: 'Inicio más antiguo', codigo: 'Código', '-creado': 'Registradas últimamente' }}
         />
         <SelectorPorPagina tono="academico" valor={parametro(parametros, 'per_page')} />
-        <label className="flex items-center gap-2 pb-2 text-sm text-panel-text">
-          <input type="checkbox" name="vigentes" value="1" defaultChecked={parametro(parametros, 'vigentes') === '1'} className="h-4 w-4 accent-academico-700" />
-          Solo vigentes
-        </label>
+        <Casilla compacta name="vigentes" value="1" defaultChecked={parametro(parametros, 'vigentes') === '1'} etiqueta="Solo vigentes" className="pb-0.5" />
       </FiltrosListado>
 
       <div className="flex justify-end">
@@ -89,7 +87,7 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
       {convocatorias.length === 0 ? (
         hayFiltros ? <EstadoSinResultados titulo="Ninguna edición coincide con los filtros" /> : <EstadoVacio titulo="Todavía no hay ediciones registradas" />
       ) : (
-        <Tabla
+        <Tabla accionesFijas
           titulo={`Ediciones (${meta.total})`}
           columnas={[
             { texto: 'Edición', orden: 'codigo' },

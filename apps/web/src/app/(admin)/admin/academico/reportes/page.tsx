@@ -3,9 +3,11 @@ import { BookOpen, ClipboardCheck, ClipboardList, GraduationCap, Users, Wallet }
 import { Suspense } from 'react';
 import { AccionesReporte, type VistaPreviaReporte } from '@/components/academico/acciones-reporte';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
+import { Casilla } from '@/components/shared/ui/casilla';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
+import { BarraProgreso } from '@/components/shared/ui/barra-progreso';
 import { Paginacion } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
@@ -107,7 +109,7 @@ function consultaApi(parametros: Parametros, conLote: boolean): string {
   return texto === '' ? '' : `?${texto}`;
 }
 
-export function formatearVistaPrevia(tipo: TipoReporte, datos: RespuestaReporte): VistaPreviaReporte {
+function formatearVistaPrevia(tipo: TipoReporte, datos: RespuestaReporte): VistaPreviaReporte {
   if (tipo === 'cobranza') {
     const filas = datos.data as unknown as FilaCobranza[];
     return {
@@ -244,6 +246,8 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
     ? { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', anulada: 'Anulada' }
     : ETIQUETAS.estadoMatricula;
 
+  const grafico = graficoDelReporte(tipo, resumen);
+
   return (
     <>
       {encabezado(
@@ -289,6 +293,8 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
           </div>
         )}
 
+        {grafico}
+
         <FiltrosListado tono="academico" ruta={RUTA} hayFiltros={hayFiltros}>
           <SelectorFiltro tono="academico" nombre="tipo" etiqueta="Tipo de reporte" valor={tipo} todos={null} opciones={TIPOS_REPORTE} />
           <CampoBusqueda tono="academico" nombre="busqueda" valor={parametro(parametros, 'busqueda')} marcador="Estudiante, DNI, curso o edición" />
@@ -303,10 +309,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
             <SelectorFiltro tono="academico" nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={opcionesEstado} />
           ) : null}
           {tipo === 'matriculas' ? (
-            <label className="flex items-center gap-2 pb-2 text-sm text-panel-text">
-              <input type="checkbox" name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} className="h-4 w-4 rounded border-panel-border accent-academico-700" />
-              Eliminadas
-            </label>
+            <Casilla compacta name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} etiqueta="Eliminadas" className="pb-0.5" />
           ) : null}
         </FiltrosListado>
 
@@ -320,7 +323,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
           <Tabla
             titulo={`Cobranza (${meta.total}) · lote ${meta.lote} de ${meta.lotes}`}
             columnas={['Matrícula', 'Estudiante', 'Curso', { texto: 'Total', derecha: true }, { texto: 'Cobrado', derecha: true }, { texto: 'Saldo', derecha: true }, 'Estado']}
-            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} />}
+            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
           >
             {(datos.data as unknown as FilaCobranza[]).map((fila) => (
               <tr key={fila.obligacion} className="hover:bg-academico-50/50">
@@ -332,7 +335,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{moneda(fila.total)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-emerald-700">{moneda(fila.pagado)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums font-semibold">{moneda(fila.saldo)}</td>
-                <td className="px-4 py-3"><Insignia color={colorEstado(fila.estado)}>{fila.estado}</Insignia></td>
+                <td className="px-4 py-3"><Insignia color={colorEstado(fila.estado)}>{opcionesEstado[fila.estado] ?? fila.estado}</Insignia></td>
               </tr>
             ))}
           </Tabla>
@@ -340,7 +343,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
           <Tabla
             titulo={`Asistencia (${meta.total})`}
             columnas={['Edición', 'Curso', { texto: 'Sesiones realizadas', derecha: true }, { texto: 'Matriculados', derecha: true }, { texto: 'Promedio', derecha: true }, 'Estado']}
-            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} />}
+            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
           >
             {(datos.data as unknown as FilaAsistencia[]).map((fila) => (
               <tr key={fila.identificador} className="hover:bg-academico-50/50">
@@ -360,7 +363,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
           <Tabla
             titulo={`Calificaciones (${meta.total})`}
             columnas={['Edición', 'Curso', { texto: 'Matriculados', derecha: true }, { texto: 'Evaluados', derecha: true }, { texto: 'Aprobados', derecha: true }, { texto: 'Promedio', derecha: true }, 'Estado']}
-            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} />}
+            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
           >
             {(datos.data as unknown as FilaCalificaciones[]).map((fila) => (
               <tr key={fila.identificador} className="hover:bg-academico-50/50">
@@ -381,7 +384,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
           <Tabla
             titulo={`Matrículas (${meta.total}) · lote ${meta.lote} de ${meta.lotes}`}
             columnas={['Estudiante', 'Curso', 'Fecha', 'Estado', { texto: 'Monto', derecha: true }]}
-            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} />}
+            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
           >
             {(datos.data as unknown as FilaMatriculas[]).map((fila) => (
               <tr key={fila.id} className="hover:bg-academico-50/50">
@@ -408,4 +411,66 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
       </div>
     </>
   );
+}
+
+/** Gráfico propio de cada tipo de reporte, calculado solo con el `resumen` que ya entrega Laravel (sin series por fecha). */
+function graficoDelReporte(tipo: TipoReporte, resumen: Record<string, unknown>): React.ReactNode {
+  const numeroDe = (valor: unknown) => {
+    const n = Number(valor ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  if (tipo === 'cobranza') {
+    const facturado = numeroDe(resumen.total_facturado);
+    const cobrado = numeroDe(resumen.cobrado);
+    const saldo = numeroDe(resumen.saldo_pendiente);
+    if (facturado <= 0) return null;
+    return (
+      <BarraProgreso
+        titulo="Avance de cobro"
+        resumen={`${Math.round((cobrado / facturado) * 100)} % cobrado`}
+        total={facturado}
+        segmentos={[
+          { etiqueta: 'Cobrado', valor: cobrado, texto: moneda(String(cobrado)), clase: 'bg-emerald-600' },
+          { etiqueta: 'Saldo pendiente', valor: saldo, texto: moneda(String(saldo)), clase: 'bg-amber-500' },
+        ]}
+      />
+    );
+  }
+
+  if (tipo === 'calificaciones') {
+    const evaluados = numeroDe(resumen.evaluados);
+    const aprobados = numeroDe(resumen.aprobados);
+    if (evaluados <= 0) return null;
+    const desaprobados = Math.max(0, evaluados - aprobados);
+    return (
+      <BarraProgreso
+        titulo="Resultado de los evaluados"
+        resumen={`${Math.round((aprobados / evaluados) * 100)} % aprobados`}
+        total={evaluados}
+        segmentos={[
+          { etiqueta: 'Aprobados', valor: aprobados, texto: numero(aprobados), clase: 'bg-emerald-600' },
+          { etiqueta: 'Desaprobados', valor: desaprobados, texto: numero(desaprobados), clase: 'bg-rose-500' },
+        ]}
+      />
+    );
+  }
+
+  if (tipo === 'asistencia') {
+    if (resumen.promedio_asistencia === null || resumen.promedio_asistencia === undefined) return null;
+    const asistencia = Math.min(100, Math.max(0, numeroDe(resumen.promedio_asistencia)));
+    return (
+      <BarraProgreso
+        titulo="Asistencia promedio"
+        resumen={`${String(resumen.promedio_asistencia).replace('.', ',')} % de asistencia`}
+        total={100}
+        segmentos={[
+          { etiqueta: 'Asistencia', valor: asistencia, texto: `${String(resumen.promedio_asistencia).replace('.', ',')} %`, clase: 'bg-academico-600' },
+          { etiqueta: 'Inasistencia', valor: 100 - asistencia, texto: `${String(Math.round((100 - asistencia) * 10) / 10).replace('.', ',')} %`, clase: 'bg-slate-300' },
+        ]}
+      />
+    );
+  }
+
+  return null;
 }

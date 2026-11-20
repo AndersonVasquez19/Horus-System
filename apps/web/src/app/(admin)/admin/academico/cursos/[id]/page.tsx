@@ -10,7 +10,7 @@ import { BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
-import { Seccion } from '@/components/shared/ui/tabla';
+import { Seccion, Tabla } from '@/components/shared/ui/tabla';
 import type { CursoDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { etiqueta, fecha, moneda, numero } from '@/lib/panel/formato';
@@ -135,35 +135,25 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
           {curso.estudiantes.length === 0 ? (
             <p className="px-5 py-12 text-center text-sm text-panel-muted">Este curso todavía no tiene estudiantes matriculados.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="mt-3 w-full text-left text-sm">
-                <thead className="border-y border-panel-border bg-panel-bg text-xs uppercase tracking-wide text-panel-muted">
-                  <tr>
-                    <th scope="col" className="px-5 py-2.5 font-semibold">Estudiante</th>
-                    <th scope="col" className="px-5 py-2.5 font-semibold">Matrícula</th>
-                    <th scope="col" className="px-5 py-2.5 font-semibold">Fecha</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-panel-border">
+            <Tabla plana titulo="Estudiantes matriculados en el curso" columnas={['Estudiante', 'Matrícula', 'Fecha']}>
                   {curso.estudiantes.map((estudiante) => (
                     <tr key={estudiante.matricula_id}>
-                      <td className="px-5 py-3 font-medium text-panel-text">
+                      <td className="px-4 py-3 font-medium text-panel-text">
                         <Link href={`/admin/academico/estudiantes/${estudiante.id}`} className="hover:text-academico-800 hover:underline">
                           {estudiante.nombre}
                         </Link>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3">
                         <Link href={`/admin/academico/matriculas/${estudiante.matricula_id}`} className="inline-flex items-center gap-2 hover:underline">
                           <Insignia color={colorEstado(estudiante.estado_matricula)}>{etiqueta('estadoMatricula', estudiante.estado_matricula)}</Insignia>
                           <span className="text-xs text-academico-700">#{estudiante.matricula_id}</span>
                         </Link>
                       </td>
-                      <td className="whitespace-nowrap px-5 py-3 text-panel-muted">{fecha(estudiante.fecha_matricula)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(estudiante.fecha_matricula)}</td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+
+</Tabla>
           )}
         </section>
 

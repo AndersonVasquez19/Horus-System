@@ -391,7 +391,7 @@ function DialogoNota({ objetivo, ocupado, error, onCerrar, onGuardar }: {
         {actual !== undefined ? (
           <Campo etiqueta="Motivo de la corrección" maxLength={200} value={motivo} onChange={(e) => setMotivo(e.target.value)} error={errorDeCampo(error, 'motivo')} ayuda={`Nota actual: ${actual}. Queda en la auditoría.`} required />
         ) : null}
-        <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+        <div className="pie-acciones">
           <Boton variante="secundario" onClick={onCerrar} disabled={ocupado}>Cancelar</Boton>
           <Boton type="submit" cargando={ocupado}>Guardar nota</Boton>
         </div>
@@ -424,7 +424,7 @@ function DialogoEvaluacion({ evaluacion, ocupado, error, onCerrar, onGuardar, on
         <Campo etiqueta="Nombre" maxLength={120} value={nombre} onChange={(e) => setNombre(e.target.value)} error={errorDeCampo(error, 'nombre')} required autoFocus />
         <Campo etiqueta="Peso (%)" type="number" inputMode="decimal" min="0.01" max="100" step="0.01" value={peso} onChange={(e) => setPeso(e.target.value)} error={errorDeCampo(error, 'peso')} ayuda="La suma de pesos no puede pasar de 100 y debe ser 100 para cerrar el acta." required />
         <Campo etiqueta="Fecha (opcional)" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} error={errorDeCampo(error, 'fecha')} />
-        <div className="flex flex-col-reverse gap-2 border-t border-panel-border pt-4 sm:flex-row sm:justify-end">
+        <div className="pie-acciones">
           {onEliminar ? (
             <Boton variante="secundario" icono={<Trash2 className="h-4 w-4" aria-hidden="true" />} onClick={() => void onEliminar()} disabled={ocupado} className="sm:mr-auto">Eliminar</Boton>
           ) : null}

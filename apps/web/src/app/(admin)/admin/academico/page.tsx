@@ -7,6 +7,7 @@ import { EstadoError, EstadoProhibido, EstadoVacio } from '@/components/shared/u
 import { GraficoBarras } from '@/components/shared/ui/grafico-barras';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
+import { Tabla } from '@/components/shared/ui/tabla';
 import type { ResumenAcademico } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { FormularioBusqueda } from '@/components/academico/formulario-busqueda';
@@ -93,30 +94,19 @@ async function Resumen() {
               {b.ultimas_matriculas.length === 0 ? (
                 <p className="px-5 py-10 text-center text-sm text-panel-muted">Todavía no hay matrículas registradas.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="mt-3 w-full text-left text-sm">
-                    <thead className="border-y border-panel-border bg-panel-bg text-xs uppercase tracking-wide text-panel-muted">
-                      <tr>
-                        <th scope="col" className="px-5 py-2.5 font-semibold">Estudiante</th>
-                        <th scope="col" className="px-5 py-2.5 font-semibold">Curso</th>
-                        <th scope="col" className="px-5 py-2.5 font-semibold">Estado</th>
-                        <th scope="col" className="px-5 py-2.5 font-semibold">Fecha</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-panel-border">
+                <Tabla plana titulo="Últimas matrículas" columnas={['Estudiante', 'Curso', 'Estado', 'Fecha']}>
                       {b.ultimas_matriculas.map((matricula) => (
                         <tr key={matricula.id}>
-                          <td className="px-5 py-3 font-medium text-panel-text">{matricula.estudiante ?? '—'}</td>
-                          <td className="px-5 py-3 text-panel-muted">{matricula.curso ?? '—'}</td>
-                          <td className="px-5 py-3">
+                          <td className="px-4 py-3 font-medium text-panel-text">{matricula.estudiante ?? '—'}</td>
+                          <td className="px-4 py-3 text-panel-muted">{matricula.curso ?? '—'}</td>
+                          <td className="px-4 py-3">
                             <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
+                          <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+
+</Tabla>
               )}
             </section>
           ) : null}

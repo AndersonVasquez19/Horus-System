@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { ProbadorAsistente } from '@/components/compartido/probador-asistente';
@@ -7,6 +8,7 @@ import { FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/
 import { Insignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Seccion, Tabla } from '@/components/shared/ui/tabla';
+import { TextoPlegable } from '@/components/shared/ui/texto-plegable';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 
 export const metadata = { title: 'Asistente virtual' };
@@ -126,8 +128,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
             {registros.map((registro) => (
               <tr key={registro.id} className="align-top">
                 <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{registro.fecha_local}</td>
-                <td className="max-w-xs whitespace-pre-line px-4 py-3 font-medium text-panel-text">{registro.mensaje}</td>
-                <td className="max-w-md whitespace-pre-line px-4 py-3 text-panel-muted">{registro.respuesta}</td>
+                <td className="max-w-xs px-4 py-3 font-medium text-panel-text"><TextoPlegable texto={registro.mensaje} /></td>
+                <td className="max-w-md px-4 py-3 text-panel-muted"><TextoPlegable texto={registro.respuesta} /></td>
                 <td className="px-4 py-3">
                   {registro.intencion ? <Insignia color="azul">{etiquetaIntencion(registro.intencion)}</Insignia> : <span className="text-panel-muted">—</span>}
                 </td>
@@ -139,11 +141,14 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
       </section>
 
       {intenciones.length > 0 ? (
-        <section aria-labelledby="titulo-intenciones" className="space-y-3">
-          <h2 id="titulo-intenciones" className="font-heading text-base font-semibold text-panel-text">
-            Intenciones configuradas
-          </h2>
-          <Tabla titulo={`Intenciones (${intenciones.length})`} columnas={['Intención', 'Prioridad', 'Estado']}>
+        <details className="group overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 outline-offset-[-2px] focus-visible:outline-2 focus-visible:outline-academico-700 [&::-webkit-details-marker]:hidden">
+            <h2 id="titulo-intenciones" className="font-heading text-base font-semibold text-panel-text">
+              Intenciones configuradas ({intenciones.length})
+            </h2>
+            <ChevronDown className="h-4 w-4 shrink-0 text-panel-muted transition-transform group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <Tabla plana titulo={`Intenciones (${intenciones.length})`} columnas={['Intención', 'Prioridad', 'Estado']}>
             {intenciones.map((intencion) => {
               const destino = `/admin/academico/asistente?intent=${encodeURIComponent(intencion.nombre)}${porPagina ? `&per_page=${encodeURIComponent(porPagina)}` : ''}`;
               return (
@@ -160,7 +165,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
               );
             })}
           </Tabla>
-        </section>
+        </details>
       ) : null}
     </div>
   );
