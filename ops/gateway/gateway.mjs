@@ -7,11 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { crearGateway } from './proxy.mjs';
 import {
+  RAIZ,
   RUNTIME,
   arrancar,
   colaDeLog,
   definirServicios,
   destinoBaseDeDatos,
+  entornoConDefaultsApi,
   matarArbol,
   puertoLibre,
   resolverConfig,
@@ -45,7 +47,7 @@ if (process.argv.includes('--ayuda') || process.argv.includes('-h')) {
 
 let cfg;
 try {
-  cfg = resolverConfig(process.argv.slice(2));
+  cfg = resolverConfig(process.argv.slice(2), entornoConDefaultsApi(process.env));
 } catch (error) {
   fallar(`${error.message}\n\n${AYUDA}`);
 }
@@ -84,15 +86,32 @@ if (cfg.modo === 'prod' && (cfg.build || !fs.existsSync(path.join(servicios[1].c
 
 log(`Horus System — gateway en ${cfg.origen}  (modo ${cfg.modo})`);
 log(`  Base de datos de Laravel: ${destinoBaseDeDatos()}  (del entorno o de apps/api/.env; el gateway no la cambia)`);
-log(`  Chatbot: ${cfg.chatbot ? `Horus AI en 127.0.0.1:${cfg.puertos.ai} (${cfg.semantico ? 'híbrido' : 'modo según apps/ai/.env'}; sin sincronización de catálogo)` : 'desactivado (--sin-chatbot)'}`);
+log(`  Chatbot: ${cfg.chatbot ? `Horus AI en 127.0.0.1:${cfg.puertos.ai} (${cfg.semantico ? 'híbrido' : 'modo según apps/ai/.env'}; catálogo según .env)` : 'desactivado (--sin-chatbot)'}`);
 log('Iniciando servicios…');
+
+if (cfg.chatbot && cfg.syncCatalogo) {
+  // En Windows `taskkill /F` corta PHP sin liberar el lock de 1 h; se limpia si quedó de una ejecución previa.
+  spawnSync(
+    'php',
+    [
+      '-r',
+      "require 'vendor/autoload.php'; $a = require 'bootstrap/app.php'; $a->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); Illuminate\\Support\\Facades\\Cache::lock('horus.ops.worker.lock')->forceRelease();",
+    ],
+    { cwd: path.join(RAIZ, 'apps', 'api'), stdio: 'ignore' },
+  );
+}
 
 for (const servicio of servicios) {
   const { hijo, archivoLog } = arrancar(servicio);
   procesos.push({ servicio, hijo, archivoLog });
   hijo.on('exit', (codigo) => {
     if (cerrando) return;
-    console.error(`\n✖ ${servicio.nombre} se detuvo (código ${codigo}). Últimas líneas de ${archivoLog}:\n${colaDeLog(archivoLog)}`);
+    const cola = colaDeLog(archivoLog);
+    if (servicio.nombre === 'worker' && cola.includes('worker_already_running')) {
+      log('  ℹ worker ya estaba activo externamente; el gateway continúa');
+      return;
+    }
+    console.error(`\n✖ ${servicio.nombre} se detuvo (código ${codigo}). Últimas líneas de ${archivoLog}:\n${cola}`);
     cerrar(1);
   });
 }
@@ -100,6 +119,10 @@ for (const servicio of servicios) {
 // Esperar a que cada servicio responda su comprobación de salud.
 await Promise.all(
   procesos.map(async ({ servicio }) => {
+    if (!servicio.salud) {
+      log(`  ✔ ${servicio.nombre} iniciado`);
+      return;
+    }
     const inicio = Date.now();
     while (!cerrando && Date.now() - inicio < servicio.salud.maxSegundos * 1000) {
       if (await sondear(servicio.salud)) {
@@ -115,6 +138,17 @@ await Promise.all(
   }),
 );
 if (cerrando) await new Promise(() => {});
+
+if (cfg.chatbot && cfg.syncCatalogo) {
+  const worker = servicios.find((s) => s.nombre === 'worker');
+  const sync = spawnSync('php', ['artisan', 'horus:advisor-operacion', 'sync', '--execute'], {
+    cwd: path.join(RAIZ, 'apps', 'api'),
+    env: { ...process.env, ...worker.env },
+    encoding: 'utf8',
+  });
+  if (sync.status === 0) log('  ✔ sincronización inicial de catálogo despachada');
+  else log(`  ⚠ sincronización inicial de catálogo devolvió código ${sync.status ?? 'desconocido'}`);
+}
 
 fs.mkdirSync(path.join(RUNTIME, 'logs'), { recursive: true });
 const archivoGateway = path.join(RUNTIME, 'logs', 'gateway.log');
