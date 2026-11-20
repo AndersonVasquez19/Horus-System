@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Award,
@@ -11,6 +11,12 @@ import {
   Home,
   Check,
   ArrowRight,
+  CalendarCheck,
+  CalendarDays,
+  Hourglass,
+  MessageCircle,
+  Calendar,
+  X,
 } from 'lucide-react';
 import type { CursoPublico } from '@/lib/horus-api';
 import { CONTACT_INFO } from '@/data/contactos';
@@ -28,8 +34,39 @@ const MENSAJES_ESTADO: Record<Exclude<EstadoCatalogo, 'ok'>, string> = {
   no_disponible: 'No pudimos cargar el listado de cursos en este momento. Inténtalo más tarde.',
 };
 
+const MODALIDAD_META: Record<
+  CursoPublico['modalidad'],
+  { etiqueta: string; Icono: typeof GraduationCap }
+> = {
+  presencial: { etiqueta: 'Presencial', Icono: GraduationCap },
+  semipresencial: { etiqueta: 'Semipresencial', Icono: Home },
+  virtual: { etiqueta: 'Virtual', Icono: Laptop },
+  hibrido: { etiqueta: 'Híbrido', Icono: BookOpen },
+};
+
+function formatearFechaCorta(iso: string): string | null {
+  if (!iso) return null;
+  const fecha = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(fecha.getTime())) return null;
+  return new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(fecha);
+}
+
 export default function CursosView({ cursos, estado }: CursosViewProps) {
   const [modalidadFiltro, setModalidadFiltro] = useState<string>('todos');
+  const [cursoDetalle, setCursoDetalle] = useState<CursoPublico | null>(null);
+
+  useEffect(() => {
+    if (!cursoDetalle) return;
+    const alPresionarTecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCursoDetalle(null);
+    };
+    window.addEventListener('keydown', alPresionarTecla);
+    return () => window.removeEventListener('keydown', alPresionarTecla);
+  }, [cursoDetalle]);
 
   const cursosFiltrados =
     modalidadFiltro === 'todos' ? cursos : cursos.filter((c) => c.modalidad === modalidadFiltro);
@@ -100,153 +137,145 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-6 lg:gap-8 md:grid-cols-3 items-stretch">
             {/* Presencial */}
-            <article className="card-hover-border rounded-2xl bg-white border border-stone-200 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:-translate-y-3 hover:shadow-[0_15px_50px_rgba(0,0,0,0.18)] hover:border-gold transition-all duration-400 flex flex-col justify-between relative overflow-hidden">
-              <div>
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-stone-100 text-[#0A2540] border border-stone-200 mb-6">
+            <article className="group rounded-2xl bg-white border border-stone-200/90 p-7 sm:p-8 shadow-[0_6px_24px_rgba(10,37,64,0.06)] hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(10,37,64,0.1)] hover:border-gold/60 transition-all duration-300 flex flex-col">
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A2540]/6 text-[#0A2540] border border-[#0A2540]/10 group-hover:bg-[#0A2540] group-hover:text-gold transition-colors">
+                  <GraduationCap className="h-6 w-6" />
+                </div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-stone-100 text-[#0A2540] border border-stone-200/80">
                   Tradicional
                 </span>
-
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#0A2540] to-gold shadow-md text-white mb-6">
-                  <GraduationCap className="h-8 w-8" />
-                </div>
-
-                <h3 className="text-2xl font-bold text-[#0A2540] mb-4">PRESENCIAL</h3>
-
-                <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-6">
-                  Nuestras sesiones teóricas y prácticas se desarrollan íntegramente de forma presencial. El
-                  objetivo es potenciar tus habilidades y destrezas mediante un aprendizaje directo y
-                  personalizado.
-                </p>
-
-                <div className="space-y-2.5 border-t border-stone-100 pt-5 mb-8">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Interacción directa.</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Práctica inmediata.</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Networking presencial.</span>
-                  </div>
-                </div>
               </div>
 
-              <div>
+              <h3 className="text-xl font-bold tracking-tight text-[#0A2540] mb-3">PRESENCIAL</h3>
+
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                Sesiones teóricas y prácticas íntegramente presenciales para potenciar tus habilidades con aprendizaje directo y personalizado.
+              </p>
+
+              <ul className="space-y-2.5 border-t border-stone-100 pt-5 mb-7 text-sm text-slate-700 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Interacción directa</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Práctica inmediata</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Networking presencial</span>
+                </li>
+              </ul>
+
+              <div className="mt-auto pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setModalidadFiltro('presencial');
                     document.getElementById('catalogo-cursos')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="inline-flex items-center gap-2 text-sm font-bold text-[#0A2540] hover:text-gold transition-colors"
+                  className="inline-flex w-full items-center justify-between rounded-xl border border-stone-200 bg-stone-50/70 px-4 py-2.5 text-sm font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-[#0A2540] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
                 >
-                  <span>Ver cursos</span>
+                  <span>Ver cursos presenciales</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </article>
 
             {/* Semipresencial (Destacada) */}
-            <article className="card-hover-border rounded-2xl bg-white border-2 border-gold p-8 shadow-[0_12px_40px_rgba(201,169,97,0.2)] hover:-translate-y-3 hover:shadow-[0_20px_60px_rgba(201,169,97,0.3)] transition-all duration-400 flex flex-col justify-between relative overflow-hidden ring-2 ring-gold/20">
-              <div>
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gold text-[#0A2540] shadow-sm mb-6">
+            <article className="group relative rounded-2xl bg-gradient-to-b from-gold/[0.06] via-white to-white border border-gold/70 p-7 sm:p-8 shadow-[0_10px_30px_rgba(201,169,97,0.16)] hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(201,169,97,0.22)] transition-all duration-300 flex flex-col overflow-hidden">
+              <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0A2540] via-gold to-[#0A2540]" />
+
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A2540] text-gold shadow-sm">
+                  <Home className="h-6 w-6" />
+                </div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gold text-[#0A2540]">
                   Más Popular
                 </span>
-
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#0A2540] to-gold shadow-md text-white mb-6">
-                  <Home className="h-8 w-8" />
-                </div>
-
-                <h3 className="text-2xl font-bold text-[#0A2540] mb-4">SEMIPRESENCIAL</h3>
-
-                <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-6">
-                  Combina la flexibilidad digital con la experiencia práctica. Accede a tus clases teóricas
-                  mediante sesiones online en vivo con interacción directa; además, tendrás acceso a las
-                  grabaciones para repasar a tu ritmo. Las sesiones prácticas son 100% presenciales y nos
-                  adaptamos a tu agenda con horarios semanales o mensuales.
-                </p>
-
-                <div className="space-y-2.5 border-t border-stone-100 pt-5 mb-8">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Lo mejor de ambos mundos.</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Clases grabadas.</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Horarios flexibles.</span>
-                  </div>
-                </div>
               </div>
 
-              <div>
+              <h3 className="text-xl font-bold tracking-tight text-[#0A2540] mb-3">SEMIPRESENCIAL</h3>
+
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                Combina clases teóricas online en vivo y grabadas con sesiones prácticas 100% presenciales en horarios semanales o mensuales.
+              </p>
+
+              <ul className="space-y-2.5 border-t border-gold/20 pt-5 mb-7 text-sm text-slate-700 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Lo mejor de ambos mundos</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Clases grabadas de repaso</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Horarios flexibles</span>
+                </li>
+              </ul>
+
+              <div className="mt-auto pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setModalidadFiltro('semipresencial');
                     document.getElementById('catalogo-cursos')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="inline-flex items-center gap-2 text-sm font-bold text-[#0A2540] hover:text-gold transition-colors"
+                  className="inline-flex w-full items-center justify-between rounded-xl bg-[#0A2540] px-4 py-2.5 text-sm font-semibold text-white hover:bg-gold hover:text-[#0A2540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
                 >
-                  <span>Ver cursos</span>
+                  <span>Ver cursos semipresenciales</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </article>
 
             {/* Virtual */}
-            <article className="card-hover-border rounded-2xl bg-white border border-stone-200 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:-translate-y-3 hover:shadow-[0_15px_50px_rgba(0,0,0,0.18)] hover:border-gold transition-all duration-400 flex flex-col justify-between relative overflow-hidden">
-              <div>
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-stone-100 text-[#0A2540] border border-stone-200 mb-6">
+            <article className="group rounded-2xl bg-white border border-stone-200/90 p-7 sm:p-8 shadow-[0_6px_24px_rgba(10,37,64,0.06)] hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(10,37,64,0.1)] hover:border-gold/60 transition-all duration-300 flex flex-col">
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A2540]/6 text-[#0A2540] border border-[#0A2540]/10 group-hover:bg-[#0A2540] group-hover:text-gold transition-colors">
+                  <Laptop className="h-6 w-6" />
+                </div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-stone-100 text-[#0A2540] border border-stone-200/80">
                   100% Online
                 </span>
-
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#0A2540] to-gold shadow-md text-white mb-6">
-                  <Laptop className="h-8 w-8" />
-                </div>
-
-                <h3 className="text-2xl font-bold text-[#0A2540] mb-4">VIRTUAL</h3>
-
-                <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-6">
-                  Lleva tus clases desde la comodidad de tu hogar, donde puedas seguir aprendiendo y mejorando tus
-                  conocimientos teóricos y poder repasar después los puntos que necesites debido a que
-                  nuestras clases son grabadas.
-                </p>
-
-                <div className="space-y-2.5 border-t border-stone-100 pt-5 mb-8">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Desde cualquier lugar.</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Clases grabadas.</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700 font-medium">
-                    <Check className="h-4 w-4 text-gold shrink-0" />
-                    <span>Aprende a tu ritmo.</span>
-                  </div>
-                </div>
               </div>
 
-              <div>
+              <h3 className="text-xl font-bold tracking-tight text-[#0A2540] mb-3">VIRTUAL</h3>
+
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                Estudia desde casa con clases teóricas en línea y acceso a grabaciones para repasar cada módulo a tu propio ritmo.
+              </p>
+
+              <ul className="space-y-2.5 border-t border-stone-100 pt-5 mb-7 text-sm text-slate-700 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Desde cualquier lugar</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Clases grabadas</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-gold-text shrink-0" />
+                  <span>Aprende a tu ritmo</span>
+                </li>
+              </ul>
+
+              <div className="mt-auto pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setModalidadFiltro('virtual');
                     document.getElementById('catalogo-cursos')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="inline-flex items-center gap-2 text-sm font-bold text-[#0A2540] hover:text-gold transition-colors"
+                  className="inline-flex w-full items-center justify-between rounded-xl border border-stone-200 bg-stone-50/70 px-4 py-2.5 text-sm font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-[#0A2540] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
                 >
-                  <span>Ver cursos</span>
+                  <span>Ver cursos virtuales</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -267,7 +296,7 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
             <div className="mt-3 h-1 w-20 rounded-full bg-gold mx-auto"></div>
             <p className="mt-3 text-sm text-slate-600">
               {estado === 'ok'
-                ? `${cursosFiltrados.length} fichas vigentes. Consulta información o solicita tu matrícula directa.`
+                ? `${cursosFiltrados.length} ${cursosFiltrados.length === 1 ? 'curso disponible' : 'cursos disponibles'}. Consulta información o solicita tu matrícula directa.`
                 : 'Consulta información o solicita tu matrícula directa.'}
             </p>
 
@@ -283,9 +312,9 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
                   key={f.id}
                   type="button"
                   onClick={() => setModalidadFiltro(f.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 ${
                     modalidadFiltro === f.id
-                      ? 'bg-[#0A2540] text-white shadow-md'
+                      ? 'bg-[#0A2540] text-white shadow-sm'
                       : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
                   }`}
                 >
@@ -296,75 +325,323 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
           </div>
 
           {estado !== 'ok' && (
-            <p role="status" className="text-center text-sm text-slate-600">
-              {MENSAJES_ESTADO[estado]}{' '}
-              <Link href="/contactos" className="font-semibold underline hover:text-[#0A2540]">
-                Contáctanos
+            <div
+              role="status"
+              className="mx-auto max-w-xl rounded-2xl border border-stone-200 bg-stone-50 px-6 py-8 text-center text-sm text-slate-600"
+            >
+              <p>{MENSAJES_ESTADO[estado]}</p>
+              <Link
+                href="/contactos"
+                className="mt-3 inline-flex items-center gap-1.5 font-semibold text-[#0A2540] underline underline-offset-4 hover:text-gold-text"
+              >
+                <span>Contáctanos</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-            </p>
+            </div>
           )}
 
           {estado === 'ok' && cursosFiltrados.length === 0 && (
-            <p role="status" className="text-center text-sm text-slate-600">
-              No hay cursos publicados vigentes para esta modalidad.{' '}
-              <Link href="/contactos" className="font-semibold underline hover:text-[#0A2540]">
-                Consulta por otros programas
+            <div
+              role="status"
+              className="mx-auto max-w-xl rounded-2xl border border-stone-200 bg-stone-50 px-6 py-8 text-center text-sm text-slate-600"
+            >
+              <p>No hay cursos publicados vigentes para esta modalidad.</p>
+              <Link
+                href="/contactos"
+                className="mt-3 inline-flex items-center gap-1.5 font-semibold text-[#0A2540] underline underline-offset-4 hover:text-gold-text"
+              >
+                <span>Consulta por otros programas</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-            </p>
+            </div>
           )}
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {cursosFiltrados.map((curso) => (
-              <article
-                key={`${curso.titulo}-${curso.vigente_desde}`}
-                className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gold/15 text-slate-800 border border-gold/30 mb-3 uppercase">
-                    {curso.modalidad}
-                  </span>
-                  <h3 className="text-lg font-bold text-[#0A2540] mb-2 leading-snug">
-                    {curso.titulo}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
-                    {curso.resumen}
-                  </p>
-                  <div className="space-y-1.5 text-xs text-slate-600 border-t border-stone-100 pt-3">
-                    {curso.horario && (
-                      <p>
-                        <strong>Horario:</strong> {curso.horario}
-                      </p>
-                    )}
-                    {curso.inscripcion && (
-                      <p>
-                        <strong>Inscripción:</strong> {curso.inscripcion}
-                      </p>
-                    )}
-                  </div>
-                </div>
+          {cursosFiltrados.length > 0 && (
+            <div
+              className={
+                cursosFiltrados.length === 1
+                  ? 'mx-auto max-w-md'
+                  : cursosFiltrados.length === 2
+                    ? 'mx-auto grid max-w-4xl gap-7 sm:grid-cols-2'
+                    : 'grid gap-7 sm:grid-cols-2 lg:grid-cols-3'
+              }
+            >
+              {cursosFiltrados.map((curso) => {
+                const meta = MODALIDAD_META[curso.modalidad] ?? MODALIDAD_META.presencial;
+                const IconoModalidad = meta.Icono;
+                const fechaVigencia = formatearFechaCorta(curso.vigente_hasta);
+                const fechaInicio = curso.fecha_inicio ? formatearFechaCorta(curso.fecha_inicio) : null;
+                const tieneDetalles = Boolean(curso.temario || curso.inscripcion);
+                const tieneMeta = Boolean(fechaInicio || curso.duracion || curso.horario || curso.certificacion);
 
-                <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between gap-3">
-                  <Link
-                    href="/contactos"
-                    className="text-xs font-semibold text-slate-700 underline hover:text-[#0A2540]"
+                return (
+                  <article
+                    key={`${curso.titulo}-${curso.vigente_desde}`}
+                    className="group rounded-2xl border border-stone-200/90 bg-white shadow-[0_8px_26px_rgba(10,37,64,0.06)] hover:shadow-[0_16px_38px_rgba(10,37,64,0.11)] hover:border-gold/60 transition-all duration-300 overflow-hidden flex flex-col"
                   >
-                    Consultar curso
-                  </Link>
+                    {/* Imagen referencial o respaldo visual */}
+                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-[#0A2540] via-[#0F3154] to-[#174066]">
+                      {curso.imagen_url ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={curso.imagen_url}
+                            alt={curso.titulo}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                          />
+                          <div
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-gradient-to-t from-[#0A2540]/60 via-[#0A2540]/10 to-transparent"
+                          />
+                        </>
+                      ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/75">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-gold/35 bg-white/10 text-gold shadow-inner">
+                            <IconoModalidad className="h-7 w-7" />
+                          </div>
+                          <span className="text-[11px] font-medium tracking-wide text-white/65 uppercase">
+                            Horus Educación
+                          </span>
+                        </div>
+                      )}
 
-                  <a
-                    href={`https://wa.me/${CONTACT_INFO.phoneClean}?text=${encodeURIComponent(`Hola, deseo solicitar matrícula para el curso: ${curso.titulo}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-[#0A2540] hover:bg-gold hover:text-[#0A2540] text-white text-xs font-semibold transition-colors shadow-sm"
-                  >
-                    Solicitar matrícula
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
+                      <div className="absolute inset-x-4 top-3.5 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A2540]/85 backdrop-blur-sm border border-gold/40 px-3 py-1 text-xs font-semibold text-gold-light shadow-sm">
+                          <IconoModalidad className="h-3.5 w-3.5 text-gold" />
+                          <span>{meta.etiqueta}</span>
+                        </span>
+
+                        {fechaVigencia && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#0A2540]/80 backdrop-blur-sm px-2.5 py-1 text-[11px] font-medium text-white/90">
+                            <Calendar className="h-3 w-3 text-gold" />
+                            <span>Hasta {fechaVigencia}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cuerpo */}
+                    <div className="p-6 sm:p-7 flex-1 flex flex-col">
+                      <h3 className="text-xl font-bold text-[#0A2540] mb-2.5 leading-snug tracking-tight group-hover:text-[#153A59] transition-colors">
+                        {curso.titulo}
+                      </h3>
+
+                      <p className="text-sm text-slate-600 leading-relaxed mb-5 line-clamp-3">
+                        {curso.resumen}
+                      </p>
+
+                      {tieneMeta && (
+                        <div className="mt-auto space-y-2.5 rounded-xl bg-stone-50/90 border border-stone-200/75 p-4 text-[13px] text-slate-700">
+                          {fechaInicio && (
+                            <div className="flex items-start gap-2.5">
+                              <CalendarDays className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-semibold text-[#0A2540]">Inicio: </span>
+                                <span>{fechaInicio}</span>
+                              </div>
+                            </div>
+                          )}
+                          {curso.duracion && (
+                            <div className="flex items-start gap-2.5">
+                              <Hourglass className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-semibold text-[#0A2540]">Duración: </span>
+                                <span>{curso.duracion}</span>
+                              </div>
+                            </div>
+                          )}
+                          {curso.horario && (
+                            <div className="flex items-start gap-2.5">
+                              <Clock className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-semibold text-[#0A2540]">Horario: </span>
+                                <span>{curso.horario}</span>
+                              </div>
+                            </div>
+                          )}
+                          {curso.certificacion && (
+                            <div className="flex items-start gap-2.5">
+                              <Award className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-semibold text-[#0A2540]">Incluye: </span>
+                                <span>{curso.certificacion}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Acciones */}
+                      <div className="mt-6 pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        {tieneDetalles ? (
+                          <button
+                            type="button"
+                            onClick={() => setCursoDetalle(curso)}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-xs font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
+                          >
+                            Ver detalles
+                          </button>
+                        ) : (
+                          <Link
+                            href="/contactos"
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-xs font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
+                          >
+                            Consultar curso
+                          </Link>
+                        )}
+
+                        <a
+                          href={`https://wa.me/${CONTACT_INFO.phoneClean}?text=${encodeURIComponent(`Hola, deseo solicitar matrícula para el curso: ${curso.titulo}.`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0A2540] px-4 text-xs font-semibold text-white hover:bg-gold hover:text-[#0A2540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors shadow-sm"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          <span>Solicitar matrícula</span>
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Modal de detalles del curso */}
+      {cursoDetalle && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="curso-detalle-titulo"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A2540]/60 backdrop-blur-xs p-4"
+          onClick={() => setCursoDetalle(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl border border-stone-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setCursoDetalle(null)}
+              aria-label="Cerrar detalles del curso"
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540]/85 text-white hover:bg-[#0A2540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {cursoDetalle.imagen_url ? (
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#0A2540]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={cursoDetalle.imagen_url} alt={cursoDetalle.titulo} className="h-full w-full object-cover" />
+              </div>
+            ) : null}
+
+            <div className="p-6 sm:p-8 space-y-5">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A2540]/8 border border-[#0A2540]/15 px-3 py-1 text-xs font-semibold text-[#0A2540] mb-3">
+                  {(MODALIDAD_META[cursoDetalle.modalidad] ?? MODALIDAD_META.presencial).etiqueta}
+                </span>
+                <h3 id="curso-detalle-titulo" className="text-2xl font-bold text-[#0A2540] leading-snug">
+                  {cursoDetalle.titulo}
+                </h3>
+                <p className="mt-2.5 text-sm text-slate-600 leading-relaxed">{cursoDetalle.resumen}</p>
+              </div>
+
+              {(cursoDetalle.fecha_inicio || cursoDetalle.duracion || cursoDetalle.horario || cursoDetalle.certificacion) && (
+                <div className="grid gap-3 sm:grid-cols-2 rounded-xl bg-stone-50 border border-stone-200/80 p-4 text-[13px] text-slate-700">
+                  {cursoDetalle.fecha_inicio && formatearFechaCorta(cursoDetalle.fecha_inicio) && (
+                    <div className="flex items-start gap-2.5">
+                      <CalendarDays className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-[#0A2540]">Inicio: </span>
+                        <span>{formatearFechaCorta(cursoDetalle.fecha_inicio)}</span>
+                      </div>
+                    </div>
+                  )}
+                  {cursoDetalle.duracion && (
+                    <div className="flex items-start gap-2.5">
+                      <Hourglass className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-[#0A2540]">Duración: </span>
+                        <span>{cursoDetalle.duracion}</span>
+                      </div>
+                    </div>
+                  )}
+                  {cursoDetalle.horario && (
+                    <div className="flex items-start gap-2.5">
+                      <Clock className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-[#0A2540]">Horario: </span>
+                        <span>{cursoDetalle.horario}</span>
+                      </div>
+                    </div>
+                  )}
+                  {cursoDetalle.certificacion && (
+                    <div className="flex items-start gap-2.5">
+                      <Award className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-[#0A2540]">Incluye: </span>
+                        <span>{cursoDetalle.certificacion}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {cursoDetalle.temario && (
+                <div>
+                  <h4 className="text-sm font-bold text-[#0A2540] mb-2.5">Temario / lo que aprenderás</h4>
+                  <ul className="space-y-2 text-sm text-slate-700">
+                    {cursoDetalle.temario
+                      .split(/\r?\n/)
+                      .map((linea) => linea.trim())
+                      .filter(Boolean)
+                      .map((linea, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5">
+                          <Check className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                          <span>{linea.replace(/^[-•*]\s*/, '')}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
+              {cursoDetalle.inscripcion && (
+                <div className="rounded-xl border border-gold/35 bg-gold/[0.06] p-4 text-sm text-slate-700">
+                  <div className="flex items-start gap-2.5">
+                    <CalendarCheck className="h-4 w-4 text-gold-text shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold text-[#0A2540]">Cómo inscribirse: </span>
+                      <span>{cursoDetalle.inscripcion}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <Link
+                  href="/contactos"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-stone-300 bg-white px-5 text-sm font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
+                >
+                  Consultar curso
+                </Link>
+                <a
+                  href={`https://wa.me/${CONTACT_INFO.phoneClean}?text=${encodeURIComponent(`Hola, deseo solicitar matrícula para el curso: ${cursoDetalle.titulo}.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0A2540] px-5 text-sm font-semibold text-white hover:bg-gold hover:text-[#0A2540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors shadow-sm"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Solicitar matrícula</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
