@@ -9,7 +9,8 @@
     "lint": "eslint",
     "verify:assets": "node scripts/verify-assets.js",
     "test:routes": "node scripts/probe-server.js",
-    "test:unit": "node --no-warnings --test src/lib/panel/__pruebas__/contacto.test.mts"
+    "test:unit": "node --no-warnings --test \"src/lib/panel/__pruebas__/*.test.mts\"",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -20,11 +21,14 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.92.0",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "yet-another-react-lightbox": "^3.33.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",

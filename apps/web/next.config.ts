@@ -21,6 +21,8 @@ const CABECERAS_PANEL = [
 const nextConfig: NextConfig = {
   /* config options here */
   outputFileTracingRoot: path.resolve(__dirname),
+  // Carpeta de compilación. Por omisión `.next`; las pruebas e2e fijan otra para convivir con un `next dev` abierto.
+  distDir: process.env.HORUS_NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
