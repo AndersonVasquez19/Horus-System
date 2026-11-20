@@ -73,7 +73,7 @@ const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 
 const CAMPOS_ESTUDIANTE = ['dni', 'nombres', 'apellidos', 'email', 'telefono', 'fecha_nacimiento', 'direccion', 'estado'] as const;
 const CAMPOS_CURSO = ['codigo', 'nombre', 'descripcion', 'categoria', 'duracion_horas', 'precio', 'modalidad', 'horario', 'cupos_maximos', 'estado', 'enlace_grupo_whatsapp'] as const;
-const CAMPOS_FICHA = ['titulo', 'resumen', 'modalidad', 'horario', 'inscripcion', 'vigente_desde', 'vigente_hasta', 'confirmacion_publica', '_revision'] as const;
+const CAMPOS_FICHA = ['titulo', 'resumen', 'modalidad', 'horario', 'fecha_inicio', 'duracion', 'certificacion', 'temario', 'inscripcion', 'vigente_desde', 'vigente_hasta', 'confirmacion_publica', '_revision'] as const;
 const FILTROS_REPORTE = ['tipo', 'busqueda', 'estado', 'curso_id', 'eliminados', 'completo', 'lote'] as const;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const IMAGENES = ['image/jpeg', 'image/png', 'image/webp'] as const;
@@ -177,6 +177,8 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^academico/cursos/${ID}/restaurar$`) },
   { metodo: 'GET', patron: new RegExp(`^academico/cursos/${ID}/publicacion$`) },
   { metodo: 'PUT', patron: new RegExp(`^academico/cursos/${ID}/publicacion$`), campos: CAMPOS_FICHA },
+  { metodo: 'POST', patron: new RegExp(`^academico/cursos/${ID}/publicacion/imagen$`), multipart: ['_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/cursos/${ID}/publicacion/imagen/eliminar$`), campos: ['_revision'] },
   { metodo: 'POST', patron: new RegExp(`^academico/cursos/${ID}/publicacion/retirar$`), campos: ['_revision'] },
 
   // Reportes de matrículas (Excel y PDF se generan en Laravel)
