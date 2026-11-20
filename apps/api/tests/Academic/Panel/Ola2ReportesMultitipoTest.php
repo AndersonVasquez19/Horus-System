@@ -45,8 +45,11 @@ test('reportes soporta cobranza, asistencia, calificaciones, permisos de origen 
         'metodo_pago_id' => $metodo->id, 'monto' => '250.00', 'fecha_pago' => '2026-11-10', 'estado' => 'confirmada',
     ]);
 
-    // Secretaria no tiene pagos.ver -> 403 en tipo=cobranza
-    $this->panelComo($secretaria, 'GET', 'academico/reportes?tipo=cobranza')->assertForbidden();
+    // Secretaría tiene pagos.ver desde el 20/11/2026 (sube comprobantes) -> ve la cobranza; sin ese permiso sería 403.
+    $this->panelComo($secretaria, 'GET', 'academico/reportes?tipo=cobranza')->assertOk();
+    $sinPagos = \App\Models\User::factory()->create(['email' => 'sin-pagos@example.invalid']);
+    $sinPagos->givePermissionTo(['panel.academico.acceder', 'reportes.ver']);
+    $this->panelComo($sinPagos, 'GET', 'academico/reportes?tipo=cobranza')->assertForbidden();
 
     $this->panelComo($admin, 'GET', 'academico/reportes?tipo=cobranza')
         ->assertOk()

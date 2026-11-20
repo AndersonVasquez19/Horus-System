@@ -44,14 +44,16 @@ final class PagoController extends Controller implements HasMiddleware
 
     private const ORDENABLES = ['creado' => 'obligaciones_pago.created_at', 'monto' => 'obligaciones_pago.monto_total'];
 
+    private const ORDENABLES_COMPROBANTES = ['fecha' => 'transacciones_pago.fecha_pago', 'monto' => 'transacciones_pago.monto'];
+
     public function __construct(private readonly GestionPagos $gestion) {}
 
     /** @return list<Middleware> */
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'show', 'deMatricula', 'verComprobante', 'recibo', 'cajaDiariaResumen', 'cajaDiariaPdf']),
-            new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante', 'registrar', 'verificarReferencia']),
+            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'comprobantes', 'show', 'deMatricula', 'verComprobante', 'recibo', 'cajaDiariaResumen', 'cajaDiariaPdf']),
+            new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante', 'registrar', 'registrarDeMatricula', 'verificarReferencia']),
             new Middleware('permission:pagos.planificar', only: ['crearObligacion', 'anular']),
             new Middleware('permission:pagos.confirmar', only: ['confirmar', 'rechazar']),
             new Middleware('permission:pagos.reversar', only: ['reversar']),
@@ -194,6 +196,89 @@ final class PagoController extends Controller implements HasMiddleware
         return Listado::responder($paginas, fn (ObligacionPago $o): array => $this->resumen($o), $orden, $filtros)->header('Cache-Control', 'no-store, private');
     }
 
+    /**
+     * Pagos registrados con su comprobante (uno por fila, el más reciente primero) y lo que aún debe cada matrícula. Es la vista
+     * principal de Pagos: lo que la persona pagó, no la planificación de cobro. Solo pagos; los reversos no se listan.
+     */
+    public function comprobantes(Request $request): JsonResponse
+    {
+        $filtros = [
+            'busqueda' => ListFilter::text($request, 'busqueda'),
+            'estado' => ListFilter::in($request, 'estado', ['por_confirmar', 'confirmada', 'rechazada']),
+            'comprobante' => ListFilter::in($request, 'comprobante', ['sin']),
+            'desde' => ListFilter::date($request, 'desde'),
+            'hasta' => ListFilter::date($request, 'hasta'),
+        ];
+
+        $consulta = TransaccionPago::query()
+            ->select('transacciones_pago.*')
+            ->where('transacciones_pago.tipo', 'pago')
+            ->with(['metodo', 'comprobante:id,transaccion_pago_id,mime','obligacion.transacciones', 'obligacion.matricula.estudiante', 'obligacion.matricula.convocatoria']);
+
+        if ($filtros['busqueda'] !== '') {
+            $busqueda = $filtros['busqueda'];
+            $consulta->where(function (Builder $q) use ($busqueda): void {
+                $q->whereHas('obligacion.matricula.estudiante', fn (Builder $e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $busqueda))
+                    ->orWhereHas('obligacion.matricula.convocatoria', fn (Builder $cv) => BusquedaLike::contiene($cv, ['codigo'], $busqueda));
+                BusquedaLike::contiene($q, ['transacciones_pago.referencia'], $busqueda, or: true);
+            });
+        }
+        if ($filtros['estado'] !== '') {
+            $consulta->where('transacciones_pago.estado', $filtros['estado'] === 'por_confirmar' ? 'pendiente' : $filtros['estado']);
+        }
+        if ($filtros['comprobante'] === 'sin') {
+            $consulta->whereDoesntHave('comprobante');
+        }
+        if ($filtros['desde'] !== '') {
+            $consulta->whereDate('transacciones_pago.fecha_pago', '>=', $filtros['desde']);
+        }
+        if ($filtros['hasta'] !== '') {
+            $consulta->whereDate('transacciones_pago.fecha_pago', '<=', $filtros['hasta']);
+        }
+
+        $orden = Listado::ordenar($consulta, $request, self::ORDENABLES_COMPROBANTES, '-fecha');
+        $paginas = Listado::paginar($consulta, $request);
+        $repetidas = $this->gestion->imagenesRepetidas(array_values(array_map(static fn (TransaccionPago $t): int => $t->id, $paginas->items())));
+
+        return Listado::responder($paginas, fn (TransaccionPago $t): array => $this->filaComprobante($t, $repetidas[$t->id] ?? null), $orden, $filtros)->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * @param  array{matricula_id: int, fecha_pago: string}|null  $repetida
+     * @return array<string, mixed>
+     */
+    private function filaComprobante(TransaccionPago $t, ?array $repetida): array
+    {
+        $o = $t->obligacion;
+        $matricula = $o?->matricula;
+        $e = $matricula?->estudiante;
+        if ($o === null || $matricula === null || $e === null) {
+            throw new RuntimeException("El pago {$t->identificador} no tiene matrícula o estudiante asociado.");
+        }
+        $s = $this->gestion->saldos($o);
+
+        return [
+            'identificador' => $t->identificador,
+            'obligacion' => $o->identificador,
+            'matricula_id' => $matricula->id,
+            'estudiante' => ['id' => $e->id, 'dni' => $e->dni, 'nombre' => trim($e->apellidos.', '.$e->nombres)],
+            'edicion' => $matricula->convocatoria?->codigo,
+            'monto' => GestionPagos::formato(GestionPagos::leer($t->monto)),
+            'metodo' => $t->metodo->nombre ?? '',
+            'fecha_pago' => substr((string) $t->fecha_pago, 0, 10),
+            'referencia' => $t->referencia,
+            'estado' => $t->estado,
+            'tiene_comprobante' => $t->comprobante !== null,
+            'tipo_comprobante' => self::tipoComprobante($t),
+            'imagen_repetida' => $repetida,
+            'revertida' => $o->transacciones->contains(fn (TransaccionPago $x): bool => $x->reversa_de_id === $t->id),
+            'total' => GestionPagos::formato($s['total']),
+            'pagado' => GestionPagos::formato($s['confirmado']),
+            'por_confirmar' => GestionPagos::formato($s['pendiente']),
+            'saldo' => GestionPagos::formato(max(0, $s['total'] - $s['confirmado'] - $s['pendiente'])),
+        ];
+    }
+
     /** Excel de las obligaciones (hasta 5000, respetando filtros y orden), sin conservarlo en el servidor y con constancia sin datos personales. */
     public function exportar(Request $request): BinaryFileResponse
     {
@@ -332,29 +417,57 @@ final class PagoController extends Controller implements HasMiddleware
         return $this->json(['message' => $creada ? 'El pago se registró.' : 'Este pago ya estaba registrado.', 'data' => $this->detalle($this->buscar($obligacion))], $creada ? 201 : 200);
     }
 
+    /**
+     * Registra un pago sobre una matrícula. Si aún no tiene obligación vigente, el servidor la crea (pago completo por el precio del
+     * curso). La respuesta incluye el identificador del pago nuevo para adjuntarle la captura del comprobante.
+     */
+    public function registrarDeMatricula(Request $request, int $matricula): JsonResponse
+    {
+        PrecondicionesPanel::aplicar($request);
+        $datos = $request->validate([
+            'metodo' => ['required', 'string', 'max:20'],
+            'monto' => ['required'],
+            'fecha_pago' => ['required', 'date_format:Y-m-d'],
+            'referencia' => ['nullable', 'string', 'max:80', 'not_regex:/[<>]/u'],
+            'confirmar' => ['nullable', 'boolean'],
+        ], ['metodo.required' => 'Selecciona el método de pago.', 'monto.required' => 'Indica el importe.', 'fecha_pago.date_format' => 'La fecha debe tener el formato AAAA-MM-DD.']);
+        [$t, $o, $creada] = $this->gestion->registrarPagoDeMatricula($request, $matricula, $datos, $request->header('Idempotency-Key'));
+
+        return $this->json([
+            'message' => $creada ? 'El pago se registró.' : 'Este pago ya estaba registrado.',
+            'transaccion' => $t->identificador,
+            'data' => $this->detalle($this->buscar($o->identificador)),
+        ], $creada ? 201 : 200);
+    }
+
     /** Adjunta la captura del comprobante (campo `imagen`, JPG/PNG/WebP de hasta 3 MB) a un pago por confirmar. */
     public function adjuntarComprobante(Request $request, string $transaccion): JsonResponse
     {
-        $request->validate(['imagen' => ComprobantesPago::reglas()], [
-            'imagen.required' => 'Adjunta la captura del comprobante de pago.',
-            'imagen.image' => 'El comprobante debe ser una imagen.',
-            'imagen.mimes' => 'Sube una captura en JPG, PNG o WebP.',
-            'imagen.mimetypes' => 'Sube una captura en JPG, PNG o WebP.',
-            'imagen.max' => 'La captura no puede pasar de 3 MB.',
-            'imagen.dimensions' => 'La captura debe medir entre 100 y 8000 píxeles por lado.',
+        $request->validate(['imagen' => ComprobantesPago::reglas(permitirPdf: true)], [
+            'imagen.required' => 'Adjunta el comprobante de pago.',
+            'imagen.mimes' => 'Sube una captura en JPG, PNG o WebP, o un PDF.',
+            'imagen.mimetypes' => 'Sube una captura en JPG, PNG o WebP, o un PDF.',
+            'imagen.max' => 'El comprobante no puede pasar de 3 MB.',
         ]);
         $t = $this->gestion->adjuntarComprobante($request, $transaccion, $request->file('imagen'));
 
-        return $this->json(['message' => 'El comprobante se adjuntó.', 'data' => $this->detalle($t->obligacion()->firstOrFail())]);
+        return $this->json([
+            'message' => 'El comprobante se adjuntó.',
+            // Solo avisa: la misma captura en otro pago vigente suele ser un error o un cobro duplicado; decide quien confirma.
+            'advertencias' => ['imagen_repetida' => $this->gestion->imagenesRepetidas([$t->id])[$t->id] ?? null],
+            'data' => $this->detalle($t->obligacion()->firstOrFail()),
+        ]);
     }
 
     /** Sirve la captura con su tipo real; solo con permiso, sin caché y sin posibilidad de ejecutarse en el navegador. */
     public function verComprobante(Request $request, string $transaccion): Response
     {
         $c = $this->gestion->leerComprobante($request, $transaccion);
+        // Una captura se muestra en línea; un PDF SOLO se descarga (nunca se abre en el navegador: puede traer contenido activo).
+        $disposicion = $c['tipo'] === ComprobantesPago::PDF ? 'attachment; filename="comprobante-de-pago.pdf"' : 'inline';
 
         return response($c['bytes'], 200, [
-            'Content-Type' => $c['tipo'], 'Content-Disposition' => 'inline', 'X-Content-Type-Options' => 'nosniff',
+            'Content-Type' => $c['tipo'], 'Content-Disposition' => $disposicion, 'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'no-store, private', 'Content-Security-Policy' => "default-src 'none'; img-src 'self' data:; sandbox",
         ]);
     }
@@ -378,6 +491,14 @@ final class PagoController extends Controller implements HasMiddleware
         $t = $this->gestion->reversar($request, $transaccion, $this->motivo($request));
 
         return $this->json(['message' => 'El pago se reversó.', 'data' => $this->detalle($t->obligacion()->firstOrFail())]);
+    }
+
+    /** `imagen`, `pdf` o `null` (sin comprobante). El navegador lo usa para elegir entre mostrar la captura o descargar el PDF. */
+    private static function tipoComprobante(TransaccionPago $t): ?string
+    {
+        $c = $t->comprobante;
+
+        return $c === null ? null : ($c->mime === ComprobantesPago::PDF ? 'pdf' : 'imagen');
     }
 
     private function motivo(Request $request): string
@@ -533,6 +654,7 @@ final class PagoController extends Controller implements HasMiddleware
     {
         $o->loadMissing(['matricula.estudiante', 'matricula.convocatoria', 'cuotas', 'transacciones.metodo', 'transacciones.reversaDe']);
         $pagado = $this->gestion->pagadoPorCuota($o);
+        $repetidas = $this->gestion->imagenesRepetidas(array_values($o->transacciones->where('tipo', 'pago')->map(fn (TransaccionPago $t): int => $t->id)->all()));
 
         return [
             ...$this->resumen($o),
@@ -544,6 +666,7 @@ final class PagoController extends Controller implements HasMiddleware
                 return ['numero' => $c->numero, 'monto' => GestionPagos::formato($monto), 'vence' => substr((string) $c->vence, 0, 10), 'pagado' => GestionPagos::formato($p), 'saldo' => GestionPagos::formato(max(0, $monto - $p))];
             })->values()->all(),
             'transacciones' => $o->transacciones->map(fn (TransaccionPago $t): array => [
+                'imagen_repetida' => $repetidas[$t->id] ?? null,
                 'identificador' => $t->identificador,
                 'tipo' => $t->tipo,
                 'estado' => $t->estado,
@@ -554,6 +677,7 @@ final class PagoController extends Controller implements HasMiddleware
                 'motivo' => $t->motivo,
                 'reversa_de' => $t->reversaDe?->identificador,
                 'tiene_comprobante' => $t->comprobante !== null,
+                'tipo_comprobante' => self::tipoComprobante($t),
                 'revertida' => $t->tipo === 'pago' && $o->transacciones->contains(fn (TransaccionPago $x): bool => $x->reversa_de_id === $t->id),
             ])->values()->all(),
         ];

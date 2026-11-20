@@ -1586,6 +1586,48 @@ paths:
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/{matricula}/pagos:
+    post:
+      tags: [academico]
+      summary: "Registra un pago sobre una matrícula; si no tiene obligación vigente, la crea (pago completo por el precio del curso)"
+      description: "Permiso: `pagos.registrar`."
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PagoEntrada' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '428': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/comprobantes:
+    get:
+      tags: [academico]
+      summary: "Pagos registrados con su comprobante y el saldo pendiente de cada matrícula (más recientes primero)"
+      description: "Permiso: `pagos.ver`."
+      parameters:
+        - { name: busqueda, in: query, schema: { type: string } }
+        - { name: estado, in: query, schema: { type: string, enum: [por_confirmar, confirmada, rechazada] } }
+        - { name: comprobante, in: query, schema: { type: string, enum: [sin] } }
+        - { name: desde, in: query, schema: { type: string, format: date } }
+        - { name: hasta, in: query, schema: { type: string, format: date } }
+        - { name: sort, in: query, schema: { type: string, enum: [fecha, -fecha, monto, -monto] } }
+        - { name: per_page, in: query, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/pagos/obligaciones/{obligacion}/anular:
     post:
       tags: [academico]

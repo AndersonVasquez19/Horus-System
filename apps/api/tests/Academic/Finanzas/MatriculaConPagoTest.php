@@ -136,7 +136,7 @@ it('solo lo hace el administrador: coordinador, secretaria y anónimos no', func
     cpEnviar($this, $coord, cpDatos($c, $e))->assertForbidden();
     cpEnviar($this, $sec, cpDatos($c, $e))->assertForbidden();
     expect(Matricula::count())->toBe(0)
-        ->and($coord->can('pagos.ver'))->toBeFalse()->and($coord->can('pagos.registrar'))->toBeFalse()->and($sec->can('pagos.ver'))->toBeFalse();
+        ->and($coord->can('pagos.planificar'))->toBeFalse()->and($coord->can('pagos.confirmar'))->toBeFalse()->and($sec->can('pagos.planificar'))->toBeFalse()->and($sec->can('pagos.confirmar'))->toBeFalse();
 });
 
 it('el estado de la matrícula sigue al libro: pagada al cobrar todo y pendiente si se reversa el pago', function (): void {
@@ -150,4 +150,21 @@ it('el estado de la matrícula sigue al libro: pagada al cobrar todo y pendiente
     expect(Matricula::first()->estado)->toBe('pendiente')->and((float) Matricula::first()->monto_pagado)->toBe(0.0)
         ->and(AuditLog::where('action', 'matricula_estado_derivado')->count())->toBe(2);
     $this->artisan('horus:verificar-finanzas')->expectsOutputToContain('consistente')->assertSuccessful();
+});
+
+it('rechaza «matricular con pago» si la captura ya respalda otro pago vigente, sin dejar nada creado', function (): void {
+    [$c, $e] = cpEscenario(20, '90000011');
+    [, $otro] = cpEscenario(20, '90000012');
+    $admin = $this->usuarioConRol('admin');
+
+    cpEnviar($this, $admin, cpDatos($c, $e), 'clave-caja-dup-01')->assertCreated();
+    $antes = ['matriculas' => Matricula::count(), 'archivos' => count(Storage::disk('local')->allFiles('comprobantes'))];
+
+    // Mismo archivo (mismo tamaño y contenido) para otro estudiante: se rechaza.
+    cpEnviar($this, $admin, cpDatos($c, $otro, ['referencia' => 'OP-OTRA']), 'clave-caja-dup-02')
+        ->assertStatus(422)->assertJsonValidationErrors('imagen');
+
+    expect(Matricula::count())->toBe($antes['matriculas'])
+        ->and(count(Storage::disk('local')->allFiles('comprobantes')))->toBe($antes['archivos'])
+        ->and(TransaccionPago::count())->toBe(1);
 });
