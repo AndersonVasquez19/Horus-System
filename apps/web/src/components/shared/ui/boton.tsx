@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 
 export type TonoUi = 'academico';
 type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma';
@@ -25,6 +25,8 @@ interface BotonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variante?: Variante;
   cargando?: boolean;
   icono?: ReactNode;
+  /** React 19 entrega `ref` como prop: llega al `<button>` por `...resto`. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function Boton({

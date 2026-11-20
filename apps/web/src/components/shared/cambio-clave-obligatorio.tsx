@@ -6,7 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
-import { Campo } from '@/components/shared/ui/campo';
+import { CampoClave } from '@/components/shared/ui/campo';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import type { ErrorPanel, SesionPanel } from '@/lib/panel/tipos';
@@ -61,10 +61,9 @@ export function CambioClaveObligatorio({ sesion, tono }: { sesion: SesionPanel; 
 
       <form onSubmit={enviar} noValidate className="mt-5 space-y-4">
         {error && error.code !== 'validacion' ? <Alerta tipo="error">{error.message}</Alerta> : null}
-        <Campo
+        <CampoClave
           tono={tono}
           etiqueta="Contraseña temporal actual"
-          type="password"
           value={actual}
           onChange={(e) => setActual(e.target.value)}
           error={errorDeCampo(error, 'current_password')}
@@ -72,20 +71,19 @@ export function CambioClaveObligatorio({ sesion, tono }: { sesion: SesionPanel; 
           required
           autoFocus
         />
-        <Campo
+        <CampoClave
           tono={tono}
           etiqueta="Nueva contraseña"
-          type="password"
+          politica
           value={nueva}
           onChange={(e) => setNueva(e.target.value)}
           error={errorDeCampo(error, 'password')}
           autoComplete="new-password"
           required
         />
-        <Campo
+        <CampoClave
           tono={tono}
           etiqueta="Confirmar nueva contraseña"
-          type="password"
           value={confirmacion}
           onChange={(e) => setConfirmacion(e.target.value)}
           autoComplete="new-password"

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { TonoUi } from './boton';
+import { ContenedorFiltros } from './contenedor-filtros';
 
 /*
  * Barra de filtros de los listados del panel: formulario GET (funciona sin JavaScript; con él, `next/form`
@@ -30,18 +31,20 @@ interface FiltrosListadoProps {
 
 export function FiltrosListado({ tono, ruta, rutaLimpiar, hayFiltros, children }: FiltrosListadoProps) {
   return (
-    <Form action={ruta} className="flex flex-wrap items-end gap-3 rounded-xl border border-panel-border bg-panel-surface p-4 shadow-sm">
-      {children}
-      <div className="flex gap-2">
-        <button type="submit" className={`rounded-lg px-4 py-2 text-sm font-semibold text-white outline-offset-2 focus-visible:outline-2 ${ESTILOS[tono].boton}`}>
-          Aplicar
-        </button>
-        {hayFiltros ? (
-          <Link href={rutaLimpiar ?? ruta} className="rounded-lg px-3 py-2 text-sm font-medium text-panel-muted hover:bg-panel-bg hover:text-panel-text">
-            Limpiar
-          </Link>
-        ) : null}
-      </div>
+    <Form action={ruta} className="flex flex-wrap items-end gap-3 rounded-xl border border-panel-border bg-panel-surface p-4 shadow-sm print:hidden">
+      <ContenedorFiltros activos={hayFiltros}>
+        {children}
+        <div className="flex gap-2">
+          <button type="submit" className={`min-h-10 rounded-lg px-4 py-2 text-sm font-semibold text-white outline-offset-2 focus-visible:outline-2 ${ESTILOS[tono].boton}`}>
+            Aplicar
+          </button>
+          {hayFiltros ? (
+            <Link href={rutaLimpiar ?? ruta} className="inline-flex min-h-10 items-center rounded-lg px-3 py-2 text-sm font-medium text-panel-muted hover:bg-panel-bg hover:text-panel-text">
+              Limpiar
+            </Link>
+          ) : null}
+        </div>
+      </ContenedorFiltros>
     </Form>
   );
 }
@@ -49,7 +52,7 @@ export function FiltrosListado({ tono, ruta, rutaLimpiar, hayFiltros, children }
 export function CampoBusqueda({ tono, nombre, valor, marcador, etiqueta = 'Buscar' }: { tono: TonoUi; nombre: string; valor: string; marcador: string; etiqueta?: string }) {
   return (
     <div className="min-w-56 flex-1">
-      <label htmlFor={nombre} className="mb-1 block text-xs font-medium text-panel-muted">{etiqueta}</label>
+      <label htmlFor={nombre} className="mb-1 block text-sm font-medium text-panel-muted">{etiqueta}</label>
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-panel-muted" aria-hidden="true" />
         <input id={nombre} name={nombre} type="search" defaultValue={valor} placeholder={marcador} maxLength={200} className={`${claseControl(tono)} w-full pl-9`} />
@@ -61,7 +64,7 @@ export function CampoBusqueda({ tono, nombre, valor, marcador, etiqueta = 'Busca
 export function SelectorFiltro({ tono, nombre, etiqueta, valor, opciones, todos = 'Todos' }: { tono: TonoUi; nombre: string; etiqueta: string; valor: string; opciones: Record<string, string>; todos?: string | null }) {
   return (
     <div>
-      <label htmlFor={nombre} className="mb-1 block text-xs font-medium text-panel-muted">{etiqueta}</label>
+      <label htmlFor={nombre} className="mb-1 block text-sm font-medium text-panel-muted">{etiqueta}</label>
       <select id={nombre} name={nombre} defaultValue={valor} className={claseControl(tono)}>
         {todos !== null ? <option value="">{todos}</option> : null}
         {Object.entries(opciones).map(([clave, texto]) => (
@@ -75,7 +78,7 @@ export function SelectorFiltro({ tono, nombre, etiqueta, valor, opciones, todos 
 export function CampoFecha({ tono, nombre, etiqueta, valor }: { tono: TonoUi; nombre: string; etiqueta: string; valor: string }) {
   return (
     <div>
-      <label htmlFor={nombre} className="mb-1 block text-xs font-medium text-panel-muted">{etiqueta}</label>
+      <label htmlFor={nombre} className="mb-1 block text-sm font-medium text-panel-muted">{etiqueta}</label>
       <input id={nombre} name={nombre} type="date" defaultValue={valor} className={claseControl(tono)} />
     </div>
   );
@@ -86,7 +89,7 @@ export function SelectorPorPagina({ tono, valor }: { tono: TonoUi; valor: string
     <SelectorFiltro
       tono={tono}
       nombre="per_page"
-      etiqueta="Mostrar"
+      etiqueta="Por página"
       valor={['20', '50', '100'].includes(valor) ? valor : '20'}
       todos={null}
       opciones={{ '20': '20', '50': '50', '100': '100' }}

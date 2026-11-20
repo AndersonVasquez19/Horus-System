@@ -24,7 +24,22 @@ interface TablaProps {
   rutaOrden?: string;
   /** Parámetros de filtro actuales que deben conservarse al ordenar (sin `page`). */
   parametrosOrden?: Record<string, string>;
+  /**
+   * La última columna (el menú ⋯ de acciones) queda fija al borde derecho al desplazar la tabla en pantallas
+   * pequeñas, para que nunca quede fuera de la vista.
+   */
+  accionesFijas?: boolean;
+  /** Sin borde, sombra ni esquinas propias: para una tabla dentro de una `Seccion`, que ya es una tarjeta. */
+  plana?: boolean;
 }
+
+/** Última columna pegada a la derecha. La sombra solo aparece en pantallas pequeñas, donde la tabla se desplaza. */
+const ACCIONES_FIJAS = [
+  '[&_thead_th:last-child]:sticky [&_thead_th:last-child]:right-0 [&_thead_th:last-child]:z-10 [&_thead_th:last-child]:bg-panel-bg',
+  '[&_tbody_td:last-child]:sticky [&_tbody_td:last-child]:right-0 [&_tbody_td:last-child]:bg-panel-surface',
+  '[&_tbody_tr:hover_td:last-child]:bg-[color-mix(in_srgb,var(--color-academico-50)_50%,white)]',
+  'max-md:[&_tbody_td:last-child]:shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.18)]',
+].join(' ');
 
 function hrefOrden(ruta: string, parametros: Record<string, string>, sort: string): string {
   const qs = new URLSearchParams(parametros);
@@ -33,14 +48,16 @@ function hrefOrden(ruta: string, parametros: Record<string, string>, sort: strin
   return `${ruta}?${qs.toString()}`;
 }
 
-export function Tabla({ titulo, columnas, children, pie, ordenActual, rutaOrden, parametrosOrden = {} }: TablaProps) {
+export function Tabla({ titulo, columnas, children, pie, ordenActual, rutaOrden, parametrosOrden = {}, accionesFijas = false, plana = false }: TablaProps) {
   const campoActivo = ordenActual ? ordenActual.replace(/^-/, '') : '';
   const descActivo = ordenActual ? ordenActual.startsWith('-') : false;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+    <div className={plana ? 'overflow-hidden bg-panel-surface' : 'overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm'}>
+      {/* Región con desplazamiento: debe poder enfocarse con el teclado para desplazarla (WCAG 2.1.1) y llevar nombre. */}
+      <div className="overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-academico-700" tabIndex={0} role="region" aria-label={titulo}>
+        {/* `min-w` evita que las celdas se aplasten en móvil: la tabla se desplaza en vez de partir cada palabra. */}
+        <table className={`w-full min-w-[40rem] text-left text-sm ${accionesFijas ? ACCIONES_FIJAS : ''}`}>
           <caption className="sr-only">{titulo}</caption>
           <thead className="border-b border-panel-border bg-panel-bg text-sm font-semibold text-panel-muted">
             <tr>
@@ -83,7 +100,8 @@ export function Tabla({ titulo, columnas, children, pie, ordenActual, rutaOrden,
 export function EsqueletoListado({ etiqueta, filas = 6 }: { etiqueta: string; filas?: number }) {
   return (
     <div className="space-y-4" aria-busy="true" aria-label={etiqueta}>
-      <div className="h-20 animate-pulse rounded-xl border border-panel-border bg-panel-surface" />
+      {/* Altura parecida a la de la barra de filtros real (en móvil queda plegada; en escritorio ocupa una o dos filas). */}
+      <div className="h-16 animate-pulse rounded-xl border border-panel-border bg-panel-surface md:h-24" />
       <div className="space-y-px overflow-hidden rounded-xl border border-panel-border bg-panel-surface">
         {Array.from({ length: filas }, (_, n) => (
           <div key={n} className="h-14 animate-pulse bg-panel-surface odd:bg-panel-bg" />
@@ -131,9 +149,9 @@ export function ListaDatos({ filas }: { filas: readonly (readonly [string, React
   return (
     <dl className="space-y-3 text-sm">
       {filas.map(([termino, definicion]) => (
-        <div key={termino} className="grid grid-cols-3 gap-2">
+        <div key={termino} className="grid grid-cols-1 gap-0.5 sm:grid-cols-3 sm:gap-2">
           <dt className="text-panel-muted">{termino}</dt>
-          <dd className="col-span-2 break-words font-medium text-panel-text">{definicion}</dd>
+          <dd className="break-words font-medium text-panel-text sm:col-span-2">{definicion}</dd>
         </div>
       ))}
     </dl>

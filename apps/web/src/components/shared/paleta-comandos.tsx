@@ -92,12 +92,13 @@ export function PaletaComandos() {
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="hidden items-center gap-2 rounded-lg border border-panel-border bg-panel-bg px-2.5 py-1.5 text-xs text-panel-muted transition hover:border-academico-600/40 hover:text-panel-text sm:inline-flex"
+        className="inline-flex h-10 w-10 items-center justify-center gap-2 rounded-lg border border-panel-border bg-panel-bg text-xs text-panel-muted outline-offset-2 transition hover:border-academico-600/40 hover:text-panel-text focus-visible:outline-2 focus-visible:outline-academico-700 sm:h-auto sm:w-auto sm:px-2.5 sm:py-1.5"
         title="Buscador rápido (Ctrl + K)"
+        aria-haspopup="dialog"
       >
-        <Search className="h-3.5 w-3.5" aria-hidden="true" />
-        <span>Buscar…</span>
-        <kbd className="rounded border border-panel-border bg-panel-surface px-1.5 py-0.5 font-mono text-[10px]">Ctrl K</kbd>
+        <Search className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
+        <span className="sr-only sm:not-sr-only">Buscar…</span>
+        <kbd className="hidden rounded border border-panel-border bg-panel-surface px-1.5 py-0.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
       </button>
 
       {abierto ? (
@@ -114,6 +115,7 @@ export function PaletaComandos() {
               <input
                 ref={inputRef}
                 type="search"
+                aria-label="Buscar en el panel"
                 value={consulta}
                 onChange={(e) => setConsulta(e.target.value)}
                 placeholder="Buscar por DNI, teléfono, nombre, N.º operación Yape o ir a un módulo…"

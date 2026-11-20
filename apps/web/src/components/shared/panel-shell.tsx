@@ -50,7 +50,7 @@ export function PanelShell({ tono, titulo, navegacion, children }: PanelShellPro
     <MarcaPanel atributo="data-panel-tono" valor={tono} className="flex min-h-screen flex-col">
       <a
         href="#contenido-panel"
-        className={`sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-panel-surface focus:px-3 focus:py-2 focus:text-panel-text focus:shadow focus-visible:outline-2 focus-visible:outline-offset-2 ${ESTILO_PANEL.foco}`}
+        className={`print:hidden sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-panel-surface focus:px-3 focus:py-2 focus:text-panel-text focus:shadow focus-visible:outline-2 focus-visible:outline-offset-2 ${ESTILO_PANEL.foco}`}
       >
         Saltar al contenido
       </a>
@@ -156,7 +156,7 @@ function Franja({ titulo, acciones, riel, children }: { titulo: string; acciones
   return (
     <div className="flex flex-1 flex-col md:min-h-screen md:flex-row">
       {riel ? (
-        <div className="bg-tinta text-white md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto">
+        <div className="bg-tinta text-white md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto print:hidden">
           <div className="px-4 pb-1 pt-4 md:px-5 md:pt-6">
             <MarcaHorus subtitulo={titulo} />
           </div>
@@ -164,7 +164,7 @@ function Franja({ titulo, acciones, riel, children }: { titulo: string; acciones
         </div>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between gap-3 border-b border-panel-border bg-panel-surface px-4 py-2.5 sm:px-6">
+        <div className="flex items-center justify-between gap-3 border-b border-panel-border bg-panel-surface px-4 py-2.5 sm:px-6 print:hidden">
           {riel ? (
             <p className="min-w-0 truncate font-heading text-sm font-semibold text-panel-text">{titulo}</p>
           ) : (

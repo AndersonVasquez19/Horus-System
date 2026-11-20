@@ -60,20 +60,26 @@ export function PanelNavegacion({ titulo, modelo, insignias = {} }: PanelNavegac
   }
 
   return (
-    <nav aria-label={`Navegación de ${titulo}`} className="p-3 pb-6" onKeyDown={alPulsarTecla}>
+    <nav aria-label={`Navegación de ${titulo}`} className="relative p-3 pb-6" onKeyDown={alPulsarTecla}>
+      {/* Fondo atenuado del menú móvil: pulsar fuera lo cierra. Solo existe mientras el menú está abierto. */}
+      {abierto ? <div aria-hidden="true" onClick={() => setAbierto(false)} className="fixed inset-0 z-30 bg-slate-950/50 md:hidden" /> : null}
       <button
         ref={botonRef}
         type="button"
         aria-expanded={abierto}
         aria-controls={idMenu}
         onClick={() => setAbierto((valor) => !valor)}
-        className={`flex w-full items-center justify-between rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white outline-offset-2 focus-visible:outline-2 md:hidden ${ESTILO_RIEL.foco}`}
+        className={`relative z-40 flex min-h-10 w-full items-center justify-between rounded-md border border-white/25 px-3 py-2 text-sm font-medium text-white outline-offset-2 focus-visible:outline-2 md:hidden ${ESTILO_RIEL.foco}`}
       >
         <span>Menú de {titulo}</span>
         {abierto ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
       </button>
 
-      <div id={idMenu} className={`${abierto ? 'block' : 'hidden'} mt-2 md:mt-0 md:block`}>
+      {/* En móvil el menú se superpone al contenido (panel flotante bajo el botón); desde `md` es el riel fijo de siempre. */}
+      <div
+        id={idMenu}
+        className={`${abierto ? 'block' : 'hidden'} max-md:absolute max-md:inset-x-3 max-md:top-[calc(100%-1.5rem)] max-md:z-40 max-md:max-h-[70dvh] max-md:overflow-y-auto max-md:rounded-xl max-md:bg-tinta max-md:px-2 max-md:pb-3 max-md:shadow-2xl max-md:ring-1 max-md:ring-white/20 md:mt-0 md:block`}
+      >
         {modelo.map((grupo) =>
           grupo.elementos.length === 0 ? null : (
             <div key={grupo.id}>
@@ -105,11 +111,9 @@ export function PanelNavegacion({ titulo, modelo, insignias = {} }: PanelNavegac
                           <span className="truncate">{elemento.etiqueta}</span>
                         </span>
                         {typeof insignia === 'number' && insignia > 0 ? (
-                          <span
-                            className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-oro-400/20 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-oro-200"
-                            aria-label={`${insignia} pendiente(s)`}
-                          >
-                            {insignia > 99 ? '99+' : insignia}
+                          <span className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-oro-400/20 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-oro-200">
+                            <span aria-hidden="true">{insignia > 99 ? '99+' : insignia}</span>
+                            <span className="sr-only">{`${insignia} pendiente(s)`}</span>
                           </span>
                         ) : null}
                       </Link>

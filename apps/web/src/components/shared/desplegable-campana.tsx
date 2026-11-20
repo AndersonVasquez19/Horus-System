@@ -34,6 +34,7 @@ export function DesplegableCampana({ tono, iniciales, pendientesIniciales }: Des
   const [pendientesRemoto, setPendientesRemoto] = useState<number | null>(null);
   const [ocupadoId, setOcupadoId] = useState<number | null>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const botonRef = useRef<HTMLButtonElement>(null);
   const idPanel = useId();
 
   const items = iniciales.filter((item) => !leidasIds.includes(item.id));
@@ -47,7 +48,10 @@ export function DesplegableCampana({ tono, iniciales, pendientesIniciales }: Des
       }
     }
     function alTeclear(e: KeyboardEvent) {
-      if (e.key === 'Escape') setAbierto(false);
+      if (e.key === 'Escape') {
+        setAbierto(false);
+        botonRef.current?.focus();
+      }
     }
     document.addEventListener('mousedown', alPulsar);
     document.addEventListener('keydown', alTeclear);
@@ -78,11 +82,11 @@ export function DesplegableCampana({ tono, iniciales, pendientesIniciales }: Des
   return (
     <div ref={contenedorRef} className="relative">
       <button
+        ref={botonRef}
         type="button"
         onClick={() => setAbierto((v) => !v)}
         aria-expanded={abierto}
-        aria-controls={idPanel}
-        aria-haspopup="true"
+        aria-controls={abierto ? idPanel : undefined}
         aria-label={etiqueta}
         title="Notificaciones"
         className={CLASE_DISPARADOR}
@@ -135,9 +139,9 @@ export function DesplegableCampana({ tono, iniciales, pendientesIniciales }: Des
                       disabled={ocupadoId === n.id}
                       title="Marcar como leída"
                       aria-label={`Marcar «${n.titulo}» como leída`}
-                      className="rounded p-1 text-panel-muted hover:bg-panel-bg hover:text-panel-text disabled:opacity-50"
+                      className="-mr-1 -mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-panel-muted hover:bg-panel-bg hover:text-panel-text focus-visible:outline-2 focus-visible:outline-academico-700 disabled:opacity-50 sm:h-8 sm:w-8"
                     >
-                      <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      <Check className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                   <p className="font-medium text-panel-text">{n.titulo}</p>

@@ -35,9 +35,17 @@ export function useFormularioPanel<T extends FieldValues, R>({ esquema, valores,
     setGuardando(true);
     onOcupado?.(true);
     setErrorServidor(null);
-    const resultado = await enviar(datos);
-    setGuardando(false);
-    onOcupado?.(false);
+    let resultado: ResultadoBff<R> | null = null;
+    try {
+      resultado = await enviar(datos);
+    } catch {
+      // Un fallo inesperado no debe dejar el diálogo bloqueado (también bloquea Escape).
+      setErrorServidor({ message: 'No se pudo completar la operación. Inténtalo de nuevo.', code: 'error_inesperado' });
+    } finally {
+      setGuardando(false);
+      onOcupado?.(false);
+    }
+    if (!resultado) return;
     if (resultado.ok) onExito(resultado.datos);
     else setErrorServidor(resultado.error);
   });
@@ -48,12 +56,28 @@ export function useFormularioPanel<T extends FieldValues, R>({ esquema, valores,
     return typeof local === 'string' ? local : errorDeCampo(errorServidor, campo);
   };
 
+  /**
+   * Error de un campo de lista (`roles`, `permissions`): el del campo en sí o, si no hay, el primero de sus elementos
+   * (`roles.0`, `roles.1`…). Laravel valida cada elemento por separado.
+   */
+  const errorLista = (campo: Path<T>): string | undefined => {
+    const propio = error(campo);
+    if (propio) return propio;
+    const claves = Object.keys(errorServidor?.errors ?? {}).filter((clave) => clave.startsWith(`${campo}.`));
+    for (const clave of claves) {
+      const mensaje = errorDeCampo(errorServidor, clave);
+      if (mensaje) return mensaje;
+    }
+    return undefined;
+  };
+
   return {
     form,
     registro: form.register,
     enviar: enviarFormulario,
     guardando,
     error,
+    errorLista,
     /** Error que no pertenece a un campo (permisos, conflicto, red…). */
     errorGeneral: errorServidor && errorServidor.code !== 'validacion' ? errorServidor.message : null,
     hayErroresDeCampo: errorServidor?.code === 'validacion' || Object.keys(form.formState.errors).length > 0,

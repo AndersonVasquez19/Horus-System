@@ -9,6 +9,9 @@ import { useSesionPanel } from './sesion-panel-contexto';
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
+/** Resultado de último recurso: los llamadores nunca deben recibir una excepción (dejaría formularios bloqueados). */
+const ERROR_INESPERADO: ErrorPanel = { message: 'No se pudo completar la operación. Inténtalo de nuevo.', code: 'error_inesperado' };
+
 /**
  * Operaciones del panel desde componentes cliente, siempre a través del BFF (`/api/bff/panel/*`).
  *
@@ -28,16 +31,20 @@ export function useOperacionPanel() {
       const url = `/api/bff/panel/${destino}` as const;
       const intentar = () => llamarBff<T>(url, { metodo, cuerpo: metodo === 'GET' ? undefined : (cuerpo ?? {}), csrf: metodo === 'GET' ? undefined : csrf.current });
 
-      let resultado = await intentar();
-      if (!resultado.ok && resultado.estado === 419) {
-        const renovada = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/sesion');
-        if (renovada.ok) {
-          csrf.current = renovada.datos.data.csrf_token;
-          resultado = await intentar();
+      try {
+        let resultado = await intentar();
+        if (!resultado.ok && resultado.estado === 419) {
+          const renovada = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/sesion');
+          if (renovada.ok) {
+            csrf.current = renovada.datos.data.csrf_token;
+            resultado = await intentar();
+          }
         }
+        if (!resultado.ok && resultado.estado === 401) router.replace(urlLogin(ruta));
+        return resultado;
+      } catch {
+        return { ok: false, estado: 0, error: ERROR_INESPERADO };
       }
-      if (!resultado.ok && resultado.estado === 401) router.replace(urlLogin(ruta));
-      return resultado;
     },
     [router, ruta],
   );
@@ -48,16 +55,20 @@ export function useOperacionPanel() {
       const url = `/api/bff/panel/${destino}` as const;
       const intentar = () => llamarBff<T>(url, { metodo: 'POST', formulario, csrf: csrf.current });
 
-      let resultado = await intentar();
-      if (!resultado.ok && resultado.estado === 419) {
-        const renovada = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/sesion');
-        if (renovada.ok) {
-          csrf.current = renovada.datos.data.csrf_token;
-          resultado = await intentar();
+      try {
+        let resultado = await intentar();
+        if (!resultado.ok && resultado.estado === 419) {
+          const renovada = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/sesion');
+          if (renovada.ok) {
+            csrf.current = renovada.datos.data.csrf_token;
+            resultado = await intentar();
+          }
         }
+        if (!resultado.ok && resultado.estado === 401) router.replace(urlLogin(ruta));
+        return resultado;
+      } catch {
+        return { ok: false, estado: 0, error: ERROR_INESPERADO };
       }
-      if (!resultado.ok && resultado.estado === 401) router.replace(urlLogin(ruta));
-      return resultado;
     },
     [router, ruta],
   );
@@ -97,13 +108,18 @@ export function useOperacionPanel() {
       }
 
       const nombre = /filename="([^"]+)"/.exec(respuesta.headers.get('content-disposition') ?? '')?.[1] ?? 'exportacion.csv';
-      const enlace = document.createElement('a');
-      enlace.href = URL.createObjectURL(await respuesta.blob());
-      enlace.download = nombre;
-      document.body.append(enlace);
-      enlace.click();
-      enlace.remove();
-      window.setTimeout(() => URL.revokeObjectURL(enlace.href), 10_000);
+      try {
+        const enlace = document.createElement('a');
+        enlace.href = URL.createObjectURL(await respuesta.blob());
+        enlace.download = nombre;
+        document.body.append(enlace);
+        enlace.click();
+        enlace.remove();
+        window.setTimeout(() => URL.revokeObjectURL(enlace.href), 10_000);
+      } catch {
+        // Corte de red a mitad de la descarga: se informa en vez de dejar el botón en estado de carga.
+        return { ok: false, error: { message: 'La descarga se interrumpió. Inténtalo de nuevo.', code: 'sin_conexion' } };
+      }
       const aviso = respuesta.headers.get('x-export-truncated') === 'true'
         ? (respuesta.headers.get('x-export-message') ?? undefined)
         : undefined;

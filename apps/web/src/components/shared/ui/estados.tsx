@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, Inbox, SearchX, ShieldAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { BotonReintentar } from './boton-reintentar';
 
 interface EstadoProps {
   titulo: string;
@@ -29,8 +30,9 @@ export function EstadoSinResultados(props: EstadoProps) {
   return <Estado icono={<SearchX className="h-6 w-6" />} rol="status" {...props} />;
 }
 
-export function EstadoError({ titulo = 'No se pudo cargar la información', ...props }: Partial<EstadoProps>) {
-  return <Estado icono={<AlertTriangle className="h-6 w-6" />} rol="alert" titulo={titulo} {...props} />;
+/** Error de carga de un listado o ficha. Sin `accion` propia ofrece «Reintentar», que vuelve a pedir los datos. */
+export function EstadoError({ titulo = 'No se pudo cargar la información', accion, ...props }: Partial<EstadoProps>) {
+  return <Estado icono={<AlertTriangle className="h-6 w-6" />} rol="alert" titulo={titulo} accion={accion ?? <BotonReintentar />} {...props} />;
 }
 
 export function EstadoProhibido({ volver }: { volver: string }) {
