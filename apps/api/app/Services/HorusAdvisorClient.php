@@ -29,8 +29,11 @@ class HorusAdvisorClient
     {
         $normalizado = trim(preg_replace('/[¿?¡!.,;:]+/u', ' ', $this->normalizar($mensaje)) ?? '');
         $normalizado = preg_replace('/\s+/u', ' ', $normalizado) ?? '';
-        $afirmacion = in_array($normalizado, ['si', 'si por favor', 'claro', 'correcto', 'exacto', 'eso', 'esa', 'ese'], true);
-        $referencia = preg_match('/\A(?:y )?(?:mas detalles|dame detalles|que incluye|que tipos(?: hay| tienen)?|cuanto cuesta|cuanto dura|(?:la |el )?(?:precio|modalidad|horario|duracion|requisitos)|es virtual|es presencial)\z/u', $normalizado) === 1;
+        $afirmacion = in_array($normalizado, ['si', 'si por favor', 'claro', 'correcto', 'exacto', 'eso', 'esa', 'ese', 'ese curso', 'esa capacitacion', 'ese servicio'], true);
+        $referencia = preg_match(
+            '/\A(?:y |pero |entonces |osea )?(?:mas detalles|dame detalles|detalles|mas info(?:rmacion)?|info(?:rmacion)?|de que trata|que es|resumen|temario|que incluye|que contiene|que abarca|que cubre|que (?:se )?aprende|que tipos(?: hay| tienen)?|cuales son|cuanto cuesta|cuanto vale|cuanto sale|cuanto dura|cuando (?:empieza|inicia)|hasta cuando(?: es| esta| dura)?|donde(?: es| queda)?|como (?:me )?(?:matriculo|inscribo)|como se (?:matricula|inscribe)|(?:(?:cual es |que )?(?:el |la |su )?)?(?:precio|costo|valor|modalidad|horario|duracion|requisitos|vigencia|inscripcion|matricula|ubicacion)|a que hora(?: es)?|que dias(?: es)?|es (?:virtual|presencial|semipresencial|online|hibrido)(?: o (?:virtual|presencial|semipresencial|online))?|(?:de |sobre )?(?:ese|esa|eso|el|la) (?:curso|capacitacion|servicio))\z/u',
+            $normalizado,
+        ) === 1;
         $opcion = match ($normalizado) {
             'la primera', 'primera opcion' => 0,
             'la segunda', 'segunda opcion' => 1,
@@ -58,6 +61,16 @@ class HorusAdvisorClient
     {
         if (str_starts_with($id, 'cat_')) {
             $fuentes = app(FuentesCatalogoAdvisor::class)->actuales();
+            if ($id === 'cat_listado_formacion') {
+                $cursos = array_values(array_filter(
+                    $fuentes,
+                    static fn (array $f, string $k): bool => str_starts_with($k, 'cat_curso:'),
+                    ARRAY_FILTER_USE_BOTH,
+                ));
+                if (count($cursos) === 1) {
+                    return $cursos[0]['title'];
+                }
+            }
 
             return $fuentes[$id]['title'] ?? null;
         }
