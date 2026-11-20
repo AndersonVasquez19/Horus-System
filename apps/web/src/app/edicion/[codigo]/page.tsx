@@ -15,6 +15,9 @@ interface CronogramaEdicion {
   };
 }
 
+// Lee Laravel por petición (params + horusGet): sin esto `cacheComponents` intenta prerenderizarla y el build falla.
+export const instant = false;
+
 const DIAS: Record<number, string> = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo' };
 
 export default async function CronogramaPublicoPage({ params }: { params: Promise<{ codigo: string }> }) {
