@@ -34,7 +34,7 @@ class GestionAsistencias
     public function __construct(private readonly GestionConvocatorias $convocatorias) {}
 
     /**
-     * @param  list<array{matricula_id: int, estado: string, observacion?: ?string}>  $items
+     * @param  list<array{matricula_id: positive-int, estado: string, observacion?: ?string}>  $items
      * @return array{registradas: int, sin_cambios: int}
      */
     public function registrar(Request $request, string $sesionIdentificador, array $items): array
@@ -44,7 +44,7 @@ class GestionAsistencias
         }
         $vistos = [];
         foreach ($items as $i => $item) {
-            if (! in_array($item['estado'] ?? null, Asistencia::ESTADOS, true)) {
+            if (! in_array($item['estado'], Asistencia::ESTADOS, true)) {
                 throw ValidationException::withMessages(["asistencias.{$i}.estado" => 'Estado de asistencia no válido.']);
             }
             if (isset($vistos[$item['matricula_id']])) {
@@ -136,23 +136,23 @@ class GestionAsistencias
         $convocatoria = Convocatoria::query()->findOrFail($sesion->convocatoria_id);
         $registradas = Asistencia::query()->where('sesion_clase_id', $sesion->id)->get()->keyBy('matricula_id');
 
-        return $this->matriculasVigentes($convocatoria)->map(function (Matricula $m) use ($registradas): array {
+        return array_values($this->matriculasVigentes($convocatoria)->map(function (Matricula $m) use ($registradas): array {
             $a = $registradas->get($m->id);
 
             return [
                 'matricula_id' => $m->id,
-                'estudiante' => ['dni' => $m->estudiante->dni, 'nombre' => trim($m->estudiante->apellidos.', '.$m->estudiante->nombres)],
+                'estudiante' => ['dni' => $m->estudiante->dni ?? '', 'nombre' => trim(($m->estudiante->apellidos ?? '').', '.($m->estudiante->nombres ?? ''))],
                 'estado' => $a?->estado,
                 'observacion' => $a?->observacion,
                 'corregida' => $a?->motivo_correccion !== null,
             ];
-        })->values()->all();
+        })->values()->all());
     }
 
     /**
      * Resumen por matrícula vigente: contadores y porcentaje. También lo usa la exportación.
      *
-     * @return array{sesiones_realizadas: int, matriculas: list<array<string, mixed>>}
+     * @return array{sesiones_realizadas: int, matriculas: list<array{matricula_id: int, estudiante: array{dni: string, nombre: string}, presentes: int, tardanzas: int, ausentes: int, justificadas: int, sin_registro: int, porcentaje: float|null}>}
      */
     public function resumen(Convocatoria $convocatoria): array
     {
@@ -167,7 +167,7 @@ class GestionAsistencias
 
             return [
                 'matricula_id' => $m->id,
-                'estudiante' => ['dni' => $m->estudiante->dni, 'nombre' => trim($m->estudiante->apellidos.', '.$m->estudiante->nombres)],
+                'estudiante' => ['dni' => $m->estudiante->dni ?? '', 'nombre' => trim(($m->estudiante->apellidos ?? '').', '.($m->estudiante->nombres ?? ''))],
                 'presentes' => (int) ($por['presente'] ?? 0),
                 'tardanzas' => (int) ($por['tardanza'] ?? 0),
                 'ausentes' => (int) ($por['ausente'] ?? 0),
@@ -177,7 +177,7 @@ class GestionAsistencias
             ];
         })->values()->all();
 
-        return ['sesiones_realizadas' => $realizadas->count(), 'matriculas' => $filas];
+        return ['sesiones_realizadas' => $realizadas->count(), 'matriculas' => array_values($filas)];
     }
 
     /**
@@ -196,21 +196,21 @@ class GestionAsistencias
             $porSesion = ($registradas->get($m->id) ?? collect())->keyBy('sesion_clase_id');
 
             return [
-                'dni' => $m->estudiante->dni,
-                'nombre' => trim($m->estudiante->apellidos.', '.$m->estudiante->nombres),
-                'estados' => $sesiones->map(fn (SesionClase $s): string => $letras[$porSesion->get($s->id)?->estado] ?? '')->all(),
+                'dni' => $m->estudiante->dni ?? '',
+                'nombre' => trim(($m->estudiante->apellidos ?? '').', '.($m->estudiante->nombres ?? '')),
+                'estados' => array_values($sesiones->map(fn (SesionClase $s): string => $letras[$porSesion->get($s->id)?->estado] ?? '')->all()),
                 'porcentaje' => $resumen->get($m->id)['porcentaje'] ?? null,
             ];
         })->values()->all();
 
-        return ['sesiones' => $sesiones->map(fn (SesionClase $s): array => ['numero' => $s->numero, 'fecha' => $s->fecha])->all(), 'filas' => $filas];
+        return ['sesiones' => array_values($sesiones->map(fn (SesionClase $s): array => ['numero' => $s->numero, 'fecha' => $s->fecha])->all()), 'filas' => array_values($filas)];
     }
 
     /** @return Collection<int, Matricula> matrículas no anuladas ni eliminadas de la edición, por apellidos */
     private function matriculasVigentes(Convocatoria $convocatoria): Collection
     {
         return Matricula::query()->with('estudiante')->where('convocatoria_id', $convocatoria->id)->where('estado', '!=', 'anulada')
-            ->get()->sortBy(fn (Matricula $m): string => mb_strtolower($m->estudiante->apellidos.' '.$m->estudiante->nombres))->values();
+            ->get()->sortBy(fn (Matricula $m): string => mb_strtolower(($m->estudiante->apellidos ?? '').' '.($m->estudiante->nombres ?? '')))->values();
     }
 
     private function comprobarSesion(Convocatoria $convocatoria, SesionClase $sesion, bool $exigirNoFutura): void

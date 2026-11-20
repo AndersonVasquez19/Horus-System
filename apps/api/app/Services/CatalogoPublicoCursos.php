@@ -55,12 +55,12 @@ class CatalogoPublicoCursos
                 ->whereIn('p.autorizado_por', $autores);
         }
 
-        return $consulta->get(['p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta'])
+        return array_values($consulta->get(['p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta'])
             ->map(fn (object $p): array => [
                 'titulo' => (string) $p->titulo, 'resumen' => (string) $p->resumen, 'modalidad' => (string) $p->modalidad,
                 'horario' => $p->horario === null ? null : (string) $p->horario,
                 'inscripcion' => $p->inscripcion === null ? null : (string) $p->inscripcion,
                 'vigente_desde' => substr((string) $p->vigente_desde, 0, 10), 'vigente_hasta' => substr((string) $p->vigente_hasta, 0, 10),
-            ])->all();
+            ])->all());
     }
 }

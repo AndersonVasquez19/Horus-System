@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Entrada;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
@@ -18,7 +19,7 @@ class FuentesCatalogoAdvisor
             return [];
         }
         try {
-            $esperada = Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'));
+            $esperada = Cache::get(Entrada::texto(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')));
             if (! is_string($esperada)) {
                 return [];
             }

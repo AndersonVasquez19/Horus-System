@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\Entrada;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Carbon;
@@ -20,12 +21,12 @@ class JwtTokenService
     /** @return array{access_token: string, token_type: string, expires_in: int} */
     public function issue(User $user): array
     {
-        $now = Carbon::now()->timestamp;
-        $expiresAt = $now + min(self::MAX_TTL, max(60, (int) config('jwt.ttl', 900)));
+        $now = Carbon::now()->getTimestamp();
+        $expiresAt = $now + min(self::MAX_TTL, max(60, Entrada::entero(config('jwt.ttl', 900))));
         $token = JWT::encode([
             'iss' => $this->issuer(),
             'aud' => $this->issuer(),
-            'sub' => (string) $user->getKey(),
+            'sub' => Entrada::texto($user->id),
             'iat' => $now,
             'nbf' => $now,
             'exp' => $expiresAt,
@@ -40,7 +41,7 @@ class JwtTokenService
     {
         // `JWT::$leeway` es estático y global: acotarlo y restaurarlo para no alterar otros usos de la librería.
         $anterior = JWT::$leeway;
-        JWT::$leeway = min(self::MAX_LEEWAY, max(0, (int) config('jwt.leeway', 0)));
+        JWT::$leeway = min(self::MAX_LEEWAY, max(0, Entrada::entero(config('jwt.leeway', 0))));
 
         try {
             $claims = JWT::decode($token, new Key($this->secret(), 'HS256'));
@@ -57,7 +58,7 @@ class JwtTokenService
 
     private function secret(): string
     {
-        $secret = (string) config('jwt.secret');
+        $secret = Entrada::texto(config('jwt.secret'));
 
         if (str_starts_with($secret, 'base64:')) {
             $secret = base64_decode(substr($secret, 7), true) ?: '';
@@ -72,6 +73,6 @@ class JwtTokenService
 
     private function issuer(): string
     {
-        return (string) config('jwt.issuer');
+        return Entrada::texto(config('jwt.issuer'));
     }
 }

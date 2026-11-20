@@ -13,6 +13,7 @@ use App\Models\Matricula;
 use App\Models\User;
 use App\Services\GestionAsistencias;
 use App\Services\GestionPagos;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\NotificacionesPendientes;
 use Carbon\CarbonInterface;
@@ -86,7 +87,7 @@ final class ResumenAcademico
                         : null,
                     'curso' => $matricula->curso?->nombre,
                     'estado' => $matricula->estado,
-                    'fecha' => $matricula->fecha_matricula?->toDateString(),
+                    'fecha' => $matricula->fecha_matricula->toDateString(),
                 ])
                 ->all();
         }
@@ -122,7 +123,7 @@ final class ResumenAcademico
         }
 
         if ($user->can('asistencias.ver')) {
-            $minimo = (int) config('academico.asistencia_minima', 80);
+            $minimo = Entrada::entero(config('academico.asistencia_minima', 80));
             $academico['asistencia_minima'] = $minimo;
             $academico['asistencia'] = Convocatoria::query()->with('curso:id,nombre')->where('estado', 'en_curso')->orderBy('fecha_fin')->limit(8)->get()
                 ->map(function (Convocatoria $c) use ($minimo): array {
@@ -258,15 +259,15 @@ final class ResumenAcademico
             ->groupBy('periodo')
             ->pluck('total', 'periodo');
 
-        return collect(range(0, 5))->map(function (int $desplazamiento) use ($desde, $totales): array {
+        return array_values(collect(range(0, 5))->map(function (int $desplazamiento) use ($desde, $totales): array {
             $mes = $desde->copy()->addMonths($desplazamiento);
             $periodo = $mes->format('Y-m');
 
             return [
                 'periodo' => $periodo,
                 'etiqueta' => self::MESES[(int) $mes->format('n') - 1],
-                'total' => (int) ($totales[$periodo] ?? 0),
+                'total' => Entrada::entero(($totales[$periodo] ?? 0)),
             ];
-        })->all();
+        })->all());
     }
 }

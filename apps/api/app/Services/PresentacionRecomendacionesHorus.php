@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Entrada;
 use App\Support\FiltroPrivacidadChat;
 use App\Support\PaginasServicios;
 use Carbon\Carbon;
@@ -40,7 +41,7 @@ class PresentacionRecomendacionesHorus
             return $resultado;
         }
         try {
-            $esperada = Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'));
+            $esperada = Cache::get(Entrada::texto(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')));
             $catalogo = $this->exportador->construirParaSincronizacion();
             if (! is_string($esperada) || ! hash_equals($esperada, $catalogo['catalog_version'])
                 || ! $this->firma->verificar($catalogo) || Carbon::parse($catalogo['expires_at'])->isPast()
@@ -49,7 +50,7 @@ class PresentacionRecomendacionesHorus
             }
             $items = [];
             foreach ($catalogo['items'] as $item) {
-                if (($item['publication_status'] ?? null) !== 'vigente' || ! in_array($item['type'] ?? null, ['curso', 'servicio'], true)) {
+                if ($item['publication_status'] !== 'vigente' || ! in_array($item['type'], ['curso', 'servicio'], true)) {
                     continue;
                 }
                 $id = rtrim(substr('cat_'.preg_replace('/[^a-z0-9]+/', '_', $item['stable_id']), 0, 64), '_');
@@ -113,7 +114,7 @@ class PresentacionRecomendacionesHorus
                 return null;
             }
             $partes = parse_url($url);
-            $origen = parse_url((string) config('app.url'));
+            $origen = parse_url(Entrada::texto(config('app.url')));
             if ($partes === false || $origen === false || isset($partes['query']) || isset($partes['fragment'])
                 || isset($partes['user']) || isset($partes['pass'])
                 || (isset($partes['host']) && (($partes['host'] !== ($origen['host'] ?? null))

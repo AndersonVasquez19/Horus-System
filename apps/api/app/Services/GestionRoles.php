@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Entrada;
 use Illuminate\Database\Eloquent\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -58,7 +59,7 @@ final class GestionRoles
                 'permissions' => $role->permissions->pluck('name')->all(),
             ], $alcance['actor']->id);
 
-            return (int) $role->getKey();
+            return Entrada::entero($role->id);
         });
 
         return Role::query()->findOrFail($id);
@@ -72,10 +73,10 @@ final class GestionRoles
         $permisos = array_values(array_unique($permisos));
 
         $this->adminProtection->runAdministrative(function () use ($role, $nombre, $permisos, $actor): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['roles.editar'], 'rol.actualizar', Role::class, $role->getKey());
+            $alcance = $this->adminProtection->actorVigente($actor, ['roles.editar'], 'rol.actualizar', Role::class, Entrada::entero($role->id));
 
             // Se relee el rol bajo el bloqueo para decidir con datos vigentes.
-            $role = Role::query()->whereKey($role->getKey())->lockForUpdate()->firstOrFail();
+            $role = Role::query()->whereKey($role->id)->lockForUpdate()->firstOrFail();
 
             // R4 (403) primero; después las reglas de integridad del rol `admin` (422).
             $this->adminProtection->assertCanUpdateRole($alcance, $role, $permisos, 'rol.actualizar');
@@ -110,8 +111,8 @@ final class GestionRoles
     public function eliminar(User $actor, Role $role): void
     {
         $this->adminProtection->runAdministrative(function () use ($role, $actor): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['roles.eliminar'], 'rol.eliminar', Role::class, $role->getKey());
-            $role = Role::query()->whereKey($role->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['roles.eliminar'], 'rol.eliminar', Role::class, Entrada::entero($role->id));
+            $role = Role::query()->whereKey($role->id)->lockForUpdate()->firstOrFail();
 
             $this->adminProtection->assertCanDeleteRoleAuthorized($alcance, $role, 'rol.eliminar');
             $this->adminProtection->assertRoleCanBeDeleted($role);

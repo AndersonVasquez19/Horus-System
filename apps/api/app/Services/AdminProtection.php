@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\AccionAdministrativaDenegada;
 use App\Models\User;
+use App\Support\Entrada;
 use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -107,7 +108,7 @@ class AdminProtection
         $directos = DB::table($tablas['model_has_permissions'].' as mhp')
             ->join($tablas['permissions'].' as p', 'p.id', '=', 'mhp.permission_id')
             ->where('mhp.model_type', $tipo)
-            ->where('mhp.'.$clave, $user->getKey())
+            ->where('mhp.'.$clave, $user->id)
             ->where('p.guard_name', self::GUARD)
             ->pluck('p.name');
 
@@ -116,7 +117,7 @@ class AdminProtection
             ->join($tablas['role_has_permissions'].' as rhp', 'rhp.role_id', '=', 'r.id')
             ->join($tablas['permissions'].' as p', 'p.id', '=', 'rhp.permission_id')
             ->where('mhr.model_type', $tipo)
-            ->where('mhr.'.$clave, $user->getKey())
+            ->where('mhr.'.$clave, $user->id)
             ->where('r.guard_name', self::GUARD)
             ->where('p.guard_name', self::GUARD)
             ->pluck('p.name');
@@ -137,7 +138,7 @@ class AdminProtection
             DB::table($tablas['model_has_roles'].' as mhr')
                 ->join($tablas['roles'].' as r', 'r.id', '=', 'mhr.role_id')
                 ->where('mhr.model_type', $user->getMorphClass())
-                ->where('mhr.'.$this->claveModelo(), $user->getKey())
+                ->where('mhr.'.$this->claveModelo(), $user->id)
                 ->where('r.guard_name', self::GUARD)
                 ->pluck('r.name'),
         );
@@ -163,7 +164,7 @@ class AdminProtection
             ->whereIn('name', $roles)
             ->pluck('name');
         foreach ($nombres as $nombre) {
-            $mapa[(string) $nombre] = [];
+            $mapa[Entrada::texto($nombre)] = [];
         }
 
         $filas = DB::table($tablas['roles'].' as r')
@@ -193,10 +194,10 @@ class AdminProtection
      */
     public function actorVigente(User $actor, array $requeridos, string $operacion, string $modelType, ?int $modelId): array
     {
-        $vigente = User::query()->whereKey($actor->getKey())->lockForUpdate()->first();
+        $vigente = User::query()->whereKey($actor->id)->lockForUpdate()->first();
 
         if (! $vigente instanceof User) {
-            $this->deny($actor->getKey(), 'ACTOR', 'actor_sin_permiso_vigente', $operacion, $modelType, $modelId);
+            $this->deny($actor->id, 'ACTOR', 'actor_sin_permiso_vigente', $operacion, $modelType, $modelId);
         }
 
         $permisos = $this->effectivePermissionNames($vigente);
@@ -335,7 +336,7 @@ class AdminProtection
         $excedidos = array_values(array_diff(array_diff($nuevosPermisos, $actuales), $alcance['permisos']));
 
         if ($excedidos !== []) {
-            $this->deny($alcance['actor']->id, 'R4c', 'permisos_fuera_de_alcance', $operacion, Role::class, $rol->id, [
+            $this->deny($alcance['actor']->id, 'R4c', 'permisos_fuera_de_alcance', $operacion, Role::class, Entrada::entero($rol->id), [
                 'permisos_excedidos' => $excedidos,
             ]);
         }
@@ -362,18 +363,18 @@ class AdminProtection
         $actor = $alcance['actor'];
 
         if ($this->isAdminRole($rol)) {
-            $this->deny($actor->id, 'R4a', 'rol_admin_protegido', $operacion, Role::class, $rol->id);
+            $this->deny($actor->id, 'R4a', 'rol_admin_protegido', $operacion, Role::class, Entrada::entero($rol->id));
         }
 
         if (in_array($rol->name, $this->roleNamesOf($actor), true)) {
-            $this->deny($actor->id, 'R4b', 'rol_propio_no_editable', $operacion, Role::class, $rol->id);
+            $this->deny($actor->id, 'R4b', 'rol_propio_no_editable', $operacion, Role::class, Entrada::entero($rol->id));
         }
 
         $actuales = $this->rolePermissionNames([$rol->name])[$rol->name] ?? [];
         $excedidos = array_values(array_diff($actuales, $alcance['permisos']));
 
         if ($excedidos !== []) {
-            $this->deny($actor->id, 'R4e', 'rol_fuera_de_alcance', $operacion, Role::class, $rol->id, [
+            $this->deny($actor->id, 'R4e', 'rol_fuera_de_alcance', $operacion, Role::class, Entrada::entero($rol->id), [
                 'permisos_excedidos' => $excedidos,
             ]);
         }
@@ -419,17 +420,17 @@ class AdminProtection
     private function tablas(): array
     {
         return [
-            'roles' => (string) config('permission.table_names.roles', 'roles'),
-            'permissions' => (string) config('permission.table_names.permissions', 'permissions'),
-            'model_has_roles' => (string) config('permission.table_names.model_has_roles', 'model_has_roles'),
-            'model_has_permissions' => (string) config('permission.table_names.model_has_permissions', 'model_has_permissions'),
-            'role_has_permissions' => (string) config('permission.table_names.role_has_permissions', 'role_has_permissions'),
+            'roles' => Entrada::texto(config('permission.table_names.roles', 'roles')),
+            'permissions' => Entrada::texto(config('permission.table_names.permissions', 'permissions')),
+            'model_has_roles' => Entrada::texto(config('permission.table_names.model_has_roles', 'model_has_roles')),
+            'model_has_permissions' => Entrada::texto(config('permission.table_names.model_has_permissions', 'model_has_permissions')),
+            'role_has_permissions' => Entrada::texto(config('permission.table_names.role_has_permissions', 'role_has_permissions')),
         ];
     }
 
     private function claveModelo(): string
     {
-        return (string) config('permission.column_names.model_morph_key', 'model_id');
+        return Entrada::texto(config('permission.column_names.model_morph_key', 'model_id'));
     }
 
     /**
@@ -439,7 +440,7 @@ class AdminProtection
     private function nombres(Collection $coleccion): array
     {
         return array_values(array_unique(array_map(
-            static fn (mixed $nombre): string => (string) $nombre,
+            static fn (mixed $nombre): string => Entrada::texto($nombre),
             $coleccion->all(),
         )));
     }

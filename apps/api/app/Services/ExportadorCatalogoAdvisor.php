@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\Entrada;
 use App\Support\PaginasServicios;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,10 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
+/**
+ * @phpstan-type ItemCatalogo array{stable_id: string, type: string, publication_status: string, title: string, summary: string, details?: string|null, modalities?: list<string>, schedule_text?: string|null, duration_text?: string|null, requirements?: list<string>, public_price?: mixed, inquiry?: string|null, keywords?: list<string>, url_path?: string|null, updated_at: string, valid_from?: string|null, valid_until?: string|null}
+ * @phpstan-type Catalogo array{schema_version: string, catalog_version: string, source_system: string, generated_at: string, expires_at: string, managed_types?: list<string>, items: list<ItemCatalogo>, signature: string}
+ */
 class ExportadorCatalogoAdvisor
 {
     public function __construct(
@@ -23,7 +28,7 @@ class ExportadorCatalogoAdvisor
     /**
      * Construye un snapshot en memoria. No publica, guarda ni transmite contenido.
      *
-     * @return array<string, mixed>
+     * @return Catalogo
      */
     public function construir(User $actor): array
     {
@@ -33,13 +38,13 @@ class ExportadorCatalogoAdvisor
     }
 
     /** Snapshot completo para un job interno post-commit; cada origen vuelve a validar su autorización editorial. */
-    /** @return array<string, mixed> */
+    /** @return Catalogo */
     public function construirParaSincronizacion(): array
     {
         return $this->crearSnapshot(true);
     }
 
-    /** @return array<string, mixed> */
+    /** @return Catalogo */
     private function crearSnapshot(bool $sincronizacion): array
     {
         $ahora = now('America/Lima');
@@ -48,7 +53,7 @@ class ExportadorCatalogoAdvisor
         if (Schema::hasTable('curso_publicaciones')) {
             $filas = DB::table('curso_publicaciones as p')->join('cursos as c', 'c.id', '=', 'p.curso_id')
                 ->where('p.publicada', true)->where('c.estado', 'activo')->whereNull('c.deleted_at')
-                ->whereNotNull('p.autorizado_por')->whereNotNull('p.autorizado_at')->where('p.autorizado_at', '<=', $ahora->copy()->timezone(config('app.timezone')))
+                ->whereNotNull('p.autorizado_por')->whereNotNull('p.autorizado_at')->where('p.autorizado_at', '<=', $ahora->copy()->timezone(Entrada::texto(config('app.timezone'))))
                 ->whereDate('p.vigente_desde', '<=', $ahora->toDateString())->whereDate('p.vigente_hasta', '>=', $ahora->toDateString())
                 ->orderBy('p.id')->limit(501)
                 ->get(['p.id', 'p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta', 'p.updated_at', 'p.autorizado_por']);
@@ -92,7 +97,7 @@ class ExportadorCatalogoAdvisor
                     'modalities' => $modalidad === 'hibrido' ? [] : [$modalidad],
                     'schedule_text' => $horario,
                     // La página actual es estática: no se inventa una URL de ficha dinámica.
-                    'updated_at' => Carbon::parse((string) $p->updated_at, config('app.timezone'))->toIso8601String(),
+                    'updated_at' => Carbon::parse((string) $p->updated_at, Entrada::texto(config('app.timezone')))->toIso8601String(),
                     'valid_from' => substr((string) $p->vigente_desde, 0, 10),
                     'valid_until' => substr((string) $p->vigente_hasta, 0, 10),
                 ];
@@ -127,7 +132,7 @@ class ExportadorCatalogoAdvisor
         return $catalogo;
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return list<ItemCatalogo> */
     private function serviciosPublicados(Carbon $ahora, Carbon &$vence): array
     {
         // Reutiliza las lecturas existentes y sus permisos; el flag de presentación web no se cambia fuera de esta operación.
@@ -178,7 +183,7 @@ class ExportadorCatalogoAdvisor
         }
     }
 
-    /** @return array<string, mixed> */
+    /** @return ItemCatalogo */
     private function itemServicio(
         string $stableId,
         string $titulo,

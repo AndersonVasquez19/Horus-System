@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\AuditLog;
 use App\Models\Convocatoria;
 use App\Models\SesionClase;
+use App\Support\Entrada;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,7 @@ class GestionSesiones
             if ($numero !== null && SesionClase::query()->where('convocatoria_id', $convocatoria->id)->where('numero', $numero)->exists()) {
                 throw ValidationException::withMessages(['numero' => 'Ya existe una sesión con ese número en la edición.']);
             }
-            $sesion = $this->insertar($convocatoria, $campos, $numero === null ? $this->siguienteNumero($convocatoria) : (int) $numero);
+            $sesion = $this->insertar($convocatoria, $campos, $numero === null ? $this->siguienteNumero($convocatoria) : Entrada::entero($numero));
             AuditLog::record('sesion_programada', SesionClase::class, $sesion->id,
                 ['convocatoria' => $convocatoria->id, 'numero' => $sesion->numero, 'fecha' => $sesion->fecha, 'campos' => array_keys(array_filter($campos, static fn (mixed $v): bool => $v !== null))], $autor->id);
 
@@ -68,11 +69,11 @@ class GestionSesiones
             ];
             $campos = $this->resolver($convocatoria, [...$actuales, ...array_intersect_key($datos, $actuales + ['numero' => 1])]);
 
-            if (isset($datos['numero']) && (int) $datos['numero'] !== $sesion->numero) {
-                if (SesionClase::query()->where('convocatoria_id', $convocatoria->id)->where('numero', (int) $datos['numero'])->exists()) {
+            if (isset($datos['numero']) && Entrada::entero($datos['numero']) !== $sesion->numero) {
+                if (SesionClase::query()->where('convocatoria_id', $convocatoria->id)->where('numero', Entrada::entero($datos['numero']))->exists()) {
                     throw ValidationException::withMessages(['numero' => 'Ya existe una sesión con ese número en la edición.']);
                 }
-                $sesion->numero = (int) $datos['numero'];
+                $sesion->numero = max(1, Entrada::entero($datos['numero']));
             }
             // Solo se asigna lo que de verdad cambia, comparando valores NORMALIZADOS: la base devuelve las horas como `HH:MM:SS` y la
             // validación las entrega como `HH:MM`; comparar sin normalizar hacía avanzar la revisión en una edición idéntica (PostgreSQL).
@@ -205,13 +206,13 @@ class GestionSesiones
      * Valida y completa los datos de una sesión; devuelve las columnas a guardar.
      *
      * @param  array<string, mixed>  $datos
-     * @return array<string, mixed>
+     * @return array{fecha: string, hora_inicio: string, hora_fin: string, tema: string|null}
      */
     private function resolver(Convocatoria $convocatoria, array $datos): array
     {
-        $fecha = (string) $datos['fecha'];
-        $inicio = $this->hora((string) $datos['hora_inicio']);
-        $fin = $this->hora((string) $datos['hora_fin']);
+        $fecha = Entrada::texto($datos['fecha']);
+        $inicio = $this->hora(Entrada::texto($datos['hora_inicio']));
+        $fin = $this->hora(Entrada::texto($datos['hora_fin']));
         if ($fin <= $inicio) {
             throw ValidationException::withMessages(['hora_fin' => 'La hora de fin debe ser posterior a la de inicio.']);
         }
@@ -219,16 +220,16 @@ class GestionSesiones
             throw ValidationException::withMessages(['fecha' => 'La fecha debe estar dentro del periodo de la edición.']);
         }
 
-        return ['fecha' => $fecha, 'hora_inicio' => $inicio, 'hora_fin' => $fin, 'tema' => $datos['tema'] ?? null];
+        return ['fecha' => $fecha, 'hora_inicio' => $inicio, 'hora_fin' => $fin, 'tema' => isset($datos['tema']) ? Entrada::texto($datos['tema']) : null];
     }
 
-    /** @param array<string, mixed> $campos */
+    /** @param array{fecha: string, hora_inicio: string, hora_fin: string, tema: string|null} $campos */
     private function insertar(Convocatoria $convocatoria, array $campos, int $numero): SesionClase
     {
         $sesion = new SesionClase(['tema' => $campos['tema']]);
         $sesion->identificador = (string) Str::uuid();
         $sesion->convocatoria_id = $convocatoria->id;
-        $sesion->numero = $numero;
+        $sesion->numero = max(1, $numero);
         $sesion->fecha = $campos['fecha'];
         $sesion->hora_inicio = $campos['hora_inicio'].':00';
         $sesion->hora_fin = $campos['hora_fin'].':00';
@@ -241,7 +242,7 @@ class GestionSesiones
 
     private function siguienteNumero(Convocatoria $convocatoria): int
     {
-        return (int) SesionClase::query()->where('convocatoria_id', $convocatoria->id)->max('numero') + 1;
+        return Entrada::entero(SesionClase::query()->where('convocatoria_id', $convocatoria->id)->max('numero')) + 1;
     }
 
     /** @return array{0: Convocatoria, 1: SesionClase} edición → sesión, ambas bloqueadas */

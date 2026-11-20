@@ -13,11 +13,15 @@ use ZipArchive;
 /**
  * Acta de una convocatoria cerrada en XLSX: una fila por matrícula con sus notas, nota final y resultado. Las celdas se
  * escriben como texto o número literal ({@see SafeSpreadsheet}), así que ningún nombre se interpreta como fórmula.
+ *
+ * @phpstan-type ActaEvaluacion array{identificador: string, nombre: string, peso: string, fecha: string|null, con_notas: bool}
+ * @phpstan-type ActaMatricula array{id: int, estudiante: array{dni: string|null, nombre: string}, notas: array<string, string>, nota_final: string|null, resultado: string|null, asistencia: mixed}
+ * @phpstan-type Acta array{convocatoria: array{identificador: string, codigo: string, curso: string|null, estado: string, revision: string}, nota_aprobatoria: float|int|string, peso_total: string, asistencia_visible: bool, evaluaciones: list<ActaEvaluacion>, matriculas: list<ActaMatricula>}
  */
 final class ActaExcel
 {
     /**
-     * @param  array<string, mixed>  $acta  la matriz de notas que arma `CalificacionController` para la pantalla
+     * @param  Acta  $acta  la matriz de notas que arma `CalificacionController` para la pantalla
      */
     public function write(array $acta, string $archivo, bool $borrador = false): void
     {

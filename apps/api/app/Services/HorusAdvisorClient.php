@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Entrada;
 use App\Support\FiltroPrivacidadChat;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -75,13 +76,16 @@ class HorusAdvisorClient
     }
 
     /** Revalidación actual de una respuesta de caché autenticada por el intermediario.
-     * @param  array<string, mixed>  $reply
+     *
+     * @param  array<mixed>  $reply
+     *
+     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>} $reply
      */
     public function respuestaCacheValida(array $reply): bool
     {
         if (! in_array(array_keys($reply), [['respuesta', 'intent', 'fuente'], ['respuesta', 'intent', 'fuente', 'recomendaciones']], true) || ! is_string($reply['respuesta'])
             || $reply['intent'] !== null || ! in_array($reply['fuente'], ['advisor', 'respaldo'], true)
-            || trim($reply['respuesta']) === '' || mb_strlen($reply['respuesta']) > min(1800, (int) config('chatbot.max_answer_chars', 1800))) {
+            || trim($reply['respuesta']) === '' || mb_strlen($reply['respuesta']) > min(1800, Entrada::entero(config('chatbot.max_answer_chars', 1800)))) {
             return false;
         }
         if ($reply['fuente'] === 'respaldo') {
@@ -182,7 +186,7 @@ class HorusAdvisorClient
             $estadoCatalogoValido = is_string($versionActiva)
                 && preg_match('/\\A[a-f0-9]{40}\\z/D', $versionActiva) === 1;
             if ($sincronizacion) {
-                $esperada = Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'));
+                $esperada = Cache::get(Entrada::texto(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')));
                 $estadoCatalogoValido = $estadoCatalogoValido && is_string($esperada)
                     && preg_match('/\\A[a-f0-9]{40}\\z/D', $esperada) === 1
                     && hash_equals($esperada, $versionActiva);
@@ -205,8 +209,10 @@ class HorusAdvisorClient
         }
         $this->motivoContingencia = null;
 
+        $contexto = $reply['context'] ?? null;
         $foco = ($reply['needs_clarification'] ?? false)
-            ? ($reply['context']['focus_ids'] ?? []) : array_column($reply['sources'], 'id');
+            ? (is_array($contexto) ? ($contexto['focus_ids'] ?? []) : [])
+            : array_column(Entrada::lista($reply['sources']), 'id');
         if (is_array($foco) && array_is_list($foco) && count($foco) <= 2) {
             foreach ($foco as $id) {
                 if (is_string($id) && (str_starts_with($id, 'cat_')
@@ -216,17 +222,20 @@ class HorusAdvisorClient
             }
         }
 
-        $respuestaTexto = $reply['answer'];
-        if (($reply['needs_clarification'] ?? false) && is_string($reply['clarification_question'] ?? null) && trim($reply['clarification_question']) !== '') {
-            $respuestaTexto = trim($respuestaTexto)."\n\n".trim($reply['clarification_question']);
+        $respuestaTexto = Entrada::texto($reply['answer']);
+        $pregunta = $reply['clarification_question'] ?? null;
+        if (($reply['needs_clarification'] ?? false) && is_string($pregunta) && trim($pregunta) !== '') {
+            $respuestaTexto = trim($respuestaTexto)."\n\n".trim($pregunta);
         }
 
         $resultado = ['respuesta' => $respuestaTexto, 'intent' => null, 'fuente' => 'advisor'];
         $referencias = [];
-        foreach ($reply['recommendations'] as $recomendacion) {
-            if (in_array($recomendacion['kind'], ['course', 'training_program', 'service'], true)
-                && $this->referenciaEditorialRecomendada($recomendacion)) {
-                $referencias[$recomendacion['id']] = ['id' => $recomendacion['id'], 'title' => $recomendacion['title'], 'url_path' => $recomendacion['url_path']];
+        foreach (Entrada::lista($reply['recommendations']) as $recomendacion) {
+            if (is_array($recomendacion) && in_array($recomendacion['kind'] ?? null, ['course', 'training_program', 'service'], true)
+                && $this->referenciaEditorialRecomendada($recomendacion)
+                && is_string($recomendacion['id'] ?? null) && is_string($recomendacion['title'] ?? null)) {
+                $ruta = $recomendacion['url_path'] ?? null;
+                $referencias[$recomendacion['id']] = ['id' => $recomendacion['id'], 'title' => $recomendacion['title'], 'url_path' => is_string($ruta) ? $ruta : null];
             }
         }
         if ($referencias !== []) {
@@ -237,7 +246,8 @@ class HorusAdvisorClient
     }
 
     /** Solo referencias editoriales actuales; nunca listados sintéticos ni registros administrativos.
-     * @param  array<string, mixed>  $referencia
+     *
+     * @param  array<mixed>  $referencia
      */
     private function referenciaEditorialRecomendada(array $referencia): bool
     {
@@ -294,7 +304,7 @@ class HorusAdvisorClient
         } catch (\InvalidArgumentException|\JsonException) {
             return null;
         }
-        $result = $this->solicitar('POST', '/api/v1/catalog/sync', $catalogo, $this->ahora(), (float) config('horus-catalog.sync_timeout', 25));
+        $result = $this->solicitar('POST', '/api/v1/catalog/sync', $catalogo, $this->ahora(), Entrada::decimal(config('horus-catalog.sync_timeout', 25)));
         if ($result === null) {
             return $this->estadoSincronizacionCatalogo($version);
         }
@@ -343,16 +353,16 @@ class HorusAdvisorClient
             return null;
         }
         $limiteTiempo = $presupuesto === null
-            ? min(3.0, max(0.1, (float) config('horus-advisor.timeout', 2.5)))
+            ? min(3.0, max(0.1, Entrada::decimal(config('horus-advisor.timeout', 2.5))))
             : min(30.0, max(0.1, $presupuesto));
         $restante = $limiteTiempo - ($this->ahora() - $inicio);
         if ($restante <= 0) {
             return null;
         }
-        $limite = min(65536, max(1024, (int) config('horus-advisor.max_response_bytes', 65536)));
+        $limite = min(65536, max(1024, Entrada::entero(config('horus-advisor.max_response_bytes', 65536))));
         try {
             $response = Http::acceptJson()->withHeaders(['X-Horus-Service-Token' => $token, 'Accept-Encoding' => 'identity'])
-                ->connectTimeout(min(0.5, max(0.05, (float) config('horus-advisor.connect_timeout', 0.4)), $restante))
+                ->connectTimeout(min(0.5, max(0.05, Entrada::decimal(config('horus-advisor.connect_timeout', 0.4))), $restante))
                 ->timeout($restante)->withOptions([
                     'allow_redirects' => false, 'proxy' => '', 'cookies' => false, 'decode_content' => false,
                     'on_headers' => static function (ResponseInterface $response) use ($limite): void {
@@ -373,7 +383,7 @@ class HorusAdvisorClient
             }
             $data = json_decode($response->body(), true, 32, JSON_THROW_ON_ERROR);
 
-            return is_array($data) && ! array_is_list($data) ? $data : null;
+            return is_array($data) && ! array_is_list($data) ? Entrada::mapa($data) : null;
         } catch (Throwable) {
             // Nunca registrar excepciones: pueden contener token, cuerpo o configuración.
             return null;
@@ -415,7 +425,7 @@ class HorusAdvisorClient
             return false;
         }
         if (! is_string($reply['answer'] ?? null) || trim($reply['answer']) === ''
-            || mb_strlen($reply['answer']) > min(1800, (int) config('chatbot.max_answer_chars', 1800))
+            || mb_strlen($reply['answer']) > min(1800, Entrada::entero(config('chatbot.max_answer_chars', 1800)))
             || ! is_string($reply['intent'] ?? null) || ! preg_match('/\A[a-z_]{1,64}\z/D', $reply['intent'])
             || ! in_array($reply['mode'] ?? null, ['lexical', 'hybrid'], true)
             || ! in_array($reply['match_level'] ?? null, ['alta', 'media', 'baja', 'ninguna'], true)
@@ -434,7 +444,7 @@ class HorusAdvisorClient
             if (! is_string($pregunta) || trim($pregunta) === '' || mb_strlen($pregunta) > 500) {
                 return false;
             }
-            if (mb_strlen($reply['answer']."\n\n".$pregunta) > min(1800, (int) config('chatbot.max_answer_chars', 1800))) {
+            if (mb_strlen($reply['answer']."\n\n".$pregunta) > min(1800, Entrada::entero(config('chatbot.max_answer_chars', 1800)))) {
                 return false;
             }
             $preguntaLimpia = str_ireplace(self::CANALES_OFICIALES_PUBLICOS, '', $pregunta);
@@ -530,7 +540,7 @@ class HorusAdvisorClient
         return true;
     }
 
-    /** @param array<string, mixed> $source */
+    /** @param array<mixed> $source */
     private function referenciaValida(array $source): bool
     {
         $editorial = is_string($source['id'] ?? null) ? ($this->fuentesCatalogo[$source['id']] ?? null) : null;
@@ -695,9 +705,10 @@ class HorusAdvisorClient
      */
     private static function conocimiento(): array
     {
+        /** @var array{firma: string, datos: array{porTexto: array<string, list<array{id: string, url_path: string|null}>>, porId: array<string, array{title: string, texto: string, url_path: string|null}>, entidades: list<string>}}|null $cache */
         static $cache = null;
         $vacio = ['porTexto' => [], 'porId' => [], 'entidades' => []];
-        $path = (string) config('horus-knowledge.path');
+        $path = Entrada::texto(config('horus-knowledge.path'));
         clearstatcache(true, $path);
         if (! is_file($path) || ! is_readable($path)) {
             return $vacio;
@@ -714,7 +725,8 @@ class HorusAdvisorClient
                 || ! is_string($record['answer'] ?? null)) {
                 continue;
             }
-            $url = is_string($record['source']['url_path'] ?? null) ? $record['source']['url_path'] : null;
+            $fuente = $record['source'] ?? null;
+            $url = is_array($fuente) && is_string($fuente['url_path'] ?? null) ? $fuente['url_path'] : null;
             $respuestas = [$record['answer']];
             if (is_string($record['general_information'] ?? null)) {
                 $respuestas[] = $record['general_information'];
@@ -731,14 +743,15 @@ class HorusAdvisorClient
                     }
                 }
             }
-            if (isset($record['public_card']['vigencia']) && is_string($record['title'] ?? null)) {
-                $respuestas[] = $record['title'].': Vigencia publicada hasta el '.$record['public_card']['vigencia'].'.';
+            $tarjeta = $record['public_card'] ?? null;
+            if (is_array($tarjeta) && isset($tarjeta['vigencia']) && is_string($record['title'] ?? null)) {
+                $respuestas[] = $record['title'].': Vigencia publicada hasta el '.Entrada::texto($tarjeta['vigencia']).'.';
             }
             foreach ($respuestas as $respuesta) {
                 $datos['porTexto'][$respuesta][] = ['id' => $record['id'], 'url_path' => $url];
             }
             $texto = implode("\n", array_filter([$record['title'] ?? null, $record['description'] ?? null, ...$respuestas], 'is_string'));
-            $datos['porId'][$record['id']] = ['title' => (string) ($record['title'] ?? ''), 'texto' => $texto, 'url_path' => $url];
+            $datos['porId'][$record['id']] = ['title' => Entrada::texto(($record['title'] ?? '')), 'texto' => $texto, 'url_path' => $url];
             preg_match_all('/\b[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{1,25}(?:(?:\s+(?:de|del|la|las|los|y|san|santa))?[\s\-]+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{1,25})+\b/u', $texto, $coincidencias);
             array_push($entidades, ...$coincidencias[0]);
         }

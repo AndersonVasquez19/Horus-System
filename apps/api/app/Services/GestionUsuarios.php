@@ -88,9 +88,9 @@ final class GestionUsuarios
         // Toda decisión de autorización se toma bajo el bloqueo y con datos vigentes (no con la caché de Spatie).
         // Orden: actor vigente -> objetivo -> R1/R1+ -> R2 -> reglas 422 de último admin.
         $this->adminProtection->runAdministrative(function () use ($user, $data, $actor, $solicitaRoles, $nuevosRoles, $sesionActual): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.actualizar', User::class, $user->getKey());
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.actualizar', User::class, $user->id);
             $actor = $alcance['actor'];
-            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $user = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             $passwordChanged = false;
 
             $this->adminProtection->assertCanModifyUser($alcance, $user, 'usuario.actualizar');
@@ -158,8 +158,8 @@ final class GestionUsuarios
     public function suspender(User $actor, User $user, CarbonInterface $hasta, ?string $motivo = null): void
     {
         $this->adminProtection->runAdministrative(function () use ($actor, $user, $hasta, $motivo): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.suspender', User::class, $user->getKey());
-            $objetivo = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.suspender', User::class, $user->id);
+            $objetivo = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             $this->adminProtection->assertCanModifyUser($alcance, $objetivo, 'usuario.suspender');
             $this->adminProtection->assertUserCanBeSuspended($objetivo, $alcance['actor']);
@@ -182,8 +182,8 @@ final class GestionUsuarios
     public function desbloquear(User $actor, User $user): void
     {
         $this->adminProtection->runAdministrative(function () use ($actor, $user): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.desbloquear', User::class, $user->getKey());
-            $objetivo = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.desbloquear', User::class, $user->id);
+            $objetivo = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             $this->adminProtection->assertCanModifyUser($alcance, $objetivo, 'usuario.desbloquear');
 
@@ -201,8 +201,8 @@ final class GestionUsuarios
     public function cerrarSesiones(User $actor, User $user, ?string $sesionActual): void
     {
         $this->adminProtection->runAdministrative(function () use ($actor, $user, $sesionActual): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.cerrar_sesiones', User::class, $user->getKey());
-            $objetivo = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.cerrar_sesiones', User::class, $user->id);
+            $objetivo = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             $this->adminProtection->assertCanModifyUser($alcance, $objetivo, 'usuario.cerrar_sesiones');
 
@@ -217,8 +217,8 @@ final class GestionUsuarios
     {
         /** @var User $objetivo */
         $objetivo = $this->adminProtection->runAdministrative(function () use ($actor, $user): User {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.invitar', User::class, $user->getKey());
-            $objetivo = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.editar'], 'usuario.invitar', User::class, $user->id);
+            $objetivo = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             $this->adminProtection->assertCanModifyUser($alcance, $objetivo, 'usuario.invitar');
             if ($objetivo->estaSuspendido()) {
@@ -241,8 +241,8 @@ final class GestionUsuarios
     public function desactivar(User $actor, User $user): void
     {
         $this->adminProtection->runAdministrative(function () use ($user, $actor): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.eliminar'], 'usuario.desactivar', User::class, $user->getKey());
-            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.eliminar'], 'usuario.desactivar', User::class, $user->id);
+            $user = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             $this->adminProtection->assertCanDeleteUser($alcance, $user, 'usuario.desactivar');
             $this->adminProtection->assertUserCanBeDeleted($user, $alcance['actor']);
@@ -265,8 +265,8 @@ final class GestionUsuarios
     public function eliminar(User $actor, User $user): void
     {
         $this->adminProtection->runAdministrative(function () use ($user, $actor): void {
-            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.eliminar'], 'usuario.eliminar', User::class, $user->getKey());
-            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $alcance = $this->adminProtection->actorVigente($actor, ['usuarios.eliminar'], 'usuario.eliminar', User::class, $user->id);
+            $user = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
             // R3/R1+ primero (403); después las reglas de integridad (422): último administrador y uno mismo.
             $this->adminProtection->assertCanDeleteUser($alcance, $user, 'usuario.eliminar');

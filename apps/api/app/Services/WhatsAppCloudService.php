@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Entrada;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -50,10 +51,10 @@ class WhatsAppCloudService
             return ['ok' => false, 'status' => 422, 'provider_id' => null, 'retryable' => false];
         }
 
-        $version = trim((string) config('recordatorios.whatsapp.version', 'v21.0'));
-        $phoneId = trim((string) config('recordatorios.whatsapp.phone_number_id'));
-        $token = trim((string) config('recordatorios.whatsapp.token'));
-        $idioma = trim((string) config('recordatorios.whatsapp.idioma', 'es_PE'));
+        $version = trim(Entrada::texto(config('recordatorios.whatsapp.version', 'v21.0')));
+        $phoneId = trim(Entrada::texto(config('recordatorios.whatsapp.phone_number_id')));
+        $token = trim(Entrada::texto(config('recordatorios.whatsapp.token')));
+        $idioma = trim(Entrada::texto(config('recordatorios.whatsapp.idioma', 'es_PE')));
 
         $componentes = $parametrosCuerpo === []
             ? []

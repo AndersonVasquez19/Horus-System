@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Reclamacion;
 use App\Models\ReclamacionEnvio;
 use App\Models\User;
+use App\Support\Entrada;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Spatie\Permission\Models\Permission;
 
@@ -39,23 +40,23 @@ final class OperacionesReclamacion
      */
     public function ejecutar(User $actor, Reclamacion $reclamacion, array $datos): string
     {
-        $operacion = (string) $datos['operacion'];
+        $operacion = Entrada::texto($datos['operacion']);
         $uuid = (string) $reclamacion->identificador;
 
         match ($operacion) {
             'responsable' => $this->gestion->asignarResponsable(
-                $actor, $uuid, $datos['responsable_id'] === null ? null : (int) $datos['responsable_id']),
-            'tipo' => $this->gestion->reclasificarTipo($actor, $uuid, (string) $datos['tipo']),
-            'nota' => $this->gestion->agregarNota($actor, $uuid, (string) $datos['nota']),
-            'propuesta' => $this->gestion->enviarPropuesta($actor, $uuid, (string) $datos['asunto'], (string) $datos['cuerpo']),
+                $actor, $uuid, $datos['responsable_id'] === null ? null : Entrada::entero($datos['responsable_id'])),
+            'tipo' => $this->gestion->reclasificarTipo($actor, $uuid, Entrada::texto($datos['tipo'])),
+            'nota' => $this->gestion->agregarNota($actor, $uuid, Entrada::texto($datos['nota'])),
+            'propuesta' => $this->gestion->enviarPropuesta($actor, $uuid, Entrada::texto($datos['asunto']), Entrada::texto($datos['cuerpo'])),
             'rechazo' => $this->gestion->registrarRechazo(
-                $actor, $uuid, (string) $datos['fecha_recepcion'], isset($datos['nota']) ? (string) $datos['nota'] : null),
+                $actor, $uuid, Entrada::texto($datos['fecha_recepcion']), isset($datos['nota']) ? Entrada::texto($datos['nota']) : null),
             'aceptacion' => $this->gestion->registrarAceptacion(
-                $actor, $uuid, (string) $datos['fecha_recepcion'], (string) $datos['medio'], (string) $datos['constancia']),
+                $actor, $uuid, Entrada::texto($datos['fecha_recepcion']), Entrada::texto($datos['medio']), Entrada::texto($datos['constancia'])),
             'respuesta' => $this->gestion->registrarRespuesta(
-                $actor, $uuid, (string) $datos['respuesta'], (string) $datos['canal'],
-                isset($datos['constancia']) ? (string) $datos['constancia'] : null),
-            'reintento' => $this->gestion->reintentarEnvio($actor, $this->envioDeLaReclamacion($reclamacion, (int) $datos['envio_id'])),
+                $actor, $uuid, Entrada::texto($datos['respuesta']), Entrada::texto($datos['canal']),
+                isset($datos['constancia']) ? Entrada::texto($datos['constancia']) : null),
+            'reintento' => $this->gestion->reintentarEnvio($actor, $this->envioDeLaReclamacion($reclamacion, Entrada::entero($datos['envio_id']))),
             // El request ya rechaza una operación desconocida (403); nunca se ejecuta otra cosa.
             default => abort(403),
         };
@@ -86,12 +87,12 @@ final class OperacionesReclamacion
             return [];
         }
 
-        return User::permission('reclamaciones.ver')
+        return array_values(User::permission('reclamaciones.ver')
             ->role(RolesAndPermissionsSeeder::STAFF_ROLES)
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (User $u): array => ['id' => (int) $u->id, 'name' => (string) $u->name])
             ->values()
-            ->all();
+            ->all());
     }
 }

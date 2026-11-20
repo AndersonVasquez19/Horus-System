@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\ConsultaDniException;
+use App\Support\Entrada;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -42,10 +42,15 @@ class JsonPeService
             throw ConsultaDniException::de(ConsultaDniException::NO_ENCONTRADO);
         }
 
-        $clave = 'jsonpe:dni:'.hash_hmac('sha256', $dni, (string) config('app.key'));
+        $clave = 'jsonpe:dni:'.hash_hmac('sha256', $dni, Entrada::texto(config('app.key')));
         $enCache = Cache::get($clave);
         if (is_array($enCache)) {
-            return $enCache;
+            return [
+                'dni' => Entrada::texto($enCache['dni'] ?? ''),
+                'nombres' => Entrada::texto($enCache['nombres'] ?? ''),
+                'apellido_paterno' => Entrada::texto($enCache['apellido_paterno'] ?? ''),
+                'apellido_materno' => Entrada::texto($enCache['apellido_materno'] ?? ''),
+            ];
         }
 
         $resultado = $this->normalizar($dni, $this->solicitar($dni));
@@ -57,7 +62,7 @@ class JsonPeService
     private function solicitar(string $dni): Response
     {
         $token = config('services.jsonpe.token');
-        $url = (string) config('services.jsonpe.url');
+        $url = Entrada::texto(config('services.jsonpe.url'));
         if (! is_string($token) || trim($token) === '' || ! str_starts_with($url, 'https://')) {
             Log::error('jsonpe.configuracion_invalida');
             throw ConsultaDniException::de(ConsultaDniException::NO_CONFIGURADO);
@@ -99,7 +104,7 @@ class JsonPeService
     {
         try {
             $cuerpo = $respuesta->json();
-        } catch (RequestException|Throwable) {
+        } catch (Throwable) {
             $cuerpo = null;
         }
 
@@ -121,7 +126,7 @@ class JsonPeService
         $materno = $this->texto($datos['apellido_materno'] ?? null);
 
         // Debe coincidir el DNI consultado y venir nombres y primer apellido. El segundo apellido puede ser vacío.
-        if ($numero === null || (string) $numero !== $dni || $nombres === '' || $paterno === '') {
+        if ($numero === null || Entrada::texto($numero) !== $dni || $nombres === '' || $paterno === '') {
             Log::warning('jsonpe.respuesta_incompleta');
             throw ConsultaDniException::de(ConsultaDniException::RESPUESTA_INCOMPLETA);
         }

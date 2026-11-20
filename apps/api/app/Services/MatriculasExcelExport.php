@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Curso;
+use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\Entrada;
 use App\Support\SafeSpreadsheet;
 use App\Support\SpreadsheetCellCache;
 use Generator;
@@ -41,7 +44,8 @@ final class MatriculasExcelExport
                     $connection->statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
                 } else {
                     $isolation = $connection->selectOne("SELECT current_setting('transaction_isolation') AS isolation");
-                    if (! in_array($isolation->isolation, ['repeatable read', 'serializable'], true)) {
+                    $nivelAislamiento = is_object($isolation) ? Entrada::texto($isolation->isolation ?? '') : '';
+                    if (! in_array($nivelAislamiento, ['repeatable read', 'serializable'], true)) {
                         throw new RuntimeException('La exportación requiere una transacción con snapshot consistente.');
                     }
                 }
@@ -83,12 +87,12 @@ final class MatriculasExcelExport
         $curso = $matricula->getRelation('curso');
 
         return [
-            $matricula->getAttribute('id'),
-            trim(($estudiante->nombres ?? '').' '.($estudiante->apellidos ?? '')),
-            $curso?->nombre,
-            $matricula->getAttribute('fecha_matricula')?->format('d/m/Y'),
-            $matricula->getAttribute('estado'),
-            (float) $matricula->getAttribute('monto_pagado'),
+            $matricula->id,
+            $estudiante instanceof Estudiante ? trim($estudiante->nombres.' '.$estudiante->apellidos) : '',
+            $curso instanceof Curso ? $curso->nombre : null,
+            $matricula->fecha_matricula->format('d/m/Y'),
+            $matricula->estado,
+            Entrada::decimal($matricula->monto_pagado),
         ];
     }
 

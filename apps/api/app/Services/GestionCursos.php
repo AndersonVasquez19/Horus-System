@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Curso;
 use App\Support\AuditoriaAcademica;
+use App\Support\Entrada;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,7 +44,7 @@ final class GestionCursos
     public function actualizar(Curso $curso, array $datos, int $actor): Curso
     {
         return DB::transaction(function () use ($curso, $datos, $actor): Curso {
-            $bloqueado = Curso::query()->lockForUpdate()->findOrFail($curso->getKey());
+            $bloqueado = Curso::query()->lockForUpdate()->findOrFail($curso->id);
             $matriculasActivas = $bloqueado->matriculas()->where('estado', '!=', 'anulada')->count();
 
             if ($datos['cupos_maximos'] < $matriculasActivas) {
@@ -52,7 +53,7 @@ final class GestionCursos
                 ]);
             }
 
-            $datos['cupos_disponibles'] = $datos['cupos_maximos'] - $matriculasActivas;
+            $datos['cupos_disponibles'] = Entrada::entero($datos['cupos_maximos']) - $matriculasActivas;
             $bloqueado->fill($datos);
             $diferencias = AuditoriaAcademica::diferencias($bloqueado, AuditoriaAcademica::CURSO);
             $bloqueado->save();
@@ -70,7 +71,7 @@ final class GestionCursos
     public function archivar(Curso $curso, int $actor): int
     {
         return DB::transaction(function () use ($curso, $actor): int {
-            $bloqueado = Curso::query()->lockForUpdate()->find($curso->getKey());
+            $bloqueado = Curso::query()->lockForUpdate()->find($curso->id);
 
             if ($bloqueado === null) {
                 return 0;

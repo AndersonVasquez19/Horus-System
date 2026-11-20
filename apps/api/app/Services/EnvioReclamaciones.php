@@ -8,6 +8,7 @@ use App\Mail\ReclamacionMail;
 use App\Models\Reclamacion;
 use App\Models\ReclamacionEnvio;
 use App\Support\AuditoriaReclamaciones;
+use App\Support\Entrada;
 use App\Support\Reclamaciones;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -65,7 +66,7 @@ class EnvioReclamaciones
 
     private function reservar(int $envioId): ?ReclamacionEnvio
     {
-        $reserva = (int) config('reclamaciones.correo.reserva_minutos', 10);
+        $reserva = Entrada::entero(config('reclamaciones.correo.reserva_minutos', 10));
         $limite = now()->subMinutes($reserva);
 
         return DB::transaction(function () use ($envioId, $limite): ?ReclamacionEnvio {
@@ -104,6 +105,7 @@ class EnvioReclamaciones
         });
     }
 
+    /** @return 'fallido'|'omitido' */
     private function fallo(int $envioId, string $codigo): string
     {
         $agotado = DB::transaction(function () use ($envioId, $codigo): bool {

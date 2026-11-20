@@ -11,6 +11,7 @@ use App\Models\Matricula;
 use App\Models\ObligacionPago;
 use App\Models\User;
 use App\Support\AuditoriaAcademica;
+use App\Support\Entrada;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -45,7 +46,7 @@ final class GestionMatriculas
         return DB::transaction(function () use ($datos, $actor, $identificador): Matricula {
             $curso = Curso::withTrashed()
                 ->lockForUpdate()
-                ->findOrFail($datos['curso_id']);
+                ->findOrFail(Entrada::entero($datos['curso_id']));
 
             // La validación HTTP puede haber quedado obsoleta antes de adquirir el lock.
             if ($curso->trashed() || $curso->estado !== 'activo') {
@@ -66,7 +67,7 @@ final class GestionMatriculas
                 $datos['convocatoria_id'] = $convocatoria->id;
             }
 
-            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
+            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail(Entrada::entero($datos['estudiante_id']));
             if ($estudiante->trashed() || $estudiante->estado !== 'activo') {
                 throw ValidationException::withMessages([
                     'estudiante_id' => 'El estudiante seleccionado no está activo.',
@@ -74,7 +75,7 @@ final class GestionMatriculas
             }
 
             if ($datos['estado'] !== 'anulada') {
-                $this->assertNoActiveDuplicate((int) $datos['estudiante_id'], (int) $curso->id);
+                $this->assertNoActiveDuplicate(Entrada::entero($datos['estudiante_id']), Entrada::entero($curso->id));
 
                 if ($convocatoria !== null) {
                     $this->ocuparCupoConvocatoria($convocatoria);
@@ -97,7 +98,7 @@ final class GestionMatriculas
                 $matricula,
                 AuditoriaAcademica::MATRICULA,
                 $actor,
-                AuditoriaAcademica::efectoCupo(null, null, (string) $datos['estado'], (int) $curso->id),
+                AuditoriaAcademica::efectoCupo(null, null, Entrada::texto($datos['estado']), (int) $curso->id),
             );
 
             return $matricula;
@@ -114,7 +115,7 @@ final class GestionMatriculas
         unset($datos['monto_pagado'], $datos['motivo']);
 
         return DB::transaction(function () use ($matricula, $datos, $usuario, $actor, $motivo): Matricula {
-            $matricula = $this->lockMatricula($matricula->id, (int) $datos['curso_id'], (int) $datos['estudiante_id']);
+            $matricula = $this->lockMatricula($matricula->id, Entrada::entero($datos['curso_id']), Entrada::entero($datos['estudiante_id']));
 
             $estadoAnterior = (string) $matricula->estado;
             if ($datos['estado'] === 'pagada' && $estadoAnterior !== 'pagada') {
@@ -140,7 +141,7 @@ final class GestionMatriculas
                 $this->asegurarSinPagosEnLibro($matricula);
             }
             $cursoAnteriorId = (int) $matricula->curso_id;
-            $cursoNuevoId = (int) $datos['curso_id'];
+            $cursoNuevoId = Entrada::entero($datos['curso_id']);
             $cursos = Curso::withTrashed()
                 ->whereIn('id', array_unique([$cursoAnteriorId, $cursoNuevoId]))
                 ->orderBy('id')
@@ -156,7 +157,7 @@ final class GestionMatriculas
                 ]);
             }
 
-            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail($datos['estudiante_id']);
+            $estudiante = Estudiante::withTrashed()->lockForUpdate()->findOrFail(Entrada::entero($datos['estudiante_id']));
             if ($estudiante->trashed()) {
                 throw ValidationException::withMessages([
                     'estudiante_id' => 'El estudiante seleccionado no está disponible.',
@@ -165,7 +166,7 @@ final class GestionMatriculas
 
             if ($nuevaActiva) {
                 $this->assertNoActiveDuplicate(
-                    (int) $datos['estudiante_id'],
+                    Entrada::entero($datos['estudiante_id']),
                     $cursoNuevoId,
                     (int) $matricula->id,
                 );
@@ -226,7 +227,7 @@ final class GestionMatriculas
                 $matricula,
                 $diferencias,
                 $actor,
-                AuditoriaAcademica::efectoCupo($estadoAnterior, $cursoAnteriorId, (string) $datos['estado'], $cursoNuevoId),
+                AuditoriaAcademica::efectoCupo($estadoAnterior, $cursoAnteriorId, Entrada::texto($datos['estado']), $cursoNuevoId),
             );
 
             return $matricula;
@@ -347,7 +348,7 @@ final class GestionMatriculas
     {
         foreach (['estudiante_id', 'curso_id'] as $campo) {
             if (array_key_exists($campo, $datos)) {
-                $datos[$campo] = (int) $datos[$campo];
+                $datos[$campo] = Entrada::entero($datos[$campo]);
             }
         }
 

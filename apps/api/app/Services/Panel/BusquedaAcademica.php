@@ -55,7 +55,8 @@ final class BusquedaAcademica
 
             $grupos['matriculas'] = $consultaMatriculas->latest('id')->limit(self::POR_GRUPO)->get()->map(function (Matricula $m): array {
                 $dni = $m->estudiante?->dni;
-                $curso = trim(($m->curso?->codigo ? $m->curso->codigo.' — ' : '').($m->curso?->nombre ?? 'Curso'));
+                $cursoModelo = $m->curso;
+                $curso = $cursoModelo === null ? '' : trim(($cursoModelo->codigo ? $cursoModelo->codigo.' — ' : '').$cursoModelo->nombre);
                 $partesDetalle = array_filter([
                     $dni !== null ? 'DNI '.$dni : null,
                     $curso,
@@ -78,10 +79,10 @@ final class BusquedaAcademica
                 $w->orWhereHas('curso', fn ($c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $texto));
             });
             $grupos['ediciones'] = $q->orderByDesc('fecha_inicio')->limit(self::POR_GRUPO)->get()->map(fn (Convocatoria $c): array => [
-                'identificador' => $c->identificador, 'texto' => $c->codigo, 'detalle' => $c->curso?->nombre ?? '',
+                'identificador' => $c->identificador, 'texto' => $c->codigo, 'detalle' => $c->curso->nombre ?? '',
             ])->all();
         }
 
-        return $grupos;
+        return array_map(static fn (array $grupo): array => array_values($grupo), $grupos);
     }
 }

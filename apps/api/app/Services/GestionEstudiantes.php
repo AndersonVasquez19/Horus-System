@@ -43,7 +43,7 @@ final class GestionEstudiantes
     {
         return DB::transaction(function () use ($estudiante, $datos, $actor): Estudiante {
             // Se relee la fila bajo bloqueo para que «antes» sea el valor real y no el del enlace de ruta.
-            $bloqueado = Estudiante::query()->lockForUpdate()->findOrFail($estudiante->getKey());
+            $bloqueado = Estudiante::query()->lockForUpdate()->findOrFail($estudiante->id);
             $bloqueado->fill($datos);
             $diferencias = AuditoriaAcademica::diferencias($bloqueado, AuditoriaAcademica::ESTUDIANTE);
             $bloqueado->save();
@@ -62,7 +62,7 @@ final class GestionEstudiantes
     {
         return DB::transaction(function () use ($estudiante, $actor): int {
             // Sin withTrashed(): si otra petición ya lo eliminó, no hay operación efectiva ni auditoría.
-            $bloqueado = Estudiante::query()->lockForUpdate()->find($estudiante->getKey());
+            $bloqueado = Estudiante::query()->lockForUpdate()->find($estudiante->id);
 
             if ($bloqueado === null) {
                 return 0;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Entrada;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -36,24 +37,24 @@ class OperacionHorus
         if (! config('horus-advisor.enabled') || ! config('horus-catalog.sync_enabled')) {
             $errores[] = 'advisor_sync_disabled';
         }
-        $url = parse_url((string) config('horus-advisor.url'));
+        $url = parse_url(Entrada::texto(config('horus-advisor.url')));
         if (! is_array($url) || ($url['scheme'] ?? '') !== 'http' || ($url['host'] ?? '') !== '127.0.0.1'
             || isset($url['query']) || isset($url['fragment'])
             || ! in_array($url['path'] ?? '', ['', '/'], true) || isset($url['user']) || isset($url['pass'])) {
             $errores[] = 'advisor_url';
         }
         foreach (['token' => 'service_token', 'signing_key' => 'catalog_key'] as $key => $code) {
-            if (strlen((string) config('horus-advisor.'.$key)) < 32) {
+            if (strlen(Entrada::texto(config('horus-advisor.'.$key))) < 32) {
                 $errores[] = $code;
             }
         }
-        $connection = (string) config('queue.default');
+        $connection = Entrada::texto(config('queue.default'));
         if (config('queue.connections.'.$connection.'.driver') !== 'database') {
             $errores[] = 'async_queue';
-        } elseif ((int) config('queue.connections.'.$connection.'.retry_after') <= 45) {
+        } elseif (Entrada::entero(config('queue.connections.'.$connection.'.retry_after')) <= 45) {
             $errores[] = 'retry_after';
         }
-        $cache = (string) config('cache.default');
+        $cache = Entrada::texto(config('cache.default'));
         $driver = config('cache.stores.'.$cache.'.driver');
         if (! in_array($driver, ['file', 'database', 'redis'], true)
             && ! ($driver === 'array' && app()->runningUnitTests())) {
@@ -67,7 +68,7 @@ class OperacionHorus
     public function estado(bool $probe = false, bool $queue = false): array
     {
         $errors = $this->errores();
-        $driver = config('queue.connections.'.config('queue.default').'.driver');
+        $driver = config('queue.connections.'.Entrada::texto(config('queue.default')).'.driver');
         $status = ['enabled' => (bool) config('horus-ops.enabled'), 'errors' => $errors,
             'ready' => false, 'probe' => 'not_requested', 'worker' => 'not_checked',
             'queue_driver' => in_array($driver, ['database', 'sync', 'redis', 'null'], true) ? $driver : 'unsupported'];
@@ -78,7 +79,7 @@ class OperacionHorus
             $beat = Cache::get('horus.ops.worker');
             $status['worker'] = is_array($beat) && is_int($beat['at'] ?? null)
                 && $beat['at'] <= time() && $beat['at'] >= time() - 90 ? 'alive' : 'stale';
-            $expected = Cache::get(config('horus-catalog.expected_version_cache_key'));
+            $expected = Cache::get(Entrada::texto(config('horus-catalog.expected_version_cache_key')));
             $health = $this->consultar('/health');
             $ready = $this->consultar('/ready');
             $info = $this->consultar('/api/v1/info');
@@ -114,8 +115,8 @@ class OperacionHorus
     private function consultar(string $path): array
     {
         $response = Http::connectTimeout(0.4)->timeout(1)->withoutRedirecting()->withOptions(['stream' => true])
-            ->withHeaders($path === '/api/v1/info' ? ['X-Horus-Service-Token' => (string) config('horus-advisor.token')] : [])
-            ->get(rtrim((string) config('horus-advisor.url'), '/').$path);
+            ->withHeaders($path === '/api/v1/info' ? ['X-Horus-Service-Token' => Entrada::texto(config('horus-advisor.token'))] : [])
+            ->get(rtrim(Entrada::texto(config('horus-advisor.url')), '/').$path);
         $body = $response->toPsrResponse()->getBody();
         try {
             $raw = $body->read(4097);
@@ -133,10 +134,10 @@ class OperacionHorus
     /** @param array<string, mixed> $status */
     private function contarCola(array &$status): void
     {
-        $config = config('queue.connections.'.config('queue.default'));
-        $db = DB::connection($config['connection'] ?? null);
-        $status['pending_queue_total'] = $db->table($config['table'])->where('queue', $config['queue'])->count();
-        $status['failed_catalog_jobs'] = DB::connection(config('queue.failed.database'))
-            ->table(config('queue.failed.table'))->where('payload', 'like', '%SincronizarCatalogoAdvisor%')->count();
+        $config = Entrada::lista(config('queue.connections.'.Entrada::texto(config('queue.default'))));
+        $db = DB::connection(Entrada::textoONulo($config['connection'] ?? null));
+        $status['pending_queue_total'] = $db->table(Entrada::texto($config['table'] ?? ''))->where('queue', $config['queue'] ?? null)->count();
+        $status['failed_catalog_jobs'] = DB::connection(Entrada::textoONulo(config('queue.failed.database')))
+            ->table(Entrada::texto(config('queue.failed.table')))->where('payload', 'like', '%SincronizarCatalogoAdvisor%')->count();
     }
 }

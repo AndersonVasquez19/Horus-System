@@ -11,6 +11,7 @@ use App\Models\NotificacionInterna;
 use App\Models\ObligacionPago;
 use App\Models\SesionClase;
 use App\Models\User;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -57,7 +58,7 @@ class RecordatoriosService
      */
     private function procesarCuotas(CarbonImmutable $hoyLima, string $hoyIso, string $utcHoy, bool $dryRun, int $limit, array &$conteos): void
     {
-        $dias = max(1, (int) config('recordatorios.cuotas_anticipacion_dias', 3));
+        $dias = max(1, Entrada::entero(config('recordatorios.cuotas_anticipacion_dias', 3)));
         $limiteFecha = $hoyLima->addDays($dias)->toDateString();
 
         $obligaciones = ObligacionPago::query()
@@ -147,7 +148,7 @@ class RecordatoriosService
                 continue;
             }
             $vinculo = '/admin/academico/convocatorias/'.$conv->identificador;
-            $cursoNombre = $conv->curso->nombre ?: $conv->codigo;
+            $cursoNombre = ($conv->curso->nombre ?? '') ?: $conv->codigo;
             $titulo = "Sesión #{$sesion->numero} hoy: {$conv->codigo}";
 
             if ($this->yaNotificadoHoy('recordatorio_sesion', $vinculo, $titulo, $utcHoy)) {
@@ -181,7 +182,7 @@ class RecordatoriosService
      */
     private function procesarMensajes(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
     {
-        $horas = max(1, (int) config('recordatorios.mensajes_sin_atender_horas', 24));
+        $horas = max(1, Entrada::entero(config('recordatorios.mensajes_sin_atender_horas', 24)));
         $pendientes = MensajeContacto::query()
             ->where('estado', MensajeContacto::ESTADO_NUEVO)
             ->where('created_at', '<=', now()->subHours($horas))
@@ -242,7 +243,7 @@ class RecordatoriosService
             }
 
             if ($prefs['interno'] ?? true) {
-                NotificacionInterna::crearPersonal((int) $usuario->getKey(), [
+                NotificacionInterna::crearPersonal($usuario->id, [
                     'titulo' => $titulo,
                     'mensaje' => $mensaje,
                     'tipo' => $tipoNotificacion,
@@ -256,7 +257,7 @@ class RecordatoriosService
                     $tipoNotificacion,
                     "email:{$baseClaveExterna}:u{$usuario->id}",
                     ['to' => $usuario->email, 'subject' => $titulo, 'text' => 'Tienes un aviso pendiente en Horus Academic. Ingresa al panel para ver el detalle.'],
-                    (int) $usuario->getKey(),
+                    $usuario->id,
                 );
                 $encolados++;
             }
@@ -278,7 +279,7 @@ class RecordatoriosService
                         'parametros' => $parametrosWa,
                         'consentimiento' => true,
                     ],
-                    (int) $usuario->getKey(),
+                    $usuario->id,
                 );
                 $encolados++;
             }

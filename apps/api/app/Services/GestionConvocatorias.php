@@ -10,6 +10,7 @@ use App\Models\ConvocatoriaHorario;
 use App\Models\Curso;
 use App\Models\User;
 use App\Support\CodigoSecuencial;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class GestionConvocatorias
                 throw ValidationException::withMessages(['modalidad' => 'Las ediciones nuevas son presenciales o virtuales.']);
             }
 
-            $curso = Curso::withTrashed()->lockForUpdate()->find((int) ($datos['curso_id'] ?? 0));
+            $curso = Curso::withTrashed()->lockForUpdate()->find(Entrada::entero(($datos['curso_id'] ?? 0)));
             if ($curso === null || $curso->trashed() || $curso->estado !== 'activo') {
                 throw ValidationException::withMessages(['curso_id' => 'El curso seleccionado no está disponible.']);
             }
@@ -72,7 +73,7 @@ class GestionConvocatorias
                 if ($convocatoria->cupos_maximos < $ocupados) {
                     throw ValidationException::withMessages(['cupos_maximos' => "Ya hay {$ocupados} cupos ocupados: el máximo no puede ser menor."]);
                 }
-                $convocatoria->cupos_disponibles = $convocatoria->cupos_maximos - $ocupados;
+                $convocatoria->cupos_disponibles = max(0, $convocatoria->cupos_maximos - $ocupados);
             }
             if (! $convocatoria->isDirty()) {
                 return $convocatoria;
@@ -172,15 +173,15 @@ class GestionConvocatorias
         }
         $porDia = [];
         foreach ($horarios as $i => $bloque) {
-            $inicio = (string) $bloque['hora_inicio'];
-            $fin = (string) $bloque['hora_fin'];
-            foreach ($porDia[$bloque['dia_semana']] ?? [] as [$otroInicio, $otroFin]) {
+            $inicio = Entrada::texto($bloque['hora_inicio']);
+            $fin = Entrada::texto($bloque['hora_fin']);
+            foreach ($porDia[Entrada::entero($bloque['dia_semana'])] ?? [] as [$otroInicio, $otroFin]) {
                 // Dos intervalos se solapan si cada uno empieza antes de que el otro termine (extremos que se tocan no solapan).
                 if ($inicio < $otroFin && $otroInicio < $fin) {
                     throw ValidationException::withMessages(["horarios.{$i}.hora_inicio" => 'Este bloque se solapa con otro del mismo día.']);
                 }
             }
-            $porDia[$bloque['dia_semana']][] = [$inicio, $fin];
+            $porDia[Entrada::entero($bloque['dia_semana'])][] = [$inicio, $fin];
         }
     }
 

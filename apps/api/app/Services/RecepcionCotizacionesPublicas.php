@@ -9,6 +9,7 @@ use App\Models\CotizacionHistorial;
 use App\Models\ServicioTecnologico;
 use App\Models\SolicitudCotizacion;
 use App\Support\Email;
+use App\Support\Entrada;
 use App\Support\FormularioCotizacionPublica;
 use App\Support\PaginasServicios;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -76,19 +77,20 @@ class RecepcionCotizacionesPublicas
         if ($marca === null) {
             throw ValidationException::withMessages(['marca' => 'El formulario caducó o se envió demasiado rápido. Revisa los datos e inténtalo de nuevo.']);
         }
-        $elegidos = array_values(array_unique(array_map('strtolower', (array) $datos['servicios'])));
+        $elegidos = array_values(array_unique(array_map(static fn (mixed $servicio): string => strtolower(Entrada::texto($servicio)), Entrada::lista($datos['servicios']))));
         $disponibles = collect($this->servicios())->keyBy(fn (array $s): string => strtolower($s['valor']));
         $titulos = [];
         foreach ($elegidos as $uuid) {
-            if (! $disponibles->has($uuid)) {
+            $servicio = $disponibles->get($uuid);
+            if ($servicio === null) {
                 throw ValidationException::withMessages(['servicios' => 'Alguno de los servicios elegidos ya no está disponible. Revisa la lista e inténtalo de nuevo.']);
             }
-            $titulos[] = $disponibles[$uuid]['titulo'];
+            $titulos[] = $servicio['titulo'];
         }
         $contenido = [
-            'servicios' => $elegidos, 'nombre' => (string) $datos['nombre'], 'empresa' => (string) ($datos['empresa'] ?? ''),
-            'email' => Email::normalize($datos['email']), 'telefono' => (string) ($datos['telefono'] ?? ''), 'ubicacion' => (string) $datos['ubicacion'],
-            'necesidad' => (string) $datos['necesidad'], 'informacion' => (string) ($datos['informacion'] ?? ''),
+            'servicios' => $elegidos, 'nombre' => Entrada::texto($datos['nombre']), 'empresa' => Entrada::texto(($datos['empresa'] ?? '')),
+            'email' => Email::normalize($datos['email']), 'telefono' => Entrada::texto(($datos['telefono'] ?? '')), 'ubicacion' => Entrada::texto($datos['ubicacion']),
+            'necesidad' => Entrada::texto($datos['necesidad']), 'informacion' => Entrada::texto(($datos['informacion'] ?? '')),
         ];
         $huella = $this->huella($contenido);
         $clave = hash('sha256', 'publico:'.$marca['identificador']);
@@ -123,7 +125,7 @@ class RecepcionCotizacionesPublicas
         if ($abierta !== null) {
             return ['solicitud' => $abierta, 'repetida' => true];
         }
-        $principal = ServicioTecnologico::query()->where('identificador_publico', $c['servicios'][0])->lockForUpdate()->first();
+        $principal = ServicioTecnologico::query()->where('identificador_publico', Entrada::lista($c['servicios'])[0] ?? null)->lockForUpdate()->first();
         if ($principal === null) {
             throw ValidationException::withMessages(['servicios' => 'Alguno de los servicios elegidos ya no está disponible.']);
         }
@@ -169,16 +171,16 @@ class RecepcionCotizacionesPublicas
     {
         $lineas = ['Servicios de interés: '.implode('; ', $titulos)];
         if ($c['empresa'] !== '') {
-            $lineas[] = 'Empresa: '.$c['empresa'];
+            $lineas[] = 'Empresa: '.Entrada::texto($c['empresa']);
         }
-        $lineas[] = 'Ubicación del proyecto: '.$c['ubicacion'];
+        $lineas[] = 'Ubicación del proyecto: '.Entrada::texto($c['ubicacion']);
         $lineas[] = '';
         $lineas[] = 'Necesidad:';
-        $lineas[] = $c['necesidad'];
+        $lineas[] = Entrada::texto($c['necesidad']);
         if ($c['informacion'] !== '') {
             $lineas[] = '';
             $lineas[] = 'Información adicional:';
-            $lineas[] = $c['informacion'];
+            $lineas[] = Entrada::texto($c['informacion']);
         }
 
         return implode("\n", $lineas);
@@ -205,9 +207,11 @@ class RecepcionCotizacionesPublicas
     {
         $secreto = config('app.key');
         abort_unless(is_string($secreto) && $secreto !== '', 503, 'Configuración de integridad no disponible.');
-        sort($contenido['servicios']);
+        $servicios = Entrada::lista($contenido['servicios']);
+        sort($servicios);
+        $contenido['servicios'] = $servicios;
         foreach (['nombre', 'empresa', 'ubicacion', 'necesidad', 'informacion'] as $campo) {
-            $contenido[$campo] = mb_strtolower($contenido[$campo]);
+            $contenido[$campo] = mb_strtolower(Entrada::texto($contenido[$campo]));
         }
         ksort($contenido);
 

@@ -10,6 +10,7 @@ use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Models\ObligacionPago;
 use App\Support\BusquedaLike;
+use App\Support\Entrada;
 use App\Support\SafeSpreadsheet;
 use App\Support\SpreadsheetCellCache;
 use App\Support\TemporaryExportFile;
@@ -29,6 +30,14 @@ use ZipArchive;
 /**
  * Consulta, paginación por lotes y descarga temporal de los reportes de matrículas (extraídas de
  * Admin\ReportController sin cambiar su comportamiento). La usan el panel Blade y la API de los paneles de apps/web.
+ *
+ * @phpstan-type CursoResumen array{codigo: string, nombre: string}
+ * @phpstan-type FilaCobranza array{id: int, obligacion: string, estudiante: string|null, dni: string|null, curso: CursoResumen|null, concepto: string, total: string, pagado: string, saldo: string, estado: string}
+ * @phpstan-type ResumenCobranza array{obligaciones: int, total_facturado: string, cobrado: string, saldo_pendiente: string}
+ * @phpstan-type FilaAsistencia array{identificador: string, codigo: string, edicion: string, curso: CursoResumen|null, sesiones_realizadas: int, matriculados: int, promedio: float|null, estado: string}
+ * @phpstan-type ResumenAsistencia array{ediciones: int, sesiones_realizadas: int, matriculados: int, promedio_asistencia: float|null}
+ * @phpstan-type FilaCalificaciones array{identificador: string, codigo: string, edicion: string, curso: CursoResumen|null, matriculados: int, con_nota: int, aprobados: int, desaprobados: int, promedio: float|null, estado: string}
+ * @phpstan-type ResumenCalificaciones array{ediciones: int, evaluados: int, aprobados: int, promedio_general: float|null}
  */
 final class ReportesMatriculas
 {
@@ -55,7 +64,7 @@ final class ReportesMatriculas
             $query->where('curso_id', $filtros['curso_id']);
         }
         if (isset($filtros['busqueda'])) {
-            $busqueda = (string) $filtros['busqueda'];
+            $busqueda = Entrada::texto($filtros['busqueda']);
             $query->where(function (Builder $query) use ($busqueda): void {
                 $query->whereHas('estudiante', function (Builder $estudiante) use ($busqueda): void {
                     BusquedaLike::contiene($estudiante, ['dni', 'nombres', 'apellidos'], $busqueda);
@@ -73,9 +82,9 @@ final class ReportesMatriculas
      * (transacciones confirmadas netas de reversos sobre obligaciones vigentes de las matrículas filtradas).
      *
      * @param  Builder<Matricula>  $query
-     * @return object{total: int|string, estudiantes: int|string, cursos: int|string, ingresos: int|float|string}
+     * @return array{total: int, estudiantes: int, cursos: int, ingresos: float}
      */
-    public function resumen(Builder $query): object
+    public function resumen(Builder $query): array
     {
         $totales = (clone $query)->toBase()->select([])
             ->selectRaw('COUNT(*) as total, COUNT(DISTINCT estudiante_id) as estudiantes, COUNT(DISTINCT curso_id) as cursos')
@@ -88,9 +97,12 @@ final class ReportesMatriculas
             ->selectRaw("COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN t.monto ELSE -t.monto END), 0) as neto")
             ->value('neto') ?? 0;
 
-        $totales->ingresos = max(0.0, (float) $netoLibro);
-
-        return $totales;
+        return [
+            'total' => Entrada::entero($totales?->total),
+            'estudiantes' => Entrada::entero($totales?->estudiantes),
+            'cursos' => Entrada::entero($totales?->cursos),
+            'ingresos' => max(0.0, Entrada::decimal($netoLibro)),
+        ];
     }
 
     /**
@@ -100,7 +112,7 @@ final class ReportesMatriculas
     public function lote(Builder $query, ReportMatriculasRequest $request, ?int $total = null): LengthAwarePaginator
     {
         $matriculas = (clone $query)->orderByDesc('fecha_matricula')->orderByDesc('id')
-            ->paginate(self::TAMANO_LOTE, ['*'], 'lote', (int) ($request->validated('lote') ?? 1), $total)
+            ->paginate(self::TAMANO_LOTE, ['*'], 'lote', Entrada::entero(($request->validated('lote') ?? 1)), $total)
             ->appends($request->filters());
 
         abort_if($matriculas->currentPage() > $matriculas->lastPage(), 404, 'El lote solicitado no existe. Vuelve a aplicar los filtros.');
@@ -158,10 +170,10 @@ final class ReportesMatriculas
     {
         $filtros = $request->filters();
         $resumen = [
-            'estado' => isset($filtros['estado']) ? (string) $filtros['estado'] : null,
-            'curso_id' => isset($filtros['curso_id']) ? (int) $filtros['curso_id'] : null,
+            'estado' => isset($filtros['estado']) ? Entrada::texto($filtros['estado']) : null,
+            'curso_id' => isset($filtros['curso_id']) ? Entrada::entero($filtros['curso_id']) : null,
             'eliminados' => $request->boolean('eliminados'),
-            'con_busqueda' => isset($filtros['busqueda']) && (string) $filtros['busqueda'] !== '',
+            'con_busqueda' => isset($filtros['busqueda']) && Entrada::texto($filtros['busqueda']) !== '',
         ];
 
         if ($lote !== null) {
@@ -174,7 +186,7 @@ final class ReportesMatriculas
     /**
      * Reporte de cobranza (obligaciones, cobrado neto y saldo pendiente).
      *
-     * @return array{rows: list<array<string, mixed>>, resumen: array<string, mixed>}
+     * @return array{rows: list<FilaCobranza>, resumen: ResumenCobranza}
      */
     public function cobranza(ReportMatriculasRequest $request): array
     {
@@ -183,10 +195,10 @@ final class ReportesMatriculas
             ->with(['matricula.estudiante:id,dni,nombres,apellidos', 'matricula.curso:id,codigo,nombre', 'transacciones'])
             ->whereHas('matricula', function (Builder $m) use ($filtros): void {
                 if (isset($filtros['curso_id'])) {
-                    $m->where('curso_id', (int) $filtros['curso_id']);
+                    $m->where('curso_id', Entrada::entero($filtros['curso_id']));
                 }
                 if (isset($filtros['busqueda'])) {
-                    $b = (string) $filtros['busqueda'];
+                    $b = Entrada::texto($filtros['busqueda']);
                     $m->where(function (Builder $sub) use ($b): void {
                         $sub->whereHas('estudiante', fn (Builder $e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $b))
                             ->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
@@ -202,7 +214,7 @@ final class ReportesMatriculas
         }
 
         $pagos = app(GestionPagos::class);
-        $estadoFiltro = isset($filtros['estado']) ? (string) $filtros['estado'] : '';
+        $estadoFiltro = isset($filtros['estado']) ? Entrada::texto($filtros['estado']) : '';
         $filas = [];
         $totalFacturado = 0;
         $totalCobrado = 0;
@@ -255,17 +267,17 @@ final class ReportesMatriculas
     /**
      * Reporte consolidado de asistencia por edición.
      *
-     * @return array{rows: list<array<string, mixed>>, resumen: array<string, mixed>}
+     * @return array{rows: list<FilaAsistencia>, resumen: ResumenAsistencia}
      */
     public function asistencia(ReportMatriculasRequest $request): array
     {
         $filtros = $request->filters();
         $query = Convocatoria::query()->with('curso:id,codigo,nombre')->orderByDesc('fecha_inicio');
         if (isset($filtros['curso_id'])) {
-            $query->where('curso_id', (int) $filtros['curso_id']);
+            $query->where('curso_id', Entrada::entero($filtros['curso_id']));
         }
         if (isset($filtros['busqueda'])) {
-            $b = (string) $filtros['busqueda'];
+            $b = Entrada::texto($filtros['busqueda']);
             $query->where(function (Builder $q) use ($b): void {
                 BusquedaLike::contiene($q, ['codigo', 'nombre'], $b);
                 $q->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
@@ -291,7 +303,7 @@ final class ReportesMatriculas
             $filas[] = [
                 'identificador' => $conv->identificador,
                 'codigo' => $conv->codigo,
-                'edicion' => $conv->nombre ?: ($conv->curso?->nombre ?? $conv->codigo),
+                'edicion' => $conv->nombre ?: ($conv->curso->nombre ?? $conv->codigo),
                 'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
                 'sesiones_realizadas' => $res['sesiones_realizadas'],
                 'matriculados' => count($res['matriculas']),
@@ -314,17 +326,17 @@ final class ReportesMatriculas
     /**
      * Reporte consolidado de calificaciones por edición.
      *
-     * @return array{rows: list<array<string, mixed>>, resumen: array<string, mixed>}
+     * @return array{rows: list<FilaCalificaciones>, resumen: ResumenCalificaciones}
      */
     public function calificaciones(ReportMatriculasRequest $request): array
     {
         $filtros = $request->filters();
         $query = Convocatoria::query()->with('curso:id,codigo,nombre')->orderByDesc('fecha_inicio');
         if (isset($filtros['curso_id'])) {
-            $query->where('curso_id', (int) $filtros['curso_id']);
+            $query->where('curso_id', Entrada::entero($filtros['curso_id']));
         }
         if (isset($filtros['busqueda'])) {
-            $b = (string) $filtros['busqueda'];
+            $b = Entrada::texto($filtros['busqueda']);
             $query->where(function (Builder $q) use ($b): void {
                 BusquedaLike::contiene($q, ['codigo', 'nombre'], $b);
                 $q->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
@@ -354,7 +366,7 @@ final class ReportesMatriculas
             $filas[] = [
                 'identificador' => $conv->identificador,
                 'codigo' => $conv->codigo,
-                'edicion' => $conv->nombre ?: ($conv->curso?->nombre ?? $conv->codigo),
+                'edicion' => $conv->nombre ?: ($conv->curso->nombre ?? $conv->codigo),
                 'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
                 'matriculados' => $mats->count(),
                 'con_nota' => $conNota->count(),

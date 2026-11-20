@@ -43,14 +43,14 @@ class CatalogoPublicoServicios
             ->whereNotNull('p.autorizado_at')->where('p.autorizado_at', '<=', now())
             ->whereIn('p.autorizado_por', $autores);
         $resultado['total'] = (clone $consulta)->count();
-        $resultado['servicios'] = $consulta->orderBy('s.id')->offset(($pagina - 1) * $porPagina)->limit($porPagina)
+        $resultado['servicios'] = array_values($consulta->orderBy('s.id')->offset(($pagina - 1) * $porPagina)->limit($porPagina)
             ->get(['s.identificador_publico', 'p.titulo', 'p.resumen', 'p.descripcion', 'p.categoria', 'p.vigente_desde', 'p.vigente_hasta'])
             ->map(fn (object $fila): array => [
                 'identificador_publico' => (string) $fila->identificador_publico,
                 'titulo' => (string) $fila->titulo, 'resumen' => (string) $fila->resumen,
                 'descripcion' => (string) $fila->descripcion, 'categoria' => $fila->categoria === null ? null : (string) $fila->categoria,
                 'vigente_desde' => substr((string) $fila->vigente_desde, 0, 10), 'vigente_hasta' => substr((string) $fila->vigente_hasta, 0, 10),
-            ])->all();
+            ])->all());
 
         return $resultado;
     }

@@ -12,6 +12,7 @@ use App\Models\MetodoPago;
 use App\Models\ObligacionPago;
 use App\Models\TransaccionPago;
 use App\Models\User;
+use App\Support\Entrada;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -65,7 +66,7 @@ class GestionPagos
     /** Céntimos de un importe leído de la base (numérico o texto). */
     public static function leer(mixed $valor): int
     {
-        return (int) round(((float) $valor) * 100);
+        return (int) round((Entrada::decimal($valor)) * 100);
     }
 
     /**
@@ -96,7 +97,7 @@ class GestionPagos
                 }
                 $previa = '';
                 foreach ($lista as $i => $c) {
-                    $vence = (string) ($c['vence'] ?? '');
+                    $vence = $c['vence'];
                     if ($vence < $previa) {
                         throw ValidationException::withMessages(["cuotas.{$i}.vence" => 'Las cuotas deben ir en orden de vencimiento.']);
                     }

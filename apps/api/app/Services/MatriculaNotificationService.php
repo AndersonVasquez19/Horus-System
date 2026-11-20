@@ -8,6 +8,7 @@ use App\Jobs\SendMatriculaWelcome;
 use App\Mail\MatriculaWelcome;
 use App\Models\Matricula;
 use App\Models\MatriculaNotification;
+use App\Support\Entrada;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -54,15 +55,15 @@ class MatriculaNotificationService
 
     public function configured(): bool
     {
-        $connection = config('matricula-mail.connection');
+        $connection = Entrada::texto(config('matricula-mail.connection'));
 
         return config('matricula-mail.enabled') === true
             && in_array(config("queue.connections.{$connection}.driver"), ['database', 'redis', 'sqs', 'beanstalkd'], true)
             && is_string(config('matricula-mail.queue')) && trim(config('matricula-mail.queue')) !== ''
             && is_string(config('services.resend.key')) && trim(config('services.resend.key')) !== ''
             && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL) !== false
-            && ! preg_match('/[\r\n<>]/', (string) config('mail.from.name'))
-            && ! Str::endsWith(strtolower((string) config('mail.from.address')), ['@example.com', '@example.org', '@example.net']);
+            && ! preg_match('/[\r\n<>]/', Entrada::texto(config('mail.from.name')))
+            && ! Str::endsWith(strtolower(Entrada::texto(config('mail.from.address'))), ['@example.com', '@example.org', '@example.net']);
     }
 
     // El scheduler solo observa filas persistidas. No se ejecuta desde el controlador.
@@ -91,8 +92,8 @@ class MatriculaNotificationService
             }
             try {
                 Bus::dispatch((new SendMatriculaWelcome((int) $row->id))
-                    ->onConnection(config('matricula-mail.connection'))
-                    ->onQueue(config('matricula-mail.queue')));
+                    ->onConnection(Entrada::textoONulo(config('matricula-mail.connection')))
+                    ->onQueue(Entrada::textoONulo(config('matricula-mail.queue'))));
                 $count++;
             } catch (Throwable) {
                 // No se imprime la excepción del backend de cola (puede contener credenciales).
@@ -118,7 +119,7 @@ class MatriculaNotificationService
             if (! $row || ! in_array($row->status, self::ACTIVE, true)) {
                 return null;
             }
-            if ($row->status === 'sending' && $row->updated_at->gt(now()->subMinutes(2))) {
+            if ($row->status === 'sending' && $row->updated_at?->gt(now()->subMinutes(2)) === true) {
                 return null;
             }
             if ($row->status === 'retry' && $row->available_at?->isFuture()) {
@@ -156,7 +157,7 @@ class MatriculaNotificationService
                 }
                 $mail = new MatriculaWelcome(trim($matricula->estudiante->nombres.' '.$matricula->estudiante->apellidos), $matricula->curso->nombre);
                 $row->payload = [
-                    'from' => (new Address(config('mail.from.address'), config('mail.from.name')))->toString(),
+                    'from' => (new Address(Entrada::texto(config('mail.from.address')), Entrada::texto(config('mail.from.name'))))->toString(),
                     'to' => [$email], 'subject' => $mail->envelope()->subject,
                     'html' => $mail->render(), 'text' => $mail->plainText(),
                 ];
@@ -179,7 +180,7 @@ class MatriculaNotificationService
         }
 
         try {
-            $response = Http::withToken(config('services.resend.key'))->acceptJson()
+            $response = Http::withToken(Entrada::texto(config('services.resend.key')))->acceptJson()
                 ->withHeaders(['Idempotency-Key' => 'matricula-welcome/'.$row->delivery_key])
                 ->connectTimeout(3)->timeout(12)->withoutRedirecting()
                 ->post('https://api.resend.com/emails', $row->payload);

@@ -9,6 +9,7 @@ use App\Models\Calificacion;
 use App\Models\Convocatoria;
 use App\Models\Evaluacion;
 use App\Models\Matricula;
+use App\Support\Entrada;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -54,7 +55,7 @@ class GestionCalificaciones
             $evaluacion = new Evaluacion(array_intersect_key($datos, array_flip(['nombre', 'peso', 'fecha'])));
             $evaluacion->identificador = (string) Str::uuid();
             $evaluacion->convocatoria_id = $convocatoria->id;
-            $evaluacion->orden = (int) $convocatoria->evaluaciones()->max('orden') + 1;
+            $evaluacion->orden = max(1, Entrada::entero($convocatoria->evaluaciones()->max('orden')) + 1);
             $evaluacion->save();
 
             $convocatoria->revision++;
@@ -253,9 +254,9 @@ class GestionCalificaciones
     }
 
     /** Centésimas enteras de un valor decimal (sin acumular errores de coma flotante). */
-    public static function centesimas(int|float|string|null $valor): int
+    public static function centesimas(mixed $valor): int
     {
-        return (int) round((float) $valor * 100);
+        return (int) round(Entrada::decimal($valor) * 100);
     }
 
     private function formato(int $centesimas): string

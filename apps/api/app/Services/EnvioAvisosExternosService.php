@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Jobs\EnviarAvisoExterno;
 use App\Models\AvisoExterno;
 use App\Models\User;
+use App\Support\Entrada;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class EnvioAvisosExternosService
 
     public function channelConfigured(string $canal): bool
     {
-        $connection = (string) config('recordatorios.queue_connection');
+        $connection = Entrada::texto(config('recordatorios.queue_connection'));
         $asyncQueue = in_array(config("queue.connections.{$connection}.driver"), ['database', 'redis', 'sqs', 'beanstalkd'], true)
             && is_string(config('recordatorios.queue')) && trim((string) config('recordatorios.queue')) !== '';
 
@@ -52,8 +53,8 @@ class EnvioAvisosExternosService
             return config('recordatorios.mail_enabled') === true
                 && is_string(config('services.resend.key')) && trim((string) config('services.resend.key')) !== ''
                 && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL) !== false
-                && ! preg_match('/[\r\n<>]/', (string) config('mail.from.name'))
-                && ! Str::endsWith(strtolower((string) config('mail.from.address')), ['@example.com', '@example.org', '@example.net']);
+                && ! preg_match('/[\r\n<>]/', Entrada::texto(config('mail.from.name')))
+                && ! Str::endsWith(strtolower(Entrada::texto(config('mail.from.address'))), ['@example.com', '@example.org', '@example.net']);
         }
 
         return false;
@@ -133,8 +134,8 @@ class EnvioAvisosExternosService
 
             try {
                 Bus::dispatch((new EnviarAvisoExterno((int) $row->id))
-                    ->onConnection((string) config('recordatorios.queue_connection'))
-                    ->onQueue((string) config('recordatorios.queue')));
+                    ->onConnection(Entrada::texto(config('recordatorios.queue_connection')))
+                    ->onQueue(Entrada::texto(config('recordatorios.queue'))));
                 $count++;
             } catch (Throwable) {
                 AvisoExterno::query()->whereKey($row->id)->update([
@@ -247,7 +248,7 @@ class EnvioAvisosExternosService
             return 'sin_consentimiento';
         }
 
-        return trim((string) $user->telefono) !== '' && trim((string) $user->telefono) === trim((string) ($payload['telefono'] ?? ''))
+        return trim(Entrada::texto($user->telefono)) !== '' && trim(Entrada::texto($user->telefono)) === trim(Entrada::texto(($payload['telefono'] ?? '')))
             ? null
             : 'telefono_cambiado';
     }
@@ -255,7 +256,7 @@ class EnvioAvisosExternosService
     private function enviarEmail(AvisoExterno $row): void
     {
         $payload = $row->payload ?? [];
-        $destino = trim((string) ($payload['to'] ?? ''));
+        $destino = trim(Entrada::texto(($payload['to'] ?? '')));
         if (! filter_var($destino, FILTER_VALIDATE_EMAIL)) {
             $this->finish($row, ['status' => 'skipped', 'last_error' => 'invalid_recipient', 'payload' => null]);
 
@@ -264,16 +265,16 @@ class EnvioAvisosExternosService
 
         try {
             $body = [
-                'from' => (new Address((string) config('mail.from.address'), (string) config('mail.from.name')))->toString(),
+                'from' => (new Address(Entrada::texto(config('mail.from.address')), Entrada::texto(config('mail.from.name'))))->toString(),
                 'to' => [$destino],
-                'subject' => (string) ($payload['subject'] ?? 'Notificación Horus Academic'),
-                'text' => (string) ($payload['text'] ?? ''),
+                'subject' => Entrada::texto(($payload['subject'] ?? 'Notificación Horus Academic')),
+                'text' => Entrada::texto(($payload['text'] ?? '')),
             ];
             if (is_string($payload['html'] ?? null) && $payload['html'] !== '') {
                 $body['html'] = $payload['html'];
             }
 
-            $response = Http::withToken((string) config('services.resend.key'))->acceptJson()
+            $response = Http::withToken(Entrada::texto(config('services.resend.key')))->acceptJson()
                 ->withHeaders(['Idempotency-Key' => 'aviso-externo/'.$row->delivery_key])
                 ->connectTimeout(3)->timeout(12)->withoutRedirecting()
                 ->post('https://api.resend.com/emails', $body);
@@ -306,9 +307,9 @@ class EnvioAvisosExternosService
         $payload = $row->payload ?? [];
         try {
             $res = $this->whatsapp->enviarPlantilla(
-                (string) ($payload['telefono'] ?? ''),
-                (string) ($payload['plantilla'] ?? 'horus_recordatorio_general'),
-                array_values(array_map('strval', is_array($payload['parametros'] ?? null) ? $payload['parametros'] : [])),
+                Entrada::texto(($payload['telefono'] ?? '')),
+                Entrada::texto(($payload['plantilla'] ?? 'horus_recordatorio_general')),
+                array_values(array_map(static fn (mixed $parametro): string => Entrada::texto($parametro), is_array($payload['parametros'] ?? null) ? $payload['parametros'] : [])),
             );
 
             if ($res['ok']) {

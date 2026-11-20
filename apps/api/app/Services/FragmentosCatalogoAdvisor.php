@@ -38,6 +38,6 @@ class FragmentosCatalogoAdvisor
             }
         }
 
-        return $agrupados;
+        return array_values($agrupados);
     }
 }

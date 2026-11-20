@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Entrada;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -38,7 +39,7 @@ class NumeradorReclamaciones
         }
 
         $db->table('reclamacion_contadores')->insertOrIgnore(['anio' => $anio, 'ultimo' => 0]);
-        $actual = (int) $db->table('reclamacion_contadores')->where('anio', $anio)->lockForUpdate()->value('ultimo');
+        $actual = Entrada::entero($db->table('reclamacion_contadores')->where('anio', $anio)->lockForUpdate()->value('ultimo'));
         if ($actual >= self::MAXIMO) {
             throw new LogicException('Se agotó la numeración del año.');
         }

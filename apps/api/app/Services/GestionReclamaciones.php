@@ -13,6 +13,7 @@ use App\Models\ReclamacionHistorial;
 use App\Models\User;
 use App\Support\AuditoriaReclamaciones;
 use App\Support\DiasHabiles;
+use App\Support\Entrada;
 use App\Support\HojaReclamacion;
 use App\Support\Reclamaciones;
 use Carbon\CarbonImmutable;
@@ -206,7 +207,7 @@ class GestionReclamaciones
             abort_unless($r->tipo === 'reclamo', 409, 'Las propuestas de solución solo aplican a reclamos.');
             abort_if($r->suspension_desde !== null, 409, 'Ya existe una propuesta pendiente.');
             $hoy = $this->hoy();
-            $hasta = DiasHabiles::sumar($hoy, (int) config('reclamaciones.suspension_dias_habiles', 5));
+            $hasta = DiasHabiles::sumar($hoy, Entrada::entero(config('reclamaciones.suspension_dias_habiles', 5)));
             $r->forceFill(['suspension_desde' => $hoy->toDateString(), 'suspension_hasta' => $hasta->toDateString()])->save();
             $envio = $this->crearEnvio($r, 'propuesta', 'correo', $asunto, $cuerpo);
             $envioId = $envio->id;
@@ -284,7 +285,7 @@ class GestionReclamaciones
             return self::AVISO_VENCE;
         }
 
-        return DiasHabiles::entre($hoy, $limite) <= (int) config('reclamaciones.aviso_dias_habiles', 3) ? self::AVISO_POR_VENCER : null;
+        return DiasHabiles::entre($hoy, $limite) <= Entrada::entero(config('reclamaciones.aviso_dias_habiles', 3)) ? self::AVISO_POR_VENCER : null;
     }
 
     /** Solo lectura: umbral que falta por avisar para el plazo vigente (`null` si no corresponde o ya se avisó). */
@@ -371,7 +372,7 @@ class GestionReclamaciones
             return [];
         }
 
-        return User::permission('reclamaciones.ver')->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        return array_values(User::permission('reclamaciones.ver')->orderBy('id')->pluck('id')->map(fn ($id): int => Entrada::entero($id))->all());
     }
 
     /**
@@ -426,7 +427,7 @@ class GestionReclamaciones
         $envio = DB::transaction(function () use ($actor, $envioId): ReclamacionEnvio {
             $actor = $this->autorizar($actor, 'reclamaciones.gestionar');
             $envio = ReclamacionEnvio::query()->whereKey($envioId)->lockForUpdate()->firstOrFail();
-            $r = $this->bloquear((string) Reclamacion::query()->whereKey($envio->reclamacion_id)->value('identificador'));
+            $r = $this->bloquear(Entrada::texto(Reclamacion::query()->whereKey($envio->reclamacion_id)->value('identificador')));
             abort_unless($envio->estado === 'fallido' && $envio->canal === 'correo', 409, 'Solo se reintenta un envío por correo fallido.');
             $envio->forceFill(['estado' => 'pendiente', 'intentos' => 0, 'error_codigo' => null])->save();
             AuditoriaReclamaciones::registrar('reintento', $r, ['envio_id' => $envio->id, 'envio_tipo' => $envio->tipo], $actor->id);
@@ -480,7 +481,7 @@ class GestionReclamaciones
                 if ($previa !== null) {
                     return ['reclamacion' => $previa, 'repetida' => true];
                 }
-                $ahora = CarbonImmutable::now((string) config('reclamaciones.zona_horaria', 'America/Lima'));
+                $ahora = CarbonImmutable::now(Entrada::texto(config('reclamaciones.zona_horaria', 'America/Lima')));
                 $fila = $this->normalizar(Arr::only($datos, self::CAMPOS_ALTA));
                 $r = new Reclamacion;
                 $r->forceFill($fila + [
@@ -491,8 +492,8 @@ class GestionReclamaciones
                     'numero_hoja_respaldo' => $hoja,
                     'estado' => 'abierto',
                     'recibida_at' => now(),
-                    'fecha_limite' => DiasHabiles::sumar($ahora, (int) config('reclamaciones.plazo_dias_habiles', 15))->toDateString(),
-                    'privacidad_version' => (string) config('reclamaciones.privacidad_version'),
+                    'fecha_limite' => DiasHabiles::sumar($ahora, Entrada::entero(config('reclamaciones.plazo_dias_habiles', 15)))->toDateString(),
+                    'privacidad_version' => Entrada::texto(config('reclamaciones.privacidad_version')),
                     'informado_at' => now(),
                 ])->save();
                 $this->historial($r, 'registrada', $actor, ['canal' => $canal, 'fecha_limite' => $r->fecha_limite->toDateString()]);
@@ -575,7 +576,7 @@ class GestionReclamaciones
     private function despachar(?int $envioId): void
     {
         if ($envioId !== null && Reclamaciones::envioHabilitado()) {
-            EnviarReclamacionCorreo::dispatch($envioId)->onQueue((string) config('reclamaciones.correo.cola', 'default'));
+            EnviarReclamacionCorreo::dispatch($envioId)->onQueue(Entrada::texto(config('reclamaciones.correo.cola', 'default')));
         }
     }
 
@@ -625,7 +626,11 @@ class GestionReclamaciones
         if (! $this->propuestaVencidaSinProcesar($r)) {
             return false;
         }
-        [$dias, $nueva] = $this->reanudar($r, $r->suspension_hasta->toImmutable());
+        $hasta = $r->suspension_hasta;
+        if ($hasta === null) {
+            return false;
+        }
+        [$dias, $nueva] = $this->reanudar($r, $hasta->toImmutable());
         $this->historial($r, 'propuesta_vencida', null, ['dias_suspendidos' => $dias, 'fecha_limite_nueva' => $nueva->toDateString()]);
         AuditoriaReclamaciones::registrar('propuesta_vencida', $r, ['dias_suspendidos' => $dias, 'fecha_limite' => $nueva->toDateString()], null);
 
@@ -639,7 +644,7 @@ class GestionReclamaciones
      */
     private function reanudar(Reclamacion $r, CarbonImmutable $hasta): array
     {
-        $dias = min((int) config('reclamaciones.suspension_dias_habiles', 5), DiasHabiles::entre($r->suspension_desde->toImmutable(), $hasta));
+        $dias = min(Entrada::entero(config('reclamaciones.suspension_dias_habiles', 5)), DiasHabiles::entre(($r->suspension_desde ?? $hasta)->toImmutable(), $hasta));
         $nueva = DiasHabiles::sumar($r->fecha_limite->toImmutable(), $dias);
         $r->forceFill(['fecha_limite' => $nueva->toDateString(), 'suspension_desde' => null, 'suspension_hasta' => null])->save();
 
@@ -648,12 +653,12 @@ class GestionReclamaciones
 
     private function hoy(): CarbonImmutable
     {
-        return CarbonImmutable::now((string) config('reclamaciones.zona_horaria', 'America/Lima'))->startOfDay();
+        return CarbonImmutable::now(Entrada::texto(config('reclamaciones.zona_horaria', 'America/Lima')))->startOfDay();
     }
 
     private function fecha(string $valor, string $campo): CarbonImmutable
     {
-        $fecha = CarbonImmutable::createFromFormat('!Y-m-d', $valor, (string) config('reclamaciones.zona_horaria', 'America/Lima'));
+        $fecha = CarbonImmutable::createFromFormat('!Y-m-d', $valor, Entrada::texto(config('reclamaciones.zona_horaria', 'America/Lima')));
         if ($fecha === null || $fecha->format('Y-m-d') !== $valor) {
             throw ValidationException::withMessages([$campo => 'Indica una fecha válida (AAAA-MM-DD).']);
         }
