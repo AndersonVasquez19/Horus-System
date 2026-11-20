@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\ServicioPublicacion;
 use App\Models\ServicioPublicacionElemento;
 use App\Models\ServicioTecnologico;
+use App\Support\Entrada;
 use App\Support\PaginasServicios;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class ServiciosTecnologicosContenidoSeeder extends Seeder
                         'imagen_alt' => $tarjeta['alt'] ?? null, 'orden' => $orden + 1, 'activo' => true,
                     ]);
                     $elemento->servicio_publicacion_id = $ficha->id;
-                    $elemento->imagen_ruta = $tarjeta['imagen'] ?? null;
+                    $elemento->imagen_ruta = isset($tarjeta['imagen']) ? Entrada::texto($tarjeta['imagen']) : null;
                     $elemento->save();
                 }
                 $servicio->revision++;
@@ -114,10 +115,10 @@ class ServiciosTecnologicosContenidoSeeder extends Seeder
                 'imagen' => 'assets/images/videovigilancia/camera.webp',
                 'imagen_alt' => 'Sistema de videovigilancia',
                 'titulo_tarjetas' => null,
-                'tarjetas' => array_map(fn (array $c): array => [
+                'tarjetas' => array_values(array_map(fn (array $c): array => [
                     'titulo' => $c[0], 'descripcion' => $c[5], 'caracteristicas' => [], 'icono' => $c[3], 'variante' => $c[2],
                     'imagen' => 'assets/images/videovigilancia/'.$c[1], 'alt' => $c[4],
-                ], $camaras),
+                ], $camaras)),
             ],
             PaginasServicios::SOPORTE => [
                 'nombre' => 'Soporte y mantenimiento',

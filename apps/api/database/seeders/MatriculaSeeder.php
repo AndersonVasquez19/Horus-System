@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
+use App\Support\Entrada;
 use Illuminate\Database\Seeder;
 
 class MatriculaSeeder extends Seeder
@@ -50,7 +51,7 @@ class MatriculaSeeder extends Seeder
         Curso::query()
             ->withCount(['matriculas as matriculas_activas_count' => fn ($query) => $query->where('estado', '!=', 'anulada')])
             ->each(function (Curso $curso): void {
-                $curso->cupos_disponibles = max(0, $curso->cupos_maximos - $curso->getAttribute('matriculas_activas_count'));
+                $curso->cupos_disponibles = max(0, $curso->cupos_maximos - Entrada::entero($curso->getAttribute('matriculas_activas_count')));
                 $curso->save();
             });
     }

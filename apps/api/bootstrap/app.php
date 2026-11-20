@@ -32,7 +32,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Detrás de un balanceador, sin proxies de confianza `$request->ip()` sería la IP del proxy y todos los
         // limitadores por IP compartirían un único cubo. Vacío (valor por defecto) conserva el comportamiento actual.
-        $proxies = array_values(array_filter(array_map('trim', explode(',', (string) Env::get('TRUSTED_PROXIES', '')))));
+        $proxies = array_values(array_filter(array_map('trim', explode(',', (is_string($proxiesCrudos = Env::get('TRUSTED_PROXIES', '')) ? $proxiesCrudos : '')))));
         if ($proxies !== []) {
             $middleware->trustProxies(at: $proxies === ['*'] ? '*' : $proxies);
         }
