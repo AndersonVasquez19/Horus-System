@@ -35,9 +35,6 @@ async function waitForServer(maxAttempts = 20) {
     const paths = [
       '/',
       '/quienes-somos',
-      '/tecnologias/cableado-estructurado',
-      '/tecnologias/camaras-seguridad',
-      '/tecnologias/soporte-mantenimiento',
       '/educacion/asesoramiento',
       '/educacion/capacitaciones',
       '/educacion/cursos',

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { connection } from 'next/server';
 import { crearLimitador, errorJson, leerJsonAcotado, mismoOrigen, visitanteDe } from '@/lib/bff-peticion';
+import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 import { enviarSolicitud, filtrarCampos, MAX_CUERPO_BYTES, obtenerFormulario } from '@/lib/horus-cotizaciones';
 
 /**
@@ -18,6 +19,7 @@ const NO_DISPONIBLE = ['solicitud_no_disponible', 'La solicitud de cotización n
 /** Servicios que se pueden solicitar y la marca de un solo uso del formulario. */
 export async function GET(request: NextRequest) {
   await connection();
+  if (!TECNOLOGIAS_VISIBLES) return errorJson(404, 'no_encontrado', 'No encontrado.');
   const visitante = visitanteDe(request);
   if (visitante === null) return errorJson(503, ...NO_DISPONIBLE);
 
@@ -31,6 +33,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   await connection();
+  if (!TECNOLOGIAS_VISIBLES) return errorJson(404, 'no_encontrado', 'No encontrado.');
 
   if (!mismoOrigen(request)) return errorJson(403, 'origen_no_permitido', 'Solicitud no permitida.');
   const cuerpo = await leerJsonAcotado(request, MAX_CUERPO_BYTES);

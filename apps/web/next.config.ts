@@ -50,7 +50,7 @@ const nextConfig: NextConfig = {
       { source: "/register", destination: "/registro", permanent: false },
       { source: "/forgot-password", destination: "/recuperar-contrasena", permanent: false },
       { source: "/libro-reclamaciones", destination: "/legales/libro-reclamaciones", permanent: false },
-      { source: "/solicitar-cotizacion", destination: "/tecnologias/solicitar-cotizacion", permanent: false },
+      // «Tecnologías» oculta (ver src/lib/funciones.ts): sin redirección, /solicitar-cotizacion devuelve 404.
       { source: "/politicas-devolucion", destination: "/legales/politicas-devolucion", permanent: false },
       { source: "/politicas-privacidad", destination: "/legales/politicas-privacidad", permanent: false },
       { source: "/politicas-cookies", destination: "/legales/politicas-cookies", permanent: false },

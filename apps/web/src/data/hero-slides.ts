@@ -1,3 +1,5 @@
+import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
+
 export interface HeroSlide {
   image: string;
   position: string;
@@ -15,8 +17,9 @@ export interface HeroStat {
   label: string;
 }
 
-export const HERO_SLIDES: HeroSlide[] = [
+const TODOS_LOS_SLIDES: (HeroSlide & { tecnologia?: true })[] = [
   {
+    tecnologia: true,
     image: '/images/index/hero/hero-tecnologia.jpg',
     position: 'center 38%',
     icon: 'Radio',
@@ -61,6 +64,11 @@ export const HERO_SLIDES: HeroSlide[] = [
     cta2: { label: 'Contáctanos', url: '/contactos' },
   },
 ];
+
+/** El slide de tecnología solo se muestra si el área «Tecnologías» está visible (`@/lib/funciones`). */
+export const HERO_SLIDES: HeroSlide[] = TODOS_LOS_SLIDES.filter(
+  (slide) => TECNOLOGIAS_VISIBLES || !slide.tecnologia,
+);
 
 export const HERO_STATS: HeroStat[] = [
   { value: '+400', label: 'Personas capacitadas' },
