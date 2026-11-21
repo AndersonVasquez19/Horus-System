@@ -92,10 +92,23 @@ class HorusAdvisorClient
      *
      * @param  array<mixed>  $reply
      *
-     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>} $reply
+     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>} $reply
      */
     public function respuestaCacheValida(array $reply): bool
     {
+        if (array_key_exists('enlaces', $reply)) {
+            // Solo secciones del sitio de la lista blanca, y solo en respuestas del asistente.
+            if (($reply['fuente'] ?? null) !== 'advisor' || ! is_array($reply['enlaces']) || ! array_is_list($reply['enlaces'])
+                || $reply['enlaces'] === [] || count($reply['enlaces']) > 3) {
+                return false;
+            }
+            foreach ($reply['enlaces'] as $ruta) {
+                if (! is_string($ruta) || $ruta === '/' || ! in_array($ruta, self::RUTAS_PUBLICAS, true)) {
+                    return false;
+                }
+            }
+            unset($reply['enlaces']);
+        }
         if (! in_array(array_keys($reply), [['respuesta', 'intent', 'fuente'], ['respuesta', 'intent', 'fuente', 'recomendaciones']], true) || ! is_string($reply['respuesta'])
             || $reply['intent'] !== null || ! in_array($reply['fuente'], ['advisor', 'respaldo'], true)
             || trim($reply['respuesta']) === '' || mb_strlen($reply['respuesta']) > min(1800, Entrada::entero(config('chatbot.max_answer_chars', 1800)))) {
@@ -253,6 +266,17 @@ class HorusAdvisorClient
         }
         if ($referencias !== []) {
             $resultado['recomendaciones'] = array_values($referencias);
+        }
+        // Enlaces a secciones del sitio: salen de las fuentes ya validadas, no de rutas escritas en el texto.
+        $enlaces = [];
+        foreach (Entrada::lista($reply['sources'] ?? []) as $fuente) {
+            $ruta = is_array($fuente) ? ($fuente['url_path'] ?? null) : null;
+            if (is_string($ruta) && $ruta !== '/' && in_array($ruta, self::RUTAS_PUBLICAS, true)) {
+                $enlaces[$ruta] = $ruta;
+            }
+        }
+        if ($enlaces !== []) {
+            $resultado['enlaces'] = array_values($enlaces);
         }
 
         return $resultado;
@@ -749,7 +773,10 @@ class HorusAdvisorClient
             }
             if (is_string($record['detail_answer'] ?? null)) {
                 $respuestas[] = $record['detail_answer'];
-                foreach (preg_split('/(?<=[.;])\s+/u', $record['detail_answer']) ?: [] as $frase) {
+            }
+            // Frases exactas del texto verificado (respuesta y detalle): el motor puede responder solo con la que aclara la consulta.
+            foreach ([$record['answer'], $record['detail_answer'] ?? null] as $texto) {
+                foreach (is_string($texto) ? (preg_split('/(?<=[.;])\s+/u', $texto) ?: []) : [] as $frase) {
                     $frase = trim($frase);
                     if (mb_strlen($frase) >= 10 && mb_strlen($frase) <= 600) {
                         $respuestas[] = $frase;
@@ -758,7 +785,7 @@ class HorusAdvisorClient
             }
             $tarjeta = $record['public_card'] ?? null;
             if (is_array($tarjeta) && isset($tarjeta['vigencia']) && is_string($record['title'] ?? null)) {
-                $respuestas[] = $record['title'].': Vigencia publicada hasta el '.Entrada::texto($tarjeta['vigencia']).'.';
+                $respuestas[] = $record['title'].': el convenio está vigente hasta el '.Entrada::texto($tarjeta['vigencia']).'.';
             }
             foreach ($respuestas as $respuesta) {
                 $datos['porTexto'][$respuesta][] = ['id' => $record['id'], 'url_path' => $url];

@@ -61,7 +61,8 @@ class AdvisorTarjetasPresentacionTest extends TestCase
             ->assertJsonPath('tarjetas.0.accion', 'Ver cursos')
             ->assertJsonPath('tarjetas.0.procedencia.version', $this->catalogo['catalog_version']);
         $this->assertArrayNotHasKey('recomendaciones', $response->json());
-        $this->assertSame($this->respuesta['answer'], $response->json('respuesta'));
+        // La tarjeta ya muestra el curso: el texto no lo repite.
+        $this->assertSame('Te muestro la opción que se ajusta a lo que buscas.', $response->json('respuesta'));
         Http::assertSentCount(2);
         Http::assertSent(fn ($r): bool => str_ends_with($r->url(), '/api/v1/chat') && $r->data() === ['message' => 'Me interesa estudiar Python', 'history' => []]);
     }

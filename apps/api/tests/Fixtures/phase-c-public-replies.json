@@ -46,7 +46,7 @@
             "id": "cat_curso_datos",
             "title": "Analisis de datos con Python",
             "kind": "course",
-            "reason": "El contenido publicado trata tu consulta: «Aprende analisis de datos con Python.».",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Aprende analisis de datos con Python.».",
             "evidence": [
               "cat_curso_datos"
             ],
@@ -84,40 +84,16 @@
     {
       "query": "Necesito contratar redes empresariales",
       "reply": {
-        "answer": "Redes empresariales: Instalacion y mantenimiento de redes empresariales.",
-        "intent": "service_recommendation",
-        "match_level": "alta",
-        "needs_clarification": false,
-        "clarification_question": null,
+        "answer": "Quiero asegurarme de entenderte bien antes de responder.",
+        "intent": "clarification",
+        "match_level": "baja",
+        "needs_clarification": true,
+        "clarification_question": "¿Te refieres a «Redes sociales» o a «Asesoramiento empresarial»?",
         "abstained": false,
-        "recommendations": [
-          {
-            "id": "cat_servicio_redes",
-            "title": "Redes empresariales",
-            "kind": "service",
-            "reason": "El contenido publicado trata tu consulta: «Instalacion y mantenimiento de redes empresariales.».",
-            "evidence": [
-              "cat_servicio_redes"
-            ],
-            "match_level": "alta",
-            "url_path": null,
-            "evidence_text": "Instalacion y mantenimiento de redes empresariales.",
-            "signals": [],
-            "limitations": [],
-            "needs_clarification": false,
-            "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
-          }
-        ],
+        "recommendations": [],
         "missing_data": [],
         "general_guidance": null,
-        "sources": [
-          {
-            "id": "cat_servicio_redes",
-            "title": "Redes empresariales",
-            "url_path": null
-          }
-        ],
+        "sources": [],
         "mode": "lexical",
         "context": {
           "turns_considered": 0,
@@ -126,7 +102,10 @@
           ],
           "level": null,
           "modality": null,
-          "focus_ids": [],
+          "focus_ids": [
+            "redes_sociales",
+            "asesoramiento_empresarial"
+          ],
           "topic_changed": false,
           "referential": false
         }
@@ -135,22 +114,16 @@
     {
       "query": "Que servicios tecnologicos ofrecen",
       "reply": {
-        "answer": "Según el catálogo publicado por Horus Group, están vigentes: Redes empresariales. Pregúntame por cualquiera para ver su contenido publicado.",
-        "intent": "service_info",
-        "match_level": "alta",
+        "answer": "Por ahora este asistente solo puede orientarte sobre cursos y capacitaciones, asesoramiento, convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: +51 972 021 374 o horusgroupcajamarca@gmail.com.",
+        "intent": "unavailable_info",
+        "match_level": "ninguna",
         "needs_clarification": false,
         "clarification_question": null,
-        "abstained": false,
+        "abstained": true,
         "recommendations": [],
         "missing_data": [],
         "general_guidance": null,
-        "sources": [
-          {
-            "id": "cat_listado_servicios",
-            "title": "Servicios tecnológicos vigentes",
-            "url_path": null
-          }
-        ],
+        "sources": [],
         "mode": "lexical",
         "context": {
           "turns_considered": 0,
@@ -166,7 +139,7 @@
     {
       "query": "Que cursos tienen",
       "reply": {
-        "answer": "Según el catálogo publicado por Horus Group, están vigentes: Analisis de datos con Python. Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados.",
+        "answer": "Cursos y capacitaciones vigentes: Analisis de datos con Python. Pregúntame por cualquiera para ver su modalidad o requisitos.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -230,11 +203,11 @@
     {
       "query": "Necesito una solucion tecnologica para mi empresa",
       "reply": {
-        "answer": "Puedo ayudarte a encontrar información publicada de Horus Group.",
+        "answer": "Puedo ayudarte con información de cursos, capacitaciones y atención al cliente de Horus Group.",
         "intent": "clarification",
         "match_level": "baja",
         "needs_clarification": true,
-        "clarification_question": "¿Buscas un curso para aprender o un servicio tecnológico? ¿Sobre qué tema?",
+        "clarification_question": "¿Buscas un curso o capacitación? ¿Sobre qué tema?",
         "abstained": false,
         "recommendations": [],
         "missing_data": [],

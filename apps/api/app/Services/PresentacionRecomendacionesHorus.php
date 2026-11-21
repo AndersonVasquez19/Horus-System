@@ -29,13 +29,16 @@ class PresentacionRecomendacionesHorus
     ) {}
 
     /**
-     * @param  array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<array{id: string, title: string, url_path: string|null}>}  $resultado
+     * @param  array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<array{id: string, title: string, url_path: string|null}>, enlaces?: list<string>}  $resultado
      * @return array<string, mixed>
      */
     public function paraFrontend(array $resultado): array
     {
         $referencias = $resultado['recomendaciones'] ?? [];
         unset($resultado['recomendaciones']);
+        if ($resultado['fuente'] !== 'advisor') {
+            unset($resultado['enlaces']);
+        }
         if ($resultado['fuente'] !== 'advisor' || $referencias === []
             || ! config('horus-advisor.enabled') || ! config('horus-catalog.sync_enabled')) {
             return $resultado;
@@ -78,11 +81,39 @@ class PresentacionRecomendacionesHorus
                 ];
             }
             $resultado['tarjetas'] = array_values($tarjetas);
+            // Las tarjetas ya llevan el título, el detalle y el botón: el texto no los repite ni duplica el enlace.
+            $resultado['respuesta'] = $this->sinListaRepetida($resultado['respuesta'], $resultado['tarjetas']);
+            $urls = array_column($resultado['tarjetas'], 'url');
+            $resultado['enlaces'] = array_values(array_diff($resultado['enlaces'] ?? [], $urls));
+            if ($resultado['enlaces'] === []) {
+                unset($resultado['enlaces']);
+            }
         } catch (Throwable) {
             // Fallo de presentación: conservar el texto previamente validado, sin filtrar excepciones ni datos.
         }
 
         return $resultado;
+    }
+
+    /**
+     * Quita del texto la lista numerada (o el resumen idéntico a la tarjeta) cuando las tarjetas ya muestran lo mismo.
+     *
+     * @param  list<array{titulo: string, descripcion: string, ...}>  $tarjetas
+     */
+    private function sinListaRepetida(string $respuesta, array $tarjetas): string
+    {
+        $intro = count($tarjetas) === 1 ? 'Te muestro la opción que se ajusta a lo que buscas.' : 'Te muestro las opciones que se ajustan a lo que buscas.';
+        $sinLista = preg_replace('/\AEstas opciones se ajustan a lo que buscas:\R(?:\d+\. [^
+]*(?:\R|\z))+/u', $intro."
+", $respuesta, 1, $cambios);
+        if (is_string($sinLista) && $cambios === 1) {
+            return trim($sinLista);
+        }
+        if (count($tarjetas) === 1 && $respuesta === $tarjetas[0]['titulo'].': '.$tarjetas[0]['descripcion']) {
+            return $intro;
+        }
+
+        return $respuesta;
     }
 
     private function textoPublico(mixed $texto, int $maximo): bool

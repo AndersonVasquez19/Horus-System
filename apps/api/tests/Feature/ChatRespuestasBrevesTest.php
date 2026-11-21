@@ -46,7 +46,7 @@ class ChatRespuestasBrevesTest extends TestCase
         foreach (['fuente', 'precio', 'datos_privados'] as $alteracion) {
             $reply = $original;
             if ($alteracion === 'fuente') {
-                $reply['sources'] = [['id' => 'servicio_soporte', 'title' => 'Soporte', 'url_path' => '/tecnologias/soporte-mantenimiento']];
+                $reply['sources'] = [['id' => 'asesoramiento_legal', 'title' => 'Asesoramiento legal', 'url_path' => '/educacion/asesoramiento']];
             } else {
                 $reply['answer'] .= $alteracion === 'precio' ? ' Cuesta S/ 150.' : ' Envíame tu DNI por aquí.';
             }

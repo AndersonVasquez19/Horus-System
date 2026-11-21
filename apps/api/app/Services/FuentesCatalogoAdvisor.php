@@ -39,16 +39,16 @@ class FuentesCatalogoAdvisor
                 $id = rtrim(substr('cat_'.preg_replace('/[^a-z0-9]+/', '_', $item['stable_id']), 0, 64), '_');
                 $partes = [$item['title'].': '.$item['summary']];
                 if (! empty($item['modalities'])) {
-                    $partes[] = 'Modalidad publicada: '.implode(', ', $item['modalities']).'.';
+                    $partes[] = 'Modalidad: '.implode(', ', $item['modalities']).'.';
                 }
                 if (! empty($item['duration_text'])) {
-                    $partes[] = 'Duración publicada: '.$item['duration_text'].'.';
+                    $partes[] = 'Duración: '.$item['duration_text'].'.';
                 }
                 if (! empty($item['schedule_text'])) {
-                    $partes[] = 'Horario publicado: '.$item['schedule_text'].'.';
+                    $partes[] = 'Horario: '.$item['schedule_text'].'.';
                 }
                 if (! empty($item['requirements'])) {
-                    $partes[] = 'Requisitos publicados: '.implode('; ', $item['requirements']).'.';
+                    $partes[] = 'Requisitos: '.implode('; ', $item['requirements']).'.';
                 }
                 // El exportador autorizado actual no publica precios individuales.
                 if (! empty($item['public_price'])) {
@@ -57,22 +57,21 @@ class FuentesCatalogoAdvisor
                 if (! empty($item['inquiry'])) {
                     $partes[] = 'Consultas: '.$item['inquiry'].'.';
                 }
-                $partes[] = 'Fuente: catálogo publicado por Horus Group actualizado el '.substr($item['updated_at'], 0, 10).').';
                 $fuentes[$id] = ['title' => $item['title'], 'url_path' => $item['url_path'] ?? null,
                     'answer' => mb_substr(implode(' ', $partes), 0, 1500),
-                    'fragments' => [$item['title'].': '.$item['summary'], ...array_map(static fn (string $texto): string => $item['title'].': '.$texto
-                        .' Fuente: catálogo publicado por Horus Group actualizado el '.substr($item['updated_at'], 0, 10).').',
+                    'fragments' => [$item['title'].': '.$item['summary'], ...array_map(static fn (string $texto): string => $item['title'].': '.$texto,
                         FragmentosCatalogoAdvisor::textos(($item['details'] ?? '') ?: $item['summary']))]];
-                foreach (['duration_text' => 'duración publicada', 'schedule_text' => 'horario publicado'] as $campo => $etiqueta) {
-                    if (! empty($item[$campo])) {
-                        $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: '.$etiqueta.': '.$item[$campo].'.';
-                    }
+                if (! empty($item['duration_text'])) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: dura '.$item['duration_text'].'.';
+                }
+                if (! empty($item['schedule_text'])) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el horario es '.$item['schedule_text'].'.';
                 }
                 if (! empty($item['modalities'])) {
-                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: modalidad publicada: '.implode(', ', $item['modalities']).'.';
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es '.implode(', ', $item['modalities']).'.';
                 }
                 if (! empty($item['requirements'])) {
-                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: requisitos publicados: '.implode('; ', $item['requirements']).'.';
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: requisitos: '.implode('; ', $item['requirements']).'.';
                 }
                 if ($item['type'] === 'curso') {
                     $cursos[] = $item['title'];
@@ -83,9 +82,9 @@ class FuentesCatalogoAdvisor
             if ($cursos !== []) {
                 $titulos = implode('; ', array_slice($cursos, 0, 15));
                 $fuentes['cat_listado_formacion'] = ['title' => 'Cursos y capacitaciones vigentes', 'url_path' => '/educacion/cursos',
-                    'answer' => mb_substr('Según el catálogo publicado por Horus Group, están vigentes: '.$titulos.'. Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados.', 0, 1500),
+                    'answer' => mb_substr('Cursos y capacitaciones vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos.', 0, 1500),
                     'fragments' => [
-                        mb_substr('Según el catálogo publicado por Horus Group, están vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos publicados.', 0, 1500),
+                        mb_substr('Cursos y capacitaciones vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos.', 0, 1500),
                     ]];
             }
             if ($servicios !== []) {

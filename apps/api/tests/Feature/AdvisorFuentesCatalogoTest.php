@@ -48,7 +48,7 @@ class AdvisorFuentesCatalogoTest extends TestCase
 
     private function texto(): string
     {
-        return 'Redes digitales aplicadas: Practicas de laboratorio en redes. Modalidad publicada: virtual. Fuente: catálogo publicado por Horus Group actualizado el 2026-11-04).';
+        return 'Redes digitales aplicadas: Practicas de laboratorio en redes. Modalidad: virtual.';
     }
 
     public function test_accepts_exact_public_answer_from_current_expected_catalog(): void

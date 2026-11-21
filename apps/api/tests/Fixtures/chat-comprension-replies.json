@@ -1,9 +1,9 @@
 [
   {
-    "query": "que camaras tienen",
+    "query": "que asesoria legal tienen",
     "reply": {
-      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
-      "intent": "service_info",
+      "answer": "Horus Group ofrece asesoramiento legal: asesoría especializada y respaldo profesional para brindarte seguridad jurídica. El tipo de caso que atienden debe confirmarse con un asesor.",
+      "intent": "advisory_info",
       "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
@@ -13,16 +13,16 @@
       "general_guidance": null,
       "sources": [
         {
-          "id": "servicio_camaras",
-          "title": "Cámaras de seguridad y videovigilancia",
-          "url_path": "/tecnologias/camaras-seguridad"
+          "id": "asesoramiento_legal",
+          "title": "Asesoramiento legal",
+          "url_path": "/educacion/asesoramiento"
         }
       ],
       "mode": "lexical",
       "context": {
         "turns_considered": 0,
         "topics": [
-          "camaras"
+          "legal"
         ],
         "level": null,
         "modality": null,
@@ -33,10 +33,10 @@
     }
   },
   {
-    "query": "quiero saber sobre las camaras de seguridad",
+    "query": "quiero saber sobre el asesoramiento legal",
     "reply": {
-      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
-      "intent": "service_info",
+      "answer": "Horus Group ofrece asesoramiento legal: asesoría especializada y respaldo profesional para brindarte seguridad jurídica. El tipo de caso que atienden debe confirmarse con un asesor.",
+      "intent": "advisory_info",
       "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
@@ -46,16 +46,16 @@
       "general_guidance": null,
       "sources": [
         {
-          "id": "servicio_camaras",
-          "title": "Cámaras de seguridad y videovigilancia",
-          "url_path": "/tecnologias/camaras-seguridad"
+          "id": "asesoramiento_legal",
+          "title": "Asesoramiento legal",
+          "url_path": "/educacion/asesoramiento"
         }
       ],
       "mode": "lexical",
       "context": {
         "turns_considered": 0,
         "topics": [
-          "camaras"
+          "legal"
         ],
         "level": null,
         "modality": null,
@@ -66,10 +66,10 @@
     }
   },
   {
-    "query": "Informacion sobre Camaras de seguridad y videovigilancia",
+    "query": "informacion del asesoramiento legal",
     "reply": {
-      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
-      "intent": "service_info",
+      "answer": "Horus Group ofrece asesoramiento legal: asesoría especializada y respaldo profesional para brindarte seguridad jurídica. El tipo de caso que atienden debe confirmarse con un asesor.",
+      "intent": "advisory_info",
       "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
@@ -79,16 +79,16 @@
       "general_guidance": null,
       "sources": [
         {
-          "id": "servicio_camaras",
-          "title": "Cámaras de seguridad y videovigilancia",
-          "url_path": "/tecnologias/camaras-seguridad"
+          "id": "asesoramiento_legal",
+          "title": "Asesoramiento legal",
+          "url_path": "/educacion/asesoramiento"
         }
       ],
       "mode": "lexical",
       "context": {
         "turns_considered": 0,
         "topics": [
-          "camaras"
+          "legal"
         ],
         "level": null,
         "modality": null,
@@ -99,10 +99,10 @@
     }
   },
   {
-    "query": "y que incluye de Camaras de seguridad y videovigilancia",
+    "query": "y que incluye de Asesoramiento legal",
     "reply": {
-      "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones. La web presenta cámaras IP, analógicas, Full HD, domo, de 360° y fijas tipo bala, con funciones como sensores de movimiento, alarma vía email, visión nocturna y visualización desde tu computadora o celular. Detalle en /tecnologias/camaras-seguridad.",
-      "intent": "service_info",
+      "answer": "Horus Group ofrece asesoramiento legal: asesoría especializada y respaldo profesional para brindarte seguridad jurídica. El tipo de caso que atienden debe confirmarse con un asesor.",
+      "intent": "advisory_info",
       "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
@@ -112,16 +112,16 @@
       "general_guidance": null,
       "sources": [
         {
-          "id": "servicio_camaras",
-          "title": "Cámaras de seguridad y videovigilancia",
-          "url_path": "/tecnologias/camaras-seguridad"
+          "id": "asesoramiento_legal",
+          "title": "Asesoramiento legal",
+          "url_path": "/educacion/asesoramiento"
         }
       ],
       "mode": "lexical",
       "context": {
         "turns_considered": 0,
         "topics": [
-          "camaras"
+          "legal"
         ],
         "level": null,
         "modality": null,
