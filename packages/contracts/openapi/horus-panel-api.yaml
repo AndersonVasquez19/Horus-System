@@ -327,6 +327,56 @@ paths:
         '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '409': { description: "Conflicto con una regla de negocio (cupo agotado, duplicado, ficha publicada, estado no permitido)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/cursos/{curso}/publicacion/imagen:
+    post:
+      tags: [academico]
+      summary: "Sube la imagen de la ficha pública del curso"
+      description: "Permiso: `cursos.publicar`. Multipart con el campo `imagen`; reemplaza la anterior y libera la huérfana. Exige la revisión vigente (`If-Match` o `_revision`)."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagen]
+              properties:
+                imagen: { type: string, format: binary }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /academico/cursos/{curso}/publicacion/imagen/eliminar:
+    post:
+      tags: [academico]
+      summary: "Quita la imagen de la ficha pública del curso"
+      description: "Permiso: `cursos.publicar`."
+      parameters:
+        - { name: curso, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SoloRevision' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { description: "No autenticado (`no_autenticado`) o sesión caducada (`sesion_expirada`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: "Sin el permiso exigido por la acción (`prohibido`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: "El recurso no existe o fue eliminado", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '412': { description: "La revisión enviada ya no es la vigente (`If-Match` / `_revision` obsoleta); releer el recurso", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "Datos inválidos (`validacion`): mensajes de campo en español en `errors`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '428': { description: "Falta la precondición `If-Match` / `_revision` (`precondicion_requerida`)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: "Demasiadas solicitudes (`demasiadas_solicitudes`); respeta `Retry-After`", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /academico/cursos/{curso}/publicacion/retirar:
     post:
       tags: [academico]
