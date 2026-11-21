@@ -83,12 +83,11 @@ CATEGORY_INTENTS = {
 }
 
 FALLBACK_TOPICS = (
-    "servicios tecnológicos (cámaras, cableado y redes, soporte y mantenimiento), cursos y capacitaciones, "
-    "asesoramiento, convenios, pagos y contacto"
+    "cursos y capacitaciones, asesoramiento, convenios, pagos y contacto"
 )
 QUOTE_INTRO = (
-    "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta "
-    "cotizaciones emitidas."
+    "Los precios y las cotizaciones los confirma un asesor de Horus Group; yo no puedo calcularlos ni "
+    "consultar cotizaciones ya emitidas."
 )
 WHATSAPP_QUOTE_URL = "https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
 WHATSAPP_MATRICULA_URL = (
@@ -357,8 +356,7 @@ class AdvisorEngine:
         sources: list[SourceRef] = []
         confirmed = self._confirmed_subject(hits[1:], set(top.matched))
         if confirmed is not None:
-            path = f" ({confirmed.source.url_path})" if confirmed.source.url_path else ""
-            answer += f"\n\nLo que sí está publicado: «{confirmed.title}»{path}."
+            answer += f"\n\n¿Quieres que te cuente más sobre «{confirmed.title}»?"
             sources.append(self._source(confirmed))
         return self._reply(
             answer=answer,
@@ -393,63 +391,62 @@ class AdvisorEngine:
 
     # ------------------------------------------------------------------ atributos y seguimiento
     def _attribute_line(self, rec: KnowledgeRecord, attr: str, u: Understanding) -> tuple[str, bool]:
-        """Una línea por (opción, atributo). Devuelve (texto, ¿se afirmó algo publicado?)."""
+        """Una línea por (opción, atributo). Devuelve (texto, ¿se afirmó un dato confirmado?)."""
         title = f"«{rec.title}»"
         terms = self.kb.intents.attribute_evidence_terms
         if attr == "modalidad":
             if not rec.modalities:
-                return f"{title}: la modalidad no está publicada; confírmala con un asesor.", False
+                return f"{title}: la modalidad la confirma un asesor.", False
             published = ", ".join(MODALITY_LABEL[m] for m in rec.modalities)
             offered = {"virtual" if m == "online" else m for m in rec.modalities}
             if u.asked_modalities:
                 parts = [
-                    f"sí figura la modalidad {MODALITY_ASKED[m]}"
+                    f"sí es {MODALITY_ASKED[m]}"
                     if m in offered
-                    else f"la modalidad {MODALITY_ASKED[m]} no figura"
+                    else f"no es {MODALITY_ASKED[m]}"
                     for m in u.asked_modalities
                 ]
-                return f"{title}: {'; '.join(parts)} (modalidad publicada: {published}).", any(
+                return f"{title}: {'; '.join(parts)} (modalidad: {published}).", any(
                     m in offered for m in u.asked_modalities
                 )
-            return f"{title}: modalidad publicada: {published}.", True
+            return f"{title}: es {published}.", True
         if attr == "audiencia":
             if not rec.audience:
-                return f"{title}: no está publicado a qué público se dirige; confírmalo con un asesor.", False
+                return f"{title}: el público al que se dirige lo confirma un asesor.", False
             labels = " y ".join(AUDIENCE_LABEL[a] for a in rec.audience)
             sentence = evidence_sentence(rec, terms.get("audiencia", []))
             if u.asked_audiences and not set(u.asked_audiences) & set(rec.audience):
-                return f"{title}: según lo publicado se dirige a {labels}, no a ese público.", False
-            quote = f" Según la web: «{sentence}»" if sentence else ""
-            return f"{title}: según lo publicado se dirige a {labels}.{quote}", True
+                return f"{title}: está dirigido a {labels}, no a ese público.", False
+            return f"{title}: está dirigido a {labels}. {sentence or ''}".rstrip(), True
         if attr == "certificado":
             sentence = evidence_sentence(rec, terms.get("certificado", []))
             if sentence:
                 return f"{title}: {sentence}", True
-            return f"{title}: no está publicado si incluye certificado; confírmalo con un asesor.", False
+            return f"{title}: si incluye certificado lo confirma un asesor.", False
         if attr == "precio":
             if rec.public_price:
-                return f"{title}: precio público publicado {rec.public_price}.", True
-            return f"{title}: el precio no está publicado; se solicita como cotización a un asesor.", False
+                return f"{title}: cuesta {rec.public_price}.", True
+            return f"{title}: el precio lo confirma un asesor.", False
         if attr == "fechas":
             if rec.schedule:
-                return f"{title}: horario publicado: {rec.schedule}.", True
-            return f"{title}: las fechas y horarios no están publicados.", False
+                return f"{title}: el horario es {rec.schedule}.", True
+            return f"{title}: las fechas y horarios los confirma un asesor.", False
         if attr == "duracion":
             if rec.duration:
-                return f"{title}: duración publicada: {rec.duration}.", True
-            return f"{title}: la duración no está publicada.", False
+                return f"{title}: dura {rec.duration}.", True
+            return f"{title}: la duración la confirma un asesor.", False
         if attr == "requisitos":
             if rec.requirements:
-                return f"{title}: requisitos publicados: {'; '.join(rec.requirements)}.", True
-            return f"{title}: los requisitos no están publicados.", False
+                return f"{title}: requisitos: {'; '.join(rec.requirements)}.", True
+            return f"{title}: los requisitos los confirma un asesor.", False
         if attr == "cupos":
-            return f"{title}: la disponibilidad de cupos no está publicada.", False
+            return f"{title}: los cupos los confirma un asesor.", False
         if attr == "tiempo_atencion":
             sentence = evidence_sentence(rec, terms.get("tiempo_atencion", []))
             if sentence:
                 return f"{title}: {sentence}", True
-            return f"{title}: los plazos de atención no están publicados.", False
-        return f"{title}: ese dato no está publicado.", False
+            return f"{title}: el plazo de atención lo confirma un asesor.", False
+        return f"{title}: ese dato lo confirma un asesor.", False
 
     def _followup(self, focus: list[KnowledgeRecord], u: Understanding) -> AdvisorReply:
         lines: list[str] = []
@@ -500,7 +497,7 @@ class AdvisorEngine:
     def _focus_reference(self, focus: list[KnowledgeRecord]) -> AdvisorReply:
         rec = focus[0]
         return self._reply(
-            answer=f"Sobre «{rec.title}», lo publicado es: {rec.answer}",
+            answer=f"Sobre «{rec.title}»: {rec.answer}",
             intent="followup_attribute",
             match_level="media",
             sources=[self._source(rec)],
@@ -537,8 +534,7 @@ class AdvisorEngine:
         answer = unavailable.answer
         sources: list[SourceRef] = []
         if subject is not None:
-            path = f" ({subject.source.url_path})" if subject.source.url_path else ""
-            answer += f"\n\nLo que sí está publicado: «{subject.title}»{path}."
+            answer += f"\n\n¿Quieres que te cuente más sobre «{subject.title}»?"
             sources.append(self._source(subject))
         return self._reply(
             answer=answer,
@@ -572,20 +568,19 @@ class AdvisorEngine:
         rules = self.kb.intents.quote
         if subject is None:
             return self._reply(
-                answer=f"{QUOTE_INTRO} Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: {WHATSAPP_QUOTE_URL}.",
+                answer=f"{QUOTE_INTRO} Para pedir una cotización, escribe a un asesor por WhatsApp: {WHATSAPP_QUOTE_URL}.",
                 intent="quote_request",
                 match_level="baja",
                 needs_clarification=True,
                 clarification_question=(
-                    "¿Para qué servicio o capacitación necesitas la cotización? Por ejemplo: cámaras de seguridad, "
-                    "cableado o red, mantenimiento de equipos, capacitación para tu personal o asesoría."
+                    "¿Para qué curso o capacitación necesitas la información? Por ejemplo: un curso, "
+                    "una capacitación para tu personal o una asesoría."
                 ),
-                missing_data=["servicio o capacitación a cotizar"],
+                missing_data=["curso o capacitación de interés"],
             )
         checklist = self.recommender.checklist_for(subject, profile)
-        path = f" ({subject.source.url_path})" if subject.source.url_path else ""
         answer = (
-            f"{QUOTE_INTRO}\nPara solicitar una cotización de «{subject.title}»{path}, te invitamos a continuar por WhatsApp con un asesor oficial: {WHATSAPP_QUOTE_URL}.\n"
+            f"{QUOTE_INTRO}\nPara pedir una cotización de «{subject.title}», escribe a un asesor por WhatsApp: {WHATSAPP_QUOTE_URL}.\n"
             f"{rules.checklist_label}: {'; '.join(checklist)}."
         )
         if subject.public_price:
@@ -735,7 +730,7 @@ class AdvisorEngine:
         if hits and hits[0].record.status == "verified" and hits[0].record.public_card is not None:
             record = hits[0].record
             if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen"}:
-                return self._reply(answer=f"{record.title}: Vigencia publicada hasta el {record.public_card.vigencia}.",
+                return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
                     intent="agreement_info", match_level="alta", sources=[self._source(record)])
 
         # 2. Solicitudes comerciales.
@@ -807,13 +802,13 @@ class AdvisorEngine:
                     catalog_reply = self._browse_courses_reply(current.modality, recommend=False)
                     if catalog_reply is not None:
                         return catalog_reply
-                listing_id = "cat_listado_formacion" if plan.goal == "learn" else "cat_listado_servicios"
-                listing = self.kb.get(listing_id)
+                if plan.goal != "learn":
+                    return self._out_of_scope()
+                listing = self.kb.get("cat_listado_formacion")
                 if listing is not None and not self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
-                    return self._reply(answer=listing.answer, intent="training_info" if plan.goal == "learn" else "service_info",
+                    return self._reply(answer=listing.answer, intent="training_info",
                         match_level="alta", sources=[self._source(listing)])
-                subject = "cursos" if plan.goal == "learn" else "servicios"
-                return self._reply(answer=f"No hay {subject} publicados vigentes en el catálogo disponible.",
+                return self._reply(answer="Por ahora no hay cursos vigentes.",
                     intent="unavailable_info", match_level="ninguna", abstained=True)
             if plan.recommend:
                 if not plan.subject:
@@ -921,18 +916,18 @@ class AdvisorEngine:
 
     def _unpublished_topic(self, goal: str, text: str) -> AdvisorReply:
         """Tema sin ningún contenido publicado: se reconoce sin inventar ni repetir lo escrito."""
-        kind = {"learn": "un curso o capacitación", "service": "un servicio tecnológico"}.get(goal, "información")
-        listing = {"learn": "¿Qué cursos ofrecen?", "service": "¿Qué servicios ofrecen?"}.get(
-            goal, "¿Qué cursos ofrecen? o ¿Qué servicios ofrecen?"
-        )
+        if goal == "service":
+            return self._out_of_scope()
+        kind = {"learn": "un curso o capacitación"}.get(goal, "información")
+        listing = "¿Qué cursos ofrecen?"
         openings = (
-            f"No encontré {kind} publicado sobre ese tema en el catálogo vigente de Horus Group.",
-            f"Por ahora no hay {kind} publicado sobre ese tema en el catálogo vigente de Horus Group.",
+            f"No encontré {kind} sobre ese tema.",
+            f"Por ahora no tengo {kind} sobre ese tema.",
         )
         opening = openings[sum(map(ord, text)) % len(openings)]  # determinista: misma consulta, misma respuesta
         return self._reply(
-            answer=(f"{opening} Si quieres ver lo que está vigente, pregúntame «{listing}». "
-                    "También puedes consultarlo con un asesor por los canales oficiales."),
+            answer=(f"{opening} Pregúntame «{listing}» y te cuento qué hay. "
+                    "También puedes consultarlo con un asesor."),
             intent="unavailable_info",
             match_level="ninguna",
             abstained=True,
@@ -975,7 +970,6 @@ class AdvisorEngine:
         first = chosen[0]
         titles = [f"«{h.record.title}»" for h in chosen[1:]]
         others = titles[0] if len(titles) == 1 else f"{', '.join(titles[:-1])} y {titles[-1]}"
-        verb = "está publicado" if len(titles) == 1 else "están publicados"
         return self._reply(
             answer=first.fragment.answer if first.fragment else first.record.answer,
             intent="course_recommendation" if first.record.kind == "course" else "service_recommendation",
@@ -983,7 +977,7 @@ class AdvisorEngine:
             sources=[self._source(h.record) for h in chosen],
             recommendations=[self._recommendation(h) for h in chosen],
             needs_clarification=True,
-            clarification_question=f"Para tu otra consulta también {verb} {others}. ¿Sobre cuál quieres más detalles?",
+            clarification_question=f"Para tu otra consulta también tengo {others}. ¿Sobre cuál quieres más detalles?",
         )
 
     def _recommendation(self, hit: Hit) -> Recommendation:
@@ -992,7 +986,7 @@ class AdvisorEngine:
         action = "cotización" if record.kind == "service" else "matrícula"
         url = WHATSAPP_QUOTE_URL if record.kind == "service" else WHATSAPP_MATRICULA_URL
         return Recommendation(id=record.id, title=record.title, kind=record.kind,
-            reason=f"El contenido publicado trata tu consulta: «{evidence}».", evidence=[record.id],
+            reason=f"Lo que dice el contenido sobre tu consulta: «{evidence}».", evidence=[record.id],
             evidence_text=evidence,
             next_step=f"Para consultar la {action}, continúa por el WhatsApp oficial: {url}.",
             match_level=_retrieval_level(hit.score), url_path=record.source.url_path)
@@ -1022,7 +1016,7 @@ class AdvisorEngine:
                 titles = ", ".join(r.title for r in matches[:8])
                 return self._reply(
                     answer=(f"En modalidad {MODALITY_LABEL[modality]} están vigentes: {titles}. "
-                            "Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su horario o detalles."),
+                            "Dime cuál te interesa y te cuento su horario y detalles."),
                     intent="training_info",
                     match_level="alta",
                     sources=[self._source(r) for r in matches[:5]],
@@ -1032,7 +1026,7 @@ class AdvisorEngine:
                 for r in courses[:6]
             )
             return self._reply(
-                answer=f"Por ahora no hay cursos publicados en modalidad {MODALITY_LABEL[modality]}. En otras modalidades están vigentes: {other}.",
+                answer=f"Por ahora no hay cursos en modalidad {MODALITY_LABEL[modality]}. Sí tenemos: {other}.",
                 intent="training_info",
                 match_level="media",
                 sources=[self._source(r) for r in courses[:5]],
@@ -1057,9 +1051,17 @@ class AdvisorEngine:
         )
 
     def _clarify_goal(self) -> AdvisorReply:
-        return self._reply(answer="Puedo ayudarte a encontrar información publicada de Horus Group.",
+        return self._reply(answer="Puedo ayudarte con información de cursos, capacitaciones y atención al cliente de Horus Group.",
             intent="clarification", match_level="baja", needs_clarification=True,
-            clarification_question="¿Buscas un curso para aprender o un servicio tecnológico? ¿Sobre qué tema?")
+            clarification_question="¿Buscas un curso o capacitación? ¿Sobre qué tema?")
+
+    def _out_of_scope(self) -> AdvisorReply:
+        """Servicios tecnológicos y similares: el asistente solo atiende educación y atención al cliente."""
+        return self._reply(
+            answer=("Por ahora este asistente solo puede orientarte sobre cursos y capacitaciones, asesoramiento, "
+                    "convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: "
+                    "+51 972 021 374 o horusgroupcajamarca@gmail.com."),
+            intent="unavailable_info", match_level="ninguna", abstained=True)
 
     def _catalog_recommend(self, hits: list[Hit], profile: Profile) -> AdvisorReply | None:
         candidates = []

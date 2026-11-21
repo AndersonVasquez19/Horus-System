@@ -31,23 +31,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "d02",
-   "split": "test",
-   "category": "directa",
-   "query": "¿Qué servicios brinda Horus?",
-   "behaviors": [
-    "answer"
-   ],
-   "expected_ids": [
-    "servicios_resumen"
-   ],
-   "intents": [
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "d03",
    "split": "dev",
    "category": "directa",
@@ -252,63 +235,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "d15",
-   "split": "dev",
-   "category": "directa",
-   "query": "¿Hacen mantenimiento preventivo de computadoras?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "d16",
-   "split": "test",
-   "category": "directa",
-   "query": "¿Instalan cableado estructurado?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "d17",
-   "split": "dev",
-   "category": "directa",
-   "query": "¿Qué tipos de cámaras de seguridad instalan?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "d18",
    "split": "test",
    "category": "directa",
@@ -412,25 +338,6 @@
    ],
    "intents": [
     "company_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "r04",
-   "split": "test",
-   "category": "reformulada",
-   "query": "¿Qué hace Horus Group exactamente?",
-   "behaviors": [
-    "answer"
-   ],
-   "expected_ids": [
-    "empresa_descripcion",
-    "servicios_resumen"
-   ],
-   "intents": [
-    "company_info",
-    "service_info"
    ],
    "origin": "sintetico_asistente",
    "added_in": "fase1"
@@ -579,23 +486,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "e01",
-   "split": "dev",
-   "category": "errores",
-   "query": "q servisios ofresen",
-   "behaviors": [
-    "answer"
-   ],
-   "expected_ids": [
-    "servicios_resumen"
-   ],
-   "intents": [
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "e02",
    "split": "test",
    "category": "errores",
@@ -647,44 +537,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "e05",
-   "split": "dev",
-   "category": "errores",
-   "query": "camaras de vijilancia para mi casa",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "e06",
-   "split": "test",
-   "category": "errores",
-   "query": "nesecito cableado estructurdo",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "e07",
    "split": "dev",
    "category": "errores",
@@ -714,42 +566,6 @@
    ],
    "intents": [
     "faq"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "c01",
-   "split": "dev",
-   "category": "coloquial",
-   "query": "oye, ¿y ustedes ponen camaritas?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "c02",
-   "split": "test",
-   "category": "coloquial",
-   "query": "mi compu anda re lenta, ¿la pueden ver?",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation"
    ],
    "origin": "sintetico_asistente",
    "added_in": "fase1"
@@ -905,32 +721,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "i05",
-   "split": "dev",
-   "category": "incompleta",
-   "query": "y para empresas?",
-   "behaviors": [
-    "clarify",
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "capacitaciones_empresariales",
-    "servicios_resumen",
-    "asesoramiento_empresarial",
-    "servicio_cableado"
-   ],
-   "intents": [
-    "clarification",
-    "training_info",
-    "service_recommendation",
-    "advisory_info",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "a01",
    "split": "dev",
    "category": "ambigua",
@@ -1011,28 +801,6 @@
    ],
    "intents": [
     "service_recommendation",
-    "clarification"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "a06",
-   "split": "test",
-   "category": "ambigua",
-   "query": "Quiero hacer algo con computadoras",
-   "behaviors": [
-    "clarify",
-    "recommend",
-    "recommend_none"
-   ],
-   "expected_ids": [
-    "servicio_soporte",
-    "servicio_capacitacion_tecnologica"
-   ],
-   "intents": [
-    "service_recommendation",
-    "course_recommendation",
     "clarification"
    ],
    "origin": "sintetico_asistente",
@@ -1445,57 +1213,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "k04",
-   "split": "test",
-   "category": "recomendacion",
-   "query": "Mi empresa necesita instalar puntos de red",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "k05",
-   "split": "dev",
-   "category": "recomendacion",
-   "query": "Nuestras PCs se cuelgan y van muy lentas",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
-   "id": "k06",
-   "split": "test",
-   "category": "recomendacion",
-   "query": "Quiero poner cámaras en mi almacén",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "k07",
    "split": "dev",
    "category": "recomendacion",
@@ -1602,28 +1319,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "k13",
-   "split": "dev",
-   "category": "recomendacion",
-   "query": "Necesito una cotización para cámaras en mi colegio",
-   "behaviors": [
-    "quote_guidance",
-    "recommend",
-    "abstain"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_recommendation",
-    "unavailable_info",
-    "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1",
-   "label_revised": "sprint2 (dev): se acepta la orientación de cotización, comportamiento pedido en el sprint 2"
-  },
-  {
    "id": "k14",
    "split": "test",
    "category": "recomendacion",
@@ -1656,26 +1351,6 @@
    "added_in": "fase1"
   },
   {
-   "id": "k16",
-   "split": "test",
-   "category": "recomendacion",
-   "query": "Quiero que alguien revise la red wifi de la oficina",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_soporte",
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
-  },
-  {
    "id": "k17",
    "split": "dev",
    "category": "recomendacion",
@@ -1700,29 +1375,6 @@
    "origin": "sintetico_asistente",
    "added_in": "fase1",
    "label_revised": "sprint2 (dev): se acepta responder la modalidad sobre la opción anterior"
-  },
-  {
-   "id": "k18",
-   "split": "test",
-   "category": "recomendacion",
-   "query": "Sobre todo con las cámaras",
-   "history": [
-    {
-     "role": "user",
-     "content": "Mi negocio necesita ayuda con tecnología"
-    }
-   ],
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "fase1"
   },
   {
    "id": "k19",
@@ -2402,25 +2054,6 @@
    "added_in": "sprint2"
   },
   {
-   "id": "s2-r07",
-   "split": "dev",
-   "category": "recomendacion_capacitacion",
-   "query": "Quiero aprender a usar mejor los programas de la computadora para mi trabajo",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_capacitacion_tecnologica",
-    "formacion_personalizada"
-   ],
-   "intents": [
-    "course_recommendation",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
    "id": "s2-r08",
    "split": "test",
    "category": "recomendacion_capacitacion",
@@ -2433,228 +2066,6 @@
    ],
    "intents": [
     "course_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s01",
-   "split": "dev",
-   "category": "servicios",
-   "query": "¿Instalan cámaras con visión nocturna?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s02",
-   "split": "test",
-   "category": "servicios",
-   "query": "¿Puedo ver mis cámaras desde el celular?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s03",
-   "split": "dev",
-   "category": "servicios",
-   "query": "¿Configuran impresoras?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s04",
-   "split": "test",
-   "category": "servicios",
-   "query": "Mi laptop tiene virus",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s05",
-   "split": "dev",
-   "category": "servicios",
-   "query": "¿Trabajan con cable UTP categoría 6?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s06",
-   "split": "test",
-   "category": "servicios",
-   "query": "Necesito respaldar la información de mis equipos",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s07",
-   "split": "dev",
-   "category": "servicios",
-   "query": "¿Hacen limpieza interna de computadoras?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-s08",
-   "split": "test",
-   "category": "servicios",
-   "query": "¿Me asesoran para comprar una computadora nueva?",
-   "behaviors": [
-    "answer",
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_capacitacion_tecnologica"
-   ],
-   "intents": [
-    "service_info",
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-n01",
-   "split": "dev",
-   "category": "necesidades_empresariales",
-   "query": "Abriremos una oficina nueva y necesitamos red y equipos listos",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_cableado",
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-n02",
-   "split": "test",
-   "category": "necesidades_empresariales",
-   "query": "En mi tienda hubo robos y quiero vigilarla",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-n03",
-   "split": "dev",
-   "category": "necesidades_empresariales",
-   "query": "El wifi de la oficina se cae a cada rato",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte",
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_recommendation"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-n04",
-   "split": "test",
-   "category": "necesidades_empresariales",
-   "query": "Vamos a contratar personal nuevo y hay que preparar sus computadoras",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation"
    ],
    "origin": "sintetico_asistente",
    "added_in": "sprint2"
@@ -2712,57 +2123,6 @@
    "added_in": "sprint2"
   },
   {
-   "id": "s2-q01",
-   "split": "dev",
-   "category": "solicitudes_comerciales",
-   "query": "Quiero una cotización para instalar cámaras",
-   "behaviors": [
-    "quote_guidance"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-q02",
-   "split": "test",
-   "category": "solicitudes_comerciales",
-   "query": "¿Me pueden cotizar el cableado de dos pisos?",
-   "behaviors": [
-    "quote_guidance"
-   ],
-   "expected_ids": [
-    "servicio_cableado"
-   ],
-   "intents": [
-    "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-q03",
-   "split": "dev",
-   "category": "solicitudes_comerciales",
-   "query": "¿Cuánto me cobrarían por el mantenimiento de 10 computadoras?",
-   "behaviors": [
-    "quote_guidance"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
    "id": "s2-q04",
    "split": "test",
    "category": "solicitudes_comerciales",
@@ -2790,25 +2150,6 @@
    "expected_ids": [],
    "intents": [
     "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-q06",
-   "split": "test",
-   "category": "solicitudes_comerciales",
-   "query": "Dame el precio exacto de la instalación de cámaras",
-   "behaviors": [
-    "quote_guidance",
-    "abstain"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "quote_request",
-    "unavailable_info"
    ],
    "origin": "sintetico_asistente",
    "added_in": "sprint2"
@@ -2846,23 +2187,6 @@
    "added_in": "sprint2"
   },
   {
-   "id": "s2-o01",
-   "split": "dev",
-   "category": "errores",
-   "query": "kiero una cotisasion de camaras",
-   "behaviors": [
-    "quote_guidance"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
    "id": "s2-o02",
    "split": "test",
    "category": "errores",
@@ -2875,25 +2199,6 @@
    ],
    "intents": [
     "training_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-o03",
-   "split": "dev",
-   "category": "errores",
-   "query": "mantenimiento de conputadoras",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
    ],
    "origin": "sintetico_asistente",
    "added_in": "sprint2"
@@ -2953,25 +2258,6 @@
    "added_in": "sprint2"
   },
   {
-   "id": "s2-l01",
-   "split": "dev",
-   "category": "coloquial_peruano",
-   "query": "causa, ¿ustedes arreglan compus?",
-   "behaviors": [
-    "recommend",
-    "answer"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
    "id": "s2-l02",
    "split": "test",
    "category": "coloquial_peruano",
@@ -2984,44 +2270,6 @@
    ],
    "intents": [
     "unavailable_info"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-l03",
-   "split": "dev",
-   "category": "coloquial_peruano",
-   "query": "¿al toque me pueden instalar cámaras?",
-   "behaviors": [
-    "recommend",
-    "answer",
-    "quote_guidance"
-   ],
-   "expected_ids": [
-    "servicio_camaras"
-   ],
-   "intents": [
-    "service_recommendation",
-    "service_info",
-    "quote_request"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-l04",
-   "split": "test",
-   "category": "coloquial_peruano",
-   "query": "mi laptop está hecha leña, ¿la pueden ver?",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte"
-   ],
-   "intents": [
-    "service_recommendation"
    ],
    "origin": "sintetico_asistente",
    "added_in": "sprint2"
@@ -3073,24 +2321,6 @@
    "intents": [
     "out_of_scope",
     "clarification"
-   ],
-   "origin": "sintetico_asistente",
-   "added_in": "sprint2"
-  },
-  {
-   "id": "s2-l08",
-   "split": "test",
-   "category": "coloquial_peruano",
-   "query": "jala señal feo el wifi en mi chamba",
-   "behaviors": [
-    "recommend"
-   ],
-   "expected_ids": [
-    "servicio_soporte",
-    "servicio_cableado"
-   ],
-   "intents": [
-    "service_recommendation"
    ],
    "origin": "sintetico_asistente",
    "added_in": "sprint2"

@@ -21,8 +21,6 @@ def _top_source(engine: AdvisorEngine, message: str) -> str | None:
     [
         ("¿Cuál es su número de celular?", "contacto_canales"),
         ("¿Por dónde queda su local?", "ubicacion_sede"),
-        ("¿Ponen cámaras de vigilancia en casas?", "servicio_camaras"),
-        ("¿Hacen instalaciones de red para oficinas?", "servicio_cableado"),
         ("¿Aceptan pagos con Plin?", "faq_medios_pago"),
         ("¿Me pueden emitir factura?", "faq_comprobantes"),
     ],
@@ -37,8 +35,6 @@ def test_synonyms_and_reformulations(engine: AdvisorEngine, message: str, expect
         ("ubicasion de la sede", "ubicacion_sede"),
         ("numero de telefno", "contacto_canales"),
         ("acepatn yape?", "faq_medios_pago"),
-        ("camaras de seguridda", "servicio_camaras"),
-        ("mantenimeinto de computadoras para mi empresa", "servicio_soporte"),
     ],
 )
 def test_simple_misspellings(engine: AdvisorEngine, message: str, expected: str) -> None:

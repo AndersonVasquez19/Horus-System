@@ -127,8 +127,8 @@ def test_recommend_endpoint(client: TestClient, auth: dict[str, str]) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["intent"] == "service_recommendation"
-    assert body["recommendations"][0]["id"] == "servicio_cableado"
-    assert body["recommendations"][0]["evidence"] == ["servicio_cableado"]
+    assert body["recommendations"] == []  # los servicios tecnológicos ya no se ofrecen
+    assert "solo orienta sobre cursos" in body["answer"]
 
 
 def test_info_endpoint_no_internal_details(client: TestClient, auth: dict[str, str]) -> None:

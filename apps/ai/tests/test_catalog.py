@@ -61,10 +61,11 @@ def test_status_mapping(tmp_path: Path) -> None:
     assert by_stable["curso:redes-basico"].status == "verified"
     assert by_stable["curso:redes-basico"].recommendable
     assert by_stable["curso:camaras-instalacion"].status == "unavailable"
-    assert by_stable["servicio:redes-wifi"].status == "provisional"
+    assert "servicio:redes-wifi" not in by_stable  # los servicios tecnológicos no se atienden: descartado
     assert by_stable["curso:enfermeria-uci"].status == "unavailable"  # fuera de su ventana
     assert "curso:excel-avanzado" not in by_stable  # no_publicado: descartado
     assert load.summary["outcome"]["descartado_no_publicado"] == 1
+    assert load.summary["outcome"]["descartado_servicio_tecnologico"] == 1
     assert not any(r.recommendable for r in load.records if r.status != "verified")
 
 

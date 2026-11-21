@@ -96,14 +96,13 @@ def test_broad_learning_queries_use_current_listing(query):
     assert "Analisis de datos con Python" in reply.answer
 
 
-@pytest.mark.parametrize(
-    "query", ["Que servicios informaticos realizan", "Que servicios tecnologicos ofrecen", "Servicios?"]
-)
-def test_broad_services_use_published_service_listing(query):
+@pytest.mark.parametrize("query", ["Que servicios informaticos realizan", "Que servicios tecnologicos ofrecen"])
+def test_broad_services_are_out_of_scope(query):
+    """Los servicios tecnológicos ya no se atienden: ni listado ni recomendaciones."""
     reply = make_engine().chat(query)
-    assert reply.sources[0].id == "cat_listado_servicios"
-    assert "Redes empresariales" in reply.answer
-    assert "Analisis de datos" not in reply.answer
+    assert not reply.recommendations
+    assert not any(s.id == "cat_listado_servicios" for s in reply.sources)
+    assert "Redes empresariales" not in reply.answer
 
 
 def test_negated_learning_intent_does_not_become_a_recommendation():
@@ -120,11 +119,10 @@ def test_negated_learning_intent_does_not_become_a_recommendation():
         "Quisiera que instalen redes empresariales",
     ],
 )
-def test_service_intent_keeps_learning_and_hiring_separate(query):
+def test_hiring_a_technology_service_is_not_offered(query):
     reply = make_engine().chat(query)
-    assert reply.intent == "service_recommendation"
-    assert reply.recommendations[0].id == "cat_servicio_redes"
-    assert "https://wa.me/51972021374" in reply.recommendations[0].next_step
+    assert not reply.recommendations
+    assert "Redes empresariales" not in reply.answer
 
 
 @pytest.mark.parametrize(
@@ -247,7 +245,7 @@ def test_parallel_queries_keep_current_interests_isolated():
     queries = ["Me interesa estudiar Python", "Busco un servicio de conectividad"] * 8
     with ThreadPoolExecutor(max_workers=4) as pool:
         replies = list(pool.map(engine.chat, queries))
-    assert [r.recommendations[0].id for r in replies] == ["cat_curso_datos", "cat_servicio_redes"] * 8
+    assert [r.recommendations[0].id if r.recommendations else None for r in replies] == ["cat_curso_datos", None] * 8
     assert engine.kb.documents is before
 
 

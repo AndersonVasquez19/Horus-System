@@ -44,8 +44,8 @@ def test_que_cursos_tienen_disponibles_abstains_honestly(engine: AdvisorEngine) 
     assert reply.intent == "unavailable_info"
     assert reply.sources == []
     assert (
-        "no publica todavía la lista de cursos vigentes" in reply.answer.lower()
-        or "no publica todavia" in reply.answer.lower()
+        "todavía no tengo la lista de cursos vigentes" in reply.answer.lower()
+        or "todavia no tengo la lista" in reply.answer.lower()
     )
 
 

@@ -107,22 +107,18 @@ def _window_ok(item: CatalogItem, today: date) -> bool:
 def _answer(item: CatalogItem, catalog: PublicCatalog) -> str:
     parts = [f"{item.title}: {item.summary}"]
     if item.modalities:
-        parts.append("Modalidad publicada: " + ", ".join(MODALITY_LABEL[m] for m in item.modalities) + ".")
+        parts.append("Modalidad: " + ", ".join(MODALITY_LABEL[m] for m in item.modalities) + ".")
     if item.duration_text:
-        parts.append(f"Duración publicada: {item.duration_text}.")
+        parts.append(f"Duración: {item.duration_text}.")
     if item.schedule_text:
-        parts.append(f"Horario publicado: {item.schedule_text}.")
+        parts.append(f"Horario: {item.schedule_text}.")
     if item.requirements:
-        parts.append("Requisitos publicados: " + "; ".join(item.requirements) + ".")
+        parts.append("Requisitos: " + "; ".join(item.requirements) + ".")
     if item.public_price is not None:
         p = item.public_price
         parts.append(f"Precio público: {p.currency} {p.amount} ({p.conditions}).")
     if item.inquiry:
         parts.append(f"Consultas: {item.inquiry}.")
-    parts.append(
-        f"Fuente: catálogo publicado por Horus Group "
-        f"actualizado el {item.updated_at.date().isoformat()})."
-    )
     return " ".join(parts)[:1500]
 
 
@@ -135,6 +131,9 @@ def to_records(catalog: PublicCatalog, now: datetime) -> tuple[list[KnowledgeRec
         if item.publication_status == "no_publicado":
             outcome["descartado_no_publicado"] += 1
             continue  # nunca se menciona
+        if item.type == "servicio":
+            outcome["descartado_servicio_tecnologico"] += 1
+            continue  # el asistente solo atiende educación y atención al cliente
         status: str
         answer = _answer(item, catalog)
         if item.publication_status == "vigente" and _window_ok(item, today) and not stale:
@@ -192,10 +191,9 @@ def to_records(catalog: PublicCatalog, now: datetime) -> tuple[list[KnowledgeRec
                 stable_id=item.stable_id,
             )
         )
-    for service in (False, True):
-        listing = _listing_record(catalog, records, service=service)
-        if listing is not None:
-            records.append(listing)
+    listing = _listing_record(catalog, records)
+    if listing is not None:
+        records.append(listing)
     summary = {
         "catalog_version": catalog.catalog_version,
         "stale": stale,
@@ -220,11 +218,11 @@ def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord], *, s
         title="Servicios tecnológicos vigentes" if service else "Cursos y capacitaciones vigentes",
         description=f"{'Servicios tecnológicos' if service else 'Cursos y capacitaciones'} vigentes según el catálogo publicado: {titles}.",
         answer=(
-            f"Según el catálogo publicado por Horus Group, están vigentes: "
-            f"{titles}. " + (
-                "Pregúntame por cualquiera para ver su contenido publicado."
+            f"Cursos y capacitaciones vigentes: {titles}. "
+            + (
+                "Pregúntame por cualquiera para ver su contenido."
                 if service
-                else "Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados."
+                else "Pregúntame por cualquiera para ver su modalidad o requisitos."
             )
         )[:1500],
         status="verified",

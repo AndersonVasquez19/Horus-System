@@ -17,7 +17,7 @@
         "holi",
         "alo"
       ],
-      "response": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre servicios tecnológicos, cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?"
+      "response": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?"
     },
     {
       "name": "thanks",
@@ -61,7 +61,7 @@
         "eres humano",
         "para que sirves"
       ],
-      "response": "Soy un asistente informativo automático (no una persona). Respondo con información publicada por Horus Group SRL: servicios tecnológicos, modalidades de cursos, capacitaciones, asesoramiento, convenios, preguntas frecuentes y contacto. También puedo recomendarte opciones según lo que buscas. No invento precios, fechas, cupos ni requisitos: para eso te derivo a un asesor."
+      "response": "Soy un asistente informativo automático (no una persona). Respondo con información de Horus Group SRL: modalidades de cursos, capacitaciones, asesoramiento, convenios, preguntas frecuentes y contacto. También puedo recomendarte opciones según lo que buscas. No invento precios, fechas, cupos ni requisitos: para eso te derivo a un asesor."
     }
   ],
   "human_handoff": {
@@ -611,7 +611,7 @@
       "proforma que me enviaron",
       "me enviaron la semana"
     ],
-    "checklist_label": "Sugerencia del asistente para agilizar la cotización (no es un requisito publicado por Horus Group)",
+    "checklist_label": "Para agilizar tu consulta, ten listo",
     "checklist": {
       "camaras": [
         "tipo de espacio (hogar, tienda, oficina, institución)",

@@ -79,7 +79,7 @@ def document_for(item: CatalogItem, record: KnowledgeRecord, version: str) -> Pu
     fragments = []
     for ordinal, text in enumerate(split_content(content)):
         digest = hashlib.sha256(f"{record.id}|{version}|{ordinal}|{text}".encode()).hexdigest()[:40]
-        answer = f"{item.title}: {text} Fuente: catálogo publicado por Horus Group actualizado el {item.updated_at.date().isoformat()})."
+        answer = f"{item.title}: {text}"
         fragments.append(
             PublicFragment("frag_" + digest, record.id, item.stable_id, version, ordinal, text, answer)
         )

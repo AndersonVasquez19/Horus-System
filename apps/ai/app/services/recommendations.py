@@ -45,7 +45,7 @@ TOPIC_LABELS = {
     "empresas": "empresas",
 }
 
-CONTACT_LINE = "Para confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com."
+CONTACT_LINE = "Para confirmar fechas, precios y cupos, escribe al +51 972 021 374 o a horusgroupcajamarca@gmail.com."
 
 
 @dataclass
@@ -260,7 +260,7 @@ class Recommender:
             signals.append("tema: " + ", ".join(sorted(topic_covered)))
         for item in sorted(covered - topic_covered):
             rule = self.kb.intents.objective_lexicon[item[4:]]
-            reasons.append(f"sirve a tu objetivo de {rule.label} (lo indica la web)")
+            reasons.append(f"sirve a tu objetivo de {rule.label}")
             signals.append(f"objetivo: {item[4:]}")
         uncovered = wanted - offered
         if covered and uncovered:
@@ -287,7 +287,7 @@ class Recommender:
                 profile.modality == "semipresencial" and "online" in record.modalities
             ):
                 score += 0.05
-                reasons.append(f"se publica en modalidad {profile.modality}")
+                reasons.append(f"es {profile.modality}")
             else:
                 score -= 0.15
                 missing.append(f"«{record.title}» no figura en modalidad {profile.modality}")
@@ -352,20 +352,15 @@ class Recommender:
         lines: list[str] = []
 
         if top:
-            lines.append(
-                "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:"
-            )
+            lines.append("Estas opciones se ajustan a lo que buscas:")
             for i, s in enumerate(top, 1):
                 why = "; ".join(s.reasons) if s.reasons else "relacionada con tu consulta"
                 lines.append(f"{i}. {s.record.title}: {why}.")
-                if s.evidence_text:
-                    lines.append(f"   Según la web: «{s.evidence_text}»")
         if uncovered:
             labels = ", ".join(TOPIC_LABELS.get(t, t) for t in sorted(uncovered))
             if goal == "learn":
                 lines.append(
-                    f"No encuentro en la información publicada un curso o capacitación específica de {labels}; "
-                    "la web no publica todavía la lista de cursos vigentes."
+                    f"Por ahora no tengo un curso o capacitación específica de {labels}."
                 )
                 if "formacion_personalizada" not in {s.record.id for s in top}:
                     alt = self.kb.get("formacion_personalizada")
@@ -385,10 +380,13 @@ class Recommender:
                         lines.append(f"{len(top)}. {alt.title}: alternativa a confirmar con un asesor.")
                 missing.append(f"oferta vigente de cursos de {labels}")
             elif goal == "service":
-                lines.append(f"No encuentro un servicio publicado de Horus Group para {labels}.")
+                lines.append(
+                    "Por ahora este asistente solo orienta sobre cursos, capacitaciones, asesoramiento y atención "
+                    f"al cliente de Horus Group; no tengo información sobre {labels}."
+                )
             else:
                 lines.append(
-                    f"No encuentro en la información publicada una opción de Horus Group sobre {labels}."
+                    f"No tengo una opción de Horus Group sobre {labels}."
                 )
             for topic in sorted(uncovered):
                 if topic in self.kb.intents.general_guidance:
@@ -446,7 +444,7 @@ class Recommender:
         record = s.record
         question = None
         if profile.modality != "cualquiera" and not record.modalities:
-            question = f"La modalidad de «{record.title}» no está publicada: ¿quieres que te indique cómo consultarla?"
+            question = f"No tengo la modalidad de «{record.title}»: ¿quieres que te indique cómo consultarla?"
         next_step = None
         if record.kind in SERVICE_KINDS or "empresa" in record.audience:
             next_step = (
@@ -484,7 +482,7 @@ class Recommender:
             if profile.level == "desconocido":
                 parts.append("¿Tienes alguna experiencia o estás comenzando?")
             parts.append(
-                "¿Qué área te interesa? En la información publicada hay formación en enfermería, administración "
+                "¿Qué área te interesa? Tenemos formación en enfermería, administración "
                 "y economía (por convenios), uso de programas informáticos, capacitaciones personalizadas, "
                 "certificaciones profesionales y asesoría de tesis."
             )
