@@ -12,10 +12,10 @@ import {
   BookOpen,
   ArrowRight,
   Shield,
-  Check,
 } from 'lucide-react';
 import { RobotMascot } from './robot-mascot';
-import { enlacesDeTexto, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
+import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
+import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 type ChatLink = EnlaceChat;
 
@@ -33,6 +33,7 @@ interface ChatCard {
 interface RespuestaApi {
   respuesta: string;
   tarjetas?: ChatCard[];
+  enlaces?: string[];
 }
 
 const MAX_MENSAJE = 2000;
@@ -113,7 +114,8 @@ function restaurarMensajes(valor: unknown): Message[] {
     if (typeof c.id !== 'string' || typeof c.text !== 'string' || (c.role !== 'user' && c.role !== 'bot')) continue;
     const mensaje: Message = { id: c.id.slice(0, 64), role: c.role, text: c.text.slice(0, 6000) };
     if (c.role === 'bot') {
-      const enlaces = enlacesDeTexto(mensaje.text);
+      const guardadas = Array.isArray(c.links) ? c.links.map((l) => (l as Record<string, unknown> | null)?.url) : [];
+      const enlaces = enlacesDeRespuesta(mensaje.text, guardadas);
       if (enlaces.length > 0) mensaje.links = enlaces;
       if (Array.isArray(c.cards)) {
         const tarjetas: ChatCard[] = [];
@@ -284,7 +286,7 @@ export function ChatWidget() {
     const resultado = await consultarConReintento(text);
     let botMsg: Message;
     if (resultado.ok) {
-      const enlaces = enlacesDeTexto(resultado.data.respuesta);
+      const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces);
       botMsg = {
         id: idMensaje('bot'),
         role: 'bot',
@@ -363,7 +365,7 @@ export function ChatWidget() {
               <div className="hc-header-copy">
                 <span className="hc-header-brand">HORUS GROUP</span>
                 <h2 id="hc-title">Asistente Horus</h2>
-                <p>Cursos, tecnología y orientación</p>
+                <p>{TECNOLOGIAS_VISIBLES ? 'Cursos, tecnología y orientación' : 'Cursos y orientación'}</p>
               </div>
               <button
                 type="button"
@@ -436,7 +438,6 @@ export function ChatWidget() {
                                   )}
                                 </span>
                               )}
-                              <span className="hc-card-cover-label">Imagen de referencia</span>
                             </div>
                             <div className="hc-card-body">
                               <span className="hc-card-kind">
@@ -457,10 +458,6 @@ export function ChatWidget() {
                                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
                                 </Link>
                               )}
-                              <span className="hc-card-source">
-                                <Check className="w-3.5 h-3.5" aria-hidden="true" />
-                                Catálogo público de Horus
-                              </span>
                             </div>
                           </section>
                         ))}
@@ -526,6 +523,7 @@ export function ChatWidget() {
                         <span>Explorar capacitaciones</span>
                         <ArrowRight className="arrow-icon" aria-hidden="true" />
                       </button>
+                      {TECNOLOGIAS_VISIBLES && (
                       <button
                         type="button"
                         onClick={() =>
@@ -538,6 +536,8 @@ export function ChatWidget() {
                         <span>Servicios tecnológicos</span>
                         <ArrowRight className="arrow-icon" aria-hidden="true" />
                       </button>
+                      )}
+                      {TECNOLOGIAS_VISIBLES && (
                       <button
                         type="button"
                         onClick={() =>
@@ -550,6 +550,7 @@ export function ChatWidget() {
                         <span>Solicitar una cotización</span>
                         <ArrowRight className="arrow-icon" aria-hidden="true" />
                       </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleSuggestionClick('¿Cómo puedo matricularme?')}
@@ -572,7 +573,7 @@ export function ChatWidget() {
                       <i />
                       <i />
                     </span>
-                    <span>Consultando información publicada…</span>
+                    <span>Buscando…</span>
                   </div>
                 )}
 

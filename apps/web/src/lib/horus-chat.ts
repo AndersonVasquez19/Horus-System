@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHmac } from 'node:crypto';
 import { configuracionApi, urlPublicaImagen } from '@/lib/horus-api';
-import { rutaNext } from '@/lib/chat-rutas';
+import { rutaNext, rutaPermitida } from '@/lib/chat-rutas';
 
 /**
  * Cliente servidor a servidor del chat (`POST /api/public/v1/chat` de Laravel, que a su vez consulta Horus AI).
@@ -27,6 +27,8 @@ export interface RespuestaChat {
   respuesta: string;
   fuente: string;
   tarjetas?: TarjetaChat[];
+  /** Rutas de secciones del sitio (lista blanca), ya validadas en Laravel y aquí. */
+  enlaces?: string[];
 }
 
 export type ResultadoChat =
@@ -75,6 +77,13 @@ export function sanearRespuesta(bruto: unknown): RespuestaChat | null {
       });
     }
     if (tarjetas.length > 0) salida.tarjetas = tarjetas;
+  }
+  if (Array.isArray(r.enlaces)) {
+    const enlaces = r.enlaces
+      .slice(0, 3)
+      .map((ruta) => rutaPermitida(ruta))
+      .filter((ruta): ruta is string => ruta !== null);
+    if (enlaces.length > 0) salida.enlaces = [...new Set(enlaces)];
   }
   return salida;
 }
