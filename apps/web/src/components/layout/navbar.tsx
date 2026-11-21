@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown, PhoneCall } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CONTACT_INFO } from '@/data/contactos';
+import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -138,6 +139,7 @@ export function Navbar() {
             </li>
 
             {/* Tecnologías Dropdown con Hover Bridge + Click Toggle + Debounce */}
+            {TECNOLOGIAS_VISIBLES && (
             <li
               className="relative"
               onMouseEnter={() => handleMouseEnter('tecnologias')}
@@ -195,6 +197,7 @@ export function Navbar() {
                 </div>
               )}
             </li>
+            )}
 
             {/* Educación Dropdown con Hover Bridge + Click Toggle + Debounce */}
             <li
@@ -284,19 +287,6 @@ export function Navbar() {
             </li>
           </ul>
 
-          {/* Desktop Call-to-action button */}
-          <div className="hidden lg:flex items-center gap-3">
-            <a
-              href={CONTACT_INFO.socials.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold to-gold-dark px-4 py-2 text-xs font-semibold text-ink-dark shadow-gold hover:brightness-110 transition-all hover:scale-[1.02]"
-            >
-              <PhoneCall className="h-3.5 w-3.5" />
-              <span>Cotizar Ahora</span>
-            </a>
-          </div>
-
           {/* Mobile Hamburger Toggle */}
           <button
             type="button"
@@ -336,6 +326,7 @@ export function Navbar() {
                 </Link>
               </li>
 
+              {TECNOLOGIAS_VISIBLES && (
               <li className="pt-2 pb-1 border-t border-white/5">
                 <span className="px-4 text-[11px] font-semibold uppercase tracking-wider text-gold">Tecnologías</span>
                 <div className="mt-1 space-y-1 pl-2">
@@ -359,6 +350,7 @@ export function Navbar() {
                   </Link>
                 </div>
               </li>
+              )}
 
               <li className="pt-2 pb-1 border-t border-white/5">
                 <span className="px-4 text-[11px] font-semibold uppercase tracking-wider text-gold">Educación</span>
