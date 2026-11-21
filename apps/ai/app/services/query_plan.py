@@ -188,6 +188,8 @@ def plan_query(text: str) -> QueryPlan:
     words = set(normalized.split())
     learn = learn or (request and bool(words & _BROAD_LEARNING))
     hire = hire or (request and bool(words & _BROAD_SERVICE))
+    # El asistente solo orienta sobre formación: «recomiéndame redes» es una búsqueda de cursos.
+    learn = learn or (not hire and bool(re.match(r"(recomiendame|me recomiendas|sugiereme)", normalized)))
     enrollment = bool(re.search(r"\b(matricularme|inscribirme|me inscribo|me matriculo)\b", normalized))
     # No convertir una negación o una pregunta factual sobre inscripciones en una acción.
     enrollment = enrollment and not re.search(r"\b(no|sin|nunca)\b", normalized)
