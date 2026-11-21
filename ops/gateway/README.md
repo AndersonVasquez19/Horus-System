@@ -50,10 +50,11 @@ Puertos internos: `HORUS_LARAVEL_PORT` (8000), `HORUS_NEXT_PORT` (3000), `HORUS_
 - **La base de datos es la de `apps/api/.env`.** El gateway no la cambia y, al arrancar, imprime el destino (sin credenciales). Para una
   demo sin tocar datos reales, exporta antes `DB_CONNECTION=sqlite` y `DB_DATABASE=<archivo>` (más `SESSION_DRIVER=file` y
   `CACHE_STORE=file`): las variables del entorno mandan sobre el `.env`.
-- **El chatbot arranca sin catálogo firmado.** Con `HORUS_AI_CATALOG_SYNC_ENABLED=true` en `apps/api/.env`, Laravel descarta a Horus AI
-  mientras este no tenga un catálogo cargado y el chatbot respondería siempre con la contingencia. El gateway fija esa sincronización (y
-  `HORUS_OPS_*`) en `false` solo para el proceso de Laravel que lanza, sin tocar el `.env`. El escenario con catálogo firmado y
-  renovación es el de `apps/api/scripts/horus-local.php`.
+- **Catálogo firmado.** Con `HORUS_AI_CATALOG_SYNC_ENABLED=true` (en el entorno o en `apps/api/.env`), Laravel descarta a Horus AI
+  mientras este no tenga un catálogo cargado, y el chat respondería con la contingencia. En ese caso el gateway levanta además el
+  `worker`, sincroniza el catálogo al arrancar y lo **renueva cada 2 minutos** (el catálogo caduca a los 5). Si una ficha publicada
+  no pasa el filtro de privacidad del exportador (p. ej. contiene «DNI»), no se puede exportar ningún catálogo y el chat cae a la
+  contingencia: corrige la ficha. Otro escenario con renovación propia es `apps/api/scripts/horus-local.php`.
 - **Apagado.** Con `Ctrl+C` se cierran los tres. Si matas el proceso del gateway a la fuerza (`Stop-Process -Force`), Windows no le deja
   limpiar y quedan servicios huérfanos; usa `taskkill /pid <PID> /T /F` para matar el árbol entero.
 - **Registros** en `ops/gateway/.runtime/logs/` (`laravel.log`, `next.log`, `ai.log`, `gateway.log`), que se sobrescriben en cada
