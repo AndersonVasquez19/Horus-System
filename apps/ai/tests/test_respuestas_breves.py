@@ -38,23 +38,23 @@ def test_gemini_no_sustituye_el_listado_de_tarjetas(kb):
 
 def test_gemini_respeta_la_respuesta_breve_y_la_ampliacion_explicita(kb):
     def handle(_):
-        return httpx.Response(200, json=respuesta("servicio_soporte"))
+        return httpx.Response(200, json=respuesta("asesoramiento_general"))
 
     engine = AdvisorEngine(kb, gemini=GeminiSelector(
         SecretStr("clave-ficticia"), "gemini-3.1-flash-lite", httpx.MockTransport(handle),
     ))
-    record = kb.get("servicio_soporte")
-    brief = engine.chat("Qué servicios de soporte y mantenimiento ofrecen")
+    record = kb.get("asesoramiento_general")
+    brief = engine.chat("Que servicios de asesoramiento ofrecen")
     assert brief.answer == record.answer and len(brief.answer) < 200
-    detailed = engine.chat("Dame detalles del soporte y mantenimiento")
+    detailed = engine.chat("Dame detalles del asesoramiento")
     assert detailed.answer == record.detail_answer
-    assert "copias de seguridad" in detailed.answer
+    assert "48 horas" in detailed.answer
 
 
 def test_vigencia_es_solo_la_de_la_tarjeta_consultada(engine):
     reply = engine.chat("Vigencia del convenio con CORLAD")
     card = engine.kb.get("convenio_administracion")
-    assert reply.answer == f"{card.title}: Vigencia publicada hasta el {card.public_card.vigencia}."
+    assert reply.answer == f"{card.title}: el convenio está vigente hasta el {card.public_card.vigencia}."
     assert "certificados" not in reply.answer
 
 
@@ -75,12 +75,6 @@ def test_atributo_concreto_no_recibe_el_resumen_general(engine):
     assert "48 horas" in reply.answer
     assert "educativo, empresarial y legal" not in reply.answer
 
-
-def test_pregunta_por_caracteristica_recibe_la_frase_que_la_confirma(engine):
-    reply = engine.chat("Sus cámaras tienen visión nocturna")
-    assert "visión nocturna" in reply.answer
-    assert "proyectos de videovigilancia para hogares" not in reply.answer
-    assert len(reply.answer) < 350
 
 
 def test_resumen_editorial_no_agrega_modalidad_ni_metadatos_no_pedidos():

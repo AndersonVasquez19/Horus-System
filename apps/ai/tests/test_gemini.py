@@ -144,7 +144,7 @@ def test_google_lento_conserva_la_respuesta_local(kb):
     selector = GeminiSelector(
         SecretStr(KEY_FICTICIA), "gemini-3.1-flash-lite", httpx.MockTransport(timeout)
     )
-    message = "Que servicios de soporte y mantenimiento ofrecen"
+    message = "Que asesoria legal tienen"
     assert AdvisorEngine(kb, gemini=selector).chat(message) == AdvisorEngine(kb).chat(message)
     assert len(calls) == 1
 
@@ -169,7 +169,7 @@ def test_seleccion_usa_literal_verificado_y_no_prosa_del_proveedor(kb):
 
     selector = GeminiSelector(SecretStr(KEY_FICTICIA), "gemini-3.8-flash", httpx.MockTransport(handle))
     engine = AdvisorEngine(kb, gemini=selector)
-    reply = engine.chat("¿Qué servicios de soporte y mantenimiento ofrecen?")
+    reply = engine.chat("¿Qué asesoría legal tienen?")
     assert calls
     assert reply.answer == kb.get(reply.sources[0].id).answer
     assert reply.recommendations == []

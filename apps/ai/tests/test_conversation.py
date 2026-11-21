@@ -25,7 +25,7 @@ def test_followup_resolves_eso_without_inventing(engine: AdvisorEngine) -> None:
     assert third.intent == "followup_attribute"
     assert third.context is not None and third.context.focus_ids
     assert "sí figura la modalidad presencial" not in third.answer  # no se afirma lo no publicado
-    assert "no está publicada" in third.answer
+    assert "la confirma un asesor" in third.answer
 
 
 def test_followup_confirms_only_published_modality(engine: AdvisorEngine) -> None:
@@ -33,12 +33,6 @@ def test_followup_confirms_only_published_modality(engine: AdvisorEngine) -> Non
     assert reply.intent == "followup_attribute" and not reply.abstained
     assert "online" in reply.answer
     assert reply.sources[0].id == "capacitaciones_empresariales"
-
-
-def test_followup_audience_quotes_the_source(engine: AdvisorEngine) -> None:
-    reply = engine.chat("¿Y eso lo hacen también para casas?", _h("Mi empresa necesita cámaras"))
-    assert reply.intent == "followup_attribute"
-    assert "hogar" in reply.answer.lower()
 
 
 def test_followup_price_abstains(engine: AdvisorEngine) -> None:
@@ -67,27 +61,18 @@ def test_context_is_limited_to_three_user_turns(engine: AdvisorEngine) -> None:
     assert reply.context is not None and reply.context.turns_considered == 3
 
 
-def test_named_subject_is_not_overridden_by_context(engine: AdvisorEngine) -> None:
-    reply = engine.chat("¿Y el de cableado?", _h("¿Qué servicios tienen?"))
-    ids = [s.id for s in reply.sources] + [r.id for r in reply.recommendations]
-    assert ids[0] == "servicio_cableado"
-
-
 def test_quote_request_guides_without_prices(engine: AdvisorEngine) -> None:
-    reply = engine.chat("¿Cuánto me cobrarían por el mantenimiento de 10 computadoras?")
+    reply = engine.chat("¿Cuánto me cobrarían por una capacitación para 10 empleados?")
     assert reply.intent == "quote_request"
-    assert reply.sources[0].id == "servicio_soporte"
     assert "10" not in reply.answer  # no repite ni calcula cifras del visitante
-    assert "no calcula precios" in reply.answer
-    assert "no es un requisito publicado" in reply.answer
-    assert any("precio" in m for m in reply.missing_data)
+    assert "los confirma un asesor" in reply.answer
 
 
 def test_quote_without_subject_asks_and_continues(engine: AdvisorEngine) -> None:
     first = engine.chat("Quiero una cotización")
     assert first.intent == "quote_request" and first.needs_clarification
-    second = engine.chat("para cámaras de seguridad", _h("Quiero una cotización"))
-    assert second.intent == "quote_request" and second.sources[0].id == "servicio_camaras"
+    second = engine.chat("para capacitación de mi personal", _h("Quiero una cotización"))
+    assert second.intent == "quote_request" and second.sources[0].id == "capacitaciones_empresariales"
 
 
 def test_private_quote_is_never_consulted(engine: AdvisorEngine) -> None:
@@ -110,11 +95,11 @@ def test_attribute_answered_by_the_record_that_contains_it(engine: AdvisorEngine
 
 
 def test_recommendations_are_explainable(engine: AdvisorEngine) -> None:
-    reply = engine.chat("Mi empresa necesita cableado de red")
+    reply = engine.chat("Mi empresa necesita capacitar a su personal")
     first = reply.recommendations[0]
-    assert first.id == "servicio_cableado"
+    assert first.id == "capacitaciones_empresariales"
     assert any(s.startswith("tema:") for s in first.signals)
-    assert "precio sujeto a cotización con un asesor" in first.limitations
+    assert first.limitations
     assert first.next_step and "cotizar" in first.next_step
 
 

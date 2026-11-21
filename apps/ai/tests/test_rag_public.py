@@ -244,26 +244,6 @@ def test_recommendations_do_not_import_interests_from_previous_turns():
     assert reply.recommendations == []
 
 
-def test_service_details_are_retrieved_with_the_same_signed_fragment_contract():
-    original = build()
-    item = original.catalog.catalog.items[0].model_dump(mode="json", exclude_none=True)
-    item.update(
-        stable_id="servicio:rag-enlaces",
-        type="servicio",
-        title="Diagnostico de enlaces",
-        summary="Servicio publico para revisar conectividad empresarial.",
-        details="Permite verificar fibra optica y revisar conectores.",
-    )
-    settings = Settings(_env_file=None)
-    kb = KnowledgeBase.load_with_catalog_payload(
-        settings.knowledge_path, settings.intents_path, _catalog(datetime.now(UTC), items=[item]), KEY
-    )
-    reply = AdvisorEngine(kb).chat("verificar fibra optica revisar conectores")
-    assert "fibra optica" in reply.answer
-    assert reply.sources[0].id == "cat_servicio_rag_enlaces"
-    assert kb.documents[0].content_type == "servicio"
-
-
 def test_signed_catalog_does_not_recommend_legacy_offerings_outside_its_publications():
     assert all(
         r.source.kind == "catalogo_laravel" and r.kind in {"course", "service"}

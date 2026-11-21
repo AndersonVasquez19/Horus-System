@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from app.core.config import PROJECT_ROOT
 from app.schemas.chat import HistoryItem, RecommendRequest
 from app.schemas.knowledge import KnowledgeFile
@@ -27,7 +29,7 @@ def test_networking_interest_has_no_confirmed_course(engine: AdvisorEngine) -> N
     reply = engine.chat("Quiero aprender redes desde cero")
     assert reply.intent == "course_recommendation"
     assert reply.abstained  # ninguna opción confirmada cubre "redes" como formación
-    assert "No encuentro" in reply.answer
+    assert "no tengo un curso" in reply.answer.lower()
     assert "servicio_cableado" not in _ids(reply)  # un servicio no se recomienda como curso
     assert all(r.match_level in ("baja", "media") for r in reply.recommendations)
     assert reply.general_guidance and "no es una oferta de Horus" in reply.general_guidance
@@ -37,26 +39,23 @@ def test_networking_interest_has_no_confirmed_course(engine: AdvisorEngine) -> N
 def test_maintenance_interest_is_honest(engine: AdvisorEngine) -> None:
     reply = engine.chat("Me interesa el mantenimiento de computadoras")
     assert "mantenimiento" in reply.answer.lower()
-    assert "como servicio" in reply.answer  # se aclara que el soporte es un servicio, no un curso
     assert all(r.match_level != "alta" for r in reply.recommendations)
 
 
-def test_business_cabling(engine: AdvisorEngine) -> None:
-    reply = engine.chat("Mi empresa necesita cableado de red")
-    assert reply.intent == "service_recommendation"
-    assert _ids(reply)[0] == "servicio_cableado"
-    assert reply.recommendations[0].match_level == "alta"
-    assert reply.recommendations[0].evidence == ["servicio_cableado"]
-
-
-def test_slow_computers(engine: AdvisorEngine) -> None:
-    reply = engine.chat("Tenemos computadoras que funcionan lentamente")
-    assert _ids(reply)[0] == "servicio_soporte"
-
-
-def test_business_network_improvement(engine: AdvisorEngine) -> None:
-    reply = engine.chat("Quiero mejorar la red de mi negocio")
-    assert set(_ids(reply)[:2]) == {"servicio_cableado", "servicio_soporte"}
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Mi empresa necesita cableado de red",
+        "Tenemos computadoras que funcionan lentamente",
+        "Quiero mejorar la red de mi negocio",
+    ],
+)
+def test_servicios_tecnologicos_no_se_ofrecen(engine: AdvisorEngine, message: str) -> None:
+    """El asistente solo atiende educación y atención al cliente: nunca recomienda un servicio tecnológico."""
+    reply = engine.chat(message)
+    assert not _ids(reply)
+    assert not any(s.id.startswith("servicio_") for s in reply.sources)
+    assert "solo orienta sobre cursos" in reply.answer or "solo puede orientarte sobre cursos" in reply.answer
 
 
 def test_business_training(engine: AdvisorEngine) -> None:
@@ -108,7 +107,7 @@ def test_follow_up_modality_keeps_topic(engine: AdvisorEngine) -> None:
     # Sprint 2: se responde sobre la opción anterior y solo con lo publicado.
     assert reply.intent == "followup_attribute"
     assert reply.sources[0].id == "convenio_enfermeria"
-    assert "no está publicada" in reply.answer
+    assert "la confirma un asesor" in reply.answer
     assert reply.context is not None and reply.context.focus_ids == ["convenio_enfermeria"]
 
 
@@ -123,8 +122,6 @@ def test_assistant_history_is_not_trusted(engine: AdvisorEngine) -> None:
 def test_recommend_endpoint_logic(engine: AdvisorEngine) -> None:
     reply = engine.recommend(RecommendRequest(interests=["tesis"], level="principiante"))
     assert _ids(reply)[0] == "asesoramiento_educativo"
-    reply = engine.recommend(RecommendRequest(interests=["cámaras"], audience="empresa"))
-    assert _ids(reply)[0] == "servicio_camaras"
 
 
 def test_recommendations_only_reference_verified_records(engine: AdvisorEngine) -> None:
@@ -157,26 +154,6 @@ def test_fictitious_catalog_course_is_recommended_when_it_exists() -> None:
     virtual = engine.chat("Quiero aprender redes en modalidad virtual")
     assert virtual.recommendations[0].id == "ficticio_curso_redes_basico"
     assert any("virtual" in m for m in virtual.missing_data)
-
-
-def test_orientame_cameras_prioritizes_verified_service(engine: AdvisorEngine) -> None:
-    reply = engine.chat("Oriéntame sobre cámaras de seguridad.")
-    assert reply.intent == "service_recommendation"
-    assert not reply.abstained
-    assert not reply.needs_clarification
-    assert reply.match_level in ("alta", "media")
-    assert _ids(reply)[0] == "servicio_camaras"
-    assert reply.sources[0].id == "servicio_camaras"
-
-
-def test_orientame_support_and_maintenance_prioritizes_verified_service(engine: AdvisorEngine) -> None:
-    reply = engine.chat("Oriéntame sobre soporte y mantenimiento de equipos.")
-    assert reply.intent == "service_recommendation"
-    assert not reply.abstained
-    assert not reply.needs_clarification
-    assert reply.match_level in ("alta", "media")
-    assert _ids(reply)[0] == "servicio_soporte"
-    assert reply.sources[0].id == "servicio_soporte"
 
 
 def test_orientame_preserves_abstention_on_unoffered_courses_and_clarification_on_ambiguity(
