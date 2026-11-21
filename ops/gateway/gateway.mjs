@@ -2,7 +2,7 @@
 // Gateway de Horus System: levanta Laravel (API), Next.js (interfaz) y Horus AI (chatbot en Python) con un solo comando y
 // los publica detrás de UN solo origen. Uso:  node ops/gateway/gateway.mjs [opciones]   (o `npm run gateway` desde la raíz)
 
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { crearGateway } from './proxy.mjs';
@@ -63,12 +63,14 @@ for (const [nombre, numero] of Object.entries(cfg.puertos)) {
 
 const procesos = [];
 let servidor = null;
+let renovacion = null;
 let cerrando = false;
 
 function cerrar(codigo) {
   if (cerrando) return;
   cerrando = true;
   log('\nApagando servicios…');
+  if (renovacion) clearInterval(renovacion);
   servidor?.close();
   for (const p of procesos) matarArbol(p.hijo);
   setTimeout(() => process.exit(codigo), 300);
@@ -148,6 +150,20 @@ if (cfg.chatbot && cfg.syncCatalogo) {
   });
   if (sync.status === 0) log('  ✔ sincronización inicial de catálogo despachada');
   else log(`  ⚠ sincronización inicial de catálogo devolvió código ${sync.status ?? 'desconocido'}`);
+
+  // El catálogo firmado caduca a los 5 minutos: sin renovarlo, Horus AI queda «stale» y el chat cae a la contingencia.
+  // Laravel solo despacha el job (un bloqueo de 110 s evita duplicados) y el worker lo procesa; no bloquea el gateway.
+  renovacion = setInterval(() => {
+    const hijo = spawn('php', ['artisan', 'horus:advisor-operacion', 'sync', '--execute'], {
+      cwd: path.join(RAIZ, 'apps', 'api'),
+      env: { ...process.env, ...worker.env },
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    hijo.on('error', () => {});
+  }, 120_000);
+  renovacion.unref();
+  log('  ✔ renovación del catálogo cada 2 minutos');
 }
 
 fs.mkdirSync(path.join(RUNTIME, 'logs'), { recursive: true });
