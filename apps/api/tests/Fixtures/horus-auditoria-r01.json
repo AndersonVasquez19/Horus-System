@@ -2,7 +2,7 @@
  {
   "q": "¿Dónde están ubicados?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -371,7 +371,7 @@
  {
   "q": "¿Dónde están ubicados?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -589,7 +589,7 @@
  {
   "q": "¿Dónde están ubicados?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -958,7 +958,7 @@
  {
   "q": "¿Dónde están ubicados?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1176,7 +1176,7 @@
  {
   "q": "¿Tienen redes sociales?",
   "r": {
-   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Los enlaces figuran en la web pública.",
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1209,7 +1209,7 @@
  {
   "q": "¿Están en Facebook?",
   "r": {
-   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Los enlaces figuran en la web pública.",
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1506,7 +1506,7 @@
  {
   "q": "¿Dónde están ubicados?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1626,7 +1626,7 @@
  {
   "q": "¿Cuál es su política de devolución?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1973,7 +1973,7 @@
  {
   "q": "¿Cuál es su dirección?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2097,7 +2097,7 @@
  {
   "q": "¿Tienen Facebook?",
   "r": {
-   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Los enlaces figuran en la web pública.",
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2128,7 +2128,7 @@
  {
   "q": "¿Dónde los sigo en redes?",
   "r": {
-   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Los enlaces figuran en la web pública.",
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
    "intent": "contact_info",
    "match_level": "media",
    "needs_clarification": false,
@@ -4052,7 +4052,7 @@
  {
   "q": "Se me perdió el certificado",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4085,7 +4085,7 @@
  {
   "q": "¿Cómo saco un duplicado de mi diploma?",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).",
    "intent": "faq",
    "match_level": "media",
    "needs_clarification": false,
@@ -4335,7 +4335,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4740,7 +4740,7 @@
  {
   "q": "¿Cuál es su dirección?",
   "r": {
-   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. El mapa y los datos de contacto están en /contactos.",
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4864,7 +4864,7 @@
  {
   "q": "¿Tienen Facebook?",
   "r": {
-   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Los enlaces figuran en la web pública.",
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4895,7 +4895,7 @@
  {
   "q": "¿Dónde los sigo en redes?",
   "r": {
-   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Los enlaces figuran en la web pública.",
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
    "intent": "contact_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6819,7 +6819,7 @@
  {
   "q": "Se me perdió el certificado",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6852,7 +6852,7 @@
  {
   "q": "¿Cómo saco un duplicado de mi diploma?",
   "r": {
-   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento. Fuente: /legales/preguntas-frecuentes.",
+   "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).",
    "intent": "faq",
    "match_level": "alta",
    "needs_clarification": false,
@@ -7102,7 +7102,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en /legales/politicas-devolucion. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,

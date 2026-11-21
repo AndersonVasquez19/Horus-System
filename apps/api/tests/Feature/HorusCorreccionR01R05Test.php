@@ -63,7 +63,7 @@ class HorusCorreccionR01R05Test extends TestCase
     public function test_verified_text_is_not_trusted_under_a_different_source(): void
     {
         $reply = $this->respuestaDesde($this->registro('convenio_economia'));
-        $soporte = $this->registro('servicio_soporte');
+        $soporte = $this->registro('asesoramiento_legal');
         // La fecha del convenio no figura en la fuente citada: sin procedencia exacta no hay excepción.
         $reply['sources'] = [['id' => $soporte['id'], 'title' => $soporte['title'], 'url_path' => $soporte['source']['url_path']]];
         $this->fake($reply);
@@ -111,16 +111,16 @@ class HorusCorreccionR01R05Test extends TestCase
     #[DataProvider('contenidoProhibido')]
     public function test_rejects_reworded_requests_prices_dates_and_availability(string $campo, string $texto): void
     {
-        $reply = $this->respuestaDesde($this->registro('servicio_soporte'));
+        $reply = $this->respuestaDesde($this->registro('asesoramiento_legal'));
         if ($campo === 'clarification_question') {
             $reply['needs_clarification'] = true;
             $reply['intent'] = 'clarification';
             $reply['clarification_question'] = $texto;
         } else {
-            $reply['answer'] = 'Horus Group ofrece soporte y mantenimiento. '.$texto;
+            $reply['answer'] = 'Horus Group ofrece asesoramiento legal. '.$texto;
         }
         $this->fake($reply);
-        $this->assertNull(app(HorusAdvisorClient::class)->orientar('soporte'));
+        $this->assertNull(app(HorusAdvisorClient::class)->orientar('asesoria legal'));
     }
 
     /** @return iterable<string, array{string}> */
@@ -139,10 +139,10 @@ class HorusCorreccionR01R05Test extends TestCase
     #[DataProvider('salidasLegitimas')]
     public function test_keeps_legitimate_unverified_wording(string $texto): void
     {
-        $reply = $this->respuestaDesde($this->registro('servicio_soporte'));
-        $reply['answer'] = 'Horus Group ofrece soporte y mantenimiento. '.$texto;
+        $reply = $this->respuestaDesde($this->registro('asesoramiento_legal'));
+        $reply['answer'] = 'Horus Group ofrece asesoramiento legal. '.$texto;
         $this->fake($reply);
-        $this->assertNotNull(app(HorusAdvisorClient::class)->orientar('soporte'));
+        $this->assertNotNull(app(HorusAdvisorClient::class)->orientar('asesoria legal'));
     }
 
     /** @return iterable<string, array{string}> */
@@ -162,7 +162,7 @@ class HorusCorreccionR01R05Test extends TestCase
     #[DataProvider('entradasLegitimas')]
     public function test_legitimate_visitor_questions_reach_python(string $q): void
     {
-        $this->fake($this->respuestaDesde($this->registro('servicio_soporte')));
+        $this->fake($this->respuestaDesde($this->registro('asesoramiento_legal')));
         $this->assertSame('advisor', app(AsistenteVirtualService::class)->procesarMensaje($q, 'r03')['fuente'], $q);
         Http::assertSentCount(2);
     }

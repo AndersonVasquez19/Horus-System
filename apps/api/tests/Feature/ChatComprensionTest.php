@@ -54,8 +54,8 @@ class ChatComprensionTest extends TestCase
             if (count($messages) === 1) {
                 return Http::response([...$reply, 'answer' => 'Puedo orientarte sobre información pública.',
                     'intent' => 'clarification', 'match_level' => 'baja', 'needs_clarification' => true,
-                    'clarification_question' => '¿Te refieres a cámaras de seguridad?', 'sources' => [],
-                    'context' => ['focus_ids' => ['servicio_camaras']]]);
+                    'clarification_question' => '¿Te refieres a asesoramiento legal?', 'sources' => [],
+                    'context' => ['focus_ids' => ['asesoramiento_legal']]]);
             }
 
             return Http::response($reply);
@@ -65,7 +65,7 @@ class ChatComprensionTest extends TestCase
         $this->assertStringContainsString('¿Te refieres', $first['respuesta']);
         $next = $service->procesarMensaje('sí', 'same-session', 'public:uno');
         $this->assertSame($reply['answer'], $next['respuesta']);
-        $this->assertSame('Información sobre Cámaras de seguridad y videovigilancia', $messages[1]);
+        $this->assertSame('Información sobre Asesoramiento legal', $messages[1]);
         $this->assertDatabaseMissing('chat_logs', ['mensaje_usuario' => 'Quiero información']);
         $this->assertDatabaseMissing('chat_logs', ['mensaje_usuario' => 'sí']);
         $this->assertStringNotContainsString('Quiero información', serialize(Cache::getStore()->all()));
@@ -83,7 +83,7 @@ class ChatComprensionTest extends TestCase
             return Http::response($this->cases[0]['reply']);
         });
         $service = app(AsistenteVirtualService::class);
-        $service->procesarMensaje('que cámaras tienen', 'same-session', 'public:uno');
+        $service->procesarMensaje('que asesoría legal tienen', 'same-session', 'public:uno');
         $service->procesarMensaje('sí', 'same-session', 'public:dos');
         $this->assertSame('sí', $messages[1]);
         $this->travel(6)->minutes();
@@ -96,26 +96,26 @@ class ChatComprensionTest extends TestCase
         $client = app(HorusAdvisorClient::class);
         $this->assertSame('sí', $client->resolverSeguimiento('sí', ['fuente_inexistente']));
         $this->assertSame('sí', $client->resolverSeguimiento('sí', ['cat_servicio_retirado']));
-        $this->assertSame('sí', $client->resolverSeguimiento('sí', ['servicio_camaras', 'servicio_soporte']));
-        $this->assertSame('Información sobre Soporte y mantenimiento de equipos',
-            $client->resolverSeguimiento('la segunda', ['servicio_camaras', 'servicio_soporte']));
-        $this->assertSame('y qué incluye de Cámaras de seguridad y videovigilancia',
-            $client->resolverSeguimiento('y qué incluye', ['servicio_camaras']));
-        $this->assertSame('ahora quiero cableado', $client->resolverSeguimiento('ahora quiero cableado', ['servicio_camaras']));
+        $this->assertSame('sí', $client->resolverSeguimiento('sí', ['asesoramiento_legal', 'asesoramiento_empresarial']));
+        $this->assertSame('Información sobre Asesoramiento empresarial',
+            $client->resolverSeguimiento('la segunda', ['asesoramiento_legal', 'asesoramiento_empresarial']));
+        $this->assertSame('y qué incluye de Asesoramiento legal',
+            $client->resolverSeguimiento('y qué incluye', ['asesoramiento_legal']));
+        $this->assertSame('ahora quiero un curso', $client->resolverSeguimiento('ahora quiero un curso', ['asesoramiento_legal']));
     }
 
     public function test_una_respuesta_duplicada_restaura_su_tema_y_la_privacidad_prevalece(): void
     {
         $messages = [];
         $raw = json_decode((string) file_get_contents((string) config('horus-knowledge.path')), true, 512, JSON_THROW_ON_ERROR);
-        $support = collect($raw['records'])->firstWhere('id', 'servicio_soporte');
+        $support = collect($raw['records'])->firstWhere('id', 'asesoramiento_empresarial');
         Http::fake(function (Request $request) use (&$messages, $support) {
             if (str_ends_with($request->url(), '/ready')) {
                 return $this->ready();
             }
             $messages[] = $request['message'];
             $reply = $this->cases[0]['reply'];
-            if (str_contains($request['message'], 'soporte')) {
+            if (str_contains($request['message'], 'empresarial')) {
                 $reply['answer'] = $support['answer'];
                 $reply['sources'] = [['id' => $support['id'], 'title' => $support['title'], 'url_path' => $support['source']['url_path']]];
             }
@@ -123,12 +123,12 @@ class ChatComprensionTest extends TestCase
             return Http::response($reply);
         });
         $service = app(AsistenteVirtualService::class);
-        $camera = $service->procesarMensaje('que cámaras tienen', 'topic-cache');
-        $service->procesarMensaje('soporte y mantenimiento', 'topic-cache');
-        $this->assertSame($camera, $service->procesarMensaje('que cámaras tienen', 'topic-cache'));
+        $camera = $service->procesarMensaje('que cursos hay', 'topic-cache');
+        $service->procesarMensaje('asesoramiento empresarial', 'topic-cache');
+        $this->assertSame($camera, $service->procesarMensaje('que cursos hay', 'topic-cache'));
         $this->assertCount(2, $messages);
         $service->procesarMensaje('sí', 'topic-cache');
-        $this->assertSame('Información sobre Cámaras de seguridad y videovigilancia', $messages[2]);
+        $this->assertSame('Información sobre Asesoramiento legal', $messages[2]);
         $this->assertSame(AsistenteVirtualService::RESPUESTA_PRIVACIDAD,
             $service->procesarMensaje('me llamo Zelvani Quenzuli', 'topic-cache')['respuesta']);
         $this->assertCount(3, $messages);

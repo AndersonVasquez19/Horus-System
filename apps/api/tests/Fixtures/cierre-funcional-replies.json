@@ -91,7 +91,7 @@
             "id": "cat_curso_datos",
             "title": "Analisis de datos con Python",
             "kind": "course",
-            "reason": "El contenido publicado trata tu consulta: «Aprende analisis de datos con Python.».",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Aprende analisis de datos con Python.».",
             "evidence": [
               "cat_curso_datos"
             ],
@@ -142,7 +142,7 @@
             "id": "cat_curso_excel",
             "title": "Excel empresarial",
             "kind": "course",
-            "reason": "El contenido publicado trata tu consulta: «Aprende Excel con tablas dinamicas y formulas.».",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Aprende Excel con tablas dinamicas y formulas.».",
             "evidence": [
               "cat_curso_excel"
             ],
@@ -183,7 +183,7 @@
     {
       "query": "¿Qué capacitaciones tienen para empresas?",
       "reply": {
-        "answer": "Según el catálogo publicado por Horus Group, están vigentes: Analisis de datos con Python; Excel empresarial; Programacion con Python. Puedes consultarlos en /educacion/cursos o preguntarme por cualquiera para ver su modalidad o requisitos publicados.",
+        "answer": "Cursos y capacitaciones vigentes: Analisis de datos con Python; Excel empresarial; Programacion con Python. Pregúntame por cualquiera para ver su modalidad o requisitos.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -216,7 +216,7 @@
     {
       "query": "¿Tienen curso de cocina?",
       "reply": {
-        "answer": "Por ahora no hay un curso o capacitación publicado sobre ese tema en el catálogo vigente de Horus Group. Si quieres ver lo que está vigente, pregúntame «¿Qué cursos ofrecen?». También puedes consultarlo con un asesor por los canales oficiales.",
+        "answer": "Por ahora no tengo un curso o capacitación sobre ese tema. Pregúntame «¿Qué cursos ofrecen?» y te cuento qué hay. También puedes consultarlo con un asesor.",
         "intent": "unavailable_info",
         "match_level": "ninguna",
         "needs_clarification": false,
@@ -243,7 +243,7 @@
     {
       "query": "Quiero aprender reposteria",
       "reply": {
-        "answer": "No encontré un curso o capacitación publicado sobre ese tema en el catálogo vigente de Horus Group. Si quieres ver lo que está vigente, pregúntame «¿Qué cursos ofrecen?». También puedes consultarlo con un asesor por los canales oficiales.",
+        "answer": "No encontré un curso o capacitación sobre ese tema. Pregúntame «¿Qué cursos ofrecen?» y te cuento qué hay. También puedes consultarlo con un asesor.",
         "intent": "unavailable_info",
         "match_level": "ninguna",
         "needs_clarification": false,
@@ -271,15 +271,15 @@
         "answer": "Excel empresarial: Aprende Excel con tablas dinamicas y formulas.",
         "intent": "course_recommendation",
         "match_level": "alta",
-        "needs_clarification": true,
-        "clarification_question": "Para tu otra consulta también está publicado «Cableado estructurado». ¿Sobre cuál quieres más detalles?",
+        "needs_clarification": false,
+        "clarification_question": null,
         "abstained": false,
         "recommendations": [
           {
             "id": "cat_curso_excel",
             "title": "Excel empresarial",
             "kind": "course",
-            "reason": "El contenido publicado trata tu consulta: «Aprende Excel con tablas dinamicas y formulas.».",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Aprende Excel con tablas dinamicas y formulas.».",
             "evidence": [
               "cat_curso_excel"
             ],
@@ -291,23 +291,6 @@
             "needs_clarification": false,
             "clarification_question": null,
             "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
-          },
-          {
-            "id": "cat_servicio_cableado",
-            "title": "Cableado estructurado",
-            "kind": "service",
-            "reason": "El contenido publicado trata tu consulta: «Instalacion de cableado estructurado para oficinas.».",
-            "evidence": [
-              "cat_servicio_cableado"
-            ],
-            "match_level": "alta",
-            "url_path": null,
-            "evidence_text": "Instalacion de cableado estructurado para oficinas.",
-            "signals": [],
-            "limitations": [],
-            "needs_clarification": false,
-            "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
           }
         ],
         "missing_data": [],
@@ -316,11 +299,6 @@
           {
             "id": "cat_curso_excel",
             "title": "Excel empresarial",
-            "url_path": null
-          },
-          {
-            "id": "cat_servicio_cableado",
-            "title": "Cableado estructurado",
             "url_path": null
           }
         ],
@@ -343,62 +321,16 @@
     {
       "query": "Necesito cableado estructurado y mantenimiento de computadoras",
       "reply": {
-        "answer": "Cableado estructurado: Instalacion de cableado estructurado para oficinas.",
-        "intent": "service_recommendation",
-        "match_level": "alta",
+        "answer": "Quiero asegurarme de entenderte bien antes de responder.",
+        "intent": "clarification",
+        "match_level": "baja",
         "needs_clarification": true,
-        "clarification_question": "Para tu otra consulta también está publicado «Soporte y mantenimiento». ¿Sobre cuál quieres más detalles?",
+        "clarification_question": "¿Podrías darme más detalles? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
         "abstained": false,
-        "recommendations": [
-          {
-            "id": "cat_servicio_cableado",
-            "title": "Cableado estructurado",
-            "kind": "service",
-            "reason": "El contenido publicado trata tu consulta: «Instalacion de cableado estructurado para oficinas.».",
-            "evidence": [
-              "cat_servicio_cableado"
-            ],
-            "match_level": "alta",
-            "url_path": null,
-            "evidence_text": "Instalacion de cableado estructurado para oficinas.",
-            "signals": [],
-            "limitations": [],
-            "needs_clarification": false,
-            "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
-          },
-          {
-            "id": "cat_servicio_mant",
-            "title": "Soporte y mantenimiento",
-            "kind": "service",
-            "reason": "El contenido publicado trata tu consulta: «Mantenimiento preventivo y correctivo de computadoras.».",
-            "evidence": [
-              "cat_servicio_mant"
-            ],
-            "match_level": "alta",
-            "url_path": null,
-            "evidence_text": "Mantenimiento preventivo y correctivo de computadoras.",
-            "signals": [],
-            "limitations": [],
-            "needs_clarification": false,
-            "clarification_question": null,
-            "next_step": "Para consultar la cotización, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n."
-          }
-        ],
+        "recommendations": [],
         "missing_data": [],
         "general_guidance": null,
-        "sources": [
-          {
-            "id": "cat_servicio_cableado",
-            "title": "Cableado estructurado",
-            "url_path": null
-          },
-          {
-            "id": "cat_servicio_mant",
-            "title": "Soporte y mantenimiento",
-            "url_path": null
-          }
-        ],
+        "sources": [],
         "mode": "lexical",
         "context": {
           "turns_considered": 0,
@@ -448,7 +380,7 @@
     {
       "query": "¿Dónde puedo encontrar más información?",
       "reply": {
-        "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de /contactos (asuntos: tecnologías, educación, asesoramiento, capacitaciones, cursos u otro).",
+        "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de contacto de la web (asuntos: educación, asesoramiento, capacitaciones, cursos u otro).",
         "intent": "contact_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -479,22 +411,16 @@
     {
       "query": "¿Hacen mantenimiento de computadoras?",
       "reply": {
-        "answer": "Soporte y mantenimiento: Mantenimiento preventivo y correctivo de computadoras.",
-        "intent": "service_info",
-        "match_level": "alta",
+        "answer": "No tengo información confirmada sobre eso. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto. ¿Sobre cuál de estos temas necesitas información?",
+        "intent": "out_of_scope",
+        "match_level": "ninguna",
         "needs_clarification": false,
         "clarification_question": null,
-        "abstained": false,
+        "abstained": true,
         "recommendations": [],
         "missing_data": [],
         "general_guidance": null,
-        "sources": [
-          {
-            "id": "cat_servicio_mant",
-            "title": "Soporte y mantenimiento",
-            "url_path": null
-          }
-        ],
+        "sources": [],
         "mode": "lexical",
         "context": {
           "turns_considered": 0,
@@ -544,15 +470,15 @@
     {
       "query": "Quiero solicitar una cotización",
       "reply": {
-        "answer": "Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+        "answer": "Los precios y las cotizaciones los confirma un asesor de Horus Group; yo no puedo calcularlos ni consultar cotizaciones ya emitidas. Para pedir una cotización, escribe a un asesor por WhatsApp: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
         "intent": "quote_request",
         "match_level": "baja",
         "needs_clarification": true,
-        "clarification_question": "¿Para qué servicio o capacitación necesitas la cotización? Por ejemplo: cámaras de seguridad, cableado o red, mantenimiento de equipos, capacitación para tu personal o asesoría.",
+        "clarification_question": "¿Para qué curso o capacitación necesitas la información? Por ejemplo: un curso, una capacitación para tu personal o una asesoría.",
         "abstained": false,
         "recommendations": [],
         "missing_data": [
-          "servicio o capacitación a cotizar"
+          "curso o capacitación de interés"
         ],
         "general_guidance": null,
         "sources": [],

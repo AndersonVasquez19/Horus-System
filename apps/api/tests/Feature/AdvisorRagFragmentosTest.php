@@ -31,9 +31,9 @@ class AdvisorRagFragmentosTest extends TestCase
         $catalog['signature'] = app(FirmaCatalogoAdvisor::class)->firmar($catalog);
         $this->mock(ExportadorCatalogoAdvisor::class)->shouldReceive('construirParaSincronizacion')->andReturn($catalog);
         Cache::forever('horus-ai.catalog.expected-version', $catalog['catalog_version']);
-        $answer = $item['title'].': '.$item['details'].' Fuente: catálogo publicado por Horus Group actualizado el 2026-11-04).';
+        $answer = $item['title'].': '.$item['details'];
         foreach ([$answer => true, $answer.' Precio 800.' => false,
-            $item['title'].': segmentacion VLAN Fuente: catálogo publicado por Horus Group actualizado el 2026-11-04).' => false] as $text => $valid) {
+            $item['title'].': segmentacion VLAN en 3 sedes' => false] as $text => $valid) {
             Http::swap(new Factory);
             Http::preventStrayRequests();
             Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured',

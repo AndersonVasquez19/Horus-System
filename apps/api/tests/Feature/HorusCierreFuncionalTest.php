@@ -40,7 +40,7 @@ class HorusCierreFuncionalTest extends TestCase
             'horus-advisor.token' => str_repeat('t', 32), 'horus-advisor.signing_key' => str_repeat('k', 32),
             'horus-catalog.sync_enabled' => true]);
         $this->fixture = json_decode((string) file_get_contents(base_path('tests/Fixtures/cierre-funcional-replies.json')), true, 512, JSON_THROW_ON_ERROR);
-        $content = ['managed_types' => ['curso', 'servicio'], 'items' => $this->fixture['items']];
+        $content = ['managed_types' => ['curso'], 'items' => $this->fixture['items']];
         $firma = app(FirmaCatalogoAdvisor::class);
         $catalog = ['schema_version' => '1.0', 'catalog_version' => $firma->versionContenido($content),
             'source_system' => 'horus-laravel', 'generated_at' => now()->toIso8601String(),
@@ -81,16 +81,16 @@ class HorusCierreFuncionalTest extends TestCase
         }
     }
 
-    public function test_la_consulta_multitema_conserva_una_referencia_por_tema(): void
+    public function test_un_tema_no_ofrecido_se_descarta_y_se_conserva_solo_el_curso(): void
     {
         $case = collect($this->fixture['cases'])->firstWhere('query', 'Quiero aprender Excel y también necesito cableado para mi oficina');
         $this->fakePython($case['reply']);
         $reply = app(HorusAdvisorClient::class)->orientar($case['query']);
-        $this->assertSame(['cat_curso_excel', 'cat_servicio_cableado'], array_column($reply['recomendaciones'], 'id'));
-        $this->assertStringContainsString('Cableado estructurado', $reply['respuesta']);
+        $this->assertSame(['cat_curso_excel'], array_column($reply['recomendaciones'], 'id'));
+        $this->assertStringNotContainsStringIgnoringCase('cableado', $reply['respuesta']);
     }
 
-    public function test_la_ruta_publica_presenta_una_tarjeta_vigente_por_tema(): void
+    public function test_la_ruta_publica_presenta_solo_la_tarjeta_del_curso_vigente(): void
     {
         $case = collect($this->fixture['cases'])->firstWhere('query', 'Quiero aprender Excel y también necesito cableado para mi oficina');
         $this->fakePython($case['reply']);
@@ -98,10 +98,10 @@ class HorusCierreFuncionalTest extends TestCase
             ->assertOk()->json();
         $this->assertSame('advisor', $respuesta['fuente']);
         $this->assertArrayNotHasKey('recomendaciones', $respuesta);
-        $this->assertSame(['cat_curso_excel', 'cat_servicio_cableado'], array_column($respuesta['tarjetas'], 'id'));
-        $this->assertSame(['curso', 'servicio'], array_column($respuesta['tarjetas'], 'tipo'));
-        $this->assertSame(['Excel empresarial', 'Cableado estructurado'], array_column($respuesta['tarjetas'], 'titulo'));
-        $this->assertSame(['/educacion/cursos', '/contactos'], array_column($respuesta['tarjetas'], 'url'));
+        $this->assertSame(['cat_curso_excel'], array_column($respuesta['tarjetas'], 'id'));
+        $this->assertSame(['curso'], array_column($respuesta['tarjetas'], 'tipo'));
+        $this->assertSame(['Excel empresarial'], array_column($respuesta['tarjetas'], 'titulo'));
+        $this->assertSame(['/educacion/cursos'], array_column($respuesta['tarjetas'], 'url'));
         foreach ($respuesta['tarjetas'] as $tarjeta) {
             $this->assertSame($this->version, $tarjeta['procedencia']['version']);
         }

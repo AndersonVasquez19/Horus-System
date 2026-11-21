@@ -77,7 +77,7 @@ class ExportadorCatalogoAdvisor
                 }
                 // Python no tiene el enum hibrido. Se conserva como texto, sin equipararlo a otro.
                 if ($modalidad === 'hibrido') {
-                    $detalles = trim($detalles.' Modalidad publicada: hibrido.');
+                    $detalles = trim($detalles.' Modalidad: hibrido.');
                 }
                 $horario = $p->horario === null ? null : trim((string) $p->horario);
                 $texto = implode(' ', [$titulo, $resumen, $detalles, $horario ?? '']);

@@ -46,7 +46,7 @@ class HorusAdvisorTest extends TestCase
         $service = app(AsistenteVirtualService::class);
         $mensaje = 'Oriéntame sobre los cursos y modalidades que ofrece Horus Group';
         $answer = $service->procesarMensaje($mensaje, 'client-sensitive', 'public:server-private');
-        $this->assertSame(['respuesta', 'intent', 'fuente'], array_keys($answer));
+        $this->assertSame(['respuesta', 'intent', 'fuente', 'enlaces'], array_keys($answer));
         $this->assertSame('advisor', $answer['fuente']);
         $this->assertNull($answer['intent']);
         $this->assertSame($answer, $service->procesarMensaje($mensaje, 'client-sensitive', 'public:server-private'));
@@ -82,7 +82,7 @@ class HorusAdvisorTest extends TestCase
         $this->fake();
         $service = app(AsistenteVirtualService::class);
         $answer = $service->procesarMensaje($mensaje, 'sess-real-flow', 'public:browser');
-        $this->assertSame(['respuesta' => $this->reply()['answer'], 'intent' => null, 'fuente' => 'advisor'], $answer);
+        $this->assertSame(['respuesta' => $this->reply()['answer'], 'intent' => null, 'fuente' => 'advisor', 'enlaces' => ['/educacion/cursos']], $answer);
         Http::assertSentCount(2);
         Http::assertSent(fn (Request $r) => $r->url() === 'http://127.0.0.1:8001/api/v1/chat'
             && $r->data() === ['message' => $mensaje, 'history' => []]
@@ -445,7 +445,7 @@ class HorusAdvisorTest extends TestCase
         $this->postChatPublico(['mensaje' => '', 'session_id' => 'test'])->assertUnprocessable();
         Http::assertNothingSent();
         $this->postChatPublico(['mensaje' => 'Orientame sobre cursos', 'session_id' => 'test'])
-            ->assertOk()->assertExactJson(['respuesta' => $this->reply()['answer'], 'fuente' => 'advisor']);
+            ->assertOk()->assertExactJson(['respuesta' => $this->reply()['answer'], 'fuente' => 'advisor', 'enlaces' => ['/educacion/cursos']]);
         $route = app('router')->getRoutes()->getByName('api.publico.chat');
         // Límite propio del chat del BFF: 20/min y por visitante, con limitador propio para no compartir contador.
         $this->assertContains('throttle:chat-bff', $route->gatherMiddleware());
