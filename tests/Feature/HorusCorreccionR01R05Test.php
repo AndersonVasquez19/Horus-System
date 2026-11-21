@@ -162,6 +162,7 @@ class HorusCorreccionR01R05Test extends TestCase
     #[DataProvider('entradasLegitimas')]
     public function test_legitimate_visitor_questions_reach_python(string $q): void
     {
+        config(['tecnologias.visible' => true]);
         $this->fake($this->respuestaDesde($this->registro('servicio_soporte')));
         $this->assertSame('advisor', app(AsistenteVirtualService::class)->procesarMensaje($q, 'r03')['fuente'], $q);
         Http::assertSentCount(2);

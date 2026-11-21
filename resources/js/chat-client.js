@@ -1,3 +1,5 @@
+import { chatStatus } from './chat-status.js';
+
 const chatPaths = [
   '/educacion/cursos', '/educacion/capacitaciones', '/contactos', '/preguntas-frecuentes',
   '/tecnologias/camaras-seguridad', '/tecnologias/cableado-estructurado',
@@ -132,13 +134,15 @@ function mensajesDelHistorial(messages) {
 
 export function chatClient() {
   return {
+    ...chatStatus(),
     endpoint: '',
+    tecnologias: undefined,
     csrfToken: '',
     sessionId: '',
     messages: [
       {
         role: 'bot',
-        text: '¡Hola! Soy Horus, tu asistente virtual. ¿En qué te puedo ayudar hoy?',
+        text: '¡Hola! Soy Diego, tu asistente virtual. ¿En qué te puedo ayudar hoy?',
       },
     ],
     draft: '',
@@ -146,6 +150,7 @@ export function chatClient() {
     followResponse: true,
     init() {
       this.endpoint = this.$el.dataset.endpoint;
+      this.tecnologias = this.$el.dataset.tecnologias;
       this.csrfToken = this.$el.dataset.csrfToken;
       const sessionKey = `horus-chat-session:${this.endpoint}`;
       try { this.sessionId = sessionStorage.getItem(sessionKey); } catch { /* Storage may be disabled. */ }
@@ -156,6 +161,10 @@ export function chatClient() {
         try { sessionStorage.setItem(sessionKey, this.sessionId); } catch { /* Keep the in-memory ID. */ }
       }
       this.restaurarHistorial();
+      this.iniciarEstado();
+    },
+    destroy() {
+      this.destruirEstado();
     },
     restaurarHistorial() {
       const key = `horus-chat-history:${this.endpoint}`;
@@ -166,6 +175,7 @@ export function chatClient() {
         const historial = JSON.parse(raw);
         const edad = Date.now() - historial?.savedAt;
         if (historial?.version !== 1 || historial.sessionId !== this.sessionId
+            || historial.tecnologias !== this.tecnologias
             || !Number.isSafeInteger(historial.savedAt) || edad < 0 || edad >= HISTORIAL_DURACION_MS) {
           throw new Error('Historial vencido o de otra sesión');
         }
@@ -183,6 +193,7 @@ export function chatClient() {
       try {
         // Solo historial visible, en esta pestaña: sin borrador, CSRF ni credenciales.
         const raw = JSON.stringify({ version: 1, sessionId: this.sessionId, savedAt: Date.now(),
+          tecnologias: this.tecnologias,
           messages: mensajesDelHistorial(this.messages) });
         if (raw.length > HISTORIAL_MAX_CARACTERES) throw new Error('Historial demasiado largo');
         sessionStorage.setItem(key, raw);
@@ -195,6 +206,7 @@ export function chatClient() {
       if (this.sending && log.scrollTop + log.clientHeight < log.scrollHeight - 60) this.followResponse = false;
     },
     solicitarCotizacion(servicio) {
+      if (this.tecnologias === 'oculto') return;
       if (typeof servicio !== 'string' || !servicio.trim() || servicio.length > 120) return;
       const text = `Para solicitar una cotización de ${servicio.trim()}, continúa por WhatsApp con un asesor. Allí podrás detallar lo que necesitas y consultar las condiciones del servicio.`;
       if (this.messages.at(-1)?.text !== text) {
@@ -212,7 +224,7 @@ export function chatClient() {
     },
     async sendMessage() {
       const message = this.draft.trim();
-      if (!message || this.sending) {
+      if (!message || this.sending || !this.puedeEnviar()) {
         return;
       }
 

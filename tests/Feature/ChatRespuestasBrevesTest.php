@@ -28,6 +28,38 @@ class ChatRespuestasBrevesTest extends TestCase
         $response->assertSee(Js::from($tarjetas)->toHtml(), false);
     }
 
+    public function test_nuevo_convenio_muestra_sus_imagenes_sin_fecha_de_vigencia(): void
+    {
+        $tarjeta = collect(app(ConveniosPublicos::class)->tarjetas())->firstWhere('id', 'santos-villalobos');
+        $this->assertNotNull($tarjeta);
+        $this->assertNull($tarjeta['vigencia']);
+        $this->assertFileExists(public_path($tarjeta['imagen']));
+        $this->assertFileExists(public_path($tarjeta['logo']));
+
+        $this->view('components.convenios.card', ['item' => $tarjeta])
+            ->assertSee('Santos Villalobos Huamán')
+            ->assertSee('convenio-santos-villalobos.jpg')
+            ->assertDontSee('Vigente hasta');
+    }
+
+    public function test_el_asistente_acepta_la_respuesta_sin_fecha_del_nuevo_convenio(): void
+    {
+        config(['horus-advisor.enabled' => true, 'horus-advisor.url' => 'http://127.0.0.1:8001',
+            'horus-advisor.token' => str_repeat('t', 32), 'horus-catalog.sync_enabled' => false]);
+        $casos = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/chat-breve-replies.json'), true, 512, JSON_THROW_ON_ERROR);
+        $reply = $casos[1]['reply'];
+        $reply['answer'] = 'Instituto Santos Villalobos Huamán de Yauyucán: No hay una fecha de vigencia publicada.';
+        $reply['sources'] = [['id' => 'convenio_santos_villalobos',
+            'title' => 'Instituto Santos Villalobos Huamán de Yauyucán', 'url_path' => '/#convenios']];
+        Http::swap(new Factory);
+        Http::preventStrayRequests();
+        $this->simular($reply);
+
+        $resultado = app(HorusAdvisorClient::class)->orientar('Vigencia del convenio con el instituto Santos Villalobos Huamán de Yauyucán');
+        $this->assertNotNull($resultado);
+        $this->assertSame($reply['answer'], $resultado['respuesta']);
+    }
+
     public function test_las_respuestas_reales_de_python_atraviesan_la_validacion_de_laravel(): void
     {
         $casos = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/chat-breve-replies.json'), true, 512, JSON_THROW_ON_ERROR);

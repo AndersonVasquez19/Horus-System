@@ -165,6 +165,10 @@ Route::prefix('admin')
         Route::post('asistente/mensaje', [AsistenteController::class, 'mensaje'])->middleware('throttle:30,1')->name('asistente.mensaje');
     });
 
+Route::get('/chat/estado', [ChatWidgetController::class, 'estadoPublico'])
+    ->middleware('throttle:30,1,chat-estado')
+    ->name('chat.estado');
+
 Route::post('/chat/mensaje', [ChatWidgetController::class, 'mensajePublico'])
     ->middleware('throttle:30,1')
     ->name('chat.mensaje');

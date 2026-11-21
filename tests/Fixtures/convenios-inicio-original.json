@@ -45,8 +45,18 @@
     "siglas": "CEP / CR II",
     "vigencia": "4 de junio del 2029",
     "descripcion": "Convenio Interinstitucional con el Colegio de Enfermeros del Perú - Consejo Regional II La Libertad. La empresa Horus Group SRL firma convenio con el CEP / CR II para la realización de talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería, en beneficio de los participantes.",
-    "imagen": null,
+    "imagen": "assets/images/index/convenios-fotos/convenio-cep-cr2.png",
     "posicion": null,
     "logo": "assets/images/index/logos/logo-convenio-enfermeros.png"
+  },
+  {
+    "id": "santos-villalobos",
+    "siglas": "IESTP / Yauyucán",
+    "vigencia": null,
+    "imagen": "assets/images/index/convenios-fotos/convenio-santos-villalobos.jpg",
+    "posicion": "center 35%",
+    "logo": "assets/images/index/logos/logo-convenio-santos-villalobos.png",
+    "nombre": "Instituto Santos Villalobos Huamán de Yauyucán",
+    "descripcion": "Convenio interinstitucional entre Horus Group SRL y el Instituto Santos Villalobos Huamán de Yauyucán. Incluye descuentos en cursos de capacitación, talleres y diplomados para estudiantes y profesorado; prácticas pre-profesionales previo requerimiento de la empresa; capacitaciones gratuitas para estudiantes según requiera el instituto; y descuentos en servicios para el instituto."
   }
 ]

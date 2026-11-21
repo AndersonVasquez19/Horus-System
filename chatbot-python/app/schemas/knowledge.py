@@ -87,7 +87,7 @@ class PublicAgreementCard(BaseModel):
 
     id: str = Field(pattern=r"^[a-z0-9-]{3,40}$")
     siglas: str = Field(min_length=2, max_length=40)
-    vigencia: str = Field(min_length=3, max_length=60)
+    vigencia: str | None = Field(default=None, min_length=3, max_length=60)
     imagen: str | None = Field(default=None, pattern=r"^assets/images/[a-z0-9/.-]+$")
     posicion: str | None = Field(default=None, max_length=40)
     logo: str = Field(pattern=r"^assets/images/[a-z0-9/.-]+$")

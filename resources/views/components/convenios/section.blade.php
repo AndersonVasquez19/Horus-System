@@ -145,9 +145,6 @@
       <div class="p-6 sm:p-8 overflow-y-auto space-y-4" tabindex="0" role="region" aria-label="Detalle del convenio, desplazable">
         <div class="flex flex-wrap items-center gap-3">
           <span class="px-3 py-1 rounded-full text-sm font-bold tracking-wide bg-slate-100 text-[#0A2540] border border-slate-200" x-text="active ? active.siglas : ''"></span>
-          <span class="text-sm font-medium text-slate-600">
-            <i class="fa-regular fa-calendar-check text-slate-500 mr-1"></i> Vigente hasta <strong class="text-slate-800" x-text="active ? active.vigencia : ''"></strong>
-          </span>
         </div>
 
         <h3 id="convenio-modal-title" class="text-xl sm:text-2xl font-bold text-slate-900 leading-snug" x-text="active ? active.nombre : ''"></h3>
@@ -157,7 +154,29 @@
           <h4 class="text-base font-semibold text-slate-900 mb-2.5 flex items-center gap-2">
             <i class="fa-solid fa-award text-[#0A2540]"></i> Beneficios para participantes
           </h4>
-          <ul class="text-sm text-slate-700 space-y-2">
+          <ul x-show="active && ['isam', 'santos-villalobos'].includes(active.id)" class="text-sm text-slate-700 space-y-2">
+            <li x-show="active && active.id === 'isam'" class="flex items-start gap-2">
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
+              <span>Descuentos en cursos de capacitación, talleres o diplomados que realiza la empresa.</span>
+            </li>
+            <li x-show="active && active.id === 'santos-villalobos'" class="flex items-start gap-2">
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
+              <span>Descuentos en cursos de capacitación, talleres o diplomados que realiza la empresa para estudiantes como docentes.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
+              <span>Realización de prácticas pre-profesionales de las carreras que cuenta la institución (PREVIO REQUERIMIENTO DE LA EMPRESA).</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
+              <span>Capacitaciones gratuitas para los estudiantes según requiera el INSTITUTO.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
+              <span>Descuentos en servicios que brinda la empresa para el INSTITUTO.</span>
+            </li>
+          </ul>
+          <ul x-show="active && !['isam', 'santos-villalobos'].includes(active.id)" class="text-sm text-slate-700 space-y-2">
             <li class="flex items-start gap-2">
               <i class="fa-solid fa-circle-check text-[#0A2540] mt-0.5 shrink-0"></i>
               <span>Certificados oficiales con firma y sello de Decanatura y representantes de Horus Group.</span>

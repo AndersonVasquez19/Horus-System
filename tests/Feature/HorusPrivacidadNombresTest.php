@@ -83,6 +83,8 @@ class HorusPrivacidadNombresTest extends TestCase
     #[DataProvider('consultasLegitimas')]
     public function test_consultas_legitimas_llegan_a_python(string $q): void
     {
+        // La fixture responde sobre servicios: habilitar su visibilidad aísla el contrato de privacidad.
+        config(['tecnologias.visible' => true]);
         $kb = json_decode((string) file_get_contents(__DIR__.'/../../chatbot-python/data/knowledge.json'), true, 512, JSON_THROW_ON_ERROR);
         $record = collect($kb['records'])->firstWhere('id', 'servicio_soporte');
         Http::fake([

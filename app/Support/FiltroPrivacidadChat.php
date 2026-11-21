@@ -421,7 +421,7 @@ final class FiltroPrivacidadChat
     public function contieneDatosPrivadosEnRespuesta(string $texto): bool
     {
         $texto = str_ireplace([
-            'Soy Horus AI Advisor', 'Wi-Fi', 'Región de Cajamarca',
+            'Soy Diego', 'Wi-Fi', 'Región de Cajamarca',
             'Colegio de Enfermeros de Cajamarca',
             'Colegio de Enfermeros del Perú CR II La Libertad',
             'Colegio de Enfermeros del Perú - CR II La Libertad',

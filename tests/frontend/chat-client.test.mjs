@@ -22,6 +22,30 @@ function client() {
   return chat;
 }
 
+test('ocultar Tecnologías descarta el historial anterior y no permite iniciar cotizaciones', () => {
+  const anterior = client();
+  anterior.sessionId = 'misma-sesion';
+  anterior.messages.push({ role: 'bot', text: 'Cámaras de seguridad' });
+  anterior.guardarHistorial();
+
+  const oculto = client();
+  oculto.sessionId = anterior.sessionId;
+  oculto.tecnologias = 'oculto';
+  oculto.restaurarHistorial();
+  assert.equal(oculto.messages.length, 1);
+  assert.equal(sessionStorage.getItem('horus-chat-history:/chat/mensaje'), null);
+  oculto.solicitarCotizacion('Cámaras');
+  assert.equal(oculto.messages.length, 1);
+
+  oculto.messages.push({ role: 'bot', text: 'Cursos publicados' });
+  oculto.guardarHistorial();
+  const recarga = client();
+  recarga.sessionId = oculto.sessionId;
+  recarga.tecnologias = 'oculto';
+  recarga.restaurarHistorial();
+  assert.deepEqual(recarga.messages, oculto.messages);
+});
+
 test('only predefined public internal links are rendered from untrusted responses', () => {
   const links = safeChatLinks('<img src=x onerror=alert(1)> https://evil.example/admin javascript:alert(1) /educacion/cursos');
   assert.deepEqual(links, [{ url: '/educacion/cursos', label: 'Ver cursos', whatsapp: false }]);

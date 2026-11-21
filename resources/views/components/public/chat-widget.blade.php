@@ -9,7 +9,7 @@
         type="button"
         @click="abierto = true; origen = $refs.launcher; $nextTick(() => $refs.closeButton.focus())"
         :aria-expanded="abierto.toString()"
-        aria-label="Abrir chat con el asistente Horus"
+        aria-label="Abrir chat con el asistente Diego"
         aria-haspopup="dialog"
         aria-controls="horus-chat-panel"
         class="hc-launcher"
@@ -42,8 +42,8 @@
                 </span>
                 <div class="hc-header-copy">
                     <span class="hc-header-brand">HORUS GROUP</span>
-                    <h2 id="hc-title">Asistente Horus</h2>
-                    <p>Cursos, tecnología y orientación</p>
+                    <h2 id="hc-title">Diego</h2>
+                    <p>{{ config('tecnologias.visible') ? 'Cursos, tecnología y orientación' : 'Cursos, capacitaciones y orientación' }}</p>
                 </div>
                 <button x-ref="closeButton" type="button" @click="abierto = false; $nextTick(() => (origen || $refs.launcher).focus())" class="hc-close" aria-label="Cerrar chat">
                     <i class="fa-solid fa-xmark" aria-hidden="true"></i>

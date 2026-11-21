@@ -9,6 +9,7 @@ use App\Models\ChatLog;
 use App\Support\ChatIntentMatcher;
 use App\Support\ChatKnowledge;
 use App\Support\FiltroPrivacidadChat;
+use App\Support\VisibilidadTecnologias;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +20,7 @@ class AsistenteVirtualService
     /** Aclaración ante un dato personal: genérica a propósito (nunca repite ni resume lo detectado). */
     public const RESPUESTA_PRIVACIDAD = 'Parece que incluiste un nombre o dato personal. Por seguridad, evita compartir información personal. Si deseas consultar sobre un curso o servicio, puedes reformular tu pregunta sin esos datos.';
 
-    public const RESPUESTA_FALLBACK = 'No tengo un dato confirmado para esa consulta. Puedo orientarte sobre cursos, matrículas y servicios de Horus. También puedes consultar /contactos o llamar al +51 972 021 374.';
+    public const RESPUESTA_FALLBACK = 'No tengo un dato confirmado para esa consulta. Puedo orientarte sobre cursos, capacitaciones, asesoramiento y matrículas de Horus. También puedes consultar /contactos o llamar al +51 972 021 374.';
 
     public function __construct(
         private ?FiltroPrivacidadChat $privacidad = null,
@@ -49,12 +50,14 @@ class AsistenteVirtualService
         }
         $politica = '';
         foreach ([__FILE__, app_path('Support/FiltroPrivacidadChat.php'), app_path('Services/HorusAdvisorClient.php'),
+            app_path('Support/VisibilidadTecnologias.php'),
             app_path('Support/Privacidad/LexicoPublico.php'), app_path('Support/Privacidad/lexico-publico.php'),
             base_path('chatbot-python/data/knowledge.json')] as $archivo) {
             $politica .= hash_file('sha256', $archivo);
         }
         $version = hash('sha256', 'privacy-before-cache-v2|'.$politica.serialize(config('horus-advisor')).serialize(config('chatbot.max_answer_chars', 1800))
-            .serialize(Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'))));
+            .serialize(Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')))
+            .serialize(config('tecnologias.visible')));
         // La deduplicación identifica bytes exactos, sin conservar el mensaje.
         $key = 'chat:reply:'.hash_hmac('sha256', $session.'|'.$mensaje.'|'.$version, (string) config('app.key'));
         $lock = Cache::lock('chat:lock:'.$session, 30);
@@ -96,9 +99,15 @@ class AsistenteVirtualService
             }
             $result = $this->advisor->orientar($consulta) ?? $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
             $nuevoFoco = $result['fuente'] === 'advisor' ? $this->advisor->focoConversacional() : [];
+            $contenidoOculto = VisibilidadTecnologias::respuestaOculta($result)
+                || (! config('tecnologias.visible') && VisibilidadTecnologias::contieneContenido(implode(' ', $nuevoFoco)));
+            if ($contenidoOculto) {
+                $result = $this->reply(VisibilidadTecnologias::ORIENTACION, null, 'respaldo');
+                $nuevoFoco = [];
+            }
             $this->guardarFoco($focoKey, $nuevoFoco);
             if ($result['fuente'] === 'respaldo') {
-                $motivo = $this->advisor->motivoContingencia();
+                $motivo = $contenidoOculto ? 'respuesta_rechazada' : $this->advisor->motivoContingencia();
                 Log::info('chatbot.contingencia', ['motivo' => $motivo ?? 'no_disponible']);
             }
             Cache::put($key, ['reply' => $result, 'focus' => $nuevoFoco,

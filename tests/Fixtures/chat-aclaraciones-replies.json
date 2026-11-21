@@ -1,0 +1,125 @@
+[
+  {
+    "query": "quiero cámaras",
+    "reply": {
+      "answer": "Quiero asegurarme de entenderte bien antes de responder.",
+      "intent": "clarification",
+      "match_level": "baja",
+      "needs_clarification": true,
+      "clarification_question": "Sobre «Cámaras de seguridad y videovigilancia», ¿buscas conocer sus características, consultar una instalación o saber si hay capacitación publicada?",
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [
+          "servicio_camaras"
+        ],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Dame detalles de Cámaras de seguridad y videovigilancia",
+    "reply": {
+      "answer": "Horus Group desarrolla proyectos de videovigilancia para hogares, empresas e instituciones. La web presenta cámaras IP, analógicas, Full HD, domo, de 360° y fijas tipo bala, con funciones como sensores de movimiento, alarma vía email, visión nocturna y visualización desde tu computadora o celular. Detalle en /tecnologias/camaras-seguridad.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Información sobre instalación y servicio de Cámaras de seguridad y videovigilancia",
+    "reply": {
+      "answer": "La web describe cámaras IP, analógicas, Full HD, domo, de 360° y tipo bala. Los modelos y la disponibilidad deben confirmarse con un asesor.",
+      "intent": "service_info",
+      "match_level": "alta",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "servicio_camaras",
+          "title": "Cámaras de seguridad y videovigilancia",
+          "url_path": "/tecnologias/camaras-seguridad"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  },
+  {
+    "query": "Busco un curso de Cámaras de seguridad y videovigilancia",
+    "reply": {
+      "answer": "No encontré un curso o capacitación publicado sobre ese tema en el catálogo vigente de Horus Group. Si quieres ver lo que está vigente, pregúntame «¿Qué cursos ofrecen?». También puedes consultarlo con un asesor por los canales oficiales.",
+      "intent": "unavailable_info",
+      "match_level": "ninguna",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": true,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "camaras",
+          "cursos"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      }
+    }
+  }
+]

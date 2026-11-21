@@ -118,7 +118,7 @@
  {
   "q": "¿Qué convenios tienen?",
   "r": {
-   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n- Instituto Santos Villalobos Huamán de Yauyucán",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -705,7 +705,7 @@
  {
   "q": "¿Qué convenios tienen?",
   "r": {
-   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n- Instituto Santos Villalobos Huamán de Yauyucán",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3447,7 +3447,7 @@
  {
   "q": "¿Con qué instituciones tienen convenio?",
   "r": {
-   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n- Instituto Santos Villalobos Huamán de Yauyucán",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -6214,7 +6214,7 @@
  {
   "q": "¿Con qué instituciones tienen convenio?",
   "r": {
-   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+   "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n- Instituto Santos Villalobos Huamán de Yauyucán",
    "intent": "agreement_info",
    "match_level": "alta",
    "needs_clarification": false,

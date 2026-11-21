@@ -34,6 +34,7 @@ class PanelServiciosTest extends TestCase
 
     public function test_lector_solo_ve_acciones_autorizadas_y_navegacion(): void
     {
+        config(['tecnologias.visible' => true]);
         $this->adminUser();
         $lector = User::factory()->create();
         $lector->assignRole('secretaria');

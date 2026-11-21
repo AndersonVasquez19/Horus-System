@@ -70,7 +70,7 @@ try {
     return { noOverflow: document.documentElement.scrollWidth <= innerWidth, editorialHidden: !document.body.innerText.includes('Python inicial') && !document.body.innerText.includes('Martes de 19 a 21 horas'), original: document.body.innerText.includes('Cursos Disponibles.') && document.body.innerText.includes('Horarios Adaptables.'), private: document.body.innerText.includes('9876.54') || document.body.innerText.includes('Nombre administrativo privado') };
   })()`);
   if (!catalog.noOverflow || !catalog.editorialHidden || !catalog.original || catalog.private) throw new Error(`Public page preservation failed: ${JSON.stringify(catalog)}`);
-  await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').click()`);
+  await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Diegox"]').click()`);
   await evaluate(`(async () => {
     const input = document.querySelector('#mensaje-chat');
     input.value = 'Horario del curso Python inicial';

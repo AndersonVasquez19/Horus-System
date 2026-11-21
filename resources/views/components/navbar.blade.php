@@ -17,6 +17,7 @@
       <li><a href="{{ route('home') }}" class="nav-link">Inicio</a></li>
       <li><a href="{{ route('quienes-somos') }}" class="nav-link">Quiénes Somos</a></li>
 
+      @if (config('tecnologias.visible'))
       <li class="relative" @mouseenter="subOpen = 'tecnologias'" @mouseleave="subOpen = null">
         <button type="button" @click="subOpen = subOpen === 'tecnologias' ? null : 'tecnologias'" class="nav-link">
           Tecnologías <i class="fa-solid fa-chevron-down text-[10px]"></i>
@@ -27,6 +28,8 @@
           <li><a href="{{ route('tecnologias.soporte') }}" class="block rounded-xl px-3 py-2 text-sm hover:bg-gold/10">Soporte y Mantenimiento</a></li>
         </ul>
       </li>
+
+      @endif
 
       <li class="relative" @mouseenter="subOpen = 'educacion'" @mouseleave="subOpen = null">
         <button type="button" @click="subOpen = subOpen === 'educacion' ? null : 'educacion'" class="nav-link">
@@ -55,9 +58,11 @@
       <ul class="space-y-2">
         <li><a href="{{ route('home') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Inicio</a></li>
         <li><a href="{{ route('quienes-somos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Quiénes Somos</a></li>
+        @if (config('tecnologias.visible'))
         <li><a href="{{ route('tecnologias.cableado') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Cableado Estructurado</a></li>
         <li><a href="{{ route('tecnologias.camaras') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Cámaras de Seguridad</a></li>
         <li><a href="{{ route('tecnologias.soporte') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Soporte y Mantenimiento</a></li>
+        @endif
         <li><a href="{{ route('educacion.asesoramiento') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Asesoramiento</a></li>
         <li><a href="{{ route('educacion.capacitaciones') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Capacitaciones</a></li>
         <li><a href="{{ route('educacion.cursos') }}" class="block rounded-xl px-3 py-2 text-sm font-medium hover:bg-gold/10">Cursos</a></li>

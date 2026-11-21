@@ -130,7 +130,8 @@ class AsistenteVirtualTest extends TestCase
     public function test_public_pages_render_the_chat_widget(): void
     {
         $this->get(route('home'))->assertOk()
-            ->assertSee('aria-label="Abrir chat con el asistente Horus"', false)
+            ->assertSee('aria-label="Abrir chat con el asistente Diego"', false)
+            ->assertSee('<h2 id="hc-title">Diego</h2>', false)
             ->assertSee('aria-controls="horus-chat-panel"', false)
             ->assertSee('id="horus-chat-panel"', false)
             ->assertSee(':aria-expanded="abierto.toString()"', false)

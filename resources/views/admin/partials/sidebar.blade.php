@@ -100,6 +100,7 @@
 
         <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 md:hidden xl:block">Comercial y atención</p>
 
+        @if (config('tecnologias.visible'))
         @can('servicios.ver')
             <a href="{{ route('admin.servicios.index') }}" title="Servicios tecnológicos" @if(request()->is('admin/servicios*')) aria-current="page" @endif @class([
                 'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#19A7A1]',
@@ -134,6 +135,8 @@
                 ]) aria-hidden="true"></i>
                 <span class="truncate md:hidden xl:inline">Solicitudes de cotización</span>
             </a>
+        @endif
+
         @endif
 
         @can('reclamaciones.ver')

@@ -1,5 +1,8 @@
 # Comprensión de servicios y seguimiento — 6 de noviembre de 2026
 
+Actualización del 17/11/2026: [estado visible y aclaraciones precisas](chatbot-estado-aclaraciones.md).
+El contenido siguiente conserva la evidencia histórica de la corrección inicial.
+
 Corrección autorizada a partir de las consultas «que cámaras tienen», «quiero saber sobre las cámaras de seguridad» y la repetición de aclaraciones. Se mejora la selección de información y el seguimiento; no se entrenan nuevos pesos de MiniLM ni se incorpora un generador de texto libre.
 
 ## Causas y correcciones

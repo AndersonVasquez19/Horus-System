@@ -11,8 +11,8 @@ class PublicContentTest extends TestCase
         $response = $this->get('/')->assertOk();
 
         $response
-            ->assertSee('<title>Horus Group SRL | Tecnología, capacitaciones y soporte en Cajamarca</title>', false)
-            ->assertSee('<meta name="description" content="Horus Group SRL: cableado estructurado', false)
+            ->assertSee('<title>Horus Group SRL | Cursos, capacitaciones y asesoramiento en Cajamarca</title>', false)
+            ->assertSee('<meta name="description" content="Horus Group SRL: cursos, capacitaciones y asesoramiento', false)
             ->assertSee('<meta property="og:title"', false)
             ->assertSee('application/ld+json', false);
 
@@ -23,8 +23,8 @@ class PublicContentTest extends TestCase
     {
         $response = $this->get('/')->assertOk();
 
-        $this->assertSame(4, substr_count($response->getContent(), 'class="hero-backdrop '));
-        $response->assertSee('hero-overlay', false)->assertSee('carousel(4)', false);
+        $this->assertSame(3, substr_count($response->getContent(), 'class="hero-backdrop '));
+        $response->assertSee('hero-overlay', false)->assertSee('carousel(3)', false);
     }
 
     public function test_gallery_has_no_video_filter(): void
@@ -101,17 +101,16 @@ class PublicContentTest extends TestCase
         }
     }
 
-    public function test_home_lists_exactly_the_five_current_convenios(): void
+    public function test_home_lists_exactly_the_six_current_convenios(): void
     {
         $response = $this->get('/')->assertOk();
 
-        $this->assertSame(5, substr_count($response->getContent(), 'class="convenio-card"'));
+        $this->assertSame(6, substr_count($response->getContent(), 'class="convenio-card"'));
 
-        foreach (['18 de julio del 2027', '17 de febrero del 2027', '6 de febrero del 2027', '6 de enero del 2027', '4 de junio del 2029'] as $vigencia) {
-            $response->assertSee($vigencia, false);
-        }
+        $response->assertDontSee('Vigente hasta', false);
 
         $response->assertSee('CR II La Libertad', false)
+            ->assertSee('Santos Villalobos Huamán', false)
             ->assertDontSee('Obstetras', false)
             ->assertDontSee('Ilustre Colegio de Abogados', false);
     }

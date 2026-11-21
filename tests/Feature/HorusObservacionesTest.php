@@ -54,6 +54,7 @@ class HorusObservacionesTest extends TestCase
     #[DataProvider('entradas')]
     public function test_legitimate_inputs_reach_python(string $q): void
     {
+        config(['tecnologias.visible' => true]);
         $this->fake($this->reference());
         $this->assertSame('advisor', app(AsistenteVirtualService::class)->procesarMensaje($q, 'input')['fuente']);
         Http::assertSentCount(2);

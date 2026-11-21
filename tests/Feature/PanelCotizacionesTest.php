@@ -66,6 +66,7 @@ class PanelCotizacionesTest extends TestCase
 
     public function test_lector_ve_historial_y_detalle_sin_formularios_de_escritura(): void
     {
+        config(['tecnologias.visible' => true]);
         $uuid = $this->crear();
         $lector = User::factory()->create();
         $lector->assignRole('admin');
@@ -129,6 +130,7 @@ class PanelCotizacionesTest extends TestCase
 
     public function test_navegacion_y_html_exigen_admin_y_lectura_aunque_existan_todos_los_permisos(): void
     {
+        config(['tecnologias.visible' => true]);
         $this->get('/admin')->assertOk()->assertSee('title="Solicitudes de cotización"', false);
         foreach (['coordinador', 'secretaria', 'admin'] as $rol) {
             $usuario = User::factory()->create();

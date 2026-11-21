@@ -19,6 +19,13 @@ class FiltroPrivacidadChatTest extends TestCase
 
     private FiltroPrivacidadChat $filtro;
 
+    public function test_nombre_del_asistente_no_exime_datos_personales_en_la_respuesta(): void
+    {
+        $this->assertFalse($this->filtro->contieneDatosPrivadosEnRespuesta('¡Hola! Soy Diego, el asistente informativo de Horus Group SRL.'));
+        $this->assertTrue($this->filtro->contieneDatosPrivadosEnRespuesta('¡Hola! Soy Diego. Consulta de María Pérez.'));
+        $this->assertTrue($this->filtro->contieneDatosPersonales('Soy Diego'));
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

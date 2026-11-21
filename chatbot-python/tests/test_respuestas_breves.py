@@ -19,7 +19,7 @@ def test_convenios_enumera_solo_las_tarjetas_y_no_agrega_beneficios(engine, quer
     reply = engine.chat(query)
     cards = [r for r in engine.kb.records if r.public_card]
     assert reply.answer == "Tenemos convenios con:\n" + "\n".join(f"- {r.title}" for r in cards)
-    assert len(cards) == 5
+    assert len(cards) == 6
     assert not reply.abstained and not reply.needs_clarification
     assert [s.id for s in reply.sources] == ["convenios_resumen"]
     for irrelevant in ("decano", "certificados", "postulaciones", "2027", "2029"):
@@ -56,6 +56,14 @@ def test_vigencia_es_solo_la_de_la_tarjeta_consultada(engine):
     card = engine.kb.get("convenio_administracion")
     assert reply.answer == f"{card.title}: Vigencia publicada hasta el {card.public_card.vigencia}."
     assert "certificados" not in reply.answer
+
+
+def test_convenio_santos_villalobos_no_inventa_una_fecha_de_vigencia(engine):
+    reply = engine.chat("Vigencia del convenio con el instituto Santos Villalobos Huamán de Yauyucán")
+    card = engine.kb.get("convenio_santos_villalobos")
+    assert card.public_card.vigencia is None
+    assert reply.answer == f"{card.title}: No hay una fecha de vigencia publicada."
+    assert [s.id for s in reply.sources] == [card.id]
 
 
 def test_libertad_tiene_su_propia_fuente_y_no_se_confunde_con_cajamarca(engine):

@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-06.2",
+  "version": "2026-11-20.1",
   "description": "Conocimiento público de Horus Group SRL comprobado manualmente en las vistas públicas de Horus-System (resources/views). 'verified' = figura así en la web pública a la fecha indicada; la empresa debe revalidarlo antes de producción. No contiene datos administrativos, de estudiantes ni de matrículas.",
   "public_contact": {
     "phone": "+51 972 021 374",
@@ -315,14 +315,14 @@
       "kind": "agreement",
       "title": "Convenios institucionales",
       "description": "Instituciones que aparecen en las tarjetas de convenios del inicio de Horus Group.",
-      "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+      "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n- Instituto Santos Villalobos Huamán de Yauyucán",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "resources/views/pages/home.blade.php", "checked_on": "2026-11-06"},
       "keywords": ["convenio", "convenios", "alianzas", "colegio profesional", "colegios profesionales", "respaldo", "certificado valido", "postulaciones", "entidades publicas"],
       "examples": ["¿Con qué instituciones tienen convenio?", "¿Sus certificados sirven para postular al Estado?"],
       "topics": ["certificacion", "formacion"],
-      "related": ["convenio_enfermeria", "convenio_administracion", "convenio_economia", "convenio_isam", "convenio_enfermeria_libertad"],
-      "detail_answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos."
+      "related": ["convenio_enfermeria", "convenio_administracion", "convenio_economia", "convenio_isam", "convenio_enfermeria_libertad", "convenio_santos_villalobos"],
+      "detail_answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados. En los convenios con colegios profesionales, la web indica que los certificados llevan la firma del decano y son válidos para postulaciones a entidades públicas y privadas según sus requisitos. También cuenta con un convenio con el Instituto Santos Villalobos Huamán de Yauyucán, con descuentos en capacitación para estudiantes y profesorado, prácticas pre-profesionales previo requerimiento de la empresa, capacitaciones gratuitas para estudiantes según requiera el instituto y descuentos en servicios para el instituto."
     },
     {
       "id": "convenio_enfermeria",
@@ -433,11 +433,56 @@
         "id": "cep-cr2",
         "siglas": "CEP / CR II",
         "vigencia": "4 de junio del 2029",
-        "imagen": null,
+        "imagen": "assets/images/index/convenios-fotos/convenio-cep-cr2.png",
         "posicion": null,
         "logo": "assets/images/index/logos/logo-convenio-enfermeros.png"
       },
       "detail_answer": "Colegio de Enfermeros del Perú - CR II La Libertad: Convenio Interinstitucional con el Colegio de Enfermeros del Perú - Consejo Regional II La Libertad. La empresa Horus Group SRL firma convenio con el CEP / CR II para la realización de talleres, charlas, cursos y diplomados en las distintas ramas de la Enfermería, en beneficio de los participantes. Vigencia publicada hasta el 4 de junio del 2029."
+    },
+    {
+      "id": "convenio_santos_villalobos",
+      "category": "convenio",
+      "kind": "agreement",
+      "title": "Instituto Santos Villalobos Huamán de Yauyucán",
+      "description": "Convenio interinstitucional entre Horus Group SRL y el Instituto Santos Villalobos Huamán de Yauyucán. Incluye descuentos en cursos de capacitación, talleres y diplomados para estudiantes y profesorado; prácticas pre-profesionales previo requerimiento de la empresa; capacitaciones gratuitas para estudiantes según requiera el instituto; y descuentos en servicios para el instituto.",
+      "answer": "Convenio con el Instituto Santos Villalobos Huamán de Yauyucán: descuentos en capacitación para estudiantes y profesorado, prácticas pre-profesionales previo requerimiento de la empresa, capacitaciones gratuitas para estudiantes según requiera el instituto y descuentos en servicios para el instituto.",
+      "status": "verified",
+      "source": {
+        "kind": "web_publica",
+        "url_path": "/#convenios",
+        "file": "resources/views/pages/home.blade.php",
+        "checked_on": "2026-11-20"
+      },
+      "keywords": [
+        "santos villalobos",
+        "santos villalobos huaman",
+        "yauyucan",
+        "instituto santos villalobos",
+        "iestp santos villalobos"
+      ],
+      "examples": [
+        "¿Qué convenio tienen con el instituto Santos Villalobos Huamán?"
+      ],
+      "topics": [
+        "formacion",
+        "capacitacion",
+        "practicas"
+      ],
+      "related": [
+        "convenios_resumen"
+      ],
+      "audience": [
+        "persona"
+      ],
+      "recommendable": false,
+      "public_card": {
+        "id": "santos-villalobos",
+        "siglas": "IESTP / Yauyucán",
+        "vigencia": null,
+        "imagen": "assets/images/index/convenios-fotos/convenio-santos-villalobos.jpg",
+        "posicion": "center 35%",
+        "logo": "assets/images/index/logos/logo-convenio-santos-villalobos.png"
+      }
     },
     {
       "id": "asesoramiento_general",

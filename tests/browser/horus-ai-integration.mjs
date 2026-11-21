@@ -60,14 +60,14 @@ try {
     await pause(100);
   }
   const result = await evaluate(`(async () => {
-    const button = document.querySelector('[aria-label="Abrir chat con el asistente Horus"]');
+    const button = document.querySelector('[aria-label="Abrir chat con el asistente Diegox"]');
     button.click();
     await new Promise(r => setTimeout(r, 150));
     const input = document.querySelector('#mensaje-chat');
     input.value = 'Hola'; input.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 100));
     input.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    for (let i=0;i<100;i++) { if(document.querySelector('.hc-log').textContent.includes('Horus AI Advisor')) break; await new Promise(r=>setTimeout(r,100)); }
+    for (let i=0;i<100;i++) { if(document.querySelector('.hc-log').textContent.includes('Soy Diegox, el asistente informativo')) break; await new Promise(r=>setTimeout(r,100)); }
     return { response: window.__chatResult, location: location.href, draft: input.value,
       state: { sending: Alpine.$data(input.closest('[x-data]')).sending, endpoint: Alpine.$data(input.closest('[x-data]')).endpoint },
       svg: !!document.querySelector('#horus-chat-panel svg'),

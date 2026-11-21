@@ -45,6 +45,13 @@
 .hc-toolbar>span>i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: #1e4976; box-shadow: 0 0 0 3px #eaf0f6; }
 .hc-toolbar-caption { color: #1e4976 !important; }
 .hc-conversation { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
+.hc-service-status { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 20px; border-bottom: 1px solid var(--hc-line); background: #fff; color: var(--hc-muted); font-size: 12px; }
+.hc-service-status>span { display: flex; align-items: center; gap: 8px; }
+.hc-service-status i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #64748b; }
+.hc-service-status[data-estado="cargando"] i { background: #a16207; }
+.hc-service-status[data-estado="listo"] i { background: #15803d; }
+.hc-service-status[data-estado="no_disponible"] i { background: #b91c1c; }
+.hc-service-status button { flex: none; padding: 4px 6px; border: 1px solid var(--hc-line); border-radius: 6px; background: #fff; color: var(--hc-ink); font: inherit; cursor: pointer; }
 .hc-log { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 22px; scrollbar-color: #a8c5ec transparent; scrollbar-width: thin; background: radial-gradient(ellipse at top left,#06b6d40c,transparent 65%),var(--hc-sky); }
 .hc-message { width: fit-content; max-width: 94%; margin: 0 0 18px; padding: 15px 17px; overflow-wrap: anywhere; border: 1px solid var(--hc-line); border-radius: 5px 18px 18px; background: #fff; box-shadow: 0 3px 10px #0a254005; }
 .hc-message>strong { display: flex; align-items: center; gap: 7px; color: #1e4976; font-size: 12px; font-weight: 700; }

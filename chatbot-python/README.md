@@ -239,6 +239,9 @@ Comportamiento:
 - Carga única en segundo plano (≈ 19-57 s según la caché de disco). Mientras tanto responde en modo léxico.
 - Sin descargas en ejecución (`HF_HUB_OFFLINE=1`).
 - Si el modelo falta o está dañado, el servicio sigue en modo léxico; está probado.
+- **Arranque optimizado (12/11/2026):** el MiniLM local conocido usa los mismos pesos y tokenizer mediante
+  Transformers, sin importar herramientas de entrenamiento. Otros pipelines conservan el cargador original.
+  Medición reproducible, equivalencia y alcance: [optimización del arranque](../docs/chatbot-arranque-python.md).
 - **Caché de vectores opcional (05/11/2026):** `HORUS_AI_SEMANTIC_CACHE_DIR` (vacío = desactivada) guarda en disco los vectores de los
   **pasajes públicos** del índice, con clave SHA-256 del texto y archivo ligado a la huella del modelo; nunca consultas ni texto plano.
   Tras un reinicio solo se codifican los pasajes nuevos. Escritura atómica, solo pasajes vigentes, archivo dañado = se ignora y se

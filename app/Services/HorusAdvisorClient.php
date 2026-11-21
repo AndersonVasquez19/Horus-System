@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\FiltroPrivacidadChat;
+use App\Support\VisibilidadTecnologias;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\ResponseInterface;
@@ -35,7 +36,13 @@ class HorusAdvisorClient
             'la segunda', 'segunda opcion' => 1,
             default => null,
         };
-        if ((! $afirmacion && ! $referencia && $opcion === null) || count($foco) > 2 || $foco === []) {
+        $objetivo = match ($normalizado) {
+            'caracteristicas', 'sus caracteristicas', 'informacion', 'quiero informacion' => 'Dame detalles de ',
+            'instalacion', 'instalar', 'el servicio', 'servicio', 'quiero instalacion' => 'Información sobre instalación y servicio de ',
+            'capacitacion', 'curso', 'un curso', 'quiero aprender', 'aprender' => 'Busco un curso de ',
+            default => null,
+        };
+        if ((! $afirmacion && ! $referencia && $opcion === null && $objetivo === null) || count($foco) > 2 || $foco === []) {
             return $mensaje;
         }
         if (count($foco) !== 1 && $opcion === null) {
@@ -45,9 +52,15 @@ class HorusAdvisorClient
         if (! is_string($id)) {
             return $mensaje;
         }
+        if ($objetivo !== null && ! in_array($id, ['servicio_camaras', 'servicio_cableado', 'servicio_soporte'], true)) {
+            return $mensaje;
+        }
         $titulo = $this->tituloDeFoco($id);
         if ($titulo === null) {
             return $mensaje;
+        }
+        if ($objetivo !== null) {
+            return $objetivo.$titulo;
         }
 
         return $afirmacion || $opcion !== null ? 'Información sobre '.$titulo : $mensaje.' de '.$titulo;
@@ -86,7 +99,7 @@ class HorusAdvisorClient
         }
         if ($reply['fuente'] === 'respaldo') {
             return ! array_key_exists('recomendaciones', $reply)
-                && in_array($reply['respuesta'], [AsistenteVirtualService::RESPUESTA_FALLBACK, AsistenteVirtualService::RESPUESTA_PRIVACIDAD], true);
+                && in_array($reply['respuesta'], [AsistenteVirtualService::RESPUESTA_FALLBACK, AsistenteVirtualService::RESPUESTA_PRIVACIDAD, VisibilidadTecnologias::ORIENTACION], true);
         }
         if (array_key_exists('recomendaciones', $reply)) {
             $this->fuentesCatalogo = app(FuentesCatalogoAdvisor::class)->actuales();
@@ -151,6 +164,56 @@ class HorusAdvisorClient
         return $this->reloj === null ? hrtime(true) / 1_000_000_000 : ($this->reloj)();
     }
 
+    /** Disponibilidad mínima para visitantes; nunca devuelve configuración, versiones ni errores internos. */
+    public function estadoPublico(): string
+    {
+        if (! config('horus-advisor.enabled')) {
+            return 'no_disponible';
+        }
+        $inicio = $this->ahora();
+        $ready = $this->solicitar('GET', '/ready', [], $inicio);
+        if ($ready === null || ($ready['knowledge'] ?? null) !== 'loaded'
+            || ($ready['auth'] ?? null) !== 'configured'
+            || ! in_array($ready['status'] ?? null, ['ready', 'not_ready'], true)) {
+            return 'no_disponible';
+        }
+        if (($ready['semantic'] ?? null) === 'loading'
+            && in_array($ready['catalog'] ?? null, ['none', 'loaded', 'stale'], true)) {
+            return 'cargando';
+        }
+        if (($ready['semantic'] ?? null) !== 'loaded' || $ready['status'] !== 'ready'
+            || ! $this->catalogoDisponible($ready)) {
+            return 'no_disponible';
+        }
+        // /ready solo indica que Python tiene una credencial; /info comprueba la de Laravel.
+        $info = $this->solicitar('GET', '/api/v1/info', [], $inicio);
+
+        return ($info['search_mode'] ?? null) === 'hybrid'
+            && ($info['catalog_version'] ?? null) === ($ready['catalog_version'] ?? null)
+            ? 'listo' : 'no_disponible';
+    }
+
+    /** @param array<string, mixed> $ready */
+    private function catalogoDisponible(array $ready): bool
+    {
+        $sincronizacion = (bool) config('horus-catalog.sync_enabled', false);
+        if (($ready['catalog'] ?? null) === 'none') {
+            return ! $sincronizacion;
+        }
+        $version = $ready['catalog_version'] ?? null;
+        if (($ready['catalog'] ?? null) !== 'loaded' || ! is_string($version)
+            || preg_match('/\A[a-f0-9]{40}\z/D', $version) !== 1) {
+            return false;
+        }
+        if (! $sincronizacion) {
+            return true;
+        }
+        $esperada = Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'));
+
+        return is_string($esperada) && preg_match('/\A[a-f0-9]{40}\z/D', $esperada) === 1
+            && hash_equals($esperada, $version);
+    }
+
     /** @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null */
     public function orientar(string $mensajeOIntent, ?string $mensaje = null): ?array
     {
@@ -175,19 +238,7 @@ class HorusAdvisorClient
         $this->motivoContingencia = 'no_disponible';
         $inicio = $this->ahora();
         $ready = $this->solicitar('GET', '/ready', [], $inicio);
-        $sincronizacion = (bool) config('horus-catalog.sync_enabled', false);
-        $estadoCatalogoValido = ($ready['catalog'] ?? null) === 'none' && ! $sincronizacion;
-        if (($ready['catalog'] ?? null) === 'loaded') {
-            $versionActiva = $ready['catalog_version'] ?? null;
-            $estadoCatalogoValido = is_string($versionActiva)
-                && preg_match('/\\A[a-f0-9]{40}\\z/D', $versionActiva) === 1;
-            if ($sincronizacion) {
-                $esperada = Cache::get(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version'));
-                $estadoCatalogoValido = $estadoCatalogoValido && is_string($esperada)
-                    && preg_match('/\\A[a-f0-9]{40}\\z/D', $esperada) === 1
-                    && hash_equals($esperada, $versionActiva);
-            }
-        }
+        $estadoCatalogoValido = $ready !== null && $this->catalogoDisponible($ready);
         if (($ready['status'] ?? null) !== 'ready' || ($ready['knowledge'] ?? null) !== 'loaded'
             || ($ready['auth'] ?? null) !== 'configured' || ! $estadoCatalogoValido
             || ! in_array($ready['semantic'] ?? null, ['loaded', 'loading', 'disabled', 'unavailable'], true)) {
@@ -733,6 +784,9 @@ class HorusAdvisorClient
             }
             if (isset($record['public_card']['vigencia']) && is_string($record['title'] ?? null)) {
                 $respuestas[] = $record['title'].': Vigencia publicada hasta el '.$record['public_card']['vigencia'].'.';
+            } elseif (is_array($record['public_card'] ?? null) && array_key_exists('vigencia', $record['public_card'])
+                && $record['public_card']['vigencia'] === null && is_string($record['title'] ?? null)) {
+                $respuestas[] = $record['title'].': No hay una fecha de vigencia publicada.';
             }
             foreach ($respuestas as $respuesta) {
                 $datos['porTexto'][$respuesta][] = ['id' => $record['id'], 'url_path' => $url];

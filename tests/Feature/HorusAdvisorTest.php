@@ -132,8 +132,8 @@ class HorusAdvisorTest extends TestCase
 
     public static function plantillasCortesia(): iterable
     {
-        yield 'hola' => ['Hola', 'greeting', '¡Hola! Soy Horus AI Advisor'];
-        yield 'buenos dias' => ['Buenos días', 'greeting', '¡Hola! Soy Horus AI Advisor'];
+        yield 'hola' => ['Hola', 'greeting', '¡Hola! Soy Diegox'];
+        yield 'buenos dias' => ['Buenos días', 'greeting', '¡Hola! Soy Diegox'];
         yield 'muchas gracias' => ['Muchas gracias', 'thanks', '¡Con gusto!'];
         yield 'adios' => ['Adiós', 'farewell', '¡Gracias por escribir'];
         yield 'capacidades' => ['¿Qué puedes hacer?', 'capabilities', 'Soy un asistente informativo'];
@@ -160,6 +160,7 @@ class HorusAdvisorTest extends TestCase
 
     public function test_clarifications_validate_clarification_question_and_append_to_answer(): void
     {
+        config(['tecnologias.visible' => true]);
         $reply = [
             'answer' => 'Las cotizaciones las prepara un asesor de Horus Group: este asistente no calcula precios ni consulta cotizaciones emitidas. Para solicitar una cotización formal, te invitamos a continuar por WhatsApp con un asesor oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.',
             'intent' => 'quote_request',
@@ -497,6 +498,7 @@ class HorusAdvisorTest extends TestCase
 
     public function test_advisor_accepts_response_with_verified_official_horus_contact_channels(): void
     {
+        config(['tecnologias.visible' => true]);
         $reply = [
             'answer' => "Según la información publicada por Horus Group, estas opciones se ajustan a lo que buscas:\n1. Cámaras de seguridad y videovigilancia: coincide con tu interés en cámaras de seguridad.\nPara confirmar disponibilidad, contenidos, fechas y precios, consulta al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
             'intent' => 'service_recommendation',

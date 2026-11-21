@@ -77,7 +77,7 @@ try {
   }
   assert.ok(await evaluate('!!window.Alpine'), 'Alpine no disponible');
   await evaluate(`(async () => {
-    document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').click();
+    document.querySelector('[aria-label="Abrir chat con el asistente Diegox"]').click();
     await new Promise(r => setTimeout(r, 200));
     const input = document.querySelector('#mensaje-chat');
     input.value = 'Hola'; input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -99,7 +99,7 @@ try {
     })()`)));
   }
   assert.deepEqual(reply, { status: 200, source: 'advisor' });
-  assert.equal(await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').getAttribute('aria-expanded')`), 'true');
+  assert.equal(await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Diegox"]').getAttribute('aria-expanded')`), 'true');
   await command('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   assert.ok(await evaluate('document.querySelector("#horus-chat-panel").getBoundingClientRect().width <= innerWidth'));
   await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });

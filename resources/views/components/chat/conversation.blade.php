@@ -3,6 +3,7 @@
 @if (! $public)
 <div
     x-data="chatClient"
+    data-tecnologias="{{ config('tecnologias.visible') ? 'visible' : 'oculto' }}"
     data-endpoint="{{ $endpoint }}"
     data-csrf-token="{{ csrf_token() }}"
     class="flex h-full min-h-0 flex-col overflow-hidden"
@@ -60,14 +61,20 @@
     data-endpoint="{{ $endpoint }}"
     data-csrf-token="{{ csrf_token() }}"
     class="hc-conversation"
+    data-tecnologias="{{ config('tecnologias.visible') ? 'visible' : 'oculto' }}"
+    data-estado-endpoint="{{ route('chat.estado', [], false) }}"
     @horus-cotizacion.window="solicitarCotizacion($event.detail?.servicio)"
 >
-    <div x-ref="messages" @scroll.passive="trackScroll" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Horus" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
+    <div class="hc-service-status" :data-estado="estadoServicio">
+        <span role="status" aria-live="polite" aria-atomic="true"><i aria-hidden="true"></i><span x-text="textoEstado()">Comprobando disponibilidad…</span></span>
+        <button type="button" x-show="estadoServicio === 'no_disponible'" @click="reintentarEstado" aria-label="Volver a comprobar la disponibilidad del asistente">Reintentar</button>
+    </div>
+    <div x-ref="messages" @scroll.passive="trackScroll" class="hc-log" role="log" tabindex="0" aria-label="Conversación con Diego" aria-live="polite" aria-relevant="additions" :aria-busy="sending.toString()">
         <template x-for="(message, index) in messages" :key="index">
             <article class="hc-message" :class="[message.role === 'user' ? 'hc-user' : 'hc-assistant', (message.cards || []).length ? 'hc-message-with-cards' : '']">
                 <strong>
                     <x-public.robot-mascot x-show="message.role === 'bot'" :portrait="true" class="hc-message-avatar" />
-                    <span x-text="message.role === 'user' ? 'Tú' : 'Horus'"></span>
+                    <span x-text="message.role === 'user' ? 'Tú' : 'Diego'"></span>
                 </strong>
                 <p x-text="message.text"></p>
                 <div class="hc-cards" x-show="(message.cards || []).length" aria-label="Contenidos publicados relacionados">
@@ -107,8 +114,10 @@
             <p>Puedes empezar por aquí</p>
             <div>
                 <button type="button" @click="draft = '¿Qué capacitaciones ofrecen?'; $nextTick(() => $refs.question.focus())"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i><span>Explorar capacitaciones</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                @if (config('tecnologias.visible'))
                 <button type="button" @click="draft = '¿Qué servicios tecnológicos brindan?'; $nextTick(() => $refs.question.focus())"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span>Servicios tecnológicos</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
                 <button type="button" @click="draft = '¿Cómo puedo solicitar una cotización?'; $nextTick(() => $refs.question.focus())"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i><span>Solicitar una cotización</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                @endif
                 <button type="button" @click="draft = '¿Cómo puedo matricularme?'; $nextTick(() => $refs.question.focus())"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span>Consultar matrícula</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
             </div>
         </div>
@@ -138,7 +147,7 @@
                 @keydown.enter="if (!$event.shiftKey && !$event.isComposing) { $event.preventDefault(); if (draft.trim() && !sending) sendMessage(); }"
                 aria-describedby="hc-question-help"
             ></textarea>
-            <button type="submit" :disabled="sending || !draft.trim()" aria-label="Enviar consulta">
+            <button type="submit" :disabled="sending || !draft.trim() || !puedeEnviar()" aria-label="Enviar consulta">
                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
             </button>
         </form>

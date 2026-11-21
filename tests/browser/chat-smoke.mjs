@@ -3,7 +3,7 @@ import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
 
-// --history: solo http://127.0.0.1:8765/ con horus-ai-browser-router.php,
+// --history: solo http://127.0.0.1:8765/ con horus-ai-browser-router.php o chat-estado-browser-router.php,
 // SQLite :memory:, sesión/caché/correo array y cola sync; respuestas simuladas en Edge.
 const baseUrl = process.env.CHAT_SMOKE_URL || 'http://127.0.0.1:8765/';
 const historyOnly = process.argv.includes('--history');
@@ -124,8 +124,14 @@ try {
     })`);
     await command('Page.navigate', { url: baseUrl });
     await ready('/');
+    if (!await evaluate(`document.querySelector('#hc-title').textContent === 'Diego'
+      && document.querySelector('.hc-launcher').getAttribute('aria-label') === 'Abrir chat con el asistente Diego'
+      && document.querySelector('.hc-log').textContent.includes('Soy Diego, tu asistente virtual')`)) {
+      throw new Error('The widget does not present itself as Diego.');
+    }
+    await evaluate(`document.querySelector('.hc-launcher').click()`);
+    await waitFor(() => evaluate(`document.querySelector('.hc-service-status')?.dataset.estado === 'listo'`));
     await evaluate(`(async () => {
-      document.querySelector('.hc-launcher').click();
       const input = document.querySelector('#mensaje-chat');
       input.value = 'Consulta ficticia de cursos';
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -168,9 +174,9 @@ try {
     process.stdout.write('Edge history smoke passed: Inicio → Cursos, reload, desktop/mobile, messages, links, cards, session, no repeated requests, close/reopen and expiry.\n');
   } else {
   try {
-    await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.getAttribute("aria-expanded") === "false"'));
+    await waitFor(() => evaluate('document.readyState === "complete" && document.querySelector("[aria-label=\\"Abrir chat con el asistente Diego\\"]")?.getAttribute("aria-expanded") === "false"'));
   } catch (error) {
-    const state = await evaluate('JSON.stringify({ ready: document.readyState, alpine: !!window.Alpine, button: document.querySelector("[aria-label=\\"Abrir chat con el asistente Horus\\"]")?.outerHTML.slice(0, 400), scripts: [...document.querySelectorAll("script[src]")].map((element) => element.src) })');
+    const state = await evaluate('JSON.stringify({ ready: document.readyState, alpine: !!window.Alpine, button: document.querySelector("[aria-label=\\"Abrir chat con el asistente Diego\\"]")?.outerHTML.slice(0, 400), scripts: [...document.querySelectorAll("script[src]")].map((element) => element.src) })');
     throw new Error(`Chat did not initialize: ${state}`, { cause: error });
   }
   const result = await evaluate(`(async () => {
@@ -185,7 +191,7 @@ try {
       },
       (error) => { window.__chatFetch.push({ error: String(error) }); throw error; }
     );
-    const button = document.querySelector('[aria-label="Abrir chat con el asistente Horus"]');
+    const button = document.querySelector('[aria-label="Abrir chat con el asistente Diego"]');
     const panelId = button.getAttribute('aria-controls');
     button.click();
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -248,8 +254,8 @@ try {
     throw new Error('Mobile, action or keyboard contract failed: ' + JSON.stringify({ mobile, actions }));
   }
   await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-  await waitFor(() => evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').getAttribute('aria-expanded') === 'false' && document.activeElement.getAttribute('aria-label') === 'Abrir chat con el asistente Horus'`));
-  await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Horus"]').click()`);
+  await waitFor(() => evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Diego"]').getAttribute('aria-expanded') === 'false' && document.activeElement.getAttribute('aria-label') === 'Abrir chat con el asistente Diego'`));
+  await evaluate(`document.querySelector('[aria-label="Abrir chat con el asistente Diego"]').click()`);
   await evaluate(`(async () => {
     window.fetch = async () => ({ ok: false, status: 429 });
     const input = document.getElementById('mensaje-chat');

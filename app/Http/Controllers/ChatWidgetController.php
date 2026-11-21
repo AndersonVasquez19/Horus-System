@@ -3,12 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Services\AsistenteVirtualService;
+use App\Services\HorusAdvisorClient;
 use App\Services\PresentacionRecomendacionesHorus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ChatWidgetController extends Controller
 {
+    public function estadoPublico(HorusAdvisorClient $advisor): JsonResponse
+    {
+        return response()->json(['estado' => $advisor->estadoPublico()])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function mensajePublico(Request $request, AsistenteVirtualService $asistente, PresentacionRecomendacionesHorus $presentacion): JsonResponse
     {
         $datos = $request->validate(

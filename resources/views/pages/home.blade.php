@@ -1,10 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'Horus Group SRL | Tecnología, capacitaciones y soporte en Cajamarca')
-@section('meta_description', 'Horus Group SRL: cableado estructurado, cámaras de seguridad, soporte técnico, capacitaciones y asesoramiento para hogares y empresas en Cajamarca, Perú.')
+@php
+  $tecnologiasVisibles = config('tecnologias.visible');
+  $imagenPrincipal = $tecnologiasVisibles ? 'assets/images/index/hero/hero-tecnologia.jpg' : 'assets/images/index/hero/hero-capacitaciones.jpg';
+@endphp
+
+@section('title', $tecnologiasVisibles ? 'Horus Group SRL | Tecnología, capacitaciones y soporte en Cajamarca' : 'Horus Group SRL | Cursos, capacitaciones y asesoramiento en Cajamarca')
+@section('meta_description', $tecnologiasVisibles ? 'Horus Group SRL: cableado estructurado, cámaras de seguridad, soporte técnico, capacitaciones y asesoramiento para hogares y empresas en Cajamarca, Perú.' : 'Horus Group SRL: cursos, capacitaciones y asesoramiento para estudiantes, profesionales y empresas en Cajamarca, Perú.')
 
 @push('head')
-  <link rel="preload" as="image" href="{{ asset('assets/images/index/hero/hero-tecnologia.jpg') }}" fetchpriority="high">
+  <link rel="preload" as="image" href="{{ asset($imagenPrincipal) }}" fetchpriority="high">
   <script type="application/ld+json">
     {!! json_encode([
       '@context' => 'https://schema.org',
@@ -12,16 +17,16 @@
       'name' => 'Horus Group SRL',
       'url' => url('/'),
       'logo' => asset('assets/images/index/logos/logo-horus.png'),
-      'image' => asset('assets/images/index/hero/hero-tecnologia.jpg'),
-      'description' => 'Soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú.',
+      'image' => asset($imagenPrincipal),
+      'description' => $tecnologiasVisibles ? 'Soluciones tecnológicas, capacitaciones y soporte para hogares, empresas y profesionales en Cajamarca, Perú.' : 'Cursos, capacitaciones y asesoramiento para estudiantes, empresas y profesionales en Cajamarca, Perú.',
       'telephone' => '+51972021374',
       'areaServed' => ['@type' => 'City', 'name' => 'Cajamarca'],
       'hasOfferCatalog' => [
         '@type' => 'OfferCatalog',
         'name' => 'Servicios de Horus Group SRL',
-        'itemListElement' => collect([
+        'itemListElement' => collect($tecnologiasVisibles ? [
           'Cámaras de seguridad', 'Cableado estructurado', 'Soporte y mantenimiento', 'Cursos con certificado', 'Capacitaciones', 'Asesoramiento',
-        ])->map(fn ($servicio) => ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $servicio]])->all(),
+        ] : ['Cursos con certificado', 'Capacitaciones', 'Asesoramiento'])->map(fn ($servicio) => ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $servicio]])->all(),
       ],
       'email' => 'horusgroupcajamarca@gmail.com',
       'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Cajamarca', 'addressCountry' => 'PE'],
@@ -83,6 +88,10 @@
         'cta2' => ['label' => 'Contáctanos', 'url' => route('contactos')],
       ],
     ];
+
+    if (! $tecnologiasVisibles) {
+      $slides = array_slice($slides, 1);
+    }
 
     $heroStats = [
       ['value' => '+400', 'label' => 'Personas capacitadas'],

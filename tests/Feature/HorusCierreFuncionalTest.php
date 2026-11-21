@@ -90,6 +90,7 @@ class HorusCierreFuncionalTest extends TestCase
 
     public function test_la_ruta_publica_presenta_una_tarjeta_vigente_por_tema(): void
     {
+        config(['tecnologias.visible' => true]);
         $case = collect($this->fixture['cases'])->firstWhere('query', 'Quiero aprender Excel y también necesito cableado para mi oficina');
         $this->fakePython($case['reply']);
         $respuesta = $this->postJson('/chat/mensaje', ['mensaje' => $case['query'], 'session_id' => 'cierre-tarjetas'])

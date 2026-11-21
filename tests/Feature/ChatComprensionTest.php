@@ -23,6 +23,8 @@ class ChatComprensionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Estos contratos de seguimiento ejercitan la sección tecnológica visible.
+        config(['tecnologias.visible' => true]);
         config(['horus-advisor.enabled' => true, 'horus-advisor.url' => 'http://127.0.0.1:8001',
             'horus-advisor.token' => str_repeat('t', 32), 'horus-catalog.sync_enabled' => false]);
         Http::preventStrayRequests();

@@ -1,6 +1,6 @@
 @props(['slides' => [], 'stats' => []])
 <div x-data="carousel({{ count($slides) }})" x-on:mouseenter="pause()" x-on:mouseleave="resume()" x-on:focusin="pause()" x-on:focusout="resume()" x-on:keydown.left="prev()" x-on:keydown.right="next()" class="carousel-frame hero-carousel" role="region" aria-roledescription="carrusel" aria-label="Servicios de Horus Group SRL">
-  <h1 class="sr-only">Horus Group SRL: tecnología, capacitaciones y soporte en Cajamarca</h1>
+  <h1 class="sr-only">{{ config('tecnologias.visible') ? 'Horus Group SRL: tecnología, capacitaciones y soporte en Cajamarca' : 'Horus Group SRL: cursos, capacitaciones y asesoramiento en Cajamarca' }}</h1>
 
   <div class="hero-stage">
     <div class="hero-backdrops" aria-hidden="true">

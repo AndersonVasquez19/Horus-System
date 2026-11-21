@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from app.schemas.knowledge import KnowledgeRecord
+from app.services.minilm_inference import MiniLMInference, supports_local_minilm
 from app.services.vector_cache import PassageVectorCache
 
 logger = logging.getLogger("horus_ai.semantic")
@@ -44,7 +45,7 @@ def normalize_cosine(cosine: float) -> float:
 
 
 class SentenceTransformerEmbedder:
-    """Adaptador sobre sentence-transformers. Importa torch solo al construirse."""
+    """MiniLM de inferencia ligera, con cargador sentence-transformers para otros pipelines."""
 
     def __init__(
         self, model_dir: Path, threads: int, query_prefix: str = "", passage_prefix: str = ""
@@ -53,14 +54,20 @@ class SentenceTransformerEmbedder:
         os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
         os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
         import torch
-        from sentence_transformers import SentenceTransformer
 
         torch.set_num_threads(threads)
-        self._model = SentenceTransformer(str(model_dir), device="cpu", local_files_only=True)
+        if supports_local_minilm(model_dir):
+            self._model = MiniLMInference(model_dir)
+        else:
+            from sentence_transformers import SentenceTransformer
+
+            self._model = SentenceTransformer(str(model_dir), device="cpu", local_files_only=True)
         self.query_prefix = query_prefix
         self.passage_prefix = passage_prefix
 
     def encode(self, texts: list[str]) -> Any:
+        if isinstance(self._model, MiniLMInference):
+            return self._model.encode(texts)
         return self._model.encode(
             texts, batch_size=16, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=False
         )

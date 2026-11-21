@@ -722,6 +722,11 @@ class AdvisorEngine:
         hits = self.retrieve(topic if planned_search and topic else message)
         terms = set(content_tokens(corrected))
 
+        if not u.attributes and not u.quote:
+            clarification = self._clarify_service_goal(corrected, hits)
+            if clarification is not None:
+                return clarification
+
         if terms & {"convenio", "convenios", "alianza", "alianzas"}:
             generic = {"convenio", "convenios", "alianza", "alianzas", "institucion", "instituciones",
                 "colegio", "colegios", "profesionales", "horus", "group", "tienen", "tiene", "cuentan",
@@ -735,7 +740,10 @@ class AdvisorEngine:
         if hits and hits[0].record.status == "verified" and hits[0].record.public_card is not None:
             record = hits[0].record
             if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen"}:
-                return self._reply(answer=f"{record.title}: Vigencia publicada hasta el {record.public_card.vigencia}.",
+                vigencia = record.public_card.vigencia
+                answer = (f"{record.title}: Vigencia publicada hasta el {vigencia}." if vigencia
+                    else f"{record.title}: No hay una fecha de vigencia publicada.")
+                return self._reply(answer=answer,
                     intent="agreement_info", match_level="alta", sources=[self._source(record)])
 
         # 2. Solicitudes comerciales.
@@ -826,6 +834,37 @@ class AdvisorEngine:
         if focus and u.referential and (reply.needs_clarification or reply.intent == "out_of_scope"):
             return self._focus_reference(focus)  # "¿y eso qué incluye?"
         return reply
+
+    def _clarify_service_goal(self, corrected: str, hits: list[Hit]) -> AdvisorReply | None:
+        """Una necesidad breve sin objetivo no implica contratar ni aprender."""
+        if hits and hits[0].record.stable_id is not None and hits[0].score >= ANSWER_THRESHOLD:
+            return None  # conserva la prioridad de una ficha editorial pertinente
+        if not re.match(r"^(?:quiero|necesito|busco|quisiera|deseo|me interesa)\s+", corrected):
+            return None  # conserva las consultas informativas breves y su corrección ortográfica
+        subject = re.sub(r"^(?:quiero|necesito|busco|quisiera|deseo|me interesa)\s+", "", corrected)
+        subject = re.sub(r"\b(?:un|una|unos|unas|de|por favor|porfa)\b", " ", subject)
+        words = set(subject.split())
+        topics = (
+            ("servicio_camaras", {"camara", "camaras", "videovigilancia"},
+             {"camara", "camaras", "seguridad", "videovigilancia"}),
+            ("servicio_cableado", {"cableado", "red", "redes"},
+             {"cableado", "estructurado", "red", "redes"}),
+            ("servicio_soporte", {"soporte", "mantenimiento"},
+             {"soporte", "mantenimiento", "tecnico", "tecnica", "computadoras", "computadora", "equipos", "informaticos"}),
+        )
+        for record_id, required, allowed in topics:
+            record = self.kb.get(record_id)
+            if not words & required or not words <= allowed or record is None or record.status != "verified":
+                continue
+            service = "consultar una instalación" if record_id == "servicio_camaras" else "consultar el servicio"
+            return self._reply(
+                answer="Quiero asegurarme de entenderte bien antes de responder.",
+                intent="clarification", match_level="baja", needs_clarification=True,
+                clarification_question=(f"Sobre «{record.title}», ¿buscas conocer sus características, "
+                    f"{service} o saber si hay capacitación publicada?"),
+                context=ConversationContext(turns_considered=0, focus_ids=[record.id]),
+            )
+        return None
 
     def _institutional_information(self, hits: list[Hit], goal: str) -> AdvisorReply | None:
         """Explicación pública sin anunciar ofertas, disponibilidad ni recomendaciones retiradas."""

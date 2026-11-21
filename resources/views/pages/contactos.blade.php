@@ -92,7 +92,9 @@
             <label for="asunto">Asunto</label>
             <select id="asunto" name="asunto">
               <option value="">Selecciona un asunto</option>
+              @if (config('tecnologias.visible'))
               <option value="Tecnologías">Tecnologías</option>
+              @endif
               <option value="Educación">Educación</option>
               <option value="Asesoramiento">Asesoramiento</option>
               <option value="Capacitaciones">Capacitaciones</option>

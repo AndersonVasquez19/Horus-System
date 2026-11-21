@@ -44,12 +44,6 @@
 
       <h3 class="cv-name">{{ $nombre }}</h3>
 
-      <p class="cv-vig">
-        <span class="cv-dot" aria-hidden="true"></span>
-        <span class="cv-vig-label">Vigente hasta</span>
-        <strong>{{ $vigencia }}</strong>
-      </p>
-
       <button type="button" x-on:click="open('{{ $id }}')" aria-haspopup="dialog" class="cv-more">
         <span>Ver convenio</span>
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>

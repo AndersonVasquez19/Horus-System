@@ -2,7 +2,7 @@
     {
         "q":  "Hola",
         "r":  {
-                  "answer":  "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre servicios tecnológicos, cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+                  "answer":  "¡Hola! Soy Diegox, el asistente informativo de Horus Group SRL. Puedo orientarte sobre servicios tecnológicos, cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
                   "intent":  "greeting",
                   "match_level":  "alta",
                   "needs_clarification":  false,
@@ -597,7 +597,7 @@
     {
         "q":  "¿Tienen convenios?",
         "r":  {
-                  "answer":  "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
+                  "answer":  "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n- Instituto Santos Villalobos Huamán de Yauyucán",
                   "intent":  "agreement_info",
                   "match_level":  "alta",
                   "needs_clarification":  false,
