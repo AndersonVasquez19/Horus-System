@@ -67,6 +67,7 @@ class AsistenteVirtualService
             return $this->reply('Tu consulta anterior sigue en proceso. Espera un momento antes de volver a enviarla.', null, 'ocupado');
         }
         try {
+            $this->advisor->iniciarMensaje();
             $focoKey = 'chat:focus:'.hash_hmac('sha256', $session.'|'.$version, Entrada::texto(config('app.key')));
             $focoGuardado = Cache::get($focoKey);
             $foco = [];

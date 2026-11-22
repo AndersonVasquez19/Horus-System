@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Services\AsistenteVirtualService;
 use App\Services\ExportadorCatalogoAdvisor;
 use App\Services\FirmaCatalogoAdvisor;
 use App\Services\HorusAdvisorClient;
@@ -81,12 +82,42 @@ class AsistenteRecomendacionesVariasTest extends TestCase
             'source_system' => 'horus-laravel', 'generated_at' => now()->toIso8601String(), 'expires_at' => now()->addMinutes(5)->toIso8601String(),
             'managed_types' => ['curso', 'servicio'], 'items' => $items];
         $catalogo['signature'] = $firma->firmar($catalogo);
-        $this->mock(ExportadorCatalogoAdvisor::class)->shouldReceive('construirParaSincronizacion')->andReturn($catalogo);
+        $this->mock(ExportadorCatalogoAdvisor::class)->shouldReceive('construirParaSincronizacion')->andReturnUsing(function () use ($catalogo): array {
+            $this->construcciones++;
+
+            return $catalogo;
+        });
         Cache::forever('horus-ai.catalog.expected-version', $catalogo['catalog_version']);
         $this->version = $catalogo['catalog_version'];
     }
 
     private string $version = '';
+
+    /** Veces que se construyó el catálogo firmado (consulta, permisos, privacidad y firma). */
+    private int $construcciones = 0;
+
+    public function test_el_catalogo_se_construye_una_vez_por_mensaje_y_de_nuevo_en_el_siguiente(): void
+    {
+        $unaOpcion = $this->fixture['cases'][0]['reply'];
+        $unaOpcion['needs_clarification'] = false;
+        $unaOpcion['clarification_question'] = null;
+        $unaOpcion['sources'] = array_slice($unaOpcion['sources'], 0, 1);
+        $unaOpcion['recommendations'] = array_slice($unaOpcion['recommendations'], 0, 1);
+        Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured',
+            'semantic' => 'disabled', 'catalog' => 'loaded', 'catalog_version' => $this->version]),
+            '*/api/v1/chat' => Http::response($unaOpcion)]);
+        $servicio = app(AsistenteVirtualService::class);
+
+        $this->assertSame('advisor', $servicio->procesarMensaje('Quiero aprender Excel desde cero', 'memo')['fuente']);
+        $this->assertSame(1, $this->construcciones);
+        // «sí» usa el catálogo dos veces (título del curso en foco y validación de la respuesta): una sola construcción.
+        $this->assertSame('advisor', $servicio->procesarMensaje('sí', 'memo')['fuente']);
+        Http::assertSent(static fn ($r): bool => str_ends_with($r->url(), '/api/v1/chat') && $r['message'] === 'Información sobre Excel desde cero');
+        $this->assertSame(2, $this->construcciones);
+        // El mensaje siguiente vuelve a construirlo: una ficha retirada no se sigue citando.
+        $servicio->procesarMensaje('¿y el horario?', 'memo');
+        $this->assertSame(3, $this->construcciones);
+    }
 
     /**
      * @param  array<string, mixed>  $reply
