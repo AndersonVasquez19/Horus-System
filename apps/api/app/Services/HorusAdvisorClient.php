@@ -84,7 +84,7 @@ class HorusAdvisorClient
     private function tituloDeFoco(string $id): ?string
     {
         if (str_starts_with($id, 'cat_')) {
-            $fuentes = app(FuentesCatalogoAdvisor::class)->actuales();
+            $fuentes = $this->fuentesDelMensaje();
             if ($id === 'cat_listado_formacion') {
                 $cursos = array_values(array_filter(
                     $fuentes,
@@ -100,6 +100,33 @@ class HorusAdvisorClient
         }
 
         return self::conocimiento()['porId'][$id]['title'] ?? null;
+    }
+
+    /**
+     * Fichas del catálogo ya construidas en el mensaje en curso, con la versión esperada con que se obtuvieron.
+     * Construirlas cuesta (consulta, permisos, privacidad y firma: ~28 ms con 50 fichas, ~165 ms con 500), y un mismo
+     * mensaje puede necesitarlas dos veces (seguimiento con «sí»/«la primera» y validación de la respuesta). Nunca se
+     * conservan entre mensajes: una ficha retirada deja de citarse en el mensaje siguiente.
+     *
+     * @var array{version: mixed, fuentes: array<string, array{title: string, url_path: string|null, answer: string, fragments?: list<string>}>}|null
+     */
+    private ?array $fuentesMensaje = null;
+
+    /** Inicio de un mensaje del visitante: descarta las fichas memorizadas del anterior. */
+    public function iniciarMensaje(): void
+    {
+        $this->fuentesMensaje = null;
+    }
+
+    /** @return array<string, array{title: string, url_path: string|null, answer: string, fragments?: list<string>}> */
+    private function fuentesDelMensaje(): array
+    {
+        $version = Cache::get(Entrada::texto(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')));
+        if ($this->fuentesMensaje === null || $this->fuentesMensaje['version'] !== $version) {
+            $this->fuentesMensaje = ['version' => $version, 'fuentes' => app(FuentesCatalogoAdvisor::class)->actuales()];
+        }
+
+        return $this->fuentesMensaje['fuentes'];
     }
 
     private ?string $motivoContingencia = null;
@@ -274,6 +301,8 @@ class HorusAdvisorClient
         } finally {
             $this->latenciaMs = intdiv(hrtime(true) - $inicioMedicion, 1_000_000);
             $this->registrarResultadoCircuito();
+            // Las fichas memorizadas no sobreviven a la consulta (ni a llamadas directas a orientar()).
+            $this->fuentesMensaje = null;
         }
     }
 
@@ -319,7 +348,7 @@ class HorusAdvisorClient
         if ($reply === null) {
             return null;
         }
-        $this->fuentesCatalogo = $catalogoCaducado ? [] : app(FuentesCatalogoAdvisor::class)->actuales();
+        $this->fuentesCatalogo = $catalogoCaducado ? [] : $this->fuentesDelMensaje();
         if (! $this->respuestaValida($reply)) {
             $this->motivoContingencia = 'respuesta_rechazada';
             $this->causaFallo = 'validacion';
