@@ -97,6 +97,7 @@ Las mismas variables en los tres (puedes usar *Copy variables*). Solo cambia `HO
 | `CSP_MODE` | `report-only` |
 | `HORUS_ADVISOR_ENABLED` | `true` para activar el chatbot. Con `false`, o si Horus AI falla, responde la contingencia institucional |
 | `HORUS_ADVISOR_URL` | `http://${{horus-ai.RAILWAY_PRIVATE_DOMAIN}}:8001` |
+| `HORUS_ADVISOR_ALLOWED_HOSTS` | `${{horus-ai.RAILWAY_PRIVATE_DOMAIN}}`. Obligatoria para usar esa URL: el cliente solo acepta `127.0.0.1` y los hostnames exactos de esta lista (separados por comas; nunca IP literales, `localhost` ni hosts de metadatos). Sin ella, cada mensaje cae a la contingencia con causa `configuracion` en `chatbot.advisor_fallo` |
 | `HORUS_ADVISOR_TOKEN` | `${{shared.HORUS_AI_SERVICE_TOKEN}}` |
 | `HORUS_AI_CATALOG_SYNC_ENABLED`, `HORUS_OPS_ENABLED` | `false` (sin catálogo firmado: ver `horus-ai-operacion.md`) |
 | `MATRICULA_MAIL_ENABLED`, `RECORDATORIOS_*_ENABLED`, `WHATSAPP_CLOUD_ENABLED`, `SEGURIDAD_*_ENABLED` | `false`. No los actives sin cumplir `activacion-canales-externos.md` |
