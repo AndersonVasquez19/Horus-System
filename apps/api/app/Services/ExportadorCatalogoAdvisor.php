@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 /**
- * @phpstan-type ItemCatalogo array{stable_id: string, type: string, publication_status: string, title: string, summary: string, details?: string|null, modalities?: list<string>, schedule_text?: string|null, duration_text?: string|null, requirements?: list<string>, public_price?: mixed, inquiry?: string|null, keywords?: list<string>, url_path?: string|null, updated_at: string, valid_from?: string|null, valid_until?: string|null}
+ * @phpstan-type ItemCatalogo array{stable_id: string, type: string, publication_status: string, title: string, summary: string, details?: string|null, modalities?: list<string>, schedule_text?: string|null, duration_text?: string|null, start_date?: string|null, certification_text?: string|null, requirements?: list<string>, public_price?: mixed, inquiry?: string|null, keywords?: list<string>, url_path?: string|null, updated_at: string, valid_from?: string|null, valid_until?: string|null}
  * @phpstan-type Catalogo array{schema_version: string, catalog_version: string, source_system: string, generated_at: string, expires_at: string, managed_types?: list<string>, items: list<ItemCatalogo>, signature: string}
  */
 class ExportadorCatalogoAdvisor
@@ -56,7 +56,8 @@ class ExportadorCatalogoAdvisor
                 ->whereNotNull('p.autorizado_por')->whereNotNull('p.autorizado_at')->where('p.autorizado_at', '<=', $ahora->copy()->timezone(Entrada::texto(config('app.timezone'))))
                 ->whereDate('p.vigente_desde', '<=', $ahora->toDateString())->whereDate('p.vigente_hasta', '>=', $ahora->toDateString())
                 ->orderBy('p.id')->limit(501)
-                ->get(['p.id', 'p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta', 'p.updated_at', 'p.autorizado_por']);
+                ->get(['p.id', 'p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta', 'p.updated_at', 'p.autorizado_por',
+                    'p.fecha_inicio', 'p.duracion', 'p.certificacion', 'p.temario']);
             if ($filas->count() > 500) {
                 throw new InvalidArgumentException('El catálogo excede 500 fichas; no se exporta parcialmente.');
             }
@@ -80,11 +81,16 @@ class ExportadorCatalogoAdvisor
                     $detalles = trim($detalles.' Modalidad: hibrido.');
                 }
                 $horario = $p->horario === null ? null : trim((string) $p->horario);
-                $texto = implode(' ', [$titulo, $resumen, $detalles, $horario ?? '']);
-                if (preg_match('/@|\d[\d\s-]{6,}\d|<|>|\b(dni|password|token|estudiantes|matriculados|cotizaciones|clientes)\b/iu', $texto)
-                    || mb_strlen($detalles) > 1500 || ($horario !== null && mb_strlen($horario) > 200)) {
+                $duracion = $this->textoOpcional($p->duracion ?? null);
+                $certificacion = $this->textoOpcional($p->certificacion ?? null);
+                $texto = implode(' ', [$titulo, $resumen, $detalles, $horario ?? '', $duracion ?? '', $certificacion ?? '']);
+                if (preg_match(self::PRIVACIDAD, $texto)
+                    || mb_strlen($detalles) > 1500 || ($horario !== null && mb_strlen($horario) > 200)
+                    || ($duracion !== null && mb_strlen($duracion) > 200) || ($certificacion !== null && mb_strlen($certificacion) > 200)) {
                     throw new InvalidArgumentException('La ficha requiere revisión de privacidad o longitud.');
                 }
+                $detalles = $this->conTemario($detalles, $this->textoOpcional($p->temario ?? null));
+                $fechaInicio = $this->textoOpcional($p->fecha_inicio ?? null);
                 $fin = Carbon::parse((string) $p->vigente_hasta, 'America/Lima')->startOfDay()->addDay();
                 if ($fin->lessThan($vence)) {
                     $vence = $fin;
@@ -96,7 +102,11 @@ class ExportadorCatalogoAdvisor
                     'details' => $detalles === '' ? null : $detalles,
                     'modalities' => $modalidad === 'hibrido' ? [] : [$modalidad],
                     'schedule_text' => $horario,
-                    // La página actual es estática: no se inventa una URL de ficha dinámica.
+                    'duration_text' => $duracion,
+                    'start_date' => $fechaInicio === null ? null : substr($fechaInicio, 0, 10),
+                    'certification_text' => $certificacion,
+                    // No hay página por curso: se enlaza el listado público donde aparece la ficha.
+                    'url_path' => '/educacion/cursos',
                     'updated_at' => Carbon::parse((string) $p->updated_at, Entrada::texto(config('app.timezone')))->toIso8601String(),
                     'valid_from' => substr((string) $p->vigente_desde, 0, 10),
                     'valid_until' => substr((string) $p->vigente_hasta, 0, 10),
@@ -130,6 +140,40 @@ class ExportadorCatalogoAdvisor
         }
 
         return $catalogo;
+    }
+
+    /** Correos, teléfonos o documentos, HTML y vocabulario administrativo: no salen hacia Horus AI. */
+    private const PRIVACIDAD = '/@|\d[\d\s-]{6,}\d|<|>|\b(dni|password|token|estudiantes|matriculados|cotizaciones|clientes)\b/iu';
+
+    private function textoOpcional(mixed $valor): ?string
+    {
+        $texto = is_scalar($valor) ? trim((string) $valor) : '';
+
+        return $texto === '' ? null : $texto;
+    }
+
+    /**
+     * Añade el temario publicado a los detalles. Si parece contener un dato personal se omite solo el temario
+     * (no la ficha); si no cabe en el límite del contrato se recorta por palabra.
+     */
+    private function conTemario(string $detalles, ?string $temario): string
+    {
+        if ($temario === null || preg_match(self::PRIVACIDAD, $temario)) {
+            return $detalles;
+        }
+        $prefijo = trim($detalles.' Temario: ');
+        $disponible = 1500 - mb_strlen($prefijo) - 2;
+        if ($disponible < 20) {
+            return $detalles;
+        }
+        $cuerpo = rtrim(preg_replace('/\s+/u', ' ', $temario) ?? $temario, '. ');
+        if (mb_strlen($cuerpo) > $disponible) {
+            $corte = mb_substr($cuerpo, 0, $disponible - 1);
+            $espacio = mb_strrpos($corte, ' ');
+            $cuerpo = rtrim($espacio === false ? $corte : mb_substr($corte, 0, $espacio), ' ,;:').'…';
+        }
+
+        return $prefijo.' '.$cuerpo.'.';
     }
 
     /** @return list<ItemCatalogo> */

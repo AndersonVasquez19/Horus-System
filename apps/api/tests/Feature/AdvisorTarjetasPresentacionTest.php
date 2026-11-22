@@ -145,9 +145,11 @@ class AdvisorTarjetasPresentacionTest extends TestCase
         $service->procesarMensaje('Me interesa estudiar Python', 'legacy');
         $legacy = ['respuesta' => 'Hola', 'intent' => null, 'fuente' => 'advisor'];
         $keys = array_filter(array_keys(Cache::getStore()->all()), static fn (string $key): bool => str_starts_with($key, 'chat:reply:'));
-        $this->assertCount(1, $keys);
-        $key = array_values($keys)[0];
-        Cache::put($key, ['reply' => $legacy, 'mac' => hash_hmac('sha256', $key.serialize($legacy), (string) config('app.key'))], 60);
+        // 22/11/2026: la respuesta se guarda también con el estado conversacional resultante (doble envío).
+        $this->assertCount(2, $keys);
+        foreach ($keys as $key) {
+            Cache::put($key, ['reply' => $legacy, 'mac' => hash_hmac('sha256', $key.serialize($legacy), (string) config('app.key'))], 60);
+        }
         $this->assertSame($legacy, $service->procesarMensaje('Me interesa estudiar Python', 'legacy'));
         Http::assertSentCount(2);
     }

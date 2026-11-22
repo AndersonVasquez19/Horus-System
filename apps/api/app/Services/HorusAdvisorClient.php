@@ -6,8 +6,11 @@ namespace App\Services;
 
 use App\Support\Entrada;
 use App\Support\FiltroPrivacidadChat;
+use GuzzleHttp\Exception\ConnectException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Throwable;
@@ -24,13 +27,34 @@ class HorusAdvisorClient
         return $this->focoConversacional;
     }
 
-    /** @param list<string> $foco */
-    public function resolverSeguimiento(string $mensaje, array $foco): string
+    /** @var array<string, mixed> Estado estructurado que devolvió Horus AI (vocabulario cerrado; nunca texto del usuario). */
+    private array $estadoConversacional = [];
+
+    /** Claves del estado conversacional y su forma (contrato de ConversationState de Horus AI). */
+    private const ESTADO_LISTAS = ['topics' => 8, 'objectives' => 8];
+
+    private const ESTADO_CLAVES = ['level' => 'desconocido', 'modality' => 'cualquiera', 'audience' => 'desconocido'];
+
+    private const ESTADO_EDADES = ['profile_age', 'cue_age', 'focus_age'];
+
+    /** @return array<string, mixed> */
+    public function estadoConversacional(): array
+    {
+        return $this->estadoConversacional;
+    }
+
+    /**
+     * Seguimiento por frases en PHP. Con estado conversacional, Horus AI ya resuelve «¿cuánto dura?» o «¿y eso es
+     * virtual?» sobre el tema anterior; aquí solo quedan «sí» y «la primera/la segunda» (elegir entre opciones).
+     *
+     * @param  list<string>  $foco
+     */
+    public function resolverSeguimiento(string $mensaje, array $foco, bool $conEstado = false): string
     {
         $normalizado = trim(preg_replace('/[¿?¡!.,;:]+/u', ' ', $this->normalizar($mensaje)) ?? '');
         $normalizado = preg_replace('/\s+/u', ' ', $normalizado) ?? '';
         $afirmacion = in_array($normalizado, ['si', 'si por favor', 'claro', 'correcto', 'exacto', 'eso', 'esa', 'ese', 'ese curso', 'esa capacitacion', 'ese servicio'], true);
-        $referencia = preg_match(
+        $referencia = ! $conEstado && preg_match(
             '/\A(?:y |pero |entonces |osea )?(?:mas detalles|dame detalles|detalles|mas info(?:rmacion)?|info(?:rmacion)?|de que trata|que es|resumen|temario|que incluye|que contiene|que abarca|que cubre|que (?:se )?aprende|que tipos(?: hay| tienen)?|cuales son|cuanto cuesta|cuanto vale|cuanto sale|cuanto dura|cuando (?:empieza|inicia)|hasta cuando(?: es| esta| dura)?|donde(?: es| queda)?|como (?:me )?(?:matriculo|inscribo)|como se (?:matricula|inscribe)|(?:(?:cual es |que )?(?:el |la |su )?)?(?:precio|costo|valor|modalidad|horario|duracion|requisitos|vigencia|inscripcion|matricula|ubicacion)|a que hora(?: es)?|que dias(?: es)?|es (?:virtual|presencial|semipresencial|online|hibrido)(?: o (?:virtual|presencial|semipresencial|online))?|(?:de |sobre )?(?:ese|esa|eso|el|la) (?:curso|capacitacion|servicio))\z/u',
             $normalizado,
         ) === 1;
@@ -80,12 +104,39 @@ class HorusAdvisorClient
 
     private ?string $motivoContingencia = null;
 
+    /** Categoría fija del último fallo técnico (nunca el mensaje de una excepción ni texto del usuario). */
+    private ?string $causaFallo = null;
+
+    private ?int $latenciaMs = null;
+
+    private const CLAVE_FALLOS = 'horus-advisor.circuito.fallos';
+
+    private const CLAVE_ABIERTO = 'horus-advisor.circuito.abierto';
+
+    private const MENSAJE_EXCESIVA = 'Respuesta excesiva.';
+
+    /** Causas de transporte que cuentan para abrir el circuito. */
+    private const CAUSAS_TRANSPORTE = ['conexion', 'tiempo_agotado', 'http_5xx'];
+
+    /** Hosts que nunca se aceptan aunque se configuren: metadatos de nube y loopback por nombre. */
+    private const HOSTS_PROHIBIDOS = ['localhost', 'metadata', 'metadata.google.internal', 'instance-data'];
+
     /** @var array<string, array{title: string, url_path: string|null, answer: string, fragments?: list<string>}> */
     private array $fuentesCatalogo = [];
 
     public function motivoContingencia(): ?string
     {
         return $this->motivoContingencia;
+    }
+
+    public function causaFallo(): ?string
+    {
+        return $this->causaFallo;
+    }
+
+    public function latenciaMs(): ?int
+    {
+        return $this->latenciaMs;
     }
 
     /** Revalidación actual de una respuesta de caché autenticada por el intermediario.
@@ -181,12 +232,18 @@ class HorusAdvisorClient
         return $this->reloj === null ? hrtime(true) / 1_000_000_000 : ($this->reloj)();
     }
 
-    /** @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null */
-    public function orientar(string $mensajeOIntent, ?string $mensaje = null): ?array
+    /**
+     * @param  array<string, mixed>  $estado  estado devuelto por Horus AI en el turno anterior (ya validado al recibirlo)
+     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null
+     */
+    public function orientar(string $mensajeOIntent, ?string $mensaje = null, array $estado = []): ?array
     {
         $this->focoConversacional = [];
+        $this->estadoConversacional = [];
         $mensajeLimpio = trim($mensaje ?? $mensajeOIntent);
         $this->motivoContingencia = null;
+        $this->causaFallo = null;
+        $this->latenciaMs = null;
         if (! config('horus-advisor.enabled')) {
             $this->motivoContingencia = 'deshabilitado';
 
@@ -203,10 +260,38 @@ class HorusAdvisorClient
             return null;
         }
         $this->motivoContingencia = 'no_disponible';
+        if (Cache::has(self::CLAVE_ABIERTO)) {
+            // Horus AI falló seguido hace poco: contingencia inmediata en vez de esperar otro timeout.
+            $this->causaFallo = 'circuito_abierto';
+
+            return null;
+        }
         $inicio = $this->ahora();
+        // La latencia observada usa su propio reloj: no consume lecturas del reloj de presupuesto.
+        $inicioMedicion = hrtime(true);
+        try {
+            return $this->consultarAsesor($mensajeLimpio, $inicio, $estado);
+        } finally {
+            $this->latenciaMs = intdiv(hrtime(true) - $inicioMedicion, 1_000_000);
+            $this->registrarResultadoCircuito();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $estado
+     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null
+     */
+    private function consultarAsesor(string $mensajeLimpio, float $inicio, array $estado): ?array
+    {
         $ready = $this->solicitar('GET', '/ready', [], $inicio);
         $sincronizacion = (bool) config('horus-catalog.sync_enabled', false);
         $estadoCatalogoValido = ($ready['catalog'] ?? null) === 'none' && ! $sincronizacion;
+        // Catálogo caducado (22/11/2026): Python sigue atendiendo con el conocimiento institucional y descarta
+        // las fichas vencidas. Aquí se trata como catálogo vacío: toda respuesta que cite un curso se rechaza.
+        $catalogoCaducado = ($ready['catalog'] ?? null) === 'stale';
+        if ($catalogoCaducado) {
+            $estadoCatalogoValido = true;
+        }
         if (($ready['catalog'] ?? null) === 'loaded') {
             $versionActiva = $ready['catalog_version'] ?? null;
             $estadoCatalogoValido = is_string($versionActiva)
@@ -221,19 +306,28 @@ class HorusAdvisorClient
         if (($ready['status'] ?? null) !== 'ready' || ($ready['knowledge'] ?? null) !== 'loaded'
             || ($ready['auth'] ?? null) !== 'configured' || ! $estadoCatalogoValido
             || ! in_array($ready['semantic'] ?? null, ['loaded', 'loading', 'disabled', 'unavailable'], true)) {
+            $this->causaFallo ??= 'no_listo';
+
             return null;
         }
-        $reply = $this->solicitar('POST', '/api/v1/chat', ['message' => $mensajeLimpio, 'history' => []], $inicio);
+        // Sin historial de texto: el contexto viaja como estado estructurado (solo si Horus AI lo devolvió antes).
+        $payload = ['message' => $mensajeLimpio, 'history' => []];
+        if ($estado !== []) {
+            $payload['state'] = $estado;
+        }
+        $reply = $this->solicitar('POST', '/api/v1/chat', $payload, $inicio);
         if ($reply === null) {
             return null;
         }
-        $this->fuentesCatalogo = app(FuentesCatalogoAdvisor::class)->actuales();
+        $this->fuentesCatalogo = $catalogoCaducado ? [] : app(FuentesCatalogoAdvisor::class)->actuales();
         if (! $this->respuestaValida($reply)) {
             $this->motivoContingencia = 'respuesta_rechazada';
+            $this->causaFallo = 'validacion';
 
             return null;
         }
         $this->motivoContingencia = null;
+        $this->estadoConversacional = $this->estadoValido($reply['state'] ?? null);
 
         $contexto = $reply['context'] ?? null;
         $foco = ($reply['needs_clarification'] ?? false)
@@ -293,6 +387,73 @@ class HorusAdvisorClient
             && isset($this->fuentesCatalogo[$referencia['id']])
             && $this->referenciaValida($referencia)
             && (($referencia['url_path'] ?? null) === null || in_array($referencia['url_path'], self::RUTAS_PUBLICAS, true));
+    }
+
+    /**
+     * Estado conversacional de Horus AI reducido a su forma permitida. Cualquier desviación (clave ajena, texto con
+     * espacios, lista larga, registro desconocido) lo descarta entero: es preferible perder contexto que guardar algo
+     * que no sea vocabulario cerrado. Los registros citados deben existir en el conocimiento o en el catálogo vigente.
+     *
+     * @return array<string, mixed>
+     */
+    private function estadoValido(mixed $estado): array
+    {
+        if (! is_array($estado) || array_is_list($estado)) {
+            return [];
+        }
+        $permitidas = [...array_keys(self::ESTADO_LISTAS), ...array_keys(self::ESTADO_CLAVES), ...self::ESTADO_EDADES,
+            'goal', 'focus_ids', 'out_of_scope', 'quote'];
+        if (array_diff(array_keys($estado), $permitidas) !== []) {
+            return [];
+        }
+        $clave = static fn (mixed $v): bool => is_string($v) && preg_match('/\A[a-z0-9_]{1,40}\z/D', $v) === 1;
+        $limpio = [];
+        foreach (self::ESTADO_LISTAS as $campo => $maximo) {
+            $valor = $estado[$campo] ?? [];
+            if (! is_array($valor) || ! array_is_list($valor) || count($valor) > $maximo || array_filter($valor, $clave) !== $valor) {
+                return [];
+            }
+            $limpio[$campo] = $valor;
+        }
+        foreach (self::ESTADO_CLAVES as $campo => $defecto) {
+            $valor = $estado[$campo] ?? $defecto;
+            if (! $clave($valor)) {
+                return [];
+            }
+            $limpio[$campo] = $valor;
+        }
+        $limpio['goal'] = $estado['goal'] ?? 'unknown';
+        if (! in_array($limpio['goal'], ['learn', 'service', 'unknown'], true)) {
+            return [];
+        }
+        foreach (self::ESTADO_EDADES as $campo) {
+            $valor = $estado[$campo] ?? null;
+            if ($valor !== null && (! is_int($valor) || $valor < 0 || $valor > 2)) {
+                return [];
+            }
+            $limpio[$campo] = $valor;
+        }
+        $foco = $estado['focus_ids'] ?? [];
+        if (! is_array($foco) || ! array_is_list($foco) || count($foco) > 2) {
+            return [];
+        }
+        foreach ($foco as $id) {
+            $conocido = is_string($id) && preg_match('/\A[a-z][a-z0-9_:.\-]{0,127}\z/D', $id) === 1
+                && (str_starts_with($id, 'cat_') ? isset($this->fuentesCatalogo[$id]) : isset(self::conocimiento()['porId'][$id]));
+            if (! $conocido) {
+                return [];
+            }
+        }
+        $limpio['focus_ids'] = $foco;
+        foreach (['out_of_scope', 'quote'] as $campo) {
+            $valor = $estado[$campo] ?? false;
+            if (! is_bool($valor)) {
+                return [];
+            }
+            $limpio[$campo] = $valor;
+        }
+
+        return $limpio;
     }
 
     /**
@@ -383,10 +544,10 @@ class HorusAdvisorClient
     {
         $url = config('horus-advisor.url');
         $token = config('horus-advisor.token');
-        // IP literal exacta: sin DNS/rebinding, userinfo, redirecciones o destinos de metadatos.
-        if (! is_string($url) || ! preg_match('~\Ahttp://127\.0\.0\.1:([1-9][0-9]{0,4})\z~D', $url, $match)
-            || (int) $match[1] > 65535 || ! is_string($token) || strlen($token) < 32
+        if (! is_string($url) || ! $this->destinoPermitido($url) || ! is_string($token) || strlen($token) < 32
             || preg_match('/[\r\n]/', $token)) {
+            $this->causaFallo = 'configuracion';
+
             return null;
         }
         $limiteTiempo = $presupuesto === null
@@ -394,6 +555,8 @@ class HorusAdvisorClient
             : min(30.0, max(0.1, $presupuesto));
         $restante = $limiteTiempo - ($this->ahora() - $inicio);
         if ($restante <= 0) {
+            $this->causaFallo = 'tiempo_agotado';
+
             return null;
         }
         $limite = min(65536, max(1024, Entrada::entero(config('horus-advisor.max_response_bytes', 65536))));
@@ -405,25 +568,102 @@ class HorusAdvisorClient
                     'on_headers' => static function (ResponseInterface $response) use ($limite): void {
                         if ((int) $response->getHeaderLine('Content-Length') > $limite
                             || ! in_array(strtolower($response->getHeaderLine('Content-Encoding')), ['', 'identity'], true)) {
-                            throw new RuntimeException('Respuesta excesiva.');
+                            throw new RuntimeException(self::MENSAJE_EXCESIVA);
                         }
                     },
                     'progress' => static function (float $total, float $recibidos) use ($limite): void {
                         if ($total > $limite || $recibidos > $limite) {
-                            throw new RuntimeException('Respuesta excesiva.');
+                            throw new RuntimeException(self::MENSAJE_EXCESIVA);
                         }
                     },
                 ])->send($metodo, $url.$ruta, $metodo === 'POST' ? ['json' => $payload] : []);
-            if (! $response->successful() || strlen($response->body()) > $limite
-                || ! preg_match('~\Aapplication/json(?:\s*;|\z)~i', $response->header('Content-Type'))) {
+            if (! $response->successful()) {
+                $this->causaFallo = $response->serverError() ? 'http_5xx' : 'http_'.intdiv($response->status(), 100).'xx';
+
+                return null;
+            }
+            if (strlen($response->body()) > $limite) {
+                $this->causaFallo = 'respuesta_excesiva';
+
+                return null;
+            }
+            if (! preg_match('~\Aapplication/json(?:\s*;|\z)~i', $response->header('Content-Type'))) {
+                $this->causaFallo = 'tipo_contenido';
+
                 return null;
             }
             $data = json_decode($response->body(), true, 32, JSON_THROW_ON_ERROR);
+            if (! is_array($data) || array_is_list($data)) {
+                $this->causaFallo = 'json_invalido';
 
-            return is_array($data) && ! array_is_list($data) ? Entrada::mapa($data) : null;
-        } catch (Throwable) {
-            // Nunca registrar excepciones: pueden contener token, cuerpo o configuración.
+                return null;
+            }
+
+            return Entrada::mapa($data);
+        } catch (Throwable $e) {
+            // Nunca registrar excepciones: pueden contener token, cuerpo o configuración. Solo una categoría fija.
+            $this->causaFallo = $this->causaDeExcepcion($e);
+
             return null;
+        }
+    }
+
+    /** Clasifica sin leer el mensaje de terceros: tipo de excepción y código de error de cURL. */
+    private function causaDeExcepcion(Throwable $e): string
+    {
+        for ($actual = $e; $actual !== null; $actual = $actual->getPrevious()) {
+            if ($actual instanceof ConnectException
+                && ($actual->getHandlerContext()['errno'] ?? null) === 28) { // CURLE_OPERATION_TIMEDOUT
+                return 'tiempo_agotado';
+            }
+            if ($actual instanceof RuntimeException && $actual->getMessage() === self::MENSAJE_EXCESIVA) {
+                return 'respuesta_excesiva';
+            }
+            if ($actual instanceof \JsonException) {
+                return 'json_invalido';
+            }
+        }
+
+        return $e instanceof ConnectionException ? 'conexion' : 'excepcion';
+    }
+
+    /**
+     * IP loopback literal (sin DNS) o un hostname exacto de red privada que el operador autorizó.
+     * Sin userinfo, ruta, consulta, IP literales ajenas ni hosts de metadatos; las redirecciones y el proxy siguen bloqueados.
+     */
+    private function destinoPermitido(string $url): bool
+    {
+        if (preg_match('~\Ahttp://127\.0\.0\.1:([1-9][0-9]{0,4})\z~D', $url, $match) === 1) {
+            return (int) $match[1] <= 65535;
+        }
+        // La última etiqueta empieza por letra: descarta IP literales como 169.254.169.254.
+        if (preg_match('~\Ahttp://((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?):([1-9][0-9]{0,4})\z~D', $url, $match) !== 1
+            || (int) $match[2] > 65535 || in_array($match[1], self::HOSTS_PROHIBIDOS, true)) {
+            return false;
+        }
+        $permitidos = config('horus-advisor.allowed_hosts', []);
+
+        return is_array($permitidos) && in_array($match[1], $permitidos, true);
+    }
+
+    /** Éxito: cierra el circuito. Fallo de transporte: cuenta y, al llegar al umbral, lo abre. */
+    private function registrarResultadoCircuito(): void
+    {
+        if ($this->causaFallo === null) {
+            Cache::forget(self::CLAVE_FALLOS);
+
+            return;
+        }
+        if (! in_array($this->causaFallo, self::CAUSAS_TRANSPORTE, true)) {
+            return;
+        }
+        $segundos = max(1, Entrada::entero(config('horus-advisor.circuit_seconds', 30)));
+        Cache::add(self::CLAVE_FALLOS, 0, 2 * $segundos);
+        $fallos = Cache::increment(self::CLAVE_FALLOS);
+        if (is_int($fallos) && $fallos >= max(1, Entrada::entero(config('horus-advisor.circuit_failures', 3)))) {
+            Cache::put(self::CLAVE_ABIERTO, true, $segundos);
+            Cache::forget(self::CLAVE_FALLOS);
+            Log::warning('chatbot.circuito_abierto', ['segundos' => $segundos, 'causa' => $this->causaFallo]);
         }
     }
 
@@ -602,12 +842,22 @@ class HorusAdvisorClient
         }
         $normalizado = strtr(mb_strtolower($texto, 'UTF-8'), ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
 
-        // Patrones de ataque, no palabras sueltas: «instrucciones», «prompt», «system»
-        // o «DNI» aparecen en consultas legítimas (los datos personales los cubre el filtro de privacidad).
-        return (bool) preg_match('/\b(ignora|ignore|olvida|override|secretos?|credenciales|password|contrasena|token(?!\s+de\s+verificacion\b)|api key|revela|finge|inventa|pretend|jailbreak)\b'
+        // Patrones de ataque, no palabras sueltas: «instrucciones», «prompt», «system», «contraseña», «olvida» o «revela»
+        // aparecen en consultas legítimas («¿cómo recupero mi contraseña del aula virtual?», «si mi hijo olvida una
+        // clase…»). Medición del 22/11/2026: las palabras sueltas bloqueaban 13 de 18 consultas legítimas; los patrones,
+        // ninguna, y detienen los 22 ataques del corpus (HorusSeguridadPatronesTest). Los datos personales los cubre
+        // el filtro de privacidad, y toda respuesta sigue pasando por la validación de procedencia.
+        return (bool) preg_match('/\b(?:ignora|ignore|ignoren|olvida|olvidate|olviden|override|omite|omitan)\b.{0,40}'
+            .'\b(?:instrucciones?|indicaciones|reglas|restricciones|lo anterior|todo|prompt|instructions?|rules|safety|seguridad|filtros?)\b'
+            .'|\b(?:finge|finjas|pretend|jailbreak|inventa|inventate)\b'
+            .'|\b(?:dame|dime|muestra\w*|revela\w*|pasa(?:me|nos)|comparte\w*|extrae\w*|imprime|filtra\w*|accede\w*|cual(?:es)?\s+(?:es|son))\b.{0,60}'
+            .'\b(?:contrasenas?|passwords?|credenciales|tokens?|api\s*keys?|secretos?)\b'
             .'|\bsystem\s*(?:prompt|message|:)|\bprompt\s+(?:del\s+)?sistema\b|\b(?:tu|tus|su|sus)\s+(?:prompt|instrucciones|instruccion|reglas)\b'
+            .'|\b(?:tu|tus)\s+(?:contrasena|password|credenciales|token|configuracion)\b'
             .'|\binstrucciones\s+(?:del\s+sistema|internas|ocultas|previas|anteriores|originales|iniciales|secretas)\b|\bmodo\s+(?:desarrollador|developer|dios|sin\s+restricciones)\b'
-            .'|\b(?:accede|muestra|dame|extrae)\b.{0,60}\b(?:panel administrativo|notas de|datos de estudiantes|matriculados)\b/u', $normalizado);
+            .'|\b(?:accede\w*|muestra\w*|dame|dime|extrae\w*|lista\w*|revela\w*|pasa(?:me|nos)|comparte\w*|filtra\w*)\b.{0,60}'
+            .'\b(?:panel administrativo|notas de|(?:dni|datos|nombres|telefonos|correos|direcciones|notas)\s+de\s+(?:los\s+|las\s+)?(?:estudiantes|alumnos|matriculados|inscritos|clientes)'
+            .'|matriculados|estudiantes inscritos)\b/u', $normalizado);
     }
 
     private const NUMERALES = '(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieci\w+|veinte|veinti\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|doscientos|trescientos|cuatrocientos|quinientos|seiscientos|setecientos|ochocientos|novecientos|mil|millones?)';
@@ -718,6 +968,14 @@ class HorusAdvisorClient
         $conocimiento = self::conocimiento();
         $textos = [];
         foreach (is_array($reply['sources'] ?? null) ? $reply['sources'] : [] as $source) {
+            // Fichas publicadas vigentes citadas con su título y ruta exactos: su texto es evidencia (p. ej. la duración
+            // de dos cursos en una misma respuesta de seguimiento).
+            $editorial = is_array($source) && is_string($source['id'] ?? null) ? ($this->fuentesCatalogo[$source['id']] ?? null) : null;
+            if ($editorial !== null && $this->referenciaValida($source)) {
+                $textos[] = implode("\n", [$editorial['title'], $editorial['answer'], ...($editorial['fragments'] ?? [])]);
+
+                continue;
+            }
             $registro = is_array($source) && is_string($source['id'] ?? null) ? ($conocimiento['porId'][$source['id']] ?? null) : null;
             if ($registro !== null && ($source['url_path'] ?? null) === $registro['url_path']) {
                 $textos[] = $registro['texto'];

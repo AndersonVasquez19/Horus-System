@@ -76,10 +76,14 @@ class AsistenteVirtualService
                 && hash_equals(hash_hmac('sha256', $focoKey.serialize($focoGuardado['ids']), Entrada::texto(config('app.key'))), $focoGuardado['mac'])) {
                 $foco = array_values(array_filter($focoGuardado['ids'], 'is_string'));
             }
-            $consulta = $foco === [] ? $mensaje : $this->advisor->resolverSeguimiento($mensaje, $foco);
-            if ($consulta !== $mensaje) {
-                $key = 'chat:reply:'.hash_hmac('sha256', $session.'|'.$consulta.'|'.$version, Entrada::texto(config('app.key')));
-            }
+            // Estado conversacional (22/11/2026): temas, nivel, modalidad y registro en foco, sin texto del usuario.
+            $estadoKey = 'chat:state:'.hash_hmac('sha256', $session.'|'.$version, Entrada::texto(config('app.key')));
+            $estado = $this->leerFirmado($estadoKey, 'state');
+            $consulta = $foco === [] ? $mensaje : $this->advisor->resolverSeguimiento($mensaje, $foco, $estado !== []);
+            // La misma frase con otro contexto es otra consulta: el estado entra en la clave de deduplicación.
+            $clave = static fn (string $texto, array $contexto): string => 'chat:reply:'.hash_hmac('sha256',
+                $session.'|'.$texto.'|'.$version.($contexto === [] ? '' : '|'.serialize($contexto)), Entrada::texto(config('app.key')));
+            $key = $clave($consulta, $estado);
             $cached = Cache::get($key);
             if (is_array($cached) && isset($cached['reply'], $cached['mac']) && is_array($cached['reply'])
                 && is_string($cached['mac'])
@@ -93,20 +97,34 @@ class AsistenteVirtualService
                 } else {
                     Cache::forget($focoKey);
                 }
+                $estadoCache = $cached['state'] ?? [];
+                $this->guardarFirmado($estadoKey, 'state', is_array($estadoCache)
+                    && is_string($cached['state_mac'] ?? null)
+                    && hash_equals(hash_hmac('sha256', $key.serialize($estadoCache), Entrada::texto(config('app.key'))), $cached['state_mac'])
+                    ? $estadoCache : []);
                 $this->metric('duplicate');
 
                 return $cached['reply'];
             }
-            $result = $this->advisor->orientar($consulta) ?? $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
+            $result = $this->advisor->orientar($consulta, null, $estado) ?? $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
             $nuevoFoco = $result['fuente'] === 'advisor' ? $this->advisor->focoConversacional() : [];
             $this->guardarFoco($focoKey, $nuevoFoco);
+            $nuevoEstado = $result['fuente'] === 'advisor' ? $this->advisor->estadoConversacional() : [];
+            $this->guardarFirmado($estadoKey, 'state', $nuevoEstado);
             if ($result['fuente'] === 'respaldo') {
                 $motivo = $this->advisor->motivoContingencia();
                 Log::info('chatbot.contingencia', ['motivo' => $motivo ?? 'no_disponible']);
+                $causa = $this->advisor->causaFallo();
+                if ($causa !== null) {
+                    // Solo una categoría fija y la latencia: nunca texto del usuario ni detalles de la excepción.
+                    Log::info('chatbot.advisor_fallo', ['causa' => $causa, 'latencia_ms' => $this->advisor->latenciaMs()]);
+                }
             }
-            Cache::put($key, ['reply' => $result, 'focus' => $nuevoFoco,
-                'focus_mac' => hash_hmac('sha256', $key.serialize($nuevoFoco), Entrada::texto(config('app.key'))),
-                'mac' => hash_hmac('sha256', $key.serialize($result), Entrada::texto(config('app.key')))], Entrada::entero(config('chatbot.duplicate_seconds', 60)));
+            $this->guardarRespuesta($key, $result, $nuevoFoco, $nuevoEstado);
+            if ($consulta === $mensaje && $nuevoEstado !== $estado) {
+                // Doble envío: al repetir el mensaje el estado ya es el de esta respuesta; también se deduplica.
+                $this->guardarRespuesta($clave($mensaje, $nuevoEstado), $result, $nuevoFoco, $nuevoEstado);
+            }
             $registro = [
                 'session_id' => $session,
                 'mensaje_usuario' => '[contenido omitido por privacidad]',
@@ -133,6 +151,50 @@ class AsistenteVirtualService
         }
         Cache::put($key, ['ids' => $ids,
             'mac' => hash_hmac('sha256', $key.serialize($ids), Entrada::texto(config('app.key')))], 300);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @param  list<string>  $foco
+     * @param  array<string, mixed>  $estado
+     */
+    private function guardarRespuesta(string $key, array $result, array $foco, array $estado): void
+    {
+        $secreto = Entrada::texto(config('app.key'));
+        Cache::put($key, ['reply' => $result, 'focus' => $foco,
+            'focus_mac' => hash_hmac('sha256', $key.serialize($foco), $secreto),
+            'state' => $estado,
+            'state_mac' => hash_hmac('sha256', $key.serialize($estado), $secreto),
+            'mac' => hash_hmac('sha256', $key.serialize($result), $secreto)], Entrada::entero(config('chatbot.duplicate_seconds', 60)));
+    }
+
+    /**
+     * Valor de caché autenticado con HMAC (5 minutos). Solo estructuras de vocabulario cerrado, nunca texto libre.
+     *
+     * @return array<string, mixed>
+     */
+    private function leerFirmado(string $key, string $campo): array
+    {
+        $guardado = Cache::get($key);
+        if (! is_array($guardado) || ! is_array($guardado[$campo] ?? null) || ! is_string($guardado['mac'] ?? null)
+            || ! hash_equals(hash_hmac('sha256', $key.serialize($guardado[$campo]), Entrada::texto(config('app.key'))), $guardado['mac'])) {
+            return [];
+        }
+
+        /** @var array<string, mixed> */
+        return $guardado[$campo];
+    }
+
+    /** @param array<mixed> $valor */
+    private function guardarFirmado(string $key, string $campo, array $valor): void
+    {
+        if ($valor === []) {
+            Cache::forget($key);
+
+            return;
+        }
+        Cache::put($key, [$campo => $valor,
+            'mac' => hash_hmac('sha256', $key.serialize($valor), Entrada::texto(config('app.key')))], 300);
     }
 
     /** Diagnóstico histórico; no participa en procesarMensaje ni en rutas del chat. */
