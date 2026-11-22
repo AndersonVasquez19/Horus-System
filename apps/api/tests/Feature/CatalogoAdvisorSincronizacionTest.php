@@ -88,19 +88,32 @@ class CatalogoAdvisorSincronizacionTest extends TestCase
         Http::assertNotSent(fn ($request): bool => str_ends_with($request->url(), '/api/v1/chat'));
     }
 
-    public function test_stale_and_error_catalog_states_use_fallback_without_chat_request(): void
+    public function test_error_catalog_state_uses_fallback_without_chat_request(): void
     {
         config(['horus-catalog.sync_enabled' => true]);
         Cache::put('horus-ai.catalog.expected-version', str_repeat('a', 40));
-        foreach (['stale', 'error'] as $state) {
-            Http::swap(new Factory);
-            $this->fakeReady($state);
+        Http::swap(new Factory);
+        $this->fakeReady('error');
 
-            app(HorusAdvisorClient::class)->orientar('Oriéntame sobre cursos.');
+        app(HorusAdvisorClient::class)->orientar('Oriéntame sobre cursos.');
 
-            Http::assertSentCount(1);
-            Http::assertNotSent(fn ($request): bool => str_ends_with($request->url(), '/api/v1/chat'));
-        }
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn ($request): bool => str_ends_with($request->url(), '/api/v1/chat'));
+    }
+
+    /** 22/11/2026: «stale» con status ready sigue atendiendo sin fichas (ver HorusAdvisorResilienciaTest). */
+    public function test_stale_catalog_with_ready_status_still_reaches_chat_and_falls_back_on_failure(): void
+    {
+        config(['horus-catalog.sync_enabled' => true]);
+        Cache::put('horus-ai.catalog.expected-version', str_repeat('a', 40));
+        Http::swap(new Factory);
+        $this->fakeReady('stale');
+
+        $client = app(HorusAdvisorClient::class);
+        $this->assertNull($client->orientar('Oriéntame sobre cursos.'));
+
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/api/v1/chat'));
+        $this->assertSame('http_5xx', $client->causaFallo());
     }
 
     public function test_managed_types_are_covered_by_the_catalog_signature(): void

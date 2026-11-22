@@ -12,6 +12,25 @@ use Throwable;
 /** Procedencia local del texto editorial exacto; no concede confianza al prefijo cat_. */
 class FuentesCatalogoAdvisor
 {
+    private const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    /** «5 de diciembre de 2026»: la misma frase que compone Python (app/services/catalog.py, long_date). */
+    public static function fechaLarga(string $iso): string
+    {
+        $fecha = Carbon::createFromFormat('!Y-m-d', substr($iso, 0, 10));
+        if ($fecha === null) {
+            throw new \InvalidArgumentException('Fecha de inicio inválida.');
+        }
+
+        return $fecha->day.' de '.self::MESES[$fecha->month - 1].' de '.$fecha->year;
+    }
+
+    /** Certificación sin punto final (Python: certification_line). */
+    public static function lineaCertificacion(string $texto): string
+    {
+        return rtrim(trim($texto), '.');
+    }
+
     /** @return array<string, array{title: string, url_path: string|null, answer: string, fragments?: list<string>}> */
     public function actuales(): array
     {
@@ -41,14 +60,22 @@ class FuentesCatalogoAdvisor
                 if (! empty($item['modalities'])) {
                     $partes[] = 'Modalidad: '.implode(', ', $item['modalities']).'.';
                 }
+                $inicio = empty($item['start_date']) ? null : self::fechaLarga($item['start_date']);
+                $certificacion = empty($item['certification_text']) ? null : self::lineaCertificacion($item['certification_text']);
                 if (! empty($item['duration_text'])) {
                     $partes[] = 'Duración: '.$item['duration_text'].'.';
+                }
+                if ($inicio !== null) {
+                    $partes[] = 'Inicio: '.$inicio.'.';
                 }
                 if (! empty($item['schedule_text'])) {
                     $partes[] = 'Horario: '.$item['schedule_text'].'.';
                 }
                 if (! empty($item['requirements'])) {
                     $partes[] = 'Requisitos: '.implode('; ', $item['requirements']).'.';
+                }
+                if ($certificacion !== null) {
+                    $partes[] = 'Certificación: '.$certificacion.'.';
                 }
                 // El exportador autorizado actual no publica precios individuales.
                 if (! empty($item['public_price'])) {
@@ -66,6 +93,15 @@ class FuentesCatalogoAdvisor
                 }
                 if (! empty($item['schedule_text'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el horario es '.$item['schedule_text'].'.';
+                }
+                // Frases de seguimiento de Python (chat_engine._attribute_line), carácter por carácter.
+                if ($inicio !== null) {
+                    $fuentes[$id]['fragments'][] = empty($item['schedule_text'])
+                        ? '«'.$item['title'].'»: inicia el '.$inicio.'.'
+                        : '«'.$item['title'].'»: inicia el '.$inicio.'; el horario es '.$item['schedule_text'].'.';
+                }
+                if ($certificacion !== null) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: certificación: '.$certificacion.'.';
                 }
                 if (! empty($item['modalities'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es '.implode(', ', $item['modalities']).'.';

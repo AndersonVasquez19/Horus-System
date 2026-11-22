@@ -38,7 +38,9 @@ class AdvisorCatalogoTest extends TestCase
         $export = app(ExportadorCatalogoAdvisor::class)->construir($admin);
         $item = $export['items'][0];
         $this->assertSame('curso:publicacion-'.CursoPublicacion::firstOrFail()->id, $item['stable_id']);
-        $this->assertSame(['stable_id', 'type', 'publication_status', 'title', 'summary', 'details', 'modalities', 'schedule_text', 'updated_at', 'valid_from', 'valid_until'], array_keys($item));
+        // 22/11/2026: se suman solo los datos académicos públicos de la ficha (duración, inicio, certificación) y el enlace.
+        $this->assertSame(['stable_id', 'type', 'publication_status', 'title', 'summary', 'details', 'modalities', 'schedule_text',
+            'duration_text', 'start_date', 'certification_text', 'url_path', 'updated_at', 'valid_from', 'valid_until'], array_keys($item));
         $this->assertSame('vigente', $item['publication_status']);
         $this->assertTrue(app(FirmaCatalogoAdvisor::class)->verificar($export));
         $this->assertSame('2026-10-29T00:00:00-05:00', $export['expires_at']);

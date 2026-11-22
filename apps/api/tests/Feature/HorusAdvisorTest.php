@@ -397,7 +397,8 @@ class HorusAdvisorTest extends TestCase
         yield 'not ready' => [['status' => 'not_ready']];
         yield 'knowledge' => [['knowledge' => 'unavailable']];
         yield 'auth' => [['auth' => 'missing']];
-        yield 'stale' => [['catalog' => 'stale']];
+        // 22/11/2026: «stale» con status ready sí atiende (sin fichas, ver HorusAdvisorResilienciaTest); sin listo, no.
+        yield 'stale' => [['catalog' => 'stale', 'status' => 'not_ready']];
         yield 'loaded catalog' => [['catalog' => 'loaded']];
         yield 'catalog error' => [['catalog' => 'error']];
     }
