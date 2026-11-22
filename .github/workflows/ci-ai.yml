@@ -40,10 +40,12 @@ jobs:
         with:
           python-version: '3.13'
           cache: pip
-          cache-dependency-path: apps/ai/requirements.lock
+          cache-dependency-path: |
+            apps/ai/requirements.lock
+            apps/ai/requirements-dev.lock
 
       - name: Instalar dependencias (sin el modelo semántico)
-        run: python -m pip install --require-hashes -r requirements.lock
+        run: python -m pip install --require-hashes -r requirements-dev.lock
 
       # Fallo preexistente (11/11/2026), idéntico antes de mover la carpeta: el motor y el fixture de Laravel
       # discrepan en match_level/intent. Se excluye hasta resolverlo como tarea aparte; no se altera el fixture.

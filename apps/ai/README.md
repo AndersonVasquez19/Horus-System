@@ -54,17 +54,18 @@ Desde PowerShell, en la carpeta `apps/ai`:
 cd "<ruta-del-repositorio>\apps\ai"
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
-.venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock
+.venv\Scripts\python.exe -m pip install --require-hashes -r requirements-dev.lock
 ```
 
 Si PowerShell bloquea `Activate.ps1`, no hace falta activar el entorno: basta con usar `.venv\Scripts\python.exe` como en los ejemplos.
 
 | Archivo de bloqueo | Contenido |
 | --- | --- |
-| `requirements.lock` | FastAPI, Uvicorn, Pydantic, Pydantic Settings, HTTPX, Pytest, Ruff |
+| `requirements.lock` | Producción (lo que instala el `Dockerfile`): FastAPI, Uvicorn, Pydantic, Pydantic Settings, HTTPX |
+| `requirements-dev.lock` | `requirements.lock` más Pytest, Ruff y sus dependencias (pruebas locales y CI) |
 | `requirements-semantic.lock` | Lo anterior más sentence-transformers y **torch CPU** (`2.15.0+cpu`, sin CUDA). Incluye `httpx2`, dependencia de `huggingface_hub`, que el TestClient usa cuando está presente |
 
-El sprint 2 no añadió dependencias. Para regenerar los bloqueos: `.venv\Scripts\uv.exe pip compile pyproject.toml --extra dev --python-version 3.13 --generate-hashes -o requirements.lock`.
+El sprint 2 no añadió dependencias. Desde el 22/11/2026 las herramientas de desarrollo no entran en la imagen de producción. Para regenerar los bloqueos: `.venv\Scripts\uv.exe pip compile pyproject.toml --python-version 3.13 --generate-hashes -o requirements.lock` (producción) y, para desarrollo, `--extra dev -o` hacia un archivo temporal del que se copian a `requirements-dev.lock` solo las entradas que no están en `requirements.lock` (el archivo empieza con `-r requirements.lock`).
 
 ## 4. Seleccionar el intérprete en VS Code
 

@@ -3,7 +3,9 @@
 > **Estado (20/11/2026):** configuración preparada, **no desplegada ni probada en Vercel o Railway**. No hubo Docker
 > en la máquina de preparación, así que las imágenes no se construyeron localmente. Lo comprobado: `next build` de
 > `apps/web`, `tsc`, ESLint, las pruebas de Horus AI y que las 26 ruedas Linux de `apps/ai/requirements.lock` se
-> descargan con sus hashes. Aplicar migraciones o crear usuarios en la base de Railway exige la autorización expresa
+> descargan con sus hashes. (22/11/2026: ese lock se dividió sin cambiar versiones ni hashes; la imagen instala las 19
+> ruedas de producción de `requirements.lock`, y pytest, ruff y sus 5 dependencias pasaron a `requirements-dev.lock`.)
+> Aplicar migraciones o crear usuarios en la base de Railway exige la autorización expresa
 > del propietario (`AGENTS.md` §4). Complementa a [`guia-despliegue.md`](guia-despliegue.md), que cubre el servidor propio.
 
 ## 1. Arquitectura
