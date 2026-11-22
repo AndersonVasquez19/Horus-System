@@ -40,7 +40,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.core.config import Settings  # noqa: E402
 from app.core.text import normalize  # noqa: E402
-from app.schemas.chat import AdvisorReply, HistoryItem  # noqa: E402
+from app.schemas.chat import AdvisorReply, ConversationState, HistoryItem  # noqa: E402
 from app.services.chat_engine import AdvisorEngine  # noqa: E402
 from app.services.knowledge import KnowledgeBase  # noqa: E402
 from app.services.semantic_search import SemanticIndex, SentenceTransformerEmbedder  # noqa: E402
@@ -94,7 +94,10 @@ def matches_behavior(reply: AdvisorReply, behavior: str, expected: list[str]) ->
             and (not expected or reply.recommendations[0].id in expected)
         )
     if behavior == "recommend_none":
-        return "no encuentro" in _text(reply) and all(r.match_level != "alta" for r in reply.recommendations)
+        # «No hay oferta del tema»: redacción anterior («no encuentro») y la del 20/11/2026 («no tengo un curso»).
+        text = _text(reply)
+        declares_none = "no encuentro" in text or "no tengo un curso" in text
+        return declares_none and all(r.match_level != "alta" for r in reply.recommendations)
     if behavior == "clarify":
         return reply.needs_clarification
     if behavior == "abstain":
@@ -231,13 +234,21 @@ def evaluate_items(engine: AdvisorEngine, dataset: dict, kb_numbers: set[str]) -
     return rows
 
 
-def evaluate_conversations(engine: AdvisorEngine, conversations: dict, kb_numbers: set[str]) -> list[dict]:
+def evaluate_conversations(
+    engine: AdvisorEngine, conversations: dict, kb_numbers: set[str], *, use_state: bool = False
+) -> list[dict]:
+    """Cada diálogo, con historial de texto o (use_state) solo con el estado estructurado, como hace Laravel."""
     results = []
     for scenario in conversations["scenarios"]:
         history: list[HistoryItem] = []
+        state: ConversationState | None = None
         turns = []
         for spec in scenario["turns"]:
-            reply = engine.chat(spec["user"], history[-10:])
+            if use_state:
+                reply = engine.chat(spec["user"], [], state)
+                state = reply.state
+            else:
+                reply = engine.chat(spec["user"], history[-10:])
             expected = spec.get("expected_ids", [])
             behavior_ok = any(matches_behavior(reply, b, expected) for b in spec["behaviors"])
             ok = behavior_ok and content_ok(reply, spec)
@@ -282,6 +293,7 @@ def evaluate(mode: str, settings: Settings, dataset: dict, conversations: dict) 
     engine.chat("calentamiento")  # excluye la primera llamada (cachés) de los tiempos
     rows = evaluate_items(engine, dataset, kb_numbers)
     convs = evaluate_conversations(engine, conversations, kb_numbers)
+    convs_state = evaluate_conversations(engine, conversations, kb_numbers, use_state=True)
     memory_after = process_memory_mb()
 
     by_category: dict[str, list[dict]] = defaultdict(list)
@@ -301,6 +313,8 @@ def evaluate(mode: str, settings: Settings, dataset: dict, conversations: dict) 
             "all": conversation_block(convs),
             "dev": conversation_block([c for c in convs if c["split"] == "dev"]),
             "test": conversation_block([c for c in convs if c["split"] == "test"]),
+            # Mismos diálogos sin texto previo, solo con el estado estructurado (contrato de Laravel).
+            "state_only": conversation_block(convs_state),
         },
     }
     return {
@@ -314,6 +328,7 @@ def evaluate(mode: str, settings: Settings, dataset: dict, conversations: dict) 
         "metrics": metrics,
         "rows": rows,
         "conversations": convs,
+        "conversations_state_only": convs_state,
     }
 
 

@@ -1,6 +1,6 @@
 {
-  "version": "2026-10-29.1",
-  "description": "Escenarios de varios turnos. SINTÉTICOS (origin='sintetico_asistente'), escritos antes de modificar el motor en el sprint 2. Cada turno se envía con el historial acumulado (mensajes del usuario y respuestas reales del motor). 'must_contain_any' y 'must_not_contain' se comparan sin tildes y en minúsculas.",
+  "version": "2026-11-22.1",
+  "description": "Escenarios de varios turnos. SINTÉTICOS (origin='sintetico_asistente'), escritos antes de modificar el motor en el sprint 2. Cada turno se envía con el historial acumulado (mensajes del usuario y respuestas reales del motor). 'must_contain_any' y 'must_not_contain' se comparan sin tildes y en minúsculas. 22/11/2026: conv02, conv05, conv07, conv08 y conv10 se reescribieron porque los servicios tecnológicos se retiraron el 20/11/2026; ahora exigen que queden fuera de alcance y que ningún seguimiento los reviva.",
   "scenarios": [
     {
       "id": "conv01", "split": "dev", "origin": "sintetico_asistente",
@@ -13,10 +13,10 @@
     },
     {
       "id": "conv02", "split": "test", "origin": "sintetico_asistente",
-      "title": "Cámaras para empresa → «¿también para casas?»",
+      "title": "Cámaras para empresa (fuera de alcance) → «¿también para casas?»",
       "turns": [
-        {"user": "Mi empresa necesita cámaras", "behaviors": ["recommend"], "expected_ids": ["servicio_camaras"], "intents": ["service_recommendation"]},
-        {"user": "¿Y eso lo hacen también para casas?", "behaviors": ["answer_check"], "intents": ["followup_attribute", "service_info", "service_recommendation"], "must_contain_any": ["hogar"]}
+        {"user": "Mi empresa necesita cámaras", "behaviors": ["abstain"], "intents": ["service_recommendation", "out_of_scope"], "must_contain_any": ["cursos"], "must_not_contain": ["instalamos", "instalacion de camaras"]},
+        {"user": "¿Y eso lo hacen también para casas?", "behaviors": ["abstain", "clarify"], "intents": ["service_recommendation", "out_of_scope", "clarification", "unavailable_info"], "must_not_contain": ["hogar", "instalamos"]}
       ]
     },
     {
@@ -38,9 +38,9 @@
     },
     {
       "id": "conv05", "split": "dev", "origin": "sintetico_asistente",
-      "title": "Cambio de tema: cámaras → pagos",
+      "title": "Cambio de tema: cámaras (fuera de alcance) → pagos",
       "turns": [
-        {"user": "Quiero instalar cámaras en mi casa", "behaviors": ["recommend"], "expected_ids": ["servicio_camaras"], "intents": ["service_recommendation"]},
+        {"user": "Quiero instalar cámaras en mi casa", "behaviors": ["abstain"], "intents": ["service_recommendation", "out_of_scope"], "must_not_contain": ["instalamos"]},
         {"user": "Ahora otra cosa, ¿aceptan Yape?", "behaviors": ["answer"], "expected_ids": ["faq_medios_pago"], "intents": ["faq"]}
       ]
     },
@@ -55,19 +55,19 @@
     },
     {
       "id": "conv07", "split": "dev", "origin": "sintetico_asistente",
-      "title": "Saludo → servicios → «¿y el de cableado?»",
+      "title": "Saludo → servicios (a qué se dedica) → «¿y el de cableado?»",
       "turns": [
         {"user": "Hola", "behaviors": ["template"], "intents": ["greeting"]},
-        {"user": "¿Qué servicios tienen?", "behaviors": ["answer"], "expected_ids": ["servicios_resumen"], "intents": ["service_info"]},
-        {"user": "¿Y el de cableado?", "behaviors": ["answer", "recommend"], "expected_ids": ["servicio_cableado"], "intents": ["service_info", "service_recommendation", "followup_attribute"]}
+        {"user": "¿Qué servicios brindan ustedes?", "behaviors": ["answer"], "expected_ids": ["empresa_descripcion"], "intents": ["company_info"], "must_contain_any": ["cursos"]},
+        {"user": "¿Y el de cableado?", "behaviors": ["abstain", "clarify"], "intents": ["out_of_scope", "service_recommendation", "clarification", "unavailable_info"], "must_not_contain": ["cableado estructurado"]}
       ]
     },
     {
       "id": "conv08", "split": "test", "origin": "sintetico_asistente",
-      "title": "Cotización sin servicio → especifica cámaras",
+      "title": "Cotización sin tema → especifica cámaras (fuera de alcance)",
       "turns": [
         {"user": "Quiero una cotización", "behaviors": ["quote_guidance", "clarify"], "intents": ["quote_request"]},
-        {"user": "para cámaras de seguridad", "behaviors": ["quote_guidance"], "expected_ids": ["servicio_camaras"], "intents": ["quote_request"]}
+        {"user": "para cámaras de seguridad", "behaviors": ["quote_guidance", "abstain"], "intents": ["quote_request", "service_recommendation", "out_of_scope"], "must_contain_any": ["asesor"], "must_not_contain": ["instalamos"]}
       ]
     },
     {
@@ -80,9 +80,9 @@
     },
     {
       "id": "conv10", "split": "test", "origin": "sintetico_asistente",
-      "title": "Red de oficina → tiempo de atención (no publicado)",
+      "title": "Red de oficina (fuera de alcance) → tiempo de atención",
       "turns": [
-        {"user": "Tenemos problemas con la red de la oficina", "behaviors": ["recommend"], "expected_ids": ["servicio_cableado", "servicio_soporte"], "intents": ["service_recommendation"]},
+        {"user": "Tenemos problemas con la red de la oficina", "behaviors": ["abstain"], "intents": ["service_recommendation", "out_of_scope"], "must_not_contain": ["tecnico a domicilio", "instalamos"]},
         {"user": "¿Y cuánto demoran en venir?", "behaviors": ["abstain", "answer_check"], "intents": ["unavailable_info", "followup_attribute", "out_of_scope", "clarification"], "must_contain_any": ["no", "confirmar", "asesor"]}
       ]
     },

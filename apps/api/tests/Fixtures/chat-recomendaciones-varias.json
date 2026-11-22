@@ -1,0 +1,256 @@
+{
+  "items": [
+    {
+      "stable_id": "curso:publicacion-1",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Excel desde cero",
+      "summary": "Aprende Excel básico: fórmulas, formatos y tablas.",
+      "details": "Aprende Excel básico: fórmulas, formatos y tablas.",
+      "modalities": [
+        "virtual"
+      ],
+      "duration_text": "6 semanas",
+      "url_path": "/educacion/cursos",
+      "updated_at": "2026-11-22T10:00:00-05:00"
+    },
+    {
+      "stable_id": "curso:publicacion-2",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Excel para finanzas",
+      "summary": "Excel aplicado a presupuestos, flujo de caja y tablas dinámicas.",
+      "details": "Excel aplicado a presupuestos, flujo de caja y tablas dinámicas.",
+      "modalities": [
+        "virtual"
+      ],
+      "duration_text": "6 semanas",
+      "url_path": "/educacion/cursos",
+      "updated_at": "2026-11-22T10:00:00-05:00"
+    },
+    {
+      "stable_id": "curso:publicacion-3",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Excel avanzado con macros",
+      "summary": "Automatiza Excel con macros y tablas dinámicas.",
+      "details": "Automatiza Excel con macros y tablas dinámicas.",
+      "modalities": [
+        "virtual"
+      ],
+      "duration_text": "6 semanas",
+      "url_path": "/educacion/cursos",
+      "updated_at": "2026-11-22T10:00:00-05:00"
+    },
+    {
+      "stable_id": "curso:publicacion-4",
+      "type": "curso",
+      "publication_status": "vigente",
+      "title": "Redes y cableado",
+      "summary": "Fundamentos de redes de datos y cableado estructurado.",
+      "details": "Fundamentos de redes de datos y cableado estructurado.",
+      "modalities": [
+        "virtual"
+      ],
+      "duration_text": "6 semanas",
+      "url_path": "/educacion/cursos",
+      "updated_at": "2026-11-22T10:00:00-05:00"
+    }
+  ],
+  "cases": [
+    {
+      "query": "Quiero aprender Excel desde cero",
+      "state": null,
+      "reply": {
+        "answer": "Excel desde cero: Aprende Excel básico: fórmulas, formatos y tablas.",
+        "intent": "course_recommendation",
+        "match_level": "alta",
+        "needs_clarification": true,
+        "clarification_question": "También coinciden con lo que buscas: «Excel para finanzas» y «Excel avanzado con macros». ¿Quieres que te cuente de alguno?",
+        "abstained": false,
+        "recommendations": [
+          {
+            "id": "cat_curso_publicacion_1",
+            "title": "Excel desde cero",
+            "kind": "course",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Aprende Excel básico: fórmulas, formatos y tablas.».",
+            "evidence": [
+              "cat_curso_publicacion_1"
+            ],
+            "match_level": "alta",
+            "url_path": "/educacion/cursos",
+            "evidence_text": "Aprende Excel básico: fórmulas, formatos y tablas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          },
+          {
+            "id": "cat_curso_publicacion_2",
+            "title": "Excel para finanzas",
+            "kind": "course",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Excel aplicado a presupuestos, flujo de caja y tablas dinámicas.».",
+            "evidence": [
+              "cat_curso_publicacion_2"
+            ],
+            "match_level": "media",
+            "url_path": "/educacion/cursos",
+            "evidence_text": "Excel aplicado a presupuestos, flujo de caja y tablas dinámicas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          },
+          {
+            "id": "cat_curso_publicacion_3",
+            "title": "Excel avanzado con macros",
+            "kind": "course",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Automatiza Excel con macros y tablas dinámicas.».",
+            "evidence": [
+              "cat_curso_publicacion_3"
+            ],
+            "match_level": "media",
+            "url_path": "/educacion/cursos",
+            "evidence_text": "Automatiza Excel con macros y tablas dinámicas.",
+            "signals": [],
+            "limitations": [],
+            "needs_clarification": false,
+            "clarification_question": null,
+            "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+          }
+        ],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_publicacion_1",
+            "title": "Excel desde cero",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_2",
+            "title": "Excel para finanzas",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_3",
+            "title": "Excel avanzado con macros",
+            "url_path": "/educacion/cursos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [
+            "ofimatica"
+          ],
+          "level": "principiante",
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        },
+        "state": {
+          "topics": [
+            "ofimatica"
+          ],
+          "objectives": [],
+          "level": "principiante",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "learn",
+          "profile_age": 0,
+          "cue_age": 0,
+          "focus_ids": [
+            "cat_curso_publicacion_1",
+            "cat_curso_publicacion_2"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
+        }
+      }
+    },
+    {
+      "query": "¿cuánto dura?",
+      "state": {
+        "topics": [
+          "ofimatica"
+        ],
+        "objectives": [],
+        "level": "principiante",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "learn",
+        "profile_age": 0,
+        "cue_age": 0,
+        "focus_ids": [
+          "cat_curso_publicacion_1",
+          "cat_curso_publicacion_2"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "reply": {
+        "answer": "«Excel desde cero»: dura 6 semanas.\n«Excel para finanzas»: dura 6 semanas.",
+        "intent": "followup_attribute",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_publicacion_1",
+            "title": "Excel desde cero",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_2",
+            "title": "Excel para finanzas",
+            "url_path": "/educacion/cursos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 1,
+          "topics": [
+            "ofimatica"
+          ],
+          "level": "principiante",
+          "modality": null,
+          "focus_ids": [
+            "cat_curso_publicacion_1",
+            "cat_curso_publicacion_2"
+          ],
+          "topic_changed": false,
+          "referential": false
+        },
+        "state": {
+          "topics": [
+            "ofimatica"
+          ],
+          "objectives": [],
+          "level": "principiante",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "learn",
+          "profile_age": 1,
+          "cue_age": 1,
+          "focus_ids": [
+            "cat_curso_publicacion_1",
+            "cat_curso_publicacion_2"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
+        }
+      }
+    }
+  ]
+}

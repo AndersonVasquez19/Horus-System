@@ -125,6 +125,24 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "capacitacion"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": 0,
+          "cue_age": null,
+          "focus_ids": [
+            "cat_curso_datos"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -177,6 +195,25 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "capacitacion",
+            "cursos"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "learn",
+          "profile_age": 0,
+          "cue_age": 0,
+          "focus_ids": [
+            "cat_curso_excel"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -210,6 +247,24 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "capacitacion"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": 0,
+          "cue_age": null,
+          "focus_ids": [
+            "cat_listado_formacion"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -237,6 +292,22 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "cursos"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": 0,
+          "cue_age": null,
+          "focus_ids": [],
+          "focus_age": null,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -262,6 +333,20 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "learn",
+          "profile_age": 0,
+          "cue_age": 0,
+          "focus_ids": [],
+          "focus_age": null,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -315,6 +400,26 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "cableado",
+            "empresas",
+            "ofimatica"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "empresa",
+          "goal": "service",
+          "profile_age": 0,
+          "cue_age": 0,
+          "focus_ids": [
+            "cat_curso_excel"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -344,6 +449,24 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "cableado",
+            "computadoras",
+            "mantenimiento"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "service",
+          "profile_age": 0,
+          "cue_age": 0,
+          "focus_ids": [],
+          "focus_age": null,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -374,6 +497,22 @@
           ],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "ofimatica"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "learn",
+          "profile_age": 0,
+          "cue_age": 0,
+          "focus_ids": [],
+          "focus_age": null,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -405,6 +544,22 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": null,
+          "cue_age": null,
+          "focus_ids": [
+            "contacto_canales"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -433,6 +588,23 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [
+            "computadoras",
+            "mantenimiento"
+          ],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": 0,
+          "cue_age": null,
+          "focus_ids": [],
+          "focus_age": null,
+          "out_of_scope": true,
+          "quote": false
         }
       }
     },
@@ -464,6 +636,22 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": null,
+          "cue_age": null,
+          "focus_ids": [
+            "contacto_canales"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
         }
       }
     },
@@ -491,6 +679,20 @@
           "focus_ids": [],
           "topic_changed": false,
           "referential": false
+        },
+        "state": {
+          "topics": [],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": null,
+          "cue_age": null,
+          "focus_ids": [],
+          "focus_age": null,
+          "out_of_scope": false,
+          "quote": true
         }
       }
     }

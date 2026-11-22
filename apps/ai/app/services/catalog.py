@@ -60,6 +60,19 @@ MODALITY_LABEL = {
 }
 
 
+MONTHS = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+    "noviembre", "diciembre")
+
+
+def long_date(value: date) -> str:
+    """«1 de diciembre de 2026». Laravel compone la misma frase (FuentesCatalogoAdvisor::fechaLarga)."""
+    return f"{value.day} de {MONTHS[value.month - 1]} de {value.year}"
+
+
+def certification_line(text: str) -> str:
+    return text.strip().rstrip(".")
+
+
 class CatalogError(RuntimeError):
     """El catálogo no existe, no es válido o su firma no coincide."""
 
@@ -110,10 +123,14 @@ def _answer(item: CatalogItem, catalog: PublicCatalog) -> str:
         parts.append("Modalidad: " + ", ".join(MODALITY_LABEL[m] for m in item.modalities) + ".")
     if item.duration_text:
         parts.append(f"Duración: {item.duration_text}.")
+    if item.start_date:
+        parts.append(f"Inicio: {long_date(item.start_date)}.")
     if item.schedule_text:
         parts.append(f"Horario: {item.schedule_text}.")
     if item.requirements:
         parts.append("Requisitos: " + "; ".join(item.requirements) + ".")
+    if item.certification_text:
+        parts.append(f"Certificación: {certification_line(item.certification_text)}.")
     if item.public_price is not None:
         p = item.public_price
         parts.append(f"Precio público: {p.currency} {p.amount} ({p.conditions}).")
@@ -182,6 +199,11 @@ def to_records(catalog: PublicCatalog, now: datetime) -> tuple[list[KnowledgeRec
                 requirements=list(item.requirements) if status == "verified" else [],
                 duration=item.duration_text if status == "verified" else None,
                 schedule=item.schedule_text if status == "verified" else None,
+                start_text=long_date(item.start_date) if status == "verified" and item.start_date else None,
+                certification=(
+                    certification_line(item.certification_text)
+                    if status == "verified" and item.certification_text else None
+                ),
                 public_price=(
                     f"{item.public_price.currency} {item.public_price.amount} ({item.public_price.conditions})"
                     if status == "verified" and item.public_price

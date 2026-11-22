@@ -175,19 +175,39 @@ def test_sync_route_uses_catalog_body_limit_instead_of_chat_body_limit(tmp_path:
     assert response.status_code == 422
 
 
-def test_startup_with_expired_catalog_is_stale_and_cannot_answer(tmp_path: Path) -> None:
+def _course_titles(raw: dict) -> list[str]:
+    return [item["title"] for item in raw["items"] if item["type"] == "curso"]
+
+
+def _assert_no_course_presented(body: dict, titles: list[str]) -> None:
+    """Garantía que se conserva: con el catálogo caducado ningún curso se presenta como hecho."""
+    assert not any(s["id"].startswith("cat_") for s in body["sources"])
+    assert not any(r["id"].startswith("cat_") for r in body["recommendations"])
+    # Nombrarlo solo se admite para negarlo («ya no está vigente»), nunca como oferta confirmada.
+    if any(title in body["answer"] for title in titles):
+        assert body["abstained"], body["answer"]
+
+
+def test_startup_with_expired_catalog_keeps_answering_without_presenting_courses(tmp_path: Path) -> None:
+    """22/11/2026: un catálogo caducado ya no apaga el servicio; antes respondía 503 a todo."""
     client, active = _client(tmp_path)
     expired = _catalog(datetime.now(UTC) - timedelta(minutes=10))
     active.write_text(json.dumps(expired, ensure_ascii=False), encoding="utf-8")
+    headers = {"X-Horus-Service-Token": TEST_TOKEN}
     with client:
         ready = client.get("/ready").json()
         assert ready["catalog"] == "stale"
-        assert ready["status"] == "not_ready"
-        response = client.post("/api/v1/chat", json={"message": "¿Qué cursos ofrecen?"}, headers={"X-Horus-Service-Token": TEST_TOKEN})
-        assert response.status_code == 503
+        assert ready["status"] == "ready"
+        courses = client.post("/api/v1/chat", json={"message": "¿Qué cursos ofrecen?"}, headers=headers)
+        assert courses.status_code == 200
+        _assert_no_course_presented(courses.json(), _course_titles(expired))
+        assert "no hay cursos" not in courses.json()["answer"].lower()
+        payment = client.post("/api/v1/chat", json={"message": "¿Aceptan Yape?"}, headers=headers)
+        assert payment.status_code == 200
+        assert [s["id"] for s in payment.json()["sources"]] == ["faq_medios_pago"]
 
 
-def test_loaded_catalog_becomes_stale_after_expiry_and_cannot_answer(tmp_path: Path) -> None:
+def test_loaded_catalog_becomes_stale_after_expiry_and_stops_presenting_courses(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     with client:
         headers = {"X-Horus-Service-Token": TEST_TOKEN}
@@ -200,11 +220,12 @@ def test_loaded_catalog_becomes_stale_after_expiry_and_cannot_answer(tmp_path: P
         )
 
         ready = client.get("/ready").json()
-        response = client.post("/api/v1/chat", json={"message": "consulta informativa"}, headers=headers)
-
         assert ready["catalog"] == "stale"
-        assert ready["status"] == "not_ready"
-        assert response.status_code == 503
+        assert ready["status"] == "ready"
+        for message in ["¿Qué cursos ofrecen?", *(f"Quiero información de {t}" for t in _course_titles(raw))]:
+            response = client.post("/api/v1/chat", json={"message": message}, headers=headers)
+            assert response.status_code == 200
+            _assert_no_course_presented(response.json(), _course_titles(raw))
 
 
 def test_semantic_index_is_rebuilt_before_catalog_swap(tmp_path: Path) -> None:

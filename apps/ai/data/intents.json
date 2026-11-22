@@ -88,6 +88,9 @@
       "recomendacion",
       "recomendarme",
       "me conviene",
+      "me sirve",
+      "me serviria",
+      "me sirva",
       "que curso",
       "que cursos",
       "que capacitacion",
@@ -263,6 +266,7 @@
     "economia": [
       "economia",
       "economista",
+      "economistas",
       "economico"
     ],
     "tesis": [
@@ -518,6 +522,8 @@
       "silabo",
       "que temas",
       "contenido del curso",
+      "contenidos",
+      "que contenidos",
       "que se ve en"
     ]
   },

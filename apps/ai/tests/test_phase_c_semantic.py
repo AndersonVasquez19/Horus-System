@@ -29,8 +29,6 @@ def conversation_engine():
         ("Quiero aprender analisis de datos", "cat_curso_datos"),
         ("Me interesa estudiar Python", "cat_curso_datos"),
         ("Quiero aprender limpieza de datos y graficos", "cat_curso_datos"),
-        ("Busco un servicio de conectividad", "cat_servicio_redes"),
-        ("Necesito contratar redes empresariales", "cat_servicio_redes"),
         ("Quiero aprender analisiss de datos", "cat_curso_datos"),
     ],
 )
@@ -40,6 +38,17 @@ def test_local_minilm_handles_natural_queries(conversation_engine, query, source
     assert reply.recommendations[0].id == source
     assert reply.recommendations[0].evidence_text
     assert reply.sources[0].id == source
+
+
+@pytest.mark.parametrize("query", ["Busco un servicio de conectividad", "Necesito contratar redes empresariales"])
+def test_local_minilm_does_not_offer_retired_technology_services(conversation_engine, query):
+    """Los servicios tecnológicos se retiraron el 20/11/2026, aunque el catálogo firmado aún los traiga."""
+    reply = conversation_engine.chat(query)
+    assert reply.mode == "hybrid"
+    assert reply.abstained or reply.needs_clarification
+    assert not reply.recommendations
+    assert not any(s.id.startswith("cat_servicio_") for s in reply.sources)
+    assert "Redes empresariales" not in reply.answer
 
 
 @pytest.mark.parametrize(

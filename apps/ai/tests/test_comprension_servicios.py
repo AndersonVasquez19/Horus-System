@@ -2,12 +2,10 @@
 
 import json
 
-import httpx
 import pytest
-from pydantic import SecretStr
 
 from app.core.config import PROJECT_ROOT
-from tests.test_phase_c import make_engine, public_items
+from tests.test_phase_c import make_engine
 
 
 def test_la_informacion_no_recrea_cursos_o_servicios_editoriales_retirados():
@@ -42,9 +40,10 @@ def informational_hybrid():
 
 @pytest.mark.semantic
 @pytest.mark.parametrize("query", ["que cámaras tienen", "quiero saber sobre las cámaras de seguridad"])
-def test_las_capturas_se_resuelven_con_minilm_local_y_catalogo_vacio(informational_hybrid, query):
+def test_minilm_no_recrea_servicios_de_camaras_retirados(informational_hybrid, query):
+    """Los servicios tecnológicos se retiraron el 20/11/2026: MiniLM no los recupera por similitud."""
     reply = informational_hybrid.chat(query)
     assert reply.mode == "hybrid"
-    assert not reply.needs_clarification and not reply.abstained
-    assert [s.id for s in reply.sources] == ["servicio_camaras"]
-    assert reply.recommendations == [] and "disponibilidad deben confirmarse" in reply.answer
+    assert reply.abstained or reply.needs_clarification
+    assert reply.recommendations == []
+    assert not any(s.id.startswith(("servicio_", "cat_servicio_")) for s in reply.sources)
