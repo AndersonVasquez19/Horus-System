@@ -94,6 +94,7 @@ Las mismas variables en los tres (puedes usar *Copy variables*). Solo cambia `HO
 | `HORUS_WEB_SERVICE_TOKEN` | `${{shared.HORUS_WEB_SERVICE_TOKEN}}` |
 | `DB_CONNECTION` / `DB_URL` | `pgsql` / `${{Postgres.DATABASE_URL}}` (red privada) |
 | `SESSION_DRIVER` / `SESSION_SECURE_COOKIE` | `database` / `true` |
+| `SESSION_COOKIE` | `laravel-session`. **Obligatoria con `APP_NAME=Horus Group`:** sin ella Laravel nombra la cookie `horus-group-session`, el BFF de `apps/web` busca `laravel-session` (`HORUS_SESSION_COOKIE`) y el inicio de sesión falla con «La verificación de seguridad expiró» (419). Si prefieres otro nombre, pon el mismo en `HORUS_SESSION_COOKIE` (Vercel) |
 | `CACHE_STORE` / `QUEUE_CONNECTION` | `database` / `database` |
 | `LOG_CHANNEL` / `LOG_LEVEL` | `stderr` / `info` |
 | `CSP_MODE` | `report-only` |
