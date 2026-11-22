@@ -26,6 +26,7 @@ from app.core.text import contains_phrase, content_tokens, correct_tokens, norma
 from app.schemas.chat import (
     AdvisorReply,
     ConversationContext,
+    ConversationState,
     HistoryItem,
     MatchLevel,
     Recommendation,
@@ -34,13 +35,13 @@ from app.schemas.chat import (
 )
 from app.schemas.knowledge import KnowledgeRecord
 from app.services.catalog_documents import PublicFragment
+from app.services.contact import PublicContact
 from app.services.gemini import GeminiSelector
 from app.services.knowledge import KnowledgeBase
 from app.services.lexical_search import LexicalIndex
 from app.services.query_plan import QUERY_WORDS, plan_query
 from app.services.recommendations import (
     AUDIENCE_LABEL,
-    CONTACT_LINE,
     MODALITY_LABEL,
     Profile,
     Recommender,
@@ -60,11 +61,24 @@ from app.services.understanding import (
 ANSWER_THRESHOLD = 0.55
 CLARIFY_THRESHOLD = 0.32
 AMBIGUITY_MARGIN = 0.06
+# Bajo ANSWER_THRESHOLD se responde igual si hay frase exacta, puntaje ≥ NEAR_SURE_MIN y margen ≥ CLEAR_MARGIN.
+NEAR_SURE_MIN = 0.45
+CLEAR_MARGIN = 0.15
 SEMANTIC_WEIGHT = 0.5
 # Contra falsos positivos semánticos: sin apoyo léxico, la similitud solo cuenta si es alta.
 SEMANTIC_MIN_LEXICAL = 0.15
 SEMANTIC_ONLY_MIN_COSINE = 0.72
 MAX_CONTEXT_TURNS = 3
+# Relleno de cortesía (raíces) que no convierte «muchas gracias por todo» en una consulta.
+# Pedido de ayuda sin tema («ayuda por favor», «tengo una duda»): se pregunta qué necesita. «Más información»
+# a secas no entra aquí: lleva a los canales de contacto (decisión de test_cierre_funcional).
+HELP_REQUEST = frozenset({"ayuda", "ayudar", "ayudame", "apoyo", "orientacion", "consulta", "duda", "pregunta",
+    "necesito", "necesitaria"})
+# Palabras que, junto a «eso» sin conversación previa, no dicen a qué se refiere («quisiera información sobre eso»).
+GENERIC_REQUEST = HELP_REQUEST | {"informacion", "info", "dato", "detall"}
+# Apertura común de las respuestas que declaran un tema fuera del alcance del asistente.
+OUT_OF_SCOPE_OPENING = "Por ahora este asistente solo"
+COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable"})
 MODALITY_ASKED = {
     "presencial": "presencial",
     "semipresencial": "semipresencial",
@@ -89,11 +103,7 @@ QUOTE_INTRO = (
     "Los precios y las cotizaciones los confirma un asesor de Horus Group; yo no puedo calcularlos ni "
     "consultar cotizaciones ya emitidas."
 )
-WHATSAPP_QUOTE_URL = "https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n"
-WHATSAPP_MATRICULA_URL = (
-    "https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula"
-)
-CONTACT_CHANNELS = "+51 972 021 374 (teléfono o WhatsApp) o horusgroupcajamarca@gmail.com"
+# Los canales (teléfono, correo, WhatsApp) salen de `public_contact` en knowledge.json: ver app/services/contact.py.
 
 
 @dataclass(frozen=True)
@@ -105,6 +115,25 @@ class Hit:
     phrase_hit: bool
     matched: tuple[str, ...]
     fragment: PublicFragment | None = None
+
+
+@dataclass(frozen=True)
+class _Prior:
+    """Contexto del turno anterior reconstruido desde un ConversationState ya depurado."""
+
+    profile: Profile | None
+    profile_age: int | None
+    continued: bool
+    cue_age: int | None
+    focus: list[KnowledgeRecord]
+    focus_age: int | None
+    out_of_scope: bool
+    quote: bool
+
+
+def _older(age: int | None) -> int | None:
+    """Un turno más; el dato caduca al cumplir MAX_CONTEXT_TURNS turnos (igual que el historial)."""
+    return None if age is None or age + 1 >= MAX_CONTEXT_TURNS else age + 1
 
 
 def _retrieval_level(score: float) -> MatchLevel:
@@ -122,6 +151,7 @@ class AdvisorEngine:
                  gemini: GeminiSelector | None = None) -> None:
         self.kb = kb
         self.gemini = gemini
+        self.contact = PublicContact.from_mapping(kb.data.public_contact)
         rules = kb.intents
         self.lexical = LexicalIndex(kb.search_records, frozenset(rules.low_weight_tokens))
         self.semantic = semantic
@@ -193,7 +223,8 @@ class AdvisorEngine:
             ):
                 unique[hit.record.id] = hit
         hits = list(unique.values())
-        hits.sort(key=lambda h: (-h.score, h.record.id))
+        # A igual puntaje decide la frase exacta, no el orden alfabético del identificador.
+        hits.sort(key=lambda h: (-h.score, not h.phrase_hit, h.record.id))
         return hits[:limit]
 
     def _similarity(self, text: str, record_ids: set[str]) -> dict[str, float]:
@@ -251,7 +282,7 @@ class AdvisorEngine:
                 rest = normalized
                 for p in sorted(found, key=len, reverse=True):
                     rest = rest.replace(normalize(p), " ")
-                if content_tokens(rest):
+                if set(content_tokens(rest)) - COURTESY_FILLER:
                     continue  # "hola, quiero aprender redes" sigue al siguiente nivel
             return self._reply(answer=template.response, intent=template.name, match_level="alta")
         return None
@@ -274,7 +305,13 @@ class AdvisorEngine:
         if top.record.status != "verified":
             return self._abstain_with_context(top, hits)
 
-        if top.score < ANSWER_THRESHOLD:
+        # Casi seguro: frase exacta, cerca del umbral y sin competidor cercano («¿Dictan diplomados?»).
+        # Además, lo que coincide cubre al menos la mitad de la consulta: una palabra suelta no basta
+        # («¿venden celulares de segunda?» no es una pregunta de contacto).
+        near_sure = (top.phrase_hit and top.score >= NEAR_SURE_MIN
+            and (second is None or top.score - second.score >= CLEAR_MARGIN)
+            and bool(query_terms) and len(set(top.matched) & query_terms) >= len(query_terms) / 2)
+        if top.score < ANSWER_THRESHOLD and not near_sure:
             pair = self._complementary_pair(top, second, query_terms)
             if pair is not None:
                 return self._reply(
@@ -287,7 +324,8 @@ class AdvisorEngine:
 
         ambiguous = (
             second is not None
-            and second.record.status == "verified"
+            # Un empate con un dato no publicado («¿Cuándo?»: horario o fechas de cursos) también es ambiguo.
+            and second.record.status in ("verified", "unavailable")
             and top.score - second.score < AMBIGUITY_MARGIN
             and second.record.category != top.record.category
             and second.record.id not in top.record.related
@@ -358,6 +396,9 @@ class AdvisorEngine:
         if confirmed is not None:
             answer += f"\n\n¿Quieres que te cuente más sobre «{confirmed.title}»?"
             sources.append(self._source(confirmed))
+        elif not any(c in answer for c in (self.contact.phone, self.contact.email, self.contact.whatsapp_url)):
+            # Sin otra opción confirmada ni canal en el texto, la abstención no termina en un callejón: indica a quién preguntar.
+            answer += f"\n\n{self.contact.advisor_line}"
         return self._reply(
             answer=answer,
             intent=intent,
@@ -419,6 +460,8 @@ class AdvisorEngine:
                 return f"{title}: está dirigido a {labels}, no a ese público.", False
             return f"{title}: está dirigido a {labels}. {sentence or ''}".rstrip(), True
         if attr == "certificado":
+            if rec.certification:  # ficha del catálogo; Laravel valida la misma frase
+                return f"{title}: certificación: {rec.certification}.", True
             sentence = evidence_sentence(rec, terms.get("certificado", []))
             if sentence:
                 return f"{title}: {sentence}", True
@@ -428,6 +471,10 @@ class AdvisorEngine:
                 return f"{title}: cuesta {rec.public_price}.", True
             return f"{title}: el precio lo confirma un asesor.", False
         if attr == "fechas":
+            if rec.start_text and rec.schedule:
+                return f"{title}: inicia el {rec.start_text}; el horario es {rec.schedule}.", True
+            if rec.start_text:
+                return f"{title}: inicia el {rec.start_text}.", True
             if rec.schedule:
                 return f"{title}: el horario es {rec.schedule}.", True
             return f"{title}: las fechas y horarios los confirma un asesor.", False
@@ -441,6 +488,13 @@ class AdvisorEngine:
             return f"{title}: los requisitos los confirma un asesor.", False
         if attr == "cupos":
             return f"{title}: los cupos los confirma un asesor.", False
+        if attr == "contenido":
+            # El fragmento literal publicado (el mismo que Laravel reconstruye), no una frase nueva.
+            document = self.kb.documents_by_source.get(rec.id)
+            for fragment in document.fragments if document is not None else ():
+                if any(word in normalize(fragment.answer) for word in ("temario", "silabo", "contenido")):
+                    return fragment.answer, True
+            return f"{title}: el temario lo confirma un asesor.", False
         if attr == "tiempo_atencion":
             sentence = evidence_sentence(rec, terms.get("tiempo_atencion", []))
             if sentence:
@@ -462,7 +516,7 @@ class AdvisorEngine:
                     missing.append(f"{attr} de «{rec.title}»")
         unavailable_only = all(a in self.kb.intents.unavailable_attributes for a in u.attributes)
         if not affirmed:
-            lines.append(CONTACT_LINE)
+            lines.append(self.contact.confirm_line)
         return self._reply(
             answer="\n".join(lines),
             intent="unavailable_info" if (not affirmed and unavailable_only) else "followup_attribute",
@@ -493,6 +547,25 @@ class AdvisorEngine:
                         sources=[self._source(h.record)],
                     )
         return None
+
+    @staticmethod
+    def _names_other_record(focus: list[KnowledgeRecord], hits: list[Hit]) -> bool:
+        """«¿y a qué hora atienden?» tras la ubicación: la pregunta nombra con frase exacta otro registro.
+
+        Solo aplica cuando el foco es información institucional (no recomendable); sobre un curso,
+        programa o convenio recomendable («¿y dan certificado?» tras recomendarlo) se conserva el foco.
+        """
+        if not hits:
+            return False
+        top, second = hits[0], (hits[1] if len(hits) > 1 else None)
+        return (
+            top.record.status == "verified"
+            and top.phrase_hit
+            and top.score >= CLARIFY_THRESHOLD
+            and (second is None or top.score - second.score >= AMBIGUITY_MARGIN)
+            and top.record.id not in {r.id for r in focus}
+            and all(not r.recommendable and r.source.kind != "catalogo_laravel" for r in focus)
+        )
 
     def _focus_reference(self, focus: list[KnowledgeRecord]) -> AdvisorReply:
         rec = focus[0]
@@ -550,7 +623,7 @@ class AdvisorEngine:
         return self._reply(
             answer=(
                 "No tengo acceso a cotizaciones emitidas ni a datos de clientes, así que no puedo consultarlas. "
-                f"Para revisar una cotización que ya recibiste, comunícate con el asesor que te atendió por WhatsApp: {WHATSAPP_QUOTE_URL}."
+                f"Para revisar una cotización que ya recibiste, comunícate con el asesor que te atendió por WhatsApp: {self.contact.quote_url}."
             ),
             intent="quote_request",
             match_level="ninguna",
@@ -568,7 +641,7 @@ class AdvisorEngine:
         rules = self.kb.intents.quote
         if subject is None:
             return self._reply(
-                answer=f"{QUOTE_INTRO} Para pedir una cotización, escribe a un asesor por WhatsApp: {WHATSAPP_QUOTE_URL}.",
+                answer=f"{QUOTE_INTRO} Para pedir una cotización, escribe a un asesor por WhatsApp: {self.contact.quote_url}.",
                 intent="quote_request",
                 match_level="baja",
                 needs_clarification=True,
@@ -580,7 +653,7 @@ class AdvisorEngine:
             )
         checklist = self.recommender.checklist_for(subject, profile)
         answer = (
-            f"{QUOTE_INTRO}\nPara pedir una cotización de «{subject.title}», escribe a un asesor por WhatsApp: {WHATSAPP_QUOTE_URL}.\n"
+            f"{QUOTE_INTRO}\nPara pedir una cotización de «{subject.title}», escribe a un asesor por WhatsApp: {self.contact.quote_url}.\n"
             f"{rules.checklist_label}: {'; '.join(checklist)}."
         )
         if subject.public_price:
@@ -605,6 +678,81 @@ class AdvisorEngine:
                 continued = continued or has_recommendation_cue(older_text, self.kb)
         return profile, continued
 
+    def _prior(self, state: ConversationState | None) -> _Prior | None:
+        """Depura el estado recibido: solo claves del vocabulario y registros publicados verificados."""
+        if state is None:
+            return None
+        rules = self.kb.intents
+        profile = None
+        if state.profile_age is not None:
+            profile = Profile(
+                topics={t for t in state.topics if t in rules.topic_lexicon},
+                level=state.level if state.level in rules.level_lexicon else "desconocido",
+                modality=state.modality if state.modality in rules.modality_lexicon else "cualquiera",
+                audience=state.audience if state.audience in rules.audience_lexicon else "desconocido",
+                goal=state.goal,
+                objectives={o for o in state.objectives if o in rules.objective_lexicon},
+            )
+        focus: list[KnowledgeRecord] = []
+        if state.focus_age is not None:
+            focus = [r for r in (self.kb.get(x) for x in state.focus_ids) if r is not None and r.status == "verified"][:2]
+        return _Prior(
+            profile=profile,
+            profile_age=state.profile_age if profile is not None else None,
+            continued=state.cue_age is not None,
+            cue_age=state.cue_age,
+            focus=focus,
+            focus_age=state.focus_age if focus else None,
+            out_of_scope=state.out_of_scope,
+            quote=state.quote,
+        )
+
+    def _next_state(
+        self, message: str, prior: _Prior | None, quote: bool, profile: Profile | None, reply: AdvisorReply
+    ) -> ConversationState:
+        """Lo que el siguiente turno necesita saber de este, sin texto del usuario."""
+        cue = has_recommendation_cue(message, self.kb)
+        saved: Profile | None = None
+        profile_age: int | None = None
+        if profile is not None and (cue or has_profile_slot(message, self.kb)):
+            saved, profile_age = profile, 0
+        elif prior is not None and prior.profile is not None:
+            profile_age = _older(prior.profile_age)
+            saved = prior.profile if profile_age is not None else None
+        cue_age = 0 if cue else (_older(prior.cue_age) if prior is not None else None)
+        ids = [r.id for r in reply.recommendations] or [s.id for s in reply.sources]
+        focus_ids = [x for x in ids if (r := self.kb.get(x)) is not None and r.status == "verified"][:2]
+        focus_age: int | None = 0 if focus_ids else None
+        if not focus_ids and prior is not None and prior.focus:
+            focus_age = _older(prior.focus_age)
+            focus_ids = [r.id for r in prior.focus] if focus_age is not None else []
+        return ConversationState(
+            topics=sorted(saved.topics)[:8] if saved else [],
+            objectives=sorted(saved.objectives)[:8] if saved else [],
+            level=saved.level if saved else "desconocido",
+            modality=saved.modality if saved else "cualquiera",
+            audience=saved.audience if saved else "desconocido",
+            goal=saved.goal if saved else "unknown",
+            profile_age=profile_age,
+            cue_age=cue_age,
+            focus_ids=focus_ids,
+            focus_age=focus_age,
+            out_of_scope=(reply.abstained and not reply.sources and not reply.recommendations
+                          and (reply.intent == "out_of_scope" or reply.answer.startswith(OUT_OF_SCOPE_OPENING))),
+            quote=quote,
+        )
+
+    def _names_antecedent(self, message: str) -> bool:
+        """Marcador explícito («eso», «ese curso», «lo mismo»), no un simple «y…» que abre otra pregunta."""
+        normalized = normalize(message)
+        return any(contains_phrase(normalized, m) for m in self.kb.intents.reference_markers)
+
+    def _previous_out_of_scope(self, users: list[str]) -> bool:
+        earlier = [HistoryItem(role="user", content=t) for t in users[:-1]]
+        previous = self._respond(users[-1], earlier, depth=1)
+        return (previous.abstained and not previous.sources and not previous.recommendations
+                and (previous.intent == "out_of_scope" or previous.answer.startswith(OUT_OF_SCOPE_OPENING)))
+
     def _focus(self, users: list[str]) -> list[KnowledgeRecord]:
         """Opciones a las que remite «eso»: se recalculan ejecutando el motor sobre turnos anteriores."""
         for i in range(len(users) - 1, -1, -1):
@@ -617,15 +765,17 @@ class AdvisorEngine:
         return []
 
     # ------------------------------------------------------------------ API pública
-    def chat(self, message: str, history: list[HistoryItem] | None = None) -> AdvisorReply:
-        reply = self._respond(message, history or [], depth=0)
+    def chat(
+        self, message: str, history: list[HistoryItem] | None = None, state: ConversationState | None = None
+    ) -> AdvisorReply:
+        reply = self._respond(message, history or [], depth=0, state=state)
         institutional = len(reply.sources) == 1 and (record := self.kb.get(reply.sources[0].id)) is not None and record.general_information and record.kind == "info"
         if self.gemini is None or reply.abstained or reply.recommendations or institutional or any(s.id == "convenios_resumen" for s in reply.sources):
             return self._requested_detail(message, reply)
         if self._safety(message) is not None or self._rules(message) is not None:
             return self._requested_detail(message, reply)
         understanding = understand(self.corrected(message), self.kb)
-        if understanding.attributes or understanding.quote or understanding.referential or history:
+        if understanding.attributes or understanding.quote or understanding.referential or history or state:
             return self._requested_detail(message, reply)
         hits = self.retrieve(message, limit=12)
         records = [h.record for h in hits if h.record.status == "verified" and h.score >= CLARIFY_THRESHOLD]
@@ -633,13 +783,16 @@ class AdvisorEngine:
         record = next((r for r in records if r.id == rid), None)
         if record is None:
             return self._requested_detail(message, reply)
-        return self._requested_detail(message, self._reply(
+        selected = self._reply(
             answer=record.answer,
             intent=CATEGORY_INTENTS[record.category],
             match_level="media",
             sources=[self._source(record)],
             context=reply.context,
-        ))
+        )
+        if reply.state is not None:
+            selected.state = reply.state.model_copy(update={"focus_ids": [record.id], "focus_age": 0})
+        return self._requested_detail(message, selected)
 
     def _requested_detail(self, message: str, reply: AdvisorReply) -> AdvisorReply:
         """Responde con el fragmento necesario; amplía a petición explícita desde la misma fuente."""
@@ -666,28 +819,61 @@ class AdvisorEngine:
             return reply.model_copy(update={"answer": best})
         return reply
 
-    def _respond(self, message: str, history: list[HistoryItem], depth: int) -> AdvisorReply:
+    def _respond(
+        self, message: str, history: list[HistoryItem], depth: int, state: ConversationState | None = None
+    ) -> AdvisorReply:
+        users = [h.content for h in history if h.role == "user"][-MAX_CONTEXT_TURNS:]
+        # El historial, si llega, manda; el estado estructurado lo sustituye cuando el cliente no guarda texto.
+        prior = self._prior(state) if depth == 0 and not users else None
         early = self._safety(message) or self._rules(message)
+        if early is None and not content_tokens(message):
+            early = self._clarify([])
         if early is not None:
+            if depth == 0:
+                early.state = self._next_state(message, prior, False, None, early)
             return early
-        if not content_tokens(message):
-            return self._clarify([])
 
         corrected = self.corrected(message)
         u = understand(corrected, self.kb)  # sobre el texto corregido: "cotisasion" -> "cotizacion"
-        users = [h.content for h in history if h.role == "user"][-MAX_CONTEXT_TURNS:]
         if u.topic_change:
             users = []  # "ahora otra cosa…": el contexto anterior se descarta
+            prior = None
+        has_context = bool(users) or prior is not None
+        if not has_context:
+            # Sin conversación previa a la que remitir: responder por una palabra suelta sería adivinar.
+            tokens = set(content_tokens(message))
+            if (tokens & HELP_REQUEST and tokens <= HELP_REQUEST | COURTESY_FILLER) or (
+                    self._names_antecedent(message) and tokens <= GENERIC_REQUEST | COURTESY_FILLER):
+                reply = self._clarify([])
+                if depth == 0:
+                    reply.state = self._next_state(message, None, u.quote, None, reply)
+                return reply
         current = extract_profile(corrected, self.kb)
-        profile, continued = self._merge_profile(current, users)
+        if prior is not None:
+            profile = Profile(**{**current.__dict__, "topics": set(current.topics), "objectives": set(current.objectives)})
+            if prior.profile is not None:
+                profile.merge_from(prior.profile, self.generic)
+            continued = prior.continued
+        else:
+            profile, continued = self._merge_profile(current, users)
         current_specific = bool(current.specific_topics(self.generic))
         focus: list[KnowledgeRecord] = []
-        if depth == 0 and users and not current_specific and (u.attributes or u.quote or u.referential):
-            focus = self._focus(users)
-        reply = self._decide(message, corrected, u, current, profile, continued, focus, users)
+        if depth == 0 and has_context and not current_specific and (u.attributes or u.quote or u.referential):
+            focus = list(prior.focus) if prior is not None else self._focus(users)
+        if prior is not None:
+            previous_quote = prior.quote
+        else:
+            previous_quote = bool(users) and understand(self.corrected(users[-1]), self.kb).quote
+        if (depth == 0 and has_context and not focus and not current_specific and self._names_antecedent(message)
+                and (prior.out_of_scope if prior is not None else self._previous_out_of_scope(users))):
+            # «¿Y eso lo hacen para casas?» tras un tema fuera de alcance: no se responde por palabras sueltas.
+            reply = self._out_of_scope()
+        else:
+            reply = self._decide(message, corrected, u, current, profile, continued, focus, previous_quote)
         if depth == 0:
+            reply.state = self._next_state(message, prior, u.quote, profile, reply)
             reply.context = ConversationContext(
-                turns_considered=len(users),
+                turns_considered=len(users) if prior is None else 1,
                 topics=sorted(profile.topics),
                 level=None if profile.level == "desconocido" else profile.level,
                 modality=None if profile.modality == "cualquiera" else profile.modality,
@@ -706,7 +892,7 @@ class AdvisorEngine:
         profile: Profile,
         continued: bool,
         focus: list[KnowledgeRecord],
-        users: list[str],
+        previous_quote: bool,
     ) -> AdvisorReply:
         plan = plan_query(corrected) if self.kb.catalog is not None else None
         planned_search = bool(plan and plan.recommend and plan.subject and not u.attributes and not u.quote)
@@ -736,13 +922,13 @@ class AdvisorEngine:
         # 2. Solicitudes comerciales.
         if u.private_quote:
             return self._private_quote()
-        previous_quote = bool(users) and understand(self.corrected(users[-1]), self.kb).quote
         if u.quote or (previous_quote and (current.topics or current.objectives)):
             quote_profile = current if (current.topics or current.objectives) else profile
             return self._quote(quote_profile, focus, hits)
 
         # 3. Seguimiento sobre la opción anterior.
-        if focus and u.attributes and (u.referential or u.short):
+        names_other = bool(focus) and self._names_other_record(focus, hits)
+        if focus and u.attributes and (u.referential or u.short) and not names_other:
             return self._followup(focus, u)
 
         # 4. Atributo no publicado sobre un tema concreto.
@@ -755,6 +941,11 @@ class AdvisorEngine:
                 and hits[0].record.status == "verified"
                 and hits[0].score >= ANSWER_THRESHOLD
             ):
+                # «¿Qué contenidos tiene el curso X?»: el fragmento publicado del temario, si existe.
+                line, published = self._attribute_line(hits[0].record, "contenido", u)
+                if published:
+                    return self._reply(answer=line, intent=CATEGORY_INTENTS[hits[0].record.category],
+                        match_level=_retrieval_level(hits[0].score), sources=[self._source(hits[0].record)])
                 return self._answer_from_hits(hits, terms)
             reply = self._unavailable_attribute(unavailable, u, hits, current)
             if reply is not None:
@@ -791,7 +982,7 @@ class AdvisorEngine:
                     prefix = f"Para el curso «{rec.title}»{extra}: "
                 return self._reply(
                     answer=(f"{prefix}Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: "
-                            f"{WHATSAPP_MATRICULA_URL}. No compartas datos personales en este chat."),
+                            f"{self.contact.enrollment_url}. No compartas datos personales en este chat."),
                     intent="enrollment_request", match_level="alta",
                     sources=sources,
                 )
@@ -805,9 +996,14 @@ class AdvisorEngine:
                 if plan.goal != "learn":
                     return self._out_of_scope()
                 listing = self.kb.get("cat_listado_formacion")
-                if listing is not None and not self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+                expired = self.kb.catalog.catalog.is_expired(datetime.now(UTC))
+                if listing is not None and not expired:
                     return self._reply(answer=listing.answer, intent="training_info",
                         match_level="alta", sources=[self._source(listing)])
+                if expired:
+                    # Los cursos existen pero su ficha no está revalidada: no decir que no hay ninguno.
+                    return self._reply(answer=self._catalog_refreshing(), intent="unavailable_info",
+                        match_level="ninguna", abstained=True)
                 return self._reply(answer="Por ahora no hay cursos vigentes.",
                     intent="unavailable_info", match_level="ninguna", abstained=True)
             if plan.recommend:
@@ -839,6 +1035,14 @@ class AdvisorEngine:
                 return self._multi_recommend(corrected) or self._catalog_recommend(hits, current) or self._clarify([])
             top = hits[0] if hits else None
             wants_topic = bool(self.recommender.wanted_topics(profile))
+            # «¿Dan comprobante a nombre de mi empresa?»: «mi empresa» no convierte una pregunta frecuente
+            # inequívoca (frase exacta y margen claro) en un pedido de recomendación.
+            clear_faq = (top is not None and top.phrase_hit and top.record.status == "verified"
+                and not top.record.recommendable and top.score >= NEAR_SURE_MIN and not wants_topic
+                and (len(hits) == 1 or top.score - hits[1].score >= CLEAR_MARGIN)
+                and bool(terms) and len(set(top.matched) & terms) >= len(terms) / 2)
+            if clear_faq:
+                return self._answer_from_hits(hits, terms)
             if top is not None and top.score >= ANSWER_THRESHOLD:
                 if top.record.status != "verified" and top.phrase_hit:
                     return self._abstain_with_context(top, hits)
@@ -851,7 +1055,14 @@ class AdvisorEngine:
             if evidenced is not None:
                 return evidenced
         reply = self._answer_from_hits(hits, terms)
+        if reply.intent == "out_of_scope" and current.goal == "learn" and not focus:
+            # «Nunca he estudiado nada técnico, ¿por dónde empiezo?»: quiere aprender; se pregunta el área.
+            return self.recommender.recommend(profile, self.mode)
         if focus and u.referential and (reply.needs_clarification or reply.intent == "out_of_scope"):
+            if names_other:  # «¿y entregan certificado?» tras los convenios: responde el registro nombrado
+                named = hits[0].record
+                return self._reply(answer=named.answer, intent=CATEGORY_INTENTS[named.category],
+                    match_level="media", sources=[self._source(named)])
             return self._focus_reference(focus)  # "¿y eso qué incluye?"
         return reply
 
@@ -984,7 +1195,7 @@ class AdvisorEngine:
         record = hit.record
         evidence = hit.fragment.text if hit.fragment else self.kb.documents_by_source[record.id].description
         action = "cotización" if record.kind == "service" else "matrícula"
-        url = WHATSAPP_QUOTE_URL if record.kind == "service" else WHATSAPP_MATRICULA_URL
+        url = self.contact.quote_url if record.kind == "service" else self.contact.enrollment_url
         return Recommendation(id=record.id, title=record.title, kind=record.kind,
             reason=f"Lo que dice el contenido sobre tu consulta: «{evidence}».", evidence=[record.id],
             evidence_text=evidence,
@@ -1058,10 +1269,15 @@ class AdvisorEngine:
     def _out_of_scope(self) -> AdvisorReply:
         """Servicios tecnológicos y similares: el asistente solo atiende educación y atención al cliente."""
         return self._reply(
-            answer=("Por ahora este asistente solo puede orientarte sobre cursos y capacitaciones, asesoramiento, "
+            answer=(f"{OUT_OF_SCOPE_OPENING} puede orientarte sobre cursos y capacitaciones, asesoramiento, "
                     "convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: "
-                    "+51 972 021 374 o horusgroupcajamarca@gmail.com."),
+                    f"{self.contact.phone} o {self.contact.email}."),
             intent="unavailable_info", match_level="ninguna", abstained=True)
+
+    def _catalog_refreshing(self) -> str:
+        """Catálogo caducado: las fichas existen pero no están revalidadas; se deriva sin negar que haya cursos."""
+        return ("La lista de cursos se está actualizando en este momento, así que no puedo confirmarte cuáles están abiertos. "
+                f"Un asesor puede indicarte la oferta actual al {self.contact.phone} o en {self.contact.email}.")
 
     def _catalog_recommend(self, hits: list[Hit], profile: Profile) -> AdvisorReply | None:
         candidates = []
@@ -1077,10 +1293,21 @@ class AdvisorEngine:
         if (len(candidates) > 1 and candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN
             and not set(content_tokens(candidates[0].record.title)) <= set(content_tokens(profile.text))):
             return None
-        for hit in candidates[:1]:
-            record = hit.record
-            return self._reply(answer=hit.fragment.answer if hit.fragment else record.answer,
-                intent="course_recommendation" if record.kind == "course" else "service_recommendation",
-                match_level=_retrieval_level(hit.score), sources=[self._source(record)],
-                recommendations=[self._recommendation(hit)])
-        return None
+        if not candidates:
+            return None
+        hit = candidates[0]
+        record = hit.record
+        # Otras fichas publicadas que también cubren lo pedido (hasta dos), cada una con su motivo y enlace.
+        others = [h for h in candidates[1:] if h.record.kind == record.kind]
+        others = [h for i, h in enumerate(others) if all(o.record.id != h.record.id for o in others[:i])][:2]
+        chosen = [hit, *others]
+        question = None
+        if others:
+            titles = [f"«{h.record.title}»" for h in others]
+            question = (f"También coincide{'n' if len(titles) > 1 else ''} con lo que buscas: {' y '.join(titles)}. "
+                        "¿Quieres que te cuente de alguno?")
+        return self._reply(answer=hit.fragment.answer if hit.fragment else record.answer,
+            intent="course_recommendation" if record.kind == "course" else "service_recommendation",
+            match_level=_retrieval_level(hit.score), sources=[self._source(h.record) for h in chosen],
+            recommendations=[self._recommendation(h) for h in chosen],
+            needs_clarification=bool(others), clarification_question=question)

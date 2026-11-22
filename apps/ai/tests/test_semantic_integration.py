@@ -46,7 +46,8 @@ def test_semantic_reorders_lexical_candidates(hybrid_engine: AdvisorEngine) -> N
 @pytest.mark.parametrize(
     ("message", "expected_title"),
     [
-        ("¿Cuál es el rubro de su compañía?", "Qué es Horus Group SRL"),
+        # 22/11/2026: «rubro» y «compañía» ya son palabras clave léxicas; este ejemplo sigue sin apoyo léxico.
+        ("¿En qué parte de la ciudad se encuentran?", "Ubicación de la sede"),
         ("¿Por qué medio les escribo?", "Canales de contacto"),
     ],
 )

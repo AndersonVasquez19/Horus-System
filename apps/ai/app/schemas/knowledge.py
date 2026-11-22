@@ -120,6 +120,8 @@ class KnowledgeRecord(BaseModel):
     requirements: list[str] = Field(default_factory=list, max_length=10)
     duration: str | None = Field(default=None, max_length=200)
     schedule: str | None = Field(default=None, max_length=200)
+    start_text: str | None = Field(default=None, max_length=60, description="Fecha de inicio en palabras (catálogo).")
+    certification: str | None = Field(default=None, max_length=200)
     public_price: str | None = Field(
         default=None, max_length=300, description="Solo precio público autorizado."
     )

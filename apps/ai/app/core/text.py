@@ -84,17 +84,54 @@ def tokens_match(query_token: str, doc_token: str) -> bool:
     return common >= 0.6 * shortest
 
 
+_DOUBLED = re.compile(r"(.)\1+")
+_SOFT_C = re.compile(r"c([ei])")
+
+
+def phonetic_key(token: str) -> str:
+    """Clave por sonido en español: b/v, s/z/ce/ci, h muda, c/qu/k, ll/y y letras dobles.
+
+    «birtuales» ~ «virtuales», «teziz» ~ «tesis», «orarios» ~ «horarios», «cotisasion» ~ «cotizacion».
+    """
+    key = token.replace("ch", "\x02").replace("h", "")
+    key = _SOFT_C.sub(r"s\1", key)
+    key = key.replace("qu", "k").replace("c", "k").replace("z", "s").replace("v", "b").replace("ll", "y")
+    return _DOUBLED.sub(r"\1", key.replace("\x02", "ch"))
+
+
+@lru_cache(maxsize=4)
+def _sorted_vocabulary(vocabulary: frozenset[str]) -> list[str]:
+    return sorted(vocabulary)
+
+
+@lru_cache(maxsize=4)
+def _phonetic_index(vocabulary: frozenset[str]) -> dict[str, str]:
+    """Clave fonética -> palabra. Las claves que comparten palabras distintas se descartan (sin adivinar)."""
+    index: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for word in vocabulary:
+        if len(word) < 4:
+            continue
+        key = phonetic_key(word)
+        if key in index and index[key] != word:
+            ambiguous.add(key)
+        index.setdefault(key, word)
+    for key in ambiguous:
+        del index[key]
+    return index
+
+
 def correct_tokens(tokens: list[str], vocabulary: frozenset[str]) -> list[str]:
     """Corrige errores ortográficos sencillos contra el vocabulario conocido (difflib, sin dependencias)."""
     corrected: list[str] = []
-    vocab_list = sorted(vocabulary)
     for token in tokens:
         if (
             token in vocabulary or token in STOPWORDS or len(token) < 4 or token.isdigit()
         ):  # "cuales" != "cables"
             corrected.append(token)
             continue
-        corrected.append(_closest(token, vocab_list))
+        same_sound = _phonetic_index(vocabulary).get(phonetic_key(token))
+        corrected.append(same_sound or _closest(token, _sorted_vocabulary(vocabulary)))
     return corrected
 
 

@@ -67,6 +67,9 @@ class CatalogItem(BaseModel):
     requirements: list[str] = Field(default_factory=list, max_length=10)
     duration_text: str | None = Field(default=None, max_length=200)
     schedule_text: str | None = Field(default=None, max_length=200)
+    # 22/11/2026: datos académicos que la web ya publica en la ficha del curso.
+    start_date: date | None = Field(default=None, description="Fecha de inicio publicada.")
+    certification_text: str | None = Field(default=None, max_length=200)
     public_price: PublicPrice | None = None
     inquiry: str | None = Field(default=None, max_length=200, description="Canal público de consulta.")
     url_path: str | None = Field(default=None, pattern=r"^/[a-z0-9\-/#]*$")

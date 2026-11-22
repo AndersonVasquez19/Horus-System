@@ -1,0 +1,88 @@
+[
+  {
+    "query": "¿Cuántos alumnos han pasado por sus capacitaciones?",
+    "reply": {
+      "answer": "La web muestra algunas cifras publicitarias (por ejemplo, personas capacitadas o calificación promedio), pero no indica su fuente ni la fecha de medición, así que no puedo presentarlas como datos confirmados.\n\nSi necesitas ese dato, un asesor puede ayudarte por WhatsApp al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
+      "intent": "unverified_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": true,
+      "recommendations": [],
+      "missing_data": [
+        "cifras publicitarias del sitio"
+      ],
+      "general_guidance": null,
+      "sources": [],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "capacitacion"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [
+          "capacitacion"
+        ],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": 0,
+        "cue_age": null,
+        "focus_ids": [],
+        "focus_age": null,
+        "out_of_scope": false,
+        "quote": false
+      }
+    }
+  },
+  {
+    "query": "¿Qué detalles tiene el convenio con ISAM?",
+    "reply": {
+      "answer": "La tarjeta del inicio menciona un convenio con ISAM. Sus detalles están pendientes de confirmación con un asesor.\n\nSi necesitas ese dato, un asesor puede ayudarte por WhatsApp al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
+      "intent": "unverified_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": true,
+      "recommendations": [],
+      "missing_data": [
+        "instituto de educación superior isam"
+      ],
+      "general_guidance": null,
+      "sources": [],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": null,
+        "cue_age": null,
+        "focus_ids": [],
+        "focus_age": null,
+        "out_of_scope": false,
+        "quote": false
+      }
+    }
+  }
+]

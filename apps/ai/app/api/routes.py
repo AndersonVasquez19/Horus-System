@@ -53,10 +53,11 @@ def get_engine(request: Request) -> AdvisorEngine:
     engine: AdvisorEngine | None = getattr(request.app.state, "engine", None)
     if _catalog_expired(engine):
         request.app.state.catalog_status = "stale"
+    # Un catálogo caducado ya no apaga el servicio (22/11/2026): el motor descarta las fichas vencidas
+    # y sigue respondiendo con el conocimiento institucional; ningún curso caducado se presenta como hecho.
     if (
         engine is None
         or getattr(request.app.state, "catalog_pending", False)
-        or getattr(request.app.state, "catalog_status", "none") == "stale"
         or getattr(request.app.state, "catalog_sync_failed", False)
     ):
         raise HTTPException(
@@ -97,7 +98,8 @@ def ready(request: Request, settings: Settings = Depends(get_settings)) -> Ready
     semantic = request.app.state.semantic
     catalog_status = getattr(request.app.state, "catalog_status", "none")
     pending = getattr(request.app.state, "catalog_pending", False)
-    is_ready = engine is not None and settings.service_token_configured and not pending and catalog_status not in {"stale", "error"}
+    # «stale» sigue listo: se informa en «catalog» para que Laravel sepa que no hay fichas confirmadas.
+    is_ready = engine is not None and settings.service_token_configured and not pending and catalog_status != "error"
     return ReadyResponse(
         status="ready" if is_ready else "not_ready",
         knowledge="loaded" if engine is not None else "unavailable",
@@ -146,7 +148,7 @@ async def chat(
 ) -> ChatResponse:
     generation = request.app.state.catalog_generation
     started = time.perf_counter()
-    reply = await _run_limited(request, settings, engine.chat, payload.message, payload.history)
+    reply = await _run_limited(request, settings, engine.chat, payload.message, payload.history, payload.state)
     if request.app.state.catalog_pending or request.app.state.catalog_generation != generation:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "El conocimiento se está actualizando.")
     # Solo metadatos: nunca se registra el texto del visitante.

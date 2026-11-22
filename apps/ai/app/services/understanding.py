@@ -69,6 +69,11 @@ def understand(text: str, kb: KnowledgeBase) -> Understanding:
     )
 
 
+# Palabras que contienen un término de evidencia pero significan otra cosa: «diplomados» no prueba
+# que se entregue un diploma. Se enmascaran con la misma longitud para no mover el recorte.
+_FALSE_FRIENDS = re.compile(r"diplomad[oa]s?")
+
+
 def evidence_sentence(record: KnowledgeRecord, terms: list[str]) -> str | None:
     """Primera frase del registro verificado que contiene alguno de los términos (extracción literal)."""
     norm_terms = [normalize(t) for t in terms if normalize(t)]
@@ -76,6 +81,7 @@ def evidence_sentence(record: KnowledgeRecord, terms: list[str]) -> str | None:
         for sentence in re.split(r"(?<=[.;])\s+", text):
             sentence = sentence.strip()
             folded = strip_accents(sentence.lower())  # misma longitud que el original
+            folded = _FALSE_FRIENDS.sub(lambda m: "\x00" * len(m.group()), folded)
             found = [folded.find(t) for t in norm_terms if t in folded]
             if not found:
                 continue

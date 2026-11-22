@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -39,10 +39,39 @@ class HistoryItem(StrictModel):
         return _check_message(value)
 
 
+Key = Annotated[str, Field(pattern=r"^[a-z0-9_]{1,40}$")]
+RecordId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_:.\-]{0,127}$")]
+
+
+class ConversationState(StrictModel):
+    """Estado estructurado de la conversación que el motor devuelve y el cliente reenvía en el turno siguiente.
+
+    Solo vocabulario cerrado (claves de tema, nivel, modalidad, identificadores de registros publicados) y
+    contadores: nunca texto del usuario. El motor descarta lo que no reconoce. Las edades cuentan los turnos
+    transcurridos desde que el dato apareció; a los MAX_CONTEXT_TURNS turnos el dato caduca (como el historial).
+    """
+
+    topics: list[Key] = Field(default_factory=list, max_length=8)
+    objectives: list[Key] = Field(default_factory=list, max_length=8)
+    level: Key = "desconocido"
+    modality: Key = "cualquiera"
+    audience: Key = "desconocido"
+    goal: Literal["learn", "service", "unknown"] = "unknown"
+    profile_age: int | None = Field(default=None, ge=0, le=2)
+    cue_age: int | None = Field(default=None, ge=0, le=2)
+    focus_ids: list[RecordId] = Field(default_factory=list, max_length=2)
+    focus_age: int | None = Field(default=None, ge=0, le=2)
+    out_of_scope: bool = False
+    quote: bool = False
+
+
 class ChatRequest(StrictModel):
     message: str = Field(max_length=4000, examples=["Quiero aprender redes desde cero"])
     session_id: str | None = Field(default=None, pattern=SESSION_ID_PATTERN, examples=["demo-local"])
     history: list[HistoryItem] = Field(default_factory=list, max_length=30)
+    state: ConversationState | None = Field(
+        default=None, description="Estado devuelto en la respuesta anterior. Si llega historial, se ignora."
+    )
 
     @field_validator("message")
     @classmethod
@@ -133,6 +162,9 @@ class AdvisorReply(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
     mode: Literal["lexical", "hybrid"] = "lexical"
     context: ConversationContext | None = None
+    state: ConversationState | None = Field(
+        default=None, description="Estado para reenviar en el turno siguiente (sin texto del usuario)."
+    )
 
 
 class ChatResponse(AdvisorReply):

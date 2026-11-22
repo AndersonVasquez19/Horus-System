@@ -14,6 +14,7 @@ from typing import Literal
 from app.core.text import contains_phrase, normalize
 from app.schemas.chat import AdvisorReply, MatchLevel, Recommendation, SourceRef
 from app.schemas.knowledge import KnowledgeRecord
+from app.services.contact import PublicContact
 from app.services.knowledge import KnowledgeBase
 
 Goal = Literal["learn", "service", "unknown"]
@@ -44,8 +45,6 @@ TOPIC_LABELS = {
     "cursos": "cursos",
     "empresas": "empresas",
 }
-
-CONTACT_LINE = "Para confirmar fechas, precios y cupos, escribe al +51 972 021 374 o a horusgroupcajamarca@gmail.com."
 
 
 @dataclass
@@ -185,6 +184,7 @@ MODALITY_LABEL = {
 class Recommender:
     def __init__(self, kb: KnowledgeBase, similarity: SimilarityFn) -> None:
         self.kb = kb
+        self.contact = PublicContact.from_mapping(kb.data.public_contact)
         self.similarity = similarity
         self.generic = set(kb.intents.generic_topics)
 
@@ -405,9 +405,9 @@ class Recommender:
             if profile.level != "desconocido" and "nivel requerido no publicado" not in missing and top:
                 missing.append("nivel requerido no publicado")
             missing.append("fechas, precios y cupos no publicados")
-        lines.append(CONTACT_LINE)
+        lines.append(self.contact.confirm_line)
 
-        recommendations = [self._to_recommendation(s, profile) for s in top]
+        recommendations =[self._to_recommendation(s, profile) for s in top]
         best = max(
             (_level_for(s.score) for s in top),
             key=["ninguna", "baja", "media", "alta"].index,
@@ -472,11 +472,12 @@ class Recommender:
         self, profile: Profile, intent: str, mode: Literal["lexical", "hybrid"]
     ) -> AdvisorReply:
         if profile.goal == "service" or profile.audience == "empresa" and profile.goal != "learn":
+            # Los servicios tecnológicos se retiraron el 20/11/2026: solo se ofrece lo que el asistente atiende.
             question = (
-                "¿Qué necesitas resolver? Por ejemplo: cámaras de seguridad, cableado o red de la oficina, "
-                "mantenimiento de computadoras, capacitación para tu personal o asesoramiento empresarial."
+                "¿Qué necesitas? Por ejemplo: capacitación para tu personal, asesoramiento empresarial o educativo, "
+                "certificaciones profesionales, pagos y comprobantes, o canales de contacto."
             )
-            answer = "Puedo orientarte hacia el servicio adecuado de Horus Group."
+            answer = "Puedo orientarte sobre lo que ofrece Horus Group."
         else:
             parts = []
             if profile.level == "desconocido":
