@@ -57,6 +57,16 @@ const nextConfig: NextConfig = {
       { source: "/preguntas-frecuentes", destination: "/legales/preguntas-frecuentes", permanent: false },
     ];
   },
+  /**
+   * El panel muestra las imágenes de las fichas con la ruta relativa `/storage/...` (mismo origen). En desarrollo la
+   * atiende el gateway local; en Vercel no existe esa carpeta, así que se reenvía a la API pública de Laravel
+   * (`HORUS_ASSETS_URL`, o `HORUS_API_URL`). Solo expone `/storage/`, los archivos públicos que Laravel ya sirve.
+   */
+  async rewrites() {
+    const base = (process.env.HORUS_ASSETS_URL || process.env.HORUS_API_URL || "").trim().replace(/\/+$/, "");
+    if (!/^https?:\/\/[^\s/]+$/i.test(base)) return [];
+    return [{ source: "/storage/:path*", destination: `${base}/storage/:path*` }];
+  },
   async headers() {
     return ["/admin/:path*", "/login", "/registro", "/recuperar-contrasena", "/restablecer-contrasena", "/api/bff/:path*"].map((source) => ({
       source,
