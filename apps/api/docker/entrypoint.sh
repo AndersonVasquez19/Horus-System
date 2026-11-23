@@ -37,6 +37,13 @@ case "${HORUS_PROCESO:-web}" in
             frankenphp run --config /srv/horus/api/docker/Caddyfile --adapter caddyfile
         ;;
     worker)
+        # Con la renovación del catálogo del asistente activa, el scheduler solo despacha si el worker publica su latido,
+        # y ese latido lo emite únicamente `horus:advisor-operacion worker`. Una sola réplica: el comando toma un candado
+        # que se libera al terminar con normalidad (SIGTERM incluido, gracias a pcntl).
+        if [ "${HORUS_OPS_ENABLED:-false}" = "true" ]; then
+            exec setpriv --reuid=www-data --regid=www-data --init-groups \
+                php artisan horus:advisor-operacion worker --execute --no-interaction
+        fi
         # Los reintentos los define cada job. --max-time recicla el proceso cada hora (Railway lo reinicia).
         exec setpriv --reuid=www-data --regid=www-data --init-groups \
             php artisan queue:work "${QUEUE_CONNECTION:-database}" \
