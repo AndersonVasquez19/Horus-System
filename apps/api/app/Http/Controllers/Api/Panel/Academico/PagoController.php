@@ -53,7 +53,7 @@ final class PagoController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'comprobantes', 'show', 'deMatricula', 'verComprobante', 'recibo', 'cajaDiariaResumen', 'cajaDiariaPdf']),
-            new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante', 'registrar', 'registrarDeMatricula', 'verificarReferencia']),
+            new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante', 'registrar', 'registrarDeMatricula', 'generarObligacion', 'verificarReferencia']),
             new Middleware('permission:pagos.planificar', only: ['crearObligacion', 'anular']),
             new Middleware('permission:pagos.confirmar', only: ['confirmar', 'rechazar']),
             new Middleware('permission:pagos.reversar', only: ['reversar']),
@@ -436,6 +436,17 @@ final class PagoController extends Controller implements HasMiddleware
         return $this->json([
             'message' => $creada ? 'El pago se registró.' : 'Este pago ya estaba registrado.',
             'transaccion' => $t->identificador,
+            'data' => $this->detalle($this->buscar($o->identificador)),
+        ], $creada ? 201 : 200);
+    }
+
+    /** Regulariza en 1 clic una matrícula sin obligación vigente, generando su deuda por el precio del curso. */
+    public function generarObligacion(Request $request, int $matricula): JsonResponse
+    {
+        [$o, $creada] = $this->gestion->generarObligacionAutomatica($request, $matricula);
+
+        return $this->json([
+            'message' => $creada ? 'Se generó la obligación de cobro.' : 'Esta matrícula ya tenía una obligación vigente.',
             'data' => $this->detalle($this->buscar($o->identificador)),
         ], $creada ? 201 : 200);
     }

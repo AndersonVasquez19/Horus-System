@@ -1,6 +1,6 @@
 'use client';
 
-import { Upload } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,21 +19,21 @@ import type { ImagenRepetida, MatriculaResumen, ObligacionDetalle } from '@/feat
 import { ACEPTA_CAPTURA, IMPORTE, importeValido, normalizarImporte, validarCaptura } from '@/lib/panel/captura';
 import { fecha, hoyLima, moneda } from '@/lib/panel/formato';
 
+const METODOS_CAPTURA_OBLIGATORIA = new Set(['yape', 'plin']);
+
 const esquema = z.object({
-  metodo: z.string().min(1, 'Elige cómo pagó la persona.'),
-  monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales (por ejemplo 25,50).').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
+  metodo: z.string().min(1, 'Elige cómo pagó el estudiante.'),
+  monto: z.string().regex(IMPORTE, 'Importe válido, hasta 2 decimales (por ejemplo 50.00).').refine((v) => Number(v) > 0, 'Debe ser mayor que cero.'),
   fecha_pago: z.string().min(1, 'Indica la fecha del pago.'),
   referencia: z.string().max(80, 'Hasta 80 caracteres.'),
 });
 
-/** Cifras de cobro de la matrícula elegida, en céntimos (evita errores de coma flotante al restar). */
+/** Cifras simplificadas de la matrícula elegida, en céntimos. */
 interface Cuenta {
   total: number;
   pagado: number;
   porConfirmar: number;
-  /** Lo que aún se puede registrar: total − confirmado − por confirmar. */
-  disponible: number;
-  /** `true` si la obligación todavía no existe: Laravel la crea al guardar con el precio del curso. */
+  faltaPagar: number;
   nueva: boolean;
 }
 
@@ -41,9 +41,9 @@ const centimos = (valor: string | null | undefined) => Math.round(Number(valor ?
 const soles = (c: number) => moneda((c / 100).toFixed(2));
 
 /**
- * «Subir comprobante»: el flujo natural de Pagos. Se busca la matrícula, se ve cuánto debe, se indica lo que la persona pagó y se
- * sube su constancia. No hay que crear nada antes: si la matrícula aún no tiene obligación, Laravel la crea con el precio del curso.
- * Todo importe y regla se valida de nuevo en Laravel; aquí solo se muestra el saldo restante como ayuda.
+ * «Registrar pago»: permite cobrar abonos parciales o completos de cualquier matrícula pendiente.
+ * Muestra solo 3 cifras claras (Precio del curso, Ya pagado, Falta pagar).
+ * Comprobante obligatorio para Yape/Plin, opcional para efectivo/transferencia/depósito.
  */
 export function BotonSubirComprobante() {
   const puede = usePuede('pagos.registrar');
@@ -53,11 +53,11 @@ export function BotonSubirComprobante() {
 
   return (
     <>
-      <Boton icono={<Upload className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Subir comprobante</Boton>
+      <Boton icono={<Wallet className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Registrar pago</Boton>
       <Dialogo
         abierto={abierto}
-        titulo="Subir comprobante de pago"
-        descripcion="Busca al estudiante, indica lo que pagó y adjunta su comprobante. El saldo pendiente se calcula solo."
+        titulo="Registrar pago"
+        descripcion="Busca al estudiante, indica cuánto pagó y guarda el abono. El saldo restante se calcula automáticamente."
         onCerrar={() => setAbierto(false)}
         bloqueado={ocupado}
       >
@@ -79,12 +79,11 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
   const [metodos, setMetodos] = useState<{ codigo: string; nombre: string }[]>([{ codigo: 'yape', nombre: 'Yape' }]);
   const [captura, setCaptura] = useState<File | null>(null);
   const [errorCaptura, setErrorCaptura] = useState<string | undefined>();
-  const [confirmar, setConfirmar] = useState(false);
+  const [confirmar, setConfirmar] = useState(puedeConfirmar);
   const [alertaReferencia, setAlertaReferencia] = useState<string | null>(null);
   const [resultado, setResultado] = useState<{ obligacion: string; restante: number } | null>(null);
   const [imagenRepetida, setImagenRepetida] = useState<ImagenRepetida | null>(null);
   const encontradas = useRef(new Map<number, MatriculaResumen>());
-  // Una intención = una clave: si la red falla y se reintenta, Laravel devuelve el pago original sin duplicarlo.
   const claveIntento = useRef(crypto.randomUUID());
 
   const buscarMatriculas = useCallback(
@@ -104,7 +103,6 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
     [ejecutar],
   );
 
-  // Al elegir la matrícula se lee su obligación: si existe, sus cifras; si no, el precio del curso (se creará al guardar).
   useEffect(() => {
     if (matricula === null) return;
     let activo = true;
@@ -119,11 +117,11 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
         const total = centimos(o.monto_total);
         const pagado = centimos(o.pagado);
         const porConfirmar = centimos(o.pendiente_confirmar);
-        setCuenta({ total, pagado, porConfirmar, disponible: Math.max(0, total - pagado - porConfirmar), nueva: false });
+        setCuenta({ total, pagado, porConfirmar, faltaPagar: Math.max(0, total - pagado - porConfirmar), nueva: false });
         return;
       }
       const precio = centimos(encontradas.current.get(matricula.id)?.curso?.precio);
-      setCuenta({ total: precio, pagado: 0, porConfirmar: 0, disponible: precio, nueva: true });
+      setCuenta({ total: precio, pagado: 0, porConfirmar: 0, faltaPagar: precio, nueva: true });
     });
     return () => {
       activo = false;
@@ -147,33 +145,46 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
     enviar: async (d) => {
       setErrorMatricula(undefined);
       setErrorCaptura(undefined);
+      const requiereCaptura = METODOS_CAPTURA_OBLIGATORIA.has(d.metodo);
       const sinMatricula = matricula === null ? 'Selecciona la matrícula del estudiante.' : undefined;
-      const sinCaptura = validarCaptura(captura) ?? undefined;
-      if (sinMatricula || sinCaptura || matricula === null || captura === null) {
+      const errArchivo = requiereCaptura
+        ? (validarCaptura(captura) ?? undefined)
+        : captura !== null
+          ? (validarCaptura(captura) ?? undefined)
+          : undefined;
+      if (sinMatricula || errArchivo || matricula === null) {
         setErrorMatricula(sinMatricula);
-        setErrorCaptura(sinCaptura);
+        setErrorCaptura(errArchivo);
         return { ok: false as const, estado: 422, error: { message: 'Revisa los datos del formulario.', code: 'cliente' } };
       }
+
       const registro = await ejecutar<{ message: string; transaccion: string; data: ObligacionDetalle }>(`academico/matriculas/${matricula.id}/pagos`, 'POST', {
-        metodo: d.metodo, monto: d.monto, fecha_pago: d.fecha_pago, referencia: d.referencia === '' ? null : d.referencia, _clave: claveIntento.current,
+        metodo: d.metodo,
+        monto: d.monto,
+        fecha_pago: d.fecha_pago,
+        referencia: d.referencia === '' ? null : d.referencia,
+        _clave: claveIntento.current,
       });
       if (!registro.ok) return registro;
 
-      const formulario = new FormData();
-      formulario.append('imagen', captura);
-      const subida = await subir<{ message: string; advertencias?: { imagen_repetida: ImagenRepetida | null } }>(`academico/pagos/transacciones/${registro.datos.transaccion}/comprobante`, formulario);
-      if (!subida.ok) {
-        router.refresh();
-        return { ok: false as const, estado: subida.estado, error: { message: `El pago se registró, pero no se pudo adjuntar el comprobante: ${subida.error.message} Vuelve a intentarlo: no se duplicará el pago.`, code: 'captura' } };
+      let repetida: ImagenRepetida | null = null;
+      if (captura !== null) {
+        const formulario = new FormData();
+        formulario.append('imagen', captura);
+        const subida = await subir<{ message: string; advertencias?: { imagen_repetida: ImagenRepetida | null } }>(`academico/pagos/transacciones/${registro.datos.transaccion}/comprobante`, formulario);
+        if (!subida.ok) {
+          router.refresh();
+          return { ok: false as const, estado: subida.estado, error: { message: `El pago se registró, pero no se pudo adjuntar el comprobante: ${subida.error.message}`, code: 'captura' } };
+        }
+        repetida = subida.datos.advertencias?.imagen_repetida ?? null;
+        setImagenRepetida(repetida);
       }
-      // La misma captura ya respalda otro pago vigente: se avisa y NO se confirma sola aunque se haya marcado; decide una persona.
-      const repetida = subida.datos.advertencias?.imagen_repetida ?? null;
-      setImagenRepetida(repetida);
+
       if (confirmar && puedeConfirmar && repetida === null) {
         const confirmacion = await ejecutar<{ message: string }>(`academico/pagos/transacciones/${registro.datos.transaccion}/confirmar`, 'POST', {});
         if (!confirmacion.ok) {
           router.refresh();
-          return { ok: false as const, estado: confirmacion.estado, error: { message: `El pago y el comprobante se guardaron, pero no se pudo confirmar: ${confirmacion.error.message}`, code: 'confirmacion' } };
+          return { ok: false as const, estado: confirmacion.estado, error: { message: `El pago se guardó, pero no se pudo confirmar: ${confirmacion.error.message}`, code: 'confirmacion' } };
         }
       }
       return registro;
@@ -186,7 +197,9 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
     },
   });
 
-  // Aviso (no bloquea) si el código de operación ya se usó en otro pago.
+  const metodoActual = f.form.watch('metodo') ?? 'yape';
+  const capturaObligatoria = METODOS_CAPTURA_OBLIGATORIA.has(metodoActual);
+
   const refActual = f.form.watch('referencia');
   useEffect(() => {
     const limpio = (refActual ?? '').trim();
@@ -202,23 +215,22 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
   }, [ejecutar, refActual]);
 
   const montoEscrito = normalizarImporte(f.form.watch('monto') ?? '');
-  const restante = cuenta === null || !importeValido(montoEscrito) ? null : cuenta.disponible - centimos(montoEscrito);
+  const restante = cuenta === null || !importeValido(montoEscrito) ? null : cuenta.faltaPagar - centimos(montoEscrito);
 
   if (resultado) {
     const pagoTodo = resultado.restante <= 0;
     return (
       <div className="space-y-4">
         <Alerta tipo={pagoTodo ? 'exito' : 'aviso'}>
-          {pagoTodo ? 'Pagó todo. La matrícula no tiene saldo pendiente.' : `Pagó una parte. Debe ${soles(resultado.restante)}.`}
+          {pagoTodo ? 'Pagado completo. Esta matrícula ya no tiene deuda.' : `Abono registrado. Aún debe ${soles(resultado.restante)}.`}
         </Alerta>
         {imagenRepetida ? (
           <Alerta tipo="error">
-            Esta misma captura ya respalda un pago de la matrícula #{imagenRepetida.matricula_id} ({fecha(imagenRepetida.fecha_pago)}). El pago quedó «por confirmar» y no se confirmó
-            automáticamente. Antes de confirmarlo, comprueba en tu app de Yape que esta operación existe.
+            Esta misma captura ya respalda un pago de la matrícula #{imagenRepetida.matricula_id} ({fecha(imagenRepetida.fecha_pago)}). El pago quedó «por confirmar» para revisión.
           </Alerta>
         ) : null}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Link href={`/admin/academico/pagos/${resultado.obligacion}`} className="text-sm font-semibold text-academico-700 hover:underline sm:self-center">Ver pagos de esta matrícula</Link>
+          <Link href={`/admin/academico/pagos/${resultado.obligacion}`} className="text-sm font-semibold text-academico-700 hover:underline sm:self-center">Ver detalle de pagos</Link>
           <Boton onClick={onCerrar}>Cerrar</Boton>
         </div>
       </div>
@@ -244,35 +256,55 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
       {matricula !== null ? (
         <div className="rounded-xl border border-panel-border bg-panel-bg px-4 py-3 text-sm" aria-live="polite">
           {errorCuenta ? (
-            <p className="text-estado-error">No se pudo consultar lo pagado. Vuelve a elegir la matrícula.</p>
+            <p className="text-estado-error">No se pudo consultar el saldo. Vuelve a elegir la matrícula.</p>
           ) : cuenta === null ? (
-            <p className="text-panel-muted">Consultando lo pagado…</p>
+            <p className="text-panel-muted">Consultando saldo…</p>
           ) : (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
-              <div><dt className="text-xs text-panel-muted">Total</dt><dd className="font-semibold text-panel-text">{soles(cuenta.total)}</dd></div>
-              <div><dt className="text-xs text-panel-muted">Pagado</dt><dd className="font-semibold text-panel-text">{soles(cuenta.pagado)}</dd></div>
-              <div><dt className="text-xs text-panel-muted">Por confirmar</dt><dd className="font-semibold text-panel-text">{soles(cuenta.porConfirmar)}</dd></div>
-              <div><dt className="text-xs text-panel-muted">Puede registrar</dt><dd className="font-semibold text-panel-text">{soles(cuenta.disponible)}</dd></div>
+            <dl className="grid grid-cols-3 gap-4">
+              <div>
+                <dt className="text-xs text-panel-muted">Precio del curso</dt>
+                <dd className="font-semibold tabular-nums text-panel-text">{soles(cuenta.total)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-panel-muted">Ya pagado</dt>
+                <dd className="font-semibold tabular-nums text-emerald-700">{soles(cuenta.pagado)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-panel-muted">Falta pagar</dt>
+                <dd className={`font-semibold tabular-nums ${cuenta.faltaPagar > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {soles(cuenta.faltaPagar)}
+                </dd>
+              </div>
             </dl>
           )}
-          {cuenta?.nueva ? <p className="mt-2 text-xs text-panel-muted">Es el primer pago: se tomará el precio del curso como total.</p> : null}
-          {cuenta !== null && cuenta.disponible <= 0 ? <p className="mt-2 text-xs text-estado-error">Esta matrícula no tiene saldo disponible para registrar.</p> : null}
+          {cuenta !== null && cuenta.porConfirmar > 0 ? (
+            <p className="mt-2 text-xs text-panel-muted">Hay {soles(cuenta.porConfirmar)} en un abono pendiente de confirmación.</p>
+          ) : null}
+          {cuenta !== null && cuenta.total <= 0 ? (
+            <p className="mt-2 text-xs text-estado-error">El curso no tiene precio definido (S/ 0.00). Define su precio en Cursos primero.</p>
+          ) : cuenta !== null && cuenta.faltaPagar <= 0 ? (
+            <p className="mt-2 text-xs text-emerald-700">Esta matrícula ya está completamente pagada.</p>
+          ) : null}
         </div>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo
-          etiqueta="Importe pagado (S/)"
+          etiqueta="Monto a pagar ahora (S/)"
           inputMode="decimal"
           required
-          ayuda="Puedes escribir coma o punto: 25,50"
+          ayuda={cuenta && cuenta.faltaPagar > 0 ? `Máximo ${soles(cuenta.faltaPagar)}` : 'Ej. 50.00'}
           {...f.registro('monto', { setValueAs: normalizarImporte })}
           error={f.error('monto')}
         />
         <Campo etiqueta="Fecha del pago" type="date" {...f.registro('fecha_pago')} error={f.error('fecha_pago')} />
       </div>
       {restante !== null ? (
-        <p className={`text-sm font-semibold ${restante < 0 ? 'text-estado-error' : 'text-panel-text'}`} aria-live="polite">
-          {restante < 0 ? `El importe supera el saldo disponible por ${soles(-restante)}.` : restante === 0 ? 'Saldo restante: S/ 0.00 (queda pagada).' : `Saldo restante: ${soles(restante)}`}
+        <p className={`text-sm font-semibold ${restante < 0 ? 'text-estado-error' : restante === 0 ? 'text-emerald-700' : 'text-amber-700'}`} aria-live="polite">
+          {restante < 0
+            ? `El monto supera lo que falta pagar por ${soles(-restante)}.`
+            : restante === 0
+              ? 'Con este pago quedará Pagado completo (S/ 0.00 pendiente).'
+              : `Después de este abono quedará pendiente: ${soles(restante)}`}
         </p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -281,26 +313,30 @@ function Formulario({ onOcupado, onCerrar }: { onOcupado: (b: boolean) => void; 
       </div>
       {alertaReferencia && (refActual ?? '').trim().length >= 3 ? <Alerta tipo="aviso">{alertaReferencia}</Alerta> : null}
       <CampoArchivo
-        etiqueta="Comprobante de pago"
-        requerido
+        etiqueta={capturaObligatoria ? 'Comprobante de pago (obligatorio)' : 'Comprobante de pago (opcional)'}
+        requerido={capturaObligatoria}
         accept={ACEPTA_CAPTURA}
         onArchivo={setCaptura}
         error={errorCaptura}
-        ayuda="JPG, PNG, WebP o PDF de hasta 3 MB. Es obligatorio. Se rechaza un PDF con scripts o archivos incrustados."
+        ayuda={
+          capturaObligatoria
+            ? 'Obligatorio para Yape y Plin. JPG, PNG, WebP o PDF de hasta 3 MB.'
+            : 'Opcional para efectivo, transferencia o depósito. JPG, PNG, WebP o PDF de hasta 3 MB.'
+        }
       />
       {puedeConfirmar ? (
         <Casilla
-          etiqueta="Confirmar el pago ahora"
-          ayuda="Marca esto solo si ya comprobaste en tu app de Yape que la operación existe: una captura puede estar editada."
+          etiqueta="Confirmar el pago inmediatamente"
+          ayuda="Desmárcalo solo si deseas dejarlo en revisión en la pestaña Comprobantes."
           checked={confirmar}
           onChange={(e) => setConfirmar(e.target.checked)}
         />
       ) : (
-        <p className="text-xs text-panel-muted">El pago quedará «por confirmar» hasta que lo revise una persona autorizada.</p>
+        <p className="text-xs text-panel-muted">El pago quedará «por confirmar» hasta que lo apruebe un administrador.</p>
       )}
       <div className="pie-acciones">
         <Boton variante="secundario" onClick={onCerrar} disabled={f.guardando}>Cancelar</Boton>
-        <Boton type="submit" cargando={f.guardando} disabled={cuenta !== null && cuenta.disponible <= 0}>Guardar pago</Boton>
+        <Boton type="submit" cargando={f.guardando} disabled={cuenta !== null && cuenta.faltaPagar <= 0}>Guardar pago</Boton>
       </div>
     </form>
   );

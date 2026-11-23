@@ -8,15 +8,16 @@ import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
-import { Campo, CampoArea, CampoSeleccion } from '@/components/shared/ui/campo';
+import { Campo, CampoArchivo, CampoArea, CampoSeleccion } from '@/components/shared/ui/campo';
 import { SelectorRemoto, type OpcionRemota } from '@/components/shared/ui/selector-remoto';
-import type { ConvocatoriaResumen, MatriculaDetalle, OpcionSelector } from '@/features/academico/tipos';
+import type { ConvocatoriaResumen, CursoResumen, MatriculaDetalle, OpcionSelector } from '@/features/academico/tipos';
+import { ACEPTA_CAPTURA, validarCaptura } from '@/lib/panel/captura';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import { ETIQUETAS, hoyLima, moneda } from '@/lib/panel/formato';
 import type { ErrorPanel } from '@/lib/panel/tipos';
 
 const DETALLE = '/admin/academico/matriculas';
-const MAX_CAPTURA = 3 * 1024 * 1024;
+const METODOS_CAPTURA_OBLIGATORIA = new Set(['yape', 'plin']);
 
 interface FormularioMatriculaProps {
   /** Sin matrícula: registro. Con matrícula: edición. */
@@ -30,9 +31,11 @@ interface FormularioMatriculaProps {
 }
 
 /**
- * Registro y edición de matrículas. `monto_pagado` y el estado `pagada` se derivan siempre del libro de pagos;
- * en una matrícula nueva con edición elegible se puede adjuntar opcionalmente un pago Yape inicial desde la caja
- * (`academico/matriculas/con-pago`).
+ * Registro y edición de matrículas con el mismo diseño limpio de los demás formularios del panel.
+ * Al crear una matrícula, el selector «Estado» ofrece:
+ *  - Pendiente (genera deuda total en Pagos y deudores)
+ *  - Abono parcial (registra un adelanto y deja el saldo pendiente)
+ *  - Pagada (registra el 100 % del curso y pasa a Pagos completos)
  */
 export function FormularioMatricula({ matricula, estudianteInicial = null, cursoInicial = null, fechaInicial = '' }: FormularioMatriculaProps) {
   const router = useRouter();
@@ -48,22 +51,28 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
   const [curso, setCurso] = useState<OpcionRemota | null>(
     matricula?.curso ? { id: matricula.curso.id, texto: `${matricula.curso.codigo} · ${matricula.curso.nombre}` } : cursoInicial,
   );
+  const [precioCurso, setPrecioCurso] = useState<number | null>(null);
   const [fechaMatricula, setFechaMatricula] = useState(matricula?.fecha ?? fechaInicial);
   const [estado, setEstado] = useState<string>(matricula?.estado ?? 'pendiente');
   const [motivo, setMotivo] = useState('');
   const [observaciones, setObservaciones] = useState(matricula?.observaciones ?? '');
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [guardando, setGuardando] = useState(false);
-  /** Se activa en cuanto la persona escribe o elige algo; avisa antes de cerrar la pestaña con cambios sin guardar. */
   const [sucio, setSucio] = useState(false);
   useAdvertirCambios(sucio && !guardando);
 
-  // Convocatorias matriculables del curso elegido (solo al registrar; después la convocatoria queda fija).
   const [convocatorias, setConvocatorias] = useState<ConvocatoriaResumen[]>([]);
   const [convocatoria, setConvocatoria] = useState('');
 
-  // Opción de matrícula con pago Yape inicial en `matriculas/nueva`.
-  const [conPagoInicial, setConPagoInicial] = useState(false);
+  // Campos de pago cuando en Nueva matrícula se elige «Abono parcial» o «Pagada».
+  const [metodosPago, setMetodosPago] = useState<{ codigo: string; nombre: string }[]>([
+    { codigo: 'yape', nombre: 'Yape' },
+    { codigo: 'plin', nombre: 'Plin' },
+    { codigo: 'efectivo', nombre: 'Efectivo' },
+    { codigo: 'transferencia', nombre: 'Transferencia bancaria' },
+    { codigo: 'deposito', nombre: 'Depósito bancario' },
+  ]);
+  const [metodoPago, setMetodoPago] = useState('yape');
   const [montoPago, setMontoPago] = useState('');
   const [fechaPago, setFechaPago] = useState(() => fechaInicial || hoyLima());
   const [referenciaPago, setReferenciaPago] = useState('');
@@ -71,17 +80,40 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
   const [errorCaptura, setErrorCaptura] = useState<string | null>(null);
   const claveIdempotencia = useRef(crypto.randomUUID());
 
+  useEffect(() => {
+    if (matricula || !puedeConPago) return;
+    let vigente = true;
+    void ejecutar<{ data: { codigo: string; nombre: string }[] }>('academico/pagos/metodos').then((res) => {
+      if (vigente && res.ok && res.datos.data.length > 0) {
+        setMetodosPago(res.datos.data);
+      }
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [matricula, puedeConPago, ejecutar]);
+
   const cursoId = curso?.id;
   const convocatoriasOfrecidas = cursoId === undefined ? [] : convocatorias;
   useEffect(() => {
     if (matricula || cursoId === undefined) return;
     let vigente = true;
-    void ejecutar<{ data: ConvocatoriaResumen[] }>(`academico/convocatorias?curso_id=${encodeURIComponent(String(cursoId))}&vigentes=1`).then((resultado) => {
+    void Promise.all([
+      ejecutar<{ data: ConvocatoriaResumen[] }>(`academico/convocatorias?curso_id=${encodeURIComponent(String(cursoId))}&vigentes=1`),
+      ejecutar<{ data: CursoResumen }>(`academico/cursos/${encodeURIComponent(String(cursoId))}`),
+    ]).then(([resConv, resCurso]) => {
       if (!vigente) return;
-      const lista = resultado.ok ? resultado.datos.data : [];
-      setConvocatorias(lista.filter((c) => (c.estado === 'abierta' || c.estado === 'en_curso') && c.cupos.disponibles > 0));
-      setConvocatoria('');
-      setConPagoInicial(false);
+      const lista = resConv.ok
+        ? resConv.datos.data.filter((c) => (c.estado === 'abierta' || c.estado === 'en_curso') && c.cupos.disponibles > 0)
+        : [];
+      setConvocatorias(lista);
+      setConvocatoria(lista.length > 0 ? lista[0].identificador : '');
+      if (resCurso.ok) {
+        const p = Number.parseFloat(String(resCurso.datos.data.precio ?? '0'));
+        setPrecioCurso(Number.isFinite(p) && p > 0 ? p : null);
+      } else {
+        setPrecioCurso(null);
+      }
     });
     return () => {
       vigente = false;
@@ -100,25 +132,34 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
   const buscarEstudiantes = useCallback((texto: string) => buscarOpciones('estudiantes')(texto), [buscarOpciones]);
   const buscarCursos = useCallback((texto: string) => buscarOpciones('cursos')(texto), [buscarOpciones]);
 
-  const requiereMotivoAnulacion = estado === 'anulada' && matricula?.estado !== 'anulada';
-  const admitePagoInicial = !matricula && puedeConPago && convocatoria !== '' && cursoId !== undefined;
+  const requiereMotivoAnulacion = Boolean(matricula) && estado === 'anulada' && matricula?.estado !== 'anulada';
+  const registraPagoAhora = !matricula && puedeConPago && (estado === 'parcial' || estado === 'pagada');
+  const capturaObligatoria = METODOS_CAPTURA_OBLIGATORIA.has(metodoPago);
 
-  const estados: Record<string, string> = (() => {
+  const abonoNumerico = Number.parseFloat(montoPago.replace(',', '.'));
+  const saldoRestanteEstimado =
+    estado === 'parcial' && precioCurso !== null && Number.isFinite(abonoNumerico) && abonoNumerico > 0
+      ? Math.max(0, precioCurso - abonoNumerico)
+      : null;
+
+  const estados: Record<string, string> = ((): Record<string, string> => {
     if (!matricula) {
-      return puedeAnular
-        ? { pendiente: ETIQUETAS.estadoMatricula.pendiente, anulada: ETIQUETAS.estadoMatricula.anulada }
-        : { pendiente: ETIQUETAS.estadoMatricula.pendiente };
+      return puedeConPago
+        ? {
+            pendiente: 'Pendiente (deuda total)',
+            parcial: 'Abono parcial',
+            pagada: 'Pagada (pago completo)',
+          }
+        : { pendiente: 'Pendiente' };
     }
     if (matricula.estado === 'pagada') {
-      return {
-        pagada: ETIQUETAS.estadoMatricula.pagada,
-        ...(puedeAnular ? { anulada: ETIQUETAS.estadoMatricula.anulada } : {}),
-      };
+      const opciones: Record<string, string> = { pagada: ETIQUETAS.estadoMatricula.pagada };
+      if (puedeAnular) opciones.anulada = ETIQUETAS.estadoMatricula.anulada;
+      return opciones;
     }
-    return {
-      pendiente: ETIQUETAS.estadoMatricula.pendiente,
-      ...(puedeAnular || matricula.estado === 'anulada' ? { anulada: ETIQUETAS.estadoMatricula.anulada } : {}),
-    };
+    const opciones: Record<string, string> = { pendiente: ETIQUETAS.estadoMatricula.pendiente };
+    if (puedeAnular || matricula.estado === 'anulada') opciones.anulada = ETIQUETAS.estadoMatricula.anulada;
+    return opciones;
   })();
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
@@ -126,24 +167,53 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
     setError(null);
     setErrorCaptura(null);
 
-    if (admitePagoInicial && conPagoInicial) {
-      if (captura === null) {
-        setErrorCaptura('Adjunta la captura del comprobante de Yape.');
-        return;
+    if (registraPagoAhora) {
+      if (estado === 'parcial') {
+        if (!Number.isFinite(abonoNumerico) || abonoNumerico <= 0) {
+          setError({ code: 'validacion', message: 'Indica el monto del abono inicial.', errors: { monto: ['Indica un abono mayor a 0.'] } });
+          return;
+        }
+        if (precioCurso !== null && abonoNumerico >= precioCurso) {
+          setError({
+            code: 'validacion',
+            message: 'Si el monto cubre el total del curso, selecciona estado «Pagada».',
+            errors: { monto: [`Para un abono parcial ingresa menos de ${moneda(precioCurso.toFixed(2))}.`] },
+          });
+          return;
+        }
       }
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(captura.type) || captura.size > MAX_CAPTURA) {
-        setErrorCaptura('Sube una imagen JPG, PNG o WebP de hasta 3 MB.');
-        return;
+      if (capturaObligatoria) {
+        const errArchivo = validarCaptura(captura);
+        if (errArchivo) {
+          setErrorCaptura('Adjunta el comprobante (obligatorio para Yape y Plin).');
+          return;
+        }
+      } else if (captura !== null) {
+        const errArchivo = validarCaptura(captura);
+        if (errArchivo) {
+          setErrorCaptura(errArchivo);
+          return;
+        }
       }
+
       setGuardando(true);
       const formulario = new FormData();
       if (estudiante) formulario.append('estudiante_id', String(estudiante.id));
-      formulario.append('convocatoria', convocatoria);
-      if (montoPago.trim() !== '') formulario.append('monto', montoPago.trim());
+      if (convocatoria !== '') {
+        formulario.append('convocatoria', convocatoria);
+      } else if (cursoId !== undefined) {
+        formulario.append('curso_id', String(cursoId));
+      }
+      formulario.append('metodo', metodoPago);
+      if (estado === 'parcial' && montoPago.trim() !== '') {
+        formulario.append('monto', montoPago.trim().replace(',', '.'));
+      } else if (estado === 'pagada' && precioCurso !== null) {
+        formulario.append('monto', precioCurso.toFixed(2));
+      }
       formulario.append('fecha_pago', fechaPago);
       if (referenciaPago.trim() !== '') formulario.append('referencia', referenciaPago.trim());
       formulario.append('_clave', claveIdempotencia.current);
-      formulario.append('imagen', captura);
+      if (captura !== null) formulario.append('imagen', captura);
 
       const resultado = await subir<{ message: string; data: { matricula_id: number; obligacion: string } }>('academico/matriculas/con-pago', formulario);
       if (!resultado.ok) {
@@ -161,7 +231,7 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
     const cuerpo = {
       estudiante_id: estudiante ? String(estudiante.id) : null,
       curso_id: curso ? String(curso.id) : null,
-      ...(matricula ? {} : { convocatoria: convocatoria === '' || cursoId === undefined ? null : convocatoria }),
+      ...(matricula ? {} : { convocatoria: convocatoria === '' || cursoId === undefined ? null : convocatoria, crear_obligacion: true }),
       fecha_matricula: fechaMatricula || null,
       estado,
       ...(requiereMotivoAnulacion ? { motivo: motivo.trim() } : {}),
@@ -211,51 +281,125 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
           onCambiar={setCurso}
           buscar={buscarCursos}
           marcador="Busca por código o nombre"
-          ayuda={matricula ? undefined : 'Solo cursos activos con cupos disponibles.'}
+          ayuda={matricula ? undefined : precioCurso !== null ? `Precio del curso: ${moneda(precioCurso.toFixed(2))}` : 'Solo cursos activos con cupos disponibles.'}
           error={err('curso_id')}
         />
+
         {matricula ? (
           matricula.convocatoria ? (
             <Campo etiqueta="Edición" value={matricula.convocatoria.codigo} readOnly ayuda="Queda fija desde el registro; el curso tampoco cambia." />
           ) : null
         ) : convocatoriasOfrecidas.length > 0 ? (
           <CampoSeleccion
-            etiqueta="Edición (opcional)"
+            etiqueta="Edición"
             value={convocatoria}
-            onChange={(e) => {
-              setConvocatoria(e.target.value);
-              if (e.target.value === '') setConPagoInicial(false);
-            }}
+            onChange={(e) => setConvocatoria(e.target.value)}
             opciones={{
-              '': 'Sin edición (cupo del curso)',
               ...Object.fromEntries(convocatoriasOfrecidas.map((c) => [c.identificador, `${c.codigo} · ${c.cupos.disponibles} de ${c.cupos.maximos} cupos`])),
+              '': 'Sin edición (cupo del curso)',
             }}
             error={err('convocatoria')}
-            ayuda="Si eliges una, el cupo se descuenta de la edición y no del curso."
+            ayuda="Se preselecciona la edición abierta más próxima."
           />
         ) : null}
 
-        {!(admitePagoInicial && conPagoInicial) ? (
-          <>
-            <Campo etiqueta="Fecha de matrícula" type="date" value={fechaMatricula} onChange={(e) => setFechaMatricula(e.target.value)} error={err('fecha_matricula')} required />
-            <CampoSeleccion
-              etiqueta="Estado"
-              value={estado}
-              onChange={(e) => setEstado(e.target.value)}
-              opciones={estados}
-              error={err('estado')}
-              ayuda="El estado «Pagada» se asigna automáticamente desde Finanzas al confirmar el pago."
-            />
-          </>
-        ) : null}
+        <Campo
+          etiqueta={registraPagoAhora ? 'Fecha del pago' : 'Fecha de matrícula'}
+          type="date"
+          value={registraPagoAhora ? fechaPago : fechaMatricula}
+          onChange={(e) => (registraPagoAhora ? setFechaPago(e.target.value) : setFechaMatricula(e.target.value))}
+          error={err(registraPagoAhora ? 'fecha_pago' : 'fecha_matricula')}
+          required
+        />
+
+        <CampoSeleccion
+          etiqueta="Estado"
+          value={estado}
+          onChange={(e) => {
+            setEstado(e.target.value);
+            setErrorCaptura(null);
+          }}
+          opciones={estados}
+          error={err('estado')}
+          ayuda={
+            matricula
+              ? 'El estado «Pagada» se actualiza automáticamente desde Pagos.'
+              : estado === 'pendiente'
+                ? 'Se registra la matrícula y su deuda pasa a Pagos y deudores.'
+                : estado === 'parcial'
+                  ? 'Se registra el abono inicial y el saldo restante queda en Deudores.'
+                  : 'Se registra el pago total y pasa a Pagos completos.'
+          }
+        />
 
         {matricula ? (
           <Campo
-            etiqueta="Monto pagado (libro de pagos)"
+            etiqueta="Monto pagado"
             value={moneda(matricula.monto_pagado)}
             readOnly
-            ayuda="Se actualiza automáticamente cuando se confirman o reversan pagos en Finanzas."
+            ayuda="Se actualiza automáticamente desde Pagos."
           />
+        ) : null}
+
+        {registraPagoAhora ? (
+          <>
+            <CampoSeleccion
+              etiqueta="Método de pago"
+              value={metodoPago}
+              onChange={(e) => {
+                setMetodoPago(e.target.value);
+                setErrorCaptura(null);
+              }}
+              opciones={Object.fromEntries(metodosPago.map((m) => [m.codigo, m.nombre]))}
+              error={err('metodo')}
+            />
+            {estado === 'parcial' ? (
+              <Campo
+                etiqueta="Monto del abono (S/)"
+                inputMode="decimal"
+                value={montoPago}
+                onChange={(e) => setMontoPago(e.target.value)}
+                error={err('monto')}
+                placeholder={precioCurso !== null ? `Menor a ${precioCurso.toFixed(2)}` : 'Ej. 100.00'}
+                ayuda={
+                  saldoRestanteEstimado !== null
+                    ? `Quedará pendiente por pagar: ${moneda(saldoRestanteEstimado.toFixed(2))}`
+                    : 'Indica cuánto está abonando ahora.'
+                }
+                required
+              />
+            ) : (
+              <Campo
+                etiqueta="Monto total a pagar (S/)"
+                value={precioCurso !== null ? precioCurso.toFixed(2) : montoPago}
+                onChange={(e) => setMontoPago(e.target.value)}
+                readOnly={precioCurso !== null}
+                error={err('monto')}
+                ayuda="Cubre el 100 % del curso."
+              />
+            )}
+            <Campo
+              etiqueta="Código de operación / referencia (opcional)"
+              maxLength={80}
+              value={referenciaPago}
+              onChange={(e) => setReferenciaPago(e.target.value)}
+              error={err('referencia')}
+            />
+            <div className="lg:col-span-2">
+              <CampoArchivo
+                etiqueta={capturaObligatoria ? 'Comprobante de pago (obligatorio)' : 'Comprobante de pago (opcional)'}
+                requerido={capturaObligatoria}
+                accept={ACEPTA_CAPTURA}
+                onArchivo={setCaptura}
+                error={errorCaptura ?? err('imagen')}
+                ayuda={
+                  capturaObligatoria
+                    ? 'Obligatorio para Yape y Plin. JPG, PNG, WebP o PDF de hasta 3 MB.'
+                    : 'Opcional para efectivo, transferencia o depósito. JPG, PNG, WebP o PDF de hasta 3 MB.'
+                }
+              />
+            </div>
+          </>
         ) : null}
 
         {requiereMotivoAnulacion ? (
@@ -273,44 +417,7 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
           />
         ) : null}
 
-        {admitePagoInicial ? (
-          <div className="space-y-4 rounded-xl border border-academico-200 bg-academico-50/40 p-4 lg:col-span-2">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-panel-text">
-              <input
-                type="checkbox"
-                checked={conPagoInicial}
-                onChange={(e) => setConPagoInicial(e.target.checked)}
-                className="h-4 w-4 rounded border-panel-border accent-academico-700"
-              />
-              Registrar también el pago completo con Yape y comprobante en un solo paso
-            </label>
-            {conPagoInicial ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Campo
-                  etiqueta="Importe (S/)"
-                  inputMode="decimal"
-                  value={montoPago}
-                  onChange={(e) => setMontoPago(e.target.value)}
-                  error={err('monto')}
-                  ayuda="Déjalo vacío para cobrar el precio del curso."
-                />
-                <Campo etiqueta="Fecha del pago" type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} error={err('fecha_pago')} required />
-                <Campo etiqueta="Código de operación Yape (opcional)" maxLength={80} value={referenciaPago} onChange={(e) => setReferenciaPago(e.target.value)} error={err('referencia')} />
-                <Campo
-                  etiqueta="Captura del comprobante Yape"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => setCaptura(e.target.files?.[0] ?? null)}
-                  error={errorCaptura ?? err('imagen')}
-                  ayuda="JPG, PNG o WebP de hasta 3 MB."
-                  required
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {!(admitePagoInicial && conPagoInicial) ? (
+        {!registraPagoAhora ? (
           <CampoArea
             etiqueta="Observaciones (opcional)"
             rows={3}
@@ -326,7 +433,7 @@ export function FormularioMatricula({ matricula, estudianteInicial = null, curso
       <div className="pie-acciones">
         <Boton variante="secundario" onClick={() => router.push(cancelar)} disabled={guardando}>Cancelar</Boton>
         <Boton type="submit" cargando={guardando}>
-          {matricula ? 'Guardar cambios' : conPagoInicial && admitePagoInicial ? 'Matricular y registrar pago' : 'Registrar matrícula'}
+          {matricula ? 'Guardar cambios' : 'Registrar matrícula'}
         </Boton>
       </div>
     </form>

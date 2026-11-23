@@ -34,7 +34,7 @@ final class OpcionesMatricula
     private const COLUMNAS_ESTUDIANTE = ['id', 'dni', 'nombres', 'apellidos', 'deleted_at'];
 
     /** Columnas que usa la etiqueta del curso (incluye deleted_at para trashed()). */
-    private const COLUMNAS_CURSO = ['id', 'codigo', 'nombre', 'cupos_disponibles', 'deleted_at'];
+    private const COLUMNAS_CURSO = ['id', 'codigo', 'nombre', 'precio', 'cupos_disponibles', 'deleted_at'];
 
     /**
      * @return list<array{id: int, texto: string, eliminado: bool}>
@@ -139,7 +139,7 @@ final class OpcionesMatricula
         ];
     }
 
-    /** @return array{id: int, texto: string, eliminado: bool} */
+    /** @return array{id: int, texto: string, eliminado: bool, precio?: string} */
     private static function opcionCurso(Curso $curso, string $contexto): array
     {
         // Los formularios muestran los cupos; el filtro del listado, no.
@@ -149,6 +149,7 @@ final class OpcionesMatricula
             'id' => Entrada::entero($curso->getKey()),
             'texto' => "{$curso->codigo} · {$curso->nombre}{$cupos}".($curso->trashed() ? ' (eliminado)' : ''),
             'eliminado' => $curso->trashed(),
+            'precio' => number_format((float) $curso->precio, 2, '.', ''),
         ];
     }
 

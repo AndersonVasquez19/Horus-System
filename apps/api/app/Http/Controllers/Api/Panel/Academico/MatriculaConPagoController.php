@@ -35,33 +35,49 @@ final class MatriculaConPagoController extends Controller implements HasMiddlewa
     public function store(Request $request): JsonResponse
     {
         PrecondicionesPanel::aplicar($request);
+        $metodo = strtolower(trim((string) $request->input('metodo', 'yape'))) ?: 'yape';
+        $requiereCaptura = in_array($metodo, ['yape', 'plin'], true);
+        $reglasImagen = ComprobantesPago::reglas(permitirPdf: true);
+        if (! $requiereCaptura) {
+            $reglasImagen[0] = 'nullable';
+        }
+
         $datos = $request->validate([
             'estudiante_id' => ['required', 'integer', Rule::exists('estudiantes', 'id')->where('estado', 'activo')->whereNull('deleted_at')],
-            'convocatoria' => ['required', 'string', 'uuid', Rule::exists('convocatorias', 'identificador')->whereNull('deleted_at')],
+            'convocatoria' => ['nullable', 'required_without:curso_id', 'string', 'uuid', Rule::exists('convocatorias', 'identificador')->whereNull('deleted_at')],
+            'curso_id' => ['nullable', 'required_without:convocatoria', 'integer', Rule::exists('cursos', 'id')->where('estado', 'activo')->whereNull('deleted_at')],
+            'metodo' => ['nullable', 'string', 'max:20', Rule::exists('metodos_pago', 'codigo')->where('activo', true)],
             'monto' => ['nullable'],
             'fecha_pago' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'referencia' => ['nullable', 'string', 'max:80', 'not_regex:/[<>]/u'],
-            'imagen' => ComprobantesPago::reglas(),
+            'imagen' => $reglasImagen,
         ], [
             'estudiante_id.required' => 'Selecciona el estudiante.',
             'estudiante_id.exists' => 'El estudiante seleccionado no está activo.',
-            'convocatoria.required' => 'Selecciona la edición.',
+            'convocatoria.required_without' => 'Selecciona una edición o un curso.',
             'convocatoria.exists' => 'La edición seleccionada no existe.',
+            'curso_id.required_without' => 'Selecciona un curso o una edición.',
+            'curso_id.exists' => 'El curso seleccionado no está activo.',
+            'metodo.exists' => 'El método de pago seleccionado no está disponible.',
             'fecha_pago.required' => 'Indica la fecha del pago.',
             'fecha_pago.date_format' => 'La fecha debe tener el formato AAAA-MM-DD.',
             'fecha_pago.before_or_equal' => 'La fecha de pago no puede ser futura.',
-            'imagen.required' => 'Adjunta la captura del comprobante de pago.',
-            'imagen.image' => 'El comprobante debe ser una imagen.',
-            'imagen.mimes' => 'Sube una captura en JPG, PNG o WebP.',
-            'imagen.mimetypes' => 'Sube una captura en JPG, PNG o WebP.',
-            'imagen.max' => 'La captura no puede pasar de 3 MB.',
-            'imagen.dimensions' => 'La captura debe medir entre 100 y 8000 píxeles por lado.',
+            'imagen.required' => 'Adjunta la captura del comprobante (obligatoria para Yape y Plin).',
+            'imagen.mimes' => 'Sube una captura en JPG, PNG o WebP, o un PDF.',
+            'imagen.mimetypes' => 'Sube una captura en JPG, PNG o WebP, o un PDF.',
+            'imagen.max' => 'El comprobante no puede pasar de 3 MB.',
         ]);
 
         [$matricula, $obligacion, $creada] = $this->gestion->registrar($request, $datos, $request->file('imagen'), $request->header('Idempotency-Key'));
 
+        $mensaje = ! $creada
+            ? 'Esta matrícula con pago ya estaba registrada.'
+            : ($matricula->estado === 'pagada'
+                ? 'La matrícula se registró con pago completo confirmado.'
+                : 'La matrícula se registró con abono inicial y saldo pendiente.');
+
         return response()->json([
-            'message' => $creada ? 'La matrícula se registró con su pago confirmado.' : 'Esta matrícula con pago ya estaba registrada.',
+            'message' => $mensaje,
             'data' => [
                 'matricula_id' => $matricula->id,
                 'estado' => $matricula->estado,

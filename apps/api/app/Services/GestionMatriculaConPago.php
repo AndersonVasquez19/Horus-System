@@ -38,10 +38,10 @@ class GestionMatriculaConPago
     ) {}
 
     /**
-     * @param  array{estudiante_id: int, convocatoria: string, fecha_pago: string, monto?: mixed, referencia?: ?string}  $datos
+     * @param  array{estudiante_id: int, convocatoria?: ?string, curso_id?: ?int, metodo?: ?string, fecha_pago: string, monto?: mixed, referencia?: ?string}  $datos
      * @return array{0: Matricula, 1: ObligacionPago, 2: bool} matrícula, obligación y si se creó ahora (false = repetición idempotente)
      */
-    public function registrar(Request $request, array $datos, UploadedFile $imagen, ?string $clave): array
+    public function registrar(Request $request, array $datos, ?UploadedFile $imagen, ?string $clave): array
     {
         if ($clave === null || ! preg_match('/\A[A-Za-z0-9_-]{8,64}\z/', $clave)) {
             abort(428, 'Envía una Idempotency-Key (8 a 64 caracteres) por cada intención de matrícula con pago.');
@@ -52,13 +52,36 @@ class GestionMatriculaConPago
             abort_unless($actor->can($permiso), 403);
         }
 
-        $convocatoria = Convocatoria::query()->with('curso')->where('identificador', strtolower((string) $datos['convocatoria']))->first();
-        if ($convocatoria === null || $convocatoria->curso === null) {
-            throw ValidationException::withMessages(['convocatoria' => 'La convocatoria no existe.']);
+        $convocatoria = null;
+        $curso = null;
+        if (! empty($datos['convocatoria'])) {
+            $convocatoria = Convocatoria::query()->with('curso')->where('identificador', strtolower((string) $datos['convocatoria']))->first();
+            if ($convocatoria === null || $convocatoria->curso === null) {
+                throw ValidationException::withMessages(['convocatoria' => 'La convocatoria no existe.']);
+            }
+            $curso = $convocatoria->curso;
+        } elseif (! empty($datos['curso_id'])) {
+            $curso = \App\Models\Curso::query()->find((int) $datos['curso_id']);
+            if ($curso === null) {
+                throw ValidationException::withMessages(['curso_id' => 'El curso seleccionado no existe.']);
+            }
+        } else {
+            throw ValidationException::withMessages(['curso_id' => 'Selecciona un curso o una edición.']);
         }
-        $monto = GestionPagos::centimos($datos['monto'] ?? $convocatoria->curso->precio, 'monto');
+
+        $metodo = strtolower(trim((string) ($datos['metodo'] ?? 'yape'))) ?: 'yape';
+        $precioCurso = GestionPagos::leer($curso->precio);
+        $montoAbono = isset($datos['monto']) && $datos['monto'] !== ''
+            ? GestionPagos::centimos($datos['monto'], 'monto')
+            : ($precioCurso > 0 ? $precioCurso : GestionPagos::centimos($curso->precio, 'monto'));
+
+        $montoObligacion = $precioCurso > 0 ? max($precioCurso, $montoAbono) : $montoAbono;
+        if ($precioCurso > 0 && $montoAbono > $precioCurso) {
+            throw ValidationException::withMessages(['monto' => 'El abono no puede superar el precio del curso (S/ '.GestionPagos::formato($precioCurso).').']);
+        }
+
         $referencia = isset($datos['referencia']) ? (trim((string) $datos['referencia']) ?: null) : null;
-        $huella = GestionPagos::huella('yape', $monto, $datos['fecha_pago'], $referencia, false);
+        $huella = GestionPagos::huella($metodo, $montoAbono, $datos['fecha_pago'], $referencia, false);
 
         // Repetición: la misma clave del mismo operador ya generó una transacción de pago.
         $previa = TransaccionPago::query()->where('clave_idempotencia', $clave)->where('registrado_por', $actor->id)->first();
@@ -69,48 +92,66 @@ class GestionMatriculaConPago
             return [Matricula::query()->findOrFail($obligacion->matricula_id), $obligacion, false];
         }
 
-        // La imagen se guarda antes (decodifica y vuelve a codificar; rechaza lo corrupto) y se borra si algo falla después.
-        $guardado = $this->comprobantes->guardar($imagen);
+        $guardado = null;
+        if ($imagen !== null) {
+            // La imagen se guarda antes (decodifica y vuelve a codificar; rechaza lo corrupto) y se borra si algo falla después.
+            $guardado = $this->comprobantes->guardar($imagen);
 
-        // Aquí el pago se confirma en el acto: no queda una persona que revise después, así que la misma captura de otro pago vigente se
-        // rechaza (en los demás flujos solo se avisa, porque confirmar es otro paso).
-        $repetida = $this->pagos->imagenYaUsada($guardado['sha256']);
-        if ($repetida !== null) {
-            $this->comprobantes->borrar($guardado['ruta']);
+            $repetida = $this->pagos->imagenYaUsada($guardado['sha256']);
+            if ($repetida !== null) {
+                $this->comprobantes->borrar($guardado['ruta']);
 
-            throw ValidationException::withMessages(['imagen' => "Esta captura ya se usó en un pago de la matrícula #{$repetida['matricula_id']} ({$repetida['fecha_pago']}). Sube el comprobante de este pago."]);
+                throw ValidationException::withMessages(['imagen' => "Esta captura ya se usó en un pago de la matrícula #{$repetida['matricula_id']} ({$repetida['fecha_pago']}). Sube el comprobante de este pago."]);
+            }
         }
 
         try {
-            return DB::transaction(function () use ($request, $datos, $clave, $convocatoria, $monto, $referencia, $guardado, $actor): array {
+            return DB::transaction(function () use ($request, $datos, $clave, $convocatoria, $curso, $metodo, $montoAbono, $montoObligacion, $referencia, $guardado, $actor): array {
                 $matricula = $this->matriculas->crear([
                     'estudiante_id' => (int) $datos['estudiante_id'],
-                    'curso_id' => $convocatoria->curso_id,
-                    'convocatoria' => $convocatoria->identificador,
+                    'curso_id' => $curso->id,
+                    'convocatoria' => $convocatoria?->identificador,
                     'fecha_matricula' => CarbonImmutable::now('America/Lima')->toDateString(),
                     'estado' => 'pendiente',
                     'monto_pagado' => 0,
                     'observaciones' => null,
                 ], AuditoriaAcademica::actorDe($request));
 
-                $concepto = mb_substr('Matrícula '.$convocatoria->codigo.' · '.$convocatoria->curso->nombre, 0, 120);
-                $obligacion = $this->pagos->crearObligacion($request, $matricula->id, ['concepto' => $concepto, 'plan' => 'completo', 'monto_total' => GestionPagos::formato($monto)]);
+                $prefijo = $convocatoria !== null ? 'Matrícula '.$convocatoria->codigo.' · ' : 'Matrícula '.$curso->codigo.' · ';
+                $concepto = mb_substr($prefijo.$curso->nombre, 0, 120);
+                $obligacion = $this->pagos->crearObligacion($request, $matricula->id, [
+                    'concepto' => $concepto,
+                    'plan' => 'completo',
+                    'monto_total' => GestionPagos::formato($montoObligacion),
+                ]);
                 [$t] = $this->pagos->registrarPago($request, $obligacion->identificador, [
-                    'metodo' => 'yape', 'monto' => GestionPagos::formato($monto), 'fecha_pago' => $datos['fecha_pago'], 'referencia' => $referencia, 'confirmar' => false,
+                    'metodo' => $metodo,
+                    'monto' => GestionPagos::formato($montoAbono),
+                    'fecha_pago' => $datos['fecha_pago'],
+                    'referencia' => $referencia,
+                    'confirmar' => false,
                 ], $clave);
 
-                ComprobantePago::query()->create([
-                    'transaccion_pago_id' => $t->id, 'ruta' => $guardado['ruta'], 'mime' => $guardado['mime'], 'tamano' => $guardado['tamano'],
-                    'sha256' => $guardado['sha256'], 'subido_por' => $actor->id,
-                ]);
-                AuditLog::record('comprobante_adjuntado', TransaccionPago::class, $t->id, ['obligacion' => $obligacion->id, 'reemplazo' => false], $actor->id);
+                if ($guardado !== null) {
+                    ComprobantePago::query()->create([
+                        'transaccion_pago_id' => $t->id,
+                        'ruta' => $guardado['ruta'],
+                        'mime' => $guardado['mime'],
+                        'tamano' => $guardado['tamano'],
+                        'sha256' => $guardado['sha256'],
+                        'subido_por' => $actor->id,
+                    ]);
+                    AuditLog::record('comprobante_adjuntado', TransaccionPago::class, $t->id, ['obligacion' => $obligacion->id, 'reemplazo' => false], $actor->id);
+                }
 
                 $this->pagos->confirmar($request, $t->identificador);
 
                 return [$matricula->refresh(), $obligacion->refresh(), true];
             });
         } catch (Throwable $error) {
-            $this->comprobantes->borrar($guardado['ruta']);
+            if ($guardado !== null) {
+                $this->comprobantes->borrar($guardado['ruta']);
+            }
 
             throw $error;
         }

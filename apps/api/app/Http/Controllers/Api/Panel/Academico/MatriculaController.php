@@ -339,7 +339,7 @@ final class MatriculaController extends Controller implements HasMiddleware
     {
         $query = Matricula::query()->with([
             'estudiante:id,dni,nombres,apellidos,email,telefono,deleted_at',
-            'curso:id,codigo,nombre,enlace_grupo_whatsapp,deleted_at',
+            'curso:id,codigo,nombre,precio,enlace_grupo_whatsapp,deleted_at',
             'convocatoria:id,identificador,codigo,deleted_at',
             'obligacionPago.transacciones',
         ]);

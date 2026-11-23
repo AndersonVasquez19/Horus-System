@@ -1,6 +1,6 @@
 'use client';
 
-import { ArchiveRestore, Ban, Copy, Download, FileText, MessageCircle, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArchiveRestore, Ban, Copy, Download, FileText, MessageCircle, Pencil, Plus, Receipt, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
@@ -10,7 +10,6 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { CampoArea } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
-import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import type { MatriculaDetalle } from '@/features/academico/tipos';
 import { copiarAlPortapapeles, enlaceWaMe, mensajeBienvenidaMatricula } from '@/lib/panel/whatsapp-plantillas';
 
@@ -46,6 +45,41 @@ export function AccionesListadoMatriculas({ filtros, mostrarNueva = true }: { fi
         </Link>
       ) : null}
     </>
+  );
+}
+
+/** Botón de 1 clic para regularizar matrículas antiguas sin obligación de cobro. */
+export function BotonGenerarCobro({ matriculaId }: { matriculaId: number }) {
+  const router = useRouter();
+  const puedeRegistrar = usePuede('pagos.registrar');
+  const { ejecutar } = useOperacionPanel();
+  const { mostrar } = useAvisos();
+  const [cargando, setCargando] = useState(false);
+
+  if (!puedeRegistrar) return <span className="text-xs text-panel-muted">Sin obligación</span>;
+
+  async function generar() {
+    setCargando(true);
+    const r = await ejecutar<{ message?: string }>(`academico/matriculas/${matriculaId}/obligacion/generar`, 'POST');
+    setCargando(false);
+    if (!r.ok) {
+      mostrar('error', r.error.message);
+      return;
+    }
+    mostrar('exito', r.datos?.message || 'Obligación generada. Ya aparece en Pendientes y deudores.');
+    router.refresh();
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={generar}
+      disabled={cargando}
+      className="inline-flex items-center gap-1 rounded-md border border-academico-300 bg-academico-50 px-2.5 py-1 text-xs font-semibold text-academico-800 transition hover:bg-academico-100 disabled:opacity-50"
+    >
+      <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+      {cargando ? 'Generando…' : 'Generar cobro'}
+    </button>
   );
 }
 
@@ -161,23 +195,68 @@ export function OperacionMatricula({ matriculaId, operacion, onCerrar }: { matri
   );
 }
 
-/** Menú ⋯ de una fila del listado: los elementos de contacto y navegación (serializables) más anular, eliminar o restaurar según permisos. */
-export function MenuFilaMatricula({ matricula, elementos }: { matricula: { id: number; estado: string; eliminado: boolean }; elementos: readonly ElementoMenuFila[] }) {
+/** Acciones directas por fila en el listado de matrículas (sin menú de 3 puntos). */
+export function MenuFilaMatricula({ matricula }: { matricula: { id: number; estado: string; eliminado: boolean } }) {
   const puedeAnular = usePuede('matriculas.anular');
   const puedeEliminar = usePuede('matriculas.eliminar');
   const puedeRestaurar = usePuede('matriculas.restaurar');
   const [operacion, setOperacion] = useState<Operacion | null>(null);
 
-  const propios: ElementoMenuFila[] = matricula.eliminado
-    ? puedeRestaurar ? [{ tipo: 'accion', etiqueta: 'Restaurar matrícula', icono: ArchiveRestore, onClick: () => setOperacion('restaurar') }] : []
-    : [
-        ...(puedeAnular && matricula.estado !== 'anulada' ? [{ tipo: 'accion' as const, etiqueta: 'Anular matrícula', icono: Ban, peligro: true, onClick: () => setOperacion('anular') }] : []),
-        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar matrícula', icono: Trash2, peligro: true, onClick: () => setOperacion('eliminar') }] : []),
-      ];
-
   return (
     <>
-      <MenuFila etiqueta={`Acciones para matrícula #${matricula.id}`} elementos={[...elementos, ...propios]} />
+      <div className="inline-flex items-center justify-end gap-1.5">
+        <Link
+          href={`/admin/academico/matriculas/${matricula.id}`}
+          title="Ver matrícula"
+          aria-label={`Ver matrícula #${matricula.id}`}
+          className="inline-flex h-8 items-center gap-1 rounded-lg border border-panel-border bg-panel-surface px-2.5 text-xs font-semibold text-panel-text transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-800"
+        >
+          Ver
+        </Link>
+        {!matricula.eliminado ? (
+          <Link
+            href={`/admin/academico/matriculas/${matricula.id}/editar`}
+            title="Editar matrícula"
+            aria-label={`Editar matrícula #${matricula.id}`}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-academico-600/30 bg-academico-50 px-2.5 text-xs font-semibold text-academico-800 transition hover:bg-academico-100"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        ) : null}
+        {matricula.eliminado && puedeRestaurar ? (
+          <button
+            type="button"
+            title="Restaurar matrícula"
+            aria-label={`Restaurar matrícula #${matricula.id}`}
+            onClick={() => setOperacion('restaurar')}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 cursor-pointer"
+          >
+            <ArchiveRestore className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        ) : null}
+        {!matricula.eliminado && puedeAnular && matricula.estado !== 'anulada' ? (
+          <button
+            type="button"
+            title="Anular matrícula"
+            aria-label={`Anular matrícula #${matricula.id}`}
+            onClick={() => setOperacion('anular')}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-amber-600/30 bg-amber-50 px-2.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 cursor-pointer"
+          >
+            <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        ) : null}
+        {!matricula.eliminado && puedeEliminar ? (
+          <button
+            type="button"
+            title="Eliminar matrícula"
+            aria-label={`Eliminar matrícula #${matricula.id}`}
+            onClick={() => setOperacion('eliminar')}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-red-600/30 bg-red-50 px-2.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 cursor-pointer"
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
       <OperacionMatricula matriculaId={matricula.id} operacion={operacion} onCerrar={() => setOperacion(null)} />
     </>
   );

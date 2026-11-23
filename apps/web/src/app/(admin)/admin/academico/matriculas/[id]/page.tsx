@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesMatricula } from '@/components/academico/acciones-matricula';
+import { BotonEmitirCertificadoMatricula } from '@/components/academico/acciones-certificado';
 import { BotonCrearObligacion, COLOR_COBRO, ComprobantesDeLaMatricula, ETIQUETA_COBRO, EnlaceObligacion } from '@/components/academico/paneles-pagos';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
@@ -57,7 +58,14 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           { etiqueta: 'Matrículas', href: LISTADO },
           { etiqueta: `#${matricula.id}` },
         ]}
-        acciones={<AccionesMatricula matricula={matricula} />}
+        acciones={
+          <div className="flex flex-wrap items-center gap-2">
+            {!matricula.eliminado && matricula.estado !== 'anulada' ? (
+              <BotonEmitirCertificadoMatricula matriculaId={matricula.id} />
+            ) : null}
+            <AccionesMatricula matricula={matricula} />
+          </div>
+        }
       />
 
       {matricula.eliminado ? <Alerta tipo="aviso" className="mb-6">Esta matrícula está eliminada y no ocupa cupo.</Alerta> : null}

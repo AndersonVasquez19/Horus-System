@@ -104,24 +104,81 @@ class GestionPagos
 
             $obligacion = ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->first();
             if ($obligacion === null) {
-                abort_if($matricula->trashed() || $matricula->estado === 'anulada', 409, 'La matrícula no admite pagos.');
-                $curso = $matricula->curso;
-                $convocatoria = $matricula->convocatoria;
-                abort_if($curso === null || $convocatoria === null, 409, 'Solo las matrículas con edición tienen obligaciones de pago.');
-                $precio = self::leer($curso->precio);
-                if ($precio <= 0) {
-                    throw ValidationException::withMessages(['monto' => 'El curso no tiene un precio definido: define el precio del curso antes de registrar pagos.']);
-                }
-                $concepto = mb_substr('Matrícula · '.$convocatoria->codigo.' '.$curso->nombre, 0, 120);
-                $obligacion = $this->crearObligacionBloqueada($matricula, $autor, [
-                    'concepto' => trim($concepto), 'plan' => 'completo', 'monto_total' => self::formato($precio),
-                ]);
+                $obligacion = $this->crearObligacionAutomaticaBloqueada($matricula, $autor);
             }
 
             [$t, $creada] = $this->registrarPago($request, $obligacion->identificador, $datos, $clave);
 
             return [$t, $obligacion, $creada];
         });
+    }
+
+    /**
+     * Regulariza en 1 clic una matrícula activa sin obligación vigente, generando su deuda por el precio del curso.
+     *
+     * @return array{0: ObligacionPago, 1: bool} obligación y si fue creada ahora (false = ya existía)
+     */
+    public function generarObligacionAutomatica(Request $request, int $matriculaId): array
+    {
+        return DB::transaction(function () use ($request, $matriculaId): array {
+            $matricula = Matricula::query()->with(['curso', 'convocatoria'])->lockForUpdate()->findOrFail($matriculaId);
+            $autor = $this->autorizar($request, 'pagos.registrar');
+
+            $existente = ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->first();
+            if ($existente !== null) {
+                return [$existente, false];
+            }
+
+            return [$this->crearObligacionAutomaticaBloqueada($matricula, $autor), true];
+        });
+    }
+
+    /**
+     * Crea automáticamente la obligación de pago dentro de la transacción de matrícula nueva (si el curso tiene precio > 0).
+     */
+    public function crearObligacionDesdeMatricula(Matricula $matricula, int $actorId): ?ObligacionPago
+    {
+        if ($matricula->trashed() || $matricula->estado === 'anulada') {
+            return null;
+        }
+        if (ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->exists()) {
+            return null;
+        }
+        $curso = $matricula->curso;
+        if ($curso === null) {
+            return null;
+        }
+        $precio = self::leer($curso->precio);
+        if ($precio <= 0) {
+            return null;
+        }
+        $autor = User::query()->find($actorId);
+        if ($autor === null) {
+            return null;
+        }
+
+        return $this->crearObligacionAutomaticaBloqueada($matricula, $autor);
+    }
+
+    private function crearObligacionAutomaticaBloqueada(Matricula $matricula, User $autor): ObligacionPago
+    {
+        abort_if($matricula->trashed() || $matricula->estado === 'anulada', 409, 'La matrícula no admite pagos.');
+        $curso = $matricula->curso;
+        abort_if($curso === null, 409, 'La matrícula no tiene un curso asociado.');
+        $precio = self::leer($curso->precio);
+        if ($precio <= 0) {
+            throw ValidationException::withMessages(['monto' => 'El curso no tiene un precio definido: define el precio del curso antes de generar el cobro.']);
+        }
+        $prefijo = $matricula->convocatoria !== null
+            ? 'Matrícula · '.$matricula->convocatoria->codigo.' '
+            : 'Matrícula · '.$curso->codigo.' ';
+        $concepto = mb_substr($prefijo.$curso->nombre, 0, 120);
+
+        return $this->crearObligacionBloqueada($matricula, $autor, [
+            'concepto' => trim($concepto),
+            'plan' => 'completo',
+            'monto_total' => self::formato($precio),
+        ]);
     }
 
     /**
@@ -132,7 +189,6 @@ class GestionPagos
     private function crearObligacionBloqueada(Matricula $matricula, User $autor, array $datos): ObligacionPago
     {
         abort_if($matricula->trashed() || $matricula->estado === 'anulada', 409, 'La matrícula no admite obligaciones de pago.');
-        abort_if($matricula->convocatoria_id === null, 409, 'Solo las matrículas con edición tienen obligaciones de pago.');
         if (ObligacionPago::query()->where('matricula_id', $matricula->id)->where('estado', 'vigente')->exists()) {
             throw ValidationException::withMessages(['plan' => 'La matrícula ya tiene una obligación de pago vigente.']);
         }

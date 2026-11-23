@@ -1583,6 +1583,110 @@ paths:
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+  /academico/certificados:
+    get:
+      tags: [academico]
+      summary: "Listado paginado de certificados institucionales"
+      description: "Permiso: `certificados.ver`."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/PorPagina' }
+        - { name: buscar, in: query, schema: { type: string, maxLength: 80 } }
+        - { name: estado, in: query, schema: { type: string, enum: [emitido, anulado] } }
+        - { name: convocatoria, in: query, schema: { type: string, maxLength: 40 } }
+      responses:
+        '200': { $ref: '#/components/responses/Listado' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/certificados/{certificado}:
+    get:
+      tags: [academico]
+      summary: "Detalle de un certificado emitido"
+      description: "Permiso: `certificados.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: certificado, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/certificados/{certificado}/pdf:
+    get:
+      tags: [academico]
+      summary: "Descarga el diploma PDF horizontal con código QR"
+      description: "Permiso: `certificados.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: certificado, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Archivo PDF }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/{matricula}/certificado:
+    post:
+      tags: [academico]
+      summary: "Emite un certificado individual para una matrícula vigente"
+      description: "Permiso: `certificados.emitir`."
+      x-estado: vigente
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/certificados/emitir-lote:
+    post:
+      tags: [academico]
+      summary: "Emite en lote los certificados de todas las matrículas elegibles de una edición"
+      description: "Permiso: `certificados.emitir`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /academico/certificados/{certificado}/anular:
+    post:
+      tags: [academico]
+      summary: "Anula un certificado emitido con motivo auditado"
+      description: "Permiso: `certificados.anular`."
+      x-estado: vigente
+      parameters:
+        - { name: certificado, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/{matricula}/obligacion/generar:
+    post:
+      tags: [academico]
+      summary: "Genera automáticamente la obligación de cobro por el precio del curso para una matrícula sin obligación"
+      description: "Permiso: `pagos.registrar`."
+      x-estado: vigente
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /academico/pagos/obligaciones/{obligacion}:
     get:
       tags: [academico]

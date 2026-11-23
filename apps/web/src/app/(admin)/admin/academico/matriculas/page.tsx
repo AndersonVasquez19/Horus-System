@@ -1,17 +1,17 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { AccionesListadoMatriculas, MenuFilaMatricula } from '@/components/academico/acciones-matricula';
+import { AccionesListadoMatriculas, BotonGenerarCobro, MenuFilaMatricula } from '@/components/academico/acciones-matricula';
+import { CeldaTelefono } from '@/components/shared/ui/acciones-celda';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { Casilla } from '@/components/shared/ui/casilla';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado, type ColorInsignia } from '@/components/shared/ui/insignia';
-import type { ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import type { MatriculaResumen } from '@/features/academico/tipos';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
-import { mensajeBienvenida, urlMailto, urlWhatsApp } from '@/lib/panel/contacto';
+import { mensajeBienvenida } from '@/lib/panel/contacto';
 import { ETIQUETAS, etiqueta, fecha, moneda } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Matrículas · Gestión académica' };
@@ -122,7 +122,7 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
         ) : (
           <Tabla accionesFijas
             titulo={`Matrículas (${meta.total})`}
-            columnas={['Estudiante', 'Curso', 'Edición', { texto: 'Fecha', orden: 'fecha' }, { texto: 'Monto', derecha: true }, 'Cobro', { texto: 'Estado', orden: 'estado' }, { texto: 'Acciones', oculta: true, derecha: true }]}
+            columnas={['Estudiante', 'Contacto', 'Curso', 'Edición', { texto: 'Fecha', orden: 'fecha' }, 'Situación de pago', { texto: 'Estado', orden: 'estado' }, { texto: 'Acciones', oculta: true, derecha: true }]}
             ordenActual={meta.orden}
             rutaOrden={RUTA}
             parametrosOrden={actuales}
@@ -139,18 +139,6 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
                 enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
               });
               const cobro = COLOR_COBRO_BADGE[matricula.estado_cobro ?? 'sin_obligacion'] ?? COLOR_COBRO_BADGE.sin_obligacion;
-              const wa = urlWhatsApp(est?.telefono, saludoWa);
-              const mail = urlMailto(est?.email, `Bienvenida · ${cursoNombre}`, saludoWa);
-              const acciones: ElementoMenuFila[] = [
-                { tipo: 'enlace', etiqueta: 'Ver matrícula', href: `${RUTA}/${matricula.id}` },
-                ...(!matricula.eliminado ? [{ tipo: 'enlace' as const, etiqueta: 'Editar matrícula', href: `${RUTA}/${matricula.id}/editar` }] : []),
-                ...(est ? [{ tipo: 'enlace' as const, etiqueta: 'Ver estudiante', href: `/admin/academico/estudiantes/${est.id}` }] : []),
-                ...(matricula.obligacion_identificador ? [{ tipo: 'enlace' as const, etiqueta: 'Ver obligación de pago', href: `/admin/academico/pagos/${matricula.obligacion_identificador}` }] : []),
-                ...(wa ? [{ tipo: 'enlace' as const, etiqueta: 'WhatsApp de bienvenida', href: wa, externo: true }] : []),
-                ...(mail ? [{ tipo: 'enlace' as const, etiqueta: 'Enviar correo', href: mail, externo: true }] : []),
-                ...(est?.telefono ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar teléfono', valor: est.telefono, aviso: 'Teléfono copiado.' }] : []),
-                ...(est?.email ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar correo', valor: est.email, aviso: 'Correo copiado.' }] : []),
-              ];
               return (
                 <tr key={matricula.id} className="hover:bg-academico-50/50">
                   <td className="px-4 py-3">
@@ -158,6 +146,9 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
                       {matricula.estudiante?.nombre ?? 'Estudiante no disponible'}
                     </Link>
                     <p className="font-mono text-xs text-panel-muted">{matricula.estudiante?.dni}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <CeldaTelefono telefono={est?.telefono} mensajeWa={saludoWa} />
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-panel-text">{matricula.curso?.nombre ?? '—'}</p>
@@ -173,15 +164,33 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-panel-muted">{moneda(matricula.monto_pagado)}</td>
                   <td className="px-4 py-3">
                     {matricula.obligacion_identificador ? (
                       <Link href={`/admin/academico/pagos/${matricula.obligacion_identificador}`} className="inline-flex flex-col gap-0.5 hover:underline">
-                        <span><Insignia color={cobro.color}>{cobro.texto}</Insignia></span>
-                        {matricula.saldo_cobro && Number.parseFloat(matricula.saldo_cobro) > 0 ? (
-                          <span className="text-xs text-panel-muted">Saldo {moneda(matricula.saldo_cobro)}</span>
-                        ) : null}
+                        {matricula.estado_cobro === 'pagada' ? (
+                          <>
+                            <span><Insignia color="verde">Pagado completo</Insignia></span>
+                            <span className="text-xs tabular-nums text-panel-muted">{moneda(matricula.monto_pagado)}</span>
+                          </>
+                        ) : matricula.saldo_cobro && Number.parseFloat(matricula.saldo_cobro) > 0 ? (
+                          <>
+                            <span>
+                              <Insignia color={matricula.estado_cobro === 'parcial' ? 'azul' : 'ambar'}>
+                                Debe {moneda(matricula.saldo_cobro)}
+                              </Insignia>
+                            </span>
+                            <span className="text-xs tabular-nums text-panel-muted">
+                              {Number.parseFloat(String(matricula.monto_pagado ?? '0')) > 0
+                                ? `Abonó ${moneda(matricula.monto_pagado)}`
+                                : 'Sin abonos'}
+                            </span>
+                          </>
+                        ) : (
+                          <span><Insignia color={cobro.color}>{cobro.texto}</Insignia></span>
+                        )}
                       </Link>
+                    ) : !matricula.eliminado && matricula.estado !== 'anulada' ? (
+                      <BotonGenerarCobro matriculaId={matricula.id} />
                     ) : (
                       <Insignia color="gris">{cobro.texto}</Insignia>
                     )}
@@ -193,7 +202,7 @@ async function ListadoMatriculas({ searchParams }: { searchParams: Promise<Param
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <MenuFilaMatricula matricula={{ id: matricula.id, estado: matricula.estado, eliminado: Boolean(matricula.eliminado) }} elementos={acciones} />
+                    <MenuFilaMatricula matricula={{ id: matricula.id, estado: matricula.estado, eliminado: Boolean(matricula.eliminado) }} />
                   </td>
                 </tr>
               );

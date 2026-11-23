@@ -214,6 +214,17 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('sesiones/{sesion}/asistencias/{matricula}', [Academico\AsistenciaController::class, 'corregir'])->whereNumber('matricula')->name('asistencias.corregir');
         });
 
+        // Certificados institucionales (`certificados.ver|emitir|anular`).
+        Route::get('certificados', [Academico\CertificadoController::class, 'index'])->name('certificados.index');
+        Route::get('certificados/{certificado}', [Academico\CertificadoController::class, 'show'])->whereUuid('certificado')->name('certificados.show');
+        Route::get('certificados/{certificado}/pdf', [Academico\CertificadoController::class, 'pdf'])
+            ->middleware('throttle:admin-export')->whereUuid('certificado')->name('certificados.pdf');
+        Route::middleware('throttle:admin-write')->group(function (): void {
+            Route::post('matriculas/{matricula}/certificado', [Academico\CertificadoController::class, 'emitir'])->whereNumber('matricula')->name('certificados.emitir');
+            Route::post('convocatorias/{identificador}/certificados/emitir-lote', [Academico\CertificadoController::class, 'emitirLote'])->whereUuid('identificador')->name('certificados.emitir-lote');
+            Route::post('certificados/{certificado}/anular', [Academico\CertificadoController::class, 'anular'])->whereUuid('certificado')->name('certificados.anular');
+        });
+
         // Finanzas (Horus Academic, Fase 7): libro de pagos inmutable. El permiso (`pagos.*`) lo declara el controlador.
         Route::get('pagos/metodos', [Academico\PagoController::class, 'metodos'])->name('pagos.metodos');
         Route::get('pagos/verificar-referencia', [Academico\PagoController::class, 'verificarReferencia'])
@@ -232,6 +243,7 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::get('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'deMatricula'])->whereNumber('matricula')->name('pagos.obligaciones.matricula');
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'crearObligacion'])->whereNumber('matricula')->name('pagos.obligaciones.store');
+            Route::post('matriculas/{matricula}/obligacion/generar', [Academico\PagoController::class, 'generarObligacion'])->whereNumber('matricula')->name('pagos.obligaciones.generar');
             Route::post('matriculas/{matricula}/pagos', [Academico\PagoController::class, 'registrarDeMatricula'])->whereNumber('matricula')->name('pagos.registrar-matricula');
             Route::post('pagos/obligaciones/{obligacion}/pagos', [Academico\PagoController::class, 'registrar'])->name('pagos.registrar');
             Route::post('pagos/obligaciones/{obligacion}/anular', [Academico\PagoController::class, 'anular'])->name('pagos.obligaciones.anular');

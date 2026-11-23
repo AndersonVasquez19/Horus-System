@@ -41,9 +41,10 @@ final class GestionMatriculas
 
         // La convocatoria llega por su identificador público; se resuelve bajo bloqueo, nunca desde la lectura previa.
         $identificador = $datos['convocatoria'] ?? null;
-        unset($datos['convocatoria']);
+        $crearObligacion = (bool) ($datos['crear_obligacion'] ?? false);
+        unset($datos['convocatoria'], $datos['crear_obligacion']);
 
-        return DB::transaction(function () use ($datos, $actor, $identificador): Matricula {
+        return DB::transaction(function () use ($datos, $actor, $identificador, $crearObligacion): Matricula {
             $curso = Curso::withTrashed()
                 ->lockForUpdate()
                 ->findOrFail(Entrada::entero($datos['curso_id']));
@@ -91,6 +92,14 @@ final class GestionMatriculas
             }
 
             $matricula = Matricula::create($datos);
+
+            if ($crearObligacion && $matricula->estado !== 'anulada') {
+                $matricula->setRelation('curso', $curso);
+                if ($convocatoria !== null) {
+                    $matricula->setRelation('convocatoria', $convocatoria);
+                }
+                app(GestionPagos::class)->crearObligacionDesdeMatricula($matricula, $actor);
+            }
 
             // Última escritura de la transacción: si la auditoría falla se revierten matrícula, cupo e intención de aviso.
             AuditoriaAcademica::registrarCreacion(
