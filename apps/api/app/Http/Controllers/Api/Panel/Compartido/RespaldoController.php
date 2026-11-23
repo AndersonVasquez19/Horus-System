@@ -31,7 +31,7 @@ class RespaldoController extends Controller implements HasMiddleware
     /** Tablas incluidas en la exportación administrativa de Horus Academic. */
     private const TABLAS = [
         'users', 'estudiantes', 'cursos', 'convocatorias', 'matriculas',
-        'sesiones_clase', 'asistencias', 'evaluaciones', 'calificaciones',
+        'sesiones_clase', 'asistencias', 'evaluaciones', 'calificaciones', 'certificados',
         'obligaciones_pago', 'cuotas_obligacion', 'transacciones_pago',
         'reclamaciones', 'mensajes_contacto',
         'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas',
@@ -48,6 +48,7 @@ class RespaldoController extends Controller implements HasMiddleware
         'asistencias' => 'Asistencias',
         'evaluaciones' => 'Evaluaciones',
         'calificaciones' => 'Calificaciones',
+        'certificados' => 'Certificados emitidos',
         'obligaciones_pago' => 'Obligaciones de pago',
         'cuotas_obligacion' => 'Cuotas de pago',
         'transacciones_pago' => 'Transacciones del libro',

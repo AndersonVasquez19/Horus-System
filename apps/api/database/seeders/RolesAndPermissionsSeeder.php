@@ -55,6 +55,13 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public const PAGOS_PERMISSIONS = ['pagos.ver', 'pagos.planificar', 'pagos.registrar', 'pagos.confirmar', 'pagos.reversar', 'pagos.exportar'];
 
+    /**
+     * Certificados institucionales: admin todos; coordinador ver y emitir; secretaria solo ver.
+     *
+     * @var list<string>
+     */
+    public const CERTIFICADOS_PERMISSIONS = ['certificados.ver', 'certificados.emitir', 'certificados.anular'];
+
     /** Libro de Reclamaciones (Sprint 20). Solo admin por defecto; ampliar a otros roles es decisión del propietario. @var list<string> */
     public const RECLAMACIONES_PERMISSIONS = ['reclamaciones.ver', 'reclamaciones.gestionar', 'reclamaciones.responder'];
 
@@ -78,6 +85,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::SESIONES_PERMISSIONS,
         ...self::ASISTENCIAS_PERMISSIONS,
         ...self::PAGOS_PERMISSIONS,
+        ...self::CERTIFICADOS_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
         'estudiantes.ver',
         'estudiantes.crear',
@@ -146,6 +154,8 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::CALIFICACIONES_PERMISSIONS,
         ...self::SESIONES_PERMISSIONS,
         ...self::ASISTENCIAS_PERMISSIONS,
+        'certificados.ver',
+        'certificados.emitir',
     ];
 
     /** @var list<string> */
@@ -166,6 +176,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Pagos (decisión del propietario, 20/11/2026): secretaría sube los comprobantes. Confirmar, reversar, planificar y exportar siguen solo en admin.
         'pagos.ver',
         'pagos.registrar',
+        'certificados.ver',
     ];
 
     /** Roles con acceso al panel /admin (ver routes/web.php). */
