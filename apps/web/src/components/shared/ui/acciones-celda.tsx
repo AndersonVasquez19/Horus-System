@@ -138,12 +138,14 @@ export function BotonAccionFila({
   icono,
   tono = 'neutro',
   disabled = false,
+  soloIcono = false,
 }: {
   onClick: () => void;
   etiqueta: string;
   icono: ReactNode;
   tono?: TonoAccionFila;
   disabled?: boolean;
+  soloIcono?: boolean;
 }) {
   return (
     <button
@@ -152,10 +154,12 @@ export function BotonAccionFila({
       disabled={disabled}
       title={etiqueta}
       aria-label={etiqueta}
-      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${TONO_BOTON[tono]}`}
+      className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
+        soloIcono ? 'w-8 px-0' : 'px-2.5'
+      } ${TONO_BOTON[tono]}`}
     >
       {icono}
-      <span className="hidden xl:inline">{etiqueta}</span>
+      {!soloIcono ? <span className="hidden xl:inline">{etiqueta}</span> : null}
     </button>
   );
 }

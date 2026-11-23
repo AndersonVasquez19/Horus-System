@@ -34,6 +34,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class UsuarioController extends Controller implements HasMiddleware
 {
+    private const LIMITE_EXPORTACION = 5000;
+
     private const ORDENABLES = ['nombre' => 'name', 'email' => 'email', 'creado' => 'created_at'];
 
     public function __construct(private readonly GestionUsuarios $gestion) {}
@@ -66,7 +68,7 @@ final class UsuarioController extends Controller implements HasMiddleware
     public function exportar(Request $request): StreamedResponse|BinaryFileResponse
     {
         [$consulta, $filtros] = $this->consultaFiltrada($request);
-        $filas = $consulta->get()->map(fn (User $u): array => [
+        $filas = $consulta->limit(self::LIMITE_EXPORTACION)->get()->map(fn (User $u): array => [
             $u->id,
             $u->name,
             $u->email,

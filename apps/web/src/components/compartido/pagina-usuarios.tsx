@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { CeldaCorreo } from '@/components/shared/ui/acciones-celda';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { Casilla } from '@/components/shared/ui/casilla';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
@@ -73,24 +74,22 @@ async function Listado({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <FiltrosListado tono={tono} ruta={ruta} hayFiltros={hayFiltros}>
-          <CampoBusqueda tono={tono} nombre="busqueda" valor={busqueda} marcador="Nombre o correo" />
-          <SelectorFiltro tono={tono} nombre="rol" etiqueta="Rol" valor={rol} opciones={opcionesRol} />
-          <SelectorFiltro tono={tono} nombre="estado" etiqueta="Estado" valor={estado} opciones={ESTADOS_USUARIO} />
-          <Casilla compacta name="eliminados" value="1" defaultChecked={eliminados} etiqueta="Solo dadas de baja" className="pb-0.5" />
-          <SelectorPorPagina tono={tono} valor={porPagina} />
-        </FiltrosListado>
-        <BotonNuevoUsuario roles={nombresRol} tono={tono} />
-      </div>
-
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <BotonExportarListado
           ruta="compartido/usuarios/exportar"
           filtros={consulta(parametros, ['busqueda', 'rol', 'estado', 'eliminados', 'sort'])}
           permiso="usuarios.ver"
         />
+        <BotonNuevoUsuario roles={nombresRol} tono={tono} />
       </div>
+
+      <FiltrosListado tono={tono} ruta={ruta} hayFiltros={hayFiltros}>
+        <CampoBusqueda tono={tono} nombre="busqueda" valor={busqueda} marcador="Nombre o correo" />
+        <SelectorFiltro tono={tono} nombre="rol" etiqueta="Rol" valor={rol} opciones={opcionesRol} />
+        <SelectorFiltro tono={tono} nombre="estado" etiqueta="Estado" valor={estado} opciones={ESTADOS_USUARIO} />
+        <Casilla compacta name="eliminados" value="1" defaultChecked={eliminados} etiqueta="Solo dadas de baja" className="pb-0.5" />
+        <SelectorPorPagina tono={tono} valor={porPagina} />
+      </FiltrosListado>
 
       {filas.length === 0 ? (
         hayFiltros ? (
@@ -117,7 +116,7 @@ async function Listado({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
           {filas.map((usuario) => (
             <tr key={usuario.id} className="align-middle">
               <td className="px-4 py-3 font-medium text-panel-text">{usuario.nombre}</td>
-              <td className="px-4 py-3 text-panel-muted">{usuario.email}</td>
+              <td className="px-4 py-3"><CeldaCorreo email={usuario.email} /></td>
               <td className="px-4 py-3">
                 {usuario.roles.length === 0 ? (
                   <span className="text-panel-muted">Sin roles</span>

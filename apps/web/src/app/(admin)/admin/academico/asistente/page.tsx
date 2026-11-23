@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { ProbadorAsistente } from '@/components/compartido/probador-asistente';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
-import { FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
+import { FiltrosListado, CampoBusqueda, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Seccion, Tabla } from '@/components/shared/ui/tabla';
@@ -14,7 +14,7 @@ import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 export const metadata = { title: 'Asistente virtual' };
 
 type Parametros = Record<string, string | string[] | undefined>;
-const PARAMETROS = ['intent', 'per_page', 'page'] as const;
+const PARAMETROS = ['busqueda', 'intent', 'fuente', 'per_page', 'page'] as const;
 
 interface Datos {
   intenciones: { nombre: string; respuesta: string; prioridad: number; activo: boolean }[];
@@ -73,9 +73,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
 
   const { intenciones, registros, horus_ai: horusAi } = resultado.datos.data;
   const meta = resultado.datos.meta;
+  const busqueda = parametro(parametros, 'busqueda');
   const intent = parametro(parametros, 'intent');
+  const fuente = parametro(parametros, 'fuente');
   const porPagina = parametro(parametros, 'per_page');
-  const hayFiltros = intent !== '';
+  const hayFiltros = busqueda !== '' || intent !== '' || fuente !== '';
   const actuales = Object.fromEntries(
     PARAMETROS.filter((n) => n !== 'page' && parametro(parametros, n) !== '').map((n) => [n, parametro(parametros, n)]),
   );
@@ -110,8 +112,17 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
             </p>
           ) : null}
         </div>
-        {intenciones.length > 0 ? (
-          <FiltrosListado tono="academico" ruta={ruta} hayFiltros={hayFiltros}>
+        <FiltrosListado tono="academico" ruta={ruta} hayFiltros={hayFiltros}>
+          <CampoBusqueda tono="academico" nombre="busqueda" valor={busqueda} marcador="Buscar en pregunta o respuesta" />
+          <SelectorFiltro
+            tono="academico"
+            nombre="fuente"
+            etiqueta="Motor"
+            valor={fuente}
+            opciones={{ advisor: 'Horus AI', respaldo: 'Contingencia institucional' }}
+            todos="Todos"
+          />
+          {intenciones.length > 0 ? (
             <SelectorFiltro
               tono="academico"
               nombre="intent"
@@ -120,9 +131,9 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
               opciones={opcionesIntent}
               todos="Todas"
             />
-            <SelectorPorPagina tono="academico" valor={porPagina || '50'} />
-          </FiltrosListado>
-        ) : null}
+          ) : null}
+          <SelectorPorPagina tono="academico" valor={porPagina || '50'} />
+        </FiltrosListado>
         {registros.length === 0 ? (
           hayFiltros ? (
             <EstadoSinResultados titulo="Ninguna conversación coincide con la intención" texto="Prueba con otra intención o quita el filtro." />

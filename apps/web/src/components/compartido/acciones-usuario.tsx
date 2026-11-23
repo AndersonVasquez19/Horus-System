@@ -91,7 +91,7 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-1.5">
+    <div className="flex flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap">
       {usuario.eliminado ? (
         <>
           {puedeAuditoria ? (
@@ -124,14 +124,16 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
           {puedeEditar && !usuario.suspendido ? (
             <BotonAccionFila
               onClick={() => { setError(null); setInvitando(true); }}
-              etiqueta="Acceso"
+              etiqueta="Enviar enlace de acceso"
+              soloIcono
               icono={<Mail className="h-3.5 w-3.5" aria-hidden="true" />}
             />
           ) : null}
           {puedeEditar ? (
             <BotonAccionFila
               onClick={() => { setError(null); setCerrandoSesiones(true); }}
-              etiqueta="Sesiones"
+              etiqueta="Cerrar sesiones activas"
+              soloIcono
               icono={<LogOut className="h-3.5 w-3.5" aria-hidden="true" />}
             />
           ) : null}
@@ -139,32 +141,36 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
             <BotonAccionFila
               onClick={() => void ejecutarAccion(`compartido/usuarios/${usuario.id}/desbloquear`, 'POST', undefined, true)}
               disabled={ocupado}
-              etiqueta="Reactivar"
+              etiqueta="Reactivar cuenta"
               tono="verde"
+              soloIcono
               icono={<Unlock className="h-3.5 w-3.5" aria-hidden="true" />}
             />
           ) : null}
           {puedeEditar && !usuario.suspendido ? (
             <BotonAccionFila
               onClick={() => { setError(null); setSuspendiendo(true); }}
-              etiqueta="Suspender"
+              etiqueta="Suspender cuenta"
               tono="ambar"
+              soloIcono
               icono={<Ban className="h-3.5 w-3.5" aria-hidden="true" />}
             />
           ) : null}
           {puedeEliminar ? (
             <BotonAccionFila
               onClick={() => { setError(null); setDesactivando(true); }}
-              etiqueta="Baja"
+              etiqueta="Dar de baja"
               tono="peligro"
+              soloIcono
               icono={<UserX className="h-3.5 w-3.5" aria-hidden="true" />}
             />
           ) : null}
           {puedeEliminar ? (
             <BotonAccionFila
               onClick={() => { setError(null); setEliminando(true); }}
-              etiqueta="Eliminar"
+              etiqueta="Eliminar usuario"
               tono="peligro"
+              soloIcono
               icono={<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
             />
           ) : null}

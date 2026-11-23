@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
+use App\Support\BusquedaLike;
 use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
@@ -34,27 +35,56 @@ final class AsistenteController extends Controller implements HasMiddleware
     public function index(Request $request): JsonResponse
     {
         $intenciones = ChatIntent::query()->orderByDesc('prioridad')->get();
+        $intencionesRegistradas = ChatLog::query()
+            ->whereNotNull('intent_detectado')
+            ->where('intent_detectado', '!=', '')
+            ->distinct()
+            ->pluck('intent_detectado')
+            ->all();
 
-        $filtro = ListFilter::text($request, 'intent');
-        $intentValido = $filtro !== '' && $intenciones->contains('nombre', $filtro) ? $filtro : null;
+        $nombresDisponibles = array_values(array_unique([
+            ...$intenciones->pluck('nombre')->all(),
+            ...$intencionesRegistradas,
+        ]));
+
+        $filtro = ListFilter::text($request, 'intent', 80);
+        $intentValido = $filtro !== '' && in_array($filtro, $nombresDisponibles, true) ? $filtro : null;
+        $fuente = ListFilter::in($request, 'fuente', ['advisor', 'respaldo']);
+        $busqueda = ListFilter::text($request, 'busqueda', 120);
         $porPagina = filter_var($request->query('per_page'), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1, 'max_range' => 100],
         ]) ?: 50;
         $pagina = max(1, (int) $request->query('page', 1));
 
-        $paginado = ChatLog::query()
-            ->when($intentValido, fn ($consulta) => $consulta->where('intent_detectado', $intentValido))
+        $consulta = ChatLog::query()
+            ->when($intentValido, fn ($q) => $q->where('intent_detectado', $intentValido))
+            ->when($fuente !== '', fn ($q) => $q->where('fuente', $fuente));
+
+        if ($busqueda !== '') {
+            BusquedaLike::contiene($consulta, ['mensaje_usuario', 'respuesta_bot'], $busqueda);
+        }
+
+        $paginado = $consulta
             ->latest()
             ->orderByDesc('id')
             ->paginate($porPagina, ['*'], 'page', $pagina);
 
         $registros = collect($paginado->items());
+        $mapaIntenciones = $intenciones->keyBy('nombre');
+        $listaIntenciones = array_map(static function (string $nombre) use ($mapaIntenciones): array {
+            $i = $mapaIntenciones->get($nombre);
+
+            return [
+                'nombre' => $nombre,
+                'respuesta' => $i?->respuesta ?? '',
+                'prioridad' => $i?->prioridad ?? 0,
+                'activo' => $i ? (bool) $i->activo : true,
+            ];
+        }, $nombresDisponibles);
 
         return response()->json([
             'data' => [
-                'intenciones' => $intenciones->map(fn (ChatIntent $i): array => [
-                    'nombre' => $i->nombre, 'respuesta' => $i->respuesta, 'prioridad' => $i->prioridad, 'activo' => (bool) $i->activo,
-                ])->values()->all(),
+                'intenciones' => $listaIntenciones,
                 'registros' => $registros->map(fn (ChatLog $r): array => [
                     'id' => $r->id,
                     'fecha_local' => HoraLocal::formato($r->created_at),
@@ -77,6 +107,8 @@ final class AsistenteController extends Controller implements HasMiddleware
                 'orden' => '-creado',
                 'filtros' => array_filter([
                     'intent' => $intentValido,
+                    'fuente' => $fuente !== '' ? $fuente : null,
+                    'busqueda' => $busqueda !== '' ? $busqueda : null,
                     'per_page' => $request->query('per_page'),
                 ], fn ($v): bool => $v !== null && $v !== ''),
             ],

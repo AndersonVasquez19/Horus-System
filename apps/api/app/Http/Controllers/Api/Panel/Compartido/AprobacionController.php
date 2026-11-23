@@ -35,6 +35,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class AprobacionController extends Controller implements HasMiddleware
 {
+    private const LIMITE_EXPORTACION = 5000;
+
     private const CABECERAS = ['Cache-Control' => 'no-store, private'];
 
     public function __construct(private readonly GestionAprobaciones $gestion) {}
@@ -69,7 +71,7 @@ final class AprobacionController extends Controller implements HasMiddleware
     public function exportar(Request $request): StreamedResponse|BinaryFileResponse
     {
         [$consulta, $filtros] = $this->consultaFiltrada($request);
-        $filas = $consulta->get()->map(fn (AprobacionInterna $a): array => [
+        $filas = $consulta->limit(self::LIMITE_EXPORTACION)->get()->map(fn (AprobacionInterna $a): array => [
             $a->id,
             $a->titulo,
             $a->tipo,

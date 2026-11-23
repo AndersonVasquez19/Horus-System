@@ -75,9 +75,16 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
   const nuevos = await consultarPanel<{ meta: { nuevos?: number } }>('compartido/reclamaciones-mensajes?estado=nuevo&per_page=1', `${ruta}?vista=mensajes`);
   const pendientes = nuevos.estado === 'ok' ? (nuevos.datos.meta.nuevos ?? 0) : 0;
   const pestanas = (
-    <nav aria-label="Vistas" className="flex gap-2 border-b border-panel-border">
+    <nav aria-label="Vistas" className="inline-flex flex-wrap gap-1 rounded-xl border border-panel-border bg-panel-surface p-1 shadow-sm">
       {([['reclamaciones', 'Reclamaciones', ruta], ['mensajes', pendientes > 0 ? `Mensajes de contacto (${pendientes} nuevos)` : 'Mensajes de contacto', `${ruta}?vista=mensajes`]] as const).map(([clave, texto, href]) => (
-        <Link key={clave} href={href} aria-current={vista === clave ? 'page' : undefined} className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${vista === clave ? 'border-panel-text text-panel-text' : 'border-transparent text-panel-muted hover:text-panel-text'}`}>
+        <Link
+          key={clave}
+          href={href}
+          aria-current={vista === clave ? 'page' : undefined}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            vista === clave ? 'bg-academico-700 text-white' : 'text-panel-muted hover:bg-panel-bg hover:text-panel-text'
+          }`}
+        >
           {texto}
         </Link>
       ))}

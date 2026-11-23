@@ -27,9 +27,11 @@ function enlaceEntidadAuditoria(modelo: string | null, modeloId: number | null, 
     case 'Matricula':
       return `/admin/academico/matriculas/${modeloId}`;
     case 'Convocatoria':
-      return `/admin/academico/convocatorias/${modeloId}`;
+      return '/admin/academico/convocatorias';
     case 'ObligacionPago':
-      return `/admin/academico/pagos/${modeloId}`;
+      return '/admin/academico/pagos';
+    case 'Certificado':
+      return '/admin/academico/certificados';
     case 'User':
       return `/admin/${tono}/usuarios`;
     case 'AprobacionInterna':
