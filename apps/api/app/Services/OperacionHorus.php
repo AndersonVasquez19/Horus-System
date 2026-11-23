@@ -27,6 +27,29 @@ class OperacionHorus
             })->withoutOverlapping(2);
     }
 
+    /**
+     * Destino de Horus AI para la operación: loopback (un solo servidor) o un host exacto de
+     * HORUS_ADVISOR_ALLOWED_HOSTS con puerto (Railway: Laravel y Horus AI en contenedores distintos, por su red
+     * privada). Para esto último se aplica la misma regla que el cliente del chatbot, así que nunca se acepta
+     * `localhost`, hosts de metadatos ni IP literales.
+     */
+    private function urlDelAsesorPermitida(string $texto): bool
+    {
+        $url = parse_url($texto);
+        if (! is_array($url) || ($url['scheme'] ?? '') !== 'http' || isset($url['query']) || isset($url['fragment'])
+            || ! in_array($url['path'] ?? '', ['', '/'], true) || isset($url['user']) || isset($url['pass'])) {
+            return false;
+        }
+        if (($url['host'] ?? '') === '127.0.0.1') {
+            return true;
+        }
+        if (! isset($url['host'], $url['port'])) {
+            return false;
+        }
+
+        return app(HorusAdvisorClient::class)->destinoPermitido('http://'.$url['host'].':'.$url['port']);
+    }
+
     /** @return list<string> */
     public function errores(): array
     {
@@ -37,10 +60,7 @@ class OperacionHorus
         if (! config('horus-advisor.enabled') || ! config('horus-catalog.sync_enabled')) {
             $errores[] = 'advisor_sync_disabled';
         }
-        $url = parse_url(Entrada::texto(config('horus-advisor.url')));
-        if (! is_array($url) || ($url['scheme'] ?? '') !== 'http' || ($url['host'] ?? '') !== '127.0.0.1'
-            || isset($url['query']) || isset($url['fragment'])
-            || ! in_array($url['path'] ?? '', ['', '/'], true) || isset($url['user']) || isset($url['pass'])) {
+        if (! $this->urlDelAsesorPermitida(Entrada::texto(config('horus-advisor.url')))) {
             $errores[] = 'advisor_url';
         }
         foreach (['token' => 'service_token', 'signing_key' => 'catalog_key'] as $key => $code) {

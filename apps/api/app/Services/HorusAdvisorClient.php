@@ -660,7 +660,8 @@ class HorusAdvisorClient
      * IP loopback literal (sin DNS) o un hostname exacto de red privada que el operador autorizó.
      * Sin userinfo, ruta, consulta, IP literales ajenas ni hosts de metadatos; las redirecciones y el proxy siguen bloqueados.
      */
-    private function destinoPermitido(string $url): bool
+    /** `http://127.0.0.1:PUERTO` o `http://<host exacto de HORUS_ADVISOR_ALLOWED_HOSTS>:PUERTO`, nada más. */
+    public function destinoPermitido(string $url): bool
     {
         if (preg_match('~\Ahttp://127\.0\.0\.1:([1-9][0-9]{0,4})\z~D', $url, $match) === 1) {
             return (int) $match[1] <= 65535;

@@ -27,7 +27,7 @@ A2, B7, C6 y D6 son evidencia histórica de integración local. E no inicia serv
 | Operación Laravel/Python | HORUS_OPS_ENABLED | false; no inicia nada al cargar configuración |
 | Renovación Laravel | HORUS_OPS_RENEW_CATALOG | false; solo scheduler configurado y worker con heartbeat vigente |
 | Advisor Laravel | HORUS_ADVISOR_ENABLED | false, sin cambios |
-| Transporte Laravel | HORUS_ADVISOR_URL, TOKEN, SIGNING_KEY | Loopback HTTP estricto en el preflight; secretos de al menos 32 caracteres |
+| Transporte Laravel | HORUS_ADVISOR_URL, TOKEN, SIGNING_KEY | HTTP sin ruta ni credenciales, hacia `127.0.0.1` o, desde el 22/11/2026, hacia un host exacto de `HORUS_ADVISOR_ALLOWED_HOSTS` con puerto (la misma regla del cliente: nunca `localhost`, metadatos ni IP literales; es lo que permite la renovación en Railway, con Laravel y Horus AI en contenedores distintos); secretos de al menos 32 caracteres |
 | Sincronización | HORUS_AI_CATALOG_SYNC_ENABLED | false, sin cambios; requiere también Advisor en el proceso que sincroniza |
 | Worker | QUEUE_CONNECTION | Driver database existente; retry_after >45 s; caché compartida persistente |
 | FastAPI | HORUS_AI_SERVICE_TOKEN, CATALOG_SIGNING_KEY, CATALOG_PATH | Token y clave correspondientes a Laravel; archivo activo persistente fuera del release |

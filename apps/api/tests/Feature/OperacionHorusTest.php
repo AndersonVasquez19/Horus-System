@@ -60,6 +60,48 @@ class OperacionHorusTest extends TestCase
         $this->assertStringNotContainsString('NO_DIVULGAR', json_encode($errors));
     }
 
+    /** @return iterable<string, array{string, list<string>, bool}> */
+    public static function destinosDelAsesor(): iterable
+    {
+        $privado = 'horus-ai.railway.internal';
+        yield 'loopback sin puerto' => ['http://127.0.0.1', [], true];
+        yield 'loopback con puerto' => ['http://127.0.0.1:8001', [], true];
+        yield 'host de la lista con puerto (Railway)' => ["http://$privado:8001", [$privado], true];
+        yield 'host de la lista con barra final' => ["http://$privado:8001/", [$privado], true];
+        yield 'host fuera de la lista' => ["http://$privado:8001", ['otro.railway.internal'], false];
+        yield 'host de la lista sin puerto' => ["http://$privado", [$privado], false];
+        yield 'host de la lista con ruta' => ["http://$privado:8001/api", [$privado], false];
+        yield 'host de la lista con consulta' => ["http://$privado:8001/?x=1", [$privado], false];
+        yield 'host de la lista con credenciales' => ["http://usuario:clave@$privado:8001", [$privado], false];
+        yield 'https no se acepta' => ["https://$privado:8001", [$privado], false];
+        yield 'localhost aunque esté en la lista' => ['http://localhost:8001', ['localhost'], false];
+        yield 'metadatos aunque estén en la lista' => ['http://metadata.google.internal:80', ['metadata.google.internal'], false];
+        yield 'IP literal aunque esté en la lista' => ['http://169.254.169.254:80', ['169.254.169.254'], false];
+        yield 'sin lista' => ["http://$privado:8001", [], false];
+    }
+
+    /** @param list<string> $permitidos */
+    #[\PHPUnit\Framework\Attributes\DataProvider('destinosDelAsesor')]
+    public function test_el_preflight_acepta_loopback_o_un_host_privado_de_la_lista(string $url, array $permitidos, bool $valido): void
+    {
+        $this->habilitar();
+        config(['horus-advisor.url' => $url, 'horus-advisor.allowed_hosts' => $permitidos]);
+
+        $this->assertSame($valido, ! in_array('advisor_url', app(OperacionHorus::class)->errores(), true));
+    }
+
+    public function test_la_renovacion_se_ejecuta_con_el_host_privado_de_la_lista(): void
+    {
+        $this->habilitar();
+        Queue::fake();
+        config(['horus-advisor.url' => 'http://horus-ai.railway.internal:8001',
+            'horus-advisor.allowed_hosts' => ['horus-ai.railway.internal']]);
+
+        $this->artisan('horus:advisor-operacion sync --execute')->assertSuccessful();
+
+        Queue::assertPushed(SincronizarCatalogoAdvisor::class);
+    }
+
     public function test_preflight_detecta_version_modelo_y_heartbeat_sin_mensajes(): void
     {
         $this->habilitar();
