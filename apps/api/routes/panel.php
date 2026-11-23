@@ -123,10 +123,10 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.implode('|',
             Route::post('notificaciones/leidas', [Compartido\NotificacionController::class, 'marcarTodas'])->name('notificaciones.leidas');
             Route::post('notificaciones/{notificacion}/leida', [Compartido\NotificacionController::class, 'marcarLeida'])
                 ->whereNumber('notificacion')->name('notificaciones.leida');
+            Route::put('perfil/preferencias', [Compartido\PerfilController::class, 'preferencias'])->name('perfil.preferencias');
         });
         Route::middleware('throttle:perfil')->group(function (): void {
             Route::put('perfil', [Compartido\PerfilController::class, 'update'])->name('perfil.update');
-            Route::put('perfil/preferencias', [Compartido\PerfilController::class, 'preferencias'])->name('perfil.preferencias');
             Route::post('perfil/2fa/iniciar', [Compartido\PerfilController::class, 'iniciar2fa'])->name('perfil.2fa.iniciar');
             Route::post('perfil/2fa/confirmar', [Compartido\PerfilController::class, 'confirmar2fa'])->name('perfil.2fa.confirmar');
             Route::post('perfil/2fa/desactivar', [Compartido\PerfilController::class, 'desactivar2fa'])->name('perfil.2fa.desactivar');

@@ -168,13 +168,15 @@ final class AutenticacionController extends Controller
     {
         Email::normalizeRequest($request);
         $datos = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            'name' => ['required', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u'],
             // Sin regla de unicidad: un correo ya usado recibe la MISMA respuesta que uno nuevo (no revela si la cuenta existe).
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'confirmed', PasswordPolicy::rule()],
             'terms' => ['accepted'],
         ], [
             'name.required' => 'Escribe tu nombre para continuar.',
+            'name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'name.not_regex' => 'El nombre contiene caracteres no permitidos.',
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'Ingresa un correo electrónico válido.',
             'terms.accepted' => 'Debes aceptar el aviso de privacidad para crear tu cuenta.',

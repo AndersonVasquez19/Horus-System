@@ -33,9 +33,38 @@ export function FormularioPerfil({ perfil, tono }: { perfil: PerfilPropio; tono:
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (guardando) return;
+
+    const errores: Record<string, string[]> = {};
+    const nombreLimpio = nombre.trim();
+    const emailLimpio = email.trim();
+    if (nombreLimpio.length < 2) {
+      errores.name = ['El nombre debe tener al menos 2 caracteres.'];
+    } else if (/[<>]/.test(nombreLimpio)) {
+      errores.name = ['El nombre contiene caracteres no permitidos.'];
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio)) {
+      errores.email = ['Ingresa un correo electrónico válido.'];
+    }
+    if (clave !== '') {
+      if (clave.length < 10) {
+        errores.password = ['La contraseña debe tener al menos 10 caracteres.'];
+      }
+      if (clave !== confirmacion) {
+        errores.password_confirmation = ['La confirmación de la contraseña no coincide.'];
+      }
+    }
+    if (cambiaCredenciales && actual === '') {
+      errores.current_password = ['Escribe tu contraseña actual para cambiar el correo o la contraseña.'];
+    }
+    if (Object.keys(errores).length > 0) {
+      setError({ message: 'Revisa los campos marcados.', code: 'validacion', errors: errores });
+      return;
+    }
+
     setGuardando(true);
     setError(null);
-    const cuerpo: Record<string, string> = { name: nombre.trim(), email: email.trim() };
+    const cuerpo: Record<string, string> = { name: nombreLimpio, email: emailLimpio };
     if (clave !== '') {
       cuerpo.password = clave;
       cuerpo.password_confirmation = confirmacion;
@@ -76,7 +105,7 @@ export function FormularioPerfil({ perfil, tono }: { perfil: PerfilPropio; tono:
         <Campo tono={tono} etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={err('name')} required maxLength={255} autoComplete="name" />
         <Campo tono={tono} etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={err('email')} required maxLength={255} autoComplete="email" />
         <CampoClave tono={tono} etiqueta="Nueva contraseña (opcional)" politica value={clave} onChange={(e) => setClave(e.target.value)} error={err('password')} autoComplete="new-password" />
-        <CampoClave tono={tono} etiqueta="Confirmar nueva contraseña" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} autoComplete="new-password" />
+        <CampoClave tono={tono} etiqueta="Confirmar nueva contraseña" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} error={err('password_confirmation')} autoComplete="new-password" />
         {cambiaCredenciales ? (
           <CampoClave
             tono={tono}

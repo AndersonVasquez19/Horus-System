@@ -41,7 +41,7 @@ export interface CookieSesionLaravel {
 
 export type RespuestaLaravel<T> =
   | { ok: true; estado: number; datos: T; cookie: CookieSesionLaravel | null }
-  | { ok: false; estado: number; error: ErrorApi; cookie: CookieSesionLaravel | null };
+  | { ok: false; estado: number; error: ErrorApi; cookie: CookieSesionLaravel | null; retryAfter?: string };
 
 export interface OpcionesLlamada {
   metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -175,8 +175,9 @@ export async function llamarLaravel<T>(ruta: string, opciones: OpcionesLlamada =
   if (respuesta.ok) return { ok: true, estado: respuesta.status, datos: cuerpo as T, cookie };
 
   const error = esErrorApi(cuerpo) ? cuerpo : { ...NO_DISPONIBLE, code: respuesta.status >= 500 ? 'error_interno' : 'error' };
+  const retryAfter = respuesta.status === 429 ? (respuesta.headers.get('retry-after') ?? undefined) : undefined;
   // Una respuesta 3xx o sin JSON es un fallo de configuración del backend, no un dato para el navegador.
-  return { ok: false, estado: respuesta.status >= 300 && respuesta.status < 400 ? 502 : respuesta.status, error, cookie };
+  return { ok: false, estado: respuesta.status >= 300 && respuesta.status < 400 ? 502 : respuesta.status, error, cookie, retryAfter };
 }
 
 function esErrorApi(valor: unknown): valor is ErrorApi {

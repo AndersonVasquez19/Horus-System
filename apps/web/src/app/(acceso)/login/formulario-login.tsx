@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
@@ -11,7 +11,6 @@ import type { ErrorPanel, SesionPanel } from '@/lib/panel/tipos';
 
 export function FormularioLogin() {
   const router = useRouter();
-  const parametros = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [codigo2fa, setCodigo2fa] = useState('');
@@ -23,10 +22,27 @@ export function FormularioLogin() {
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (enviando) return;
+
+    const errores: Record<string, string[]> = {};
+    const emailLimpio = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio)) {
+      errores.email = ['Ingresa un correo electrónico válido.'];
+    }
+    if (password === '') {
+      errores.password = ['Ingresa tu contraseña.'];
+    }
+    if (requiere2fa && codigo2fa.trim() === '') {
+      errores.codigo_2fa = ['Ingresa el código de verificación de 6 dígitos o uno de recuperación.'];
+    }
+    if (Object.keys(errores).length > 0) {
+      setError({ message: 'Revisa los campos marcados.', code: 'validacion', errors: errores });
+      return;
+    }
+
     setEnviando(true);
     setError(null);
 
-    const cuerpo: Record<string, string> = { email, password };
+    const cuerpo: Record<string, string> = { email: emailLimpio, password };
     if (requiere2fa || codigo2fa.trim() !== '') cuerpo.codigo_2fa = codigo2fa.trim();
 
     const resultado = await llamarBff<{ data: SesionPanel }>('/api/bff/auth/login', { cuerpo });
@@ -35,7 +51,8 @@ export function FormularioLogin() {
       setCodigo2fa('');
       // Sin destino pedido se entra directo al panel académico: `/admin` solo resuelve la sesión y redirige, y pasar por él
       // dejaba ver un instante otro título antes del definitivo. Quien no tenga acceso verá el aviso de acceso denegado.
-      const destino = destinoSeguro(parametros.get('next'));
+      const next = new URLSearchParams(window.location.search).get('next');
+      const destino = destinoSeguro(next);
       router.replace(destino === '/admin' ? '/admin/academico' : destino);
       router.refresh();
       return;
@@ -102,7 +119,7 @@ export function FormularioLogin() {
             href="/recuperar-contrasena"
             className="rounded text-sm font-medium text-academico-700 underline-offset-4 outline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-oro-500"
           >
-            ¿La olvidaste?
+            ¿Olvidaste tu contraseña?
           </Link>
         </div>
         <div className="group relative">

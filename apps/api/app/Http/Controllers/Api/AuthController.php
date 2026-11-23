@@ -23,7 +23,7 @@ class AuthController extends Controller
     {
         Email::normalizeRequest($request);
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            'name' => ['required', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u'],
             'email' => ['required', 'string', 'email', 'max:255', Email::uniqueRule(null, 'Ya existe una cuenta con este correo.')],
             'password' => ['required', 'confirmed', PasswordPolicy::rule()],
         ]);
@@ -46,8 +46,8 @@ class AuthController extends Controller
     {
         Email::normalizeRequest($request);
         $data = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string', 'max:1024'],
         ]);
 
         $user = User::query()->where('email', $data['email'])->first();

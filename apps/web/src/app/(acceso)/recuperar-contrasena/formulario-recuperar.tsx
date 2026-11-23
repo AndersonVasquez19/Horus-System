@@ -18,10 +18,21 @@ export function FormularioRecuperar() {
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (enviando) return;
+
+    const emailLimpio = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio)) {
+      setError({
+        message: 'Revisa los campos marcados.',
+        code: 'validacion',
+        errors: { email: ['Ingresa un correo electrónico válido.'] },
+      });
+      return;
+    }
+
     setEnviando(true);
     setError(null);
 
-    const resultado = await llamarBff<{ message: string }>('/api/bff/auth/contrasena/solicitar', { cuerpo: { email } });
+    const resultado = await llamarBff<{ message: string }>('/api/bff/auth/contrasena/solicitar', { cuerpo: { email: emailLimpio } });
     setEnviando(false);
     if (resultado.ok) {
       setConfirmacion(resultado.datos.message);

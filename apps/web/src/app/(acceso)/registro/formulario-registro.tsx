@@ -22,11 +22,37 @@ export function FormularioRegistro() {
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (enviando) return;
+
+    const errores: Record<string, string[]> = {};
+    const nombreLimpio = nombre.trim();
+    const emailLimpio = email.trim();
+    if (nombreLimpio.length < 2) {
+      errores.name = ['Escribe tu nombre completo (mínimo 2 caracteres).'];
+    } else if (/[<>]/.test(nombreLimpio)) {
+      errores.name = ['El nombre contiene caracteres no permitidos.'];
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio)) {
+      errores.email = ['Ingresa un correo electrónico válido.'];
+    }
+    if (password.length < 10) {
+      errores.password = ['La contraseña debe tener al menos 10 caracteres.'];
+    }
+    if (password !== confirmacion) {
+      errores.password_confirmation = ['La confirmación de la contraseña no coincide.'];
+    }
+    if (!acepta) {
+      errores.terms = ['Debes aceptar el aviso de privacidad para crear tu cuenta.'];
+    }
+    if (Object.keys(errores).length > 0) {
+      setError({ message: 'Revisa los campos marcados.', code: 'validacion', errors: errores });
+      return;
+    }
+
     setEnviando(true);
     setError(null);
 
     const resultado = await llamarBff<{ message: string }>('/api/bff/auth/registro', {
-      cuerpo: { name: nombre, email, password, password_confirmation: confirmacion, terms: acepta ? '1' : '' },
+      cuerpo: { name: nombreLimpio, email: emailLimpio, password, password_confirmation: confirmacion, terms: acepta ? '1' : '' },
     });
     setEnviando(false);
     if (resultado.ok) {
@@ -53,7 +79,8 @@ export function FormularioRegistro() {
   const errorNombre = errorDeCampo(error, 'name');
   const errorEmail = errorDeCampo(error, 'email');
   const errorClave = errorDeCampo(error, 'password');
-  const errorGeneral = error && !errorNombre && !errorEmail && !errorClave && !errorTerminos ? error.message : null;
+  const errorConfirmacion = errorDeCampo(error, 'password_confirmation');
+  const errorGeneral = error && !errorNombre && !errorEmail && !errorClave && !errorConfirmacion && !errorTerminos ? error.message : null;
 
   return (
     <form onSubmit={enviar} noValidate className="mt-6 space-y-5">
@@ -73,7 +100,7 @@ export function FormularioRegistro() {
         error={errorClave}
         ayuda="Al menos 10 caracteres, con mayúsculas, minúsculas y un número."
       />
-      <CampoClave etiqueta="Confirma tu contraseña" name="password_confirmation" autoComplete="new-password" required maxLength={72} value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} />
+      <CampoClave etiqueta="Confirma tu contraseña" name="password_confirmation" autoComplete="new-password" required maxLength={72} value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} error={errorConfirmacion} />
 
       <div>
         <label className="flex items-start gap-3 text-sm text-panel-text">

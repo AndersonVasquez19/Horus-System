@@ -67,9 +67,10 @@ final class PerfilController extends Controller
             $user->save();
 
             if ($cambiaClave) {
-                // Cierra las demás sesiones; esta se conserva y se renueva su identificador (el BFF recibe la cookie nueva).
+                // Cierra las demás sesiones; esta se conserva y se renuevan su identificador y su token CSRF.
                 SessionRevoker::revokeSessions($user, $request->session()->getId());
                 $request->session()->regenerate();
+                $request->session()->regenerateToken();
             }
 
             if ($campos !== []) {

@@ -267,4 +267,28 @@ final class AutenticacionPanelTest extends PanelApiTestCase
 
         $this->panel('GET', 'auth/csrf')->assertOk();
     }
+
+    public function test_restablecer_contrasena_limpia_clave_temporal_e_intentos_fallidos(): void
+    {
+        $admin = $this->usuarioConRol('admin', 'temporal@horus.test');
+        $admin->forceFill(['debe_cambiar_password' => true])->save();
+        $this->ipCliente = '198.51.100.77';
+
+        $this->iniciarSesion('temporal@horus.test', 'clave-incorrecta')->assertStatus(422);
+        $claveCache = 'horus:login_fail:'.$admin->getKey().':'.substr(hash('sha256', $this->ipCliente), 0, 16);
+        $this->assertTrue(\Illuminate\Support\Facades\Cache::has($claveCache));
+
+        $token = Password::broker()->createToken($admin);
+
+        $this->panel('POST', 'auth/contrasena/restablecer', [
+            'token' => $token,
+            'email' => 'temporal@horus.test',
+            'password' => 'Nueva-Clave-Segura-2027!',
+            'password_confirmation' => 'Nueva-Clave-Segura-2027!',
+        ])->assertOk();
+
+        $actualizado = $admin->fresh();
+        $this->assertFalse((bool) $actualizado->debe_cambiar_password);
+        $this->assertFalse(\Illuminate\Support\Facades\Cache::has($claveCache));
+    }
 }

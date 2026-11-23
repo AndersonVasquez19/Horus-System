@@ -37,7 +37,7 @@ export async function operacionConCsrf(
     ? jsonSinCache(resultado.datos, resultado.estado)
     : errorJson(resultado.estado, resultado.error);
   if (!resultado.ok && resultado.estado === 429) {
-    respuesta.headers.set('Retry-After', '60');
+    respuesta.headers.set('Retry-After', resultado.retryAfter ?? '60');
   }
 
   return aplicarCookieSesion(respuesta, ultimaCookie);

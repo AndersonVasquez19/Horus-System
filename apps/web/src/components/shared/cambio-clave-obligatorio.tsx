@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyRound } from 'lucide-react';
+import { KeyRound, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
@@ -8,7 +8,7 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { CampoClave } from '@/components/shared/ui/campo';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
-import { errorDeCampo } from '@/lib/panel/cliente';
+import { errorDeCampo, llamarBff } from '@/lib/panel/cliente';
 import type { ErrorPanel, SesionPanel } from '@/lib/panel/tipos';
 
 /**
@@ -23,10 +23,36 @@ export function CambioClaveObligatorio({ sesion, tono }: { sesion: SesionPanel; 
   const [nueva, setNueva] = useState('');
   const [confirmacion, setConfirmacion] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
+
+  async function cerrarSesion() {
+    if (saliendo) return;
+    setSaliendo(true);
+    await llamarBff('/api/bff/auth/logout', { cuerpo: {} });
+    router.replace('/login');
+    router.refresh();
+  }
 
   async function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (guardando) return;
+
+    const errores: Record<string, string[]> = {};
+    if (actual === '') {
+      errores.current_password = ['Escribe tu contraseña temporal actual.'];
+    }
+    if (nueva.length < 10) {
+      errores.password = ['La nueva contraseña debe tener al menos 10 caracteres.'];
+    }
+    if (nueva !== confirmacion) {
+      errores.password_confirmation = ['La confirmación de la contraseña no coincide.'];
+    }
+    if (Object.keys(errores).length > 0) {
+      setError({ message: 'Revisa los campos marcados.', code: 'validacion', errors: errores });
+      return;
+    }
+
     setGuardando(true);
     setError(null);
     const r = await ejecutar<{ message?: string }>('compartido/perfil', 'PUT', {
@@ -86,10 +112,21 @@ export function CambioClaveObligatorio({ sesion, tono }: { sesion: SesionPanel; 
           etiqueta="Confirmar nueva contraseña"
           value={confirmacion}
           onChange={(e) => setConfirmacion(e.target.value)}
+          error={errorDeCampo(error, 'password_confirmation')}
           autoComplete="new-password"
           required
         />
-        <div className="flex justify-end border-t border-panel-border pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-panel-border pt-4">
+          <Boton
+            tono={tono}
+            variante="fantasma"
+            type="button"
+            cargando={saliendo}
+            icono={<LogOut className="h-4 w-4" aria-hidden="true" />}
+            onClick={cerrarSesion}
+          >
+            Cerrar sesión
+          </Boton>
           <Boton tono={tono} type="submit" cargando={guardando}>Guardar contraseña</Boton>
         </div>
       </form>

@@ -53,9 +53,11 @@ final class RestablecimientoContrasena
             $user->forceFill([
                 'password' => Hash::make($password),
                 'jwt_version' => (int) $user->jwt_version + 1,
+                'debe_cambiar_password' => false,
             ])->setRememberToken(Str::random(60));
 
             $user->save();
+            SeguridadCuentas::limpiarIntentos($user);
             SessionRevoker::revokeSessions($user);
 
             // Actor explícito: en el reset no hay sesión autenticada. Sin la contraseña ni el token.

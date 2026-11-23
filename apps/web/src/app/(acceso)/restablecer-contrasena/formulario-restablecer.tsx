@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { KeyRound } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton } from '@/components/shared/ui/boton';
 import { CampoClave } from '@/components/shared/ui/campo';
@@ -14,38 +14,88 @@ interface Enlace {
   email: string;
 }
 
-/** Lee token y correo del fragmento (#) y los retira de la barra de direcciones y del historial. */
-function leerEnlace(): Enlace | null {
+const CLAVE_ENLACE = 'horus:restablecer-enlace';
+let enlaceCache: Enlace | null | undefined;
+
+function suscribirVacio() {
+  return () => {};
+}
+
+function limpiarEnlaceGuardado(): void {
+  enlaceCache = null;
+  try {
+    window.sessionStorage.removeItem(CLAVE_ENLACE);
+  } catch {
+    // sessionStorage puede no estar disponible en navegación privada estricta
+  }
+}
+
+/**
+ * Lee token y correo del fragmento (#), los resguarda en sessionStorage (solo esta pestaña) para tolerar
+ * recargas accidentales (F5) y los retira de la barra de direcciones y del historial.
+ */
+function obtenerEnlaceCliente(): Enlace | null {
+  if (enlaceCache !== undefined) return enlaceCache;
+
   const parametros = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const token = parametros.get('token') ?? '';
   const email = parametros.get('email') ?? '';
   if (window.location.hash) window.history.replaceState(null, '', window.location.pathname);
-  return token && email ? { token, email } : null;
+
+  if (token && email) {
+    enlaceCache = { token, email };
+    try {
+      window.sessionStorage.setItem(CLAVE_ENLACE, JSON.stringify(enlaceCache));
+    } catch {
+      // ignora fallos de almacenamiento
+    }
+    return enlaceCache;
+  }
+
+  try {
+    const guardado = window.sessionStorage.getItem(CLAVE_ENLACE);
+    if (guardado) {
+      const parsed = JSON.parse(guardado) as Partial<Enlace>;
+      if (typeof parsed.token === 'string' && parsed.token && typeof parsed.email === 'string' && parsed.email) {
+        enlaceCache = { token: parsed.token, email: parsed.email };
+        return enlaceCache;
+      }
+    }
+  } catch {
+    // ignora JSON inválido
+  }
+
+  enlaceCache = null;
+  return enlaceCache;
 }
 
 const CLASE_ENLACE =
   'rounded font-medium text-academico-700 underline-offset-4 outline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-academico-700';
 
 export function FormularioRestablecer() {
-  const [enlace, setEnlace] = useState<Enlace | null | undefined>(undefined);
+  const enlace = useSyncExternalStore(suscribirVacio, obtenerEnlaceCliente, () => undefined);
   const [password, setPassword] = useState('');
   const [confirmacion, setConfirmacion] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ErrorPanel | null>(null);
   const [listo, setListo] = useState<string | null>(null);
-  // `leerEnlace` borra el fragmento de la URL. En desarrollo React monta los efectos dos veces: la segunda lectura
-  // ya no encontraría el token, así que el resultado de la primera se conserva.
-  const leido = useRef<Enlace | null | undefined>(undefined);
-
-  useEffect(() => {
-    // El fragmento solo existe en el navegador: se lee una vez al montar.
-    if (leido.current === undefined) leido.current = leerEnlace();
-    setEnlace(leido.current);
-  }, []);
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (!enlace || enviando) return;
+
+    const errores: Record<string, string[]> = {};
+    if (password.length < 10) {
+      errores.password = ['La contraseña debe tener al menos 10 caracteres.'];
+    }
+    if (password !== confirmacion) {
+      errores.password_confirmation = ['La confirmación de la contraseña no coincide.'];
+    }
+    if (Object.keys(errores).length > 0) {
+      setError({ message: 'Revisa los campos marcados.', code: 'validacion', errors: errores });
+      return;
+    }
+
     setEnviando(true);
     setError(null);
 
@@ -54,10 +104,14 @@ export function FormularioRestablecer() {
     });
     setEnviando(false);
     if (resultado.ok) {
+      limpiarEnlaceGuardado();
       setPassword('');
       setConfirmacion('');
       setListo(resultado.datos.message);
       return;
+    }
+    if (errorDeCampo(resultado.error, 'token') || errorDeCampo(resultado.error, 'email')) {
+      limpiarEnlaceGuardado();
     }
     setError(resultado.error);
   }
@@ -94,10 +148,11 @@ export function FormularioRestablecer() {
   }
 
   const errorClave = errorDeCampo(error, 'password');
+  const errorConfirmacion = errorDeCampo(error, 'password_confirmation');
 
   return (
     <form onSubmit={enviar} noValidate className="mt-6 space-y-5">
-      {error && !errorClave ? <Alerta tipo="error">{error.message}</Alerta> : null}
+      {error && !errorClave && !errorConfirmacion ? <Alerta tipo="error">{error.message}</Alerta> : null}
       <p className="text-sm text-panel-muted">
         Cuenta: <span className="font-medium text-panel-text">{enlace.email}</span>
       </p>
@@ -120,6 +175,7 @@ export function FormularioRestablecer() {
         required
         value={confirmacion}
         onChange={(evento) => setConfirmacion(evento.target.value)}
+        error={errorConfirmacion}
       />
       <Boton type="submit" cargando={enviando} icono={<KeyRound className="h-4 w-4" aria-hidden="true" />} className="w-full">
         {enviando ? 'Guardando…' : 'Guardar contraseña'}
