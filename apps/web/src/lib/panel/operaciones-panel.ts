@@ -83,8 +83,8 @@ const CAMPOS_CONVOCATORIA = ['curso_id', 'nombre', 'modalidad', 'fecha_inicio', 
 const CAMPOS_SESION = ['numero', 'fecha', 'hora_inicio', 'hora_fin', 'tema', '_revision'] as const;
 const CAMPOS_EVALUACION = ['nombre', 'peso', 'fecha', '_revision'] as const;
 const CAMPOS_MATRICULA = ['estudiante_id', 'curso_id', 'fecha_matricula', 'estado', 'motivo', 'observaciones'] as const;
-/** La convocatoria solo se elige al registrar: queda fija y la edición no la acepta. */
-const CAMPOS_MATRICULA_ALTA = [...CAMPOS_MATRICULA, 'convocatoria'] as const;
+/** La convocatoria y la creación automática de obligación solo se eligen al registrar. */
+const CAMPOS_MATRICULA_ALTA = [...CAMPOS_MATRICULA, 'convocatoria', 'crear_obligacion'] as const;
 const FILTROS_MATRICULAS = ['busqueda', 'estado', 'curso_id', 'convocatoria', 'estado_cobro', 'eliminados'] as const;
 
 const SESION = '[a-f0-9]{32}';
@@ -132,6 +132,9 @@ export const OPERACIONES: readonly Operacion[] = [
   // Consulta de DNI (JSON.pe desde Laravel): solo consulta; el token nunca llega al navegador
   { metodo: 'POST', patron: /^academico\/consultas\/dni$/, campos: ['dni'] },
 
+  // Búsqueda global del panel académico (paleta Ctrl+K)
+  { metodo: 'GET', patron: /^academico\/busqueda$/, consulta: ['q'] },
+
   // Sesiones de clase
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/sesiones$`), campos: CAMPOS_SESION },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/sesiones/generar$`), campos: ['desde', 'hasta'] },
@@ -146,13 +149,14 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/asistencias/exportar$`), archivo: [XLSX] },
 
 
-  // Caja del administrador: matrícula + pago Yape + captura en un solo paso (multipart; la clave de idempotencia viaja como `_clave`)
-  { metodo: 'POST', patron: /^academico\/matriculas\/con-pago$/, multipart: ['estudiante_id', 'convocatoria', 'monto', 'fecha_pago', 'referencia', '_clave'] },
+  // Caja del administrador: matrícula + abono/pago + comprobante (obligatorio Yape/Plin, opcional otros)
+  { metodo: 'POST', patron: /^academico\/matriculas\/con-pago$/, multipart: ['estudiante_id', 'convocatoria', 'curso_id', 'metodo', 'monto', 'fecha_pago', 'referencia', '_clave'], pdf: true },
 
   // Finanzas (solo PEN y métodos activos): la clave de idempotencia viaja como `_clave` y Laravel la convierte en cabecera
   { metodo: 'GET', patron: /^academico\/pagos\/metodos$/ },
   { metodo: 'GET', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/recibo$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: /^academico\/matriculas\/[0-9]{1,10}\/obligacion$/, campos: ['concepto', 'plan', 'monto_total'], cuotas: true },
+  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/obligacion/generar$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/pagos$`), campos: ['metodo', 'monto', 'fecha_pago', 'referencia', 'confirmar', '_clave'] },
   // «Subir comprobante» de Pagos: busca la matrícula, lee su obligación (si la tiene) y registra el pago sobre la matrícula
   // (Laravel crea la obligación si falta). Caja diaria y aviso de código de operación repetido, usados desde la misma pantalla.
@@ -174,12 +178,14 @@ export const OPERACIONES: readonly Operacion[] = [
 
   // Estudiantes
   { metodo: 'POST', patron: /^academico\/estudiantes\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'eliminados', 'sort'], archivo: ['text/csv', XLSX] },
+  { metodo: 'POST', patron: new RegExp(`^academico/estudiantes/${ID}/historial/pdf$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: /^academico\/estudiantes$/, campos: CAMPOS_ESTUDIANTE },
   { metodo: 'PUT', patron: new RegExp(`^academico/estudiantes/${ID}$`), campos: CAMPOS_ESTUDIANTE },
   { metodo: 'DELETE', patron: new RegExp(`^academico/estudiantes/${ID}$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/estudiantes/${ID}/restaurar$`) },
 
   // Cursos y ficha pública (la revisión viaja en el cuerpo: `_revision`)
+  { metodo: 'GET', patron: new RegExp(`^academico/cursos/${ID}$`) },
   { metodo: 'POST', patron: /^academico\/cursos\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'modalidad', 'categoria', 'con_cupos', 'publicado', 'eliminados', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^academico\/cursos$/, campos: CAMPOS_CURSO },
   { metodo: 'PUT', patron: new RegExp(`^academico/cursos/${ID}$`), campos: CAMPOS_CURSO },
@@ -202,6 +208,10 @@ export const OPERACIONES: readonly Operacion[] = [
   // Selector de convocatoria del formulario de matrícula (las vigentes de un curso)
   { metodo: 'GET', patron: /^academico\/convocatorias$/, consulta: ['curso_id', 'vigentes'] },
   { metodo: 'POST', patron: /^academico\/convocatorias\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'curso_id', 'desde', 'hasta', 'vigentes', 'sort'], archivo: ['text/csv', XLSX] },
+  { metodo: 'GET', patron: new RegExp(`^academico/convocatorias/${UUID}/calendario\\.ics$`), archivo: ['text/calendar'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/lista-aula/pdf$`), archivo: ['application/pdf'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/contactos/csv$`), archivo: ['text/csv'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/siguiente$`), campos: ['fecha_inicio', 'fecha_fin', 'cupos_maximos', 'nombre'] },
   { metodo: 'POST', patron: /^academico\/convocatorias$/, campos: CAMPOS_CONVOCATORIA },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}$`), campos: CAMPOS_CONVOCATORIA },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/estado$`), campos: ['estado', '_revision'] },
@@ -216,9 +226,17 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/exportar$`), archivo: [XLSX] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/borrador/exportar$`), archivo: [XLSX] },
 
+  // Certificados institucionales
+  { metodo: 'GET', patron: new RegExp(`^academico/certificados/${UUID}/pdf$`), archivo: ['application/pdf'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/certificado$`), campos: ['motivo_excepcion'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/certificados/emitir-lote$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/certificados/${UUID}/anular$`), campos: ['motivo'] },
+
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
   { metodo: 'GET', patron: new RegExp(`^academico/matriculas/${ID}/constancia$`), archivo: ['application/pdf'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/encuesta$`) },
+  { metodo: 'PUT', patron: new RegExp(`^academico/matriculas/${ID}/etiqueta$`), campos: ['etiqueta'] },
   { metodo: 'POST', patron: /^academico\/matriculas$/, campos: CAMPOS_MATRICULA_ALTA },
   { metodo: 'PUT', patron: new RegExp(`^academico/matriculas/${ID}$`), campos: CAMPOS_MATRICULA },
   { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/anular$`), campos: ['motivo'] },

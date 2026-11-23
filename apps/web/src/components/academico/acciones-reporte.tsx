@@ -1,13 +1,12 @@
 'use client';
 
-import { Download, Eye, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { Eye, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { Dialogo } from '@/components/shared/ui/dialogo';
-import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { ZonaImpresion, imprimirSoloZona } from '@/components/shared/ui/zona-impresion';
 
 type Formato = 'excel' | 'pdf' | 'pdf_completo';
@@ -103,17 +102,6 @@ export function AccionesReporte({ filtros, filtrosLote, tipo, variosLotes, vista
     else mostrar('error', resultado.error.message);
   }
 
-  // Una sola acción «Exportar» en lugar de hasta tres botones iguales: las exportaciones se eligen en el menú.
-  const opcionesExportar: ElementoMenuFila[] = [
-    ...(puedeExcel ? [{ tipo: 'accion' as const, etiqueta: 'Excel', icono: FileSpreadsheet, onClick: () => void exportar('excel') }] : []),
-    ...(puedePdf && tipo === 'matriculas' && variosLotes
-      ? [{ tipo: 'accion' as const, etiqueta: 'PDF del lote actual', icono: FileText, onClick: () => void exportar('pdf') }]
-      : []),
-    ...(puedePdf
-      ? [{ tipo: 'accion' as const, etiqueta: tipo === 'matriculas' ? 'PDF completo' : 'PDF', icono: FileText, onClick: () => void exportar('pdf_completo') }]
-      : []),
-  ];
-
   return (
     <>
       {vistaPrevia ? (
@@ -121,7 +109,39 @@ export function AccionesReporte({ filtros, filtrosLote, tipo, variosLotes, vista
           Vista previa
         </Boton>
       ) : null}
-      <MenuFila etiqueta="Exportar reporte" disparador={{ texto: 'Exportar', icono: Download }} cargando={generando !== null} elementos={opcionesExportar} />
+      {puedeExcel ? (
+        <Boton
+          variante="secundario"
+          icono={<FileSpreadsheet className="h-4 w-4" aria-hidden="true" />}
+          cargando={generando === 'excel'}
+          disabled={generando !== null}
+          onClick={() => void exportar('excel')}
+        >
+          Excel
+        </Boton>
+      ) : null}
+      {puedePdf && tipo === 'matriculas' && variosLotes ? (
+        <Boton
+          variante="secundario"
+          icono={<FileText className="h-4 w-4" aria-hidden="true" />}
+          cargando={generando === 'pdf'}
+          disabled={generando !== null}
+          onClick={() => void exportar('pdf')}
+        >
+          PDF lote
+        </Boton>
+      ) : null}
+      {puedePdf ? (
+        <Boton
+          variante="secundario"
+          icono={<FileText className="h-4 w-4" aria-hidden="true" />}
+          cargando={generando === 'pdf_completo'}
+          disabled={generando !== null}
+          onClick={() => void exportar('pdf_completo')}
+        >
+          {tipo === 'matriculas' ? 'PDF completo' : 'PDF'}
+        </Boton>
+      ) : null}
 
       {vistaPrevia ? (
         <Dialogo

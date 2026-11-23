@@ -261,6 +261,21 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
       )}
 
       <div className="space-y-4">
+        <nav aria-label="Tipo de reporte" className="inline-flex flex-wrap gap-1 rounded-xl border border-panel-border bg-panel-surface p-1 shadow-sm">
+          {(Object.entries(TIPOS_REPORTE) as [TipoReporte, string][]).map(([clave, etiquetaTipo]) => (
+            <Link
+              key={clave}
+              href={clave === 'matriculas' ? RUTA : `${RUTA}?tipo=${clave}`}
+              aria-current={tipo === clave ? 'page' : undefined}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                tipo === clave ? 'bg-academico-700 text-white' : 'text-panel-muted hover:bg-panel-bg hover:text-panel-text'
+              }`}
+            >
+              {etiquetaTipo}
+            </Link>
+          ))}
+        </nav>
+
         {tipo === 'matriculas' ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <TarjetaKpi tono="academico" etiqueta="Estudiantes" valor={numero(Number(resumen.estudiantes ?? 0))} detalle={hayFiltros ? 'Con los filtros aplicados' : 'En el reporte'} icono={<Users className="h-5 w-5" />} />

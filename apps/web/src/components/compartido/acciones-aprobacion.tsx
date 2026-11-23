@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleCheck, CircleX, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { CircleCheck, CircleX, Copy, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -10,7 +10,6 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { Campo, CampoArea, CampoSeleccion } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
-import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { ETIQUETAS_TIPO_APROBACION } from '@/features/notificaciones/aprobaciones';
 import type { AprobacionFila, EventoAprobacion } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
@@ -140,10 +139,6 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
   }
 
   const pendiente = fila.estado === 'pendiente';
-  // Editar, Aprobar, Rechazar, Reabrir y Eliminar ya son botones visibles en la fila: el menú ⋯ solo lleva lo que no está a la vista.
-  const menuElementos: ElementoMenuFila[] = [
-    ...(fila.referencia ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar referencia', valor: fila.referencia, aviso: 'Referencia copiada.' }] : []),
-  ];
 
   return (
     <div className="mt-4 space-y-3 border-t border-panel-border pt-4">
@@ -184,7 +179,18 @@ export function AccionesAprobacion({ fila, tono, autoridad }: { fila: Aprobacion
           {fila.puede_eliminar ? (
             <Boton tono={tono} variante="secundario" icono={<Trash2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setPanel('eliminar')}>Eliminar</Boton>
           ) : null}
-          {menuElementos.length > 0 ? <MenuFila etiqueta={`Más acciones para ${fila.titulo}`} elementos={menuElementos} /> : null}
+          {fila.referencia ? (
+            <Boton
+              tono={tono}
+              variante="fantasma"
+              icono={<Copy className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => {
+                void navigator.clipboard?.writeText(fila.referencia ?? '').then(() => mostrar('exito', 'Referencia copiada.'));
+              }}
+            >
+              Copiar ref.
+            </Boton>
+          ) : null}
         </div>
       </div>
 

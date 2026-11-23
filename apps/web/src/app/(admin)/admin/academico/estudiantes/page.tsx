@@ -1,18 +1,19 @@
 import Link from 'next/link';
+import { Eye, UserPlus } from 'lucide-react';
 import { Suspense } from 'react';
 import { BotonNuevoEstudiante } from '@/components/academico/acciones-estudiante';
+import { BotonCopiarDato, CeldaCorreo, CeldaTelefono, EnlaceAccionFila } from '@/components/shared/ui/acciones-celda';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { Casilla } from '@/components/shared/ui/casilla';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
-import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import type { EstudianteResumen } from '@/features/academico/tipos';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
-import { mensajeEstudiante, urlMailto, urlWhatsApp } from '@/lib/panel/contacto';
+import { mensajeEstudiante } from '@/lib/panel/contacto';
 import { ETIQUETAS, etiqueta, fecha } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Estudiantes · Gestión académica' };
@@ -91,19 +92,6 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
         >
           {estudiantes.map((estudiante) => {
             const nombreCompleto = `${estudiante.nombres} ${estudiante.apellidos}`.trim();
-            const wa = urlWhatsApp(estudiante.telefono, mensajeEstudiante({ nombre: nombreCompleto }));
-            const mail = urlMailto(estudiante.email, 'Horus Group · Información académica');
-            const acciones: ElementoMenuFila[] = [
-              { tipo: 'enlace', etiqueta: 'Ver ficha', href: `${RUTA}/${estudiante.id}` },
-              ...(!estudiante.eliminado && estudiante.estado === 'activo'
-                ? [{ tipo: 'enlace' as const, etiqueta: 'Matricular', href: `/admin/academico/matriculas/nueva?estudiante_id=${estudiante.id}` }]
-                : []),
-              ...(wa ? [{ tipo: 'enlace' as const, etiqueta: 'WhatsApp', href: wa, externo: true }] : []),
-              ...(mail ? [{ tipo: 'enlace' as const, etiqueta: 'Enviar correo', href: mail, externo: true }] : []),
-              ...(estudiante.telefono ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar teléfono', valor: estudiante.telefono, aviso: 'Teléfono copiado.' }] : []),
-              ...(estudiante.email ? [{ tipo: 'copiar' as const, etiqueta: 'Copiar correo', valor: estudiante.email, aviso: 'Correo copiado.' }] : []),
-              { tipo: 'copiar', etiqueta: 'Copiar DNI', valor: estudiante.dni, aviso: 'DNI copiado.' },
-            ];
             return (
               <tr key={estudiante.id} className="hover:bg-academico-50/50">
                 <td className="px-4 py-3">
@@ -111,10 +99,17 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
                     {estudiante.apellidos}, {estudiante.nombres}
                   </Link>
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-panel-muted">{estudiante.dni}</td>
-                <td className="px-4 py-3 text-panel-muted">
-                  <p className="max-w-56 truncate">{estudiante.email ?? '—'}</p>
-                  {estudiante.telefono ? <p className="text-xs">{estudiante.telefono}</p> : null}
+                <td className="px-4 py-3">
+                  <div className="inline-flex items-center gap-1.5">
+                    <span className="font-mono text-xs text-panel-muted">{estudiante.dni}</span>
+                    <BotonCopiarDato valor={estudiante.dni} etiqueta={`Copiar DNI ${estudiante.dni}`} />
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-col gap-1">
+                    <CeldaCorreo email={estudiante.email} conMailto />
+                    <CeldaTelefono telefono={estudiante.telefono} mensajeWa={mensajeEstudiante({ nombre: nombreCompleto })} />
+                  </div>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(estudiante.creado_en)}</td>
                 <td className="px-4 py-3">
@@ -124,7 +119,17 @@ async function ListadoEstudiantes({ searchParams }: { searchParams: Promise<Para
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <MenuFila etiqueta={`Acciones para ${nombreCompleto}`} elementos={acciones} />
+                  <div className="inline-flex items-center justify-end gap-1.5">
+                    <EnlaceAccionFila href={`${RUTA}/${estudiante.id}`} etiqueta="Ver" icono={<Eye className="h-3.5 w-3.5" aria-hidden="true" />} />
+                    {!estudiante.eliminado && estudiante.estado === 'activo' ? (
+                      <EnlaceAccionFila
+                        href={`/admin/academico/matriculas/nueva?estudiante_id=${estudiante.id}`}
+                        etiqueta="Matricular"
+                        tono="primario"
+                        icono={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}
+                      />
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             );

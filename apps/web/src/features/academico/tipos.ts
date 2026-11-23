@@ -384,3 +384,22 @@ export interface ObligacionDetalle extends ObligacionResumen {
   cuotas: { numero: number; monto: string; vence: string; pagado: string; saldo: string }[];
   transacciones: TransaccionPagoVista[];
 }
+
+export interface CertificadoResumen {
+  identificador: string;
+  codigo: string;
+  estado: 'emitido' | 'anulado';
+  estado_etiqueta: string;
+  matricula_id: number;
+  estudiante: { id: number | null; dni: string; nombre: string };
+  curso: { id: number | null; codigo: string; nombre: string; duracion_horas: number | null };
+  edicion: { identificador: string; codigo: string; nombre: string | null } | null;
+  porcentaje_asistencia: number | null;
+  nota_final: number | null;
+  emitido_en: string;
+  emitido_por: string | null;
+  motivo_excepcion: string | null;
+  anulado_en: string | null;
+  anulado_por: string | null;
+  motivo_anulacion: string | null;
+}

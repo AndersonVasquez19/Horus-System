@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesEstudiante } from '@/components/academico/acciones-estudiante';
+import { AccionesFilaCertificado } from '@/components/academico/acciones-certificado';
 import { HistorialAcademico } from '@/components/academico/historial-academico';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
@@ -9,7 +10,7 @@ import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion, Tabla } from '@/components/shared/ui/tabla';
-import type { EstudianteDetalle } from '@/features/academico/tipos';
+import type { CertificadoResumen, EstudianteDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { mensajeEstudiante } from '@/lib/panel/contacto';
 import { etiqueta, fecha } from '@/lib/panel/formato';
@@ -143,10 +144,49 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           </Seccion>
         ) : null}
 
+        <Suspense fallback={null}>
+          <CertificadosDelEstudiante dni={estudiante.dni} volver={`${LISTADO}/${estudiante.id}`} />
+        </Suspense>
+
         <Seccion id="titulo-historial" titulo="Historial" descripcion="Operaciones registradas en la auditoría." className="xl:col-span-3">
           <HistorialAcademico entidad="estudiante" eventos={estudiante.historial} />
         </Seccion>
       </div>
     </>
+  );
+}
+
+/** Certificados emitidos del estudiante (solo visible si el rol tiene `certificados.ver`). */
+async function CertificadosDelEstudiante({ dni, volver }: { dni: string; volver: string }) {
+  const res = await consultarPanel<{ data: CertificadoResumen[] }>(
+    `academico/certificados?buscar=${encodeURIComponent(dni)}&per_page=20`,
+    volver,
+  );
+  if (res.estado !== 'ok' || res.datos.data.length === 0) return null;
+
+  return (
+    <Seccion
+      id="titulo-certificados"
+      titulo={`Certificados emitidos (${res.datos.data.length})`}
+      descripcion="Diplomas emitidos a nombre de este estudiante."
+      className="xl:col-span-3"
+      sinRelleno
+    >
+      <Tabla plana titulo="Certificados del estudiante" columnas={['Código', 'Curso', 'Estado', 'Emitido', { texto: 'Acciones', derecha: true }]}>
+        {res.datos.data.map((cert) => (
+          <tr key={cert.identificador}>
+            <td className="whitespace-nowrap px-4 py-3 font-mono text-sm font-semibold text-panel-text">{cert.codigo}</td>
+            <td className="px-4 py-3 text-sm text-panel-text">{cert.curso.nombre}</td>
+            <td className="whitespace-nowrap px-4 py-3">
+              <Insignia color={cert.estado === 'emitido' ? 'verde' : 'rojo'}>{cert.estado_etiqueta}</Insignia>
+            </td>
+            <td className="whitespace-nowrap px-4 py-3 text-xs text-panel-muted">{fecha(cert.emitido_en)}</td>
+            <td className="px-4 py-3">
+              <AccionesFilaCertificado identificador={cert.identificador} codigo={cert.codigo} anulado={cert.estado === 'anulado'} />
+            </td>
+          </tr>
+        ))}
+      </Tabla>
+    </Seccion>
   );
 }

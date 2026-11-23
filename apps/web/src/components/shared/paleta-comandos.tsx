@@ -1,14 +1,16 @@
 'use client';
 
-import { ArrowRight, BookOpen, Calendar, CreditCard, FileBarChart, GraduationCap, LayoutDashboard, Search, UserPlus, Users, X } from 'lucide-react';
+import { ArrowRight, Award, BookOpen, Calendar, CreditCard, FileBarChart, GraduationCap, LayoutDashboard, Search, UserPlus, Users, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useOperacionPanel } from './use-operacion-panel';
 
 interface ResultadoGrupo {
   estudiantes?: { id: number; texto: string; detalle: string }[];
+  cursos?: { id: number; texto: string; detalle: string }[];
   matriculas?: { id: number; texto: string; detalle: string }[];
   ediciones?: { identificador: string; texto: string; detalle: string }[];
+  certificados?: { codigo: string; texto: string; detalle: string }[];
   pagos?: { identificador: string; texto: string; detalle: string }[];
 }
 
@@ -16,10 +18,11 @@ const ATAJOS = [
   { etiqueta: 'Tablero académico', href: '/admin/academico', palabras: 'tablero inicio resumen', icono: LayoutDashboard },
   { etiqueta: 'Nueva matrícula', href: '/admin/academico/matriculas/nueva', palabras: 'nueva matricula inscribir', icono: UserPlus },
   { etiqueta: 'Matrículas', href: '/admin/academico/matriculas', palabras: 'matriculas inscripciones', icono: GraduationCap },
+  { etiqueta: 'Pagos y deudores', href: '/admin/academico/pagos', palabras: 'pagos caja yape cuotas cobros deudores', icono: CreditCard },
+  { etiqueta: 'Certificados', href: '/admin/academico/certificados', palabras: 'certificados diplomas codigo', icono: Award },
   { etiqueta: 'Estudiantes', href: '/admin/academico/estudiantes', palabras: 'estudiantes alumnos dni', icono: Users },
   { etiqueta: 'Cursos', href: '/admin/academico/cursos', palabras: 'cursos catalogo', icono: BookOpen },
-  { etiqueta: 'Ediciones / Convocatorias', href: '/admin/academico/convocatorias', palabras: 'ediciones convocatorias horarios sesiones', icono: Calendar },
-  { etiqueta: 'Pagos y caja', href: '/admin/academico/pagos', palabras: 'pagos caja yape cuotas cobros', icono: CreditCard },
+  { etiqueta: 'Ediciones', href: '/admin/academico/convocatorias', palabras: 'ediciones convocatorias horarios sesiones', icono: Calendar },
   { etiqueta: 'Reportes', href: '/admin/academico/reportes', palabras: 'reportes excel pdf', icono: FileBarChart },
 ] as const;
 
@@ -36,13 +39,27 @@ export function PaletaComandos() {
   const [buscando, setBuscando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const cerrar = () => {
+    setAbierto(false);
+    setConsulta('');
+    setResultados(null);
+    setBuscando(false);
+  };
+
   useEffect(() => {
     const manejarTecla = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setAbierto((v) => !v);
+        setAbierto((v) => {
+          if (v) {
+            setConsulta('');
+            setResultados(null);
+            setBuscando(false);
+          }
+          return !v;
+        });
       } else if (e.key === 'Escape') {
-        setAbierto(false);
+        cerrar();
       }
     };
     window.addEventListener('keydown', manejarTecla);
@@ -51,27 +68,24 @@ export function PaletaComandos() {
 
   useEffect(() => {
     if (abierto) {
-      setTimeout(() => inputRef.current?.focus(), 20);
-    } else {
-      setConsulta('');
-      setResultados(null);
+      const id = setTimeout(() => inputRef.current?.focus(), 20);
+      return () => clearTimeout(id);
     }
+    return undefined;
   }, [abierto]);
 
   useEffect(() => {
     const limpio = consulta.trim();
     if (!abierto || limpio.length < 2) {
-      setResultados(null);
-      setBuscando(false);
       return;
     }
 
     const timer = setTimeout(async () => {
       setBuscando(true);
-      const r = await ejecutar<{ data: ResultadoGrupo }>(`academico/busqueda?q=${encodeURIComponent(limpio)}`, 'GET');
+      const r = await ejecutar<{ data: { grupos: ResultadoGrupo } }>(`academico/busqueda?q=${encodeURIComponent(limpio)}`, 'GET');
       setBuscando(false);
       if (r.ok) {
-        setResultados(r.datos.data);
+        setResultados(r.datos.data.grupos);
       }
     }, 220);
 
@@ -79,7 +93,7 @@ export function PaletaComandos() {
   }, [abierto, consulta, ejecutar]);
 
   const ir = (href: string) => {
-    setAbierto(false);
+    cerrar();
     router.push(href);
   };
 
@@ -107,7 +121,7 @@ export function PaletaComandos() {
           role="dialog"
           aria-modal="true"
           aria-label="Buscador rápido del panel"
-          onClick={(e) => { if (e.target === e.currentTarget) setAbierto(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) cerrar(); }}
         >
           <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-panel-border bg-panel-surface shadow-2xl">
             <div className="flex items-center gap-2 border-b border-panel-border px-4 py-3">
@@ -117,11 +131,18 @@ export function PaletaComandos() {
                 type="search"
                 aria-label="Buscar en el panel"
                 value={consulta}
-                onChange={(e) => setConsulta(e.target.value)}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  setConsulta(valor);
+                  if (valor.trim().length < 2) {
+                    setResultados(null);
+                    setBuscando(false);
+                  }
+                }}
                 placeholder="Buscar por DNI, teléfono, nombre, N.º operación Yape o ir a un módulo…"
                 className="flex-1 bg-transparent text-sm text-panel-text outline-none placeholder:text-panel-muted"
               />
-              <button type="button" onClick={() => setAbierto(false)} className="rounded p-1 text-panel-muted hover:text-panel-text" aria-label="Cerrar buscador">
+              <button type="button" onClick={cerrar} className="rounded p-1 text-panel-muted hover:text-panel-text" aria-label="Cerrar buscador">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -160,14 +181,20 @@ export function PaletaComandos() {
                   {resultados.estudiantes?.length ? (
                     <GrupoResultados titulo="Estudiantes" items={resultados.estudiantes.map((e) => ({ clave: `e-${e.id}`, texto: e.texto, detalle: e.detalle, href: `/admin/academico/estudiantes/${e.id}` }))} onElegir={ir} />
                   ) : null}
-                  {resultados.pagos?.length ? (
-                    <GrupoResultados titulo="Pagos / Operaciones Yape" items={resultados.pagos.map((p, idx) => ({ clave: `p-${p.identificador}-${idx}`, texto: p.texto, detalle: p.detalle, href: `/admin/academico/pagos/${p.identificador}` }))} onElegir={ir} />
+                  {resultados.cursos?.length ? (
+                    <GrupoResultados titulo="Cursos" items={resultados.cursos.map((c) => ({ clave: `cur-${c.id}`, texto: c.texto, detalle: c.detalle, href: `/admin/academico/cursos/${c.id}` }))} onElegir={ir} />
                   ) : null}
                   {resultados.matriculas?.length ? (
                     <GrupoResultados titulo="Matrículas" items={resultados.matriculas.map((m) => ({ clave: `m-${m.id}`, texto: m.texto, detalle: m.detalle, href: `/admin/academico/matriculas/${m.id}` }))} onElegir={ir} />
                   ) : null}
                   {resultados.ediciones?.length ? (
                     <GrupoResultados titulo="Ediciones" items={resultados.ediciones.map((c) => ({ clave: `c-${c.identificador}`, texto: c.texto, detalle: c.detalle, href: `/admin/academico/convocatorias/${c.identificador}` }))} onElegir={ir} />
+                  ) : null}
+                  {resultados.certificados?.length ? (
+                    <GrupoResultados titulo="Certificados" items={resultados.certificados.map((c) => ({ clave: `cert-${c.codigo}`, texto: c.texto, detalle: c.detalle, href: `/admin/academico/certificados?buscar=${encodeURIComponent(c.codigo)}` }))} onElegir={ir} />
+                  ) : null}
+                  {resultados.pagos?.length ? (
+                    <GrupoResultados titulo="Pagos / Operaciones" items={resultados.pagos.map((p, idx) => ({ clave: `p-${p.identificador}-${idx}`, texto: p.texto, detalle: p.detalle, href: `/admin/academico/pagos/${p.identificador}` }))} onElegir={ir} />
                   ) : null}
                 </div>
               ) : null}

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Panel;
 
+use App\Models\Certificado;
 use App\Models\Convocatoria;
+use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\TransaccionPago;
@@ -103,6 +105,29 @@ final class BusquedaAcademica
                     'detalle' => 'S/ '.GestionPagos::formato(GestionPagos::leer($t->monto)).' · '.$t->estado,
                 ];
             })->filter(fn (array $item): bool => $item['identificador'] !== '')->values()->all();
+        }
+
+        if ($user->can('cursos.ver')) {
+            $q = Curso::query();
+            BusquedaLike::contiene($q, ['codigo', 'nombre'], $texto);
+            $grupos['cursos'] = $q->orderBy('nombre')->limit(self::POR_GRUPO)->get()->map(fn (Curso $c): array => [
+                'id' => $c->id,
+                'texto' => $c->codigo.' · '.$c->nombre,
+                'detalle' => ucfirst((string) $c->modalidad).' · S/ '.GestionPagos::formato(GestionPagos::leer($c->precio)),
+            ])->all();
+        }
+
+        if ($user->can('certificados.ver')) {
+            $q = Certificado::query()->with(['estudiante:id,dni,nombres,apellidos', 'curso:id,nombre']);
+            $q->where(function ($w) use ($texto): void {
+                BusquedaLike::contiene($w, ['codigo'], $texto);
+                $w->orWhereHas('estudiante', fn ($e) => BusquedaLike::contiene($e, ['dni', 'nombres', 'apellidos'], $texto));
+            });
+            $grupos['certificados'] = $q->latest('emitido_en')->limit(self::POR_GRUPO)->get()->map(fn (Certificado $c): array => [
+                'codigo' => $c->codigo,
+                'texto' => $c->codigo.' · '.($c->estudiante ? trim($c->estudiante->nombres.' '.$c->estudiante->apellidos) : 'Estudiante'),
+                'detalle' => ($c->curso?->nombre ?? 'Curso').' · '.$c->estado->etiqueta(),
+            ])->all();
         }
 
         return array_map(static fn (array $grupo): array => array_values($grupo), $grupos);

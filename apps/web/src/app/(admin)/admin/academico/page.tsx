@@ -1,17 +1,15 @@
 import Link from 'next/link';
-import { BookOpen, GraduationCap, Users } from 'lucide-react';
+import { CalendarPlus, Plus, UserPlus, Wallet } from 'lucide-react';
 import { Suspense } from 'react';
 import { TableroAcademico } from '@/components/academico/tablero';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoVacio } from '@/components/shared/ui/estados';
 import { GraficoBarras } from '@/components/shared/ui/grafico-barras';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
-import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
 import { Tabla } from '@/components/shared/ui/tabla';
 import type { ResumenAcademico } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
-import { FormularioBusqueda } from '@/components/academico/formulario-busqueda';
-import { etiqueta, fecha, numero } from '@/lib/panel/formato';
+import { etiqueta, fecha } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Inicio · Gestión académica' };
 
@@ -20,10 +18,42 @@ const RUTA = '/admin/academico';
 export default function AcademicoInicioPage() {
   return (
     <>
-      <EncabezadoPagina titulo="Panel académico" descripcion="Resumen de la operación académica." />
-      <div className="mb-6">
-        <FormularioBusqueda valor="" />
-      </div>
+      <EncabezadoPagina
+        titulo="Panel académico"
+        descripcion="Vista ejecutiva, alertas prioritarias y accesos rápidos."
+        acciones={
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/academico/matriculas/nueva"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-academico-700 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-academico-800"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              Nueva matrícula
+            </Link>
+            <Link
+              href="/admin/academico/pagos"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-panel-border bg-panel-surface px-3 py-2 text-xs font-semibold text-panel-text transition hover:bg-panel-bg"
+            >
+              <Wallet className="h-3.5 w-3.5 text-academico-700" aria-hidden="true" />
+              Pagos
+            </Link>
+            <Link
+              href="/admin/academico/estudiantes"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-panel-border bg-panel-surface px-3 py-2 text-xs font-semibold text-panel-text transition hover:bg-panel-bg"
+            >
+              <UserPlus className="h-3.5 w-3.5 text-academico-700" aria-hidden="true" />
+              Estudiantes
+            </Link>
+            <Link
+              href="/admin/academico/convocatorias"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-panel-border bg-panel-surface px-3 py-2 text-xs font-semibold text-panel-text transition hover:bg-panel-bg"
+            >
+              <CalendarPlus className="h-3.5 w-3.5 text-academico-700" aria-hidden="true" />
+              Ediciones
+            </Link>
+          </div>
+        }
+      />
       <Suspense fallback={<EsqueletoResumen />}>
         <Resumen />
       </Suspense>
@@ -37,21 +67,14 @@ async function Resumen() {
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
   const { indicadores: i, bloques: b } = resultado.datos.data;
-  const tablero = <TableroAcademico datos={resultado.datos.data} />;
-  const tarjetas = [
-    i.estudiantes_activos !== undefined && {
-      etiqueta: 'Estudiantes activos', valor: numero(i.estudiantes_activos), icono: <Users className="h-5 w-5" />,
-    },
-    i.cursos_activos !== undefined && {
-      etiqueta: 'Cursos activos', valor: numero(i.cursos_activos), icono: <BookOpen className="h-5 w-5" />,
-      detalle: `${numero(i.cupos_disponibles)} de ${numero(i.cupos_maximos)} cupos disponibles`,
-    },
-  ].filter((tarjeta) => tarjeta !== false);
-  // Matrículas del mes, cobranza (del libro de pagos), cupos y asistencia viven en el tablero nuevo.
   const d = resultado.datos.data;
-  const hayTablero = i.matriculas_mes !== undefined || [d.acciones, d.negocio, d.academico].some((bloque) => bloque !== undefined && Object.keys(bloque).length > 0);
+  const hayContenido =
+    i.estudiantes_activos !== undefined ||
+    i.cursos_activos !== undefined ||
+    i.matriculas_mes !== undefined ||
+    [d.acciones, d.negocio, d.academico].some((bloque) => bloque !== undefined && Object.keys(bloque).length > 0);
 
-  if (tarjetas.length === 0 && !hayTablero) {
+  if (!hayContenido) {
     return (
       <EstadoVacio
         titulo="Aún no tienes módulos asignados"
@@ -61,16 +84,8 @@ async function Resumen() {
   }
 
   return (
-    <div className="space-y-8">
-      {tablero}
-
-      {tarjetas.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {tarjetas.map((tarjeta) => (
-            <TarjetaKpi key={tarjeta.etiqueta} tono="academico" {...tarjeta} />
-          ))}
-        </div>
-      ) : null}
+    <div className="space-y-6">
+      <TableroAcademico datos={d} />
 
       {b.matriculas_por_mes || b.ultimas_matriculas ? (
         <div className="grid gap-6 xl:grid-cols-5">
@@ -90,38 +105,33 @@ async function Resumen() {
                 <h2 id="titulo-ultimas" className="font-heading text-base font-semibold text-panel-text">
                   Últimas matrículas
                 </h2>
+                <Link href="/admin/academico/matriculas" className="text-xs font-semibold text-academico-700 hover:underline">
+                  Ver todas
+                </Link>
               </div>
               {b.ultimas_matriculas.length === 0 ? (
                 <p className="px-5 py-10 text-center text-sm text-panel-muted">Todavía no hay matrículas registradas.</p>
               ) : (
                 <Tabla plana titulo="Últimas matrículas" columnas={['Estudiante', 'Curso', 'Estado', 'Fecha']}>
-                      {b.ultimas_matriculas.map((matricula) => (
-                        <tr key={matricula.id}>
-                          <td className="px-4 py-3 font-medium text-panel-text">{matricula.estudiante ?? '—'}</td>
-                          <td className="px-4 py-3 text-panel-muted">{matricula.curso ?? '—'}</td>
-                          <td className="px-4 py-3">
-                            <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
-                        </tr>
-                      ))}
-
-</Tabla>
+                  {b.ultimas_matriculas.map((matricula) => (
+                    <tr key={matricula.id} className="hover:bg-academico-50/40">
+                      <td className="px-4 py-3 font-medium text-panel-text">
+                        <Link href={`/admin/academico/matriculas/${matricula.id}`} className="hover:text-academico-700 hover:underline">
+                          {matricula.estudiante ?? '—'}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-panel-muted">{matricula.curso ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(matricula.fecha)}</td>
+                    </tr>
+                  ))}
+                </Tabla>
               )}
             </section>
           ) : null}
         </div>
-      ) : null}
-
-      {i.cursos_activos !== undefined ? (
-        <p className="text-sm text-panel-muted">
-          <GraduationCap className="mr-1 inline h-4 w-4 align-text-bottom" aria-hidden="true" />
-          Consulta el detalle de la oferta en{' '}
-          <Link href="/admin/academico/cursos" className="font-semibold text-academico-700 underline-offset-4 hover:underline">
-            Cursos
-          </Link>
-          .
-        </p>
       ) : null}
     </div>
   );

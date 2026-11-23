@@ -1,13 +1,14 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { BookOpen, Eye } from 'lucide-react';
 import { BotonNuevaConvocatoria } from '@/components/academico/acciones-convocatoria';
+import { BotonCopiarDato, EnlaceAccionFila } from '@/components/shared/ui/acciones-celda';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { Casilla } from '@/components/shared/ui/casilla';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, CampoFecha, FiltrosListado, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
-import { MenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import type { ConvocatoriaResumen } from '@/features/academico/tipos';
@@ -106,21 +107,41 @@ async function Listado({ searchParams }: { searchParams: Promise<Parametros> }) 
             <tr key={c.identificador} className="hover:bg-academico-50/50">
               <td className="px-4 py-3">
                 <Link href={`${RUTA}/${c.identificador}`} className="font-semibold text-panel-text hover:text-academico-800 hover:underline">{c.nombre}</Link>
-                <p className="text-xs text-panel-muted">{c.codigo}{c.curso ? ` · ${c.curso.codigo}` : ''}</p>
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-panel-muted">
+                  <span className="font-mono">{c.codigo}</span>
+                  <BotonCopiarDato valor={c.codigo} etiqueta={`Copiar código ${c.codigo}`} />
+                  {c.curso ? <span>· {c.curso.codigo}</span> : null}
+                </div>
               </td>
               <td className="px-4 py-3"><Insignia color={colorEstado(c.estado)}>{etiqueta('estadoConvocatoria', c.estado)}</Insignia></td>
               <td className="px-4 py-3 text-panel-muted">{etiqueta('modalidad', c.modalidad)}</td>
               <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(c.fecha_inicio)} – {fecha(c.fecha_fin)}</td>
-              <td className="whitespace-nowrap px-4 py-3 text-right text-panel-text">{c.cupos.disponibles} / {c.cupos.maximos}</td>
+              <td className="whitespace-nowrap px-4 py-3 text-right text-panel-text">
+                {(() => {
+                  const ocupados = Math.max(0, c.cupos.maximos - c.cupos.disponibles);
+                  const pct = c.cupos.maximos > 0 ? Math.min(100, Math.round((ocupados / c.cupos.maximos) * 100)) : 0;
+                  const lleno = c.cupos.disponibles <= 0;
+                  return (
+                    <div className="inline-flex items-center justify-end gap-2">
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-panel-border" aria-hidden="true">
+                        <div className={`h-full rounded-full ${lleno ? 'bg-red-600' : 'bg-academico-600'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      {lleno ? (
+                        <Insignia color="rojo">Lleno ({c.cupos.maximos})</Insignia>
+                      ) : (
+                        <span className="text-xs tabular-nums text-panel-muted">{c.cupos.disponibles} / {c.cupos.maximos}</span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </td>
               <td className="px-4 py-3 text-right">
-                <MenuFila
-                  etiqueta={`Acciones para edición ${c.codigo}`}
-                  elementos={[
-                    { tipo: 'enlace', etiqueta: 'Ver edición', href: `${RUTA}/${c.identificador}` },
-                    ...(c.curso ? [{ tipo: 'enlace' as const, etiqueta: 'Ver curso', href: `/admin/academico/cursos/${c.curso.id}` }] : []),
-                    { tipo: 'copiar', etiqueta: 'Copiar código', valor: c.codigo, aviso: 'Código de edición copiado.' },
-                  ]}
-                />
+                <div className="inline-flex items-center justify-end gap-1.5">
+                  <EnlaceAccionFila href={`${RUTA}/${c.identificador}`} etiqueta="Abrir" tono="primario" icono={<Eye className="h-3.5 w-3.5" aria-hidden="true" />} />
+                  {c.curso ? (
+                    <EnlaceAccionFila href={`/admin/academico/cursos/${c.curso.id}`} etiqueta="Curso" icono={<BookOpen className="h-3.5 w-3.5" aria-hidden="true" />} />
+                  ) : null}
+                </div>
               </td>
             </tr>
           ))}

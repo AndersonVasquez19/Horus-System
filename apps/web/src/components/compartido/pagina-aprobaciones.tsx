@@ -70,7 +70,7 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
 
   return (
     <div className="space-y-4">
-      <nav aria-label="Alcance de solicitudes" className="flex flex-wrap gap-2 border-b border-panel-border">
+      <nav aria-label="Alcance de solicitudes" className="inline-flex flex-wrap gap-1 rounded-xl border border-panel-border bg-panel-surface p-1 shadow-sm">
         {([
           ['para_mi', 'Para mí', `${ruta}?alcance=para_mi`],
           ['mias', 'Mías', `${ruta}?alcance=mias`],
@@ -80,7 +80,9 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
             key={clave}
             href={href}
             aria-current={alcanceActual === clave ? 'page' : undefined}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${alcanceActual === clave ? 'border-panel-text text-panel-text' : 'border-transparent text-panel-muted hover:text-panel-text'}`}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              alcanceActual === clave ? 'bg-academico-700 text-white' : 'text-panel-muted hover:bg-panel-bg hover:text-panel-text'
+            }`}
           >
             {texto}
           </Link>

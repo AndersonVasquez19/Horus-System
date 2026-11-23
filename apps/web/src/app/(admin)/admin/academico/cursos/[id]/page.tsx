@@ -10,6 +10,7 @@ import { BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
+import { Pestanas } from '@/components/shared/ui/pestanas';
 import { Seccion, Tabla } from '@/components/shared/ui/tabla';
 import type { CursoDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
@@ -82,88 +83,107 @@ async function Detalle({ params }: { params: Promise<{ id: string }> }) {
         <Alerta tipo="aviso" className="mb-6">Este curso está archivado: no aparece en los listados ni admite nuevas matrículas.</Alerta>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <section aria-labelledby="titulo-datos" className="rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm xl:col-span-1">
-          <h2 id="titulo-datos" className="font-heading text-base font-semibold text-panel-text">Datos del curso</h2>
-          <dl className="mt-4 space-y-3 text-sm">
-            {[
-              ['Categoría', etiqueta('categoria', curso.categoria)],
-              ['Modalidad', etiqueta('modalidad', curso.modalidad)],
-              ['Duración', `${numero(curso.duracion_horas)} horas`],
-              ['Precio', moneda(curso.precio)],
-              ['Horario', curso.horario || '—'],
-              ['Cupos', `${numero(ocupados)} ocupados · ${numero(curso.cupos_disponibles)} libres · ${numero(curso.cupos_maximos)} en total`],
-              ['Registrado', fecha(curso.creado_en)],
-              ['Última actualización', fecha(curso.actualizado_en)],
-            ].map(([termino, definicion]) => (
-              <div key={termino} className="grid grid-cols-3 gap-2">
-                <dt className="text-panel-muted">{termino}</dt>
-                <dd className="col-span-2 font-medium text-panel-text">{definicion}</dd>
+      <Pestanas
+        etiquetaAria={`Secciones del curso ${curso.codigo}`}
+        elementos={[
+          {
+            id: 'resumen',
+            etiqueta: 'Resumen y estudiantes',
+            insignia: curso.estudiantes.length,
+            contenido: (
+              <div className="grid gap-6 xl:grid-cols-3">
+                <section aria-labelledby="titulo-datos" className="rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm xl:col-span-1">
+                  <h2 id="titulo-datos" className="font-heading text-base font-semibold text-panel-text">Datos del curso</h2>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    {[
+                      ['Categoría', etiqueta('categoria', curso.categoria)],
+                      ['Modalidad', etiqueta('modalidad', curso.modalidad)],
+                      ['Duración', `${numero(curso.duracion_horas)} horas`],
+                      ['Precio', moneda(curso.precio)],
+                      ['Horario', curso.horario || '—'],
+                      ['Cupos', `${numero(ocupados)} ocupados · ${numero(curso.cupos_disponibles)} libres · ${numero(curso.cupos_maximos)} en total`],
+                      ['Registrado', fecha(curso.creado_en)],
+                      ['Última actualización', fecha(curso.actualizado_en)],
+                    ].map(([termino, definicion]) => (
+                      <div key={termino} className="grid grid-cols-3 gap-2">
+                        <dt className="text-panel-muted">{termino}</dt>
+                        <dd className="col-span-2 font-medium text-panel-text">{definicion}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {curso.enlace_grupo_whatsapp ? (
+                    <div className="mt-4 border-t border-panel-border pt-4">
+                      <p className="mb-2 text-xs font-medium text-panel-muted">Grupo de WhatsApp</p>
+                      <BotonesGrupoWhatsApp enlace={curso.enlace_grupo_whatsapp} />
+                    </div>
+                  ) : null}
+                  {curso.descripcion ? (
+                    <div className="mt-5 border-t border-panel-border pt-4">
+                      <h3 className="text-sm font-semibold text-panel-text">Descripción</h3>
+                      <p className="mt-1 whitespace-pre-line text-sm text-panel-muted">{curso.descripcion}</p>
+                    </div>
+                  ) : null}
+                </section>
+
+                <section aria-labelledby="titulo-estudiantes" className="overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm xl:col-span-2">
+                  <div className="px-5 pt-5">
+                    <h2 id="titulo-estudiantes" className="font-heading text-base font-semibold text-panel-text">Estudiantes matriculados</h2>
+                    <p className="text-xs text-panel-muted">{numero(curso.matriculas_activas)} matrículas vigentes (sin anuladas ni eliminadas)</p>
+                    <Link href={`/admin/academico/matriculas?curso_id=${curso.id}`} className="mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
+                      Ver todas las matrículas del curso
+                    </Link>
+                    <Link href={`/admin/academico/convocatorias?curso_id=${curso.id}`} className="ml-4 mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
+                      Ver ediciones del curso
+                    </Link>
+                    {!curso.eliminado && curso.estado === 'activo' && curso.cupos_disponibles > 0 ? (
+                      <Link href={`/admin/academico/matriculas/nueva?curso_id=${curso.id}`} className="ml-4 mt-1 inline-flex items-center gap-1 text-xs font-semibold text-academico-700 hover:underline">
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Matricular en este curso
+                      </Link>
+                    ) : null}
+                  </div>
+                  {curso.estudiantes.length === 0 ? (
+                    <p className="px-5 py-12 text-center text-sm text-panel-muted">Este curso todavía no tiene estudiantes matriculados.</p>
+                  ) : (
+                    <Tabla plana titulo="Estudiantes matriculados en el curso" columnas={['Estudiante', 'Matrícula', 'Fecha']}>
+                      {curso.estudiantes.map((estudiante) => (
+                        <tr key={estudiante.matricula_id}>
+                          <td className="px-4 py-3 font-medium text-panel-text">
+                            <Link href={`/admin/academico/estudiantes/${estudiante.id}`} className="hover:text-academico-800 hover:underline">
+                              {estudiante.nombre}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link href={`/admin/academico/matriculas/${estudiante.matricula_id}`} className="inline-flex items-center gap-2 hover:underline">
+                              <Insignia color={colorEstado(estudiante.estado_matricula)}>{etiqueta('estadoMatricula', estudiante.estado_matricula)}</Insignia>
+                              <span className="text-xs text-academico-700">#{estudiante.matricula_id}</span>
+                            </Link>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(estudiante.fecha_matricula)}</td>
+                        </tr>
+                      ))}
+                    </Tabla>
+                  )}
+                </section>
               </div>
-            ))}
-          </dl>
-          {curso.enlace_grupo_whatsapp ? (
-            <div className="mt-4 border-t border-panel-border pt-4">
-              <p className="mb-2 text-xs font-medium text-panel-muted">Grupo de WhatsApp</p>
-              <BotonesGrupoWhatsApp enlace={curso.enlace_grupo_whatsapp} />
-            </div>
-          ) : null}
-          {curso.descripcion ? (
-            <div className="mt-5 border-t border-panel-border pt-4">
-              <h3 className="text-sm font-semibold text-panel-text">Descripción</h3>
-              <p className="mt-1 whitespace-pre-line text-sm text-panel-muted">{curso.descripcion}</p>
-            </div>
-          ) : null}
-        </section>
-
-        <section aria-labelledby="titulo-estudiantes" className="overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm xl:col-span-2">
-          <div className="px-5 pt-5">
-            <h2 id="titulo-estudiantes" className="font-heading text-base font-semibold text-panel-text">Estudiantes matriculados</h2>
-            <p className="text-xs text-panel-muted">{numero(curso.matriculas_activas)} matrículas vigentes (sin anuladas ni eliminadas)</p>
-            <Link href={`/admin/academico/matriculas?curso_id=${curso.id}`} className="mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
-              Ver todas las matrículas del curso
-            </Link>
-            <Link href={`/admin/academico/convocatorias?curso_id=${curso.id}`} className="ml-4 mt-1 inline-block text-xs font-semibold text-academico-700 hover:underline">
-              Ver ediciones del curso
-            </Link>
-            {!curso.eliminado && curso.estado === 'activo' && curso.cupos_disponibles > 0 ? (
-              <Link href={`/admin/academico/matriculas/nueva?curso_id=${curso.id}`} className="ml-4 mt-1 inline-flex items-center gap-1 text-xs font-semibold text-academico-700 hover:underline">
-                <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Matricular en este curso
-              </Link>
-            ) : null}
-          </div>
-          {curso.estudiantes.length === 0 ? (
-            <p className="px-5 py-12 text-center text-sm text-panel-muted">Este curso todavía no tiene estudiantes matriculados.</p>
-          ) : (
-            <Tabla plana titulo="Estudiantes matriculados en el curso" columnas={['Estudiante', 'Matrícula', 'Fecha']}>
-                  {curso.estudiantes.map((estudiante) => (
-                    <tr key={estudiante.matricula_id}>
-                      <td className="px-4 py-3 font-medium text-panel-text">
-                        <Link href={`/admin/academico/estudiantes/${estudiante.id}`} className="hover:text-academico-800 hover:underline">
-                          {estudiante.nombre}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/academico/matriculas/${estudiante.matricula_id}`} className="inline-flex items-center gap-2 hover:underline">
-                          <Insignia color={colorEstado(estudiante.estado_matricula)}>{etiqueta('estadoMatricula', estudiante.estado_matricula)}</Insignia>
-                          <span className="text-xs text-academico-700">#{estudiante.matricula_id}</span>
-                        </Link>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{fecha(estudiante.fecha_matricula)}</td>
-                    </tr>
-                  ))}
-
-</Tabla>
-          )}
-        </section>
-
-        <div className="space-y-6 xl:col-span-3">
-          <PanelPublicacion curso={curso} />
-          <Seccion id="titulo-historial" titulo="Historial" descripcion="Operaciones registradas en la auditoría.">
-            <HistorialAcademico entidad="curso" eventos={curso.historial} />
-          </Seccion>
-        </div>
-      </div>
+            ),
+          },
+          {
+            id: 'publicacion',
+            etiqueta: 'Publicación web',
+            contenido: <PanelPublicacion curso={curso} />,
+          },
+          {
+            id: 'historial',
+            etiqueta: 'Historial',
+            insignia: curso.historial.length,
+            contenido: (
+              <Seccion id="titulo-historial" titulo="Historial" descripcion="Operaciones registradas en la auditoría.">
+                <HistorialAcademico entidad="curso" eventos={curso.historial} />
+              </Seccion>
+            ),
+          },
+        ]}
+      />
     </>
   );
 }

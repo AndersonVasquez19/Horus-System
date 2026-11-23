@@ -28,7 +28,7 @@ export default function BuscarPage({ searchParams }: { searchParams: Promise<Par
 }
 
 const GRUPOS: {
-  clave: keyof ResultadoBusqueda['grupos'];
+  clave: string;
   titulo: string;
   enlace: (r: Record<string, string | number>) => string;
   listado: (q: string) => string;
@@ -38,6 +38,12 @@ const GRUPOS: {
     titulo: 'Estudiantes',
     enlace: (r) => `/admin/academico/estudiantes/${r.id}`,
     listado: (q) => `/admin/academico/estudiantes?busqueda=${encodeURIComponent(q)}`,
+  },
+  {
+    clave: 'cursos',
+    titulo: 'Cursos',
+    enlace: (r) => `/admin/academico/cursos/${r.id}`,
+    listado: (q) => `/admin/academico/cursos?busqueda=${encodeURIComponent(q)}`,
   },
   {
     clave: 'matriculas',
@@ -50,6 +56,18 @@ const GRUPOS: {
     titulo: 'Ediciones',
     enlace: (r) => `/admin/academico/convocatorias/${r.identificador}`,
     listado: (q) => `/admin/academico/convocatorias?busqueda=${encodeURIComponent(q)}`,
+  },
+  {
+    clave: 'certificados',
+    titulo: 'Certificados',
+    enlace: (r) => `/admin/academico/certificados?buscar=${encodeURIComponent(String(r.codigo ?? ''))}`,
+    listado: (q) => `/admin/academico/certificados?buscar=${encodeURIComponent(q)}`,
+  },
+  {
+    clave: 'pagos',
+    titulo: 'Pagos',
+    enlace: (r) => `/admin/academico/pagos/${r.identificador}`,
+    listado: (q) => `/admin/academico/pagos/comprobantes?busqueda=${encodeURIComponent(q)}`,
   },
 ];
 
@@ -71,7 +89,8 @@ async function Resultados({ searchParams }: { searchParams: Promise<Parametros> 
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
   const { grupos } = resultado.datos.data;
-  const conResultados = GRUPOS.filter((g) => (grupos[g.clave]?.length ?? 0) > 0);
+  const mapaGrupos = grupos as Record<string, Record<string, string | number>[] | undefined>;
+  const conResultados = GRUPOS.filter((g) => (mapaGrupos[g.clave]?.length ?? 0) > 0);
 
   return (
     <div className="space-y-6">
@@ -90,7 +109,7 @@ async function Resultados({ searchParams }: { searchParams: Promise<Parametros> 
               </Link>
             </div>
             <ul className="divide-y divide-panel-border">
-              {grupos[g.clave]?.map((r, k) => (
+              {mapaGrupos[g.clave]?.map((r, k) => (
                 <li key={`${g.clave}-${k}`}>
                   <Link href={g.enlace(r)} className="flex flex-col gap-0.5 px-4 py-3 hover:bg-academico-50/50 sm:flex-row sm:items-center sm:justify-between">
                     <span className="font-semibold text-panel-text">{r.texto}</span>

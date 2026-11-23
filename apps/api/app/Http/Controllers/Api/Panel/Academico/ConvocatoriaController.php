@@ -37,6 +37,8 @@ use Illuminate\Http\Response;
  */
 final class ConvocatoriaController extends Controller implements HasMiddleware
 {
+    private const LIMITE_EXPORTACION = 5000;
+
     private const ORDENABLES = ['inicio' => 'fecha_inicio', 'codigo' => 'codigo', 'creado' => 'created_at'];
 
     public function __construct(
@@ -75,7 +77,7 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
     public function exportar(Request $request): StreamedResponse|BinaryFileResponse
     {
         [$consulta, $filtros] = $this->consultaFiltrada($request);
-        $filas = $consulta->get()->map(fn (Convocatoria $c): array => [
+        $filas = $consulta->limit(self::LIMITE_EXPORTACION)->get()->map(fn (Convocatoria $c): array => [
             $c->codigo,
             $c->nombre ?: ($c->curso->nombre ?? $c->codigo),
             $c->curso ? $c->curso->codigo.' · '.$c->curso->nombre : null,

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bell, CalendarClock, ClipboardCheck, CircleDollarSign, Gauge, Hourglass, Landmark, MessageCircle, Users } from 'lucide-react';
+import { CalendarClock, ClipboardCheck, CircleDollarSign, Gauge, Hourglass, Landmark, MessageCircle, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
@@ -49,69 +49,82 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
     a.pagos_por_confirmar && (
       <TarjetaAccion
         key="confirmar"
-        href="/admin/academico/pagos"
+        href="/admin/academico/pagos/comprobantes?estado=por_confirmar"
         alerta={a.pagos_por_confirmar.cantidad > 0}
         etiqueta="Pagos por confirmar"
         valor={numero(a.pagos_por_confirmar.cantidad)}
-        detalle={a.pagos_por_confirmar.cantidad > 0 ? `${moneda(a.pagos_por_confirmar.monto)} esperando tu confirmación.` : 'No hay pagos esperando confirmación.'}
+        detalle={a.pagos_por_confirmar.cantidad > 0 ? `${moneda(a.pagos_por_confirmar.monto)} esperando confirmación.` : 'Sin pagos pendientes.'}
         icono={<Hourglass className="h-5 w-5" />}
       />
     ),
     a.matriculas_con_saldo && (
       <TarjetaAccion
         key="saldo"
-        href="/admin/academico/pagos?estado=con_saldo"
+        href="/admin/academico/pagos"
         alerta={(a.cuotas?.vencidas ?? 0) > 0}
-        etiqueta="Matrículas con saldo pendiente"
-        valor={numero(a.matriculas_con_saldo.cantidad)}
-        detalle={detalleSaldo(a.matriculas_con_saldo.monto, a.cuotas)}
+        etiqueta="Saldo por cobrar"
+        valor={moneda(a.matriculas_con_saldo.monto)}
+        detalle={`${numero(a.matriculas_con_saldo.cantidad)} matrícula(s) con saldo · ${detalleSaldo(a.matriculas_con_saldo.monto, a.cuotas)}`}
         icono={<CircleDollarSign className="h-5 w-5" />}
       />
     ),
-    a.ediciones && (
+    n.cobrado_mes !== undefined && (
+      <TarjetaAccion
+        key="cobrado"
+        href="/admin/academico/pagos/completos"
+        alerta={false}
+        etiqueta="Cobrado en el mes"
+        valor={moneda(n.cobrado_mes)}
+        detalle="Pagos confirmados menos reversos."
+        icono={<Landmark className="h-5 w-5" />}
+      />
+    ),
+    i.matriculas_mes !== undefined && (
+      <TarjetaAccion
+        key="matriculas"
+        href="/admin/academico/matriculas"
+        alerta={false}
+        etiqueta="Matrículas del mes"
+        valor={numero(i.matriculas_mes)}
+        detalle={tendencia(i.matriculas_mes, i.matriculas_mes_anterior)}
+        icono={<Users className="h-5 w-5" />}
+      />
+    ),
+    a.ediciones && (a.ediciones.por_cerrar > 0 || a.ediciones.por_iniciar > 0) && (
       <TarjetaAccion
         key="ediciones"
         href="/admin/academico/convocatorias"
-        alerta={a.ediciones.por_cerrar > 0 || a.ediciones.por_iniciar > 0}
-        etiqueta="Ediciones que requieren acción"
+        alerta
+        etiqueta="Ediciones por atender"
         valor={numero(a.ediciones.por_cerrar + a.ediciones.por_iniciar)}
-        detalle={`${numero(a.ediciones.por_cerrar)} por cerrar el acta · ${numero(a.ediciones.por_iniciar)} por iniciar.`}
+        detalle={`${numero(a.ediciones.por_cerrar)} por cerrar acta · ${numero(a.ediciones.por_iniciar)} por iniciar.`}
         icono={<CalendarClock className="h-5 w-5" />}
       />
     ),
-  ].filter(Boolean);
-
-  const negocio = [
-    n.cobrado_mes !== undefined && (
-      <TarjetaKpi key="cobrado" tono="academico" etiqueta="Cobrado en el mes" valor={moneda(n.cobrado_mes)} icono={<Landmark className="h-5 w-5" />} detalle="Pagos confirmados menos reversos (Lima)." />
-    ),
-    n.saldo_por_cobrar !== undefined && (
-      <TarjetaKpi key="porcobrar" tono="academico" etiqueta="Saldo total por cobrar" href="/admin/academico/pagos?estado=con_saldo" valor={moneda(n.saldo_por_cobrar)} icono={<CircleDollarSign className="h-5 w-5" />} detalle="De las obligaciones vigentes." />
-    ),
-    i.matriculas_mes !== undefined && (
-      <TarjetaKpi
-        key="matriculas"
-        tono="academico"
-        etiqueta="Matrículas del mes"
-        valor={numero(i.matriculas_mes)}
-        icono={<Users className="h-5 w-5" />}
-        detalle={tendencia(i.matriculas_mes, i.matriculas_mes_anterior)}
+    sg.aprobaciones_pendientes !== undefined && sg.aprobaciones_pendientes > 0 && (
+      <TarjetaAccion
+        key="aprobaciones"
+        href="/admin/academico/aprobaciones"
+        alerta
+        etiqueta="Aprobaciones pendientes"
+        valor={numero(sg.aprobaciones_pendientes)}
+        detalle="Solicitudes esperando tu decisión."
+        icono={<ClipboardCheck className="h-5 w-5" />}
       />
     ),
   ].filter(Boolean);
 
-  const haySeguimiento = sg.aprobaciones_pendientes !== undefined || (sg.notificaciones_sin_leer ?? 0) > 0 || (sg.auditoria_reciente?.length ?? 0) > 0;
-  const sinContenido = acciones.length === 0 && negocio.length === 0 && !ac.cupos && !ac.asistencia && !haySeguimiento;
+  const sinContenido = acciones.length === 0 && !ac.cupos && !ac.asistencia && !sal.cuotas_vencidas && !sal.inasistencias;
   if (sinContenido) return null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {acciones.length > 0 ? (
-        <GrupoTablero id="titulo-acciones" titulo="Requiere tu atención" descripcion="Lo pendiente de resolver hoy.">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{acciones}</div>
+        <section aria-label="Indicadores principales" className="space-y-2">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{acciones}</div>
           {a.ediciones && a.ediciones.lista_por_cerrar.length > 0 ? (
-            <p className="text-sm text-panel-muted">
-              Por cerrar:{' '}
+            <p className="text-xs text-panel-muted">
+              Actas por cerrar:{' '}
               {a.ediciones.lista_por_cerrar.map((e, k) => (
                 <span key={e.identificador}>
                   {k > 0 ? ', ' : ''}
@@ -123,50 +136,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
               .
             </p>
           ) : null}
-        </GrupoTablero>
-      ) : null}
-
-      {haySeguimiento ? (
-        <GrupoTablero id="titulo-seguimiento" titulo="Seguimiento" descripcion="Pendientes propios y actividad reciente del sistema.">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {sg.aprobaciones_pendientes !== undefined ? (
-              <TarjetaAccion
-                href="/admin/academico/aprobaciones"
-                alerta={sg.aprobaciones_pendientes > 0}
-                etiqueta="Aprobaciones pendientes"
-                valor={numero(sg.aprobaciones_pendientes)}
-                detalle={sg.aprobaciones_pendientes > 0 ? 'Solicitudes internas esperando una decisión.' : 'No hay aprobaciones pendientes.'}
-                icono={<ClipboardCheck className="h-5 w-5" />}
-              />
-            ) : null}
-            <TarjetaAccion
-              href="/admin/academico/notificaciones"
-              alerta={(sg.notificaciones_sin_leer ?? 0) > 0}
-              etiqueta="Notificaciones sin leer"
-              valor={numero(sg.notificaciones_sin_leer ?? 0)}
-              detalle="Avisos internos dirigidos a ti."
-              icono={<Bell className="h-5 w-5" />}
-            />
-          </div>
-          {sg.auditoria_reciente && sg.auditoria_reciente.length > 0 ? (
-            <Lista titulo="Actividad reciente" vacio="Sin actividad reciente.">
-              {sg.auditoria_reciente.map((a) => (
-                <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                  <span className="min-w-0 truncate text-panel-text">
-                    <span className="font-medium">{a.usuario ?? 'Sistema'}</span> <span className="text-panel-muted">{a.accion_etiqueta ?? a.accion}</span>
-                  </span>
-                  <span className="shrink-0 tabular-nums text-panel-muted">{a.fecha_local}</span>
-                </li>
-              ))}
-            </Lista>
-          ) : null}
-        </GrupoTablero>
-      ) : null}
-
-      {negocio.length > 0 ? (
-        <GrupoTablero id="titulo-negocio" titulo="Negocio" descripcion="Cobranza y captación.">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{negocio}</div>
-        </GrupoTablero>
+        </section>
       ) : null}
 
       {ac.cupos || ac.asistencia ? (

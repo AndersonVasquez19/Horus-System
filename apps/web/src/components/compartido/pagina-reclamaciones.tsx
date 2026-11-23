@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import { Eye, Printer } from 'lucide-react';
 import { Suspense } from 'react';
+import { BotonCopiarDato, EnlaceAccionFila } from '@/components/shared/ui/acciones-celda';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { BotonExportarListado } from '@/components/shared/ui/boton-exportar-listado';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { CampoBusqueda, FiltrosListado, SelectorFiltro, SelectorPorPagina, claseControl, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, type ColorInsignia } from '@/components/shared/ui/insignia';
-import { MenuFila } from '@/components/shared/ui/menu-fila';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado, Tabla } from '@/components/shared/ui/tabla';
 import type { TonoUi } from '@/components/shared/ui/boton';
@@ -226,7 +227,10 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
             return (
               <tr key={fila.id}>
                 <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">
-                  <Link href={`${ruta}/${fila.id}`} className="font-semibold text-panel-text hover:underline">{fila.numero}</Link>
+                  <div className="inline-flex items-center gap-1.5">
+                    <Link href={`${ruta}/${fila.id}`} className="font-semibold text-panel-text hover:underline">{fila.numero}</Link>
+                    <BotonCopiarDato valor={fila.numero} etiqueta={`Copiar expediente ${fila.numero}`} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-panel-text">{fila.consumidor}</td>
                 <td className="px-4 py-3"><Insignia color={fila.tipo === 'reclamo' ? 'azul' : 'gris'}>{fila.tipo === 'reclamo' ? 'Reclamo' : 'Queja'}</Insignia></td>
@@ -241,14 +245,10 @@ async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Pro
                   ) : null}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <MenuFila
-                    etiqueta={`Acciones para reclamación ${fila.numero}`}
-                    elementos={[
-                      { tipo: 'enlace', etiqueta: 'Ver expediente', href: `${ruta}/${fila.id}` },
-                      { tipo: 'enlace', etiqueta: 'Hoja imprimible', href: `${ruta}/${fila.id}/hoja` },
-                      { tipo: 'copiar', etiqueta: 'Copiar N.º de expediente', valor: fila.numero, aviso: 'Número de expediente copiado.' },
-                    ]}
-                  />
+                  <div className="inline-flex items-center justify-end gap-1.5">
+                    <EnlaceAccionFila href={`${ruta}/${fila.id}`} etiqueta="Ver" tono="primario" icono={<Eye className="h-3.5 w-3.5" aria-hidden="true" />} />
+                    <EnlaceAccionFila href={`${ruta}/${fila.id}/hoja`} etiqueta="Hoja" icono={<Printer className="h-3.5 w-3.5" aria-hidden="true" />} />
+                  </div>
                 </td>
               </tr>
             );

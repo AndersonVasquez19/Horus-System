@@ -9,8 +9,8 @@ import { Alerta } from '@/components/shared/ui/alerta';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton, type TonoUi } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
+import { BotonAccionFila, EnlaceAccionFila } from '@/components/shared/ui/acciones-celda';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
-import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import type { UsuarioPanel } from '@/features/notificaciones/tipos';
 import { FormularioUsuario } from './formulario-usuario';
 
@@ -90,51 +90,86 @@ export function AccionesUsuario({ usuario, roles, tono }: { usuario: UsuarioPane
     }
   }
 
-  const verActividad: ElementoMenuFila[] = puedeAuditoria
-    ? [{ tipo: 'enlace', etiqueta: 'Ver actividad', icono: History, href: `/admin/${tono}/auditoria?usuario=${encodeURIComponent(usuario.email)}` }]
-    : [];
-
-  // Orden: consultar → editar → seguridad de la sesión → destructivas (el menú las separa y las pone al final).
-  const elementos: ElementoMenuFila[] = usuario.eliminado
-    ? [
-        ...verActividad,
-        ...(puedeEliminar
-          ? [{
-              tipo: 'accion' as const,
-              etiqueta: 'Restaurar usuario',
-              icono: RotateCcw,
-              onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/restaurar`, 'POST', undefined, true),
-            }]
-          : []),
-      ]
-    : [
-        ...verActividad,
-        { tipo: 'copiar', etiqueta: 'Copiar correo', valor: usuario.email, aviso: 'Correo copiado.' },
-        ...(puedeEditar ? [{ tipo: 'accion' as const, etiqueta: 'Editar', icono: Pencil, onClick: () => setEditando(true) }] : []),
-        ...(puedeEditar && !usuario.suspendido
-          ? [{ tipo: 'accion' as const, etiqueta: 'Enviar enlace de acceso', icono: Mail, onClick: () => { setError(null); setInvitando(true); } }]
-          : []),
-        ...(puedeEditar
-          ? [{ tipo: 'accion' as const, etiqueta: 'Cerrar sus sesiones', icono: LogOut, onClick: () => { setError(null); setCerrandoSesiones(true); } }]
-          : []),
-        ...(puedeEditar && usuario.suspendido
-          ? [{
-              tipo: 'accion' as const,
-              etiqueta: 'Levantar suspensión',
-              icono: Unlock,
-              onClick: () => void ejecutarAccion(`compartido/usuarios/${usuario.id}/desbloquear`, 'POST', undefined, true),
-            }]
-          : []),
-        ...(puedeEditar && !usuario.suspendido
-          ? [{ tipo: 'accion' as const, etiqueta: 'Suspender cuenta', icono: Ban, peligro: true, onClick: () => { setError(null); setSuspendiendo(true); } }]
-          : []),
-        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Dar de baja (reversible)', icono: UserX, peligro: true, onClick: () => { setError(null); setDesactivando(true); } }] : []),
-        ...(puedeEliminar ? [{ tipo: 'accion' as const, etiqueta: 'Eliminar definitivamente', icono: Trash2, peligro: true, onClick: () => { setError(null); setEliminando(true); } }] : []),
-      ];
-
   return (
-    <div className="flex justify-end">
-      <MenuFila etiqueta={`Acciones para ${usuario.nombre}`} elementos={elementos} />
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
+      {usuario.eliminado ? (
+        <>
+          {puedeAuditoria ? (
+            <EnlaceAccionFila
+              href={`/admin/${tono}/auditoria?usuario=${encodeURIComponent(usuario.email)}`}
+              etiqueta="Actividad"
+              icono={<History className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEliminar ? (
+            <BotonAccionFila
+              onClick={() => void ejecutarAccion(`compartido/usuarios/${usuario.id}/restaurar`, 'POST', undefined, true)}
+              disabled={ocupado}
+              etiqueta="Restaurar"
+              tono="verde"
+              icono={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+        </>
+      ) : (
+        <>
+          {puedeEditar ? (
+            <BotonAccionFila
+              onClick={() => setEditando(true)}
+              etiqueta="Editar"
+              tono="primario"
+              icono={<Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEditar && !usuario.suspendido ? (
+            <BotonAccionFila
+              onClick={() => { setError(null); setInvitando(true); }}
+              etiqueta="Acceso"
+              icono={<Mail className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEditar ? (
+            <BotonAccionFila
+              onClick={() => { setError(null); setCerrandoSesiones(true); }}
+              etiqueta="Sesiones"
+              icono={<LogOut className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEditar && usuario.suspendido ? (
+            <BotonAccionFila
+              onClick={() => void ejecutarAccion(`compartido/usuarios/${usuario.id}/desbloquear`, 'POST', undefined, true)}
+              disabled={ocupado}
+              etiqueta="Reactivar"
+              tono="verde"
+              icono={<Unlock className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEditar && !usuario.suspendido ? (
+            <BotonAccionFila
+              onClick={() => { setError(null); setSuspendiendo(true); }}
+              etiqueta="Suspender"
+              tono="ambar"
+              icono={<Ban className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEliminar ? (
+            <BotonAccionFila
+              onClick={() => { setError(null); setDesactivando(true); }}
+              etiqueta="Baja"
+              tono="peligro"
+              icono={<UserX className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+          {puedeEliminar ? (
+            <BotonAccionFila
+              onClick={() => { setError(null); setEliminando(true); }}
+              etiqueta="Eliminar"
+              tono="peligro"
+              icono={<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          ) : null}
+        </>
+      )}
 
       <Dialogo abierto={editando} lado="derecha" titulo="Editar usuario" onCerrar={() => setEditando(false)} bloqueado={ocupado}>
         <FormularioUsuario

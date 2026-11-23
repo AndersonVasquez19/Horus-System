@@ -30,6 +30,16 @@ const ETIQUETAS_INTENCION: Record<string, string> = {
   precios_matricula: 'Precios y matrícula',
   contacto_asesor: 'Contacto con asesor',
   reclamaciones: 'Libro de reclamaciones',
+  training_info: 'Información de cursos',
+  followup_attribute: 'Seguimiento de atributo (horario/modalidad)',
+  vocational_guidance: 'Orientación vocacional',
+  course_comparison: 'Comparación de cursos',
+  enrollment_info: 'Proceso de matrícula',
+  certification_info: 'Certificación y constancias',
+  payment_methods: 'Medios de pago',
+  company_info: 'Sobre Horus Group',
+  tech_services: 'Servicios tecnológicos',
+  out_of_scope: 'Consulta fuera de alcance',
 };
 
 function etiquetaIntencion(nombre: string): string {
