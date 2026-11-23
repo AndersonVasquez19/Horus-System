@@ -8,11 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Support\Entrada;
 use App\Support\GeneraExportacionAdministrativa;
+use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 use ZipArchive;
@@ -60,6 +63,29 @@ class RespaldoController extends Controller implements HasMiddleware
         'aprobaciones_internas' => 'Aprobaciones',
     ];
 
+    /** Agrupación visual de las tablas para paquetes rápidos en el panel. */
+    private const GRUPOS = [
+        'estudiantes' => 'academico',
+        'cursos' => 'academico',
+        'convocatorias' => 'academico',
+        'matriculas' => 'academico',
+        'sesiones_clase' => 'academico',
+        'asistencias' => 'academico',
+        'evaluaciones' => 'academico',
+        'calificaciones' => 'academico',
+        'certificados' => 'academico',
+        'obligaciones_pago' => 'finanzas',
+        'cuotas_obligacion' => 'finanzas',
+        'transacciones_pago' => 'finanzas',
+        'reclamaciones' => 'atencion',
+        'mensajes_contacto' => 'atencion',
+        'aprobaciones_internas' => 'atencion',
+        'users' => 'administracion',
+        'notificaciones_internas' => 'administracion',
+        'audit_logs' => 'administracion',
+        'system_settings' => 'administracion',
+    ];
+
     /** @return list<Middleware> */
     public static function middleware(): array
     {
@@ -75,15 +101,44 @@ class RespaldoController extends Controller implements HasMiddleware
         return self::TABLAS;
     }
 
-    /** Qué incluye la exportación, para mostrarlo antes de descargar. */
+    /** Qué incluye la exportación, conteos actuales e historial reciente, para mostrarlo antes de descargar. */
     public function index(): JsonResponse
     {
+        $contenido = array_map(static function (string $tabla): array {
+            $registros = Schema::hasTable($tabla) ? (int) DB::table($tabla)->count() : 0;
+
+            return [
+                'clave' => $tabla,
+                'etiqueta' => self::ETIQUETAS[$tabla],
+                'grupo' => self::GRUPOS[$tabla] ?? 'administracion',
+                'registros' => $registros,
+            ];
+        }, self::TABLAS);
+
+        $historial = AuditLog::query()
+            ->where('action', 'data_export_generated')
+            ->with('user:id,name')
+            ->latest('id')
+            ->limit(5)
+            ->get()
+            ->map(static function (AuditLog $log): array {
+                $cambios = is_array($log->changes) ? $log->changes : [];
+                $tablas = is_array($cambios['tables'] ?? null) ? count($cambios['tables']) : null;
+
+                return [
+                    'id' => $log->id,
+                    'fecha_local' => HoraLocal::formato($log->created_at),
+                    'usuario' => $log->user?->name ?? 'Sistema',
+                    'tablas' => $tablas,
+                ];
+            })
+            ->values()
+            ->all();
+
         return response()->json(['data' => [
             'tablas' => self::TABLAS,
-            'contenido' => array_map(
-                static fn (string $tabla): array => ['clave' => $tabla, 'etiqueta' => self::ETIQUETAS[$tabla]],
-                self::TABLAS,
-            ),
+            'contenido' => $contenido,
+            'historial' => $historial,
             'es_respaldo_restaurable' => false,
             'aviso' => 'Resumen de la información principal del sistema. No incluye contraseñas ni claves de acceso y no permite restaurar el sistema.',
         ]]);
@@ -110,6 +165,9 @@ class RespaldoController extends Controller implements HasMiddleware
 
         $desde = ListFilter::date($request, 'desde');
         $hasta = ListFilter::date($request, 'hasta');
+        if ($desde !== '' && $hasta !== '' && $desde > $hasta) {
+            return response()->json(['message' => 'La fecha «Desde» no puede ser posterior a «Hasta».'], 422);
+        }
 
         $nombre = 'exportacion_'.now()->format('Ymd_His').'.zip';
         $zipPath = $this->newTemporaryFile();
