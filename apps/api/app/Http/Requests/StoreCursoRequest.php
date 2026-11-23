@@ -15,12 +15,26 @@ class StoreCursoRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $datos = [];
+        if ($this->has('codigo') && is_string($this->input('codigo'))) {
+            $datos['codigo'] = strtoupper(trim($this->input('codigo')));
+        }
+        if ($this->has('nombre') && is_string($this->input('nombre'))) {
+            $datos['nombre'] = trim($this->input('nombre'));
+        }
+        if ($datos !== []) {
+            $this->merge($datos);
+        }
+    }
+
     /** @return array<string, list<string|Unique|In>> */
     public function rules(): array
     {
         return [
-            'codigo' => ['required', 'string', 'max:20', Rule::unique('cursos', 'codigo')],
-            'nombre' => ['required', 'string', 'max:150'],
+            'codigo' => ['required', 'string', 'min:2', 'max:20', 'regex:/\A[A-Z0-9_\-]+\z/', Rule::unique('cursos', 'codigo')],
+            'nombre' => ['required', 'string', 'min:3', 'max:150', 'not_regex:/[<>]/u'],
             'descripcion' => ['required', 'string', 'max:5000'],
             'categoria' => ['required', Rule::in(['tecnologia', 'educacion', 'salud', 'gestion', 'otros'])],
             'duracion_horas' => ['required', 'integer', 'min:1', 'max:2147483647'],

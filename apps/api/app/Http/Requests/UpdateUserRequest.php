@@ -33,7 +33,7 @@ class UpdateUserRequest extends FormRequest
         $userId = $user instanceof User ? $user->id : null;
 
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'min:2', 'max:255', 'not_regex:/[<>]/u'],
             'email' => ['required', 'email', 'max:255', Email::uniqueRule($userId)],
             'password' => ['nullable', 'string', 'confirmed', PasswordPolicy::rule()],
             'temporal' => ['nullable', 'boolean'],

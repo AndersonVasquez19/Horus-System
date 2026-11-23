@@ -261,7 +261,7 @@ final class UsuariosRolesPanelTest extends PanelApiTestCase
         $this->admin();
         $gestor = $this->gestor(['usuarios.editar', 'usuarios.asignar-roles']);
 
-        $this->como($gestor, 'PUT', "usuarios/{$gestor->id}", ['name' => 'G', 'email' => $gestor->email, 'roles' => ['admin']])->assertForbidden();
+        $this->como($gestor, 'PUT', "usuarios/{$gestor->id}", ['name' => 'Gestor', 'email' => $gestor->email, 'roles' => ['admin']])->assertForbidden();
 
         $this->assertFalse($gestor->refresh()->hasRole('admin'));
     }

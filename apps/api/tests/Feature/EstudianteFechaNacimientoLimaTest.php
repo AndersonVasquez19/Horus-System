@@ -38,16 +38,18 @@ class EstudianteFechaNacimientoLimaTest extends TestCase
 
     public function test_store_rejects_tomorrow_in_lima_even_when_utc_already_is_tomorrow(): void
     {
-        // 20:00 del 9/11 en Lima = 01:00 UTC del 10/11.
+        // 20:00 del 9/11 en Lima = 01:00 UTC del 10/11; además rige el tope institucional <= 2010-12-31.
         Carbon::setTestNow('2026-11-10 01:00:00 UTC');
 
         $this->actingAs($this->adminUser());
         $this->panelEstudiantes('POST', '', $this->datos('2026-11-10'))
             ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
+        $this->panelEstudiantes('POST', '', $this->datos('2011-01-01'))
+            ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
 
         $this->assertDatabaseCount('estudiantes', 0);
 
-        $this->panelEstudiantes('POST', '', $this->datos('2026-11-09'))->assertCreated();
+        $this->panelEstudiantes('POST', '', $this->datos('2010-12-31'))->assertCreated();
 
         $this->assertDatabaseHas('estudiantes', ['dni' => '70123456']);
     }
@@ -57,9 +59,9 @@ class EstudianteFechaNacimientoLimaTest extends TestCase
         Carbon::setTestNow('2026-11-10 17:00:00 UTC');
 
         $this->actingAs($this->adminUser());
-        $this->panelEstudiantes('POST', '', $this->datos('2026-11-10'))->assertCreated();
+        $this->panelEstudiantes('POST', '', $this->datos('2010-12-31'))->assertCreated();
 
-        $this->panelEstudiantes('POST', '', $this->datos('2026-11-11', '70123457'))
+        $this->panelEstudiantes('POST', '', $this->datos('2011-01-01', '70123457'))
             ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
     }
 
@@ -77,9 +79,11 @@ class EstudianteFechaNacimientoLimaTest extends TestCase
         $this->actingAs($this->adminUser());
         $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos('2026-11-10'))
             ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos('2011-01-01'))
+            ->assertUnprocessable()->assertJsonValidationErrors('fecha_nacimiento');
 
-        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos('2026-11-09'))->assertOk();
+        $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos('2010-12-31'))->assertOk();
 
-        $this->assertSame('2026-11-09', $estudiante->fresh()->fecha_nacimiento->toDateString());
+        $this->assertSame('2010-12-31', $estudiante->fresh()->fecha_nacimiento->toDateString());
     }
 }

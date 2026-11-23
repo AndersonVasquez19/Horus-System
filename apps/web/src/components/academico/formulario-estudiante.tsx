@@ -125,8 +125,25 @@ export function FormularioEstudiante({ estudiante, onGuardado, onCancelar, onOcu
         <Campo etiqueta="Nombres" {...f.registro('nombres')} error={f.error('nombres')} required maxLength={100} autoComplete="off" />
         <Campo etiqueta="Apellidos" {...f.registro('apellidos')} error={f.error('apellidos')} required maxLength={100} autoComplete="off" />
         <Campo etiqueta="Correo (opcional)" type="email" {...f.registro('email')} error={f.error('email')} maxLength={150} autoComplete="off" />
-        <Campo etiqueta="Teléfono (opcional)" type="tel" {...f.registro('telefono')} error={f.error('telefono')} maxLength={20} autoComplete="off" />
-        <Campo etiqueta="Fecha de nacimiento (opcional)" type="date" {...f.registro('fecha_nacimiento')} error={f.error('fecha_nacimiento')} />
+        <Campo
+          etiqueta="Teléfono (opcional)"
+          type="tel"
+          inputMode="numeric"
+          maxLength={9}
+          ayuda="9 dígitos (celular peruano, inicia en 9)."
+          {...f.registro('telefono')}
+          error={f.error('telefono')}
+          autoComplete="off"
+        />
+        <Campo
+          etiqueta="Fecha de nacimiento (opcional)"
+          type="date"
+          min="1920-01-01"
+          max="2010-12-31"
+          ayuda="Máximo hasta el año 2010."
+          {...f.registro('fecha_nacimiento')}
+          error={f.error('fecha_nacimiento')}
+        />
         <Campo etiqueta="Dirección (opcional)" {...f.registro('direccion')} error={f.error('direccion')} maxLength={255} autoComplete="off" />
       </div>
 

@@ -31,13 +31,13 @@ class AuditoriaEstudiantesTest extends TestCase
     /** Marcadores únicos: no deben aparecer jamás en audit_logs.changes. */
     private const DNI = '81726354';
 
-    private const NOMBRES = 'NOMBRE-MARCA-7731';
+    private const NOMBRES = 'NOMBREMARKA UNO';
 
-    private const APELLIDOS = 'APELLIDO-MARCA-7731';
+    private const APELLIDOS = 'APELLIDOMARKA UNO';
 
     private const EMAIL = 'marca7731@example.test';
 
-    private const TELEFONO = 'TEL-MARCA-7731';
+    private const TELEFONO = '987654321';
 
     private const DIRECCION = 'DIRECCION-MARCA-7731';
 
@@ -176,7 +176,7 @@ class AuditoriaEstudiantesTest extends TestCase
         $this->actingAs($admin);
         $this->panelEstudiantes('PUT', (string) $estudiante->id, $this->datos([
             'dni' => '81726355',
-            'nombres' => 'OTRO-NOMBRE-MARCA-7731',
+            'nombres' => 'OTRO NOMBREMARKA DOS',
             'email' => 'otra7731@example.test',
             'estado' => 'inactivo',
         ]))

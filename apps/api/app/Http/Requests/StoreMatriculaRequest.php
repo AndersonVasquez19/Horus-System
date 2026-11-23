@@ -4,8 +4,10 @@ namespace App\Http\Requests;
 
 use App\Models\Convocatoria;
 use App\Models\Curso;
+use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Support\Entrada;
+use App\Support\HoraLocal;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -39,10 +41,11 @@ class StoreMatriculaRequest extends FormRequest
                 'uuid',
                 Rule::exists('convocatorias', 'identificador')->whereNull('deleted_at'),
             ],
-            'fecha_matricula' => ['required', 'date'],
+            'fecha_matricula' => ['required', 'date', 'after_or_equal:2020-01-01', 'before_or_equal:'.HoraLocal::hoy()],
             'estado' => ['required', Rule::in(['pendiente', 'anulada'])],
             'monto_pagado' => ['prohibited'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
+            'crear_obligacion' => ['nullable', 'boolean'],
         ];
     }
 
@@ -57,6 +60,14 @@ class StoreMatriculaRequest extends FormRequest
 
                 $estudianteId = Entrada::entero($this->input('estudiante_id'));
                 $cursoId = Entrada::entero($this->input('curso_id'));
+
+                $estudiante = Estudiante::query()->find($estudianteId);
+                if ($estudiante !== null && $estudiante->fecha_nacimiento !== null
+                    && $estudiante->fecha_nacimiento->toDateString() > StoreEstudianteRequest::FECHA_NACIMIENTO_MAXIMA) {
+                    $validator->errors()->add('estudiante_id', 'No se permite matricular a estudiantes nacidos después del año 2010.');
+
+                    return;
+                }
 
                 if (Matricula::query()
                     ->where('estudiante_id', $estudianteId)

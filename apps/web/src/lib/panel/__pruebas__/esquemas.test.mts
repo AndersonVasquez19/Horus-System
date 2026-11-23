@@ -65,10 +65,16 @@ test('estudiante: nombres y apellidos obligatorios, y correo con forma mínima s
   assert.equal(esquemaEstudiante.safeParse({ ...estudianteValido, email: 'ana@example.com' }).success, true);
 });
 
-test('estudiante: respeta los largos máximos de los campos', () => {
+test('estudiante: respeta los largos máximos y formatos estrictos de teléfono y fecha de nacimiento', () => {
   assert.equal(errores(esquemaEstudiante.safeParse({ ...estudianteValido, nombres: 'a'.repeat(101) })).nombres, 'Hasta 100 caracteres.');
-  assert.equal(errores(esquemaEstudiante.safeParse({ ...estudianteValido, telefono: '9'.repeat(21) })).telefono, 'Hasta 20 caracteres.');
   assert.equal(errores(esquemaEstudiante.safeParse({ ...estudianteValido, direccion: 'x'.repeat(256) })).direccion, 'Hasta 255 caracteres.');
+  assert.equal(esquemaEstudiante.safeParse({ ...estudianteValido, telefono: '987654321' }).success, true);
+  assert.ok(errores(esquemaEstudiante.safeParse({ ...estudianteValido, telefono: '812345678' })).telefono);
+  assert.ok(errores(esquemaEstudiante.safeParse({ ...estudianteValido, telefono: '9'.repeat(10) })).telefono);
+  assert.equal(esquemaEstudiante.safeParse({ ...estudianteValido, fecha_nacimiento: '2010-12-31' }).success, true);
+  assert.ok(errores(esquemaEstudiante.safeParse({ ...estudianteValido, fecha_nacimiento: '2011-01-01' })).fecha_nacimiento);
+  assert.ok(errores(esquemaEstudiante.safeParse({ ...estudianteValido, fecha_nacimiento: '1919-12-31' })).fecha_nacimiento);
+  assert.ok(errores(esquemaEstudiante.safeParse({ ...estudianteValido, dni: '00000000' })).dni);
 });
 
 test('estudiante: los opcionales vacíos viajan como null y lo demás ya recortado', () => {

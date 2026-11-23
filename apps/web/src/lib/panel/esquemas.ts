@@ -30,14 +30,35 @@ const enteroPositivo = (mensaje: string) =>
 /** Correo con forma mínima (algo@algo): el formato fino lo decide Laravel. */
 const FORMA_CORREO = /^[^\s@]+@[^\s@]+$/;
 
+export const FECHA_NACIMIENTO_MINIMA = '1920-01-01';
+export const FECHA_NACIMIENTO_MAXIMA = '2010-12-31';
+
 export const esquemaEstudiante = z.object({
-  dni: z.string().trim().regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos.'),
-  nombres: obligatorio('Indica los nombres.', 100),
-  apellidos: obligatorio('Indica los apellidos.', 100),
+  dni: z
+    .string()
+    .trim()
+    .regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos.')
+    .refine((v) => v !== '00000000', 'El DNI ingresado no es válido.'),
+  nombres: obligatorio('Indica los nombres.', 100)
+    .min(2, 'Al menos 2 caracteres.')
+    .regex(/^[\p{L}\s'\-.]+$/u, 'Solo letras y espacios.'),
+  apellidos: obligatorio('Indica los apellidos.', 100)
+    .min(2, 'Al menos 2 caracteres.')
+    .regex(/^[\p{L}\s'\-.]+$/u, 'Solo letras y espacios.'),
   email: texto(150).refine((v) => v === '' || FORMA_CORREO.test(v), 'Escribe un correo válido.'),
-  telefono: texto(20),
-  fecha_nacimiento: z.string().trim(),
-  direccion: texto(255),
+  telefono: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/[\s-]+/g, ''))
+    .refine((v) => v === '' || /^9\d{8}$/.test(v), 'El teléfono debe tener 9 dígitos e iniciar con 9.'),
+  fecha_nacimiento: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === '' || (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= FECHA_NACIMIENTO_MINIMA && v <= FECHA_NACIMIENTO_MAXIMA),
+      'La fecha de nacimiento debe estar entre 1920 y el año 2010.'
+    ),
+  direccion: texto(255).refine((v) => !/[<>]/.test(v), 'Contiene caracteres no permitidos.'),
   estado: z.string().min(1),
 });
 export type DatosEstudiante = z.infer<typeof esquemaEstudiante>;

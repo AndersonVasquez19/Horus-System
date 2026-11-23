@@ -36,7 +36,7 @@ class UpdatePerfilRequest extends FormRequest
         $cambiaClave = $this->filled('password');
 
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'min:2', 'max:255', 'not_regex:/[<>]/u'],
             'email' => ['required', 'email', 'max:255', Email::uniqueRule(Entrada::entero($actual->getKey()))],
             'password' => ['nullable', 'string', 'confirmed', PasswordPolicy::rule()],
             // Solo se pide (y se comprueba contra la contraseña guardada) al cambiar credenciales.

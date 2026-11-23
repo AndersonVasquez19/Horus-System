@@ -42,8 +42,8 @@ class GuardarConvocatoriaRequest extends FormRequest
         return [
             'nombre' => ['nullable', 'string', 'max:160', 'not_regex:/[<>]/u'],
             'modalidad' => ['required', 'string', Rule::in(Convocatoria::MODALIDADES)],
-            'fecha_inicio' => ['required', 'date_format:Y-m-d'],
-            'fecha_fin' => ['required', 'date_format:Y-m-d', 'after_or_equal:fecha_inicio'],
+            'fecha_inicio' => ['required', 'date_format:Y-m-d', 'after_or_equal:2020-01-01', 'before_or_equal:2035-12-31'],
+            'fecha_fin' => ['required', 'date_format:Y-m-d', 'after_or_equal:fecha_inicio', 'before_or_equal:2035-12-31'],
             'cupos_maximos' => ['required', 'integer', 'min:1', 'max:'.Entrada::entero(config('academico.cupos_maximos', 10))],
             'curso_id' => $this->isMethod('POST') ? ['required', 'integer', 'min:1'] : ['missing'],
             'estado' => ['missing'],

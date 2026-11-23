@@ -23,17 +23,17 @@ class PublicarCursoRequest extends FormRequest
         $comparaConDesde = is_string($this->input('vigente_desde')) ? ['after_or_equal:vigente_desde'] : [];
 
         return [
-            'titulo' => ['required', 'string', 'max:120'],
-            'resumen' => ['required', 'string', 'max:500'],
+            'titulo' => ['required', 'string', 'min:3', 'max:120', 'not_regex:/[<>]/u'],
+            'resumen' => ['required', 'string', 'min:10', 'max:500'],
             'modalidad' => ['required', Rule::in(['presencial', 'semipresencial', 'virtual', 'hibrido'])],
-            'horario' => ['nullable', 'string', 'max:200'],
-            'fecha_inicio' => ['nullable', 'date_format:Y-m-d'],
-            'duracion' => ['nullable', 'string', 'max:120'],
-            'certificacion' => ['nullable', 'string', 'max:200'],
-            'temario' => ['nullable', 'string', 'max:1500'],
-            'inscripcion' => ['nullable', 'string', 'max:400'],
-            'vigente_desde' => ['required', 'date_format:Y-m-d'],
-            'vigente_hasta' => ['required', 'date_format:Y-m-d', ...$comparaConDesde, 'after_or_equal:'.now('America/Lima')->toDateString()],
+            'horario' => ['nullable', 'string', 'max:200', 'not_regex:/[<>]/u'],
+            'fecha_inicio' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:2020-01-01', 'before_or_equal:2035-12-31'],
+            'duracion' => ['nullable', 'string', 'max:120', 'not_regex:/[<>]/u'],
+            'certificacion' => ['nullable', 'string', 'max:200', 'not_regex:/[<>]/u'],
+            'temario' => ['nullable', 'string', 'max:1500', 'not_regex:/[<>]/u'],
+            'inscripcion' => ['nullable', 'string', 'max:400', 'not_regex:/[<>]/u'],
+            'vigente_desde' => ['required', 'date_format:Y-m-d', 'after_or_equal:2020-01-01', 'before_or_equal:2035-12-31'],
+            'vigente_hasta' => ['required', 'date_format:Y-m-d', ...$comparaConDesde, 'after_or_equal:'.now('America/Lima')->toDateString(), 'before_or_equal:2035-12-31'],
             'confirmacion_publica' => ['accepted'],
         ];
     }
