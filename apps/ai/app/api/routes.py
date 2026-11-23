@@ -51,14 +51,15 @@ api = APIRouter(
 
 def get_engine(request: Request) -> AdvisorEngine:
     engine: AdvisorEngine | None = getattr(request.app.state, "engine", None)
-    if _catalog_expired(engine):
+    failed = getattr(request.app.state, "catalog_sync_failed", False)
+    if _catalog_expired(engine) and not failed and getattr(request.app.state, "catalog_status", "none") != "error":
         request.app.state.catalog_status = "stale"
     # Un catálogo caducado ya no apaga el servicio (22/11/2026): el motor descarta las fichas vencidas
     # y sigue respondiendo con el conocimiento institucional; ningún curso caducado se presenta como hecho.
     if (
         engine is None
         or getattr(request.app.state, "catalog_pending", False)
-        or getattr(request.app.state, "catalog_sync_failed", False)
+        or failed
     ):
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE, "La base de conocimiento no está disponible."
@@ -93,13 +94,20 @@ def health() -> HealthResponse:
 @public.get("/ready", response_model=ReadyResponse, response_model_exclude_none=True, tags=["estado"])
 def ready(request: Request, settings: Settings = Depends(get_settings)) -> ReadyResponse:
     engine: AdvisorEngine | None = getattr(request.app.state, "engine", None)
-    if _catalog_expired(engine):
+    failed = getattr(request.app.state, "catalog_sync_failed", False)
+    if _catalog_expired(engine) and not failed and getattr(request.app.state, "catalog_status", "none") != "error":
         request.app.state.catalog_status = "stale"
     semantic = request.app.state.semantic
     catalog_status = getattr(request.app.state, "catalog_status", "none")
     pending = getattr(request.app.state, "catalog_pending", False)
     # «stale» sigue listo: se informa en «catalog» para que Laravel sepa que no hay fichas confirmadas.
-    is_ready = engine is not None and settings.service_token_configured and not pending and catalog_status != "error"
+    is_ready = (
+        engine is not None
+        and settings.service_token_configured
+        and not pending
+        and not failed
+        and catalog_status != "error"
+    )
     return ReadyResponse(
         status="ready" if is_ready else "not_ready",
         knowledge="loaded" if engine is not None else "unavailable",

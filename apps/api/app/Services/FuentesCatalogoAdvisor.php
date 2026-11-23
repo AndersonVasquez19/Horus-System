@@ -50,6 +50,7 @@ class FuentesCatalogoAdvisor
             }
             $fuentes = [];
             $cursos = [];
+            $detallesCursos = [];
             $servicios = [];
             foreach ($catalogo['items'] as $item) {
                 if ($item['publication_status'] !== 'vigente' || ! in_array($item['type'], ['curso', 'servicio'], true)) {
@@ -57,8 +58,11 @@ class FuentesCatalogoAdvisor
                 }
                 $id = rtrim(substr('cat_'.preg_replace('/[^a-z0-9]+/', '_', $item['stable_id']), 0, 64), '_');
                 $partes = [$item['title'].': '.$item['summary']];
+                $esHibrido = empty($item['modalities']) && str_contains(strtolower((string) ($item['details'] ?? '')), 'modalidad: hibrido.');
                 if (! empty($item['modalities'])) {
                     $partes[] = 'Modalidad: '.implode(', ', $item['modalities']).'.';
+                } elseif ($esHibrido) {
+                    $partes[] = 'Modalidad: híbrido.';
                 }
                 $inicio = empty($item['start_date']) ? null : self::fechaLarga($item['start_date']);
                 $certificacion = empty($item['certification_text']) ? null : self::lineaCertificacion($item['certification_text']);
@@ -84,12 +88,15 @@ class FuentesCatalogoAdvisor
                 if (! empty($item['inquiry'])) {
                     $partes[] = 'Consultas: '.$item['inquiry'].'.';
                 }
+                $respuestaDetallada = mb_substr(implode(' ', $partes), 0, 1500);
                 $fuentes[$id] = ['title' => $item['title'], 'url_path' => $item['url_path'] ?? null,
-                    'answer' => mb_substr(implode(' ', $partes), 0, 1500),
+                    'answer' => $respuestaDetallada,
                     'fragments' => [$item['title'].': '.$item['summary'], ...array_map(static fn (string $texto): string => $item['title'].': '.$texto,
                         FragmentosCatalogoAdvisor::textos(($item['details'] ?? '') ?: $item['summary']))]];
                 if (! empty($item['duration_text'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: dura '.$item['duration_text'].'.';
+                } else {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: la duración la confirma un asesor.';
                 }
                 if (! empty($item['schedule_text'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el horario es '.$item['schedule_text'].'.';
@@ -99,28 +106,45 @@ class FuentesCatalogoAdvisor
                     $fuentes[$id]['fragments'][] = empty($item['schedule_text'])
                         ? '«'.$item['title'].'»: inicia el '.$inicio.'.'
                         : '«'.$item['title'].'»: inicia el '.$inicio.'; el horario es '.$item['schedule_text'].'.';
+                } elseif (empty($item['schedule_text'])) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: las fechas y horarios los confirma un asesor.';
                 }
                 if ($certificacion !== null) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: certificación: '.$certificacion.'.';
+                } else {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: si incluye certificado lo confirma un asesor.';
                 }
                 if (! empty($item['modalities'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es '.implode(', ', $item['modalities']).'.';
+                } elseif ($esHibrido) {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es híbrido.';
+                } else {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: la modalidad la confirma un asesor.';
                 }
                 if (! empty($item['requirements'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: requisitos: '.implode('; ', $item['requirements']).'.';
+                } else {
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: los requisitos los confirma un asesor.';
                 }
+                $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el precio lo confirma un asesor.';
+                $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: los cupos los confirma un asesor.';
+                $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el temario lo confirma un asesor.';
                 if ($item['type'] === 'curso') {
                     $cursos[] = $item['title'];
+                    $detallesCursos[] = $respuestaDetallada;
                 } else {
                     $servicios[] = $item['title'];
                 }
             }
             if ($cursos !== []) {
                 $titulos = implode('; ', array_slice($cursos, 0, 15));
+                $listadoTexto = mb_substr('Cursos y capacitaciones vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos.', 0, 1500);
+                $listadoDetallado = mb_substr(implode("\n", array_slice($detallesCursos, 0, 10)), 0, 1500);
                 $fuentes['cat_listado_formacion'] = ['title' => 'Cursos y capacitaciones vigentes', 'url_path' => '/educacion/cursos',
-                    'answer' => mb_substr('Cursos y capacitaciones vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos.', 0, 1500),
+                    'answer' => $listadoTexto,
                     'fragments' => [
-                        mb_substr('Cursos y capacitaciones vigentes: '.$titulos.'. Pregúntame por cualquiera para ver su modalidad o requisitos.', 0, 1500),
+                        $listadoTexto,
+                        $listadoDetallado,
                     ]];
             }
             if ($servicios !== []) {

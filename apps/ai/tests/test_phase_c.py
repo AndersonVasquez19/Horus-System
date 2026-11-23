@@ -85,6 +85,13 @@ def test_natural_learning_queries_recommend_published_evidence(query):
         "Que capacitaciones ofrecen",
         "Que cursos tienen",
         "Cuales son sus cursos publicados",
+        "Cuales son los 2 cursos publicados",
+        "Cuales son los dos cursos publicados",
+        "Dime sobre los 2 cursos publicados",
+        "Hablame de los 2 cursos publicados",
+        "Que cursos estan publicados",
+        "Cursos publicados",
+        "De que tratan los 2 cursos publicados",
         "Que formaciones hay disponibles",
         "Cursos?",
     ],
@@ -94,6 +101,73 @@ def test_broad_learning_queries_use_current_listing(query):
     assert not reply.abstained and not reply.needs_clarification
     assert reply.sources[0].id == "cat_listado_formacion"
     assert "Analisis de datos con Python" in reply.answer
+
+
+def test_followup_attribute_after_two_course_listing_answers_for_both_published_courses():
+    now = datetime.now(UTC).isoformat()
+    two_courses = [
+        {
+            "stable_id": "curso:publicacion-2",
+            "type": "curso",
+            "publication_status": "vigente",
+            "title": "Atención al cliente y comunicación efectiva",
+            "summary": "Comunicación y trato al cliente.",
+            "modalities": ["virtual"],
+            "schedule_text": "Vie, 18:00-21:00",
+            "url_path": "/educacion/cursos",
+            "updated_at": now,
+        },
+        {
+            "stable_id": "curso:publicacion-3",
+            "type": "curso",
+            "publication_status": "vigente",
+            "title": "Marketing digital para emprendedores",
+            "summary": "Estrategias digitales para negocios.",
+            "details": "Modalidad: hibrido.",
+            "modalities": [],
+            "schedule_text": "Mar-Jue, 19:00-21:00",
+            "url_path": "/educacion/cursos",
+            "updated_at": now,
+        },
+    ]
+    engine = make_engine(two_courses)
+    first = engine.chat("¿Cuáles son los 2 cursos publicados?")
+    assert [s.id for s in first.sources] == ["cat_listado_formacion"]
+    followup = engine.chat("¿Cuál es el horario de esos cursos?", [], first.state)
+    assert not followup.abstained
+    assert [s.id for s in followup.sources] == ["cat_curso_publicacion_2", "cat_curso_publicacion_3"]
+    assert followup.answer == (
+        "«Atención al cliente y comunicación efectiva»: el horario es Vie, 18:00-21:00.\n"
+        "«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00."
+    )
+
+    direct_schedules = engine.chat("los horarios de los cursos")
+    assert not direct_schedules.abstained
+    assert [s.id for s in direct_schedules.sources] == ["cat_curso_publicacion_2", "cat_curso_publicacion_3"]
+    assert direct_schedules.answer == followup.answer
+
+    direct_details = engine.chat("dame más detalles de los cursos")
+    assert not direct_details.abstained
+    assert [s.id for s in direct_details.sources] == ["cat_listado_formacion"]
+    assert "Atención al cliente y comunicación efectiva: Comunicación y trato al cliente. Modalidad: virtual. Horario: Vie, 18:00-21:00." in direct_details.answer
+    assert "Marketing digital para emprendedores: Estrategias digitales para negocios. Modalidad: híbrido. Horario: Mar-Jue, 19:00-21:00." in direct_details.answer
+
+    compared = engine.chat("compárame los cursos disponibles")
+    assert not compared.abstained
+    assert [s.id for s in compared.sources] == ["cat_listado_formacion"]
+    assert compared.answer == direct_details.answer
+
+    modalities = engine.chat("¿Qué modalidad tienen los cursos?")
+    assert not modalities.abstained
+    assert modalities.answer == (
+        "«Atención al cliente y comunicación efectiva»: es virtual.\n"
+        "«Marketing digital para emprendedores»: es híbrido."
+    )
+
+    mixed = engine.chat("¿Cuál es el precio y horario del curso Marketing digital para emprendedores?")
+    assert not mixed.abstained
+    assert "«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00." in mixed.answer
+    assert "«Marketing digital para emprendedores»: el precio lo confirma un asesor." in mixed.answer
 
 
 @pytest.mark.parametrize("query", ["Que servicios informaticos realizan", "Que servicios tecnologicos ofrecen"])

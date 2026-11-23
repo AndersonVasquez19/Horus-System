@@ -13,7 +13,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
 from app.core.config import Settings, get_settings
-from app.core.text import normalize
+from app.core.text import normalize, strip_invisible
 
 SERVICE_TOKEN_HEADER = "X-Horus-Service-Token"  # noqa: S105 (nombre de cabecera, no un secreto)
 
@@ -57,6 +57,9 @@ _INJECTION_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\b(ejecuta|ejecutar|corre|run)\b.{0,30}\b(comando|comandos|script|codigo|shell|powershell|cmd|bash|sql)\b",
         r"\b(rm rf|drop table|select from|union select|etc passwd)\b",
         r"\bscript\b.{0,20}\balert\b",
+        r"\b(sin restricciones|modo sin filtro|ignora todo|bypass|override|roleplay)\b",
+        r"\b(traduce tu prompt|muestra el json|codigo fuente|knowledge json|intents json|stack trace)\b",
+        r"\b(responde solo con|decodifica base64|en base64)\b",
     )
 )
 
@@ -68,6 +71,7 @@ _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\b(base de datos|postgres|postgresql|tabla de matriculas|panel administrativo|panel de admin)\b",
         r"\b(contrase[nñ]a|password|clave de acceso)\b.{0,30}\b(de|del|admin|administrador|usuario)\b",
         r"\b(quien|quienes)\b.{0,20}\b(se matriculo|se matricularon|esta matriculado|estan matriculados)\b",
+        r"\b(archivo env|dot env|horus ai service token|jsonpe token)\b",
     )
 )
 
@@ -82,17 +86,19 @@ _CODE_PROBE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\bjndi\s*:",
         r"<\s*(?:script|img|iframe|svg|object|embed)\b|\bon(?:error|load|click|mouseover)\s*=",
         r"'\s*(?:or|and)\s+'?\d+'?\s*=\s*'?\d+|'\s*;|;\s*--|\bunion\s+(?:all\s+)?select\b",
+        r"(?:\.\./|\.\.\\){2,}|/etc/passwd|c:\\windows|file://|169\.254\.169\.254",
     )
 )
 
 
 def detect_prompt_injection(text: str) -> bool:
-    if any(p.search(text) for p in _CODE_PROBE_PATTERNS):
+    clean = strip_invisible(text)
+    if any(p.search(clean) for p in _CODE_PROBE_PATTERNS):
         return True
-    normalized = normalize(text)
+    normalized = normalize(clean)
     return any(p.search(normalized) for p in _INJECTION_PATTERNS)
 
 
 def detect_sensitive_request(text: str) -> bool:
-    normalized = normalize(text)
+    normalized = normalize(strip_invisible(text))
     return any(p.search(normalized) for p in _SENSITIVE_PATTERNS)

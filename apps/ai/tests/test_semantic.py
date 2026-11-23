@@ -105,6 +105,10 @@ def test_missing_model_falls_back_to_lexical(engine: AdvisorEngine, tmp_path) ->
     index = SemanticIndex(engine.kb.records)
     assert index.load_in_background(tmp_path / "no-existe", threads=1) is None
     assert index.status == "unavailable"
+    incomplete = tmp_path / "parcial"
+    (incomplete / "1_Pooling").mkdir(parents=True)
+    assert index.load_in_background(incomplete, threads=1) is None
+    assert index.status == "unavailable"
     hybrid_engine = AdvisorEngine(engine.kb, index)
     assert hybrid_engine.mode == "lexical"
     assert hybrid_engine.chat("¿Aceptan Yape?").sources[0].id == "faq_medios_pago"

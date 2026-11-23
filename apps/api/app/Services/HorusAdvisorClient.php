@@ -59,12 +59,17 @@ class HorusAdvisorClient
             $normalizado,
         ) === 1;
         $opcion = match ($normalizado) {
-            'la primera', 'primera opcion' => 0,
-            'la segunda', 'segunda opcion' => 1,
+            'la primera', 'primera opcion', 'el primero', 'primer curso' => 0,
+            'la segunda', 'segunda opcion', 'el segundo', 'segundo curso' => 1,
             default => null,
         };
         if ((! $afirmacion && ! $referencia && $opcion === null) || count($foco) > 2 || $foco === []) {
             return $mensaje;
+        }
+        if ($foco === ['cat_listado_formacion'] && $opcion !== null) {
+            $titulo = $this->tituloDeCursoListado($opcion);
+
+            return $titulo === null ? $mensaje : 'Información sobre '.$titulo;
         }
         if (count($foco) !== 1 && $opcion === null) {
             return $mensaje;
@@ -81,6 +86,17 @@ class HorusAdvisorClient
         return $afirmacion || $opcion !== null ? 'Información sobre '.$titulo : $mensaje.' de '.$titulo;
     }
 
+    private function tituloDeCursoListado(int $indice): ?string
+    {
+        $cursos = array_values(array_filter(
+            $this->fuentesDelMensaje(),
+            static fn (array $f, string $k): bool => str_starts_with($k, 'cat_curso:') || str_starts_with($k, 'cat_curso_'),
+            ARRAY_FILTER_USE_BOTH,
+        ));
+
+        return $cursos[$indice]['title'] ?? null;
+    }
+
     private function tituloDeFoco(string $id): ?string
     {
         if (str_starts_with($id, 'cat_')) {
@@ -88,7 +104,7 @@ class HorusAdvisorClient
             if ($id === 'cat_listado_formacion') {
                 $cursos = array_values(array_filter(
                     $fuentes,
-                    static fn (array $f, string $k): bool => str_starts_with($k, 'cat_curso:'),
+                    static fn (array $f, string $k): bool => str_starts_with($k, 'cat_curso:') || str_starts_with($k, 'cat_curso_'),
                     ARRAY_FILTER_USE_BOTH,
                 ));
                 if (count($cursos) === 1) {
@@ -227,6 +243,7 @@ class HorusAdvisorClient
         '/',
         '/#convenios',
         '/quienes-somos',
+        '/galeria',
         '/contactos',
         '/educacion/cursos',
         '/educacion/capacitaciones',
@@ -237,6 +254,8 @@ class HorusAdvisorClient
         '/legales/preguntas-frecuentes',
         '/legales/libro-reclamaciones',
         '/legales/politicas-devolucion',
+        '/legales/politicas-privacidad',
+        '/legales/politicas-cookies',
     ];
 
     public const CANALES_OFICIALES_PUBLICOS = [
@@ -385,6 +404,28 @@ class HorusAdvisorClient
                 && is_string($recomendacion['id'] ?? null) && is_string($recomendacion['title'] ?? null)) {
                 $ruta = $recomendacion['url_path'] ?? null;
                 $referencias[$recomendacion['id']] = ['id' => $recomendacion['id'], 'title' => $recomendacion['title'], 'url_path' => is_string($ruta) ? $ruta : null];
+            }
+        }
+        if ($referencias === []
+            && ($reply['intent'] ?? null) === 'training_info'
+            && array_column(Entrada::lista($reply['sources']), 'id') === ['cat_listado_formacion']
+            && str_contains(Entrada::texto($reply['answer'] ?? ''), 'Modalidad:')) {
+            $respuestaTexto = Entrada::texto($reply['answer'] ?? '');
+            $cursosVigentes = array_filter(
+                $this->fuentesCatalogo,
+                static fn (array $f, string $k): bool => (str_starts_with($k, 'cat_curso:') || str_starts_with($k, 'cat_curso_'))
+                    && $f['title'] !== ''
+                    && str_contains($respuestaTexto, $f['title']),
+                ARRAY_FILTER_USE_BOTH,
+            );
+            if ($cursosVigentes !== [] && count($cursosVigentes) <= 5) {
+                foreach ($cursosVigentes as $idCurso => $fichaCurso) {
+                    $referencias[$idCurso] = [
+                        'id' => $idCurso,
+                        'title' => $fichaCurso['title'],
+                        'url_path' => $fichaCurso['url_path'],
+                    ];
+                }
             }
         }
         if ($referencias !== []) {
@@ -973,12 +1014,21 @@ class HorusAdvisorClient
         if (! is_string($reply['answer'] ?? null) || ! is_array($reply['sources'] ?? null)) {
             return false;
         }
+        $fragmentosCitados = [];
         foreach ($reply['sources'] as $source) {
             $editorial = is_array($source) && is_string($source['id'] ?? null) ? ($this->fuentesCatalogo[$source['id']] ?? null) : null;
-            if ($editorial !== null && ($reply['answer'] === $editorial['answer']
-                || in_array($reply['answer'], $editorial['fragments'] ?? [], true)) && $this->referenciaValida($source)) {
-                return true;
+            if ($editorial !== null && $this->referenciaValida($source)) {
+                if ($reply['answer'] === $editorial['answer']
+                    || in_array($reply['answer'], $editorial['fragments'] ?? [], true)) {
+                    return true;
+                }
+                array_push($fragmentosCitados, ...($editorial['fragments'] ?? []));
             }
+        }
+        $lineas = explode("\n", $reply['answer']);
+        if (count($lineas) >= 2 && count($lineas) <= 10 && $fragmentosCitados !== []
+            && count(array_filter($lineas, static fn (string $linea): bool => in_array($linea, $fragmentosCitados, true))) === count($lineas)) {
+            return true;
         }
         $conocimiento = self::conocimiento();
         foreach ($conocimiento['porTexto'][$reply['answer']] ?? [] as $origen) {

@@ -71,6 +71,22 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
   const cursosFiltrados =
     modalidadFiltro === 'todos' ? cursos : cursos.filter((c) => c.modalidad === modalidadFiltro);
 
+  const consultarCursoEnChat = (curso: CursoPublico) => {
+    setCursoDetalle(null);
+    window.dispatchEvent(
+      new CustomEvent('horus-consultar-curso', {
+        detail: {
+          titulo: curso.titulo,
+          modalidad: (MODALIDAD_META[curso.modalidad] ?? MODALIDAD_META.presencial).etiqueta,
+          horario: curso.horario ?? null,
+          duracion: curso.duracion ?? null,
+          fecha_inicio: curso.fecha_inicio ? formatearFechaCorta(curso.fecha_inicio) : null,
+          certificacion: curso.certificacion ?? null,
+        },
+      })
+    );
+  };
+
   return (
     <div className="pt-20">
       {/* Intro Cursos 1:1 con cursos.blade.php */}
@@ -473,22 +489,23 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
                       )}
 
                       {/* Acciones */}
-                      <div className="mt-6 pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                        {tieneDetalles ? (
+                      <div className="mt-6 pt-4 border-t border-stone-100 flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => consultarCursoEnChat(curso)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-xs font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
+                        >
+                          Consultar curso
+                        </button>
+
+                        {tieneDetalles && (
                           <button
                             type="button"
                             onClick={() => setCursoDetalle(curso)}
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-xs font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 px-3.5 text-xs font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
                           >
                             Ver detalles
                           </button>
-                        ) : (
-                          <Link
-                            href="/contactos"
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-xs font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
-                          >
-                            Consultar curso
-                          </Link>
                         )}
 
                         <a
@@ -622,12 +639,13 @@ export default function CursosView({ cursos, estado }: CursosViewProps) {
               )}
 
               <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <Link
-                  href="/contactos"
+                <button
+                  type="button"
+                  onClick={() => consultarCursoEnChat(cursoDetalle)}
                   className="inline-flex h-11 items-center justify-center rounded-xl border border-stone-300 bg-white px-5 text-sm font-semibold text-[#0A2540] hover:border-[#0A2540] hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] focus-visible:ring-offset-2 transition-colors"
                 >
                   Consultar curso
-                </Link>
+                </button>
                 <a
                   href={`https://wa.me/${CONTACT_INFO.phoneClean}?text=${encodeURIComponent(`Hola, deseo solicitar matrícula para el curso: ${cursoDetalle.titulo}.`)}`}
                   target="_blank"

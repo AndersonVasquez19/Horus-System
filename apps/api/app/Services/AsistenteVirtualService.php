@@ -50,12 +50,14 @@ class AsistenteVirtualService
 
             return $result;
         }
-        $politica = '';
-        foreach ([__FILE__, app_path('Support/FiltroPrivacidadChat.php'), app_path('Services/HorusAdvisorClient.php'),
-            app_path('Support/Privacidad/LexicoPublico.php'), app_path('Support/Privacidad/lexico-publico.php'),
-            Entrada::texto(config('horus-knowledge.path'))] as $archivo) {
-            $politica .= hash_file('sha256', $archivo);
-        }
+        $politica = $this->firmaPoliticaArchivos([
+            __FILE__,
+            app_path('Support/FiltroPrivacidadChat.php'),
+            app_path('Services/HorusAdvisorClient.php'),
+            app_path('Support/Privacidad/LexicoPublico.php'),
+            app_path('Support/Privacidad/lexico-publico.php'),
+            Entrada::texto(config('horus-knowledge.path')),
+        ]);
         $version = hash('sha256', 'privacy-before-cache-v2|'.$politica.serialize(config('horus-advisor')).serialize(config('chatbot.max_answer_chars', 1800))
             .serialize(Cache::get(Entrada::texto(config('horus-catalog.expected_version_cache_key', 'horus-ai.catalog.expected-version')))));
         // La deduplicación identifica bytes exactos, sin conservar el mensaje.
@@ -228,6 +230,30 @@ class AsistenteVirtualService
         }
 
         return $intents;
+    }
+
+    /**
+     * Firma SHA-256 de los archivos de política/conocimiento, cacheada por mtime+size para evitar
+     * re-leer y hashear ~650 KB de disco en cada consulta sin perder invalidación inmediata al editar.
+     *
+     * @param  list<string>  $archivos
+     */
+    private function firmaPoliticaArchivos(array $archivos): string
+    {
+        $meta = [];
+        foreach ($archivos as $archivo) {
+            $meta[] = $archivo.'|'.((string) @filemtime($archivo)).'|'.((string) @filesize($archivo));
+        }
+        $clave = 'chat:policy_hash:'.hash('sha256', implode("\n", $meta));
+
+        return Entrada::texto(Cache::remember($clave, 300, static function () use ($archivos): string {
+            $concat = '';
+            foreach ($archivos as $archivo) {
+                $concat .= hash_file('sha256', $archivo);
+            }
+
+            return $concat;
+        }));
     }
 
     /** @return array{respuesta: string, intent: string|null, fuente: string} */

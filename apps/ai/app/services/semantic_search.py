@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Protocol
@@ -79,6 +81,8 @@ class SemanticIndex:
         self._encode_slots = threading.BoundedSemaphore(2)
         self._loader_thread: threading.Thread | None = None
         self._passage_vectors: dict[str, Any] = {}
+        self._query_cache: OrderedDict[str, Any] = OrderedDict()
+        self._query_cache_max = 256
         self.vector_cache: PassageVectorCache | None = None  # opt-in; ver vector_cache.py
 
     @property
@@ -151,7 +155,7 @@ class SemanticIndex:
     def load_in_background(
         self, model_dir: Path, threads: int, query_prefix: str = "", passage_prefix: str = ""
     ) -> threading.Thread | None:
-        if not model_dir.is_dir():
+        if not model_dir.is_dir() or not (model_dir / "config.json").is_file():
             logger.warning("Modelo semántico no encontrado en disco; se usa modo léxico.")
             self._status = "unavailable"
             return None
@@ -175,15 +179,28 @@ class SemanticIndex:
         """Devuelve la mejor similitud por registro. Vacío si el índice no está listo u ocupado."""
         if not self.ready or self._embedder is None or not self._owners:
             return {}
-        if not self._encode_slots.acquire(timeout=2):
-            return {}  # saturado: el motor sigue con la parte léxica
-        try:
-            import numpy as np
+        key = hashlib.sha256((self._query_prefix + query.strip().lower()).encode("utf-8")).hexdigest()
+        vector: Any = None
+        with self._lock:
+            cached_vec = self._query_cache.get(key)
+            if cached_vec is not None:
+                self._query_cache.move_to_end(key)
+                vector = cached_vec
+        if vector is None:
+            if not self._encode_slots.acquire(timeout=2):
+                return {}  # saturado: el motor sigue con la parte léxica
+            try:
+                vector = self._embedder.encode([self._query_prefix + query])[0]
+            finally:
+                self._encode_slots.release()
+            with self._lock:
+                self._query_cache[key] = vector
+                self._query_cache.move_to_end(key)
+                while len(self._query_cache) > self._query_cache_max:
+                    self._query_cache.popitem(last=False)
+        import numpy as np
 
-            vector = self._embedder.encode([self._query_prefix + query])[0]
-            sims = self._matrix @ vector
-        finally:
-            self._encode_slots.release()
+        sims = self._matrix @ vector
         best: dict[str, float] = {}
         for owner, sim in zip(self._owners, np.asarray(sims).tolist(), strict=True):
             if record_ids is not None and owner not in record_ids:

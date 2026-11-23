@@ -5,11 +5,11 @@ interface RobotMascotProps {
   className?: string;
 }
 
-export function RobotMascot({ portrait = false, className = '' }: RobotMascotProps) {
+export function RobotMascot({ portrait = true, className = '' }: RobotMascotProps) {
   return (
     <svg
       className={`hc-robot ${portrait ? 'hc-robot-portrait' : ''} ${className}`}
-      viewBox={portrait ? '12 0 96 86' : '0 0 120 140'}
+      viewBox="12 0 96 86"
       fill="none"
       aria-hidden="true"
       focusable="false"
@@ -29,106 +29,6 @@ export function RobotMascot({ portrait = false, className = '' }: RobotMascotPro
           <stop offset="1" stopColor="#eab84a" />
         </linearGradient>
       </defs>
-      {!portrait && (
-        <>
-          <ellipse cx="60" cy="132" rx="29" ry="5" fill="#142e52" opacity=".16" />
-          <path
-            d="M38 112v12c0 4 5 6 10 6s10-2 10-6v-11M63 113v11c0 4 5 6 10 6s10-2 10-6v-12"
-            fill="url(#hc-robot-shell)"
-            stroke="#7295c4"
-            strokeWidth="1.5"
-          />
-          <path
-            d="M38 124c6 3 13 3 20 0m5 0c6 3 13 3 20 0"
-            stroke="#7295c4"
-            strokeWidth="1.5"
-          />
-          <g className="hc-robot-wave">
-            <path
-              d="M88 93c12 0 17-12 16-24"
-              stroke="#7295c4"
-              strokeWidth="12"
-              strokeLinecap="round"
-            />
-            <path
-              d="M88 91c10 0 14-11 13-21"
-              stroke="#eaf3ff"
-              strokeWidth="7"
-              strokeLinecap="round"
-            />
-            <rect
-              x="95"
-              y="54"
-              width="17"
-              height="23"
-              rx="8"
-              transform="rotate(12 103 65)"
-              fill="url(#hc-robot-shell)"
-              stroke="#7295c4"
-              strokeWidth="1.5"
-            />
-            <path
-              d="m100 58 1 7m5-7-1 7"
-              stroke="#7295c4"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </g>
-          <path
-            d="M31 90c-7 3-10 10-10 18"
-            stroke="#7295c4"
-            strokeWidth="12"
-            strokeLinecap="round"
-          />
-          <path
-            d="M31 88c-7 3-10 10-10 18"
-            stroke="#eaf3ff"
-            strokeWidth="7"
-            strokeLinecap="round"
-          />
-          <rect
-            x="16"
-            y="103"
-            width="14"
-            height="17"
-            rx="7"
-            fill="url(#hc-robot-shell)"
-            stroke="#7295c4"
-            strokeWidth="1.5"
-          />
-          <rect
-            x="32"
-            y="81"
-            width="57"
-            height="38"
-            rx="17"
-            fill="url(#hc-robot-shell)"
-            stroke="#7295c4"
-            strokeWidth="1.5"
-          />
-          <path
-            d="M44 86h32"
-            stroke="#f8f6ee"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <rect
-            x="45"
-            y="89"
-            width="31"
-            height="23"
-            rx="9"
-            fill="url(#hc-robot-gold)"
-          />
-          <path
-            d="M55 95v11m11-11v11m-11-5h11"
-            stroke="#142e52"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <circle cx="80" cy="98" r="2" fill="#06b6d4" />
-        </>
-      )}
       <path
         d="M60 24V13"
         stroke="#2563eb"

@@ -10,8 +10,30 @@ import unicodedata
 from difflib import SequenceMatcher, get_close_matches
 from functools import lru_cache
 
+_ZERO_WIDTH = re.compile(r"[\u200b-\u200f\u202a-\u202e\ufeff\u00ad]+")
 _NON_WORD = re.compile(r"[^a-z0-9ñ\s]+")
 _SPACES = re.compile(r"\s+")
+
+# Abreviaturas frecuentes en consultas reales en Perú (expansión determinista antes de tokenizar).
+_SLANG_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(rf"\b{re.escape(k)}\b"), v)
+    for k, v in (
+        ("wsp", "whatsapp"),
+        ("wasap", "whatsapp"),
+        ("guasap", "whatsapp"),
+        ("xfa", "por favor"),
+        ("porfis", "por favor"),
+        ("dcto", "descuento"),
+        ("dscto", "descuento"),
+        ("certi", "certificado"),
+        ("ubi", "ubicacion"),
+        ("xq", "porque"),
+        ("pq", "porque"),
+        ("tmb", "tambien"),
+        ("tb", "tambien"),
+        ("infos", "informacion"),
+    )
+)
 
 STOPWORDS: frozenset[str] = frozenset(
     """
@@ -38,9 +60,17 @@ def strip_accents(text: str) -> str:
     return without.replace("\x00", "ñ").replace("\x01", "ñ")
 
 
+def strip_invisible(text: str) -> str:
+    """Elimina caracteres invisibles zero-width y controles bidireccionales (defensa contra ofuscación)."""
+    return _ZERO_WIDTH.sub("", text)
+
+
 def normalize(text: str) -> str:
-    text = strip_accents(text.lower())
+    text = strip_accents(strip_invisible(text).lower())
     text = _NON_WORD.sub(" ", text)
+    text = _SPACES.sub(" ", text).strip()
+    for pattern, replacement in _SLANG_PATTERNS:
+        text = pattern.sub(replacement, text)
     return _SPACES.sub(" ", text).strip()
 
 

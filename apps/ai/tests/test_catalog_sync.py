@@ -205,6 +205,12 @@ def test_startup_with_expired_catalog_keeps_answering_without_presenting_courses
         payment = client.post("/api/v1/chat", json={"message": "¿Aceptan Yape?"}, headers=headers)
         assert payment.status_code == 200
         assert [s["id"] for s in payment.json()["sources"]] == ["faq_medios_pago"]
+        forged = _catalog(datetime.now(UTC))
+        forged["items"][0]["title"] = "Contenido manipulado"
+        assert client.post("/api/v1/catalog/sync", json=forged, headers=headers).status_code == 422
+        failed_ready = client.get("/ready").json()
+        assert failed_ready["status"] == "not_ready"
+        assert failed_ready["catalog"] == "error"
 
 
 def test_loaded_catalog_becomes_stale_after_expiry_and_stops_presenting_courses(tmp_path: Path) -> None:

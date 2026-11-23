@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import {
   X,
   Send,
@@ -12,6 +13,17 @@ import {
   BookOpen,
   ArrowRight,
   Shield,
+  RotateCcw,
+  Sparkles,
+  Compass,
+  Maximize2,
+  Minimize2,
+  Copy,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
@@ -135,12 +147,18 @@ function restaurarMensajes(valor: unknown): Message[] {
   return salida;
 }
 
+interface QuickReply {
+  label: string;
+  query: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'bot';
   text: string;
   cards?: ChatCard[];
   links?: ChatLink[];
+  quickReplies?: QuickReply[];
   /** Consulta que falló y que la persona puede reintentar. */
   retry?: string;
 }
@@ -164,14 +182,169 @@ function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
+function formatearLineaConBadges(linea: string): React.ReactNode[] {
+  const patron = /(«[^»]+»|\b(?:Modalidad|Horario|Duración|Inicio|Certificación|Requisitos|Consultas):)/g;
+  const partes = linea.split(patron);
+  return partes.map((parte, i) => {
+    if (parte.startsWith('«') && parte.endsWith('»')) {
+      return (
+        <span key={i} className="hc-badge-course">
+          {parte}
+        </span>
+      );
+    }
+    if (/^(?:Modalidad|Horario|Duración|Inicio|Certificación|Requisitos|Consultas):$/.test(parte)) {
+      return (
+        <span key={i} className="hc-badge-attr">
+          {parte}
+        </span>
+      );
+    }
+    return <React.Fragment key={i}>{parte}</React.Fragment>;
+  });
+}
+
+function limpiarUrlWhatsappVisible(text: string): string {
+  return text
+    .replace(/:\s*https:\/\/wa\.me\/[^\s]+(?=\.)/gi, '')
+    .replace(/:\s*https:\/\/wa\.me\/[^\s]+/gi, '.')
+    .replace(/\s*https:\/\/wa\.me\/[^\s]+/gi, '')
+    .replace(/\.\./g, '.')
+    .trim();
+}
+
+function renderMessageContent(text: string, role: 'user' | 'bot', tieneBotonWhatsapp = false): React.ReactNode {
+  if (role === 'user') {
+    return <p>{text}</p>;
+  }
+  const textoVisible = tieneBotonWhatsapp ? limpiarUrlWhatsappVisible(text) : text;
+  const lineas = textoVisible
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (lineas.length <= 1) {
+    return <p>{formatearLineaConBadges(textoVisible)}</p>;
+  }
+
+  return (
+    <div className="hc-rich-body">
+      {lineas.map((linea, idx) => {
+        const esItem =
+          /^(?:\d+[.)]\s+|[-•]\s+|«[^»]+»:)/.test(linea) ||
+          (lineas.length >= 2 && /\b(?:Modalidad|Horario):/.test(linea));
+        const limpia = linea.replace(/^(?:\d+[.)]\s+|[-•]\s+)/, '');
+        if (esItem) {
+          return (
+            <div key={idx} className="hc-rich-item">
+              <span className="hc-rich-bullet" aria-hidden="true" />
+              <div>{formatearLineaConBadges(limpia)}</div>
+            </div>
+          );
+        }
+        return (
+          <p key={idx} className="hc-rich-line">
+            {formatearLineaConBadges(linea)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function generarChipsSeguimiento(
+  respuesta: string,
+  tarjetas: ChatCard[] | undefined,
+  cursoActual: string | null
+): QuickReply[] | undefined {
+  const norm = respuesta
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (cursoActual) {
+    const chips: QuickReply[] = [];
+    if (!norm.includes('horario')) {
+      chips.push({ label: 'Ver horario', query: `¿Cuál es el horario del curso ${cursoActual}?` });
+    }
+    if (!norm.includes('modalidad') && !norm.includes('es virtual') && !norm.includes('es hibrido') && !norm.includes('es presencial')) {
+      chips.push({ label: 'Ver modalidad', query: `¿Cuál es la modalidad del curso ${cursoActual}?` });
+    }
+    if (!norm.includes('whatsapp') && !norm.includes('matricular')) {
+      chips.push({ label: 'Cómo matricularme', query: `Quiero matricularme en el curso ${cursoActual}` });
+    }
+    chips.push({ label: 'Comparar todos los cursos', query: 'Compárame los cursos disponibles' });
+    return chips.slice(0, 3);
+  }
+
+  if (
+    (tarjetas && tarjetas.some((t) => t.tipo === 'curso')) ||
+    norm.includes('cursos y capacitaciones vigentes') ||
+    norm.includes('atencion al cliente') ||
+    norm.includes('marketing digital')
+  ) {
+    const chips: QuickReply[] = [];
+    if (!norm.includes('horario')) {
+      chips.push({ label: 'Horarios de los cursos', query: 'Los horarios de los cursos' });
+    }
+    if (!norm.includes('modalidad')) {
+      chips.push({ label: 'Modalidades disponibles', query: '¿Qué modalidad tienen los cursos?' });
+    }
+    if (norm.includes('horario') && !norm.includes('comunicacion y trato')) {
+      chips.push({ label: 'Comparar detalles completos', query: 'Dame más detalles de los cursos' });
+    }
+    chips.push({ label: 'Cómo matricularme', query: '¿Cómo puedo matricularme?' });
+    return chips.slice(0, 3);
+  }
+
+  return undefined;
+}
+
 export function ChatWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [cursoEnFoco, setCursoEnFoco] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [feedbackByMsg, setFeedbackByMsg] = useState<Record<string, 'up' | 'down'>>({});
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const cursoEnFocoRef = useRef<string | null>(null);
+  const lastSendAtRef = useRef<number>(0);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
+  const actualizarCursoEnFoco = (titulo: string | null) => {
+    cursoEnFocoRef.current = titulo;
+    setCursoEnFoco(titulo);
+  };
+
+  useEffect(() => {
+    let cancelado = false;
+    const syncOnline = () => setIsOffline(!navigator.onLine);
+    queueMicrotask(() => {
+      if (cancelado) return;
+      setIsOffline(!navigator.onLine);
+      const w = window as unknown as Record<string, unknown>;
+      if (typeof w.SpeechRecognition === 'function' || typeof w.webkitSpeechRecognition === 'function') {
+        setVoiceSupported(true);
+      }
+    });
+    window.addEventListener('online', syncOnline);
+    window.addEventListener('offline', syncOnline);
+    return () => {
+      cancelado = true;
+      window.removeEventListener('online', syncOnline);
+      window.removeEventListener('offline', syncOnline);
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   // Restore history from sessionStorage. Se hace después del montaje (no en el cuerpo síncrono del efecto) para que el HTML del
   // servidor y el primer render del cliente coincidan; el resultado para la persona es el mismo.
@@ -260,11 +433,35 @@ export function ChatWidget() {
       ]);
     }
 
+    function handleConsultarCurso(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      const titulo = typeof detail?.titulo === 'string' ? detail.titulo.trim() : '';
+      if (!titulo) return;
+      actualizarCursoEnFoco(titulo);
+      setIsOpen(true);
+
+      const botIntro: Message = {
+        id: idMensaje('curso'),
+        role: 'bot',
+        text: `¡Hola! Veo que te interesa el curso «${titulo}» o quieres más información. ¿Qué es lo que quieres saber según el horario, modalidad, fecha de inicio, duración, certificación o cómo matricularte?`,
+        quickReplies: [
+          { label: 'Horario y fecha de inicio', query: `¿Cuál es el horario del curso ${titulo}?` },
+          { label: 'Modalidad del curso', query: `¿Cuál es la modalidad del curso ${titulo}?` },
+          { label: 'Más detalles del curso', query: `Dame detalles del curso ${titulo}` },
+          { label: 'Cómo matricularme', query: `Quiero matricularme en el curso ${titulo}` },
+        ],
+      };
+
+      setMessages((prev) => [...prev, botIntro]);
+    }
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('horus-cotizacion', handleCotizacion);
+    window.addEventListener('horus-consultar-curso', handleConsultarCurso);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('horus-cotizacion', handleCotizacion);
+      window.removeEventListener('horus-consultar-curso', handleConsultarCurso);
     };
   }, [isOpen]);
 
@@ -281,18 +478,76 @@ export function ChatWidget() {
     return resultado;
   }
 
+  function contextualizarConsulta(text: string): string {
+    const curso = cursoEnFocoRef.current;
+    if (!curso) return text;
+    const norm = text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const cursoNorm = curso
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    // Si el usuario ya nombró el curso o cambia a una pregunta plural sobre «los cursos», no forzamos el curso único.
+    if (norm.includes(cursoNorm)) {
+      return text;
+    }
+    if (/\b(?:los|las|todos|todas|ambos|cuales son los|que|compara|comparar|comparame|diferencia)\s+(?:cursos|capacitaciones)\b/.test(norm)) {
+      actualizarCursoEnFoco(null);
+      return text;
+    }
+    const preguntaSobreCurso =
+      /\b(?:horario|horarios|modalidad|presencial|virtual|semipresencial|hibrido|duracion|dura|inicio|empieza|inicia|fecha|fechas|certificado|certificacion|temario|contenido|contenidos|requisitos|precio|costo|cuanto|cupos|vacantes|matricula|matricularme|inscribirme|inscripcion|detalle|detalles|mas informacion|mas info|de que trata|en que consiste)\b/.test(
+        norm
+      );
+    if (preguntaSobreCurso && text.length <= 160) {
+      return `${text} del curso ${curso}`.slice(0, MAX_MENSAJE);
+    }
+    return text;
+  }
+
   const enviarConsulta = async (text: string) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: idMensaje('offline'),
+          role: 'bot',
+          text: 'Parece que no tienes conexión a internet en este momento. Verifica tu red y vuelve a intentarlo.',
+          retry: text,
+        },
+      ]);
+      return;
+    }
     setSending(true);
-    const resultado = await consultarConReintento(text);
+    const consultaEfectiva = contextualizarConsulta(text);
+    const resultado = await consultarConReintento(consultaEfectiva);
     let botMsg: Message;
     if (resultado.ok) {
-      const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces);
+      const cursoContexto =
+        cursoEnFocoRef.current ??
+        (resultado.data.tarjetas && resultado.data.tarjetas.length === 1 && resultado.data.tarjetas[0].tipo === 'curso'
+          ? resultado.data.tarjetas[0].titulo
+          : null);
+      const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces).map((enlace) => {
+        if (enlace.whatsapp && cursoContexto) {
+          const textoWa = `Hola Horus Group, consulté en el asistente web por el curso «${cursoContexto}» y deseo más información para matricularme.`;
+          return {
+            ...enlace,
+            url: `https://wa.me/51972021374?text=${encodeURIComponent(textoWa)}`,
+            label: `Consultar «${cursoContexto}» por WhatsApp`,
+          };
+        }
+        return enlace;
+      });
       botMsg = {
         id: idMensaje('bot'),
         role: 'bot',
         text: resultado.data.respuesta,
         cards: resultado.data.tarjetas,
         links: enlaces.length > 0 ? enlaces : undefined,
+        quickReplies: generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current),
       };
     } else if (resultado.motivo === 'demasiadas') {
       botMsg = { id: idMensaje('err'), role: 'bot', text: MENSAJE_DEMASIADAS };
@@ -305,12 +560,160 @@ export function ChatWidget() {
     setSending(false);
   };
 
+  const handleResetConversation = () => {
+    if (sending) return;
+    actualizarCursoEnFoco(null);
+    setMessages([INITIAL_MESSAGE]);
+    setDraft('');
+    setFeedbackByMsg({});
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    try {
+      sessionStorage.removeItem('horus_chat_history');
+      const nuevo = nuevoSessionId();
+      sessionStorage.setItem('horus_chat_session', nuevo);
+      sessionIdRef.current = nuevo;
+    } catch {
+      sessionIdRef.current = nuevoSessionId();
+    }
+  };
+
+  const handleCopyMessage = (messageId: string, text: string) => {
+    const limpio = limpiarUrlWhatsappVisible(text);
+    void navigator.clipboard?.writeText(limpio).then(() => {
+      setCopiedId(messageId);
+      setTimeout(() => {
+        setCopiedId((curr) => (curr === messageId ? null : curr));
+      }, 1800);
+    });
+  };
+
+  const handleFeedback = (messageId: string, value: 'up' | 'down') => {
+    setFeedbackByMsg((prev) => ({ ...prev, [messageId]: value }));
+    if (value === 'down') {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: idMensaje('fb'),
+          role: 'bot',
+          text: 'Gracias por avisarme. Si prefieres atención directa o resolver una duda específica, puedes escribirnos por WhatsApp o explorar los cursos vigentes:',
+          links: [CONTACTO_WHATSAPP],
+          quickReplies: [
+            { label: 'Ver todos los cursos', query: '¿Qué cursos ofrecen?' },
+            { label: 'Horarios de los cursos', query: 'Los horarios de los cursos' },
+          ],
+        },
+      ]);
+    }
+  };
+
+  const handleToggleVoice = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const w = window as unknown as Record<string, unknown>;
+    const SpeechRec = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as
+      | (new () => {
+          lang: string;
+          interimResults: boolean;
+          maxAlternatives: number;
+          onresult: ((ev: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+          onerror: (() => void) | null;
+          onend: (() => void) | null;
+          start: () => void;
+          stop: () => void;
+        })
+      | undefined;
+    if (!SpeechRec) return;
+    const rec = new SpeechRec();
+    rec.lang = 'es-PE';
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (ev) => {
+      const transcript = ev.results?.[0]?.[0]?.transcript?.trim();
+      if (transcript) {
+        setDraft((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, MAX_MENSAJE));
+      }
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+    }
+  };
+
+  const handleConsultarDesdeTarjeta = (titulo: string) => {
+    actualizarCursoEnFoco(titulo);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: idMensaje('card-focus'),
+        role: 'bot',
+        text: `Perfecto, nos enfocamos en el curso «${titulo}». ¿Qué deseas consultar ahora?`,
+        quickReplies: [
+          { label: 'Horario y fecha de inicio', query: `¿Cuál es el horario del curso ${titulo}?` },
+          { label: 'Modalidad del curso', query: `¿Cuál es la modalidad del curso ${titulo}?` },
+          { label: 'Más detalles', query: `Dame detalles del curso ${titulo}` },
+          { label: 'Cómo matricularme', query: `Quiero matricularme en el curso ${titulo}` },
+        ],
+      },
+    ]);
+  };
+
+  const handleIniciarOrientador = () => {
+    if (sending) return;
+    actualizarCursoEnFoco(null);
+    const userMsg: Message = {
+      id: idMensaje('user'),
+      role: 'user',
+      text: 'Ayúdame a elegir un curso',
+    };
+    const orientadorMsg: Message = {
+      id: idMensaje('orientador'),
+      role: 'bot',
+      text: '¡Con gusto te ayudo a elegir! Selecciona qué habilidad o área te interesa fortalecer hoy:',
+      quickReplies: [
+        {
+          label: 'Atención al cliente y comunicación (Virtual)',
+          query: 'Quiero información del curso Atención al cliente y comunicación efectiva',
+        },
+        {
+          label: 'Marketing digital para emprendedores (Híbrido)',
+          query: 'Quiero información del curso Marketing digital para emprendedores',
+        },
+        {
+          label: 'Comparar todos los cursos y horarios',
+          query: 'Compárame los cursos disponibles',
+        },
+        {
+          label: 'Asesoramiento académico y de tesis',
+          query: '¿En qué consiste el servicio de asesoramiento y tesis?',
+        },
+      ],
+    };
+    setMessages((prev) => [...prev, userMsg, orientadorMsg]);
+  };
+
   const handleSend = (textToSend?: string) => {
     const text = (textToSend || draft).trim().slice(0, MAX_MENSAJE);
-    if (!text || sending) return;
+    if (!text || sending || lastSendAtRef.current !== 0) return;
+    lastSendAtRef.current = 1;
+    setTimeout(() => {
+      lastSendAtRef.current = 0;
+    }, 350);
 
     setMessages((prev) => [...prev, { id: idMensaje('user'), role: 'user', text }]);
     setDraft('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     void enviarConsulta(text);
   };
 
@@ -321,8 +724,53 @@ export function ChatWidget() {
   };
 
   const handleSuggestionClick = (query: string) => {
+    if (query === '__orientador__') {
+      handleIniciarOrientador();
+      return;
+    }
     handleSend(query);
   };
+
+  const sugerenciasIniciales: QuickReply[] = React.useMemo(() => {
+    if (pathname?.startsWith('/educacion/cursos')) {
+      return [
+        { label: 'Ayúdame a elegir un curso', query: '__orientador__' },
+        { label: 'Comparar detalles de los cursos', query: 'Compárame los cursos disponibles' },
+        { label: 'Ver horarios de los cursos', query: 'Los horarios de los cursos' },
+        { label: 'Cómo matricularme', query: '¿Cómo puedo matricularme?' },
+      ];
+    }
+    if (pathname?.startsWith('/educacion/asesoramiento')) {
+      return [
+        { label: '¿Cómo funciona la asesoría y tesis?', query: '¿En qué consiste el servicio de asesoramiento?' },
+        { label: 'Áreas de asesoramiento', query: '¿En qué áreas brindan asesoramiento?' },
+        { label: 'Ayúdame a elegir un curso', query: '__orientador__' },
+        { label: 'Contactar con un asesor', query: '¿Cómo me comunico con un asesor?' },
+      ];
+    }
+    if (pathname?.startsWith('/educacion/capacitaciones')) {
+      return [
+        { label: 'Capacitaciones para empresas', query: '¿Qué capacitaciones tienen para empresas?' },
+        { label: 'Convenios institucionales', query: '¿Con qué instituciones tienen convenios?' },
+        { label: 'Ayúdame a elegir un curso', query: '__orientador__' },
+        { label: 'Explorar cursos vigentes', query: '¿Qué cursos ofrecen?' },
+      ];
+    }
+    if (pathname?.startsWith('/contactos')) {
+      return [
+        { label: 'Ubicación y dirección en Cajamarca', query: '¿Dónde están ubicados?' },
+        { label: 'Medios de pago (BCP, BBVA, BN)', query: '¿Cuáles son los medios de pago?' },
+        { label: 'Ayúdame a elegir un curso', query: '__orientador__' },
+        { label: 'Horarios de los cursos', query: 'Los horarios de los cursos' },
+      ];
+    }
+    return [
+      { label: 'Ayúdame a elegir un curso', query: '__orientador__' },
+      { label: 'Explorar cursos y capacitaciones', query: '¿Qué capacitaciones ofrecen?' },
+      { label: 'Ver horarios de los cursos', query: 'Los horarios de los cursos' },
+      { label: 'Consultar matrícula', query: '¿Cómo puedo matricularme?' },
+    ];
+  }, [pathname]);
 
   return (
     <div className="horus-chat-widget">
@@ -340,8 +788,7 @@ export function ChatWidget() {
         <span className="hc-launcher-hint" aria-hidden="true">
           ¿En qué te ayudo?
         </span>
-        <span className="hc-launcher-orbit" aria-hidden="true" />
-        <RobotMascot className="hc-launcher-robot" />
+        <RobotMascot portrait className="hc-launcher-robot" />
         <span className="hc-launcher-badge" aria-hidden="true">
           <MessageSquareMore className="w-4 h-4" />
         </span>
@@ -351,7 +798,7 @@ export function ChatWidget() {
       {isOpen && (
         <section
           id="horus-chat-panel"
-          className="hc-dialog animate-in fade-in zoom-in-95"
+          className={`hc-dialog animate-in fade-in zoom-in-95 ${isExpanded ? 'hc-dialog-expanded' : ''}`}
           role="dialog"
           aria-modal="false"
           aria-labelledby="hc-title"
@@ -367,24 +814,73 @@ export function ChatWidget() {
                 <h2 id="hc-title">Asistente Horus</h2>
                 <p>{TECNOLOGIAS_VISIBLES ? 'Cursos, tecnología y orientación' : 'Cursos y orientación'}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="hc-close"
-                aria-label="Cerrar chat"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
+              <div className="hc-header-actions">
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded((v) => !v)}
+                  className="hc-reset-btn hidden sm:grid"
+                  title={isExpanded ? 'Vista compacta' : 'Ampliar chat'}
+                  aria-label={isExpanded ? 'Reducir ancho del chat' : 'Ampliar ancho del chat'}
+                >
+                  {isExpanded ? (
+                    <Minimize2 className="w-4 h-4" aria-hidden="true" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" aria-hidden="true" />
+                  )}
+                </button>
+                {messages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleResetConversation}
+                    disabled={sending}
+                    className="hc-reset-btn"
+                    title="Reiniciar conversación"
+                    aria-label="Reiniciar conversación"
+                  >
+                    <RotateCcw className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="hc-close"
+                  aria-label="Cerrar chat"
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
             </header>
 
             {/* Subheader Toolbar */}
             <div className="hc-toolbar">
               <span>
-                <i aria-hidden="true" />
-                Información del catálogo
+                <i
+                  aria-hidden="true"
+                  style={isOffline ? { background: '#ef4444', boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)' } : undefined}
+                />
+                {isOffline ? 'Sin conexión a internet' : 'Información del catálogo'}
               </span>
               <span className="hc-toolbar-caption">Asistente virtual</span>
             </div>
+
+            {/* Active Course Focus Bar */}
+            {cursoEnFoco && (
+              <div className="hc-focus-bar" role="status" aria-live="polite">
+                <span className="hc-focus-bar-label">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Consultando: «{cursoEnFoco}»</span>
+                </span>
+                <button
+                  type="button"
+                  className="hc-focus-bar-clear"
+                  onClick={() => actualizarCursoEnFoco(null)}
+                  aria-label="Salir del curso actual y consultar todos los cursos"
+                >
+                  <span>Ver todos</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              </div>
+            )}
 
             {/* Conversation Area */}
             <div className="hc-conversation">
@@ -408,7 +904,11 @@ export function ChatWidget() {
                       )}
                       <span>{message.role === 'user' ? 'Tú' : 'Horus'}</span>
                     </strong>
-                    <p>{message.text}</p>
+                    {renderMessageContent(
+                      message.text,
+                      message.role,
+                      Boolean(message.links?.some((l) => l.whatsapp))
+                    )}
 
                     {/* Rich Cards */}
                     {message.cards && message.cards.length > 0 && (
@@ -447,16 +947,39 @@ export function ChatWidget() {
                               </span>
                               <h3>{card.titulo}</h3>
                               <p>{card.descripcion}</p>
-                              {card.url && (
-                                <Link
-                                  href={card.url}
-                                  onClick={() => setIsOpen(false)}
-                                  className="hc-card-action"
-                                  aria-label={`${card.accion}: ${card.titulo}`}
-                                >
-                                  <span>{card.accion}</span>
-                                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                                </Link>
+                              {card.tipo === 'curso' ? (
+                                <div className="hc-card-actions">
+                                  <button
+                                    type="button"
+                                    className="hc-card-action-secondary"
+                                    onClick={() => handleConsultarDesdeTarjeta(card.titulo)}
+                                  >
+                                    <span>Consultar aquí</span>
+                                  </button>
+                                  {card.url && (
+                                    <Link
+                                      href={card.url}
+                                      onClick={() => setIsOpen(false)}
+                                      className="hc-card-action"
+                                      aria-label={`${card.accion}: ${card.titulo}`}
+                                    >
+                                      <span>{card.accion}</span>
+                                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                                    </Link>
+                                  )}
+                                </div>
+                              ) : (
+                                card.url && (
+                                  <Link
+                                    href={card.url}
+                                    onClick={() => setIsOpen(false)}
+                                    className="hc-card-action"
+                                    aria-label={`${card.accion}: ${card.titulo}`}
+                                  >
+                                    <span>{card.accion}</span>
+                                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                                  </Link>
+                                )
                               )}
                             </div>
                           </section>
@@ -505,6 +1028,79 @@ export function ChatWidget() {
                         )}
                       </div>
                     )}
+
+                    {/* Quick Replies / Follow-up Chips */}
+                    {message.quickReplies && message.quickReplies.length > 0 && (
+                      <div className="hc-followup-chips" aria-label="Consultas rápidas sugeridas">
+                        {message.quickReplies.map((qr, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className="hc-followup-chip"
+                            disabled={sending}
+                            onClick={() => handleSuggestionClick(qr.query)}
+                          >
+                            <span>{qr.label}</span>
+                            <ArrowRight className="w-3.5 h-3.5 opacity-70" aria-hidden="true" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Copy & Quick Feedback on Bot Replies */}
+                    {message.role === 'bot' && message.id !== 'init-1' && !message.retry && (
+                      <div
+                        className="hc-msg-tools mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2"
+                        aria-label="Acciones sobre la respuesta"
+                      >
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200/80 bg-slate-50 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors cursor-pointer"
+                          onClick={() => handleCopyMessage(message.id, message.text)}
+                          aria-label="Copiar respuesta"
+                        >
+                          {copiedId === message.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
+                              <span className="text-emerald-700">Copiado</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
+                              feedbackByMsg[message.id] === 'up'
+                                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                : 'border-slate-200/80 bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                            }`}
+                            onClick={() => handleFeedback(message.id, 'up')}
+                            aria-label="Respuesta útil"
+                            title="Útil"
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
+                              feedbackByMsg[message.id] === 'down'
+                                ? 'bg-amber-50 border-amber-300 text-amber-700'
+                                : 'border-slate-200/80 bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
+                            }`}
+                            onClick={() => handleFeedback(message.id, 'down')}
+                            aria-label="Necesito más ayuda"
+                            title="No resolvió mi duda"
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </article>
                 ))}
 
@@ -513,54 +1109,54 @@ export function ChatWidget() {
                   <div className="hc-suggestions" aria-label="Preguntas sugeridas">
                     <p>Puedes empezar por aquí</p>
                     <div>
-                      <button
-                        type="button"
-                        onClick={() => handleSuggestionClick('¿Qué capacitaciones ofrecen?')}
-                      >
-                        <span className="icon-wrap">
-                          <GraduationCap className="w-4 h-4" aria-hidden="true" />
-                        </span>
-                        <span>Explorar capacitaciones</span>
-                        <ArrowRight className="arrow-icon" aria-hidden="true" />
-                      </button>
+                      {sugerenciasIniciales.map((sug, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={sending}
+                          onClick={() => handleSuggestionClick(sug.query)}
+                        >
+                          <span className="icon-wrap">
+                            {sug.query === '__orientador__' ? (
+                              <Compass className="w-4 h-4" aria-hidden="true" />
+                            ) : idx === 1 ? (
+                              <GraduationCap className="w-4 h-4" aria-hidden="true" />
+                            ) : (
+                              <BookOpen className="w-4 h-4" aria-hidden="true" />
+                            )}
+                          </span>
+                          <span>{sug.label}</span>
+                          <ArrowRight className="arrow-icon" aria-hidden="true" />
+                        </button>
+                      ))}
                       {TECNOLOGIAS_VISIBLES && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleSuggestionClick('¿Qué servicios tecnológicos brindan?')
-                        }
-                      >
-                        <span className="icon-wrap">
-                          <Laptop className="w-4 h-4" aria-hidden="true" />
-                        </span>
-                        <span>Servicios tecnológicos</span>
-                        <ArrowRight className="arrow-icon" aria-hidden="true" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleSuggestionClick('¿Qué servicios tecnológicos brindan?')
+                          }
+                        >
+                          <span className="icon-wrap">
+                            <Laptop className="w-4 h-4" aria-hidden="true" />
+                          </span>
+                          <span>Servicios tecnológicos</span>
+                          <ArrowRight className="arrow-icon" aria-hidden="true" />
+                        </button>
                       )}
                       {TECNOLOGIAS_VISIBLES && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleSuggestionClick('¿Cómo puedo solicitar una cotización?')
-                        }
-                      >
-                        <span className="icon-wrap">
-                          <MessageSquareMore className="w-4 h-4" aria-hidden="true" />
-                        </span>
-                        <span>Solicitar una cotización</span>
-                        <ArrowRight className="arrow-icon" aria-hidden="true" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleSuggestionClick('¿Cómo puedo solicitar una cotización?')
+                          }
+                        >
+                          <span className="icon-wrap">
+                            <MessageSquareMore className="w-4 h-4" aria-hidden="true" />
+                          </span>
+                          <span>Solicitar una cotización</span>
+                          <ArrowRight className="arrow-icon" aria-hidden="true" />
+                        </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => handleSuggestionClick('¿Cómo puedo matricularme?')}
-                      >
-                        <span className="icon-wrap">
-                          <BookOpen className="w-4 h-4" aria-hidden="true" />
-                        </span>
-                        <span>Consultar matrícula</span>
-                        <ArrowRight className="arrow-icon" aria-hidden="true" />
-                      </button>
                     </div>
                   </div>
                 )}
@@ -584,9 +1180,11 @@ export function ChatWidget() {
               <div className="hc-compose">
                 <div className="hc-compose-heading">
                   <label htmlFor="mensaje-chat">Escribe tu consulta</label>
-                  <span>
-                    <span>{draft.length}</span> / 2000
-                  </span>
+                  {draft.length > 150 && (
+                    <span>
+                      <span>{draft.length}</span> / 2000
+                    </span>
+                  )}
                 </div>
                 <form
                   onSubmit={(e) => {
@@ -601,11 +1199,15 @@ export function ChatWidget() {
                     id="mensaje-chat"
                     ref={textareaRef}
                     value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => {
+                      setDraft(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 92)}px`;
+                    }}
                     maxLength={2000}
                     rows={1}
                     autoComplete="off"
-                    placeholder="¿Qué te gustaría saber?"
+                    placeholder={listening ? 'Escuchando…' : '¿Qué te gustaría saber?'}
                     disabled={sending}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -617,6 +1219,27 @@ export function ChatWidget() {
                     }}
                     aria-describedby="hc-question-help"
                   />
+                  {voiceSupported && (
+                    <button
+                      type="button"
+                      className={`hc-mic-btn inline-flex items-center justify-center w-9 h-10 rounded-xl border transition-colors cursor-pointer shrink-0 ${
+                        listening
+                          ? 'bg-red-50 border-red-200 text-red-600'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                      }`}
+                      data-listening={listening}
+                      disabled={sending}
+                      onClick={handleToggleVoice}
+                      title={listening ? 'Detener dictado' : 'Dictar consulta por voz'}
+                      aria-label={listening ? 'Detener dictado por voz' : 'Dictar consulta por voz'}
+                    >
+                      {listening ? (
+                        <MicOff className="w-4 h-4" aria-hidden="true" />
+                      ) : (
+                        <Mic className="w-4 h-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  )}
                   <button
                     type="submit"
                     disabled={sending || !draft.trim()}

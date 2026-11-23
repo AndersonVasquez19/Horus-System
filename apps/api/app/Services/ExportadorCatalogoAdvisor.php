@@ -49,7 +49,8 @@ class ExportadorCatalogoAdvisor
     {
         $ahora = now('America/Lima');
         $items = [];
-        $vence = $ahora->copy()->addMinutes(5);
+        $ttlMinutos = max(5, min(60, Entrada::entero(config('horus-catalog.ttl_minutes', 30))));
+        $vence = $ahora->copy()->addMinutes($ttlMinutos);
         if (Schema::hasTable('curso_publicaciones')) {
             $filas = DB::table('curso_publicaciones as p')->join('cursos as c', 'c.id', '=', 'p.curso_id')
                 ->where('p.publicada', true)->where('c.estado', 'activo')->whereNull('c.deleted_at')

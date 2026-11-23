@@ -63,6 +63,21 @@ LEARNING = (
     "mostrar cursos",
     "cursos disponibles",
     "cursos vigentes",
+    "cursos publicados",
+    "cursos abiertos",
+    "detalles de los cursos",
+    "mas detalles de los cursos",
+    "dame detalles de los cursos",
+    "dame mas detalles de los cursos",
+    "mas informacion de los cursos",
+    "mas info de los cursos",
+    "compara los cursos",
+    "comparar cursos",
+    "comparar los cursos",
+    "comparame los cursos",
+    "diferencia entre los cursos",
+    "diferencias entre los cursos",
+    "resumen de los cursos",
 )
 HIRING = (
     "necesito contratar",
@@ -101,10 +116,12 @@ _AUDIENCE = {
     "organizaciones",
 }
 _SCAFFOLD = re.compile(
-    r"\b(que|cual|cuales|son|sus|tienen|tiene|ofrecen|ofrece|hay|disponible|disponibles|publicado|publicados|publicada|publicadas|"
+    r"\b(que|cual|cuales|es|son|esta|estan|sus|tienen|tiene|ofrecen|ofrece|hay|disponible|disponibles|publicado|publicados|publicada|publicadas|"
     r"vigente|vigentes|actual|actuales|abierto|abiertos|abierta|abiertas|"
-    r"quiero|quisiera|deseo|necesito|busco|llevar|algun|alguna|alguno|un|una|de|del|en|sobre|acerca|para|mi|"
-    r"recomiendame|recomiendas|sugiereme|sugieres|dame|pasame|ver|mostrar|muestra|lista|listado|me|info|informacion|"
+    r"quiero|quisiera|deseo|necesito|busco|llevar|saber|conocer|algun|alguna|alguno|un|una|de|del|en|sobre|acerca|para|mi|"
+    r"recomiendame|recomiendas|sugiereme|sugieres|dame|dime|decirme|hablame|hablarme|cuentame|contarme|mencioname|nombrame|indicame|explicame|pasame|ver|mostrar|muestra|muestrame|lista|listado|me|mas|info|informacion|detalle|detalles|detallada|detallado|completa|completo|compara|comparar|comparame|comparacion|diferencia|diferencias|entre|resumen|"
+    r"trata|tratan|consiste|consisten|puedes|podrias|pueden|podrian|"
+    r"ese|esa|esos|esas|este|estos|estas|ambos|todo|toda|todos|todas|"
     r"dictan|dicta|dan|ensenan|ensena|opciones|porfa|porfavor|por|favor|realizan|y|o|con|el|la|los|las)\b"
 )
 _BROAD_LEARNING = {
@@ -181,7 +198,7 @@ def plan_query(text: str) -> QueryPlan:
     # Una mención aislada («mi poema dice curso») no constituye una solicitud.
     request = bool(
         re.search(
-            r"^(que|cual|cuales|tienen|dictan|dan|ofrecen|hay|dame|pasame|muestra|muestrame|ver|recomiendame|me recomiendas|sugiereme|quiero ver|quisiera ver|quiero llevar|opciones de|informacion de|info de|lista de|listado de|(?:(?:el|la|los|las)\s+)?(?:cursos?$|capacitaciones?$|talleres?$|servicios?$))",
+            r"^(que|cual|cuales|tienen|dictan|dan|ofrecen|hay|dame|dime|hablame|cuentame|indicame|mencioname|explicame|pasame|muestra|muestrame|ver|recomiendame|me recomiendas|sugiereme|quiero ver|quisiera ver|quiero saber|quisiera saber|quiero llevar|me puedes decir|puedes decirme|podrias decirme|opciones de|informacion de|informacion sobre|info de|info sobre|acerca de|sobre los|sobre las|de que tratan|de que trata|lista de|listado de|(?:(?:el|la|los|las|esos|estos|ambos)\s+)?(?:(?:\d+|dos|tres|cuatro|cinco)\s+)?(?:cursos?|capacitaciones?|talleres?|servicios?)(?:\s+(?:publicados?|vigentes?|disponibles?|abiertos?|actuales?))?$)",
             normalized,
         )
     )
@@ -195,11 +212,19 @@ def plan_query(text: str) -> QueryPlan:
     enrollment = enrollment and not re.search(r"\b(no|sin|nunca)\b", normalized)
     phrases = (*LEARNING, *HIRING, *RELATED)
     subject = _PLACE.sub(" ", normalized)
+    if request and (learn or hire):
+        subject = re.sub(
+            r"\b(?:\d+|dos|tres|cuatro|cinco)\s+(?=(?:cursos?|capacitaciones?|talleres?|programas?|diplomados?|servicios?)\b)",
+            " ",
+            subject,
+        )
     for phrase in sorted(phrases, key=len, reverse=True):
         subject = re.sub(rf"\b{re.escape(phrase)}\b", " ", subject)
     subject = " ".join(_SCAFFOLD.sub(" ", subject).split())
     broad = _BROAD_LEARNING if learn and not hire else _BROAD_SERVICE
     specific = " ".join(t for t in subject.split() if t not in broad)
+    if request and specific and re.fullmatch(r"(?:\d+|dos|tres|cuatro|cinco)", specific):
+        specific = ""
     if request and specific and set(specific.split()) <= (_AUDIENCE | _MODALITY_WORDS):
         specific = ""
     elif request and specific:

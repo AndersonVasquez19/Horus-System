@@ -101,4 +101,67 @@ class AdvisorFuentesCatalogoTest extends TestCase
         $this->assertNull(app(HorusAdvisorClient::class)->orientar('Mi correo es visitante-ficticio@example.invalid'));
         Http::assertNothingSent();
     }
+
+    public function test_accepts_two_course_followup_schedule_fragments_and_resolves_ordinal_from_listing(): void
+    {
+        $catalog = $this->preparar(function (array $catalog): array {
+            $items = [
+                ['stable_id' => 'curso:publicacion-2', 'type' => 'curso', 'publication_status' => 'vigente',
+                    'title' => 'Atención al cliente y comunicación efectiva', 'summary' => 'Comunicación y trato al cliente.',
+                    'modalities' => ['virtual'], 'schedule_text' => 'Vie, 18:00-21:00',
+                    'url_path' => '/educacion/cursos', 'updated_at' => '2026-11-20T15:50:52+00:00'],
+                ['stable_id' => 'curso:publicacion-3', 'type' => 'curso', 'publication_status' => 'vigente',
+                    'title' => 'Marketing digital para emprendedores', 'summary' => 'Estrategias digitales para negocios.',
+                    'details' => 'Modalidad: hibrido.', 'modalities' => [], 'schedule_text' => 'Mar-Jue, 19:00-21:00',
+                    'url_path' => '/educacion/cursos', 'updated_at' => '2026-11-20T15:51:20+00:00'],
+            ];
+            $catalog['items'] = $items;
+            $catalog['catalog_version'] = app(FirmaCatalogoAdvisor::class)->versionContenido(['managed_types' => ['curso', 'servicio'], 'items' => $items]);
+            $catalog['signature'] = app(FirmaCatalogoAdvisor::class)->firmar($catalog);
+
+            return $catalog;
+        });
+
+        $client = app(HorusAdvisorClient::class);
+        $this->assertSame(
+            'Información sobre Atención al cliente y comunicación efectiva',
+            $client->resolverSeguimiento('el primero', ['cat_listado_formacion']),
+        );
+        $this->assertSame(
+            'Información sobre Marketing digital para emprendedores',
+            $client->resolverSeguimiento('el segundo', ['cat_listado_formacion']),
+        );
+
+        $answer = "«Atención al cliente y comunicación efectiva»: el horario es Vie, 18:00-21:00.\n"
+            .'«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00.';
+        Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured',
+            'semantic' => 'loaded', 'catalog' => 'loaded', 'catalog_version' => $catalog['catalog_version']]),
+            '*/api/v1/chat' => Http::response(['answer' => $answer, 'intent' => 'followup_attribute', 'mode' => 'lexical',
+                'match_level' => 'media', 'abstained' => false, 'needs_clarification' => false,
+                'sources' => [
+                    ['id' => 'cat_curso_publicacion_2', 'title' => 'Atención al cliente y comunicación efectiva', 'url_path' => '/educacion/cursos'],
+                    ['id' => 'cat_curso_publicacion_3', 'title' => 'Marketing digital para emprendedores', 'url_path' => '/educacion/cursos'],
+                ], 'recommendations' => []])]);
+
+        $reply = $client->orientar('¿Cuál es el horario de esos cursos?');
+        $this->assertNotNull($reply);
+        $this->assertSame($answer, $reply['respuesta']);
+
+        $detailedListing = "Atención al cliente y comunicación efectiva: Comunicación y trato al cliente. Modalidad: virtual. Horario: Vie, 18:00-21:00.\n"
+            .'Marketing digital para emprendedores: Estrategias digitales para negocios. Modalidad: híbrido. Horario: Mar-Jue, 19:00-21:00.';
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::preventStrayRequests();
+        Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured',
+            'semantic' => 'loaded', 'catalog' => 'loaded', 'catalog_version' => $catalog['catalog_version']]),
+            '*/api/v1/chat' => Http::response(['answer' => $detailedListing, 'intent' => 'training_info', 'mode' => 'lexical',
+                'match_level' => 'alta', 'abstained' => false, 'needs_clarification' => false,
+                'sources' => [
+                    ['id' => 'cat_listado_formacion', 'title' => 'Cursos y capacitaciones vigentes', 'url_path' => '/educacion/cursos'],
+                ], 'recommendations' => []])]);
+
+        $detailedReply = $client->orientar('dame más detalles de los cursos');
+        $this->assertNotNull($detailedReply);
+        $this->assertSame($detailedListing, $detailedReply['respuesta']);
+        $this->assertCount(2, $detailedReply['recomendaciones'] ?? []);
+    }
 }

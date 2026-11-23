@@ -437,6 +437,16 @@ class AdvisorEngine:
         terms = self.kb.intents.attribute_evidence_terms
         if attr == "modalidad":
             if not rec.modalities:
+                if "modalidad: hibrido." in (rec.description or "").lower():
+                    if u.asked_modalities:
+                        parts = [
+                            f"sí es {MODALITY_ASKED[m]}"
+                            if m == "semipresencial"
+                            else f"no es {MODALITY_ASKED[m]}"
+                            for m in u.asked_modalities
+                        ]
+                        return f"{title}: {'; '.join(parts)} (modalidad: híbrido).", "semipresencial" in u.asked_modalities
+                    return f"{title}: es híbrido.", True
                 return f"{title}: la modalidad la confirma un asesor.", False
             published = ", ".join(MODALITY_LABEL[m] for m in rec.modalities)
             offered = {"virtual" if m == "online" else m for m in rec.modalities}
@@ -503,6 +513,13 @@ class AdvisorEngine:
         return f"{title}: ese dato lo confirma un asesor.", False
 
     def _followup(self, focus: list[KnowledgeRecord], u: Understanding) -> AdvisorReply:
+        if len(focus) == 1 and focus[0].id == "cat_listado_formacion":
+            courses = [
+                r for r in self.kb.records
+                if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
+            ]
+            if 1 <= len(courses) <= 5:
+                focus = courses
         lines: list[str] = []
         affirmed = False
         missing: list[str] = []
@@ -593,14 +610,21 @@ class AdvisorEngine:
         ranked = self.recommender.rank(current, goal="unknown")
         subject = ranked[0].record if ranked else self._confirmed_subject(hits, attr_terms)
         if subject is not None:
-            lines = [self._attribute_line(subject, a, u) for a in attrs]
-            if all(ok for _, ok in lines):  # p. ej. un catálogo con requisitos publicados
-                return self._reply(
-                    answer="\n".join(text for text, _ in lines),
-                    intent=CATEGORY_INTENTS[subject.category],
-                    match_level="media",
-                    sources=[self._source(subject)],
-                )
+            lines = [self._attribute_line(subject, a, u) for a in u.attributes]
+            if any(ok for _, ok in lines):  # responde lo publicado (p. ej. horario) y aclara lo faltante (p. ej. precio)
+                return self._followup([subject], u)
+        elif (
+            self.kb.catalog is not None
+            and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
+            and not current.specific_topics(self.generic)
+            and bool(current.topics & {"cursos", "capacitacion", "formacion", "modalidades"})
+        ):
+            courses = [
+                r for r in self.kb.records
+                if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
+            ][:5]
+            if courses and any(self._attribute_line(c, a, u)[1] for c in courses for a in u.attributes):
+                return self._followup(courses, u)
         unavailable = self.kb.unavailable_record(attrs[0])
         if unavailable is None:
             return None
@@ -802,15 +826,17 @@ class AdvisorEngine:
         if record is None or record.status != "verified" or not record.detail_answer:
             return reply
         if any(contains_phrase(normalize(message), cue) for cue in (
-            "detalles", "explicame", "que incluye", "en que consiste", "informacion detallada", "informacion completa",
+            "detalles", "mas detalles", "explicame", "que incluye", "en que consiste", "informacion detallada", "informacion completa",
+            "compara", "comparar", "comparame", "diferencia", "diferencias", "resumen de los cursos",
         )):
             document = self.kb.documents_by_source.get(record.id)
             if document is not None and document.fragments:
-                if reply.answer in {f.answer for f in document.fragments}:
+                if reply.answer in {f.answer for f in document.fragments} and document.fragments[0].answer != record.answer:
                     return reply
-                return reply.model_copy(update={"answer": document.fragments[0].answer})
+                if document.fragments[0].answer != record.answer and not document.fragments[0].text.lower().startswith("modalidad:"):
+                    return reply.model_copy(update={"answer": document.fragments[0].answer})
             return reply.model_copy(update={"answer": record.detail_answer})
-        if reply.answer != record.answer or record.stable_id is not None:
+        if reply.answer != record.answer or record.stable_id is not None or record.id == "cat_listado_formacion":
             return reply
         specific = set(content_tokens(message)) - set(content_tokens(record.title + " " + record.answer))
         sentences = [s.strip() for s in re.split(r"(?<=[.;])\s+", record.detail_answer) if 10 <= len(s.strip()) <= 600]
@@ -857,8 +883,12 @@ class AdvisorEngine:
         else:
             profile, continued = self._merge_profile(current, users)
         current_specific = bool(current.specific_topics(self.generic))
+        wants_detail_followup = len(tokenize(message)) <= 8 and any(
+            contains_phrase(normalize(message), cue)
+            for cue in ("detalles", "mas detalles", "dame detalles", "dame mas detalles", "de que trata", "de que tratan", "en que consiste", "que incluye")
+        )
         focus: list[KnowledgeRecord] = []
-        if depth == 0 and has_context and not current_specific and (u.attributes or u.quote or u.referential):
+        if depth == 0 and has_context and not current_specific and (u.attributes or u.quote or u.referential or wants_detail_followup):
             focus = list(prior.focus) if prior is not None else self._focus(users)
         if prior is not None:
             previous_quote = prior.quote
@@ -930,6 +960,25 @@ class AdvisorEngine:
         names_other = bool(focus) and self._names_other_record(focus, hits)
         if focus and u.attributes and (u.referential or u.short) and not names_other:
             return self._followup(focus, u)
+        if (
+            focus
+            and not u.attributes
+            and not u.quote
+            and not names_other
+            and not (plan and plan.subject)
+            and len(tokenize(message)) <= 8
+            and any(
+                contains_phrase(normalize(message), cue)
+                for cue in ("detalles", "mas detalles", "dame detalles", "dame mas detalles", "de que trata", "de que tratan", "en que consiste", "que incluye")
+            )
+        ):
+            rec = focus[0]
+            return self._reply(
+                answer=rec.detail_answer or rec.answer,
+                intent=CATEGORY_INTENTS[rec.category],
+                match_level="media",
+                sources=[self._source(rec)],
+            )
 
         # 4. Atributo no publicado sobre un tema concreto.
         unavailable = [a for a in u.attributes if a in self.kb.intents.unavailable_attributes]
@@ -960,6 +1009,24 @@ class AdvisorEngine:
             and hits[0].score >= ANSWER_THRESHOLD and not (plan and plan.browse)
             and (len(hits) == 1 or hits[1].record.stable_id is None or hits[0].score - hits[1].score >= AMBIGUITY_MARGIN)):
             return self._followup([hits[0].record], u)
+        if (
+            u.attributes
+            and set(u.attributes) != {"audiencia"}
+            and self.kb.catalog is not None
+            and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
+            and not (current.specific_topics(self.generic) - {"modalidades", "horario", "fechas", "certificacion", "precios"})
+            and not (hits and hits[0].record.stable_id is not None and hits[0].score >= ANSWER_THRESHOLD)
+            and (
+                bool(current.topics & {"cursos", "capacitacion", "formacion"})
+                or any(w in normalize(message).split() for w in ("curso", "cursos", "capacitacion", "capacitaciones"))
+            )
+        ):
+            courses = [
+                r for r in self.kb.records
+                if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
+            ][:5]
+            if courses and any(self._attribute_line(c, a, u)[1] for c in courses for a in u.attributes):
+                return self._followup(courses, u)
         if plan is not None:
             if plan.enrollment:
                 contact = self.kb.get(self.kb.intents.human_handoff.record_id)
@@ -1204,7 +1271,7 @@ class AdvisorEngine:
 
     def _browse_courses_reply(self, modality: str, recommend: bool) -> AdvisorReply | None:
         courses = [
-            r for r in self.kb.search_records
+            r for r in self.kb.records
             if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
         ]
         if not courses:

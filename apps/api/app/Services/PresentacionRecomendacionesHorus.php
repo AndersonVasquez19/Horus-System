@@ -18,7 +18,8 @@ class PresentacionRecomendacionesHorus
     private const RUTAS = [
         '/educacion/cursos', '/educacion/capacitaciones', '/contactos', '/legales/preguntas-frecuentes',
         '/tecnologias/camaras-seguridad', '/tecnologias/cableado-estructurado',
-        '/tecnologias/soporte-mantenimiento', '/legales/politicas-devolucion', '/quienes-somos',
+        '/tecnologias/soporte-mantenimiento', '/legales/politicas-devolucion',
+        '/legales/politicas-privacidad', '/legales/politicas-cookies', '/quienes-somos', '/galeria',
     ];
 
     public function __construct(

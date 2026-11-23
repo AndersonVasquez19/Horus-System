@@ -121,6 +121,8 @@ def _answer(item: CatalogItem, catalog: PublicCatalog) -> str:
     parts = [f"{item.title}: {item.summary}"]
     if item.modalities:
         parts.append("Modalidad: " + ", ".join(MODALITY_LABEL[m] for m in item.modalities) + ".")
+    elif item.details and "modalidad: hibrido." in item.details.lower():
+        parts.append("Modalidad: híbrido.")
     if item.duration_text:
         parts.append(f"Duración: {item.duration_text}.")
     if item.start_date:
@@ -233,6 +235,7 @@ def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord], *, s
     if not current:
         return None
     titles = "; ".join(r.title for r in current[:15])
+    details = "\n".join((r.detail_answer or r.answer) for r in current[:10])[:1500] if not service else None
     return KnowledgeRecord(
         id="cat_listado_servicios" if service else "cat_listado_formacion",
         category="servicio" if service else "formacion",
@@ -247,6 +250,7 @@ def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord], *, s
                 else "Pregúntame por cualquiera para ver su modalidad o requisitos."
             )
         )[:1500],
+        detail_answer=details,
         status="verified",
         source=Source(
             kind="catalogo_laravel",
@@ -259,6 +263,7 @@ def _listing_record(catalog: PublicCatalog, records: list[KnowledgeRecord], *, s
             "que cursos tienen",
             "cursos disponibles",
             "cursos vigentes",
+            "cursos publicados",
             "lista de cursos",
             "cursos abiertos",
             "que capacitaciones hay",

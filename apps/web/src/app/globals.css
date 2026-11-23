@@ -394,11 +394,11 @@ body {
   position: relative;
   display: grid;
   place-items: center;
-  width: 108px;
-  height: 126px;
+  width: 78px;
+  height: 74px;
   padding: 0;
   border: 0;
-  border-radius: 38px;
+  border-radius: 50%;
   background: transparent;
   color: var(--hc-ink);
   cursor: pointer;
@@ -408,7 +408,7 @@ body {
 }
 
 .hc-launcher:hover {
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(1.04);
 }
 
 .hc-launcher:focus-visible,
@@ -417,31 +417,40 @@ body {
   outline-offset: 3px;
 }
 
-.hc-launcher-robot {
+.hc-launcher-robot,
+.hc-launcher .hc-robot-portrait {
   position: relative;
-  width: 106px;
-  height: 124px;
-  filter: drop-shadow(0 5px 8px rgba(18, 49, 62, 0.25));
+  width: 74px;
+  height: 68px;
+  transform: none;
+  filter: drop-shadow(0 8px 14px rgba(10, 37, 64, 0.28));
+  animation: hc-float 3.2s ease-in-out infinite;
+  transition: transform .25s ease;
 }
 
-.hc-launcher-orbit {
-  position: absolute;
-  z-index: -1;
-  inset: 30px 8px 8px;
-  border: 1px solid rgba(201, 169, 97, 0.5);
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff8e9, #e8dcc4);
-  box-shadow: 0 8px 24px rgba(10, 37, 64, 0.2);
+.hc-launcher:hover .hc-launcher-robot,
+.hc-launcher:hover .hc-robot-portrait {
+  animation-play-state: paused;
+  transform: translateY(-2px) rotate(-4deg);
+}
+
+@keyframes hc-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .hc-launcher-badge {
   position: absolute;
-  right: 0;
-  bottom: 15px;
+  right: -2px;
+  bottom: 0;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border: 2px solid #fff9eb;
   border-radius: 50%;
   background: var(--hc-navy);
@@ -451,8 +460,8 @@ body {
 
 .hc-launcher-hint {
   position: absolute;
-  top: 36px;
-  right: calc(100% + 8px);
+  top: 20px;
+  right: calc(100% + 10px);
   padding: 10px 14px;
   border: 1px solid #e4ddd0;
   border-radius: 14px 14px 4px 14px;
@@ -519,6 +528,11 @@ body {
   box-shadow: 0 24px 90px rgba(7, 27, 46, 0.35), 0 2px 10px rgba(7, 27, 46, 0.1);
   font-size: 14px;
   line-height: 1.5;
+  transition: width .22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hc-dialog-expanded {
+  width: 620px;
 }
 
 .hc-shell {
@@ -607,24 +621,249 @@ body {
   font-size: 12px;
 }
 
+.hc-header-actions {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.hc-reset-btn,
 .hc-close {
   z-index: 1;
   display: grid;
   flex: none;
   place-items: center;
-  min-width: 40px;
-  min-height: 40px;
-  margin-left: auto;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   cursor: pointer;
-  transition: background .15s;
+  transition: background .15s, border-color .15s;
 }
 
+.hc-reset-btn:hover,
 .hc-close:hover {
   background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.hc-focus-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 16px;
+  border-bottom: 1px solid #dbe7f7;
+  background: #edf5ff;
+  color: #163d7a;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.hc-focus-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hc-focus-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid #bfd4f2;
+  border-radius: 999px;
+  background: #fff;
+  color: #1e4976;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.hc-focus-bar-clear:hover {
+  background: #e2eeff;
+  border-color: #93b8ea;
+}
+
+.hc-rich-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.hc-rich-line {
+  margin: 0 !important;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #1f2937;
+}
+
+.hc-user .hc-rich-line {
+  color: #fff;
+}
+
+.hc-rich-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #e3ecf8;
+  border-radius: 11px;
+  background: #f8fbff;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #1f2937;
+}
+
+.hc-rich-bullet {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--hc-blue);
+}
+
+.hc-badge-course {
+  font-weight: 700;
+  color: #142e52;
+}
+
+.hc-badge-attr {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #e6f0ff;
+  color: #1847a3;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.hc-followup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hc-followup-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid #c5d8f2;
+  border-radius: 999px;
+  background: #f5f9ff;
+  color: #1847a3;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+
+.hc-followup-chip:hover:not(:disabled) {
+  border-color: var(--hc-blue);
+  background: #e6f0ff;
+  transform: translateY(-1px);
+}
+
+.hc-followup-chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.hc-msg-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid #eef4fc;
+}
+
+.hc-msg-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #60758d;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+
+.hc-msg-tool-btn:hover {
+  background: #edf4ff;
+  color: #1847a3;
+}
+
+.hc-msg-tool-btn[data-active="true"] {
+  background: #e6f0ff;
+  border-color: #bfd4f2;
+  color: #1847a3;
+}
+
+.hc-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.hc-card-actions .hc-card-action {
+  margin-top: 0;
+  justify-content: center;
+  padding: 9px 10px;
+  font-size: 12.5px;
+}
+
+.hc-card-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 9px 10px;
+  border: 1px solid #bfd4f2;
+  border-radius: 11px;
+  background: #f4f8ff;
+  color: #1847a3;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.hc-card-action-secondary:hover {
+  background: #e4efff;
+  border-color: var(--hc-blue);
+}
+
+.hc-mic-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
 }
 
 .hc-header :focus-visible {
@@ -930,7 +1169,7 @@ body {
   cursor: wait;
 }
 
-.hc-compose form button {
+.hc-compose form button[type="submit"] {
   display: grid;
   flex: none;
   place-items: center;
@@ -944,11 +1183,11 @@ body {
   transition: background .15s;
 }
 
-.hc-compose form button:hover:not(:disabled) {
+.hc-compose form button[type="submit"]:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
-.hc-compose form button:disabled {
+.hc-compose form button[type="submit"]:disabled {
   background: #e3e9f0;
   color: #718398;
   cursor: default;
@@ -1159,24 +1398,22 @@ body {
     bottom: calc(12px + env(safe-area-inset-bottom));
   }
   .hc-launcher {
-    width: 86px;
-    height: 103px;
+    width: 66px;
+    height: 62px;
   }
-  .hc-launcher-robot {
-    width: 86px;
-    height: 100px;
-  }
-  .hc-launcher-orbit {
-    inset: 24px 6px 6px;
+  .hc-launcher-robot,
+  .hc-launcher .hc-robot-portrait {
+    width: 62px;
+    height: 57px;
   }
   .hc-launcher-badge {
-    right: 0;
-    bottom: 11px;
-    width: 27px;
-    height: 27px;
+    right: -2px;
+    bottom: 0;
+    width: 24px;
+    height: 24px;
   }
   .hc-launcher-hint {
-    top: 30px;
+    top: 14px;
     font-size: 12px;
   }
   .hc-dialog {
