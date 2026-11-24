@@ -21,11 +21,13 @@ export interface ResumenAcademico {
   acciones?: {
     pagos_por_confirmar?: { cantidad: number; monto: string };
     matriculas_con_saldo?: { cantidad: number; monto: string };
+    reclamaciones?: { vencidas: number; vencen_hoy: number; por_vencer: number };
     cuotas?: { vencidas: number; monto_vencido: string; por_vencer: number; monto_por_vencer: string };
     ediciones?: { por_iniciar: number; por_cerrar: number; lista_por_cerrar: { identificador: string; codigo: string; curso: string | null }[] };
   };
   negocio?: { cobrado_mes?: string; saldo_por_cobrar?: string };
   academico?: {
+    satisfaccion?: { emitidas: number; respondidas: number; tasa_respuesta: number | null; promedio: number | null; felices_pct: number | null };
     cupos?: { identificador: string; codigo: string; curso: string | null; maximo: number; ocupados: number; libres: number }[];
     asistencia_minima?: number;
     asistencia?: { identificador: string; codigo: string; curso: string | null; sesiones_realizadas: number; promedio: number | null; bajo_minimo: boolean }[];
@@ -303,6 +305,26 @@ export interface ListaAsistencia {
   matriculas: AsistenciaFila[];
 }
 
+export interface MatriculaMasivaAnalisis {
+  puede_crear_estudiantes: boolean;
+  cupos_disponibles: number;
+  resumen: { matricular: number; crear_y_matricular: number; omitir: number; sin_cupo: number; error: number };
+  filas: { fila: number; dni: string; nombre: string; accion: string; motivo: string | null }[];
+}
+
+export interface MatriculaMasivaResultado {
+  resumen: { matriculadas: number; estudiantes_creados: number; omitir: number; sin_cupo: number; error: number };
+  filas: { fila: number; dni: string; nombre: string; accion: string; motivo: string | null }[];
+}
+
+export interface ListaEsperaVista {
+  cupos_disponibles: number;
+  hay_cupo: boolean;
+  admite_matriculas: boolean;
+  total: number;
+  items: { identificador: string; posicion: number; estudiante: { id: number; nombre: string; dni: string; telefono: string | null } | null; nota: string | null; desde: string | null }[];
+}
+
 export interface ResumenAsistenciaFila {
   matricula_id: number;
   estudiante: { dni: string; nombre: string };
@@ -371,6 +393,8 @@ export interface TransaccionPagoVista {
   motivo: string | null;
   reversa_de: string | null;
   revertida: boolean;
+  /** Solo en pagos cuyo reverso exige aprobación de Gerencia (desde el umbral). Puede faltar en respuestas anteriores. */
+  reverso_aprobacion?: 'ninguna' | 'pendiente' | 'aprobado' | 'rechazado' | null;
   /** Hay una captura de comprobante adjunta (la imagen se pide aparte, con permiso). */
   tiene_comprobante: boolean;
   /** La misma captura ya respalda otro pago vigente. Puede faltar en respuestas anteriores a este campo. */
@@ -402,4 +426,81 @@ export interface CertificadoResumen {
   anulado_en: string | null;
   anulado_por: string | null;
   motivo_anulacion: string | null;
+}
+
+// ---- Riesgo de deserción ----
+
+export interface FilaRiesgo {
+  matricula_id: number;
+  estudiante: string;
+  edicion: string;
+  edicion_identificador: string;
+  puntaje: number;
+  nivel: 'alto' | 'medio';
+  factores: { codigo: string; texto: string }[];
+}
+
+export interface RiesgoDesercion {
+  rows: FilaRiesgo[];
+  resumen: { alto: number; medio: number };
+}
+
+// ---- Cobranza asistida ----
+
+export type TramoMora = 'reciente' | 'media' | 'critica';
+
+export interface FilaCobranza {
+  obligacion: string;
+  matricula_id: number;
+  estudiante: string | null;
+  dni: string | null;
+  curso: { codigo: string; nombre: string } | null;
+  concepto: string;
+  dias_mora: number;
+  tramo: TramoMora;
+  monto_vencido: string;
+  saldo: string;
+  cuotas_vencidas: number;
+  ultimo_contacto: { fecha: string | null; canal: string; resultado: string } | null;
+  promesa: { estado: 'vigente' | 'incumplida'; fecha: string; monto: string | null } | null;
+}
+
+export interface ColaCobranza {
+  rows: FilaCobranza[];
+  truncado: boolean;
+  resumen: {
+    obligaciones: number;
+    monto_vencido: string;
+    tramos: Record<TramoMora, { cantidad: number; monto: string }>;
+    promesas_vigentes: number;
+    promesas_incumplidas: number;
+    sin_contacto: number;
+  };
+}
+
+export interface SeguimientoCobranzaVista {
+  identificador: string;
+  canal: string;
+  resultado: string;
+  nota: string | null;
+  promesa_fecha: string | null;
+  promesa_monto: string | null;
+  registrado_por: string | null;
+  creado: string | null;
+}
+
+// ---- Estudiante 360° ----
+
+export interface EventoLineaTiempo {
+  tipo: 'matricula' | 'nota' | 'pago' | 'cobranza' | 'asistencia' | 'certificado' | 'nota_interna';
+  fecha: string;
+  titulo: string;
+  detalle: string | null;
+  enlace: string | null;
+  autor: string | null;
+}
+
+export interface LineaTiempoEstudiante {
+  eventos: EventoLineaTiempo[];
+  truncado: boolean;
 }

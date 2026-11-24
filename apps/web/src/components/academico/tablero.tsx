@@ -101,6 +101,36 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
         icono={<CalendarClock className="h-5 w-5" />}
       />
     ),
+    a.reclamaciones && (
+      <TarjetaAccion
+        key="reclamaciones"
+        href="/admin/academico/reclamaciones?estado=abierto"
+        alerta={a.reclamaciones.vencidas + a.reclamaciones.vencen_hoy > 0}
+        etiqueta="Plazos de reclamaciones"
+        valor={numero(a.reclamaciones.vencidas + a.reclamaciones.vencen_hoy + a.reclamaciones.por_vencer)}
+        detalle={
+          a.reclamaciones.vencidas + a.reclamaciones.vencen_hoy + a.reclamaciones.por_vencer === 0
+            ? 'Todas dentro del plazo.'
+            : `${numero(a.reclamaciones.vencidas)} vencida(s) · ${numero(a.reclamaciones.vencen_hoy)} vencen hoy · ${numero(a.reclamaciones.por_vencer)} por vencer.`
+        }
+        icono={<MessageCircle className="h-5 w-5" />}
+      />
+    ),
+    ac.satisfaccion && (
+      <TarjetaAccion
+        key="satisfaccion"
+        href="/admin/academico/convocatorias"
+        alerta={ac.satisfaccion.felices_pct !== null && ac.satisfaccion.felices_pct < 60}
+        etiqueta="Satisfacción (90 días)"
+        valor={ac.satisfaccion.felices_pct === null ? '—' : `${numero(ac.satisfaccion.felices_pct)} %`}
+        detalle={
+          ac.satisfaccion.respondidas === 0
+            ? `Sin respuestas aún (${numero(ac.satisfaccion.emitidas)} encuestas emitidas).`
+            : `Alumnos satisfechos · ${numero(ac.satisfaccion.respondidas)} de ${numero(ac.satisfaccion.emitidas)} respondieron (${numero(ac.satisfaccion.tasa_respuesta ?? 0)} %).`
+        }
+        icono={<Gauge className="h-5 w-5" />}
+      />
+    ),
     sg.aprobaciones_pendientes !== undefined && sg.aprobaciones_pendientes > 0 && (
       <TarjetaAccion
         key="aprobaciones"

@@ -9,7 +9,7 @@ import { Insignia, type ColorInsignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
 import { EsqueletoListado } from '@/components/shared/ui/tabla';
 import type { TonoUi } from '@/components/shared/ui/boton';
-import { ETIQUETAS_AUTORIDAD, ETIQUETAS_TIPO_APROBACION } from '@/features/notificaciones/aprobaciones';
+import { ETIQUETAS_AUTORIDAD, ETIQUETAS_TIPO_APROBACION, ETIQUETAS_TIPO_APROBACION_LISTADO } from '@/features/notificaciones/aprobaciones';
 import type { AprobacionFila } from '@/features/notificaciones/tipos';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 
@@ -121,7 +121,7 @@ async function Lista({ tono, searchParams }: { tono: TonoUi; searchParams: Promi
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <Insignia color={fila.tipo === 'compra' ? 'azul' : fila.tipo === 'operativo' ? 'verde' : 'gris'}>{ETIQUETAS_TIPO_APROBACION[fila.tipo] ?? fila.tipo}</Insignia>
+                      <Insignia color={fila.tipo === 'compra' ? 'azul' : fila.tipo === 'operativo' ? 'verde' : 'gris'}>{ETIQUETAS_TIPO_APROBACION_LISTADO[fila.tipo] ?? fila.tipo}</Insignia>
                       {fila.referencia ? (
                         (() => {
                           const destinoRef = enlaceDeReferencia(fila.referencia, tono);

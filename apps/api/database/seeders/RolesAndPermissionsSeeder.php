@@ -53,7 +53,7 @@ class RolesAndPermissionsSeeder extends Seeder
      *
      * @var list<string>
      */
-    public const PAGOS_PERMISSIONS = ['pagos.ver', 'pagos.planificar', 'pagos.registrar', 'pagos.confirmar', 'pagos.reversar', 'pagos.exportar'];
+    public const PAGOS_PERMISSIONS = ['pagos.ver', 'pagos.planificar', 'pagos.registrar', 'pagos.confirmar', 'pagos.reversar', 'pagos.exportar', 'pagos.cerrar_caja'];
 
     /**
      * Certificados institucionales: admin todos; coordinador ver y emitir; secretaria solo ver.

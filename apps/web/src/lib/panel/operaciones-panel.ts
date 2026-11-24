@@ -18,6 +18,8 @@ export interface Operacion {
   campos?: readonly string[];
   /** Campos del cuerpo que son listas de textos (roles o permisos): hasta `MAX_LISTA` elementos de texto acotado. */
   listas?: readonly string[];
+  /** Campos del cuerpo que son mapas código → texto corto (hasta `MAX_MAPA` entradas; clave `[a-z0-9_-]`, valor de hasta 20 caracteres). */
+  mapas?: readonly string[];
   /** El cuerpo trae `horarios`: hasta `MAX_HORARIOS` bloques de horario de una convocatoria (campos acotados). */
   horarios?: boolean;
   /** El cuerpo trae `asistencias`: pares {matricula_id, estado, observacion} de una sesión. */
@@ -37,10 +39,15 @@ export interface Operacion {
   multipart?: readonly string[];
   /** Con `multipart`: además de una imagen, admite un PDF (solo los comprobantes de pago). Laravel lo revisa y lo sirve solo como descarga. */
   pdf?: boolean;
+  /** Con `multipart`: el archivo es una planilla Excel (campo `archivo`, .xlsx de hasta `MAX_PLANILLA` bytes) en lugar de una imagen. Laravel revisa su contenido. */
+  planilla?: boolean;
 }
 
 /** Tamaño máximo de la imagen adjunta (comprobantes de pago en `PagoController`: 3 MB). */
 export const MAX_IMAGEN = 3 * 1024 * 1024;
+
+/** Tamaño máximo de la planilla de matrícula masiva (igual que `MatriculaMasiva::MAX_BYTES` en Laravel: 1 MB). */
+export const MAX_PLANILLA = 1024 * 1024;
 
 /** Elementos admitidos en un campo de lista (Laravel limita roles a 20 y permisos a 100). */
 export const MAX_LISTA = 100;
@@ -49,6 +56,8 @@ export const MAX_LISTA = 100;
 export const MAX_HORARIOS = 20;
 
 export const MAX_ASISTENCIAS = 300;
+/** Entradas admitidas en un campo de mapa (Laravel limita `declarado` de la caja a 20 métodos). */
+export const MAX_MAPA = 20;
 const MAX_CUOTAS = 24;
 
 export interface CuotaReenviada {
@@ -103,6 +112,8 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: /^compartido\/perfil\/2fa\/desactivar$/, campos: ['current_password', 'codigo'] },
   { metodo: 'POST', patron: /^compartido\/auditoria\/exportar$/, consulta: ['accion', 'modelo', 'usuario', 'desde', 'hasta', 'formato'], archivo: ['application/json', 'text/csv', XLSX] },
   { metodo: 'POST', patron: /^compartido\/respaldo\/exportar$/, consulta: ['tablas', 'desde', 'hasta'], archivo: ['application/zip'] },
+  // Copia local de la base de datos (`horus:respaldo`): nombre con patrón cerrado; Laravel exige `respaldo.exportar` y verifica la suma
+  { metodo: 'GET', patron: /^compartido\/respaldo\/copias\/horus-[0-9]{8}-[0-9]{6}\.dump$/, archivo: ['application/octet-stream'] },
   { metodo: 'POST', patron: /^compartido\/asistente\/mensaje$/, campos: ['mensaje', 'session_id'] },
   { metodo: 'POST', patron: /^compartido\/reclamaciones\/exportar$/, consulta: ['formato', 'busqueda', 'tipo', 'estado', 'canal', 'responsable', 'plazo', 'desde', 'hasta', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: /^compartido\/reclamaciones\/asignar-lote$/, campos: ['responsable_id'], listas: ['identificadores'] },
@@ -166,6 +177,13 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: /^academico\/pagos\/verificar-referencia$/, consulta: ['referencia'] },
   { metodo: 'GET', patron: /^academico\/pagos\/caja-diaria\/resumen$/, consulta: ['fecha'] },
   { metodo: 'POST', patron: /^academico\/pagos\/caja-diaria\/pdf$/, archivo: ['application/pdf'] },
+  { metodo: 'GET', patron: /^academico\/riesgo-desercion$/ },
+  // Cobranza asistida: cola de deuda vencida y bitácora de contactos/promesas (el servidor valida canales, resultados y fechas)
+  { metodo: 'GET', patron: /^academico\/cobranza\/cola$/, consulta: ['tramo', 'promesa', 'busqueda'] },
+  { metodo: 'GET', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/seguimientos$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/seguimientos$`), campos: ['canal', 'resultado', 'nota', 'promesa_fecha', 'promesa_monto'] },
+  { metodo: 'GET', patron: /^academico\/pagos\/caja-diaria\/cierres$/ },
+  { metodo: 'POST', patron: /^academico\/pagos\/caja-diaria\/cierre$/, campos: ['fecha', 'observacion'], mapas: ['declarado'] },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/anular$`), campos: ['motivo'] },
   { metodo: 'POST', patron: /^academico\/pagos\/exportar$/, consulta: ['busqueda', 'estado', 'desde', 'hasta', 'sort'], archivo: [XLSX] },
   // Captura del comprobante: una sola imagen (campo `imagen`); se muestra en línea y solo con permiso en Laravel
@@ -173,10 +191,12 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), archivo: [...IMAGENES, 'application/pdf'], enLinea: true },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/comprobante$`), multipart: [], pdf: true },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/confirmar$`) },
-  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/(rechazar|reversar)$`), campos: ['motivo'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/pagos/transacciones/${UUID}/(rechazar|reversar|reversar/solicitar)$`), campos: ['motivo'] },
 
 
   // Estudiantes
+  { metodo: 'GET', patron: new RegExp(`^academico/estudiantes/${ID}/360$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/estudiantes/${ID}/notas$`), campos: ['texto'] },
   { metodo: 'POST', patron: /^academico\/estudiantes\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'eliminados', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'POST', patron: new RegExp(`^academico/estudiantes/${ID}/historial/pdf$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: /^academico\/estudiantes$/, campos: CAMPOS_ESTUDIANTE },
@@ -209,6 +229,12 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: /^academico\/convocatorias$/, consulta: ['curso_id', 'vigentes'] },
   { metodo: 'POST', patron: /^academico\/convocatorias\/exportar$/, consulta: ['formato', 'busqueda', 'estado', 'curso_id', 'desde', 'hasta', 'vigentes', 'sort'], archivo: ['text/csv', XLSX] },
   { metodo: 'GET', patron: new RegExp(`^academico/convocatorias/${UUID}/calendario\\.ics$`), archivo: ['text/calendar'] },
+  { metodo: 'GET', patron: /^academico\/matriculas\/masiva\/plantilla$/, archivo: [XLSX] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/matricula-masiva/vista-previa$`), multipart: [], planilla: true },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/matricula-masiva$`), multipart: ['crear_obligacion'], planilla: true },
+  { metodo: 'GET', patron: new RegExp(`^academico/convocatorias/${UUID}/lista-espera$`) },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/lista-espera$`), campos: ['estudiante_id', 'nota'] },
+  { metodo: 'DELETE', patron: new RegExp(`^academico/convocatorias/${UUID}/lista-espera/${UUID}$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/lista-aula/pdf$`), archivo: ['application/pdf'] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/contactos/csv$`), archivo: ['text/csv'] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/siguiente$`), campos: ['fecha_inicio', 'fecha_fin', 'cupos_maximos', 'nombre'] },
@@ -223,14 +249,18 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/evaluaciones/${UUID}/eliminar$`), campos: ['_revision'] },
   { metodo: 'PUT', patron: new RegExp(`^academico/convocatorias/${UUID}/calificaciones$`), campos: ['evaluacion', 'matricula_id', 'nota', 'nota_actual', 'motivo'] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/cerrar$`), campos: ['_revision'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/reapertura$`), campos: ['motivo'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/reabrir$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/exportar$`), archivo: [XLSX] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/acta/borrador/exportar$`), archivo: [XLSX] },
 
   // Certificados institucionales
   { metodo: 'GET', patron: new RegExp(`^academico/certificados/${UUID}/pdf$`), archivo: ['application/pdf'] },
+  { metodo: 'GET', patron: new RegExp(`^academico/matriculas/${ID}/certificado/elegibilidad$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/matriculas/${ID}/certificado$`), campos: ['motivo_excepcion'] },
   { metodo: 'POST', patron: new RegExp(`^academico/convocatorias/${UUID}/certificados/emitir-lote$`) },
   { metodo: 'POST', patron: new RegExp(`^academico/certificados/${UUID}/anular$`), campos: ['motivo'] },
+  { metodo: 'POST', patron: new RegExp(`^academico/certificados/${UUID}/enviar-correo$`) },
 
   // Matrículas
   { metodo: 'GET', patron: /^academico\/matriculas\/opciones\/(estudiantes|cursos)$/, consulta: ['q', 'contexto'] },
@@ -266,6 +296,14 @@ export function cuerpoPermitido(operacion: Operacion, cuerpo: Record<string, unk
     if (Array.isArray(valor) && valor.length <= MAX_LISTA && valor.every((elemento) => typeof elemento === 'string')) {
       resultado[campo] = valor.map((elemento: string) => elemento.slice(0, 100));
     }
+  }
+  for (const campo of operacion.mapas ?? []) {
+    const valor = cuerpo[campo];
+    if (!esObjeto(valor)) continue;
+    const entradas = Object.entries(valor);
+    // Una clave o un valor fuera de forma descarta el mapa entero: Laravel lo rechaza con 422 en lugar de recibir algo recortado.
+    if (entradas.length > MAX_MAPA || !entradas.every(([k, v]) => /^[a-z0-9_-]{1,40}$/.test(k) && typeof v === 'string')) continue;
+    resultado[campo] = Object.fromEntries(entradas.map(([k, v]) => [k, String(v).slice(0, 20)]));
   }
   const horarios = cuerpo.horarios;
   if (operacion.horarios && Array.isArray(horarios) && horarios.length <= MAX_HORARIOS && horarios.every(esObjeto)) {

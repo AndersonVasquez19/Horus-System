@@ -2,7 +2,7 @@ import 'server-only';
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { COOKIE_NAVEGADOR, COOKIE_SESION, type CookieSesionLaravel, type ErrorApi } from './laravel';
-import { MAX_IMAGEN, type Operacion } from './operaciones-panel';
+import { MAX_IMAGEN, MAX_PLANILLA, type Operacion } from './operaciones-panel';
 
 /**
  * Utilidades de los route handlers de `/api/bff/*`.
@@ -73,6 +73,7 @@ export async function leerMutacion(request: NextRequest): Promise<Record<string,
 const MAX_TEXTO = 4000;
 /** Imagen + campos de texto + márgenes de la codificación multipart. */
 const MAX_MULTIPART = MAX_IMAGEN + 64 * 1024;
+const MAX_MULTIPART_PLANILLA = MAX_PLANILLA + 64 * 1024;
 
 /** Tipo real de la imagen por sus primeros bytes (JPEG, PNG o WebP); `null` si no es ninguno. */
 export function tipoDeImagen(bytes: Uint8Array): { tipo: string; extension: string } | null {
@@ -86,6 +87,11 @@ export function tipoDeImagen(bytes: Uint8Array): { tipo: string; extension: stri
 /** ¿Empieza con la firma de un PDF (`%PDF-`)? Solo se usa donde la operación admite PDF; Laravel revisa el contenido. */
 export function esPdf(bytes: Uint8Array): boolean {
   return [0x25, 0x50, 0x44, 0x46, 0x2d].every((valor, indice) => bytes[indice] === valor);
+}
+
+/** ¿Empieza con la firma de un ZIP (bytes 50 4B 03 04), contenedor de todo .xlsx? Laravel revisa la estructura y el contenido. */
+export function esZip(bytes: Uint8Array): boolean {
+  return [0x50, 0x4b, 0x03, 0x04].every((valor, indice) => bytes[indice] === valor);
 }
 
 /** Lee el cuerpo con un tope duro de bytes, sin fiarse de `Content-Length`. `null` = se excedió el tope. */
@@ -132,10 +138,12 @@ export async function leerMultipart(request: NextRequest, operacion: Operacion):
   if (!Number.isFinite(longitud) || longitud <= 0) {
     return errorJson(411, { message: 'Indica el tamaño del contenido.', code: 'longitud_requerida' });
   }
-  const demasiado = () => errorJson(413, { message: 'La imagen supera el tamaño máximo de 3 MB.', code: 'contenido_demasiado_grande' });
-  if (longitud > MAX_MULTIPART) return demasiado();
+  const planilla = operacion.planilla === true;
+  const tope = planilla ? MAX_MULTIPART_PLANILLA : MAX_MULTIPART;
+  const demasiado = () => errorJson(413, { message: planilla ? 'La planilla supera el tamaño máximo de 1 MB.' : 'La imagen supera el tamaño máximo de 3 MB.', code: 'contenido_demasiado_grande' });
+  if (longitud > tope) return demasiado();
 
-  const bytes = await leerAcotado(request, MAX_MULTIPART);
+  const bytes = await leerAcotado(request, tope);
   if (bytes === null) return demasiado();
 
   let entrada: FormData;
@@ -149,6 +157,20 @@ export async function leerMultipart(request: NextRequest, operacion: Operacion):
   for (const nombre of operacion.multipart ?? []) {
     const valor = entrada.get(nombre);
     if (typeof valor === 'string') salida.append(nombre, valor.slice(0, MAX_TEXTO));
+  }
+
+  if (planilla) {
+    const subidos = entrada.getAll('archivo');
+    const unico = subidos.length === 1 ? subidos[0] : null;
+    if (unico === null || typeof unico === 'string') {
+      return errorJson(422, { message: 'Adjunta la planilla Excel.', code: 'validacion', errors: { archivo: ['Adjunta una sola planilla Excel (.xlsx).'] } });
+    }
+    if (unico.size > MAX_PLANILLA) return demasiado();
+    if (!esZip(new Uint8Array(await unico.slice(0, 4).arrayBuffer()))) {
+      return errorJson(415, { message: 'Formato de archivo no permitido.', code: 'tipo_no_admitido', errors: { archivo: ['Solo se admite una planilla Excel (.xlsx).'] } });
+    }
+    salida.append('archivo', new Blob([await unico.arrayBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'planilla.xlsx');
+    return salida;
   }
 
   const archivos = entrada.getAll('imagen');

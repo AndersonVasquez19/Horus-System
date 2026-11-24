@@ -3,15 +3,25 @@
 namespace App\Providers;
 
 use App\Http\Controllers\Api\Publico\ChatPublicoController;
+use App\Models\Asistencia;
+use App\Models\Convocatoria;
+use App\Models\CuotaObligacion;
 use App\Models\Curso;
 use App\Models\CursoPublicacion;
+use App\Models\Matricula;
+use App\Models\ObligacionPago;
 use App\Models\ServicioPublicacion;
 use App\Models\ServicioTecnologico;
+use App\Models\SesionClase;
+use App\Models\TransaccionPago;
 use App\Observers\PublicacionCatalogoAdvisorObserver;
+use App\Services\Panel\ResumenAcademico;
 use App\Support\Email;
 use App\Support\Entrada;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -31,6 +41,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Tablero: los bloques costosos se guardan unos segundos; toda escritura de un modelo del que dependen cambia la versión de la
+        // clave (tras confirmar la transacción) para que el dato nuevo se vea al recargar. Ver ResumenAcademico::recordar().
+        foreach ([Matricula::class, TransaccionPago::class, ObligacionPago::class, CuotaObligacion::class, Convocatoria::class, SesionClase::class, Asistencia::class] as $modelo) {
+            foreach (['saved', 'deleted', 'restored'] as $evento) {
+                Event::listen("eloquent.{$evento}: {$modelo}", static function (): void {
+                    DB::afterCommit(static fn () => ResumenAcademico::invalidar());
+                });
+            }
+        }
+
         Curso::observe(PublicacionCatalogoAdvisorObserver::class);
         CursoPublicacion::observe(PublicacionCatalogoAdvisorObserver::class);
         ServicioTecnologico::observe(PublicacionCatalogoAdvisorObserver::class);
@@ -66,6 +86,19 @@ class AppServiceProvider extends ServiceProvider
         // Escrituras y subidas de archivos del panel: acota ráfagas automatizadas sin afectar la operación humana.
         RateLimiter::for('admin-write', fn (Request $request) => Limit::perMinute(120)->by(
             'admin-write:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
+        // Consulta de DNI (JSON.pe, servicio externo con cuota): 10 por minuto y usuario, cubo propio.
+        RateLimiter::for('consulta-dni', fn (Request $request) => Limit::perMinute(10)->by(
+            'consulta-dni:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
+        // Ver capturas de comprobantes: 60 por minuto y usuario, sin compartir cupo con otras rutas.
+        RateLimiter::for('comprobante-ver', fn (Request $request) => Limit::perMinute(60)->by(
+            'comprobante-ver:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
+        ));
+        // Operaciones que resuelven dinero (confirmar, rechazar, reversar, anular obligación): más estrictas que
+        // `admin-write`, por usuario. 30 por minuto sobra para la operación humana y frena la automatización.
+        RateLimiter::for('pagos-resolver', fn (Request $request) => Limit::perMinute(30)->by(
+            'pagos-resolver:'.Entrada::texto($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
         // BFF de apps/web: un solo cubo por servicio (el visitante final no llega a Laravel con su IP en las lecturas).
         RateLimiter::for('publico-web', fn (Request $request) => Limit::perMinute(300)->by('publico-web'));

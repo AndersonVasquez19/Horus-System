@@ -32,21 +32,24 @@ class RecordatoriosService
     ) {}
 
     /**
-     * @return array{cuotas: int, sesiones: int, mensajes: int, externos: int, omitido_desactivado?: bool}
+     * @return array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int, omitido_desactivado?: bool}
      */
     public function ejecutar(bool $dryRun = false, int $limit = 200): array
     {
         if (config('recordatorios.internos_enabled') !== true) {
-            return ['cuotas' => 0, 'sesiones' => 0, 'mensajes' => 0, 'externos' => 0, 'omitido_desactivado' => true];
+            return ['cuotas' => 0, 'sesiones' => 0, 'mensajes' => 0, 'externos' => 0, 'mora' => 0, 'riesgo' => 0, 'espera' => 0, 'omitido_desactivado' => true];
         }
 
         $hoyLima = HoraLocal::ahora()->startOfDay();
         $hoyIso = $hoyLima->toDateString();
         $utcHoy = now('UTC')->toDateString();
 
-        $conteos = ['cuotas' => 0, 'sesiones' => 0, 'mensajes' => 0, 'externos' => 0];
+        $conteos = ['cuotas' => 0, 'sesiones' => 0, 'mensajes' => 0, 'externos' => 0, 'mora' => 0, 'riesgo' => 0, 'espera' => 0];
 
         $this->procesarCuotas($hoyLima, $hoyIso, $utcHoy, $dryRun, $limit, $conteos);
+        $this->procesarMora($hoyIso, $utcHoy, $dryRun, $conteos);
+        $this->procesarRiesgo($hoyIso, $utcHoy, $dryRun, $conteos);
+        $this->procesarEspera($hoyIso, $utcHoy, $dryRun, $conteos);
         $this->procesarSesiones($hoyIso, $utcHoy, $dryRun, $limit, $conteos);
         $this->procesarMensajes($hoyIso, $utcHoy, $dryRun, $conteos);
 
@@ -54,7 +57,7 @@ class RecordatoriosService
     }
 
     /**
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int}  $conteos
+     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int}  $conteos
      */
     private function procesarCuotas(CarbonImmutable $hoyLima, string $hoyIso, string $utcHoy, bool $dryRun, int $limit, array &$conteos): void
     {
@@ -65,6 +68,7 @@ class RecordatoriosService
             ->where('estado', 'vigente')
             ->with(['matricula.estudiante', 'cuotas' => fn ($q) => $q->orderBy('numero')])
             ->whereHas('cuotas', fn ($q) => $q->whereBetween('vence', [$hoyIso, $limiteFecha]))
+            ->orderBy('id') // determinista: sin orden, el tope `limit` dejaba fuera obligaciones distintas en cada corrida
             ->limit($limit)
             ->get();
 
@@ -128,7 +132,119 @@ class RecordatoriosService
     }
 
     /**
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int}  $conteos
+     * Resumen diario de la cobranza vencida (Fase 3.1): una sola notificación por día, no una por obligación. Solo al personal con
+     * `pagos.ver`, sin nombres ni importes hacia terceros (no hay espejo externo: el texto interno lleva las cifras).
+     *
+     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int}  $conteos
+     */
+    private function procesarMora(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
+    {
+        $vinculo = '/admin/academico/cobranza';
+        if ($this->yaNotificadoHoy('recordatorio_mora', $vinculo, null, $utcHoy)) {
+            return;
+        }
+
+        $r = app(CobranzaAsistida::class)->resumenParaAviso();
+        if ($r['obligaciones'] === 0) {
+            return;
+        }
+
+        $conteos['mora'] = $r['obligaciones'];
+        if ($dryRun) {
+            return;
+        }
+
+        $incumplidas = $r['promesas_incumplidas'] > 0 ? " Hay {$r['promesas_incumplidas']} promesa(s) de pago incumplida(s)." : '';
+        $mensaje = "{$r['obligaciones']} obligación(es) con cuotas vencidas por S/ {$r['monto_vencido']}.{$incumplidas}";
+        foreach ($this->usuariosConPermiso('pagos.ver') as $usuario) {
+            $prefs = $usuario->preferenciasNotificacion();
+            if (($prefs['recordatorio_cuotas'] ?? true) && ($prefs['interno'] ?? true)) {
+                NotificacionInterna::crearPersonal($usuario->id, [
+                    'titulo' => "Cobranza: {$r['obligaciones']} obligación(es) vencida(s)",
+                    'mensaje' => $mensaje,
+                    'tipo' => 'recordatorio_mora',
+                    'vinculo' => $vinculo,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Aviso diario de estudiantes con riesgo alto de deserción (Fase 3.4): una notificación por usuario y día para quien puede editar
+     * matrículas (coordinación y admin). Solo la cantidad; el detalle y los factores están en la pantalla de riesgo.
+     *
+     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int}  $conteos
+     */
+    private function procesarRiesgo(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
+    {
+        $vinculo = '/admin/academico/riesgo';
+        if ($this->yaNotificadoHoy('recordatorio_riesgo', $vinculo, null, $utcHoy)) {
+            return;
+        }
+
+        $alto = app(RiesgoDesercion::class)->evaluar()['resumen']['alto'];
+        if ($alto === 0) {
+            return;
+        }
+
+        $conteos['riesgo'] = $alto;
+        if ($dryRun) {
+            return;
+        }
+
+        foreach ($this->usuariosConPermiso('matriculas.editar') as $usuario) {
+            $prefs = $usuario->preferenciasNotificacion();
+            if (($prefs['recordatorio_sesiones'] ?? true) && ($prefs['interno'] ?? true)) {
+                NotificacionInterna::crearPersonal($usuario->id, [
+                    'titulo' => "Riesgo de deserción: {$alto} estudiante(s) en riesgo alto",
+                    'mensaje' => "Hay {$alto} estudiante(s) de ediciones en curso con riesgo alto (faltas seguidas, baja asistencia o deuda vencida).",
+                    'tipo' => 'recordatorio_riesgo',
+                    'vinculo' => $vinculo,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Aviso diario de ediciones con cupo libre y personas en lista de espera (Fase 3.7): una notificación por usuario y día para quien
+     * puede matricular. Solo cantidades y códigos de edición, sin datos de los estudiantes.
+     *
+     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int}  $conteos
+     */
+    private function procesarEspera(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
+    {
+        $vinculo = '/admin/academico/convocatorias';
+        if ($this->yaNotificadoHoy('recordatorio_espera', $vinculo, null, $utcHoy)) {
+            return;
+        }
+
+        $ediciones = app(GestionListaEspera::class)->edicionesConCupoYEspera();
+        if ($ediciones === []) {
+            return;
+        }
+
+        $conteos['espera'] = count($ediciones);
+        if ($dryRun) {
+            return;
+        }
+
+        $codigos = implode(', ', array_map(fn (array $e): string => $e['codigo'], array_slice($ediciones, 0, 5)));
+        $n = count($ediciones);
+        foreach ($this->usuariosConPermiso('matriculas.crear') as $usuario) {
+            $prefs = $usuario->preferenciasNotificacion();
+            if (($prefs['recordatorio_sesiones'] ?? true) && ($prefs['interno'] ?? true)) {
+                NotificacionInterna::crearPersonal($usuario->id, [
+                    'titulo' => "Lista de espera: {$n} edición(es) con cupo libre",
+                    'mensaje' => "Hay cupo y personas esperando en: {$codigos}. Matricula a quien sigue en la lista.",
+                    'tipo' => 'recordatorio_espera',
+                    'vinculo' => $vinculo,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int}  $conteos
      */
     private function procesarSesiones(string $hoyIso, string $utcHoy, bool $dryRun, int $limit, array &$conteos): void
     {
@@ -178,7 +294,7 @@ class RecordatoriosService
     }
 
     /**
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int}  $conteos
+     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, riesgo: int, espera: int}  $conteos
      */
     private function procesarMensajes(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
     {

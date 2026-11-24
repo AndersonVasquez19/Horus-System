@@ -39,6 +39,7 @@ const ACCIONES: Record<string, string> = {
   corregir: 'Corregir registros cerrados',
   confirmar: 'Confirmar o rechazar pagos',
   reversar: 'Reversar pagos',
+  cerrar_caja: 'Cerrar la caja del día',
   planificar: 'Planificar cobros',
   gestionar: 'Gestionar',
   responder: 'Responder',

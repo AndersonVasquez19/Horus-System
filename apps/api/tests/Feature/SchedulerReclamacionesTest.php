@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use Carbon\Carbon;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 /** Sprint 22, Fase 3: registro de `horus:reclamaciones-vencimientos` en el scheduler (sin ejecutar `schedule:run`). */
@@ -28,14 +29,18 @@ class SchedulerReclamacionesTest extends TestCase
 
     public function test_aparece_en_schedule_list_a_las_ocho_de_lima(): void
     {
+        // `schedule:list` rellena la columna de la expresión según la más ancha de TODAS las tareas: se normalizan los espacios
+        // para que añadir otra tarea (p. ej. `*/5 * * * *`) no rompa esta comprobación; hora y comando siguen siendo exactos.
+        $listar = function (array $opciones): string {
+            Artisan::call('schedule:list', $opciones);
+
+            return (string) preg_replace('/\s+/', ' ', Artisan::output());
+        };
+
         // En la zona de Lima la tarea se ve a las 08:00 ...
-        $this->artisan('schedule:list', ['--timezone' => 'America/Lima'])
-            ->expectsOutputToContain('0 8 * * *  php artisan '.self::COMANDO)
-            ->assertSuccessful();
+        $this->assertStringContainsString('0 8 * * * php artisan '.self::COMANDO, $listar(['--timezone' => 'America/Lima']));
         // ... y por defecto (zona de la app, UTC) schedule:list la convierte: 08:00 Lima = 13:00 UTC.
-        $this->artisan('schedule:list')
-            ->expectsOutputToContain('0 13 * * *  php artisan '.self::COMANDO)
-            ->assertSuccessful();
+        $this->assertStringContainsString('0 13 * * * php artisan '.self::COMANDO, $listar([]));
     }
 
     public function test_frecuencia_diaria_a_las_ocho_en_la_zona_de_lima(): void

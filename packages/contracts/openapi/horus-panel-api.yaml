@@ -954,6 +954,112 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/masiva/plantilla:
+    get:
+      tags: [academico]
+      summary: "Descarga la planilla modelo de matrícula masiva (.xlsx)"
+      description: "Permiso: `matriculas.crear`."
+      x-estado: vigente
+      responses:
+        '200': { description: "Planilla Excel" }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/matricula-masiva/vista-previa:
+    post:
+      tags: [academico]
+      summary: "Vista previa de la matrícula masiva: valida la planilla sin escribir nada"
+      description: "Permiso: `matriculas.crear`. Cuerpo multipart: `archivo` (.xlsx de hasta 1 MB, 200 filas). Cada fila resulta en matricular, crear y matricular, omitir (ya matriculado), sin cupo o error."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/matricula-masiva:
+    post:
+      tags: [academico]
+      summary: "Confirma la matrícula masiva: vuelve a analizar la planilla y matricula fila por fila"
+      description: "Permiso: `matriculas.crear` (crear estudiantes nuevos exige además `estudiantes.crear`; `crear_obligacion` exige `pagos.planificar`). Cuerpo multipart: `archivo` y `crear_obligacion` opcional. Repetir el mismo archivo no duplica matrículas."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/certificados/{certificado}/enviar-correo:
+    post:
+      tags: [academico]
+      summary: "Envía por correo al estudiante el aviso del certificado con su enlace público de verificación"
+      description: "Permiso: `certificados.emitir`. Responde 202 y envía por la cola. 409 si el envío por correo no está activado o el certificado no está vigente; 422 si el estudiante no tiene un correo válido. Un reenvío es válido y queda auditado."
+      x-estado: vigente
+      parameters:
+        - { name: certificado, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '202': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/lista-espera:
+    get:
+      tags: [academico]
+      summary: "Lista de espera de la edición, en orden de llegada"
+      description: "Permiso: `convocatorias.ver`. Devuelve cupos libres, si la edición admite matrículas y quienes esperan (nombre, DNI, teléfono, nota)."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Agrega a un estudiante a la lista de espera de una edición llena"
+      description: "Permiso: `matriculas.crear`. Cuerpo: `estudiante_id` y `nota` opcional (hasta 200 caracteres). 409 si hay cupos, la edición no admite matrículas, el estudiante ya está matriculado o esperando, o la lista llegó a 100."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/lista-espera/{entrada}:
+    delete:
+      tags: [academico]
+      summary: "Saca a una persona de la lista de espera"
+      description: "Permiso: `matriculas.crear`."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: entrada, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
   /academico/convocatorias/{identificador}/calendario.ics:
     get:
       tags: [academico]
@@ -1487,13 +1593,173 @@ paths:
   /academico/pagos/caja-diaria/resumen:
     get:
       tags: [academico]
-      summary: "Resumen JSON de pagos confirmados del día"
+      summary: "Resumen JSON de la caja del día: pagos menos reversos, por método y por usuario, con el cierre si existe"
+      description: "Permiso: `pagos.ver`. Un reverso cuenta el día en que se hizo. `total` es neto (cobrado menos reversado)."
+      x-estado: vigente
+      parameters:
+        - { name: fecha, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /academico/pagos/transacciones/{transaccion}/reversar/solicitar:
+    post:
+      tags: [academico]
+      summary: "Solicita a Gerencia la aprobación del reverso de un pago desde el umbral configurado"
+      description: "Permiso: `pagos.reversar`. Cuerpo: `motivo`. El umbral es `PANEL_APROBACION_REVERSO_UMBRAL` (S/ 100 por defecto; 0 la apaga). Otra persona con rol admin debe aprobarla; sirve para un solo reverso."
+      x-estado: vigente
+      parameters:
+        - { name: transaccion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/acta/reapertura:
+    post:
+      tags: [academico]
+      summary: "Solicita a Gerencia la reapertura de un acta cerrada (genera una aprobación de tipo reapertura_acta)"
+      description: "Permiso: `convocatorias.cerrar`. Cuerpo: `motivo` (10 a 500 caracteres). Una solicitud pendiente por edición."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /academico/convocatorias/{identificador}/acta/reabrir:
+    post:
+      tags: [academico]
+      summary: "Reabre el acta con una solicitud aprobada por Gerencia (una sola vez por aprobación)"
+      description: "Permiso: `convocatorias.cerrar`. La edición vuelve a `en_curso`, se borran `nota_final` y `resultado` de sus matrículas y la revisión aumenta. Los certificados emitidos no se anulan."
+      x-estado: vigente
+      parameters:
+        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /academico/estudiantes/{estudiante}/360:
+    get:
+      tags: [academico]
+      summary: "Línea de tiempo del estudiante (matrículas, pagos, asistencia, notas, certificados, cobranza y notas internas)"
+      description: "Permiso: `estudiantes.ver`. Cada tipo de evento solo aparece con el permiso de su módulo (`pagos.ver`, `asistencias.ver`, `calificaciones.ver`, `certificados.ver`). Hasta 200 eventos, el más reciente primero."
+      x-estado: vigente
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/estudiantes/{estudiante}/notas:
+    post:
+      tags: [academico]
+      summary: "Agrega una nota interna de seguimiento (solo se agrega; no se edita ni se borra)"
+      description: "Permiso: `estudiantes.crear|estudiantes.editar`. Cuerpo: `texto` (3 a 500 caracteres, sin etiquetas HTML). La auditoría no guarda el texto."
+      x-estado: vigente
+      parameters:
+        - { name: estudiante, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/riesgo-desercion:
+    get:
+      tags: [academico]
+      summary: "Riesgo de deserción de los matriculados en ediciones en curso (faltas seguidas, asistencia baja y deuda vencida)"
+      description: "Permiso: `matriculas.ver`. Lista solo riesgo medio (30 puntos o más) y alto (60 o más), con los factores que explican cada puntaje."
+      x-estado: vigente
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/cobranza/cola:
+    get:
+      tags: [academico]
+      summary: "Cola de cobranza: obligaciones vigentes con cuotas vencidas, por antigüedad, con último contacto y promesa de pago"
+      description: "Permiso: `pagos.ver`. Tramos de mora: reciente (1–7 días), media (8–30) y crítica (31 o más). Devuelve hasta 200 filas (`truncado`) y un resumen que no cambia con los filtros."
+      x-estado: vigente
+      parameters:
+        - { name: tramo, in: query, schema: { type: string, enum: [reciente, media, critica] } }
+        - { name: promesa, in: query, schema: { type: string, enum: [vigente, incumplida, ninguna] } }
+        - { name: busqueda, in: query, schema: { type: string, maxLength: 100 } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/obligaciones/{obligacion}/seguimientos:
+    get:
+      tags: [academico]
+      summary: "Historial de contactos de cobro de una obligación (hasta 50, el más reciente primero)"
+      description: "Permiso: `pagos.ver`."
+      x-estado: vigente
+      parameters:
+        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [academico]
+      summary: "Registra un contacto de cobro y, si hubo, una promesa de pago; la bitácora solo se agrega"
+      description: "Permiso: `pagos.registrar`. Cuerpo: `canal`, `resultado`, `nota`; con `resultado=promesa_pago`, `promesa_fecha` (de hoy a 90 días) y `promesa_monto` opcional. Solo sobre una obligación vigente."
+      x-estado: vigente
+      parameters:
+        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /academico/pagos/caja-diaria/cierres:
+    get:
+      tags: [academico]
+      summary: "Cierres de caja ya hechos, el más reciente primero (hasta 31)"
       description: "Permiso: `pagos.ver`."
       x-estado: vigente
       responses:
         '200': { $ref: '#/components/responses/Recurso' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
+  /academico/pagos/caja-diaria/cierre:
+    post:
+      tags: [academico]
+      summary: "Cierra la caja de una fecha con el importe contado por método; un cierre por fecha, inmutable"
+      description: "Permiso: `pagos.cerrar_caja` (solo admin por defecto). Cuerpo: `fecha`, `declarado` (código de método → importe) y `observacion`, obligatoria si hay diferencia."
+      x-estado: vigente
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '201': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
   /academico/pagos/caja-diaria/pdf:
     post:
       tags: [academico]
@@ -1640,6 +1906,19 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+  /academico/matriculas/{matricula}/certificado/elegibilidad:
+    get:
+      tags: [academico]
+      summary: "Vista previa de los requisitos para emitir el certificado (asistencia, nota, deuda y acta opcional), sin emitir"
+      description: "Permiso: `certificados.ver`. Devuelve `elegible`, `bloqueos` (código y mensaje), `puede_excepcion` (solo admin) y el certificado vigente si ya existe."
+      x-estado: vigente
+      parameters:
+        - { name: matricula, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /academico/convocatorias/{identificador}/certificados/emitir-lote:
     post:
       tags: [academico]
@@ -2411,6 +2690,40 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/respaldo/copias:
+    get:
+      tags: [compartido]
+      summary: "Consulta: respaldo › copias locales de la base de datos"
+      description: "Permiso: `respaldo.exportar`."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/respaldo/copias/{nombre}:
+    get:
+      tags: [compartido]
+      summary: "Consulta: respaldo › descargar una copia"
+      description: "Permiso: `respaldo.exportar`. Entrega el volcado solo si su suma SHA-256 coincide (409 si no) y audita la descarga."
+      parameters:
+        - { name: nombre, in: path, required: true, schema: { type: string, pattern: '^horus-[0-9]{8}-[0-9]{6}\.dump$' } }
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /compartido/salud:
+    get:
+      tags: [compartido]
+      summary: "Consulta: salud del sistema"
+      description: "Permiso: `respaldo.exportar` (operaciones de sistema; no se creó un permiso nuevo)."
+      responses:
+        '200': { $ref: '#/components/responses/Recurso' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
   /compartido/roles:
     get:

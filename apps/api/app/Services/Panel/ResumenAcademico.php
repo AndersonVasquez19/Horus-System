@@ -17,6 +17,8 @@ use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\NotificacionesPendientes;
 use Carbon\CarbonInterface;
+use Closure;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -36,6 +38,10 @@ use LogicException;
  */
 final class ResumenAcademico
 {
+    private const VERSION = 'panel:resumen:version';
+
+    private ?int $cobradoMes = null;
+
     private const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
     /** @return array<string, mixed> */
@@ -73,7 +79,7 @@ final class ResumenAcademico
             }
             $indicadores['matriculas_pendientes'] = Matricula::query()->where('estado', 'pendiente')->count();
 
-            $bloques['matriculas_por_mes'] = $this->matriculasPorMes($inicioMes->copy()->subMonths(5), $finMes);
+            $bloques['matriculas_por_mes'] = $this->recordar('matriculas_por_mes', fn (): array => $this->matriculasPorMes($inicioMes->copy()->subMonths(5), $finMes));
             $bloques['ultimas_matriculas'] = Matricula::query()
                 ->select(['id', 'estudiante_id', 'curso_id', 'estado', 'fecha_matricula'])
                 ->with(['estudiante:id,nombres,apellidos', 'curso:id,nombre'])
@@ -94,15 +100,22 @@ final class ResumenAcademico
         }
 
         if ($user->can('pagos.ver')) {
-            $pendientes = DB::table('transacciones_pago')->where('tipo', 'pago')->where('estado', 'pendiente')->pluck('monto');
-            $acciones['pagos_por_confirmar'] = ['cantidad' => $pendientes->count(), 'monto' => GestionPagos::formato($pendientes->sum(fn ($m): int => GestionPagos::leer($m)))];
+            [$porConfirmar, $montoPorConfirmar] = $this->recordar('pagos_por_confirmar', fn (): array => $this->pagosPorConfirmar());
+            $acciones['pagos_por_confirmar'] = ['cantidad' => $porConfirmar, 'monto' => GestionPagos::formato($montoPorConfirmar)];
 
-            [$conSaldo, $saldo] = $this->saldoPorCobrar();
+            [$conSaldo, $saldo] = $this->recordar('saldo_por_cobrar', fn (): array => $this->saldoPorCobrar());
             $acciones['matriculas_con_saldo'] = ['cantidad' => $conSaldo, 'monto' => GestionPagos::formato($saldo)];
-            $acciones['cuotas'] = $this->cuotasPendientes();
+            $acciones['cuotas'] = $this->recordar('cuotas', fn (): array => $this->cuotasPendientes());
 
             $negocio['cobrado_mes'] = GestionPagos::formato($this->cobradoDelMes());
             $negocio['saldo_por_cobrar'] = GestionPagos::formato($saldo);
+        }
+
+        // Cada bloque se calcula una sola vez por petición: el dinero del mes lo piden `indicadores` y `negocio`.
+
+        // Semáforo de plazos del Libro de Reclamaciones (plan de mejora 3.12): conteos, sin datos personales.
+        if ($user->can('reclamaciones.ver')) {
+            $acciones['reclamaciones'] = \App\Support\ConsultaReclamaciones::plazos();
         }
 
         if ($user->can('convocatorias.ver')) {
@@ -116,7 +129,8 @@ final class ResumenAcademico
                 ])->all(),
             ];
 
-            $academico['cupos'] = Convocatoria::query()->with('curso:id,nombre')->whereIn('estado', ['abierta', 'en_curso'])
+            $academico['satisfaccion'] = $this->recordar('satisfaccion', fn (): array => app(\App\Services\SatisfaccionEncuestas::class)->resumen(null, \App\Services\SatisfaccionEncuestas::DIAS_KPI));
+            $academico['cupos'] =Convocatoria::query()->with('curso:id,nombre')->whereIn('estado', ['abierta', 'en_curso'])
                 ->orderBy('cupos_disponibles')->orderBy('id')->limit(8)->get()->map(fn (Convocatoria $c): array => [
                     'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre, 'maximo' => $c->cupos_maximos,
                     'ocupados' => $c->cupos_maximos - $c->cupos_disponibles, 'libres' => $c->cupos_disponibles,
@@ -126,17 +140,18 @@ final class ResumenAcademico
         if ($user->can('asistencias.ver')) {
             $minimo = Entrada::entero(config('academico.asistencia_minima', 80));
             $academico['asistencia_minima'] = $minimo;
-            $academico['asistencia'] = Convocatoria::query()->with('curso:id,nombre')->where('estado', 'en_curso')->orderBy('fecha_fin')->limit(8)->get()
-                ->map(function (Convocatoria $c) use ($minimo): array {
-                    $r = app(GestionAsistencias::class)->resumen($c);
-                    $valores = collect($r['matriculas'])->pluck('porcentaje')->filter(fn ($p): bool => $p !== null);
-                    $promedio = $valores->isEmpty() ? null : round((float) $valores->avg(), 1);
+            $enCurso = Convocatoria::query()->with('curso:id,nombre')->where('estado', 'en_curso')->orderBy('fecha_fin')->limit(8)->get();
+            // Tres consultas para todas las ediciones (antes, varias por edición).
+            $ids = $enCurso->map(fn (Convocatoria $c): int => (int) $c->id)->all();
+            $promedios = $this->recordar('promedios:'.implode(',', $ids), fn (): array => app(GestionAsistencias::class)->promediosPorEdicion($ids));
+            $academico['asistencia'] = $enCurso->map(function (Convocatoria $c) use ($minimo, $promedios): array {
+                $r = $promedios[(int) $c->id];
 
-                    return [
-                        'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre, 'sesiones_realizadas' => $r['sesiones_realizadas'],
-                        'promedio' => $promedio, 'bajo_minimo' => $promedio !== null && $promedio < $minimo,
-                    ];
-                })->all();
+                return [
+                    'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre, 'sesiones_realizadas' => $r['sesiones_realizadas'],
+                    'promedio' => $r['promedio'], 'bajo_minimo' => $r['promedio'] !== null && $r['promedio'] < $minimo,
+                ];
+            })->all();
         }
 
 
@@ -157,41 +172,47 @@ final class ResumenAcademico
         }
 
         if ($user->can('pagos.ver')) {
-            $saludGrupo['cuotas_vencidas'] = $this->cuotasVencidasDetalle();
+            $saludGrupo['cuotas_vencidas'] = $this->recordar('cuotas_vencidas', fn (): array => $this->cuotasVencidasDetalle());
         }
         if ($user->can('asistencias.ver')) {
-            $saludGrupo['inasistencias'] = $this->inasistenciasReiteradas();
+            $saludGrupo['inasistencias'] = $this->recordar('inasistencias', fn (): array => $this->inasistenciasReiteradas());
         }
 
         return ['indicadores' => $indicadores, 'bloques' => $bloques, 'acciones' => $acciones, 'negocio' => $negocio, 'academico' => $academico, 'seguimiento' => $seguimiento, 'salud_grupo' => $saludGrupo];
     }
 
     /**
+     * Cuántos pagos esperan confirmación y su importe total, en céntimos.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function pagosPorConfirmar(): array
+    {
+        $fila = DB::table('transacciones_pago')->where('tipo', 'pago')->where('estado', 'pendiente')
+            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM('.self::centimos('monto').'), 0) as total')->first();
+
+        return [Entrada::entero($fila->cantidad ?? 0), Entrada::entero($fila->total ?? 0)];
+    }
+
+    /**
      * Matrículas con obligación vigente que aún deben algo (lo confirmado neto de reversos es menor que el total) y el saldo total, en
-     * céntimos.
+     * céntimos. Se calcula en SQL con enteros (céntimos): sin sumas en PHP ni coma flotante.
      *
      * @return array{0: int, 1: int}
      */
     private function saldoPorCobrar(): array
     {
-        $filas = DB::table('obligaciones_pago as o')
+        $confirmado = self::centimos('t.monto');
+        $porObligacion = DB::table('obligaciones_pago as o')
             ->leftJoin('transacciones_pago as t', fn ($j) => $j->on('t.obligacion_pago_id', '=', 'o.id')->where('t.estado', 'confirmada'))
             ->where('o.estado', 'vigente')
             ->groupBy('o.id', 'o.monto_total')
-            ->selectRaw("o.monto_total, COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN t.monto ELSE -t.monto END), 0) as confirmado")
-            ->get();
+            ->selectRaw('o.id, '.self::centimos('o.monto_total')." - COALESCE(SUM(CASE WHEN t.tipo = 'pago' THEN {$confirmado} ELSE -{$confirmado} END), 0) as debe");
 
-        $cantidad = 0;
-        $saldo = 0;
-        foreach ($filas as $f) {
-            $debe = GestionPagos::leer($f->monto_total) - GestionPagos::leer($f->confirmado);
-            if ($debe > 0) {
-                $cantidad++;
-                $saldo += $debe;
-            }
-        }
+        $fila = DB::query()->fromSub($porObligacion, 'x')->where('debe', '>', 0)
+            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(debe), 0) as total')->first();
 
-        return [$cantidad, $saldo];
+        return [Entrada::entero($fila->cantidad ?? 0), Entrada::entero($fila->total ?? 0)];
     }
 
     /**
@@ -203,53 +224,90 @@ final class ResumenAcademico
     {
         $hoy = HoraLocal::hoy();
         $limite = HoraLocal::ahora()->addDays(7)->toDateString();
+        $vence = self::fechaSql('c.vence');
 
-        $filas = DB::table('cuotas_obligacion as c')
+        $porCuota = DB::table('cuotas_obligacion as c')
             ->join('obligaciones_pago as o', 'o.id', '=', 'c.obligacion_pago_id')
             ->leftJoin('asignaciones_pago as a', 'a.cuota_obligacion_id', '=', 'c.id')
             ->where('o.estado', 'vigente')
             ->whereDate('c.vence', '<=', $limite)
             ->groupBy('c.id', 'c.monto', 'c.vence')
-            ->selectRaw('c.monto, c.vence, COALESCE(SUM(a.monto), 0) as pagado')
-            ->get();
+            ->selectRaw("{$vence} as vence, ".self::centimos('c.monto').' - COALESCE(SUM('.self::centimos('a.monto').'), 0) as saldo');
 
-        $vencidas = 0;
-        $montoVencido = 0;
-        $porVencer = 0;
-        $montoPorVencer = 0;
-
-        foreach ($filas as $f) {
-            $saldo = GestionPagos::leer($f->monto) - GestionPagos::leer($f->pagado);
-            if ($saldo <= 0) {
-                continue;
-            }
-            $vence = substr((string) $f->vence, 0, 10);
-            if ($vence < $hoy) {
-                $vencidas++;
-                $montoVencido += $saldo;
-            } else {
-                $porVencer++;
-                $montoPorVencer += $saldo;
-            }
-        }
+        $fila = DB::query()->fromSub($porCuota, 'x')->where('saldo', '>', 0)->selectRaw(
+            'COALESCE(SUM(CASE WHEN vence < ? THEN 1 ELSE 0 END), 0) as vencidas, '
+            .'COALESCE(SUM(CASE WHEN vence < ? THEN saldo ELSE 0 END), 0) as monto_vencido, '
+            .'COALESCE(SUM(CASE WHEN vence >= ? THEN 1 ELSE 0 END), 0) as por_vencer, '
+            .'COALESCE(SUM(CASE WHEN vence >= ? THEN saldo ELSE 0 END), 0) as monto_por_vencer',
+            [$hoy, $hoy, $hoy, $hoy],
+        )->first();
 
         return [
-            'vencidas' => $vencidas,
-            'monto_vencido' => GestionPagos::formato($montoVencido),
-            'por_vencer' => $porVencer,
-            'monto_por_vencer' => GestionPagos::formato($montoPorVencer),
+            'vencidas' => Entrada::entero($fila->vencidas ?? 0),
+            'monto_vencido' => GestionPagos::formato(Entrada::entero($fila->monto_vencido ?? 0)),
+            'por_vencer' => Entrada::entero($fila->por_vencer ?? 0),
+            'monto_por_vencer' => GestionPagos::formato(Entrada::entero($fila->monto_por_vencer ?? 0)),
         ];
     }
 
-    /** Lo cobrado en el mes (Lima) según el libro: pagos confirmados menos reversos confirmados, por fecha de pago. En céntimos. */
+    /**
+     * Lo cobrado en el mes (Lima) según el libro: pagos confirmados menos reversos confirmados, por fecha de pago. En céntimos.
+     * Se calcula una sola vez por petición (lo piden `indicadores` y `negocio`), con una consulta SQL agregada.
+     */
     private function cobradoDelMes(): int
     {
-        $ahora = HoraLocal::ahora();
-        $filas = DB::table('transacciones_pago')->where('estado', 'confirmada')
-            ->whereBetween('fecha_pago', [$ahora->startOfMonth()->toDateString(), $ahora->endOfMonth()->toDateString()])
-            ->get(['tipo', 'monto']);
+        return $this->cobradoMes ??= $this->recordar('cobrado_mes', function (): int {
+            $ahora = HoraLocal::ahora();
+            $c = self::centimos('monto');
+            $fila = DB::table('transacciones_pago')->where('estado', 'confirmada')
+                ->whereBetween('fecha_pago', [$ahora->startOfMonth()->toDateString(), $ahora->endOfMonth()->toDateString()])
+                ->selectRaw("COALESCE(SUM(CASE WHEN tipo = 'pago' THEN {$c} ELSE -{$c} END), 0) as total")->first();
 
-        return (int) $filas->sum(fn ($t): int => $t->tipo === 'pago' ? GestionPagos::leer($t->monto) : -GestionPagos::leer($t->monto));
+            return Entrada::entero($fila->total ?? 0);
+        });
+    }
+
+    /** Importe en céntimos enteros de una columna decimal, exacto en SQLite y PostgreSQL. */
+    private static function centimos(string $columna): string
+    {
+        return "CAST(ROUND({$columna} * 100) AS BIGINT)";
+    }
+
+    /** Parte de fecha (AAAA-MM-DD) de una columna, según el motor. */
+    private static function fechaSql(string $columna): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "CAST({$columna} AS DATE)",
+            'sqlite' => "date({$columna})",
+            default => throw new LogicException('Motor de base de datos no admitido para fechas.'),
+        };
+    }
+
+    /**
+     * Guarda un bloque costoso unos segundos (`panel.resumen_cache_segundos`, 0 = sin caché). La clave lleva una versión que
+     * {@see self::invalidar()} cambia en cada escritura de los modelos de los que depende el tablero, y el día de Lima: un pago
+     * confirmado o una matrícula nueva se ven al recargar, no 30 s después. Solo se guardan bloques sin datos por usuario.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $calculo
+     * @return T
+     */
+    private function recordar(string $clave, Closure $calculo): mixed
+    {
+        $segundos = Entrada::entero(config('panel.resumen_cache_segundos', 30));
+        if ($segundos <= 0) {
+            return $calculo();
+        }
+        $version = Entrada::texto(Cache::get(self::VERSION, '0'));
+
+        return Cache::remember('panel:resumen:'.$version.':'.HoraLocal::hoy().':'.$clave, $segundos, $calculo);
+    }
+
+    /** Descarta los bloques guardados del tablero (se llama tras escribir un modelo del que dependen). */
+    public static function invalidar(): void
+    {
+        Cache::forever(self::VERSION, (string) hrtime(true));
     }
 
     /** @return list<array{periodo: string, etiqueta: string, total: int}> */
