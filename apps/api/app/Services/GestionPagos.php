@@ -505,6 +505,12 @@ class GestionPagos
                 return $existente;
             }
 
+            // Desde el umbral, el reverso exige la aprobación de Gerencia (una por reverso; se consume dentro de esta transacción).
+            $aprobacion = app(AprobacionReverso::class);
+            if ($aprobacion->requerida(self::leer($original->monto))) {
+                $aprobacion->consumir($original);
+            }
+
             $r = new TransaccionPago;
             $r->identificador = (string) Str::uuid();
             $r->obligacion_pago_id = $obligacion->id;

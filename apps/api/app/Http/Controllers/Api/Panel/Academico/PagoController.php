@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Panel\Academico;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CerrarCajaRequest;
 use App\Models\AuditLog;
 use App\Models\Matricula;
 use App\Models\MetodoPago;
 use App\Models\ObligacionPago;
 use App\Models\TransaccionPago;
 use App\Models\User;
+use App\Services\AprobacionReverso;
+use App\Services\CajaDiaria;
 use App\Services\ComprobantesPago;
 use App\Services\GestionPagos;
 use App\Services\PagosExcel;
@@ -52,11 +55,12 @@ final class PagoController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'comprobantes', 'show', 'deMatricula', 'verComprobante', 'recibo', 'cajaDiariaResumen', 'cajaDiariaPdf']),
+            new Middleware('permission:pagos.ver', only: ['metodos', 'index', 'comprobantes', 'show', 'deMatricula', 'verComprobante', 'recibo', 'cajaDiariaResumen', 'cajaDiariaPdf', 'cajaCierres']),
             new Middleware('permission:pagos.registrar', only: ['adjuntarComprobante', 'registrar', 'registrarDeMatricula', 'generarObligacion', 'verificarReferencia']),
             new Middleware('permission:pagos.planificar', only: ['crearObligacion', 'anular']),
             new Middleware('permission:pagos.confirmar', only: ['confirmar', 'rechazar']),
-            new Middleware('permission:pagos.reversar', only: ['reversar']),
+            new Middleware('permission:pagos.reversar', only: ['reversar', 'solicitarReverso']),
+            new Middleware('permission:pagos.cerrar_caja', only: ['cajaCerrar']),
             new Middleware('permission:pagos.exportar', only: ['exportar']),
         ];
     }
@@ -114,6 +118,8 @@ final class PagoController extends Controller implements HasMiddleware
     public function cajaDiariaPdf(Request $request): Response
     {
         $datos = $this->datosCajaDiaria($request);
+        // Lectura sensible (nombres y montos del día): solo se registra fecha y cantidad, nunca los movimientos.
+        AuditLog::record('caja_diaria_pdf', null, null, ['fecha' => $datos['fecha'], 'cantidad' => $datos['cantidad']], $request->user()?->id);
         $pdf = Pdf::loadView('pdf.caja-diaria', [
             'fechaCaja' => $datos['fecha'],
             'fechaEmision' => HoraLocal::ahora()->format('d/m/Y H:i'),
@@ -130,56 +136,32 @@ final class PagoController extends Controller implements HasMiddleware
         ]);
     }
 
-    /** @return array{fecha: string, cantidad: int, total: string, por_metodo: list<array{metodo: string, cantidad: int, total: string}>, movimientos: list<array{matricula_id: int, estudiante: string, metodo: string, referencia: string|null, monto: string}>} */
+    /** Cierres de caja ya hechos, el más reciente primero (hasta 31). */
+    public function cajaCierres(CajaDiaria $caja): JsonResponse
+    {
+        return response()->json(['data' => $caja->cierres()])->header('Cache-Control', 'no-store, private');
+    }
+
+    /** Cierra la caja de una fecha con lo contado por método (`pagos.cerrar_caja`). Un cierre por fecha; no se modifica. */
+    public function cajaCerrar(CerrarCajaRequest $request, CajaDiaria $caja): JsonResponse
+    {
+        $usuario = $request->user();
+        abort_unless($usuario instanceof User, 401);
+        $datos = $request->validated();
+        $observacion = $datos['observacion'] ?? null;
+
+        return response()->json(['data' => $caja->cerrar(
+            $usuario,
+            \App\Support\Entrada::texto($datos['fecha']),
+            \is_array($datos['declarado']) ? $datos['declarado'] : [],
+            \is_string($observacion) ? $observacion : null,
+        )], 201);
+    }
+
+    /** @return array{fecha: string, cantidad: int, cantidad_reversos: int, cobrado: string, reversado: string, total: string, por_metodo: list<array{codigo: string, metodo: string, cantidad: int, cantidad_reversos: int, cobrado: string, reversado: string, total: string}>, por_usuario: list<array{usuario: string, cantidad: int, total: string}>, movimientos: list<array{tipo: string, matricula_id: int, estudiante: string, metodo: string, referencia: string|null, monto: string}>, pendientes_por_confirmar: int, cierre: array<string, mixed>|null} */
     private function datosCajaDiaria(Request $request): array
     {
-        $fecha = ListFilter::date($request, 'fecha') ?: HoraLocal::hoy();
-
-        $txs = TransaccionPago::query()
-            ->where('tipo', 'pago')
-            ->where('estado', 'confirmada')
-            ->whereDate('fecha_pago', $fecha)
-            ->with(['metodo:id,nombre', 'obligacion.matricula.estudiante:id,nombres,apellidos'])
-            ->orderBy('id')
-            ->get();
-
-        $totalCentimos = 0;
-        $grupos = [];
-        $movimientos = [];
-
-        foreach ($txs as $tx) {
-            $centimos = GestionPagos::leer($tx->monto);
-            $totalCentimos += $centimos;
-            $metodo = $tx->metodo->nombre ?? 'Otro';
-            if (! isset($grupos[$metodo])) {
-                $grupos[$metodo] = ['metodo' => $metodo, 'cantidad' => 0, 'centimos' => 0];
-            }
-            $grupos[$metodo]['cantidad']++;
-            $grupos[$metodo]['centimos'] += $centimos;
-
-            $est = $tx->obligacion?->matricula?->estudiante;
-            $movimientos[] = [
-                'matricula_id' => $tx->obligacion->matricula_id ?? 0,
-                'estudiante' => $est ? trim($est->nombres.' '.$est->apellidos) : 'Estudiante',
-                'metodo' => $metodo,
-                'referencia' => $tx->referencia,
-                'monto' => GestionPagos::formato($centimos),
-            ];
-        }
-
-        $porMetodo = array_values(array_map(static fn (array $g): array => [
-            'metodo' => $g['metodo'],
-            'cantidad' => $g['cantidad'],
-            'total' => GestionPagos::formato($g['centimos']),
-        ], $grupos));
-
-        return [
-            'fecha' => $fecha,
-            'cantidad' => $txs->count(),
-            'total' => GestionPagos::formato($totalCentimos),
-            'por_metodo' => $porMetodo,
-            'movimientos' => $movimientos,
-        ];
+        return app(CajaDiaria::class)->resumen(ListFilter::date($request, 'fecha') ?: HoraLocal::hoy());
     }
 
     public function metodos(): JsonResponse
@@ -504,6 +486,18 @@ final class PagoController extends Controller implements HasMiddleware
         return $this->json(['message' => 'El pago se reversó.', 'data' => $this->detalle($t->obligacion()->firstOrFail())]);
     }
 
+    /** Solicita a Gerencia la aprobación del reverso de un pago desde el umbral configurado (motivo obligatorio). */
+    public function solicitarReverso(Request $request, string $transaccion, AprobacionReverso $aprobacion): JsonResponse
+    {
+        abort_unless(preg_match('/\A[0-9a-f-]{36}\z/i', $transaccion) === 1, 404);
+        $usuario = $request->user();
+        abort_unless($usuario instanceof User, 401);
+        $t = TransaccionPago::query()->where('identificador', strtolower($transaccion))->firstOrFail();
+        $aprobacion->solicitar($usuario, $t, $this->motivo($request));
+
+        return $this->json(['message' => 'Solicitud enviada a Gerencia. Cuando la aprueben podrás reversar el pago.', 'data' => $this->detalle($t->obligacion()->firstOrFail())], 201);
+    }
+
     /** `imagen`, `pdf` o `null` (sin comprobante). El navegador lo usa para elegir entre mostrar la captura o descargar el PDF. */
     private static function tipoComprobante(TransaccionPago $t): ?string
     {
@@ -666,6 +660,7 @@ final class PagoController extends Controller implements HasMiddleware
         $o->loadMissing(['matricula.estudiante', 'matricula.convocatoria', 'cuotas', 'transacciones.metodo', 'transacciones.reversaDe']);
         $pagado = $this->gestion->pagadoPorCuota($o);
         $repetidas = $this->gestion->imagenesRepetidas(array_values($o->transacciones->where('tipo', 'pago')->map(fn (TransaccionPago $t): int => $t->id)->all()));
+        $aprobacionesReverso = app(AprobacionReverso::class)->estados($o->transacciones);
 
         return [
             ...$this->resumen($o),
@@ -677,6 +672,8 @@ final class PagoController extends Controller implements HasMiddleware
                 return ['numero' => $c->numero, 'monto' => GestionPagos::formato($monto), 'vence' => substr((string) $c->vence, 0, 10), 'pagado' => GestionPagos::formato($p), 'saldo' => GestionPagos::formato(max(0, $monto - $p))];
             })->values()->all(),
             'transacciones' => $o->transacciones->map(fn (TransaccionPago $t): array => [
+                // Solo en pagos cuyo reverso exige aprobación (desde el umbral): `ninguna`, `pendiente`, `aprobado` o `rechazado`.
+                'reverso_aprobacion' => $aprobacionesReverso[$t->identificador]['estado'] ?? null,
                 'imagen_repetida' => $repetidas[$t->id] ?? null,
                 'identificador' => $t->identificador,
                 'tipo' => $t->tipo,

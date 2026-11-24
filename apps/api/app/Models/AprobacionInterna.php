@@ -27,6 +27,12 @@ class AprobacionInterna extends Model
 
     public const TIPO_OPERATIVO = 'operativo';
 
+    /** Solo la crea el servicio de reapertura de acta: no figura entre los tipos que un usuario puede elegir. */
+    public const TIPO_REAPERTURA_ACTA = 'reapertura_acta';
+
+    /** Solo la crea el servicio de aprobación de reversos de pago (desde el umbral configurado). */
+    public const TIPO_REVERSO_PAGO = 'reverso_pago';
+
     /**
      * Matriz de autoridad por tipo de solicitud:
      * - compra: Gerencia (rol admin)
@@ -37,6 +43,8 @@ class AprobacionInterna extends Model
     public const TIPOS_AUTORIDAD = [
         self::TIPO_COMPRA => 'admin',
         self::TIPO_OPERATIVO => 'coordinador',
+        self::TIPO_REAPERTURA_ACTA => 'admin',
+        self::TIPO_REVERSO_PAGO => 'admin',
     ];
 
     public const TIPOS_PERMITIDOS = [

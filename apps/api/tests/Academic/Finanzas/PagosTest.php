@@ -26,6 +26,8 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 // Ninguna prueba de este archivo puede escribir capturas en el disco real (`storage/app/private/comprobantes`).
 beforeEach(function (): void {
     Storage::fake('local');
+    // Estas pruebas cubren el reverso en sí; la aprobación por umbral tiene su propia prueba (AprobacionReversoTest).
+    config(['panel.aprobacion_reverso_umbral' => 0]);
 });
 
 function pagoMatricula(string $dni = '60000001'): Matricula

@@ -26,7 +26,7 @@
                     <span class="meta-value">{{ $cantidad }}</span>
                 </td>
                 <td style="width: 33%;">
-                    <span class="meta-label">Total recaudado</span>
+                    <span class="meta-label">Total neto (cobrado menos reversos)</span>
                     <span class="meta-value">{{ \App\Support\ConfiguracionSistema::monto($total) }}</span>
                 </td>
             </tr>
@@ -38,7 +38,8 @@
             <tr>
                 <th class="text-left">Método de pago</th>
                 <th class="text-right">Cantidad</th>
-                <th class="text-right">Subtotal</th>
+                <th class="text-right">Reversos</th>
+                <th class="text-right">Neto</th>
             </tr>
         </thead>
         <tbody>
@@ -46,11 +47,12 @@
                 <tr>
                     <td class="font-semibold">{{ $m['metodo'] }}</td>
                     <td class="text-right">{{ $m['cantidad'] }}</td>
+                    <td class="text-right">{{ $m['cantidad_reversos'] }}</td>
                     <td class="text-right">{{ \App\Support\ConfiguracionSistema::monto($m['total']) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="3" style="text-align: center; color: #64748b;">Sin pagos confirmados en esta fecha.</td>
+                    <td colspan="4" style="text-align: center; color: #64748b;">Sin pagos confirmados en esta fecha.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -72,7 +74,7 @@
                     <tr>
                         <td>#{{ $mov['matricula_id'] }}</td>
                         <td>{{ $mov['estudiante'] }}</td>
-                        <td>{{ $mov['metodo'] }}</td>
+                        <td>{{ $mov['metodo'] }}{{ $mov['tipo'] === 'reverso' ? ' (reverso)' : '' }}</td>
                         <td>{{ $mov['referencia'] ?? '—' }}</td>
                         <td class="text-right">{{ \App\Support\ConfiguracionSistema::monto($mov['monto']) }}</td>
                     </tr>

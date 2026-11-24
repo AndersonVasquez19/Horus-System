@@ -232,7 +232,14 @@ export function AccionesObligacion({ obligacion: o }: { obligacion: ObligacionDe
                   </>
                 ) : null}
                 {t.tipo === 'pago' && t.estado === 'confirmada' && !t.revertida && puedeReversar ? (
-                  <Boton variante="fantasma" icono={<Undo2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setMotivo({ tipo: 'reversar', destino: `academico/pagos/transacciones/${t.identificador}/reversar`, titulo: 'Reversar pago', boton: 'Reversar' })}>Reversar</Boton>
+                  // Desde el umbral, el reverso necesita la aprobación de Gerencia: primero se solicita; cuando la aprueban, se reversa.
+                  t.reverso_aprobacion === 'pendiente' ? (
+                    <Boton variante="fantasma" disabled icono={<Undo2 className="h-4 w-4" aria-hidden="true" />} title="Gerencia aún no resuelve la solicitud (Aprobaciones)">Aprobación pendiente</Boton>
+                  ) : t.reverso_aprobacion === 'ninguna' || t.reverso_aprobacion === 'rechazado' ? (
+                    <Boton variante="fantasma" icono={<Undo2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setMotivo({ tipo: 'reversar', destino: `academico/pagos/transacciones/${t.identificador}/reversar/solicitar`, titulo: 'Solicitar aprobación del reverso', boton: 'Solicitar aprobación' })}>Solicitar reverso</Boton>
+                  ) : (
+                    <Boton variante="fantasma" icono={<Undo2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setMotivo({ tipo: 'reversar', destino: `academico/pagos/transacciones/${t.identificador}/reversar`, titulo: 'Reversar pago', boton: 'Reversar' })}>Reversar</Boton>
+                  )
                 ) : null}
               </div>
             </li>
@@ -538,6 +545,103 @@ export function ComprobantesDeLaMatricula({ obligacion: o }: { obligacion: Oblig
   );
 }
 
+interface FilaCierreMetodo { codigo: string; metodo: string; cantidad: number; cantidad_reversos: number; total: string }
+interface ResumenCaja {
+  fecha: string;
+  cantidad: number;
+  cantidad_reversos: number;
+  cobrado: string;
+  reversado: string;
+  total: string;
+  pendientes_por_confirmar: number;
+  por_metodo: FilaCierreMetodo[];
+  cierre: { total_esperado: string; total_declarado: string; diferencia: string; cerrado_por: string | null } | null;
+}
+
+/** Cierre de caja del día (`pagos.cerrar_caja`): muestra lo esperado por método, pide lo contado y exige explicar una diferencia. */
+function BotonCerrarCaja() {
+  const puede = usePuede('pagos.cerrar_caja');
+  const { ejecutar } = useOperacionPanel();
+  const { mostrar } = useAvisos();
+  const [abierto, setAbierto] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [resumen, setResumen] = useState<ResumenCaja | null>(null);
+  const [contado, setContado] = useState<Record<string, string>>({});
+  const [observacion, setObservacion] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  if (!puede) return null;
+
+  async function abrir() {
+    setError(null);
+    setObservacion('');
+    setAbierto(true);
+    const r = await ejecutar<{ data: ResumenCaja }>('academico/pagos/caja-diaria/resumen', 'GET');
+    if (!r.ok) {
+      setError(r.error.message);
+      return;
+    }
+    setResumen(r.datos.data);
+    setContado(Object.fromEntries(r.datos.data.por_metodo.map((m) => [m.codigo, m.total])));
+  }
+
+  const diferenciaCentimos = resumen
+    ? resumen.por_metodo.reduce((t, m) => t + Math.round(Number(contado[m.codigo] || 0) * 100) - Math.round(Number(m.total) * 100), 0)
+    : 0;
+
+  async function cerrar() {
+    if (!resumen) return;
+    setOcupado(true);
+    setError(null);
+    const r = await ejecutar('academico/pagos/caja-diaria/cierre', 'POST', { fecha: resumen.fecha, declarado: contado, observacion: observacion.trim() || null });
+    setOcupado(false);
+    if (!r.ok) {
+      setError(r.error.message);
+      return;
+    }
+    mostrar('exito', `Caja del ${resumen.fecha} cerrada.`);
+    setAbierto(false);
+  }
+
+  return (
+    <>
+      <Boton variante="secundario" onClick={() => void abrir()}>Cerrar caja</Boton>
+      <Dialogo abierto={abierto} lado="derecha" titulo="Cierre de caja" descripcion="Cuenta lo recibido por método y compáralo con el libro de pagos. El cierre no se puede modificar." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+        {error ? <Alerta tipo="error">{error}</Alerta> : null}
+        {resumen === null ? (
+          error ? null : <p className="text-sm text-panel-muted">Cargando la caja del día…</p>
+        ) : resumen.cierre ? (
+          <Alerta tipo="aviso">
+            La caja del {resumen.fecha} ya fue cerrada{resumen.cierre.cerrado_por ? ` por ${resumen.cierre.cerrado_por}` : ''}: esperado {moneda(resumen.cierre.total_esperado)}, contado {moneda(resumen.cierre.total_declarado)}, diferencia {moneda(resumen.cierre.diferencia)}.
+          </Alerta>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-panel-text">
+              {resumen.fecha}: {resumen.cantidad} pago(s) por {moneda(resumen.cobrado)}, {resumen.cantidad_reversos} reverso(s) por {moneda(resumen.reversado)}. <strong>Neto {moneda(resumen.total)}</strong>.
+            </p>
+            {resumen.pendientes_por_confirmar > 0 ? (
+              <Alerta tipo="aviso">Hay {resumen.pendientes_por_confirmar} pago(s) pendiente(s) de confirmar de este día: no entran en el cierre.</Alerta>
+            ) : null}
+            {resumen.por_metodo.map((m) => (
+              <Campo
+                key={m.codigo}
+                etiqueta={`${m.metodo} contado (esperado ${moneda(m.total)})`}
+                inputMode="decimal"
+                value={contado[m.codigo] ?? ''}
+                onChange={(e) => setContado((c) => ({ ...c, [m.codigo]: normalizarImporte(e.target.value) }))}
+              />
+            ))}
+            <p className={`text-sm font-medium ${diferenciaCentimos === 0 ? 'text-panel-text' : 'text-estado-error'}`}>
+              Diferencia: {moneda((diferenciaCentimos / 100).toFixed(2))}
+            </p>
+            <Campo etiqueta={diferenciaCentimos === 0 ? 'Observación (opcional)' : 'Motivo de la diferencia (obligatorio)'} value={observacion} maxLength={500} onChange={(e) => setObservacion(e.target.value)} />
+            <Boton cargando={ocupado} onClick={() => void cerrar()}>Cerrar la caja</Boton>
+          </div>
+        )}
+      </Dialogo>
+    </>
+  );
+}
+
 /** Exporta las obligaciones a Excel (solo con `pagos.exportar`) conservando los filtros activos. */
 export function BotonExportarPagos({ filtros = '' }: { filtros?: string }) {
   const { descargar, ejecutar } = useOperacionPanel();
@@ -597,6 +701,7 @@ export function BotonExportarPagos({ filtros = '' }: { filtros?: string }) {
             <Boton variante="fantasma" icono={<Copy className="h-4 w-4" aria-hidden="true" />} onClick={() => void copiarResumenCaja()}>
               Copiar resumen caja
             </Boton>
+            <BotonCerrarCaja />
           </>
         ) : null}
         {puedeExportar ? <Boton variante="secundario" cargando={ocupado} onClick={() => void exportar()}>Exportar Excel</Boton> : null}

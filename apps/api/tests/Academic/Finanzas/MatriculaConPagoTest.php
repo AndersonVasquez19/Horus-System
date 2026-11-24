@@ -56,6 +56,8 @@ function cpDatos(Convocatoria $c, Estudiante $e, array $extra = []): array
 beforeEach(function (): void {
     Storage::fake('local');
     config(['horus-web.service_token' => 'token-de-servicio-del-bff-para-pruebas-0123456789']);
+    // Estas pruebas cubren el reverso en sí; la aprobación por umbral tiene su propia prueba (AprobacionReversoTest).
+    config(['panel.aprobacion_reverso_umbral' => 0]);
 });
 
 it('matricula, cobra, adjunta la captura y confirma en un solo paso, con el precio del curso por defecto', function (): void {
