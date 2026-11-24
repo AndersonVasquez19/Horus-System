@@ -139,6 +139,10 @@ class HorusAdvisorTest extends TestCase
         yield 'muchas gracias' => ['Muchas gracias', 'thanks', '¡Con gusto!'];
         yield 'adios' => ['Adiós', 'farewell', '¡Gracias por escribir'];
         yield 'capacidades' => ['¿Qué puedes hacer?', 'capabilities', 'Soy un asistente informativo'];
+        yield 'ok con curso en foco' => ['ok', 'acknowledgement', '¡Perfecto! ¿Quieres saber el horario, la modalidad o cómo matricularte?'];
+        yield 'ok sin contexto' => ['vale', 'acknowledgement', '¡Claro! ¿Qué te gustaría saber? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.'];
+        yield 'no gracias' => ['no', 'acknowledgement', 'Está bien. Si más adelante necesitas algo de Horus Group, aquí estaré.'];
+        yield 'no entendi' => ['no entendí', 'acknowledgement', 'Disculpa si no fui claro. Dime sobre qué tema necesitas ayuda y lo vemos paso a paso. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.'];
     }
 
     #[DataProvider('plantillasCortesia')]
@@ -158,6 +162,43 @@ class HorusAdvisorTest extends TestCase
         $answer = app(AsistenteVirtualService::class)->procesarMensaje($mensaje, 'sess-cortesia', 'public:browser');
         $this->assertSame('advisor', $answer['fuente']);
         $this->assertSame($reply['answer'], $answer['respuesta']);
+    }
+
+    public function test_every_conversational_glue_phrase_is_accepted_as_courtesy_without_sources(): void
+    {
+        $frases = [
+            '¡Perfecto! ¿Quieres saber el horario, la modalidad o cómo matricularte?',
+            '¡Genial! Si quieres, te cuento más sobre el horario, la modalidad o la matrícula. ¿Qué te interesa?',
+            'Entendido. ¿Quieres saber el horario, la modalidad o cómo matricularte?',
+            '¡Claro! ¿Qué te gustaría saber? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'Con gusto. Cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'Aquí estoy para ayudarte. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'Está bien. Si más adelante necesitas algo de Horus Group, aquí estaré.',
+            'De acuerdo. Cuando quieras retomar o consultar otra cosa, escríbeme.',
+            'Sin problema. Si te surge otra duda, con gusto te ayudo.',
+            'Con gusto te lo explico de nuevo. ¿Sobre qué curso o tema quieres que te cuente? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'Disculpa si no fui claro. Dime sobre qué tema necesitas ayuda y lo vemos paso a paso. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            '¡Me alegra! Cuando quieras, te ayudo con cursos, matrícula o cualquier consulta sobre Horus Group.',
+            'Con gusto. Si necesitas orientación sobre cursos o matrícula, dime.',
+            '¡Muy bien, gracias por preguntar! Soy un asistente automático y estoy listo para ayudarte. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'Todo en orden por aquí. Soy un asistente virtual; cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'No te preocupes, no hay problema. ¿En qué te puedo ayudar?',
+            'Tranquilo, está todo bien. Dime en qué te ayudo.',
+            'Me llegó un mensaje sin texto. ¿Qué te gustaría saber? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+            'No pude leer tu mensaje. Escríbeme tu consulta con palabras y te ayudo. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
+        ];
+        foreach ($frases as $i => $frase) {
+            $reply = [
+                'answer' => $frase, 'intent' => 'acknowledgement', 'mode' => 'lexical', 'match_level' => 'alta',
+                'abstained' => false, 'needs_clarification' => false, 'sources' => [], 'recommendations' => [],
+            ];
+            \Illuminate\Support\Facades\Cache::flush();
+            Http::swap(new \Illuminate\Http\Client\Factory);
+            Http::fake(['*/ready' => Http::response($this->ready()), '*/api/v1/chat' => Http::response($reply)]);
+            $answer = app(AsistenteVirtualService::class)->procesarMensaje('vale', 'sess-glue-'.$i, 'public:browser');
+            $this->assertSame('advisor', $answer['fuente'], $frase);
+            $this->assertSame($frase, $answer['respuesta']);
+        }
     }
 
     public function test_clarifications_validate_clarification_question_and_append_to_answer(): void

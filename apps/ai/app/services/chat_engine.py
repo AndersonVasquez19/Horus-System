@@ -35,6 +35,7 @@ from app.schemas.chat import (
 )
 from app.schemas.knowledge import KnowledgeRecord
 from app.services.catalog_documents import PublicFragment
+from app.services import conversation_glue as glue
 from app.services.contact import PublicContact
 from app.services.gemini import GeminiSelector
 from app.services.knowledge import KnowledgeBase
@@ -286,6 +287,77 @@ class AdvisorEngine:
                     continue  # "hola, quiero aprender redes" sigue al siguiente nivel
             return self._reply(answer=template.response, intent=template.name, match_level="alta")
         return None
+
+    # ------------------------------------------------------------------ pegamento conversacional
+    def _courtesy(self, options: tuple[str, ...], message: str) -> AdvisorReply:
+        """Frase de cortesía con variante estable: sin fuentes, cifras ni enlaces (Laravel la valida como cortesía)."""
+        return self._reply(answer=glue.variant(options, message), intent="acknowledgement", match_level="alta")
+
+    def _glue(
+        self, message: str, users: list[str], prior: _Prior | None
+    ) -> tuple[AdvisorReply | None, str]:
+        """Mensajes cortos que solo tienen sentido en una conversación: «ok», «sí», «el otro», «más barato»…
+
+        Devuelve (respuesta, mensaje). Si no hay respuesta directa, el mensaje puede venir reescrito para que siga el
+        flujo de seguimiento ya verificado («sí» con un curso en foco pide más detalles de ese curso). Nada se afirma
+        que la ficha publicada no tenga: el precio, por ejemplo, sigue derivándose a un asesor.
+        """
+        kind = glue.classify(message)
+        pick = glue.pick_of(message)
+        comparative = glue.comparative_of(message)
+        if kind is None and pick is None and comparative is None:
+            return None, message  # consulta normal: sin coste añadido
+        has_context = bool(users) or prior is not None
+        focus: list[KnowledgeRecord] = []
+        if has_context and kind not in {"empty", "laugh", "howareyou", "sorry", "no"}:
+            focus = list(prior.focus) if prior is not None else self._focus(users)
+
+        if kind == "empty":
+            return self._courtesy(glue.EMPTY_REPLY, message), message
+        if kind == "laugh":
+            return self._courtesy(glue.LAUGH_REPLY, message), message
+        if kind == "howareyou":
+            return self._courtesy(glue.HOWAREYOU_REPLY, message), message
+        if kind == "sorry":
+            return self._courtesy(glue.SORRY_REPLY, message), message
+        if kind == "no":
+            return self._courtesy(glue.NO_REPLY, message), message
+        if kind == "ack":
+            options = glue.ACK_WITH_FOCUS if focus else glue.ACK_NO_FOCUS
+            return self._courtesy(options, message), message
+        if kind in {"yes", "repeat"}:
+            if focus:
+                return None, "dame más detalles"  # sigue el flujo: detalles del curso en foco
+            options = glue.REPEAT_NO_FOCUS if kind == "repeat" else glue.ACK_NO_FOCUS
+            return self._courtesy(options, message), message
+
+        if focus:
+            options = focus
+            if len(focus) == 1 and focus[0].id == "cat_listado_formacion":
+                # «Qué cursos tienen» deja como foco la lista; «el primero» se refiere al primero de esa lista.
+                options = [r for r in self.kb.records if r.source.kind == "catalogo_laravel" and r.status == "verified"
+                           and r.kind in {"course", "training_program"}][:15]
+            chosen: KnowledgeRecord | None = None
+            if pick == "first":
+                chosen = options[0] if options else None
+            elif pick == "second" and len(options) >= 2:
+                chosen = options[1]
+            elif pick == "other" and len(options) >= 2 and options is focus:
+                chosen = options[1]  # el turno anterior comparó dos opciones concretas
+            elif pick == "other" and len(focus) == 1 and focus[0].id != "cat_listado_formacion":
+                # Un solo curso en foco: «el otro» solo es claro si hay exactamente otro curso publicado.
+                others = [r for r in self.kb.records if r.source.kind == "catalogo_laravel" and r.status == "verified"
+                          and r.kind in {"course", "training_program"} and r.id != focus[0].id]
+                chosen = others[0] if len(others) == 1 else None
+            elif pick == "last" and len(options) >= 2:
+                chosen = options[-1]
+            if chosen is not None:
+                return self._focus_reference([chosen]), message
+
+        if comparative is not None:
+            rewritten = {"price": "cuánto cuesta", "duration": "cuánto dura", "schedule": "cuál es el horario"}[comparative]
+            return None, rewritten
+        return None, message
 
     # ------------------------------------------------------------------ búsqueda
     def _answer_from_hits(self, hits: list[Hit], query_terms: set[str]) -> AdvisorReply:
@@ -852,6 +924,10 @@ class AdvisorEngine:
         # El historial, si llega, manda; el estado estructurado lo sustituye cuando el cliente no guarda texto.
         prior = self._prior(state) if depth == 0 and not users else None
         early = self._safety(message) or self._rules(message)
+        if early is None:
+            # También en los turnos que se reconstruyen desde el historial: así «el primero» deja el mismo foco
+            # con el historial que con el estado.
+            early, message = self._glue(message, users, prior)
         if early is None and not content_tokens(message):
             early = self._clarify([])
         if early is not None:

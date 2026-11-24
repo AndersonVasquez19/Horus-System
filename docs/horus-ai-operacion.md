@@ -147,3 +147,14 @@ Primero apagar Advisor en el proceso web y aplicar correctamente su configuraci�
 No restaurar automáticamente un catálogo antiguo firmado: puede contener contenido retirado o estar vencido. Conservarlo para diagnóstico, mantener web apagado y pedir a Laravel actual un snapshot nuevo firmado/versionado. Python mantiene la última versión válida ante error, pero no debe servirla si no supera readiness/versión/caducidad. Si un job caducó, crear uno nuevo; evitar queue:retry all. No vaciar caché global ni cola de otros módulos. El cambio de versiones invalida las respuestas según la política existente.
 
 Reiniciar FastAPI de forma controlada bajo el gestor elegido y esperar reconstrucción; reiniciar worker tras resolver configuración/TTL, verificar heartbeat, pendientes/fallidos y confirmación de catálogo. No extender los límites para esconder cargas excesivas. Si no se recupera en la ventana acordada, mantener contingencia y escalar. Reversión de esquema o datos PostgreSQL no forma parte de E y requiere autorización independiente.
+
+## Conversación fluida (24/11/2026)
+
+Mensajes cortos que solo tienen sentido dentro de una conversación se resuelven en `apps/ai/app/services/conversation_glue.py` y `AdvisorEngine._glue`, sin librerías nuevas ni texto del usuario en el estado:
+
+- «ok / vale / entiendo», «no / así está bien», «jaja», «cómo estás», «perdón», mensajes vacíos o solo emojis y «no entendí / repite»: respuesta de cortesía con variante estable (hash del mensaje), intención `acknowledgement`, sin fuentes. Con un curso en foco, «ok» ofrece el siguiente paso.
+- «sí», «dale», «cuéntame», «repite»: con un curso en foco se reescriben a «dame más detalles» y siguen el flujo verificado de seguimiento; sin foco reconducen con la lista de temas.
+- «el primero / la segunda / el último» eligen de la lista que dejó «qué cursos tienen»; «el otro» elige el segundo de dos opciones comparadas o el único otro curso publicado.
+- «más barato / más corto / más temprano» se reescriben a la pregunta de precio, duración u horario: el precio sigue derivándose a un asesor.
+- Laravel acepta `acknowledgement` como cortesía sin fuentes (`HorusAdvisorClient::respuestaValida`); las frases no llevan cifras, enlaces ni nombres (prueba `test_every_conversational_glue_phrase_is_accepted_as_courtesy_without_sources`).
+- El widget ya no reescribe las consultas con «del curso X» (`contextualizarConsulta` se retiró): el foco lo lleva solo el estado firmado del servidor (300 s).

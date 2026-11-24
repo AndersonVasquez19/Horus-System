@@ -477,35 +477,6 @@ export function ChatWidget() {
     return resultado;
   }
 
-  function contextualizarConsulta(text: string): string {
-    const curso = cursoEnFocoRef.current;
-    if (!curso) return text;
-    const norm = text
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    const cursoNorm = curso
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    // Si el usuario ya nombró el curso o cambia a una pregunta plural sobre «los cursos», no forzamos el curso único.
-    if (norm.includes(cursoNorm)) {
-      return text;
-    }
-    if (/\b(?:los|las|todos|todas|ambos|cuales son los|que|compara|comparar|comparame|diferencia)\s+(?:cursos|capacitaciones)\b/.test(norm)) {
-      actualizarCursoEnFoco(null);
-      return text;
-    }
-    const preguntaSobreCurso =
-      /\b(?:horario|horarios|modalidad|presencial|virtual|semipresencial|hibrido|duracion|dura|inicio|empieza|inicia|fecha|fechas|certificado|certificacion|temario|contenido|contenidos|requisitos|precio|costo|cuanto|cupos|vacantes|matricula|matricularme|inscribirme|inscripcion|detalle|detalles|mas informacion|mas info|de que trata|en que consiste)\b/.test(
-        norm
-      );
-    if (preguntaSobreCurso && text.length <= 160) {
-      return `${text} del curso ${curso}`.slice(0, MAX_MENSAJE);
-    }
-    return text;
-  }
-
   const enviarConsulta = async (text: string) => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setMessages((prev) => [
@@ -520,7 +491,8 @@ export function ChatWidget() {
       return;
     }
     setSending(true);
-    const consultaEfectiva = contextualizarConsulta(text);
+    // El foco de la conversación lo lleva el servidor (estado firmado): el cliente ya no reescribe la consulta.
+    const consultaEfectiva = text;
     const resultado = await consultarConReintento(consultaEfectiva);
     let botMsg: Message;
     if (resultado.ok) {

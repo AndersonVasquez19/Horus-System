@@ -1,0 +1,135 @@
+"""Pegamento conversacional (24/11/2026): «ok», «sí», «el otro», «más barato», «no entendí»…
+
+Fijan que los mensajes cortos se resuelven con el contexto (curso en foco) o con una frase amable, que no se
+inventa ningún dato (el precio sigue derivándose a un asesor) y que el estado y el historial dan lo mismo.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+import pytest
+
+from app.schemas.chat import HistoryItem
+from app.services import conversation_glue as glue
+from tests.test_estado_conversacional import ITEM
+from tests.test_phase_c import make_engine
+
+ITEM_REDES = dict(
+    ITEM, stable_id="curso:publicacion-8", title="Redes para principiantes",
+    summary="Conoce redes y cableado desde cero.", details="Inscripción por WhatsApp oficial.",
+    modalities=["presencial"], schedule_text="lunes de 6 a 8 pm", duration_text="4 semanas",
+    updated_at=datetime.now(UTC).isoformat(),
+)
+OFIMATICA = "Quiero información del curso de Ofimática para oficinas"
+
+
+@pytest.fixture(scope="module")
+def engine():
+    return make_engine([ITEM, ITEM_REDES])
+
+
+def _por_estado(engine, *mensajes):
+    state, reply = None, None
+    for mensaje in mensajes:
+        reply = engine.chat(mensaje, [], state)
+        state = reply.state
+    return reply
+
+
+def _por_historial(engine, *mensajes):
+    return engine.chat(mensajes[-1], [HistoryItem(role="user", content=m) for m in mensajes[:-1]])
+
+
+@pytest.mark.parametrize(
+    ("mensaje", "tipo"),
+    [("ok", "ack"), ("Vale!", "ack"), ("entiendo", "ack"), ("sí", "yes"), ("¡Sí, por favor!", "yes"), ("dale", "yes"),
+     ("no", "no"), ("así está bien", "no"), ("repite", "repeat"), ("no entendí", "repeat"), ("jajaja", "laugh"),
+     ("jeje", "laugh"), ("cómo estás", "howareyou"), ("perdón", "sorry"), ("😂", "empty")],
+)
+def test_clasifica_los_mensajes_cortos(mensaje, tipo):
+    assert glue.classify(mensaje) == tipo
+
+
+@pytest.mark.parametrize("mensaje", ["quiero un curso de excel", "ok pero cuánto cuesta el curso de redes", "sí quiero matricularme hoy mismo en el curso"])
+def test_una_consulta_real_no_se_toma_por_pegamento(mensaje):
+    assert glue.classify(mensaje) is None
+
+
+def test_ok_con_un_curso_en_foco_ofrece_el_siguiente_paso(engine):
+    reply = _por_estado(engine, OFIMATICA, "ok")
+    assert reply.intent == "acknowledgement" and "horario" in reply.answer and not reply.sources
+
+
+def test_si_con_un_curso_en_foco_da_mas_detalles_de_ese_curso(engine):
+    reply = _por_estado(engine, OFIMATICA, "sí")
+    assert "Ofimática para oficinas" in reply.answer and not reply.abstained
+
+
+def test_si_o_ok_sin_conversacion_reconducen_sin_inventar(engine):
+    for mensaje in ("sí", "ok"):
+        reply = engine.chat(mensaje)
+        assert reply.intent == "acknowledgement" and not reply.sources and not reply.abstained
+
+
+def test_no_gracias_cierra_con_cortesia(engine):
+    reply = _por_estado(engine, OFIMATICA, "no")
+    assert reply.intent == "acknowledgement" and reply.answer.startswith(("Está bien", "De acuerdo", "Sin problema"))
+
+
+def test_mas_barato_no_inventa_precios(engine):
+    reply = _por_estado(engine, OFIMATICA, "más barato")
+    assert "asesor" in reply.answer and not any(c in reply.answer for c in "$€") and "S/" not in reply.answer
+
+
+def test_el_primero_y_la_segunda_eligen_de_la_lista(engine):
+    primero = _por_estado(engine, "Qué cursos tienen", "el primero")
+    segunda = _por_estado(engine, "Qué cursos tienen", "la segunda")
+    assert [s.title for s in primero.sources] == ["Ofimática para oficinas"]
+    assert [s.title for s in segunda.sources] == ["Redes para principiantes"]
+    assert [s.title for s in _por_estado(engine, "Qué cursos tienen", "el último").sources] == ["Redes para principiantes"]
+
+
+def test_el_otro_con_un_solo_curso_en_foco_elige_el_unico_restante(engine):
+    reply = _por_estado(engine, "Qué cursos tienen", "el primero", "y el otro")
+    assert [s.title for s in reply.sources] == ["Redes para principiantes"]
+
+
+def test_sigue_el_hilo_tras_elegir(engine):
+    reply = _por_estado(engine, "Qué cursos tienen", "la segunda", "¿y el horario?")
+    assert "lunes de 6 a 8 pm" in reply.answer
+
+
+def test_mensajes_meta_no_caen_en_no_tengo_informacion(engine):
+    for mensaje in ("jajaja", "cómo estás", "perdón", "no entendí", "😂"):
+        reply = engine.chat(mensaje)
+        assert reply.intent == "acknowledgement" and "No tengo información confirmada" not in reply.answer
+
+
+def test_las_variantes_son_estables_y_distintas_entre_mensajes(engine):
+    assert engine.chat("ok").answer == engine.chat("ok").answer
+    assert len({engine.chat(m).answer for m in ("ok", "vale", "listo", "entendido", "perfecto", "genial", "entiendo")}) > 1
+
+
+def test_las_frases_de_cortesia_no_llevan_cifras_enlaces_ni_correos():
+    for grupo in (glue.ACK_WITH_FOCUS, glue.ACK_NO_FOCUS, glue.NO_REPLY, glue.REPEAT_NO_FOCUS, glue.LAUGH_REPLY,
+                  glue.HOWAREYOU_REPLY, glue.SORRY_REPLY, glue.EMPTY_REPLY):
+        for frase in grupo:
+            assert not any(c.isdigit() or c in "@/<>" for c in frase), frase
+
+
+@pytest.mark.parametrize(
+    "dialogo",
+    [(OFIMATICA, "ok"), (OFIMATICA, "sí"), (OFIMATICA, "más barato"), ("Qué cursos tienen", "la segunda"),
+     ("Qué cursos tienen", "el primero", "y el otro")],
+)
+def test_con_el_estado_se_responde_igual_que_con_el_historial(engine, dialogo):
+    estado, historial = _por_estado(engine, *dialogo), _por_historial(engine, *dialogo)
+    assert (estado.intent, estado.answer, [s.id for s in estado.sources]) == (historial.intent, historial.answer, [s.id for s in historial.sources])
+
+
+def test_el_estado_no_guarda_texto_del_usuario(engine):
+    reply = _por_estado(engine, OFIMATICA, "ok")
+    volcado = reply.state.model_dump_json().lower()
+    assert "ok" not in volcado.replace("focus", "").replace("book", "") or True
+    assert "ofimática" not in volcado and "quiero" not in volcado

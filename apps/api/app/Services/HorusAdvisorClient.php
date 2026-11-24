@@ -809,8 +809,9 @@ class HorusAdvisorClient
             return false;
         }
 
-        // Intenciones de cortesía/capacidades no requieren fuentes
-        $esPlantillaCortesia = in_array($reply['intent'], ['greeting', 'thanks', 'farewell', 'capabilities'], true);
+        // Intenciones de cortesía/capacidades no requieren fuentes. `acknowledgement` agrupa el pegamento conversacional
+        // («ok», «sí», «no, gracias», «jaja», «no entendí»): frases sin cifras, enlaces ni nombres, ya revisadas arriba.
+        $esPlantillaCortesia = in_array($reply['intent'], ['greeting', 'thanks', 'farewell', 'capabilities', 'acknowledgement'], true);
         if ($esPlantillaCortesia) {
             return $reply['sources'] === [] && $reply['recommendations'] === [] && ! $reply['abstained'] && ! $reply['needs_clarification'];
         }
