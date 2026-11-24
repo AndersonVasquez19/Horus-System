@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Models\SesionClase;
+use App\Support\Entrada;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -178,6 +179,63 @@ class GestionAsistencias
         })->values()->all();
 
         return ['sesiones_realizadas' => $realizadas->count(), 'matriculas' => array_values($filas)];
+    }
+
+    /**
+     * Promedio de asistencia de VARIAS ediciones con tres consultas en total (el tablero lo pide para hasta ocho). Aplica la misma
+     * regla que {@see self::resumen()}: porcentaje por matrícula vigente con dos decimales y promedio de los que tienen porcentaje,
+     * con un decimal; sin porcentajes computables, `null`. {@see self::resumen()} sigue siendo la fuente para el detalle por matrícula.
+     *
+     * @param  array<int, int>  $convocatoriaIds
+     * @return array<int, array{sesiones_realizadas: int, matriculados: int, promedio: float|null}>
+     */
+    public function promediosPorEdicion(array $convocatoriaIds): array
+    {
+        if ($convocatoriaIds === []) {
+            return [];
+        }
+
+        $realizadas = DB::table('sesiones_clase')->whereIn('convocatoria_id', $convocatoriaIds)->where('estado', 'realizada')
+            ->selectRaw('convocatoria_id, COUNT(*) as total')->groupBy('convocatoria_id')->pluck('total', 'convocatoria_id');
+        $matriculas = DB::table('matriculas')->whereIn('convocatoria_id', $convocatoriaIds)->where('estado', '!=', 'anulada')
+            ->whereNull('deleted_at')->get(['id', 'convocatoria_id']);
+        // Solo cuentan las sesiones realizadas de la MISMA edición de la matrícula (una matrícula trasladada conserva marcas de la anterior).
+        $marcas = DB::table('asistencias as a')->join('sesiones_clase as s', 's.id', '=', 'a.sesion_clase_id')
+            ->whereIn('s.convocatoria_id', $convocatoriaIds)->where('s.estado', 'realizada')
+            ->selectRaw('a.matricula_id, s.convocatoria_id, a.estado, COUNT(*) as total')->groupBy('a.matricula_id', 's.convocatoria_id', 'a.estado')->get();
+
+        /** @var array<string, int> $conteo clave "matrícula:edición:estado" */
+        $conteo = [];
+        foreach ($marcas as $m) {
+            $conteo[$m->matricula_id.':'.$m->convocatoria_id.':'.$m->estado] = Entrada::entero($m->total);
+        }
+
+        $resultado = [];
+        foreach ($convocatoriaIds as $id) {
+            $hechas = Entrada::entero($realizadas[$id] ?? 0);
+            $porcentajes = [];
+            $matriculados = 0;
+            foreach ($matriculas as $matricula) {
+                if ((int) $matricula->convocatoria_id !== $id) {
+                    continue;
+                }
+                $matriculados++;
+                $clave = $matricula->id.':'.$id.':';
+                $justificadas = $conteo[$clave.'justificada'] ?? 0;
+                $asistidas = ($conteo[$clave.'presente'] ?? 0) + ($conteo[$clave.'tardanza'] ?? 0);
+                $base = $hechas - $justificadas;
+                if ($base > 0) {
+                    $porcentajes[] = round($asistidas / $base * 100, 2);
+                }
+            }
+            $resultado[$id] = [
+                'sesiones_realizadas' => $hechas,
+                'matriculados' => $matriculados,
+                'promedio' => $porcentajes === [] ? null : round(array_sum($porcentajes) / count($porcentajes), 1),
+            ];
+        }
+
+        return $resultado;
     }
 
     /**

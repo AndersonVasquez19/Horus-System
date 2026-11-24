@@ -190,7 +190,10 @@ it('busca por DNI, nombre, código y número en todos los módulos y enlaza con 
     expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=81000002')->json('data.grupos.estudiantes.0.texto'))->toBe('Rojas, Luis');
     expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=CNV-2026-8001')->json('data.grupos.ediciones.0.identificador'))->toBe($porCerrar->identificador);
     expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=Excel')->json('data.grupos.ediciones'))->toHaveCount(2);
-    expect($this->panelComo($admin, 'GET', 'academico/busqueda?q=CERT-2026-0001')->json('data.grupos'))->not->toHaveKey('certificados');
+    // Los certificados también se buscan (permiso `certificados.ver`); el escenario no emite ninguno.
+    $porCodigo = $this->panelComo($admin, 'GET', 'academico/busqueda?q=CERT-2026-0001')->json('data.grupos');
+    expect($porCodigo)->toHaveKey('certificados');
+    expect($porCodigo['certificados'])->toBeEmpty();
 });
 
 it('la búsqueda respeta permisos, el mínimo de caracteres y trata % como texto', function (): void {

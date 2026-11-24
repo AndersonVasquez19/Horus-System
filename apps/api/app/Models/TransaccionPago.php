@@ -18,7 +18,16 @@ class TransaccionPago extends Model
 {
     protected $table = 'transacciones_pago';
 
-    protected $guarded = [];
+    /**
+     * Lista cerrada: `id` y cualquier columna futura nunca se asignan en masa. {@see \App\Services\GestionPagos}
+     * asigna los atributos uno a uno; no se debe llenar este modelo desde una petición.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'identificador', 'obligacion_pago_id', 'metodo_pago_id', 'tipo', 'estado', 'monto', 'fecha_pago', 'referencia', 'motivo',
+        'reversa_de_id', 'clave_idempotencia', 'huella', 'registrado_por', 'resuelto_por', 'resuelto_en',
+    ];
 
     protected $hidden = ['id', 'obligacion_pago_id', 'metodo_pago_id', 'reversa_de_id', 'clave_idempotencia', 'huella', 'registrado_por', 'resuelto_por'];
 

@@ -11,7 +11,8 @@ class MetodoPago extends Model
 {
     protected $table = 'metodos_pago';
 
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = ['codigo', 'nombre', 'activo'];
 
     protected $hidden = ['id'];
 

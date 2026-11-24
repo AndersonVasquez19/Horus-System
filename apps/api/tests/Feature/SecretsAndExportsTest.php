@@ -149,7 +149,7 @@ class SecretsAndExportsTest extends TestCase
         $this->assertEqualsCanonicalizing(
             [
                 'users', 'estudiantes', 'cursos', 'convocatorias', 'matriculas',
-                'sesiones_clase', 'asistencias', 'evaluaciones', 'calificaciones',
+                'sesiones_clase', 'asistencias', 'evaluaciones', 'calificaciones', 'certificados',
                 'obligaciones_pago', 'cuotas_obligacion', 'transacciones_pago',
                 'reclamaciones', 'mensajes_contacto',
                 'notificaciones_internas', 'audit_logs', 'system_settings', 'aprobaciones_internas',

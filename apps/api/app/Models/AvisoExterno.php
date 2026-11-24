@@ -33,7 +33,12 @@ class AvisoExterno extends Model
 {
     protected $table = 'avisos_externos';
 
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = [
+        'canal', 'tipo', 'clave_unica', 'delivery_key', 'status', 'attempts', 'uncertain', 'user_id', 'estudiante_id', 'payload',
+        'first_attempt_at', 'available_at', 'dispatched_until', 'lease', 'provider_id', 'provider_status', 'delivered_at',
+        'bounced_at', 'last_error',
+    ];
 
     protected $hidden = ['payload'];
 

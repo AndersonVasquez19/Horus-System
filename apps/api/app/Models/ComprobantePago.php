@@ -11,7 +11,8 @@ class ComprobantePago extends Model
 {
     protected $table = 'comprobantes_pago';
 
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = ['transaccion_pago_id', 'ruta', 'mime', 'tamano', 'sha256', 'subido_por'];
 
     protected $hidden = ['id', 'transaccion_pago_id', 'ruta', 'subido_por'];
 }

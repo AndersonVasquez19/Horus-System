@@ -11,7 +11,8 @@ class CuotaObligacion extends Model
 {
     protected $table = 'cuotas_obligacion';
 
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = ['obligacion_pago_id', 'numero', 'monto', 'vence'];
 
     protected $hidden = ['id', 'obligacion_pago_id'];
 }

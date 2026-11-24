@@ -21,7 +21,15 @@ class ObligacionPago extends Model
 
     protected $table = 'obligaciones_pago';
 
-    protected $guarded = [];
+    /**
+     * Lista cerrada: `id` y cualquier columna futura nunca se asignan en masa. {@see GestionPagos} asigna los
+     * atributos uno a uno; no se debe llenar este modelo desde una petición.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'identificador', 'matricula_id', 'concepto', 'plan', 'monto_total', 'moneda', 'estado', 'motivo_anulacion', 'creado_por',
+    ];
 
     protected $hidden = ['id', 'matricula_id', 'creado_por'];
 

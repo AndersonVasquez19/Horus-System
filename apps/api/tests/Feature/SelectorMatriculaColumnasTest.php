@@ -56,7 +56,7 @@ class SelectorMatriculaColumnasTest extends TestCase
 
         $cursos = $this->panelMatriculas('GET', 'opciones/cursos', ['contexto' => 'crear'])->assertOk();
         $cursos->assertExactJson(['data' => [
-            ['id' => Curso::query()->value('id'), 'texto' => 'COD-SEL-1 · Curso Selector (3 cupos)', 'eliminado' => false],
+            ['id' => Curso::query()->value('id'), 'texto' => 'COD-SEL-1 · Curso Selector (3 cupos)', 'precio' => '10.00', 'eliminado' => false],
         ]]);
         $this->assertStringNotContainsString('Descripcion privada del curso', $cursos->getContent());
     }

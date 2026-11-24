@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { History, RotateCcw } from 'lucide-react';
 import { Suspense } from 'react';
+import { CopiasBaseDatos, type CopiaBaseDatos } from '@/components/compartido/copias-base-datos';
 import { ExportarRespaldo, type SeccionRespaldo } from '@/components/compartido/exportar-respaldo';
+import { SaludSistema, type ResumenSalud } from '@/components/compartido/salud-sistema';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido } from '@/components/shared/ui/estados';
@@ -32,6 +34,45 @@ export default function RespaldoPage() {
   );
 }
 
+/**
+ * Salud del sistema y copias de la base de datos. Ambos recursos exigen `respaldo.exportar` en Laravel: quien no lo tiene
+ * (p. ej. el coordinador, que sí ve la exportación de tablas) simplemente no ve estas secciones.
+ */
+async function Operacion() {
+  const [salud, copias] = await Promise.all([
+    consultarPanel<{ data: ResumenSalud }>('compartido/salud', '/admin/academico/respaldo'),
+    consultarPanel<{ data: { copias: CopiaBaseDatos[]; programado: boolean; retencion_dias: number; minimo: number } }>(
+      'compartido/respaldo/copias',
+      '/admin/academico/respaldo',
+    ),
+  ]);
+  if (salud.estado === 'prohibido' || copias.estado === 'prohibido') return null;
+
+  return (
+    <>
+      <Seccion id="titulo-salud" titulo="Salud del sistema" descripcion="Base de datos, tareas programadas, cola, disco y respaldo.">
+        {salud.estado === 'ok' ? (
+          <SaludSistema resumen={salud.datos.data} />
+        ) : (
+          <p className="text-sm text-panel-muted">No se pudo consultar la salud del sistema. Inténtalo de nuevo en unos minutos.</p>
+        )}
+      </Seccion>
+      <Seccion id="titulo-copias" titulo="Copias de la base de datos" descripcion="Respaldos locales con suma de verificación. Solo el administrador puede descargarlos.">
+        {copias.estado === 'ok' ? (
+          <CopiasBaseDatos
+            copias={copias.datos.data.copias}
+            programado={copias.datos.data.programado}
+            retencionDias={copias.datos.data.retencion_dias}
+            minimo={copias.datos.data.minimo}
+          />
+        ) : (
+          <p className="text-sm text-panel-muted">No se pudieron consultar las copias. Inténtalo de nuevo en unos minutos.</p>
+        )}
+      </Seccion>
+    </>
+  );
+}
+
 async function Contenido() {
   const resultado = await consultarPanel<{
     data: { contenido: SeccionRespaldo[]; historial?: RegistroExportacion[]; aviso: string };
@@ -53,6 +94,9 @@ async function Contenido() {
         </div>
 
         <div className="space-y-6">
+          <Suspense fallback={null}>
+            <Operacion />
+          </Suspense>
           <Seccion
             id="titulo-ultimas-exportaciones"
             titulo="Últimas exportaciones"

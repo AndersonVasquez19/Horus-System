@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Panel\Academico;
 
 use App\Exceptions\ConsultaDniException;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Estudiante;
 use App\Models\User;
 use App\Services\JsonPeService;
@@ -42,15 +43,19 @@ final class ConsultaDniController extends Controller implements HasMiddleware
             ],
         );
 
+        /** @var User $usuario */
+        $usuario = $request->user();
+
+        // Consulta de datos personales a un servicio externo: se audita quién y con qué resultado, nunca el DNI ni los datos.
         try {
             $persona = $this->jsonPe->consultarDni($datos['dni']);
         } catch (ConsultaDniException $e) {
+            AuditLog::record('consulta_dni', null, null, ['resultado' => 'error', 'codigo' => $e->codigoError], $usuario->id);
+
             return response()->json(['message' => $e->getMessage(), 'code' => $e->codigoError], $e->estado)
                 ->header('Cache-Control', 'no-store, private');
         }
-
-        /** @var User $usuario */
-        $usuario = $request->user();
+        AuditLog::record('consulta_dni', null, null, ['resultado' => 'ok'], $usuario->id);
         $respuesta = [
             ...$persona,
             'apellidos' => trim($persona['apellido_paterno'].' '.$persona['apellido_materno']),

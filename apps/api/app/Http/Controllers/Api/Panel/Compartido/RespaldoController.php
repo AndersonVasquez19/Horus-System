@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Panel\Compartido;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Services\RespaldoLocal;
 use App\Support\Entrada;
 use App\Support\GeneraExportacionAdministrativa;
 use App\Support\HoraLocal;
@@ -14,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -91,7 +93,7 @@ class RespaldoController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('permission:respaldo.ver', only: ['index']),
-            new Middleware('permission:respaldo.exportar', only: ['exportar']),
+            new Middleware('permission:respaldo.exportar', only: ['exportar', 'copias', 'descargarCopia']),
         ];
     }
 
@@ -142,6 +144,47 @@ class RespaldoController extends Controller implements HasMiddleware
             'es_respaldo_restaurable' => false,
             'aviso' => 'Resumen de la información principal del sistema. No incluye contraseñas ni claves de acceso y no permite restaurar el sistema.',
         ]]);
+    }
+
+    /**
+     * Copias locales de la base de datos (`horus:respaldo`). Solo `respaldo.exportar` (admin por defecto): un volcado
+     * contiene todos los datos. No se expone ninguna ruta del servidor.
+     */
+    public function copias(RespaldoLocal $respaldo): JsonResponse
+    {
+        $copias = array_map(static fn (array $c): array => [
+            'nombre' => $c['nombre'],
+            'bytes' => $c['bytes'],
+            'fecha_local' => HoraLocal::formato(Carbon::createFromTimestamp($c['creado'])),
+            'sha256' => $c['sha256'],
+        ], $respaldo->listar());
+
+        return response()->json(['data' => [
+            'copias' => $copias,
+            'programado' => config('respaldo.programado') === true,
+            'retencion_dias' => config('respaldo.retencion_dias'),
+            'minimo' => config('respaldo.minimo'),
+        ]])->header('Cache-Control', 'no-store, private');
+    }
+
+    /** Descarga una copia. Comprueba la suma SHA-256 antes de entregarla y audita quién la descargó. */
+    public function descargarCopia(Request $request, RespaldoLocal $respaldo, string $nombre): JsonResponse|BinaryFileResponse
+    {
+        $ruta = $respaldo->ruta($nombre);
+        abort_if($ruta === null, 404);
+
+        if (! $respaldo->verificar($nombre)) {
+            AuditLog::record('respaldo_copia_rechazada', null, null, ['nombre' => $nombre, 'motivo' => 'suma_no_coincide'], $request->user()?->id);
+
+            return response()->json(['message' => 'La copia no superó la verificación de integridad y no se descargó.'], 409);
+        }
+        AuditLog::record('respaldo_copia_descargada', null, null, ['nombre' => $nombre], $request->user()?->id);
+
+        return response()->download($ruta, $nombre, [
+            'Content-Type' => 'application/octet-stream',
+            'Cache-Control' => 'no-store, private',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function exportar(Request $request): JsonResponse|BinaryFileResponse

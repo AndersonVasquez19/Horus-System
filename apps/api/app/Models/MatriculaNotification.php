@@ -12,7 +12,11 @@ use Illuminate\Support\Carbon;
  */
 class MatriculaNotification extends Model
 {
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = [
+        'matricula_id', 'delivery_key', 'status', 'attempts', 'uncertain', 'payload', 'first_attempt_at', 'available_at',
+        'dispatched_until', 'lease', 'provider_id', 'provider_status', 'delivered_at', 'bounced_at', 'last_error',
+    ];
 
     protected $hidden = ['payload'];
 

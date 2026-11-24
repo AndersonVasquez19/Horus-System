@@ -15,6 +15,7 @@ use App\Support\SafeSpreadsheet;
 use App\Support\SpreadsheetCellCache;
 use App\Support\TemporaryExportFile;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -284,21 +285,23 @@ final class ReportesMatriculas
             });
         }
 
-        $asistencias = app(GestionAsistencias::class);
         $filas = [];
         $totalSesiones = 0;
         $totalMatriculados = 0;
         $promedios = [];
 
-        foreach ($query->get() as $conv) {
-            $res = $asistencias->resumen($conv);
-            $porcentajes = collect($res['matriculas'])->pluck('porcentaje')->filter(fn ($v): bool => $v !== null);
-            $promedio = $porcentajes->isEmpty() ? null : round((float) $porcentajes->avg(), 1);
+        $ediciones = $query->get();
+        // Tres consultas para todas las ediciones (antes, varias por edición); misma regla que GestionAsistencias::resumen().
+        $lote = app(GestionAsistencias::class)->promediosPorEdicion($ediciones->map(fn (Convocatoria $c): int => (int) $c->id)->all());
+
+        foreach ($ediciones as $conv) {
+            $res = $lote[(int) $conv->id];
+            $promedio = $res['promedio'];
             if ($promedio !== null) {
                 $promedios[] = $promedio;
             }
             $totalSesiones += $res['sesiones_realizadas'];
-            $totalMatriculados += count($res['matriculas']);
+            $totalMatriculados += $res['matriculados'];
 
             $filas[] = [
                 'identificador' => $conv->identificador,
@@ -306,7 +309,7 @@ final class ReportesMatriculas
                 'edicion' => $conv->nombre ?: ($conv->curso->nombre ?? $conv->codigo),
                 'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
                 'sesiones_realizadas' => $res['sesiones_realizadas'],
-                'matriculados' => count($res['matriculas']),
+                'matriculados' => $res['matriculados'],
                 'promedio' => $promedio,
                 'estado' => $conv->estado,
             ];
@@ -348,11 +351,16 @@ final class ReportesMatriculas
         $totalAprobados = 0;
         $todasNotas = [];
 
-        foreach ($query->get() as $conv) {
-            $mats = Matricula::query()
-                ->where('convocatoria_id', $conv->id)
-                ->where('estado', '!=', 'anulada')
-                ->get(['nota_final', 'resultado']);
+        $ediciones = $query->get();
+        // Una sola consulta para las matrículas de todas las ediciones (antes, una por edición).
+        $porEdicion = Matricula::query()
+            ->whereIn('convocatoria_id', $ediciones->pluck('id'))
+            ->where('estado', '!=', 'anulada')
+            ->get(['convocatoria_id', 'nota_final', 'resultado'])
+            ->groupBy('convocatoria_id');
+
+        foreach ($ediciones as $conv) {
+            $mats = $porEdicion->get($conv->id) ?? new Collection;
             $conNota = $mats->filter(fn (Matricula $m): bool => $m->nota_final !== null);
             $aprobados = $conNota->where('resultado', 'aprobado')->count();
             $desaprobados = $conNota->where('resultado', 'desaprobado')->count();
