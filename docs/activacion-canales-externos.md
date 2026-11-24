@@ -17,6 +17,8 @@ El `.env` de desarrollo es local (`APP_ENV=local`). Nada de esto está activo en
 
 **Correo saliente por SMTP (local, probado el 19/11/2026):** el mailer por defecto de Laravel (`MAIL_MAILER=smtp`, `smtp.gmail.com:587`, contraseña de aplicación de Google; el remitente debe ser la misma cuenta) envió correctamente un correo de prueba. Sirve para lo que usa el mailer de Laravel, como la recuperación de contraseña. **No** lo usan los recordatorios automáticos: `EnvioAvisosExternosService` llama directo a la API de Resend (`RESEND_API_KEY`), que no admite remitentes `@gmail.com` sin un dominio propio verificado. Por eso `RECORDATORIOS_MAIL_ENABLED` sigue apagado. Opciones futuras: dominio propio verificado en Resend, o adaptar ese servicio al mailer de Laravel (se perderían la clave de idempotencia y los estados del webhook).
 
+**Actualización 23/11/2026:** el propietario decidió activar el correo de bienvenida de matrícula y el certificado por correo con el dominio propio `horsz.win` (Cloudflare) y Resend. Los pasos, las variables y el orden de encendido están en [`runbook-correo-resend.md`](runbook-correo-resend.md). Siguen apagados por defecto hasta que se sigan esos pasos.
+
 ## Cómo apagar un canal
 Quitar la variable o ponerla en `false` y ejecutar `php artisan config:clear`. Los avisos pendientes no se envían al reactivar.
 

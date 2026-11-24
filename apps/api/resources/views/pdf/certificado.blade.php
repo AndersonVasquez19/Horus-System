@@ -14,14 +14,14 @@
         .marco-exterior {
             border: 4px solid #0b2447;
             padding: 10px;
-            min-height: 705px;
+            min-height: 660px;
             box-sizing: border-box;
             position: relative;
         }
         .marco-interior {
             border: 1.5px solid #c9a227;
             padding: 34px 44px 28px;
-            min-height: 675px;
+            min-height: 630px;
             box-sizing: border-box;
             position: relative;
         }

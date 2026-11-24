@@ -10,6 +10,7 @@ use App\Models\Certificado;
 use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Models\User;
+use App\Services\CorreoCertificados;
 use App\Services\GestionCertificados;
 use App\Support\AuditoriaAcademica;
 use App\Support\BusquedaLike;
@@ -17,6 +18,7 @@ use App\Support\ConfiguracionSistema;
 use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use App\Support\Panel\Listado;
+use App\Support\UrlWeb;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -43,8 +45,8 @@ final class CertificadoController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:certificados.ver', only: ['index', 'show', 'pdf']),
-            new Middleware('permission:certificados.emitir', only: ['emitir', 'emitirLote']),
+            new Middleware('permission:certificados.ver', only: ['index', 'show', 'pdf', 'elegibilidad']),
+            new Middleware('permission:certificados.emitir', only: ['emitir', 'emitirLote', 'enviarCorreo']),
             new Middleware('permission:certificados.anular', only: ['anular']),
         ];
     }
@@ -95,6 +97,16 @@ final class CertificadoController extends Controller implements HasMiddleware
         $modelo = $this->buscar($certificado);
 
         return response()->json(['data' => $this->representar($modelo)])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    /** Vista previa de los requisitos para emitir (bloqueos por asistencia, nota, deuda o acta) sin emitir. */
+    public function elegibilidad(Request $request, int $matricula): JsonResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        return response()->json(['data' => $this->gestion->vistaPrevia(Matricula::query()->findOrFail($matricula), $actor)])
             ->header('Cache-Control', 'no-store, private');
     }
 
@@ -164,11 +176,22 @@ final class CertificadoController extends Controller implements HasMiddleware
         ])->header('Cache-Control', 'no-store, private');
     }
 
+    public function enviarCorreo(Request $request, string $certificado): JsonResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        app(CorreoCertificados::class)->solicitar($actor, $this->buscar($certificado));
+
+        return response()->json(['message' => 'El certificado se enviará por correo en unos minutos.'], 202)->header('Cache-Control', 'no-store, private');
+    }
+
     public function pdf(Request $request, string $certificado): Response
     {
         $modelo = $this->buscar($certificado);
 
-        $qrPayload = sprintf('HORUS-CERT|%s|%s', $modelo->codigo, $modelo->estado->value);
+        // El QR apunta a la página pública de verificación; sin `HORUS_WEB_URL` válida conserva el texto anterior.
+        $urlVerificacion = UrlWeb::ruta('/verificar/'.$modelo->codigo);
+        $qrPayload = str_starts_with($urlVerificacion, 'http') ? $urlVerificacion : sprintf('HORUS-CERT|%s|%s', $modelo->codigo, $modelo->estado->value);
         $qrDataUri = (new \chillerlan\QRCode\QRCode)->render($qrPayload);
 
         AuditLog::record(
@@ -236,6 +259,8 @@ final class CertificadoController extends Controller implements HasMiddleware
             'anulado_en' => $c->anulado_en?->format('Y-m-d H:i'),
             'anulado_por' => $c->anulador?->name,
             'motivo_anulacion' => $c->motivo_anulacion,
+            'correo_enviado_en' => $c->correo_enviado_at?->format('Y-m-d H:i'),
+            'correo_error' => $c->correo_error,
         ];
     }
 }

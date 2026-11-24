@@ -49,6 +49,10 @@
         <env name="HORUS_OPS_RENEW_CATALOG" value="false" force="true"/>
         <env name="RECORDATORIOS_INTERNOS_ENABLED" value="false" force="true"/>
         <env name="RECORDATORIOS_MAIL_ENABLED" value="false" force="true"/>
+        <env name="MATRICULA_MAIL_ENABLED" value="false" force="true"/>
+        <env name="CERTIFICADO_MAIL_ENABLED" value="false" force="true"/>
+        <env name="CERTIFICADO_MAIL_AUTO" value="false" force="true"/>
+        <env name="HORUS_WEB_URL" value="" force="true"/>
         <env name="WHATSAPP_CLOUD_ENABLED" value="false" force="true"/>
         <env name="SEGURIDAD_BLOQUEO_AUTO_ENABLED" value="false" force="true"/>
         <env name="SEGURIDAD_ALERTAS_LOGIN_ENABLED" value="false" force="true"/>

@@ -27,6 +27,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $anulado_en
  * @property int|null $anulado_por
  * @property string|null $motivo_anulacion
+ * @property Carbon|null $correo_enviado_at
+ * @property string|null $correo_error
  */
 class Certificado extends Model
 {
@@ -62,6 +64,7 @@ class Certificado extends Model
             'nota_final' => 'decimal:2',
             'emitido_en' => 'datetime',
             'anulado_en' => 'datetime',
+            'correo_enviado_at' => 'datetime',
         ];
     }
 
