@@ -170,7 +170,8 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -249,7 +250,12 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "compare",
+          "schedule",
+          "enrollment"
+        ]
       }
     }
   ]

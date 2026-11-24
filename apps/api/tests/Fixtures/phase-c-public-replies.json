@@ -94,7 +94,12 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "schedule",
+          "modality",
+          "enrollment"
+        ]
       }
     },
     {
@@ -140,7 +145,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -179,7 +185,8 @@
           "focus_age": null,
           "out_of_scope": true,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -230,7 +237,11 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "schedule",
+          "enrollment"
+        ]
       }
     },
     {
@@ -277,7 +288,8 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -320,7 +332,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     }
   ]

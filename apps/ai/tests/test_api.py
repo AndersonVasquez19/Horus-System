@@ -65,6 +65,7 @@ def test_chat_valid_message_structure(client: TestClient, auth: dict[str, str]) 
         "mode",
         "context",
         "state",
+        "suggestions",
         "session_id",
     }
     assert set(body) == expected

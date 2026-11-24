@@ -32,6 +32,7 @@ from app.schemas.chat import (
     Recommendation,
     RecommendRequest,
     SourceRef,
+    Suggestion,
 )
 from app.schemas.knowledge import KnowledgeRecord
 from app.services.catalog_documents import PublicFragment
@@ -867,6 +868,62 @@ class AdvisorEngine:
     # ------------------------------------------------------------------ API pública
     def chat(
         self, message: str, history: list[HistoryItem] | None = None, state: ConversationState | None = None
+    ) -> AdvisorReply:
+        reply = self._chat_reply(message, history, state)
+        reply.suggestions = self._without_asked(message, self._suggest(reply))
+        return reply
+
+    @staticmethod
+    def _without_asked(message: str, suggestions: list[Suggestion]) -> list[Suggestion]:
+        """No se vuelve a proponer lo que la persona acaba de preguntar («¿cuál es la modalidad?» → sin «modalidad»)."""
+        asked = normalize(message)
+        topics: dict[Suggestion, tuple[str, ...]] = {
+            "schedule": ("horario", "hora ", "cuando", "inicio", "empieza", "inicia", "fecha"),
+            "modality": ("modalidad", "virtual", "presencial", "semipresencial", "hibrido"),
+            "compare": ("compar", "diferenci"),
+            "price": ("precio", "cuesta", "costo", "cuanto"),
+        }
+        return [x for x in suggestions if not any(word in f"{asked} " for word in topics.get(x, ()))]
+
+    def _suggest(self, reply: AdvisorReply) -> list[Suggestion]:
+        """Siguientes pasos como claves cerradas, según el curso en foco y lo que la respuesta ya dijo.
+
+        Sin curso en foco, en aclaraciones, abstenciones de seguridad o fuera de alcance no se propone nada: la
+        interfaz decide entonces con su respaldo. Nunca se proponen datos que la ficha publicada no pueda dar.
+        """
+        if reply.needs_clarification or reply.intent in {"out_of_scope", "sensitive_request", "human_handoff", "clarification",
+                                                         "greeting", "farewell", "thanks", "capabilities"}:
+            return []
+        ids = reply.state.focus_ids if reply.state is not None else []
+        focus = [r for r in (self.kb.get(i) for i in ids) if r is not None and r.status == "verified"]
+        if not focus:
+            return []
+        if reply.intent == "acknowledgement":
+            # Solo la cortesía que ya pregunta qué aclarar o qué ver; «no», «jaja» o «perdón» no llevan botones.
+            if reply.answer in (*glue.ACK_WITH_FOCUS, *glue.CONFUSED_WITH_FOCUS):
+                return ["schedule", "modality", "enrollment"]
+            return []
+        courses = [r for r in self.kb.records if r.source.kind == "catalogo_laravel" and r.status == "verified"
+                   and r.kind in {"course", "training_program"}]
+        if len(focus) == 1 and focus[0].id == "cat_listado_formacion":
+            return ["compare", "schedule", "enrollment"] if len(courses) >= 2 else ["schedule", "enrollment"]
+        if len(focus) == 1 and focus[0] in courses:
+            text = normalize(reply.answer)
+            out: list[Suggestion] = []
+            if "horario" not in text:
+                out.append("schedule")
+            if "modalidad" not in text:
+                out.append("modality")
+            out.append("enrollment")
+            if len(courses) >= 2:
+                out.append("compare")
+            return out[:4]
+        if len(focus) >= 2 and all(r in courses for r in focus):
+            return ["compare", "schedule", "enrollment"]
+        return []
+
+    def _chat_reply(
+        self, message: str, history: list[HistoryItem] | None, state: ConversationState | None
     ) -> AdvisorReply:
         reply = self._respond(message, history or [], depth=0, state=state)
         institutional = len(reply.sources) == 1 and (record := self.kb.get(reply.sources[0].id)) is not None and record.general_information and record.kind == "info"

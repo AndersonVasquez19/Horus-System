@@ -145,3 +145,54 @@ def test_no_entendi_con_un_curso_en_foco_pregunta_que_parte_aclarar_y_no_repite(
 
 def test_repite_con_un_curso_en_foco_vuelve_a_dar_los_detalles(engine):
     assert "Ofimática para oficinas" in _por_estado(engine, OFIMATICA, "repite").answer
+
+
+# --- Botones de seguimiento decididos por el servidor (Fase 2) ---------------------------------------------------------
+
+def test_primera_respuesta_de_un_curso_propone_horario_modalidad_matricula_y_comparar(engine):
+    reply = _por_estado(engine, OFIMATICA)
+    assert reply.suggestions == ["schedule", "modality", "enrollment", "compare"]
+
+
+def test_tras_los_detalles_ya_no_propone_lo_que_se_acaba_de_decir(engine):
+    reply = _por_estado(engine, OFIMATICA, "sí")
+    assert "Horario" in reply.answer and "Modalidad" in reply.answer
+    assert reply.suggestions == ["enrollment", "compare"]
+
+
+def test_la_lista_de_cursos_propone_comparar(engine):
+    assert _por_estado(engine, "Qué cursos tienen").suggestions == ["compare", "schedule", "enrollment"]
+
+
+def test_ok_con_foco_y_no_entendi_proponen_los_tres_siguientes_pasos(engine):
+    assert _por_estado(engine, OFIMATICA, "ok").suggestions == ["schedule", "modality", "enrollment"]
+    assert _por_estado(engine, OFIMATICA, "sí", "no entendí").suggestions == ["schedule", "modality", "enrollment"]
+
+
+@pytest.mark.parametrize("dialogo", [(OFIMATICA, "no"), (OFIMATICA, "jajaja"), ("ok",), ("hola",), ("gracias",), ("adiós",)])
+def test_sin_foco_o_en_cortesia_cerrada_no_hay_botones(engine, dialogo):
+    assert _por_estado(engine, *dialogo).suggestions == []
+
+
+def test_las_sugerencias_son_claves_cerradas_y_no_pasan_de_cuatro(engine):
+    permitidas = {"schedule", "modality", "enrollment", "details", "compare", "price"}
+    for dialogo in ((OFIMATICA,), (OFIMATICA, "sí"), ("Qué cursos tienen", "el primero"), ("Qué cursos tienen", "la segunda", "¿y el horario?")):
+        sugerencias = _por_estado(engine, *dialogo).suggestions
+        assert set(sugerencias) <= permitidas and len(sugerencias) <= 4 and len(set(sugerencias)) == len(sugerencias)
+
+
+def test_las_sugerencias_con_estado_e_historial_coinciden_en_respuestas_de_curso(engine):
+    # Con historial (vía heredada, Laravel ya envía siempre el estado) la cortesía cerrada no arrastra el foco al estado
+    # de salida; las respuestas de curso sí coinciden.
+    for dialogo in ((OFIMATICA,), (OFIMATICA, "sí"), ("Qué cursos tienen", "la segunda")):
+        assert _por_estado(engine, *dialogo).suggestions == _por_historial(engine, *dialogo).suggestions
+
+
+def test_no_se_vuelve_a_proponer_lo_que_se_acaba_de_preguntar(engine):
+    horario = _por_estado(engine, OFIMATICA, "¿Cuál es el horario?")
+    assert "schedule" not in horario.suggestions and "modality" in horario.suggestions
+    modalidad = _por_estado(engine, OFIMATICA, "¿Cuál es la modalidad?")
+    assert "modality" not in modalidad.suggestions and "schedule" in modalidad.suggestions
+    comparar = _por_estado(engine, OFIMATICA, "Compárame los cursos disponibles")
+    assert "compare" not in comparar.suggestions
+    assert "price" not in _por_estado(engine, OFIMATICA, "¿Cuánto cuesta?").suggestions

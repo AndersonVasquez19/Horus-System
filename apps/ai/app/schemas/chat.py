@@ -145,6 +145,11 @@ class ConversationContext(BaseModel):
     referential: bool = False
 
 
+# Botones de seguimiento que el motor propone tras una respuesta: vocabulario cerrado (sin texto libre). La interfaz
+# traduce cada clave a su etiqueta y a una consulta sin título: el curso en foco lo lleva el estado del servidor.
+Suggestion = Literal["schedule", "modality", "enrollment", "details", "compare", "price"]
+
+
 class AdvisorReply(BaseModel):
     """Respuesta común de /chat y /recommend."""
 
@@ -164,6 +169,10 @@ class AdvisorReply(BaseModel):
     context: ConversationContext | None = None
     state: ConversationState | None = Field(
         default=None, description="Estado para reenviar en el turno siguiente (sin texto del usuario)."
+    )
+    suggestions: list[Suggestion] = Field(
+        default_factory=list, max_length=4,
+        description="Siguientes pasos útiles (claves cerradas) según el curso en foco y lo ya respondido.",
     )
 
 

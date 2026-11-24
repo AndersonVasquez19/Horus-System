@@ -143,7 +143,13 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "schedule",
+          "modality",
+          "enrollment",
+          "compare"
+        ]
       }
     },
     {
@@ -214,7 +220,13 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "schedule",
+          "modality",
+          "enrollment",
+          "compare"
+        ]
       }
     },
     {
@@ -265,7 +277,12 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "compare",
+          "schedule",
+          "enrollment"
+        ]
       }
     },
     {
@@ -308,7 +325,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -347,7 +365,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -420,7 +439,13 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": [
+          "schedule",
+          "modality",
+          "enrollment",
+          "compare"
+        ]
       }
     },
     {
@@ -467,7 +492,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -513,7 +539,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -560,7 +587,8 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -605,7 +633,8 @@
           "focus_age": null,
           "out_of_scope": true,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -652,7 +681,8 @@
           "focus_age": 0,
           "out_of_scope": false,
           "quote": false
-        }
+        },
+        "suggestions": []
       }
     },
     {
@@ -693,7 +723,8 @@
           "focus_age": null,
           "out_of_scope": false,
           "quote": true
-        }
+        },
+        "suggestions": []
       }
     }
   ]
