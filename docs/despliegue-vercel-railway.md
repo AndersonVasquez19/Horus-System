@@ -54,7 +54,7 @@ el contexto es la raíz del repositorio. En cada uno, *Settings → Config-as-co
 
 | Servicio | Config file | Dominio público | Extra |
 | --- | --- | --- | --- |
-| `Postgres` | plantilla PostgreSQL de Railway | No | Activa los respaldos de Railway |
+| `Postgres` | plantilla PostgreSQL de Railway | No | Los respaldos de Railway exigen el plan Pro; en Hobby se hacen volcados manuales (ver §6) |
 | `horus-ai` | `/apps/ai/railway.json` | **No** | — |
 | `horus-api` | `/apps/api/railway.json` | Sí (*Generate Domain*) | Volumen montado en `/srv/horus/api/storage/app/public` |
 | `horus-worker` | `/apps/api/railway.worker.json` | No | `HORUS_PROCESO=worker` |
@@ -167,7 +167,7 @@ Cada despliegue posterior que traiga migraciones nuevas repite el paso 4 (solo `
 - **`TRUSTED_PROXIES` se deja vacío.** En la API del panel, la IP del visitante llega desde el BFF en
   `X-Horus-Client-Ip`, y `AutenticarBffPanel` solo la acepta tras validar el token del BFF. Con `TRUSTED_PROXIES=*`, cualquiera podría falsear
   `X-Forwarded-For` y saltarse los límites de `/api/auth/*`. Cambiarlo requiere conocer las IP del borde de Railway.
-- **Respaldos:** activa los respaldos de Postgres en Railway. El volumen de imágenes no tiene respaldo automático.
+- **Respaldos:** los respaldos de Postgres de Railway solo se crean con el plan Pro; en el plan Hobby **no hay respaldo automático**. Antes de cada migración o cambio grande se hace un volcado manual por túnel (procedimiento en `runbook-respaldo-local.md`, sección «Volcado manual de producción»). El volumen de imágenes tampoco tiene respaldo automático.
 - **Modo semántico de Horus AI:** fuera de esta imagen (modelo de 477 MB y unos 3 GB de RAM).
 - **Correo, WhatsApp y catálogo firmado del chatbot:** siguen apagados. Cada uno tiene su propio procedimiento.
 - **Sin verificar:** construcción de las imágenes, arranque de FrankenPHP con este `Caddyfile`, red privada IPv4/IPv6,

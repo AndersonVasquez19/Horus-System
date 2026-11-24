@@ -55,6 +55,19 @@ Ensáyala **primero en una base desechable**, nunca sobre `horus_group`:
 
 Restaurar sobre la base real exige detener la aplicación, un respaldo previo del estado actual y autorización expresa del propietario.
 
+## 4 bis. Volcado manual de producción (Railway, plan Hobby)
+
+Decisión del propietario (24/11/2026): **no se programa respaldo automático** en Railway. Las copias en un bucket se evaluaron y se descartaron (el trabajo quedó guardado en un `git stash` del repositorio, no en `main`). `horus:respaldo` sigue instalado pero **apagado**, y la imagen de Railway no trae `pg_dump`, así que no sirve allí. La protección es este volcado manual, que se hace **antes de cada migración o cambio grande**:
+
+1. Instala los clientes de PostgreSQL en tu equipo, versión **igual o superior** a la del servidor (`pg_dump --version`; el servidor de Railway es 18.x).
+2. Abre un túnel cifrado, sin exponer la base: `railway connect Postgres --tunnel-only` (deja la ventana abierta y anota el puerto local).
+3. En otra ventana, con la contraseña de las Variables del servicio Postgres en `PGPASSWORD` (no en el comando):
+   `pg_dump -h 127.0.0.1 -p <puerto del túnel> -U postgres -d railway -Fc -f horus-produccion-AAAA-MM-DD.dump`
+4. Verifica: `pg_restore --list horus-produccion-AAAA-MM-DD.dump` debe listar tablas y entradas `TABLE DATA` (`users`, `matriculas`, `migrations`), y el archivo no debe pesar 0 bytes.
+5. Guarda el `.dump` **fuera del repositorio** (contiene datos personales y hashes de contraseña) y cierra el túnel con `Ctrl+C`.
+
+Riesgo asumido: sin copia automática, ante una corrupción solo se puede volver al último volcado manual. Una restauración sin ensayar no cuenta como respaldo (sección 4).
+
 ## 5. Salud del sistema
 
 `horus:salud-vigilar` (cada 5 minutos) y el endpoint evalúan: base de datos, latido del scheduler (cada minuto), cola, trabajos fallidos de 24 h, avisos externos atascados o inciertos, espacio en disco y antigüedad del último respaldo. Con una comprobación en alerta o error, cada administrador recibe **como máximo una notificación interna por comprobación y día** (no se envía correo ni WhatsApp).
