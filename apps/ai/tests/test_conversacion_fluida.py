@@ -44,7 +44,8 @@ def _por_historial(engine, *mensajes):
 @pytest.mark.parametrize(
     ("mensaje", "tipo"),
     [("ok", "ack"), ("Vale!", "ack"), ("entiendo", "ack"), ("sí", "yes"), ("¡Sí, por favor!", "yes"), ("dale", "yes"),
-     ("no", "no"), ("así está bien", "no"), ("repite", "repeat"), ("no entendí", "repeat"), ("jajaja", "laugh"),
+     ("no", "no"), ("así está bien", "no"), ("repite", "repeat"), ("otra vez", "repeat"), ("no entendí", "confused"),
+     ("explícame mejor", "confused"), ("jajaja", "laugh"),
      ("jeje", "laugh"), ("cómo estás", "howareyou"), ("perdón", "sorry"), ("😂", "empty")],
 )
 def test_clasifica_los_mensajes_cortos(mensaje, tipo):
@@ -112,7 +113,7 @@ def test_las_variantes_son_estables_y_distintas_entre_mensajes(engine):
 
 
 def test_las_frases_de_cortesia_no_llevan_cifras_enlaces_ni_correos():
-    for grupo in (glue.ACK_WITH_FOCUS, glue.ACK_NO_FOCUS, glue.NO_REPLY, glue.REPEAT_NO_FOCUS, glue.LAUGH_REPLY,
+    for grupo in (glue.ACK_WITH_FOCUS, glue.ACK_NO_FOCUS, glue.NO_REPLY, glue.CONFUSED_WITH_FOCUS, glue.REPEAT_NO_FOCUS, glue.LAUGH_REPLY,
                   glue.HOWAREYOU_REPLY, glue.SORRY_REPLY, glue.EMPTY_REPLY):
         for frase in grupo:
             assert not any(c.isdigit() or c in "@/<>" for c in frase), frase
@@ -133,3 +134,14 @@ def test_el_estado_no_guarda_texto_del_usuario(engine):
     volcado = reply.state.model_dump_json().lower()
     assert "ok" not in volcado.replace("focus", "").replace("book", "") or True
     assert "ofimática" not in volcado and "quiero" not in volcado
+
+
+def test_no_entendi_con_un_curso_en_foco_pregunta_que_parte_aclarar_y_no_repite(engine):
+    anterior = _por_estado(engine, OFIMATICA, "sí")
+    reply = _por_estado(engine, OFIMATICA, "sí", "no entendí")
+    assert reply.intent == "acknowledgement" and reply.answer != anterior.answer and "qué parte" in reply.answer.lower()
+    assert not reply.sources
+
+
+def test_repite_con_un_curso_en_foco_vuelve_a_dar_los_detalles(engine):
+    assert "Ofimática para oficinas" in _por_estado(engine, OFIMATICA, "repite").answer

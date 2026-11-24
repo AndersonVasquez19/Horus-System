@@ -22,7 +22,7 @@ from typing import Literal
 
 from app.core.text import normalize, tokenize
 
-Kind = Literal["ack", "yes", "no", "repeat", "laugh", "howareyou", "sorry", "empty"]
+Kind = Literal["ack", "yes", "no", "repeat", "confused", "laugh", "howareyou", "sorry", "empty"]
 Pick = Literal["other", "first", "second", "last"]
 Comparative = Literal["price", "duration", "schedule"]
 
@@ -41,10 +41,11 @@ _NO = frozenset({
     "no", "nop", "no gracias", "asi esta bien", "nada mas", "eso es todo", "por ahora no", "no por ahora",
     "no por el momento", "eso seria todo", "ninguna", "ninguno", "no nada mas",
 })
-_REPEAT = frozenset({
-    "repite", "repitelo", "repiteme", "otra vez", "de nuevo", "puedes repetir", "explicame mejor", "explicalo mejor",
-    "no entendi", "no comprendi", "no entiendo", "como asi", "que quieres decir", "no te entendi", "explica mejor",
-    "puedes explicar mejor", "mas claro", "dilo de otra forma",
+_REPEAT = frozenset({"repite", "repitelo", "repiteme", "otra vez", "de nuevo", "puedes repetir", "repetir"})
+_CONFUSED = frozenset({
+    "explicame mejor", "explicalo mejor", "no entendi", "no comprendi", "no entiendo", "como asi",
+    "que quieres decir", "no te entendi", "explica mejor", "puedes explicar mejor", "mas claro", "dilo de otra forma",
+    "no entendi nada", "no comprendo", "no me quedo claro",
 })
 _HOWAREYOU = frozenset({"como estas", "que tal", "como te va", "como andas", "como te encuentras", "todo bien"})
 _SORRY = frozenset({"perdon", "disculpa", "disculpame", "disculpe", "lo siento", "perdona"})
@@ -80,6 +81,8 @@ def classify(message: str) -> Kind | None:
         return None
     if clean in _REPEAT:
         return "repeat"
+    if clean in _CONFUSED:
+        return "confused"
     if clean in _ACK:
         return "ack"
     if clean in _YES:
@@ -128,6 +131,10 @@ NO_REPLY = (
     "Está bien. Si más adelante necesitas algo de Horus Group, aquí estaré.",
     "De acuerdo. Cuando quieras retomar o consultar otra cosa, escríbeme.",
     "Sin problema. Si te surge otra duda, con gusto te ayudo.",
+)
+CONFUSED_WITH_FOCUS = (
+    "Disculpa si no fui claro. ¿Qué parte quieres que te aclare: el contenido, el horario, la modalidad o la matrícula?",
+    "Perdona la confusión. Dime qué parte no quedó clara (contenido, horario, modalidad o matrícula) y te la explico mejor.",
 )
 REPEAT_NO_FOCUS = (
     "Con gusto te lo explico de nuevo. ¿Sobre qué curso o tema quieres que te cuente? "

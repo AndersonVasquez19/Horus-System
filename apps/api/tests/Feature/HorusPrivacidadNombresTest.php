@@ -99,4 +99,27 @@ class HorusPrivacidadNombresTest extends TestCase
         Http::assertSentCount(2);
         Http::assertSent(fn ($r) => ! str_ends_with($r->url(), '/api/v1/chat') || ($r['history'] === [] && ! isset($r['session_id'])));
     }
+
+    /** La risa escrita no es un nombre: antes «jaja» se bloqueaba como dato personal. */
+    #[DataProvider('risas')]
+    public function test_la_risa_escrita_no_se_toma_por_un_nombre(string $mensaje): void
+    {
+        $this->assertTrue(app(\App\Support\FiltroPrivacidadChat::class)->esSeguro($mensaje), $mensaje);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function risas(): iterable
+    {
+        foreach (['jaja', 'jajaja', 'jajajajaja', 'jeje', 'jejeje', 'Jaja', 'hahaha', 'jaja xd'] as $r) {
+            yield $r => [$r];
+        }
+    }
+
+    public function test_la_excepcion_de_la_risa_no_abre_la_puerta_a_nombres(): void
+    {
+        $filtro = app(\App\Support\FiltroPrivacidadChat::class);
+        foreach (['soy jaja vela', 'me llamo jeje tello', 'soy anderson vela'] as $mensaje) {
+            $this->assertFalse($filtro->esSeguro($mensaje), $mensaje);
+        }
+    }
 }

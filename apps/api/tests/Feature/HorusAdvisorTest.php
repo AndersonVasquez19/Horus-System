@@ -183,6 +183,8 @@ class HorusAdvisorTest extends TestCase
             '¡Muy bien, gracias por preguntar! Soy un asistente automático y estoy listo para ayudarte. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
             'Todo en orden por aquí. Soy un asistente virtual; cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
             'No te preocupes, no hay problema. ¿En qué te puedo ayudar?',
+            'Disculpa si no fui claro. ¿Qué parte quieres que te aclare: el contenido, el horario, la modalidad o la matrícula?',
+            'Perdona la confusión. Dime qué parte no quedó clara (contenido, horario, modalidad o matrícula) y te la explico mejor.',
             'Tranquilo, está todo bien. Dime en qué te ayudo.',
             'Me llegó un mensaje sin texto. ¿Qué te gustaría saber? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',
             'No pude leer tu mensaje. Escríbeme tu consulta con palabras y te ayudo. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.',

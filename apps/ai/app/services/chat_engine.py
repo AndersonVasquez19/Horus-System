@@ -325,6 +325,10 @@ class AdvisorEngine:
         if kind == "ack":
             options = glue.ACK_WITH_FOCUS if focus else glue.ACK_NO_FOCUS
             return self._courtesy(options, message), message
+        if kind == "confused":
+            # «No entendí»: repetir lo mismo no ayuda; se pregunta qué parte aclarar (sin inventar contenido).
+            options = glue.CONFUSED_WITH_FOCUS if focus else glue.REPEAT_NO_FOCUS
+            return self._courtesy(options, message), message
         if kind in {"yes", "repeat"}:
             if focus:
                 return None, "dame más detalles"  # sigue el flujo: detalles del curso en foco

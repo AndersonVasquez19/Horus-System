@@ -904,6 +904,10 @@ final class FiltroPrivacidadChat
         if (mb_strlen($palabra) <= 2 && preg_match('/^[a-z0-9]+$/', $palabra) === 1) {
             return self::C_NEUTRA;
         }
+        // Risa escrita («jaja», «jajajaja», «jeje», «hahaha»): no es un nombre aunque no figure en ningún léxico.
+        if (preg_match('/^(?:j[aeiou]){2,}j?$|^(?:ha){2,}h?$/', $palabra) === 1) {
+            return self::C_CONOCIDA;
+        }
         $vocabulario = self::conjunto('vocabulario', array_merge(
             self::VOCABULARIO_COMUN, self::TERMINOS_INSTITUCIONALES, self::PALABRAS_NO_PERSONALES, self::TITULOS,
             self::ANCLAS_PRESENTACION, self::ANCLAS_PERSONA, self::ANCLAS_ATENCION, self::VERBOS_SUJETO, self::RELLENO, self::ANCLAS_APODO,
