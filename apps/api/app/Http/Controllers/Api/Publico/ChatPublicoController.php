@@ -53,6 +53,9 @@ final class ChatPublicoController extends Controller
         if (isset($resultado['enlaces']) && is_array($resultado['enlaces'])) {
             $salida['enlaces'] = array_values(array_filter($resultado['enlaces'], 'is_string'));
         }
+        if (isset($resultado['sugerencias']) && is_array($resultado['sugerencias']) && $resultado['sugerencias'] !== []) {
+            $salida['sugerencias'] = array_values(array_filter($resultado['sugerencias'], 'is_string'));
+        }
 
         return response()->json($salida);
     }

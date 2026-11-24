@@ -29,6 +29,7 @@ import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
 import { armarMenuOrientador, cursosValidos } from '@/lib/chat-orientador';
 import { restaurarRespuestasRapidas, separarEtiquetas } from '@/lib/chat-formato';
+import { botonesDeSugerencias, sanearSugerencias } from '@/lib/chat-sugerencias';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 type ChatLink = EnlaceChat;
@@ -48,6 +49,7 @@ interface RespuestaApi {
   respuesta: string;
   tarjetas?: ChatCard[];
   enlaces?: string[];
+  sugerencias?: string[];
 }
 
 const MAX_MENSAJE = 2000;
@@ -515,13 +517,17 @@ export function ChatWidget() {
         }
         return enlace;
       });
+      const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
       botMsg = {
         id: idMensaje('bot'),
         role: 'bot',
         text: resultado.data.respuesta,
         cards: resultado.data.tarjetas,
         links: enlaces.length > 0 ? enlaces : undefined,
-        quickReplies: generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current),
+        // El servidor decide los botones (claves cerradas); el cálculo por texto queda solo como respaldo.
+        quickReplies: botonesSugeridos.length > 0
+          ? botonesSugeridos
+          : generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current),
       };
     } else if (resultado.motivo === 'demasiadas') {
       botMsg = { id: idMensaje('err'), role: 'bot', text: MENSAJE_DEMASIADAS };

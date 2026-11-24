@@ -203,6 +203,61 @@ class HorusAdvisorTest extends TestCase
         }
     }
 
+    /** @return array<string, mixed> */
+    private function respuestaDeCortesia(mixed $sugerencias): array
+    {
+        return [
+            'answer' => '¡Perfecto! ¿Quieres saber el horario, la modalidad o cómo matricularte?', 'intent' => 'acknowledgement',
+            'mode' => 'lexical', 'match_level' => 'alta', 'abstained' => false, 'needs_clarification' => false,
+            'sources' => [], 'recommendations' => [], 'suggestions' => $sugerencias,
+        ];
+    }
+
+    public static function sugerenciasDelMotor(): iterable
+    {
+        yield 'tres validas' => [['schedule', 'modality', 'enrollment'], ['schedule', 'modality', 'enrollment']];
+        yield 'una' => [['compare'], ['compare']];
+        yield 'clave desconocida' => [['schedule', 'hackear'], null];
+        yield 'repetidas' => [['schedule', 'schedule'], null];
+        yield 'mas de cuatro' => [['schedule', 'modality', 'enrollment', 'details', 'compare'], null];
+        yield 'no es una lista' => [['a' => 'schedule'], null];
+        yield 'es un texto' => ['schedule', null];
+        yield 'vacia' => [[], null];
+        yield 'texto libre' => [['Ver el horario del curso'], null];
+    }
+
+    /** @param list<string>|array<string, string>|string $entrada @param list<string>|null $esperado */
+    #[DataProvider('sugerenciasDelMotor')]
+    public function test_suggestions_from_the_engine_are_forwarded_only_as_a_closed_valid_list(mixed $entrada, ?array $esperado): void
+    {
+        Http::fake(['*/ready' => Http::response($this->ready()), '*/api/v1/chat' => Http::response($this->respuestaDeCortesia($entrada))]);
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('vale', 'sess-sugerencias', 'public:browser');
+        $this->assertSame('advisor', $answer['fuente']);
+        $this->assertSame($esperado, $answer['sugerencias'] ?? null);
+    }
+
+    public function test_cached_results_with_suggestions_are_revalidated(): void
+    {
+        $cliente = app(HorusAdvisorClient::class);
+        $base = ['respuesta' => '¡Perfecto! ¿Quieres saber el horario, la modalidad o cómo matricularte?', 'intent' => null, 'fuente' => 'advisor'];
+        $this->assertTrue($cliente->respuestaCacheValida($base + ['sugerencias' => ['schedule', 'enrollment']]));
+        $this->assertFalse($cliente->respuestaCacheValida($base + ['sugerencias' => []]));
+        $this->assertFalse($cliente->respuestaCacheValida($base + ['sugerencias' => ['schedule', 'otra']]));
+        $this->assertFalse($cliente->respuestaCacheValida($base + ['sugerencias' => ['schedule', 'schedule']]));
+        $this->assertFalse($cliente->respuestaCacheValida($base + ['sugerencias' => 'schedule']));
+        $respaldo = ['respuesta' => AsistenteVirtualService::RESPUESTA_FALLBACK, 'intent' => null, 'fuente' => 'respaldo'];
+        $this->assertFalse($cliente->respuestaCacheValida($respaldo + ['sugerencias' => ['schedule']]));
+    }
+
+    public function test_public_chat_endpoint_exposes_suggestions_to_the_web_without_the_internal_intent(): void
+    {
+        Http::fake(['*/ready' => Http::response($this->ready()), '*/api/v1/chat' => Http::response($this->respuestaDeCortesia(['schedule', 'modality', 'enrollment']))]);
+        $this->postChatPublico(['mensaje' => 'vale', 'session_id' => 'sesion-sugerencias-01'])->assertOk()
+            ->assertJsonPath('fuente', 'advisor')
+            ->assertJsonPath('sugerencias', ['schedule', 'modality', 'enrollment'])
+            ->assertJsonMissingPath('intent');
+    }
+
     public function test_clarifications_validate_clarification_question_and_append_to_answer(): void
     {
         $reply = [

@@ -695,6 +695,12 @@ components:
           type: array
           maxItems: 5
           items: {$ref: "#/components/schemas/TarjetaChat"}
+        sugerencias:
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          description: Siguientes pasos que propone el asistente (claves cerradas; la interfaz las traduce a botones). Ausente si no hay nada que proponer.
+          items: {type: string, enum: [schedule, modality, enrollment, details, compare, price]}
     Mensaje:
       type: object
       required: [message]
@@ -800,6 +806,12 @@ components:
         mode: {type: string, enum: [lexical, hybrid]}
         context: {oneOf: [{$ref: "#/components/schemas/ConversationContext"}, {type: "null"}]}
         session_id: {type: [string, "null"]}
+        suggestions:
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          description: Siguientes pasos útiles según el curso en foco (claves cerradas, sin texto libre).
+          items: {type: string, enum: [schedule, modality, enrollment, details, compare, price]}
     ErrorHorus:
       type: object
       required: [error]

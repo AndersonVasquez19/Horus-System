@@ -186,10 +186,18 @@ class HorusAdvisorClient
      *
      * @param  array<mixed>  $reply
      *
-     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>} $reply
+     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>} $reply
      */
     public function respuestaCacheValida(array $reply): bool
     {
+        if (array_key_exists('sugerencias', $reply)) {
+            // Solo las claves cerradas de siguiente paso, y solo en respuestas del asistente.
+            if (($reply['fuente'] ?? null) !== 'advisor' || $this->sugerenciasValidas($reply['sugerencias']) !== $reply['sugerencias']
+                || $reply['sugerencias'] === []) {
+                return false;
+            }
+            unset($reply['sugerencias']);
+        }
         if (array_key_exists('enlaces', $reply)) {
             // Solo secciones del sitio de la lista blanca, y solo en respuestas del asistente.
             if (($reply['fuente'] ?? null) !== 'advisor' || ! is_array($reply['enlaces']) || ! array_is_list($reply['enlaces'])
@@ -239,6 +247,28 @@ class HorusAdvisorClient
             && $this->enlacesValidos($reply['respuesta']);
     }
 
+    /** Siguientes pasos que Horus AI puede proponer; cada clave la traduce la interfaz a un botón. */
+    public const SUGERENCIAS = ['schedule', 'modality', 'enrollment', 'details', 'compare', 'price'];
+
+    /**
+     * Lista cerrada, sin repetidos y de hasta 4 elementos; cualquier otra cosa se descarta entera (nunca se corrige).
+     *
+     * @return list<string>
+     */
+    private function sugerenciasValidas(mixed $valor): array
+    {
+        if (! is_array($valor) || ! array_is_list($valor) || count($valor) > 4 || count(array_unique($valor)) !== count($valor)) {
+            return [];
+        }
+        foreach ($valor as $clave) {
+            if (! is_string($clave) || ! in_array($clave, self::SUGERENCIAS, true)) {
+                return [];
+            }
+        }
+
+        return $valor;
+    }
+
     private const RUTAS_PUBLICAS = [
         '/',
         '/#convenios',
@@ -280,7 +310,7 @@ class HorusAdvisorClient
 
     /**
      * @param  array<string, mixed>  $estado  estado devuelto por Horus AI en el turno anterior (ya validado al recibirlo)
-     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null
+     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>}|null
      */
     public function orientar(string $mensajeOIntent, ?string $mensaje = null, array $estado = []): ?array
     {
@@ -327,7 +357,7 @@ class HorusAdvisorClient
 
     /**
      * @param  array<string, mixed>  $estado
-     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>}|null
+     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>}|null
      */
     private function consultarAsesor(string $mensajeLimpio, float $inicio, array $estado): ?array
     {
@@ -441,6 +471,11 @@ class HorusAdvisorClient
         }
         if ($enlaces !== []) {
             $resultado['enlaces'] = array_values($enlaces);
+        }
+        // Siguientes pasos que propone el motor: claves de una lista cerrada, nunca texto (la interfaz las traduce).
+        $sugerencias = $this->sugerenciasValidas($reply['suggestions'] ?? null);
+        if ($sugerencias !== []) {
+            $resultado['sugerencias'] = $sugerencias;
         }
 
         return $resultado;

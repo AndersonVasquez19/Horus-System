@@ -2,6 +2,7 @@ import 'server-only';
 import { createHmac } from 'node:crypto';
 import { configuracionApi, urlPublicaImagen } from '@/lib/horus-api';
 import { rutaNext, rutaPermitida } from '@/lib/chat-rutas';
+import { sanearSugerencias, type ClaveSugerencia } from '@/lib/chat-sugerencias';
 
 /**
  * Cliente servidor a servidor del chat (`POST /api/public/v1/chat` de Laravel, que a su vez consulta Horus AI).
@@ -29,6 +30,8 @@ export interface RespuestaChat {
   tarjetas?: TarjetaChat[];
   /** Rutas de secciones del sitio (lista blanca), ya validadas en Laravel y aquí. */
   enlaces?: string[];
+  /** Siguientes pasos (claves cerradas) que propone el asistente; el widget los traduce a botones. */
+  sugerencias?: ClaveSugerencia[];
 }
 
 export type ResultadoChat =
@@ -85,6 +88,8 @@ export function sanearRespuesta(bruto: unknown): RespuestaChat | null {
       .filter((ruta): ruta is string => ruta !== null);
     if (enlaces.length > 0) salida.enlaces = [...new Set(enlaces)];
   }
+  const sugerencias = sanearSugerencias(r.sugerencias);
+  if (sugerencias.length > 0) salida.sugerencias = sugerencias;
   return salida;
 }
 
