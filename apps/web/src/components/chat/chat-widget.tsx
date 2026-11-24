@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
+import { armarMenuOrientador, cursosValidos } from '@/lib/chat-orientador';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 type ChatLink = EnlaceChat;
@@ -279,9 +280,7 @@ function generarChipsSeguimiento(
 
   if (
     (tarjetas && tarjetas.some((t) => t.tipo === 'curso')) ||
-    norm.includes('cursos y capacitaciones vigentes') ||
-    norm.includes('atencion al cliente') ||
-    norm.includes('marketing digital')
+    norm.includes('cursos y capacitaciones vigentes')
   ) {
     const chips: QuickReply[] = [];
     if (!norm.includes('horario')) {
@@ -290,7 +289,7 @@ function generarChipsSeguimiento(
     if (!norm.includes('modalidad')) {
       chips.push({ label: 'Modalidades disponibles', query: '¿Qué modalidad tienen los cursos?' });
     }
-    if (norm.includes('horario') && !norm.includes('comunicacion y trato')) {
+    if (norm.includes('horario')) {
       chips.push({ label: 'Comparar detalles completos', query: 'Dame más detalles de los cursos' });
     }
     chips.push({ label: 'Cómo matricularme', query: '¿Cómo puedo matricularme?' });
@@ -667,38 +666,41 @@ export function ChatWidget() {
     ]);
   };
 
-  const handleIniciarOrientador = () => {
-    if (sending) return;
+  const orientadorCargandoRef = useRef(false);
+
+  const handleIniciarOrientador = async () => {
+    if (sending || orientadorCargandoRef.current) return;
+    orientadorCargandoRef.current = true;
     actualizarCursoEnFoco(null);
     const userMsg: Message = {
       id: idMensaje('user'),
       role: 'user',
       text: 'Ayúdame a elegir un curso',
     };
+    setMessages((prev) => [...prev, userMsg]);
+
+    // Los botones salen de los cursos publicados en este momento; si no se pueden consultar, el menú lo dice.
+    let cursos: ReturnType<typeof cursosValidos> | null = null;
+    try {
+      const respuesta = await fetch('/api/chat/orientador', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+      if (respuesta.ok) {
+        const cuerpo = (await respuesta.json()) as { cursos?: unknown };
+        cursos = cuerpo.cursos === null || cuerpo.cursos === undefined ? null : cursosValidos(cuerpo.cursos);
+      }
+    } catch {
+      cursos = null;
+    }
+
+    const menu = armarMenuOrientador(cursos);
     const orientadorMsg: Message = {
       id: idMensaje('orientador'),
       role: 'bot',
-      text: '¡Con gusto te ayudo a elegir! Selecciona qué habilidad o área te interesa fortalecer hoy:',
-      quickReplies: [
-        {
-          label: 'Atención al cliente y comunicación (Virtual)',
-          query: 'Quiero información del curso Atención al cliente y comunicación efectiva',
-        },
-        {
-          label: 'Marketing digital para emprendedores (Híbrido)',
-          query: 'Quiero información del curso Marketing digital para emprendedores',
-        },
-        {
-          label: 'Comparar todos los cursos y horarios',
-          query: 'Compárame los cursos disponibles',
-        },
-        {
-          label: 'Asesoramiento académico y de tesis',
-          query: '¿En qué consiste el servicio de asesoramiento y tesis?',
-        },
-      ],
+      text: menu.texto,
+      quickReplies: menu.opciones,
+      links: menu.conWhatsapp ? [CONTACTO_WHATSAPP] : undefined,
     };
-    setMessages((prev) => [...prev, userMsg, orientadorMsg]);
+    setMessages((prev) => [...prev, orientadorMsg]);
+    orientadorCargandoRef.current = false;
   };
 
   const handleSend = (textToSend?: string) => {
@@ -725,7 +727,7 @@ export function ChatWidget() {
 
   const handleSuggestionClick = (query: string) => {
     if (query === '__orientador__') {
-      handleIniciarOrientador();
+      void handleIniciarOrientador();
       return;
     }
     handleSend(query);
