@@ -143,8 +143,12 @@ class ExportadorCatalogoAdvisor
         return $catalogo;
     }
 
-    /** Correos, teléfonos o documentos, HTML y vocabulario administrativo: no salen hacia Horus AI. */
-    private const PRIVACIDAD = '/@|\d[\d\s-]{6,}\d|<|>|\b(dni|password|token|estudiantes|matriculados|cotizaciones|clientes)\b/iu';
+    /**
+     * Correos, teléfonos o documentos, HTML y vocabulario administrativo: no salen hacia Horus AI.
+     * Es pública para que el formulario de publicación (`PublicarCursoRequest`) rechace al guardar lo mismo que
+     * este exportador rechazaría después; así una ficha no puede bloquear el catálogo de todas las demás.
+     */
+    public const PRIVACIDAD = '/@|\d[\d\s-]{6,}\d|<|>|\b(dni|password|token|estudiantes|matriculados|cotizaciones|clientes)\b/iu';
 
     private function textoOpcional(mixed $valor): ?string
     {

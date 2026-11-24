@@ -212,6 +212,42 @@ class CursoPublicacionTest extends TestCase
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
 
+    /** Lo que el exportador del asistente rechazaría después (y dejaría sin catálogo a todos) se rechaza al guardar. */
+    public static function textoQueBloqueariaElCatalogo(): iterable
+    {
+        yield 'correo en el resumen' => ['resumen', 'Escribe a ana@example.invalid para más detalles'];
+        yield 'telefono en el resumen' => ['resumen', 'Llama al 972 021 374 para informes'];
+        yield 'dni en el resumen' => ['resumen', 'Documento personal 12345678 requerido'];
+        yield 'palabra administrativa' => ['resumen', 'Curso para estudiantes de primer ciclo'];
+        yield 'palabra administrativa en el horario' => ['horario', 'Solo clientes inscritos'];
+        yield 'telefono en la inscripcion' => ['inscripcion', 'Separa tu cupo al 987654321 hoy'];
+        yield 'correo en el temario' => ['temario', 'Consultas: docente@example.invalid'];
+    }
+
+    #[DataProvider('textoQueBloqueariaElCatalogo')]
+    public function test_text_the_assistant_catalog_would_reject_is_refused_when_saving(string $field, string $value): void
+    {
+        $course = $this->course();
+        $this->actingAs($this->adminUser())->publicarFichaCursoPanel($course, array_replace($this->data(), [$field => $value]))
+            ->assertUnprocessable()->assertJsonValidationErrors($field);
+        $this->assertDatabaseCount('curso_publicaciones', 0);
+    }
+
+    public function test_number_split_across_fields_is_also_refused_like_the_exporter_does(): void
+    {
+        $course = $this->course();
+        $this->actingAs($this->adminUser())->publicarFichaCursoPanel($course, array_replace($this->data(), [
+            'resumen' => 'Informes al 972 021', 'horario' => '374 de lunes a viernes',
+        ]))->assertUnprocessable();
+        $this->assertDatabaseCount('curso_publicaciones', 0);
+    }
+
+    public function test_normal_editorial_text_with_digits_and_dates_still_publishes(): void
+    {
+        $this->publish(['resumen' => 'Aprende comunicación efectiva en 2 semanas', 'horario' => 'Lunes a viernes de 2 pm a 5 pm', 'duracion' => '2 semanas']);
+        $this->assertDatabaseCount('curso_publicaciones', 1);
+    }
+
     public function test_late_inactivation_is_rechecked_and_write_failure_rolls_back_publication_and_audit(): void
     {
         $course = $this->course();
@@ -269,9 +305,15 @@ class CursoPublicacionTest extends TestCase
 
     public function test_editorial_content_is_escaped_in_the_editor_and_does_not_modify_the_public_page(): void
     {
-        $course = $this->publish(['resumen' => '<script>alert("private")</script>']);
-        // El panel entrega el texto literal (JSON): quien lo muestra, la UI de Next, lo escapa como texto.
-        $this->fichaCursoPanel($course)->assertOk()->assertJsonPath('data.ficha.resumen', '<script>alert("private")</script>');
+        // El HTML se rechaza al guardar (el catálogo del asistente lo descartaría entero).
+        $rechazado = $this->course();
+        $this->actingAs($this->adminUser())->publicarFichaCursoPanel($rechazado, array_replace($this->data(), ['resumen' => '<script>alert("private")</script>']))
+            ->assertUnprocessable()->assertJsonValidationErrors('resumen');
+
+        // Los caracteres que sí se aceptan (comillas, &) se entregan literales; quien los muestra, la UI de Next, los escapa.
+        $texto = 'Redes & "seguridad" básica con prácticas guiadas';
+        $course = $this->publish(['resumen' => $texto]);
+        $this->fichaCursoPanel($course)->assertOk()->assertJsonPath('data.ficha.resumen', $texto);
         $this->assertStringNotContainsString('Python inicial', $this->textoCursosWeb());
         $this->assertStringNotContainsString('<script>', $this->textoCursosWeb());
         $answer = app(AsistenteVirtualService::class)->procesarMensaje('Compara modalidades de cursos', 'local-comparison');
