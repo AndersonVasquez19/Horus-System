@@ -143,7 +143,7 @@
       "query": "Cual es el horario del curso de analisis de datos",
       "reply": {
         "answer": "«Analisis de datos con Python»: el horario es Martes de 19 a 21 horas.",
-        "intent": "training_info",
+        "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,
         "clarification_question": null,
@@ -194,7 +194,7 @@
       "query": "Cuanto dura el curso de analisis de datos",
       "reply": {
         "answer": "«Analisis de datos con Python»: dura 24 horas.",
-        "intent": "training_info",
+        "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,
         "clarification_question": null,

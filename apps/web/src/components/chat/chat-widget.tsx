@@ -28,6 +28,7 @@ import {
 import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
 import { armarMenuOrientador, cursosValidos } from '@/lib/chat-orientador';
+import { restaurarRespuestasRapidas, separarEtiquetas } from '@/lib/chat-formato';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 type ChatLink = EnlaceChat;
@@ -142,6 +143,8 @@ function restaurarMensajes(valor: unknown): Message[] {
         }
         if (tarjetas.length > 0) mensaje.cards = tarjetas;
       }
+      const rapidas = restaurarRespuestasRapidas(c.quickReplies);
+      if (rapidas.length > 0) mensaje.quickReplies = rapidas;
     }
     salida.push(mensaje);
   }
@@ -185,7 +188,7 @@ function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 function formatearLineaConBadges(linea: string): React.ReactNode[] {
   const patron = /(«[^»]+»|\b(?:Modalidad|Horario|Duración|Inicio|Certificación|Requisitos|Consultas):)/g;
-  const partes = linea.split(patron);
+  const partes = separarEtiquetas(linea).split(patron);
   return partes.map((parte, i) => {
     if (parte.startsWith('«') && parte.endsWith('»')) {
       return (
@@ -746,6 +749,32 @@ export function ChatWidget() {
     ];
   }, [pathname]);
 
+  // Solo los botones del último mensaje del asistente siguen activos: los anteriores cambiarían el contexto sin avisar.
+  const idUltimoBot = [...messages].reverse().find((m) => m.role === 'bot')?.id;
+  const anuncio = (() => {
+    const ultimo = [...messages].reverse().find((m) => m.role === 'bot');
+    return ultimo && ultimo.id !== 'init-1' ? ultimo.text.slice(0, 400) : '';
+  })();
+
+  // Mantiene el foco dentro del diálogo mientras está abierto (Tab y Mays+Tab dan la vuelta).
+  const mantenerFoco = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== 'Tab') return;
+    const foco = Array.from(
+      e.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], textarea:not([disabled]), input:not([disabled]), [tabindex="0"]')
+    ).filter((el) => el.offsetParent !== null);
+    if (foco.length === 0) return;
+    const primero = foco[0];
+    const ultimo = foco[foco.length - 1];
+    const activo = document.activeElement;
+    if (e.shiftKey && activo === primero) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && activo === ultimo) {
+      e.preventDefault();
+      primero.focus();
+    }
+  };
+
   return (
     <div className="horus-chat-widget">
       {/* Launcher Button with Robot Mascot */}
@@ -774,8 +803,9 @@ export function ChatWidget() {
           id="horus-chat-panel"
           className={`hc-dialog animate-in fade-in zoom-in-95 ${isExpanded ? 'hc-dialog-expanded' : ''}`}
           role="dialog"
-          aria-modal="false"
+          aria-modal="true"
           aria-labelledby="hc-title"
+          onKeyDown={mantenerFoco}
         >
           <div className="hc-shell">
             {/* Header */}
@@ -860,10 +890,9 @@ export function ChatWidget() {
             <div className="hc-conversation">
               <div
                 className="hc-log"
-                role="log"
+                role="region"
                 tabIndex={0}
                 aria-label="Conversación con Horus"
-                aria-live="polite"
               >
                 {messages.map((message) => (
                   <article
@@ -1005,13 +1034,13 @@ export function ChatWidget() {
 
                     {/* Quick Replies / Follow-up Chips */}
                     {message.quickReplies && message.quickReplies.length > 0 && (
-                      <div className="hc-followup-chips" aria-label="Consultas rápidas sugeridas">
+                      <div className="hc-followup-chips" role="group" aria-label="Consultas rápidas sugeridas">
                         {message.quickReplies.map((qr, idx) => (
                           <button
                             key={idx}
                             type="button"
                             className="hc-followup-chip"
-                            disabled={sending}
+                            disabled={sending || message.id !== idUltimoBot}
                             onClick={() => handleSuggestionClick(qr.query)}
                           >
                             <span>{qr.label}</span>
@@ -1029,7 +1058,7 @@ export function ChatWidget() {
                       >
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200/80 bg-slate-50 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 min-h-11 rounded-lg border border-slate-200/80 bg-slate-50 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors cursor-pointer"
                           onClick={() => handleCopyMessage(message.id, message.text)}
                           aria-label="Copiar respuesta"
                         >
@@ -1048,7 +1077,7 @@ export function ChatWidget() {
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
+                            className={`inline-flex items-center justify-center w-11 h-11 rounded-lg border transition-colors cursor-pointer ${
                               feedbackByMsg[message.id] === 'up'
                                 ? 'bg-blue-50 border-blue-300 text-blue-700'
                                 : 'border-slate-200/80 bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
@@ -1061,7 +1090,7 @@ export function ChatWidget() {
                           </button>
                           <button
                             type="button"
-                            className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
+                            className={`inline-flex items-center justify-center w-11 h-11 rounded-lg border transition-colors cursor-pointer ${
                               feedbackByMsg[message.id] === 'down'
                                 ? 'bg-amber-50 border-amber-300 text-amber-700'
                                 : 'border-slate-200/80 bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
@@ -1150,6 +1179,11 @@ export function ChatWidget() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Anuncio para lectores de pantalla: solo la última respuesta, no todo el bloque de botones y acciones. */}
+              <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {anuncio}
+              </div>
+
               {/* Compose Box */}
               <div className="hc-compose">
                 <div className="hc-compose-heading">
@@ -1166,9 +1200,6 @@ export function ChatWidget() {
                     handleSend();
                   }}
                 >
-                  <label htmlFor="mensaje-chat" className="sr-only">
-                    Escribe tu mensaje
-                  </label>
                   <textarea
                     id="mensaje-chat"
                     ref={textareaRef}

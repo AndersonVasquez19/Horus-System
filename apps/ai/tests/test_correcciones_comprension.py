@@ -64,8 +64,11 @@ def test_seguimiento_que_nombra_otro_registro_institucional(engine: AdvisorEngin
 
 
 def test_seguimiento_de_certificado_tras_lista_de_convenios(engine: AdvisorEngine) -> None:
+    # En el contexto de los convenios, «¿y entregan certificado?» se responde con lo que dice ese mismo registro
+    # (certificados con firma del decano). Fuera de contexto, la pregunta va a «certificados_entrega_validez».
     reply = engine.chat("¿y entregan certificado?", _historial("¿Con qué instituciones tienen convenio?"))
-    assert _ids(reply) == ["cursos_certificados"]
+    assert _ids(reply) == ["convenios_resumen"] and "certificado" in reply.answer.lower()
+    assert _ids(engine.chat("¿entregan certificado?")) == ["certificados_entrega_validez"]
 
 
 def test_seguimiento_sobre_programa_conserva_el_foco(engine: AdvisorEngine) -> None:
