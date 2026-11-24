@@ -41,7 +41,7 @@ class LimitesTextoLargoTest extends TestCase
         $estudiante = Estudiante::create(['dni' => '70005555', 'nombres' => 'Ana', 'apellidos' => 'Prueba', 'estado' => 'activo']);
 
         $base = [
-            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => now()->toDateString(),
+            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'fecha_matricula' => \App\Support\HoraLocal::hoy(),
             'estado' => 'pendiente',
         ];
 

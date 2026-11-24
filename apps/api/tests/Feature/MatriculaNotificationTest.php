@@ -84,7 +84,7 @@ class MatriculaNotificationTest extends TestCase
         $seed->delete();
         MatriculaNotification::query()->delete();
         $data = ['estudiante_id' => $seed->estudiante_id, 'curso_id' => $seed->curso_id,
-            'estado' => 'pendiente', 'fecha_matricula' => today()->toDateString(), 'monto_pagado' => null];
+            'estado' => 'pendiente', 'fecha_matricula' => \App\Support\HoraLocal::hoy(), 'monto_pagado' => null];
         $this->actingAs($this->adminUser())->panelMatriculas('POST', '', $data);
         $this->panelMatriculas('POST', '', $data)->assertUnprocessable()->assertJsonValidationErrors('estudiante_id');
         $matricula = Matricula::sole();
@@ -99,7 +99,7 @@ class MatriculaNotificationTest extends TestCase
     {
         $seed = $this->enrollment();
         $seed->forceDelete();
-        $data = ['estudiante_id' => $seed->estudiante_id, 'curso_id' => $seed->curso_id, 'estado' => 'pendiente', 'fecha_matricula' => today()->toDateString()];
+        $data = ['estudiante_id' => $seed->estudiante_id, 'curso_id' => $seed->curso_id, 'estado' => 'pendiente', 'fecha_matricula' => \App\Support\HoraLocal::hoy()];
         $this->panelMatriculas('POST', '', $data)->assertUnauthorized();
         $this->actingAs(User::factory()->create())->panelMatriculas('POST', '', $data)->assertForbidden();
         $this->assertDatabaseCount('matricula_notifications', 0);

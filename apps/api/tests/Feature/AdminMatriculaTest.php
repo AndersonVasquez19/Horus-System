@@ -316,7 +316,7 @@ class AdminMatriculaTest extends TestCase
         return array_replace([
             'estudiante_id' => $estudiante->id,
             'curso_id' => $curso->id,
-            'fecha_matricula' => today()->toDateString(),
+            'fecha_matricula' => \App\Support\HoraLocal::hoy(),
             'estado' => 'pendiente',
             'observaciones' => null,
         ], $attributes);
