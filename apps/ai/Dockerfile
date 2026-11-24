@@ -26,7 +26,9 @@ COPY apps/ai/app ./app
 COPY apps/ai/data ./data
 
 RUN useradd --system --uid 10001 --home-dir /srv/horus-ai horus && chown -R horus:horus /srv/horus-ai
-USER horus
+# El contenedor arranca como root SOLO para entregar la carpeta del catálogo al usuario `horus` y bajar de privilegios
+# antes de abrir el puerto: Railway monta los volúmenes como root (docs.railway.com/volumes#permissions) y, sin este
+# paso, un volumen en /data no sería escribible. El proceso de la aplicación siempre corre como uid 10001.
 
 # Dentro del contenedor el servicio debe escuchar fuera de loopback para que Railway lo alcance por la red privada
 # (IPv4 e IPv6). El secreto HORUS_AI_SERVICE_TOKEN sigue siendo obligatorio: sin él /api/v1/* responde 503.
@@ -37,4 +39,6 @@ ENV HORUS_AI_HOST=:: \
 EXPOSE 8001
 
 # `python -m app` valida la configuración antes de abrir el puerto. Railway inyecta PORT.
-CMD ["sh", "-c", "HORUS_AI_PORT=\"${PORT:-8001}\" exec python -m app"]
+# 1) Si la carpeta del catálogo existe (p. ej. el volumen en /data), pasa a ser de `horus`.
+# 2) `setpriv` (util-linux, ya incluido en la imagen) baja a uid/gid 10001 sin grupos extra y reemplaza al proceso.
+CMD ["sh", "-c", "d=$(dirname \"${HORUS_AI_CATALOG_PATH:-/srv/horus-ai/catalog.json}\"); [ -d \"$d\" ] && chown 10001:10001 \"$d\"; exec setpriv --reuid=10001 --regid=10001 --clear-groups sh -c 'HORUS_AI_PORT=\"${PORT:-8001}\" exec python -m app'"]
