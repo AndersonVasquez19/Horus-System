@@ -15,4 +15,14 @@ return [
 
         return $valor === false ? 80 : $valor;
     })(),
+
+    /* Nota final mínima aprobatoria para emitir certificado sin excepción (escala 0–20). */
+    'nota_minima' => (static function (): float {
+        $valor = filter_var(env('HORUS_NOTA_MINIMA', 11), FILTER_VALIDATE_FLOAT);
+
+        return $valor === false || $valor < 0 || $valor > 20 ? 11.0 : (float) $valor;
+    })(),
+
+    /* Si es true, un certificado exige que la edición tenga el acta cerrada (apagado por defecto: no cambia el comportamiento previo). */
+    'certificado_exige_acta_cerrada' => filter_var(env('HORUS_CERTIFICADO_EXIGE_ACTA', false), FILTER_VALIDATE_BOOLEAN),
 ];

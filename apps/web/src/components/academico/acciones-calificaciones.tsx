@@ -11,6 +11,7 @@ import { Boton } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
 import { Insignia } from '@/components/shared/ui/insignia';
+import { AccionesReaperturaActa } from '@/components/academico/acciones-reapertura-acta';
 import type { ActaCalificaciones, EvaluacionActa, FilaActa } from '@/features/academico/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import type { ErrorPanel } from '@/lib/panel/tipos';
@@ -209,6 +210,7 @@ export function PanelCalificaciones({ acta }: { acta: ActaCalificaciones }) {
               Exportar borrador Excel
             </Boton>
           ) : null}
+          {cerrada ? <AccionesReaperturaActa identificador={convocatoria.identificador} /> : null}
           {puedeExportar && cerrada ? (
             <Boton variante="secundario" icono={<FileSpreadsheet className="h-4 w-4" aria-hidden="true" />} cargando={ocupado} onClick={() => void exportar(false)}>
               Exportar acta

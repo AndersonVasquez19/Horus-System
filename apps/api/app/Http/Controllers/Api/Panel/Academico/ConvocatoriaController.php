@@ -348,6 +348,7 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
 
         return response()->json([
             'data' => [
+                ...app(\App\Services\SatisfaccionEncuestas::class)->resumen((int) $convocatoria->id),
                 'total_respondidas' => $respondidas->count(),
                 'triste' => $conteos[1],
                 'normal' => $conteos[2],

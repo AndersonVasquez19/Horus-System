@@ -11,6 +11,7 @@ use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Models\User;
 use App\Support\CodigoSecuencial;
+use App\Support\Entrada;
 use App\Support\HoraLocal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,24 +24,20 @@ use Illuminate\Validation\ValidationException;
  *  - Una matrícula anulada o eliminada no puede recibir certificado.
  *  - A lo sumo un certificado en estado `emitido` por matrícula (se bloquea la matrícula con `lockForUpdate`).
  *  - Código secuencial único `HORUS-AAAA-NNNN` tomado de `secuencias_codigo` dentro de la misma transacción.
- *  - Si hay sesiones realizadas con asistencia registrada menor al 80 %, o nota final desaprobatoria (< 11),
- *    solo un administrador puede emitir indicando un `motivo_excepcion`.
+ *  - La elegibilidad (asistencia, nota, deuda y, si se configura, acta cerrada) sale de {@see ElegibilidadCertificado}: ante un
+ *    bloqueo solo un administrador puede emitir indicando un `motivo_excepcion`.
  *  - La verificación pública jamás expone DNI, correo, teléfono ni nombre completo (solo iniciales abreviadas).
  */
 class GestionCertificados
 {
-    public const ASISTENCIA_MINIMA = 80.0;
-
-    public const NOTA_APROBATORIA_MINIMA = 11.0;
-
-    public function __construct(private readonly GestionAsistencias $asistencias) {}
+    public function __construct(private readonly GestionAsistencias $asistencias, private readonly ElegibilidadCertificado $elegibilidad) {}
 
     public function emitirParaMatricula(Matricula $matricula, User $actor, ?string $motivoExcepcion = null): Certificado
     {
         $motivoLimpio = $motivoExcepcion !== null ? trim($motivoExcepcion) : '';
         $motivo = $motivoLimpio !== '' ? $motivoLimpio : null;
 
-        return DB::transaction(function () use ($matricula, $actor, $motivo): Certificado {
+        $emitido = DB::transaction(function () use ($matricula, $actor, $motivo): Certificado {
             /** @var Matricula $bloqueada */
             $bloqueada = Matricula::query()
                 ->with(['estudiante', 'curso', 'convocatoria'])
@@ -61,10 +58,10 @@ class GestionCertificados
                 ? (float) $bloqueada->getAttribute('nota_final')
                 : null;
 
-            $errores = $this->evaluarRequisitos($porcentajeAsistencia, $notaFinal);
+            $errores = $this->elegibilidad->bloqueos($bloqueada, $porcentajeAsistencia, $notaFinal);
             if ($errores !== []) {
                 if ($motivo === null || ! $actor->hasRole('admin')) {
-                    throw ValidationException::withMessages(['matricula' => implode(' ', $errores)]);
+                    throw ValidationException::withMessages(['matricula' => implode(' ', array_column($errores, 'mensaje'))]);
                 }
             }
 
@@ -94,23 +91,29 @@ class GestionCertificados
                     'matricula_id' => $bloqueada->id,
                     'convocatoria_id' => $bloqueada->convocatoria_id,
                     'con_excepcion' => $errores !== [],
+                    'bloqueos' => array_column($errores, 'codigo'),
                 ],
                 $actor->id,
             );
 
             return $certificado->load(['estudiante', 'curso', 'convocatoria', 'emisor']);
         });
+
+        // Fuera de la transacción: un fallo de la cola nunca deshace la emisión.
+        app(CorreoCertificados::class)->encolarSiAutomatico($emitido);
+
+        return $emitido;
     }
 
     /**
      * Emite en lote los certificados de todas las matrículas elegibles de una edición.
      *
-     * @return array{emitidos: int, ya_emitidos: int, omitidos: int}
+     * @return array{emitidos: int, ya_emitidos: int, omitidos: int, omitidos_por_deuda: int}
      */
     public function emitirLoteEdicion(Convocatoria $convocatoria, User $actor): array
     {
         $matriculas = Matricula::query()
-            ->with(['estudiante', 'curso'])
+            ->with(['estudiante', 'curso', 'convocatoria'])
             ->where('convocatoria_id', $convocatoria->id)
             ->where('estado', '!=', 'anulada')
             ->get();
@@ -125,6 +128,7 @@ class GestionCertificados
         $emitidos = 0;
         $yaEmitidos = 0;
         $omitidos = 0;
+        $porDeuda = 0;
 
         foreach ($matriculas as $matricula) {
             if ($emitidosIds->has($matricula->id)) {
@@ -137,8 +141,10 @@ class GestionCertificados
                 ? (float) $matricula->getAttribute('nota_final')
                 : null;
 
-            if ($this->evaluarRequisitos($porcentaje, $notaFinal) !== []) {
+            $bloqueos = $this->elegibilidad->bloqueos($matricula, $porcentaje, $notaFinal);
+            if ($bloqueos !== []) {
                 $omitidos++;
+                $porDeuda += in_array('deuda', array_column($bloqueos, 'codigo'), true) ? 1 : 0;
                 continue;
             }
 
@@ -150,6 +156,7 @@ class GestionCertificados
             'emitidos' => $emitidos,
             'ya_emitidos' => $yaEmitidos,
             'omitidos' => $omitidos,
+            'omitidos_por_deuda' => $porDeuda,
         ];
     }
 
@@ -215,6 +222,21 @@ class GestionCertificados
         ];
     }
 
+    /**
+     * Vista previa de la elegibilidad de una matrícula (sin emitir): bloqueos y si el actor puede emitir con excepción.
+     *
+     * @return array{elegible: bool, bloqueos: list<array{codigo: string, mensaje: string}>, puede_excepcion: bool, certificado_vigente: string|null}
+     */
+    public function vistaPrevia(Matricula $matricula, User $actor): array
+    {
+        $matricula->loadMissing(['convocatoria']);
+        $nota = $matricula->getAttribute('nota_final') !== null ? Entrada::decimal($matricula->getAttribute('nota_final')) : null;
+        $bloqueos = $this->elegibilidad->bloqueos($matricula, $this->porcentajeAsistencia($matricula), $nota);
+        $vigente = Certificado::query()->where('matricula_id', $matricula->id)->where('estado', EstadoCertificado::Emitido->value)->value('codigo');
+
+        return ['elegible' => $bloqueos === [] && $vigente === null, 'bloqueos' => $bloqueos, 'puede_excepcion' => $actor->hasRole('admin'), 'certificado_vigente' => is_string($vigente) ? $vigente : null];
+    }
+
     private function porcentajeAsistencia(Matricula $matricula): ?float
     {
         if ($matricula->convocatoria === null) {
@@ -229,27 +251,5 @@ class GestionCertificados
         }
 
         return null;
-    }
-
-    /** @return list<string> */
-    private function evaluarRequisitos(?float $porcentajeAsistencia, ?float $notaFinal): array
-    {
-        $errores = [];
-        if ($porcentajeAsistencia !== null && $porcentajeAsistencia < self::ASISTENCIA_MINIMA) {
-            $errores[] = sprintf(
-                'La asistencia registrada (%.1f%%) es menor al mínimo requerido (%.0f%%).',
-                $porcentajeAsistencia,
-                self::ASISTENCIA_MINIMA,
-            );
-        }
-        if ($notaFinal !== null && $notaFinal < self::NOTA_APROBATORIA_MINIMA) {
-            $errores[] = sprintf(
-                'La nota final (%.2f) es menor a la nota mínima aprobatoria (%.0f).',
-                $notaFinal,
-                self::NOTA_APROBATORIA_MINIMA,
-            );
-        }
-
-        return $errores;
     }
 }

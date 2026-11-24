@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 import { AccionesConvocatoria, EditorHorarios } from '@/components/academico/acciones-convocatoria';
 import { AccionesListadoMatriculas } from '@/components/academico/acciones-matricula';
 import { PanelCalificaciones } from '@/components/academico/acciones-calificaciones';
+import { PanelListaEspera } from '@/components/academico/lista-espera';
+import { BotonMatriculaMasiva } from '@/components/academico/matricula-masiva';
 import { BotonMatricularConPago } from '@/components/academico/matricular-con-pago';
 import { ResumenAsistenciaEdicion } from '@/components/academico/paneles-asistencia';
 import { PanelSesionesEdicion } from '@/components/academico/paneles-sesiones';
@@ -14,7 +16,7 @@ import { Insignia, colorEstado, type ColorInsignia } from '@/components/shared/u
 import { Pestanas, type ElementoPestana } from '@/components/shared/ui/pestanas';
 import { EsqueletoFicha, ListaDatos, Seccion, Tabla } from '@/components/shared/ui/tabla';
 import { AccionesFilaCertificado, BotonEmitirLoteCertificados } from '@/components/academico/acciones-certificado';
-import { TRANSICIONES_CONVOCATORIA, type ActaCalificaciones, type CertificadoResumen, type ConvocatoriaDetalle, type EstadoCobro, type ResumenAsistenciaFila, type SesionClase } from '@/features/academico/tipos';
+import { TRANSICIONES_CONVOCATORIA, type ActaCalificaciones, type CertificadoResumen, type ConvocatoriaDetalle, type EstadoCobro, type ListaEsperaVista, type ResumenAsistenciaFila, type SesionClase } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { mensajeBienvenida } from '@/lib/panel/contacto';
 import { etiqueta, fecha, moneda } from '@/lib/panel/formato';
@@ -67,6 +69,7 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         acciones={
           <div className="flex flex-wrap items-center gap-2">
             <BotonMatricularConPago convocatoria={c.identificador} disponible={c.estado === 'abierta' || c.estado === 'en_curso'} />
+            <BotonMatriculaMasiva convocatoria={c.identificador} disponible={c.estado === 'abierta' || c.estado === 'en_curso'} />
             <AccionesConvocatoria convocatoria={c} transiciones={transiciones} />
           </div>
         }
@@ -193,6 +196,15 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
               ]
             : []),
           {
+            id: 'espera',
+            etiqueta: 'Lista de espera',
+            contenido: (
+              <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando lista de espera" />}>
+                <ListaEsperaDeLaEdicion identificador={id} />
+              </Suspense>
+            ),
+          },
+          {
             id: 'sesiones',
             etiqueta: 'Sesiones y asistencia',
             contenido: (
@@ -227,6 +239,16 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         ]}
       />
     </>
+  );
+}
+
+/** Lista de espera de la edición (`convocatorias.ver`; agregar y quitar, con `matriculas.crear`). */
+async function ListaEsperaDeLaEdicion({ identificador }: { identificador: string }) {
+  const resultado = await consultarPanel<{ data: ListaEsperaVista }>(`academico/convocatorias/${identificador}/lista-espera`, `${LISTADO}/${identificador}#espera`);
+  return (
+    <Seccion id="titulo-espera" titulo="Lista de espera" descripcion="Personas que esperan un cupo, en orden de llegada. Solo se anota a alguien cuando la edición está llena.">
+      {resultado.estado === 'ok' ? <PanelListaEspera convocatoria={identificador} datos={resultado.datos.data} /> : <EstadoError texto="No se pudo cargar la lista de espera." />}
+    </Seccion>
   );
 }
 

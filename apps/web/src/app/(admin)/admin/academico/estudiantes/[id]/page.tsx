@@ -4,13 +4,14 @@ import { Suspense } from 'react';
 import { AccionesEstudiante } from '@/components/academico/acciones-estudiante';
 import { AccionesFilaCertificado } from '@/components/academico/acciones-certificado';
 import { HistorialAcademico } from '@/components/academico/historial-academico';
+import { FormularioNotaSeguimiento } from '@/components/academico/nota-seguimiento';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
 import { EsqueletoFicha, ListaDatos, Seccion, Tabla } from '@/components/shared/ui/tabla';
-import type { CertificadoResumen, EstudianteDetalle } from '@/features/academico/tipos';
+import type { CertificadoResumen, EstudianteDetalle, EventoLineaTiempo, LineaTiempoEstudiante } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { mensajeEstudiante } from '@/lib/panel/contacto';
 import { etiqueta, fecha } from '@/lib/panel/formato';
@@ -148,11 +149,62 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           <CertificadosDelEstudiante dni={estudiante.dni} volver={`${LISTADO}/${estudiante.id}`} />
         </Suspense>
 
+        <Suspense fallback={null}>
+          <Seguimiento360 estudianteId={estudiante.id} volver={`${LISTADO}/${estudiante.id}`} />
+        </Suspense>
+
         <Seccion id="titulo-historial" titulo="Historial" descripcion="Operaciones registradas en la auditoría." className="xl:col-span-3">
           <HistorialAcademico entidad="estudiante" eventos={estudiante.historial} />
         </Seccion>
       </div>
     </>
+  );
+}
+
+const ETIQUETA_EVENTO: Record<EventoLineaTiempo['tipo'], { texto: string; color: 'azul' | 'verde' | 'ambar' | 'rojo' | 'gris' }> = {
+  matricula: { texto: 'Matrícula', color: 'azul' },
+  nota: { texto: 'Notas', color: 'verde' },
+  pago: { texto: 'Pago', color: 'verde' },
+  cobranza: { texto: 'Cobranza', color: 'ambar' },
+  asistencia: { texto: 'Asistencia', color: 'rojo' },
+  certificado: { texto: 'Certificado', color: 'azul' },
+  nota_interna: { texto: 'Nota interna', color: 'gris' },
+};
+
+/** Línea de tiempo del estudiante y notas internas (cada tipo de evento depende del permiso de su módulo). */
+async function Seguimiento360({ estudianteId, volver }: { estudianteId: number; volver: string }) {
+  const res = await consultarPanel<{ data: LineaTiempoEstudiante }>(`academico/estudiantes/${estudianteId}/360`, volver);
+  if (res.estado !== 'ok') return null;
+  const { eventos, truncado } = res.datos.data;
+
+  return (
+    <Seccion id="titulo-360" titulo="Seguimiento 360°" descripcion="Matrículas, pagos, asistencia, notas, certificados, contactos de cobranza y notas internas, del más reciente al más antiguo." className="xl:col-span-3">
+      <div className="space-y-4">
+        <FormularioNotaSeguimiento estudianteId={estudianteId} />
+        {eventos.length === 0 ? (
+          <p className="text-sm text-panel-muted">Todavía no hay actividad registrada.</p>
+        ) : (
+          <ol className="space-y-2">
+            {eventos.map((e, i) => (
+              <li key={`${e.tipo}-${e.fecha}-${i}`} className="flex flex-wrap items-start gap-3 rounded-lg border border-panel-border p-3 text-sm">
+                <span className="w-24 shrink-0 text-xs text-panel-muted">{e.fecha ? fecha(e.fecha) : '—'}</span>
+                <Insignia color={ETIQUETA_EVENTO[e.tipo].color}>{ETIQUETA_EVENTO[e.tipo].texto}</Insignia>
+                <div className="min-w-0 flex-1">
+                  {e.enlace ? (
+                    <Link href={e.enlace} className="font-medium text-academico-700 hover:underline">{e.titulo}</Link>
+                  ) : (
+                    <span className="font-medium text-panel-ink">{e.titulo}</span>
+                  )}
+                  {e.detalle ? <div className="text-panel-text">{e.detalle}</div> : null}
+                  {e.autor ? <div className="text-xs text-panel-muted">por {e.autor}</div> : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        {truncado ? <p className="text-xs text-panel-muted">Se muestran los 200 eventos más recientes.</p> : null}
+      </div>
+    </Seccion>
   );
 }
 

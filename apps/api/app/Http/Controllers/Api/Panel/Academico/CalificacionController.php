@@ -13,6 +13,7 @@ use App\Models\Matricula;
 use App\Models\User;
 use App\Services\ActaExcel;
 use App\Services\GestionCalificaciones;
+use App\Services\ReaperturaActa;
 use App\Support\Entrada;
 use App\Support\Panel\PrecondicionesPanel;
 use App\Support\TemporaryExportFile;
@@ -47,7 +48,7 @@ final class CalificacionController extends Controller implements HasMiddleware
             // El permiso exacto (registrar una nota nueva o corregir una existente) lo decide el servicio.
             new Middleware('permission:calificaciones.registrar|calificaciones.corregir', only: ['nota']),
             new Middleware('permission:calificaciones.corregir', only: ['crearEvaluacion', 'actualizarEvaluacion', 'eliminarEvaluacion']),
-            new Middleware('permission:convocatorias.cerrar', only: ['cerrarActa']),
+            new Middleware('permission:convocatorias.cerrar', only: ['cerrarActa', 'solicitarReapertura', 'reabrirActa']),
             new Middleware('permission:calificaciones.exportar', only: ['exportarActa', 'exportarBorradorActa']),
         ];
     }
@@ -115,6 +116,28 @@ final class CalificacionController extends Controller implements HasMiddleware
         $this->gestion->cerrarActa($request, $this->convocatoria($identificador)->identificador);
 
         return $this->respuesta($this->convocatoria($identificador), 200, 'El acta se cerró correctamente.');
+    }
+
+    /** Solicita a Gerencia la reapertura de un acta cerrada (motivo obligatorio). */
+    public function solicitarReapertura(Request $request, string $identificador, ReaperturaActa $reapertura): JsonResponse
+    {
+        $datos = $request->validate(['motivo' => ['required', 'string', 'min:10', 'max:500', 'not_regex:/[<>]/u']]);
+        /** @var User $usuario */
+        $usuario = $request->user();
+        $solicitud = $reapertura->solicitar($usuario, $this->convocatoria($identificador)->identificador, Entrada::texto($datos['motivo']));
+
+        return response()->json(['message' => 'Solicitud enviada a Gerencia. Cuando la aprueben podrás reabrir el acta.', 'data' => ['aprobacion' => $solicitud->id]], 201);
+    }
+
+    /** Reabre el acta con una solicitud de reapertura aprobada (una sola vez por aprobación). */
+    public function reabrirActa(Request $request, string $identificador, ReaperturaActa $reapertura): JsonResponse
+    {
+        /** @var User $usuario */
+        $usuario = $request->user();
+        $resultado = $reapertura->reabrir($usuario, $this->convocatoria($identificador)->identificador);
+        $aviso = $resultado['certificados_emitidos'] > 0 ? " Hay {$resultado['certificados_emitidos']} certificado(s) emitido(s): anúlalos y reemítelos si cambian las notas." : '';
+
+        return $this->respuesta($this->convocatoria($identificador), 200, 'El acta se reabrió: las notas finales se recalcularán al cerrarla de nuevo.'.$aviso);
     }
 
     /** Excel del acta de una convocatoria cerrada, con constancia de acceso (sin las notas). */

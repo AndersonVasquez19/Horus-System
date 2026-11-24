@@ -246,8 +246,9 @@ class GestionCalificaciones
             $convocatoria->estado = 'cerrada';
             $convocatoria->revision++;
             $convocatoria->save();
+            $encuestas = app(SatisfaccionEncuestas::class)->emitirParaEdicion($convocatoria);
             AuditLog::record('acta_cerrada', Convocatoria::class, $convocatoria->id,
-                ['revision' => $convocatoria->revision, 'matriculas' => count($finales), 'aprobados' => $aprobados], $autor->id);
+                ['revision' => $convocatoria->revision, 'matriculas' => count($finales), 'aprobados' => $aprobados, 'encuestas_emitidas' => $encuestas], $autor->id);
 
             return $convocatoria;
         });

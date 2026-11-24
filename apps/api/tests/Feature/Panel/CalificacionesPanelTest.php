@@ -287,6 +287,29 @@ final class CalificacionesPanelTest extends PanelApiTestCase
         $this->assertSame('11.33', (string) $m->fresh()->nota_final);
     }
 
+    /** Fase 3.11: al cerrar el acta se emite una encuesta por matrícula no anulada; el KPI cuenta solo respondidas. */
+    public function test_el_cierre_emite_las_encuestas_y_el_resumen_calcula_la_satisfaccion(): void
+    {
+        $coordinador = $this->coordinador();
+        $c = $this->convocatoria();
+        $e = $this->evaluacion($c, 'Unica', '100');
+        $ana = $this->matricula($c, '11111111');
+        $beto = $this->matricula($c, '22222222');
+        $this->nota($coordinador, $c, $e, $ana, 15)->assertOk();
+        $this->nota($coordinador, $c, $e, $beto, 15)->assertOk();
+
+        $this->como($coordinador, 'POST', $this->ruta($c, 'acta/cerrar'), ['_revision' => $c->fresh()->etag()])->assertOk();
+        $this->assertSame(2, \App\Models\EncuestaCurso::query()->where('convocatoria_id', $c->id)->count());
+
+        $servicio = app(\App\Services\SatisfaccionEncuestas::class);
+        $this->assertSame(0, $servicio->emitirParaEdicion($c->fresh()), 'emitir de nuevo no duplica');
+        $this->assertNull($servicio->resumen((int) $c->id)['promedio']);
+
+        \App\Models\EncuestaCurso::query()->where('matricula_id', $ana->id)->update(['calificacion' => 3, 'respondida_at' => now()]);
+        $r = $servicio->resumen((int) $c->id);
+        $this->assertSame(['emitidas' => 2, 'respondidas' => 1, 'tasa_respuesta' => 50, 'promedio' => 3.0, 'felices_pct' => 100], $r);
+    }
+
     public function test_el_cierre_exige_pesos_de_100_notas_completas_y_la_convocatoria_en_curso(): void
     {
         $coordinador = $this->coordinador();
