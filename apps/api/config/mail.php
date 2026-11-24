@@ -115,4 +115,14 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Logo de los correos transaccionales
+    |--------------------------------------------------------------------------
+    |
+    | Vacío = se usa `APP_URL` + /assets/images/email/logo-horus-email.png, y solo si es una URL https pública
+    | (`App\Support\MarcaCorreo`). Sirve para apuntar a otra dirección si la API no es pública.
+    */
+    'logo_url' => env('MAIL_LOGO_URL'),
+
 ];

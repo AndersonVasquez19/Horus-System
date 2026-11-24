@@ -1,20 +1,22 @@
-<!doctype html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Matrícula registrada</title></head>
-<body style="margin:0;padding:24px 12px;background:#f1f5f9;color:#243746;font-family:Arial,sans-serif;line-height:1.6">
-<table role="presentation" style="width:100%;max-width:600px;margin:auto;border-collapse:collapse;background:#ffffff">
-    <tr><td style="padding:24px;background:#0A2540;color:#ffffff;font-size:22px;font-weight:bold">HORUS GROUP</td></tr>
-    <tr><td style="padding:24px;overflow-wrap:anywhere;word-break:break-word">
-        <h1 style="font-size:24px;color:#0A2540;margin-top:0">¡Te damos la bienvenida!</h1>
-        <p>Hola, {{ $studentName }}.</p>
-        <p>Hemos registrado tu matrícula en el curso <strong>{{ $courseName }}</strong>.</p>
-        <p>Este mensaje confirma el registro de tu matrícula. No constituye una confirmación de pago.</p>
-        <h2 style="font-size:18px;color:#0A2540">Próximos pasos</h2>
-        <p>Comunícate con nuestro equipo para confirmar los requisitos, la modalidad, el horario y las indicaciones de acceso que correspondan a tu curso.</p>
-        <p>Teléfono o WhatsApp: <a href="https://wa.me/51972021374" style="color:#0A2540">+51 972 021 374</a><br>
-        Correo: <a href="mailto:horusgroupcajamarca@gmail.com" style="color:#0A2540">horusgroupcajamarca@gmail.com</a></p>
-        <p style="font-size:13px;color:#526575">Si no reconoces esta matrícula, comunícate con nuestro equipo por los canales indicados.</p>
-    </td></tr>
-</table>
-</body>
-</html>
+@extends('emails.layouts.base')
+
+@section('asunto', 'Matrícula registrada')
+@section('preheader', 'Hemos registrado tu matrícula en el curso '.$courseName.'.')
+
+@section('contenido')
+    <h1 style="margin:0 0 18px;font-size:26px;line-height:1.25;color:#0a2540;">¡Te damos la bienvenida!</h1>
+    <p style="margin:0 0 14px;">Hola, {{ $studentName }}.</p>
+    <p style="margin:0 0 14px;">Hemos registrado tu matrícula en el curso <strong>{{ $courseName }}</strong>.</p>
+    <p style="margin:0 0 22px;">Este mensaje confirma el registro de tu matrícula. No constituye una confirmación de pago.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
+        <tr>
+            <td bgcolor="#f8fafc" style="background-color:#f8fafc;border-left:4px solid #d4af37;border-radius:8px;padding:16px 20px;">
+                <h2 style="margin:0 0 8px;font-size:18px;line-height:1.3;color:#0a2540;">Próximos pasos</h2>
+                <p style="margin:0;">Comunícate con nuestro equipo para confirmar los requisitos, la modalidad, el horario y las indicaciones de acceso que correspondan a tu curso.</p>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#526575;">Si no reconoces esta matrícula, comunícate con nuestro equipo por los canales indicados.</p>
+@endsection

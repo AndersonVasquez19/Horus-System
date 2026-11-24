@@ -37,6 +37,11 @@ CERTIFICADO_MAIL_AUTO=false      # recomendado al empezar: el personal envía co
 
 Luego `php artisan config:clear`. El remitente debe ser de un dominio verificado en Resend; un `@gmail.com` o `@example.*` hace que el sistema considere el envío «no configurado» y no envíe (a propósito).
 
+### Plantillas y logo
+Los tres correos transaccionales (bienvenida de matrícula, certificado y recuperar contraseña) comparten una base: [`emails/layouts/base.blade.php`](../apps/api/resources/views/emails/layouts/base.blade.php) (cabecera azul con el Ojo de Horus, franja dorada, pie con el contacto) y el botón [`emails/partials/boton.blade.php`](../apps/api/resources/views/emails/partials/boton.blade.php). Tablas y estilos en línea a propósito: es lo único que Gmail y Outlook renderizan igual. Las versiones de texto plano no cambian.
+
+El logo es una copia ligera (144×104 px, ~21 KB, con transparencia) en `apps/api/public/assets/images/email/logo-horus-email.png`. Un correo no puede usar archivos locales, así que se pide a `APP_URL` + esa ruta, y **solo** si `APP_URL` es una URL https pública (`App\Support\MarcaCorreo`). En producción `APP_URL` debe ser la dirección pública de la API **en `horus-api`, `horus-worker` y `horus-scheduler`** (los dos últimos son quienes envían). Si no lo es, el correo sale sin imagen (solo el nombre en texto), nunca con una imagen rota. `MAIL_LOGO_URL` permite apuntar a otra dirección. Para revisar el diseño sin enviar nada: renderizar las vistas a HTML y abrirlas en el navegador.
+
 ## 3. Procesos que deben estar corriendo
 El correo **no sale** sin ellos:
 - `php artisan queue:work` (o el worker del servidor).
