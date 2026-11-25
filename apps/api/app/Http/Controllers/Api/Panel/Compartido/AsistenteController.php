@@ -10,6 +10,7 @@ use App\Services\AsistenteVirtualService;
 use App\Services\ConversacionesAsistente;
 use App\Services\MetricasAsistente;
 use App\Support\ListFilter;
+use App\Support\SenalesAsistente;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -48,6 +49,7 @@ final class AsistenteController extends Controller implements HasMiddleware
             $conCanal = Schema::hasColumn((new ChatLog)->getTable(), 'canal');
             $filtros = [
                 'busqueda' => ListFilter::text($request, 'busqueda', 120),
+                'etapa' => ListFilter::in($request, 'etapa', SenalesAsistente::ETAPAS),
                 'tema' => ListFilter::in($request, 'intent', [...$temas, ConversacionesAsistente::TEMA_SIN_DATO]),
                 'fuente' => ListFilter::in($request, 'fuente', ['advisor', 'respaldo']),
                 'voto' => ListFilter::in($request, 'voto', ['up', 'down']),
@@ -61,6 +63,7 @@ final class AsistenteController extends Controller implements HasMiddleware
             $datos['temas'] = $temas;
             $datos['con_votos'] = Schema::hasColumn((new ChatLog)->getTable(), 'voto');
             $datos['separa_canal'] = $conCanal;
+            $datos['con_whatsapp'] = Schema::hasColumn((new ChatLog)->getTable(), 'abrio_whatsapp');
             $meta = [
                 'pagina' => $listado['pagina'],
                 'por_pagina' => ConversacionesAsistente::POR_PAGINA,
@@ -69,6 +72,7 @@ final class AsistenteController extends Controller implements HasMiddleware
                 'orden' => '-creado',
                 'filtros' => array_filter([
                     'busqueda' => $filtros['busqueda'],
+                    'etapa' => $filtros['etapa'],
                     'intent' => $filtros['tema'],
                     'fuente' => $filtros['fuente'],
                     'voto' => $filtros['voto'],

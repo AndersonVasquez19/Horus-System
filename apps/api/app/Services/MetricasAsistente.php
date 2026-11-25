@@ -8,6 +8,7 @@ use App\Models\ChatLog;
 use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\IntencionesAsistente;
+use App\Support\SenalesAsistente;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 
@@ -29,7 +30,8 @@ final class MetricasAsistente
 
     /**
      * @return array{dias: int, consultas: int, conversaciones: int, respondidas: int, contingencia: int,
-     *     con_tema: int, sin_dato: int, temas: list<array{nombre: string, total: int}>,
+     *     sin_origen: int, con_tema: int, sin_dato: int, temas: list<array{nombre: string, total: int}>,
+     *     etapas: array{interesado: int, matricula: int, contacto: int, reclamos: int, whatsapp: int|null},
      *     por_dia: list<array{etiqueta: string, total: int}>,
      *     votos: array{utiles: int, no_utiles: int}|null, separa_canal: bool}
      */
@@ -42,6 +44,10 @@ final class MetricasAsistente
         $publicas = static fn (): Builder => ChatLog::query()->when($conCanal, fn (Builder $q) => $q->where(
             fn (Builder $w) => $w->whereNull('canal')->orWhere('canal', 'web')));
         $base = static fn (): Builder => $publicas()->where('created_at', '>=', now()->subDays($dias));
+        // Conversaciones distintas que alcanzaron cada etapa (misma regla que el filtro del listado).
+        $conversacionesEn = static fn (string $etapa): int => SenalesAsistente::filtrar($base(), $etapa)
+            ->distinct()->count('session_id');
+        $conWhatsapp = Schema::hasColumn($tabla, 'abrio_whatsapp');
         $conTema = static fn (): Builder => $base()->whereNotNull('intent_detectado')->where('intent_detectado', '!=', '');
 
         $temas = [];
@@ -65,12 +71,25 @@ final class MetricasAsistente
             ];
         }
 
+        $consultas = $base()->count();
+        $respondidas = $base()->where('fuente', 'advisor')->count();
+        $contingencia = $base()->where('fuente', 'respaldo')->count();
+
         return [
             'dias' => $dias,
-            'consultas' => $base()->count(),
+            'consultas' => $consultas,
             'conversaciones' => $base()->distinct()->count('session_id'),
-            'respondidas' => $base()->where('fuente', 'advisor')->count(),
-            'contingencia' => $base()->where('fuente', 'respaldo')->count(),
+            'respondidas' => $respondidas,
+            'contingencia' => $contingencia,
+            // Registros antiguos sin motor anotado: no entran en el porcentaje de respondidas.
+            'sin_origen' => max(0, $consultas - $respondidas - $contingencia),
+            'etapas' => [
+                'interesado' => $conversacionesEn(SenalesAsistente::INTERESADO),
+                'matricula' => $conversacionesEn(SenalesAsistente::MATRICULA),
+                'contacto' => $conversacionesEn(SenalesAsistente::CONTACTO),
+                'reclamos' => $conversacionesEn(SenalesAsistente::RECLAMOS),
+                'whatsapp' => $conWhatsapp ? $conversacionesEn(SenalesAsistente::WHATSAPP) : null,
+            ],
             // El «sin dato» solo puede medirse sobre las consultas que guardaron su tema.
             'con_tema' => $conTema()->count(),
             'sin_dato' => $base()->whereIn('intent_detectado', IntencionesAsistente::SIN_DATO)->count(),

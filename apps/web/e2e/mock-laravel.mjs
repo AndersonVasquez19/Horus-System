@@ -123,7 +123,8 @@ const RESUMEN = {
 const MENSAJE_LARGO = `Mensaje muy largo del historial. ${'Quisiera saber más detalles sobre el curso, los horarios y las modalidades disponibles. '.repeat(5)}Fin del mensaje largo.`;
 
 const METRICAS_ASISTENTE = {
-  dias: 30, consultas: 97, conversaciones: 32, respondidas: 87, contingencia: 10, con_tema: 41, sin_dato: 3,
+  dias: 30, consultas: 97, conversaciones: 32, respondidas: 87, contingencia: 10, sin_origen: 0, con_tema: 41, sin_dato: 3,
+  etapas: { interesado: 18, matricula: 6, contacto: 2, reclamos: 1, whatsapp: 3 },
   temas: [
     { nombre: 'training_info', total: 24 }, { nombre: 'enrollment_request', total: 11 },
     { nombre: 'cortesia', total: 6 }, { nombre: 'unavailable_info', total: 3 },
@@ -140,6 +141,7 @@ const CONVERSACIONES_ASISTENTE = [
   {
     clave: 3, visitante: '7F3A', probador: false, ultima_local: '25/11/2026 08:33', total: 2,
     temas: ['training_info', 'followup_attribute'], utiles: 1, no_utiles: 0,
+    etapas: ['whatsapp', 'matricula'], contingencia: false, vista_previa: 'Para matricularte sigue estos pasos: 1. Elige el curso vigente de tu interés en nuestra web. 2. Escríbenos por WhatsApp para confirmar vacante…',
     intercambios: [
       intercambio(1, 'training_info', 'Cursos y capacitaciones vigentes: Comunicacion; Matemática; Ciencias Sociales.', { voto: 'up' }),
       intercambio(2, 'followup_attribute', MENSAJE_LARGO),
@@ -148,6 +150,7 @@ const CONVERSACIONES_ASISTENTE = [
   {
     clave: 2, visitante: 'B21C', probador: false, ultima_local: '25/11/2026 07:43', total: 2,
     temas: [], utiles: 0, no_utiles: 1,
+    etapas: ['reclamos'], contingencia: true, vista_previa: 'Ahora mismo no puedo responder esa consulta.',
     intercambios: [
       intercambio(3, null, 'Parece que incluiste un nombre o dato personal.', { privacidad: true, contingencia: true }),
       intercambio(4, null, 'Ahora mismo no puedo responder esa consulta.', { contingencia: true, voto: 'down' }),
@@ -220,7 +223,7 @@ function manejarPanel(req, res, ruta, consulta, cuerpo) {
     const base = { vista, horus_ai: { habilitado: true } };
     if (vista === 'conversaciones') {
       return enviar(res, 200, {
-        data: { ...base, conversaciones: CONVERSACIONES_ASISTENTE, temas: ['followup_attribute', 'training_info'], con_votos: true, separa_canal: true },
+        data: { ...base, conversaciones: CONVERSACIONES_ASISTENTE, temas: ['followup_attribute', 'training_info'], con_votos: true, con_whatsapp: true, separa_canal: true },
         meta: { pagina: 1, por_pagina: 10, total: CONVERSACIONES_ASISTENTE.length, paginas: 1, orden: '', filtros: {} },
       });
     }

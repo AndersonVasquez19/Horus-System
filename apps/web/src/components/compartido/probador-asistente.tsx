@@ -167,7 +167,7 @@ export function ProbadorAsistente() {
         ))}
       </div>
 
-      <form onSubmit={enviar} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form onSubmit={enviar} className="flex flex-col gap-3 sm:flex-row sm:items-start">
         <div className="flex-1">
           <label htmlFor={idCampo} className="mb-1.5 block text-sm font-medium text-panel-text">
             Mensaje de prueba
@@ -193,7 +193,8 @@ export function ProbadorAsistente() {
             ) : null}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* El margen iguala el alto de la etiqueta: los botones quedan a la altura del campo, no de la ayuda. */}
+        <div className="flex flex-wrap gap-2 sm:mt-[1.625rem]">
           {turnos.length > 0 ? (
             <Boton type="button" variante="secundario" disabled={enviando} icono={<RotateCcw className="h-4 w-4" aria-hidden="true" />} onClick={reiniciar}>
               Nueva conversación

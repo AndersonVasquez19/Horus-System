@@ -14,5 +14,6 @@ class ChatLog extends Model
         'fuente',
         'canal',
         'voto',
+        'abrio_whatsapp',
     ];
 }

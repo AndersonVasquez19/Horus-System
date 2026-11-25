@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { ConversacionesAsistente, type Conversacion } from '@/components/compartido/conversaciones-asistente';
 import { MetricasAsistente, type Metricas } from '@/components/compartido/metricas-asistente';
 import { ProbadorAsistente } from '@/components/compartido/probador-asistente';
-import { etiquetaTema } from '@/components/compartido/temas-asistente';
+import { ETAPAS, etiquetaTema } from '@/components/compartido/temas-asistente';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
 import { FiltrosListado, CampoBusqueda, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
@@ -16,7 +16,7 @@ export const metadata = { title: 'Asistente virtual' };
 
 type Parametros = Record<string, string | string[] | undefined>;
 const RUTA = '/admin/academico/asistente';
-const PARAMETROS = ['vista', 'busqueda', 'intent', 'fuente', 'voto', 'canal', 'dias', 'page'] as const;
+const PARAMETROS = ['vista', 'busqueda', 'etapa', 'intent', 'fuente', 'voto', 'canal', 'dias', 'page'] as const;
 const VISTAS = [
   { id: 'resumen', etiqueta: 'Resumen', href: RUTA },
   { id: 'conversaciones', etiqueta: 'Conversaciones', href: `${RUTA}?vista=conversaciones` },
@@ -32,6 +32,7 @@ interface Datos {
   conversaciones?: Conversacion[];
   temas?: string[];
   con_votos?: boolean;
+  con_whatsapp?: boolean;
   separa_canal?: boolean;
 }
 
@@ -112,12 +113,17 @@ function Conversaciones({ datos, meta, parametros }: { datos: Datos; meta?: Meta
   if (!conversaciones) return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
   const valor = (nombre: (typeof PARAMETROS)[number]) => parametro(parametros, nombre);
-  const hayFiltros = ['busqueda', 'intent', 'fuente', 'voto', 'canal', 'dias'].some((n) => parametro(parametros, n) !== '');
+  const hayFiltros = ['busqueda', 'etapa', 'intent', 'fuente', 'voto', 'canal', 'dias'].some((n) => parametro(parametros, n) !== '');
   const actuales = Object.fromEntries(
     PARAMETROS.filter((n) => n !== 'page' && valor(n) !== '').map((n) => [n, valor(n)]),
   );
   const temas = Object.fromEntries(
     [['sin_dato', etiquetaTema('sin_dato')], ...(datos.temas ?? []).map((t) => [t, etiquetaTema(t)])],
+  );
+  const etapas = Object.fromEntries(
+    Object.entries(ETAPAS)
+      .filter(([clave]) => clave !== 'whatsapp' || datos.con_whatsapp)
+      .map(([clave, etapa]) => [clave, etapa.etiqueta]),
   );
   const rutaLimpia = `${RUTA}?vista=conversaciones`;
 
@@ -127,6 +133,7 @@ function Conversaciones({ datos, meta, parametros }: { datos: Datos; meta?: Meta
         <input type="hidden" name="vista" value="conversaciones" />
         {valor('dias') !== '' ? <input type="hidden" name="dias" value={valor('dias')} /> : null}
         <CampoBusqueda tono="academico" nombre="busqueda" valor={valor('busqueda')} marcador="Buscar en las respuestas" />
+        <SelectorFiltro tono="academico" nombre="etapa" etiqueta="Etapa" valor={valor('etapa')} opciones={etapas} todos="Todas" />
         <SelectorFiltro tono="academico" nombre="intent" etiqueta="Tema" valor={valor('intent')} opciones={temas} todos="Todos" />
         <SelectorFiltro
           tono="academico"

@@ -38,11 +38,11 @@ export interface RespuestaChat {
 
 export const REFERENCIA_RESPUESTA = /^[1-9][0-9]{0,17}\.[a-f0-9]{64}$/;
 
-export async function enviarVotoChat(sessionId: string, referencia: string, voto: 'up' | 'down', visitante: string): Promise<boolean> {
+export async function enviarMetricaChat(tipo: 'voto' | 'contacto', datos: Record<string, string>, visitante: string): Promise<boolean> {
   const cfg = configuracionApi();
   if (cfg === null) return false;
   try {
-    const respuesta = await fetch(`${cfg.base}/api/public/v1/chat/voto`, {
+    const respuesta = await fetch(`${cfg.base}/api/public/v1/chat/${tipo}`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -50,7 +50,7 @@ export async function enviarVotoChat(sessionId: string, referencia: string, voto
         'X-Horus-Web-Token': cfg.token,
         'X-Horus-Visitante': visitante,
       },
-      body: JSON.stringify({ session_id: sessionId, respuesta_id: referencia, voto }),
+      body: JSON.stringify(datos),
       cache: 'no-store',
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

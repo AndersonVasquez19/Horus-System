@@ -1,5 +1,5 @@
 import { ChevronRight, ThumbsDown, ThumbsUp } from 'lucide-react';
-import { etiquetaTema } from '@/components/compartido/temas-asistente';
+import { ETAPAS, etiquetaTema } from '@/components/compartido/temas-asistente';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { TextoPlegable } from '@/components/shared/ui/texto-plegable';
 
@@ -21,12 +21,14 @@ export interface Conversacion {
   ultima_local: string;
   total: number;
   temas: string[];
+  etapas: string[];
+  contingencia: boolean;
+  /** Comienzo de la última respuesta: dice de qué trató sin abrir la conversación. */
+  vista_previa: string;
   utiles: number;
   no_utiles: number;
   intercambios: Intercambio[];
 }
-
-const TEMAS_EN_LA_CABECERA = 3;
 
 function Votos({ utiles, noUtiles }: { utiles: number; noUtiles: number }) {
   if (utiles === 0 && noUtiles === 0) return null;
@@ -57,7 +59,6 @@ export function ConversacionesAsistente({ conversaciones }: { conversaciones: Co
     <ul className="space-y-3">
       {conversaciones.map((conversacion) => {
         const nombre = conversacion.probador ? 'Probador del panel' : `Visitante ${conversacion.visitante}`;
-        const restantes = conversacion.temas.length - TEMAS_EN_LA_CABECERA;
         return (
           <li key={conversacion.clave}>
             {/* Grupo con nombre: `TextoPlegable` usa `group-open` y, sin nombre, tomaría el estado de esta tarjeta. */}
@@ -72,12 +73,16 @@ export function ConversacionesAsistente({ conversaciones }: { conversaciones: Co
                     </p>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    {conversacion.temas.slice(0, TEMAS_EN_LA_CABECERA).map((tema) => (
-                      <Insignia key={tema} color="azul">{etiquetaTema(tema)}</Insignia>
-                    ))}
-                    {restantes > 0 ? <span className="text-xs text-panel-muted">y {restantes} más</span> : null}
+                    {conversacion.etapas.map((etapa) =>
+                      ETAPAS[etapa] ? <Insignia key={etapa} color={ETAPAS[etapa].color}>{ETAPAS[etapa].etiqueta}</Insignia> : null,
+                    )}
+                    {conversacion.contingencia ? <Insignia color="ambar">Contingencia</Insignia> : null}
                     <Votos utiles={conversacion.utiles} noUtiles={conversacion.no_utiles} />
                   </div>
+                  <p className="mt-1.5 truncate text-sm text-panel-muted group-open/conversacion:hidden">
+                    <span className="sr-only">Última respuesta: </span>
+                    {conversacion.vista_previa}
+                  </p>
                 </div>
               </summary>
 

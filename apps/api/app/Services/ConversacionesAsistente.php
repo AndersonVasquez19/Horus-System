@@ -9,9 +9,11 @@ use App\Support\BusquedaLike;
 use App\Support\Entrada;
 use App\Support\HoraLocal;
 use App\Support\IntencionesAsistente;
+use App\Support\SenalesAsistente;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * El registro del chat visto como conversaciones. La pregunta del visitante no se guarda: cada intercambio muestra su
@@ -29,7 +31,7 @@ final class ConversacionesAsistente
     public const TEMA_SIN_DATO = 'sin_dato';
 
     /**
-     * @param  array{busqueda: string, tema: string, fuente: string, voto: string, canal: string, dias: int|null}  $filtros
+     * @param  array{busqueda: string, etapa: string, tema: string, fuente: string, voto: string, canal: string, dias: int|null}  $filtros
      * @return array{conversaciones: list<array<string, mixed>>, pagina: int, total: int, paginas: int}
      */
     public function listar(array $filtros, int $pagina): array
@@ -37,6 +39,8 @@ final class ConversacionesAsistente
         $tabla = (new ChatLog)->getTable();
         $conCanal = Schema::hasColumn($tabla, 'canal');
         $conVoto = Schema::hasColumn($tabla, 'voto');
+        $etapa = $filtros['etapa'] === SenalesAsistente::WHATSAPP && ! Schema::hasColumn($tabla, 'abrio_whatsapp')
+            ? '' : $filtros['etapa'];
         $delCanal = static fn (): Builder => ChatLog::query()->when($conCanal, fn (Builder $q) => $filtros['canal'] === 'admin'
             ? $q->where('canal', 'admin')
             : $q->where(fn (Builder $w) => $w->whereNull('canal')->orWhere('canal', 'web')));
@@ -47,6 +51,9 @@ final class ConversacionesAsistente
             ->when($filtros['tema'] !== '' && $filtros['tema'] !== self::TEMA_SIN_DATO, fn (Builder $q) => $q->where('intent_detectado', $filtros['tema']))
             ->when($filtros['fuente'] !== '', fn (Builder $q) => $q->where('fuente', $filtros['fuente']))
             ->when($conVoto && $filtros['voto'] !== '', fn (Builder $q) => $q->where('voto', $filtros['voto']));
+        if ($etapa !== '') {
+            SenalesAsistente::filtrar($coinciden, $etapa);
+        }
         if ($filtros['busqueda'] !== '') {
             BusquedaLike::contiene($coinciden, ['respuesta_bot'], $filtros['busqueda']);
         }
@@ -84,6 +91,9 @@ final class ConversacionesAsistente
                 'ultima_local' => HoraLocal::formato($ultima->created_at),
                 'total' => $propias->count(),
                 'temas' => $temas,
+                'etapas' => SenalesAsistente::deConversacion($propias),
+                'contingencia' => $propias->contains(static fn (ChatLog $fila): bool => $fila->getAttribute('fuente') === 'respaldo'),
+                'vista_previa' => Str::limit(Str::squish(Entrada::texto($ultima->getAttribute('respuesta_bot'))), 160, '…'),
                 'utiles' => $conVoto ? $propias->where('voto', 'up')->count() : 0,
                 'no_utiles' => $conVoto ? $propias->where('voto', 'down')->count() : 0,
                 'intercambios' => $propias->slice(-self::MAX_INTERCAMBIOS)->map(fn (ChatLog $fila): array => $this->intercambio($fila))->values()->all(),

@@ -30,6 +30,15 @@ const ETIQUETAS: Record<string, string> = {
   otro: 'Otros',
 };
 
+/** Hasta dónde llegó una conversación (`App\Support\SenalesAsistente` en Laravel), de la más avanzada a la menos. */
+export const ETAPAS: Record<string, { etiqueta: string; color: 'verde' | 'azul' | 'rojo' }> = {
+  whatsapp: { etiqueta: 'Abrió WhatsApp', color: 'verde' },
+  matricula: { etiqueta: 'Quiere matricularse', color: 'verde' },
+  contacto: { etiqueta: 'Pidió contacto', color: 'azul' },
+  reclamos: { etiqueta: 'Consultó reclamos', color: 'rojo' },
+  interesado: { etiqueta: 'Interesado', color: 'azul' },
+};
+
 export function etiquetaTema(nombre: string): string {
   return ETIQUETAS[nombre] ?? nombre.replaceAll('_', ' ');
 }

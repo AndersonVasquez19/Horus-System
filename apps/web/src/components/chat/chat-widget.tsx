@@ -634,6 +634,21 @@ export function ChatWidget() {
       });
   };
 
+  /**
+   * Anota que se pulsó un botón de WhatsApp, sin frenar la apertura. Los botones que no vienen de una respuesta del
+   * servidor (el del 👎, el del orientador) se atribuyen a la última respuesta; sin ninguna, no se registra.
+   */
+  const registrarClicWhatsapp = (message: Message) => {
+    const origen = message.voto ?? [...messages].reverse().find((m) => m.voto)?.voto;
+    if (!origen) return;
+    void fetch('/api/chat/contacto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: origen.sesion, respuesta_id: origen.referencia }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+
   const handleFeedback = (messageId: string, value: 'up' | 'down') => {
     // Un voto por respuesta: repetir el clic no vuelve a enviar el mensaje de ayuda.
     if (feedbackByMsg[messageId]) return;
@@ -1062,6 +1077,7 @@ export function ChatWidget() {
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={() => registrarClicWhatsapp(message)}
                             >
                               <WhatsAppIcon className="w-4 h-4 shrink-0" />
                               <span>{link.label}</span>

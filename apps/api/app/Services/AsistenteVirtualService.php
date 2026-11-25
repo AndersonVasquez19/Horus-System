@@ -10,6 +10,8 @@ use App\Support\ChatIntentMatcher;
 use App\Support\ChatKnowledge;
 use App\Support\Entrada;
 use App\Support\FiltroPrivacidadChat;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -314,6 +316,27 @@ class AsistenteVirtualService
      */
     public function registrarVoto(string $referencia, string $voto, string $sessionId, string $scope): string
     {
+        return $this->actualizarRespuestaPropia($referencia, $sessionId, $scope,
+            static fn (Builder $fila) => $fila->whereNull('voto')->update(['voto' => $voto]));
+    }
+
+    /**
+     * Anota que desde esa respuesta se pulsó un botón de WhatsApp (no que se haya enviado un mensaje).
+     *
+     * @return 'registrado'|'no_encontrado'|'no_disponible'
+     */
+    public function registrarContactoWhatsapp(string $referencia, string $sessionId, string $scope): string
+    {
+        return $this->actualizarRespuestaPropia($referencia, $sessionId, $scope,
+            static fn (Builder $fila) => $fila->update(['abrio_whatsapp' => true]));
+    }
+
+    /**
+     * @param  Closure(Builder<ChatLog>): mixed  $cambio
+     * @return 'registrado'|'no_encontrado'|'no_disponible'
+     */
+    private function actualizarRespuestaPropia(string $referencia, string $sessionId, string $scope, Closure $cambio): string
+    {
         [$id, $firma] = array_pad(explode('.', $referencia, 2), 2, '');
         $session = $this->hashSesion($sessionId, $scope);
         if (! hash_equals($this->firmaReferencia($id, $session), $firma)) {
@@ -324,10 +347,10 @@ class AsistenteVirtualService
             if (! (clone $consulta)->exists()) {
                 return 'no_encontrado';
             }
-            $consulta->whereNull('voto')->update(['voto' => $voto]);
+            $cambio($consulta);
         } catch (QueryException) {
-            // La migración de métricas aún no está aplicada: el voto se pierde, el chat sigue igual.
-            Log::warning('chatbot.voto_no_disponible');
+            // La migración de métricas aún no está aplicada: el dato se pierde, el chat sigue igual.
+            Log::warning('chatbot.metrica_no_disponible');
 
             return 'no_disponible';
         }

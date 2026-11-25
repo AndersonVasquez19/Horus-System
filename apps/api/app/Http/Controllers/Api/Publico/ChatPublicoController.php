@@ -80,13 +80,29 @@ final class ChatPublicoController extends Controller
             'respuesta_id' => ['required', 'string', 'regex:/\A[1-9][0-9]{0,17}\.[a-f0-9]{64}\z/'],
             'voto' => ['required', 'string', 'in:up,down'],
         ]);
-        $resultado = $asistente->registrarVoto($datos['respuesta_id'], $datos['voto'], $datos['session_id'],
-            'web:'.$this->visitante($request));
+        return $this->resultadoDeMetrica($asistente->registrarVoto($datos['respuesta_id'], $datos['voto'], $datos['session_id'],
+            'web:'.$this->visitante($request)));
+    }
 
+    /** Clic en un botón de WhatsApp de una respuesta propia: un sí o no en el registro, sin número ni mensaje. */
+    public function contacto(Request $request, AsistenteVirtualService $asistente): JsonResponse
+    {
+        $datos = $request->validate([
+            'session_id' => ['required', 'string', 'regex:/\A[A-Za-z0-9_-]{8,64}\z/'],
+            'respuesta_id' => ['required', 'string', 'regex:/\A[1-9][0-9]{0,17}\.[a-f0-9]{64}\z/'],
+        ]);
+
+        return $this->resultadoDeMetrica($asistente->registrarContactoWhatsapp($datos['respuesta_id'], $datos['session_id'],
+            'web:'.$this->visitante($request)));
+    }
+
+    /** @param 'registrado'|'no_encontrado'|'no_disponible' $resultado */
+    private function resultadoDeMetrica(string $resultado): JsonResponse
+    {
         return match ($resultado) {
             'registrado' => response()->json(['registrado' => true]),
             'no_encontrado' => response()->json(['error' => ['code' => 'respuesta_no_encontrada', 'message' => 'No se encontró esa respuesta.']], 404),
-            default => response()->json(['error' => ['code' => 'voto_no_disponible', 'message' => 'No se pudo guardar el voto.']], 503),
+            default => response()->json(['error' => ['code' => 'metrica_no_disponible', 'message' => 'No se pudo guardar.']], 503),
         };
     }
 

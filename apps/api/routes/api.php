@@ -35,6 +35,8 @@ Route::prefix('public/v1')->name('api.publico.')->middleware([AutenticarServicio
     Route::post('/chat', [ChatPublicoController::class, 'mensaje'])->middleware('throttle:chat-bff')->name('chat');
     // 👍/👎 de una respuesta propia (referencia firmada); límite aparte para que votar no gaste el del chat.
     Route::post('/chat/voto', [ChatPublicoController::class, 'voto'])->middleware('throttle:chat-voto-bff')->name('chat.voto');
+    // Clic en un botón de WhatsApp del chat (misma referencia firmada y mismo límite que el voto).
+    Route::post('/chat/contacto', [ChatPublicoController::class, 'contacto'])->middleware('throttle:chat-voto-bff')->name('chat.contacto');
     // Fase 2c.1: Libro de Reclamaciones (solo envío; no hay consulta pública). Apagado, el POST responde 404 antes de leer el cuerpo.
     Route::get('/reclamaciones/formulario', [ReclamacionesPublicoController::class, 'formulario'])
         ->middleware('throttle:reclamaciones-bff-formulario')->name('reclamaciones.formulario');

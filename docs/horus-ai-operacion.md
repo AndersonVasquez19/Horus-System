@@ -176,24 +176,27 @@ Mensajes cortos que solo tienen sentido dentro de una conversación se resuelven
 - `intent_detectado`: la intención de la respuesta aceptada de Horus AI, de la lista cerrada `App\Support\IntencionesAsistente` (lo desconocido queda como `otro`). En contingencia queda vacía.
 - `canal`: `web` (sitio público) o `admin` (probador del panel).
 - `voto`: `up` o `down`. Solo cuenta el primero.
+- `abrio_whatsapp`: verdadero si desde esa respuesta se pulsó un botón de WhatsApp del chat (no que se haya enviado un mensaje). Se anota con `POST /api/public/v1/chat/contacto` (vía `/api/chat/contacto` de Next), con la misma referencia firmada y el mismo límite que el voto. Los botones sin respuesta propia (👎, orientador) se atribuyen a la última respuesta; sin ninguna consulta previa no se registra, y los botones de la web fuera del chat no se miden.
+
+**Etapas de cada conversación** (`App\Support\SenalesAsistente`, única definición para etiquetas, filtro y conteos): interesado, quiere matricularse, pidió contacto, consultó reclamos y abrió WhatsApp. Las cuatro primeras se calculan al leer, con el tema guardado y frases de las respuestas oficiales, así que también cubren el historial (como estimación). Si cambia una de esas frases en `knowledge.json`, revisar la clase: `SenalesAsistenteTest` lo detecta.
 
 **Voto:** `POST /api/public/v1/chat` entrega `respuesta_id`, una referencia firmada ligada a la fila y a la sesión. El navegador la envía a `/api/chat/voto` (Next), que llama a `POST /api/public/v1/chat/voto` con el token de servicio. Límite propio `chat-voto-bff`: 20 por minuto y por visitante. Una referencia alterada o de otra sesión responde 404.
 
 **Panel** (`/admin/academico/asistente`, permiso `asistente.ver`), en tres pestañas con su propia dirección (`?vista=`):
 
-- **Resumen** (7 o 30 días, `MetricasAsistente`): conversaciones, consultas, porcentaje respondido, votos útiles, consultas por día (hora de Lima) y temas. Saludos, gracias y despedidas se agrupan. «Sin dato» se mide solo sobre las consultas con tema registrado.
-- **Conversaciones** (`ConversacionesAsistente`, 10 por página): agrupadas por sesión y presentadas como «Visitante» más un código de 4 caracteres; el `session_id` no viaja al panel. La pregunta no se guarda: se muestra el tema y la respuesta. Filtros por texto de la respuesta, tema, resultado, voto y origen. El probador queda oculto salvo que se elija ese origen.
+- **Resumen** (7 o 30 días, `MetricasAsistente`): conversaciones, hasta dónde llegan (por etapa), consultas, porcentaje respondido (solo sobre consultas con origen anotado), votos útiles, consultas por día (hora de Lima) y temas. Saludos, gracias y despedidas se agrupan. «Sin dato» se mide solo sobre las consultas con tema registrado.
+- **Conversaciones** (`ConversacionesAsistente`, 10 por página): agrupadas por sesión y presentadas como «Visitante» más un código de 4 caracteres; el `session_id` no viaja al panel. La pregunta no se guarda: se muestra el tema y la respuesta. Cada tarjeta muestra sus etapas y el comienzo de la última respuesta. Filtros por texto de la respuesta, etapa, tema, resultado, voto y origen. El probador queda oculto salvo que se elija ese origen.
 - **Probar asistente:** el probador, con preguntas de ejemplo.
 
 La lista de intenciones PHP históricas ya no se muestra (la tabla `chat_intents` no cambia). Las filas anteriores a la migración no tienen canal y cuentan como del sitio público.
 
-**Migración `2026_11_25_000104_add_metricas_to_chat_logs`:** agrega dos columnas nulas; no modifica filas. Probada solo en SQLite en memoria (instalación nueva y base con registros). El despliegue **no** la aplica. Antes de aplicarla, el chat funciona igual, el voto responde 503 sin avisar al visitante y el panel muestra los votos como no disponibles e incluye las consultas del probador.
+**Migraciones `2026_11_25_000104_add_metricas_to_chat_logs` y `000105_add_abrio_whatsapp_to_chat_logs`:** agregan tres columnas nulas (`canal`, `voto`, `abrio_whatsapp`); no modifican filas. Se aplican juntas. Probada solo en SQLite en memoria (instalación nueva y base con registros). El despliegue **no** la aplica. Antes de aplicarla, el chat funciona igual, el voto y el clic en WhatsApp responden 503 sin avisar al visitante y el panel muestra los votos como no disponibles e incluye las consultas del probador.
 
 **Aplicación en producción (requiere autorización expresa del propietario):**
 
 1. Respaldo de la base con `pg_dump -Fc` y comprobación de que el archivo se lista con `pg_restore --list`.
-2. `railway ssh --service horus-api`, luego `php artisan migrate:status` y confirmar que la única pendiente es `000104`.
+2. `railway ssh --service horus-api`, luego `php artisan migrate:status` y confirmar que las únicas pendientes son `000104` y `000105`.
 3. `php artisan migrate --force`.
 4. Enviar una consulta en la web, votar y comprobar la cifra en el panel.
 
-Reversión: `php artisan migrate:rollback --step=1` elimina las dos columnas (se pierden los votos y el canal).
+Reversión: `php artisan migrate:rollback --step=2` revierte las dos últimas migraciones (`000105` y `000104`) y elimina las tres columnas: se pierden votos, canal y clics. Confirmar antes con `migrate:status` que son las dos últimas aplicadas.

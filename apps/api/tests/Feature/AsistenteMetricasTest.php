@@ -83,6 +83,66 @@ class AsistenteMetricasTest extends TestCase
         $this->assertNull(ChatLog::sole()->getAttribute('voto'));
     }
 
+    private function contacto(string $referencia, string $sesion = self::SESION): TestResponse
+    {
+        $token = 'token-de-prueba-bff-0123456789abcdefghij';
+        config(['horus-web.service_token' => $token]);
+
+        return $this->postJson('/api/public/v1/chat/contacto', ['session_id' => $sesion, 'respuesta_id' => $referencia],
+            ['X-Horus-Web-Token' => $token]);
+    }
+
+    public function test_el_clic_en_whatsapp_se_anota_solo_en_una_respuesta_propia(): void
+    {
+        $referencia = $this->preguntar();
+        $this->assertNull(ChatLog::sole()->getAttribute('abrio_whatsapp'));
+
+        $this->contacto($referencia, 'otra-sesion-0123456789')->assertNotFound();
+        $this->contacto('1.'.str_repeat('a', 64))->assertNotFound();
+        $this->contacto('abc')->assertStatus(422);
+        $this->assertNull(ChatLog::sole()->getAttribute('abrio_whatsapp'));
+
+        $this->contacto($referencia)->assertOk();
+        $this->contacto($referencia)->assertOk();
+        $this->assertTrue((bool) ChatLog::sole()->getAttribute('abrio_whatsapp'));
+        $this->assertSame(1, app(MetricasAsistente::class)->resumen()['etapas']['whatsapp']);
+    }
+
+    public function test_el_clic_en_whatsapp_exige_el_token_de_servicio(): void
+    {
+        config(['horus-web.service_token' => 'token-de-prueba-bff-0123456789abcdefghij']);
+        $this->postJson('/api/public/v1/chat/contacto', ['session_id' => self::SESION, 'respuesta_id' => '1.'.str_repeat('a', 64)])
+            ->assertUnauthorized();
+    }
+
+    public function test_antes_de_la_migracion_de_contacto_el_clic_no_rompe_nada(): void
+    {
+        Schema::table('chat_logs', fn ($tabla) => $tabla->dropColumn('abrio_whatsapp'));
+
+        $referencia = $this->preguntar();
+        $this->contacto($referencia)->assertStatus(503);
+        $this->assertNull(app(MetricasAsistente::class)->resumen()['etapas']['whatsapp']);
+        $this->votar($referencia)->assertOk();
+    }
+
+    public function test_las_etapas_cuentan_conversaciones_distintas_y_el_origen_desconocido_queda_aparte(): void
+    {
+        $fila = static fn (string $sesion, string $respuesta, array $datos = []): ChatLog => ChatLog::create([...[
+            'session_id' => $sesion, 'mensaje_usuario' => '', 'respuesta_bot' => $respuesta, 'fuente' => 'advisor', 'canal' => 'web',
+        ], ...$datos]);
+        $fila('a', 'Cursos y capacitaciones vigentes: X.');
+        $fila('a', 'Para matricularte sigue estos pasos: 1.');
+        $fila('a', 'Para matricularte sigue estos pasos: 1.');
+        $fila('b', 'Ofrecemos capacitaciones empresariales.');
+        $fila('c', 'Puedes registrar un reclamo en el Libro de Reclamaciones virtual.', ['fuente' => null]);
+        $fila('d', 'Para consultar la matrícula, continúa.', ['canal' => 'admin']);
+
+        $resumen = app(MetricasAsistente::class)->resumen();
+
+        $this->assertSame(['interesado' => 2, 'matricula' => 1, 'contacto' => 0, 'reclamos' => 1, 'whatsapp' => 0], $resumen['etapas']);
+        $this->assertSame([5, 4, 0, 1], [$resumen['consultas'], $resumen['respondidas'], $resumen['contingencia'], $resumen['sin_origen']]);
+    }
+
     public function test_el_voto_exige_el_token_de_servicio(): void
     {
         config(['horus-web.service_token' => 'token-de-prueba-bff-0123456789abcdefghij']);
@@ -107,6 +167,8 @@ class AsistenteMetricasTest extends TestCase
     public function test_la_migracion_se_aplica_y_se_revierte_sobre_una_base_con_registros(): void
     {
         $migracion = require database_path('migrations/2026_11_25_000104_add_metricas_to_chat_logs.php');
+        $contacto = require database_path('migrations/2026_11_25_000105_add_abrio_whatsapp_to_chat_logs.php');
+        $contacto->down();
         $migracion->down();
         DB::table('chat_logs')->insert([
             'session_id' => 'historico', 'mensaje_usuario' => '', 'respuesta_bot' => 'r', 'fuente' => 'advisor',
@@ -114,15 +176,19 @@ class AsistenteMetricasTest extends TestCase
         ]);
 
         $migracion->up();
+        $contacto->up();
 
         $fila = ChatLog::sole();
+        $this->assertNull($fila->getAttribute('abrio_whatsapp'));
         $this->assertSame('historico', $fila->getAttribute('session_id'));
         $this->assertNull($fila->getAttribute('canal'));
         $this->assertNull($fila->getAttribute('voto'));
         $this->assertSame(1, app(MetricasAsistente::class)->resumen()['consultas']);
+        $contacto->down();
         $migracion->down();
         $this->assertSame(1, ChatLog::count());
         $migracion->up();
+        $contacto->up();
     }
 
     public function test_el_resumen_excluye_el_probador_y_las_consultas_antiguas(): void

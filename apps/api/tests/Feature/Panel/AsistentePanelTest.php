@@ -114,6 +114,32 @@ final class AsistentePanelTest extends PanelApiTestCase
             ->assertJsonPath('meta.filtros', []);
     }
 
+    public function test_cada_conversacion_lleva_etapas_vista_previa_y_se_filtra_por_etapa(): void
+    {
+        $this->fila('quiere', ['respuesta_bot' => 'Cursos y capacitaciones vigentes: X.'])->forceFill(['created_at' => now()->subHour()])->save();
+        $this->fila('quiere', ['respuesta_bot' => "Para matricularte sigue estos pasos:\n1. Elige   el curso.".str_repeat(' más texto', 40), 'abrio_whatsapp' => true]);
+        $this->fila('mira', ['respuesta_bot' => 'Ofrecemos capacitaciones.', 'fuente' => 'respaldo'])->forceFill(['created_at' => now()->subMinutes(5)])->save();
+        $this->fila('saluda', ['respuesta_bot' => '¡Hola!'])->forceFill(['created_at' => now()->subMinutes(10)])->save();
+
+        $r = $this->conversaciones();
+        $r->assertJsonPath('data.conversaciones.0.etapas', ['whatsapp', 'matricula'])
+            ->assertJsonPath('data.conversaciones.0.contingencia', false)
+            ->assertJsonPath('data.conversaciones.1.etapas', ['interesado'])
+            ->assertJsonPath('data.conversaciones.1.contingencia', true)
+            ->assertJsonPath('data.conversaciones.2.etapas', [])
+            ->assertJsonPath('data.conversaciones.2.vista_previa', '¡Hola!')
+            ->assertJsonPath('data.con_whatsapp', true);
+        $vista = (string) $r->json('data.conversaciones.0.vista_previa');
+        $this->assertStringStartsWith('Para matricularte sigue estos pasos: 1. Elige el curso.', $vista);
+        $this->assertLessThanOrEqual(161, mb_strlen($vista));
+
+        $this->conversaciones('&etapa=interesado')->assertJsonPath('meta.total', 2);
+        $this->conversaciones('&etapa=matricula')->assertJsonPath('meta.total', 1)->assertJsonPath('meta.filtros.etapa', 'matricula');
+        $this->conversaciones('&etapa=whatsapp')->assertJsonPath('meta.total', 1);
+        $this->conversaciones('&etapa=reclamos')->assertJsonPath('meta.total', 0);
+        $this->conversaciones('&etapa=inventada')->assertJsonPath('meta.total', 3);
+    }
+
     public function test_el_probador_se_oculta_salvo_que_se_pida_y_el_periodo_acota(): void
     {
         $this->fila('web');
@@ -127,10 +153,11 @@ final class AsistentePanelTest extends PanelApiTestCase
 
     public function test_funciona_antes_de_aplicar_la_migracion_de_metricas(): void
     {
-        Schema::table('chat_logs', fn ($tabla) => $tabla->dropColumn(['canal', 'voto']));
+        Schema::table('chat_logs', fn ($tabla) => $tabla->dropColumn(['canal', 'voto', 'abrio_whatsapp']));
         ChatLog::create(['session_id' => 'a', 'mensaje_usuario' => '', 'respuesta_bot' => 'Hola', 'fuente' => 'advisor']);
 
-        $this->conversaciones('&voto=up&canal=admin')->assertJsonPath('meta.total', 1)
+        $this->conversaciones('&voto=up&canal=admin&etapa=whatsapp')->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.con_whatsapp', false)
             ->assertJsonPath('data.con_votos', false)->assertJsonPath('data.separa_canal', false)
             ->assertJsonPath('data.conversaciones.0.probador', false);
     }

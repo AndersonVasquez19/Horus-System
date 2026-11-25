@@ -105,6 +105,25 @@ test.describe('Resumen y conversaciones del asistente', () => {
     await expect(page.getByRole('heading', { name: 'Visitante 7F3A' })).toBeVisible();
   });
 
+  test('el resumen muestra hasta dónde llegan y lleva a las conversaciones de esa etapa', async ({ page }) => {
+    await abrir(page, '/admin/academico/asistente');
+    const fila = page.getByRole('link', { name: /Quieren matricularse/ });
+    await expect(fila).toContainText('19%');
+    await fila.click();
+    await expect(page).toHaveURL(/vista=conversaciones&etapa=matricula/);
+    await expect(page.locator('select[name="etapa"]')).toHaveValue('matricula');
+  });
+
+  test('cada tarjeta dice su etapa y de qué trató sin abrirla', async ({ page }) => {
+    await abrir(page, '/admin/academico/asistente?vista=conversaciones');
+    const tarjeta = page.locator('details').filter({ has: page.getByRole('heading', { name: 'Visitante 7F3A' }) });
+    const cabecera = tarjeta.locator('summary');
+    await expect(cabecera.getByText('Quiere matricularse')).toBeVisible();
+    await expect(cabecera.getByText('Abrió WhatsApp')).toBeVisible();
+    await expect(cabecera.getByText(/Para matricularte sigue estos pasos/)).toBeVisible();
+    await expect(page.locator('summary').filter({ hasText: 'Visitante B21C' }).getByText('Contingencia', { exact: true })).toBeVisible();
+  });
+
   test('cada conversación se abre como un chat, sin repetir el texto omitido', async ({ page }, info) => {
     await abrir(page, '/admin/academico/asistente?vista=conversaciones');
     await expect(page.getByText('contenido omitido')).toHaveCount(0);
@@ -118,7 +137,7 @@ test.describe('Resumen y conversaciones del asistente', () => {
     const bloqueada = page.locator('details').filter({ has: page.getByRole('heading', { name: 'Visitante B21C' }) });
     await bloqueada.getByRole('heading', { name: 'Visitante B21C' }).click();
     await expect(bloqueada.getByText('Bloqueada por privacidad')).toBeVisible();
-    await expect(bloqueada.getByText('Contingencia', { exact: true })).toBeVisible();
+    await expect(bloqueada.locator('ol').getByText('Contingencia', { exact: true })).toBeVisible();
     await capturar(page, info, 'asistente-conversaciones');
   });
 
