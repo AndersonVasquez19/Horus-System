@@ -83,6 +83,13 @@ OUT_OF_SCOPE_OPENING = "Por ahora este asistente solo"
 COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable"})
 # Palabras de cierre que acompañan un saludo o un agradecimiento sin convertirlo en consulta («listo, gracias»).
 CLOSING_FILLER = frozenset({"perfecto", "listo", "genial", "excelente", "ok", "okay", "vale", "entendido", "super", "bueno"})
+# Palabras de una pregunta que SOLO pide cuánto dura o cuándo empieza («¿y cuánto dura?»). Lista cerrada: cualquier otra
+# palabra (soporte, garantía, atender…) puede referirse a otra cosa. «Horario» queda fuera: también es el de atención.
+BARE_DATE_WORDS = frozenset((
+    "y e pero entonces ahora ok vale oye porfa por favor me quiero quisiera saber puedes podrias decir dime indica "
+    "que cual es son la las el su de en cuanto cuanta cuantas cuantos cuando duracion dura duran tiempo horas semanas "
+    "meses fecha fechas inicio inicia inician empieza empiezan comienza comienzan"
+).split())
 # Texto común de las respuestas de «ese curso no está publicado» (Laravel valida la frase completa).
 UNPUBLISHED_COURSE = "un curso o capacitación sobre ese tema"
 MODALITY_ASKED = {
@@ -862,6 +869,11 @@ class AdvisorEngine:
                  and asked & set(content_tokens(r.title))]
         return found[0] if len(found) == 1 else None
 
+    @staticmethod
+    def _only_asks_dates(attrs: list[str], message: str) -> bool:
+        words = set(tokenize(normalize(message)))
+        return bool(words) and set(attrs) <= {"duracion", "fechas"} and words <= BARE_DATE_WORDS
+
     def _unavailable_attribute(
         self, attrs: list[str], u: Understanding, hits: list[Hit], current: Profile, message: str = ""
     ) -> AdvisorReply | None:
@@ -889,9 +901,11 @@ class AdvisorEngine:
         elif (
             self.kb.catalog is not None
             and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
-            and not current.specific_topics(self.generic)
-            and (bool(current.topics & {"cursos", "capacitacion", "formacion", "modalidades"})
-                 or bool(set(tokenize(normalize(message))) & {"curso", "cursos", "capacitacion", "capacitaciones"}))
+            and (self._only_asks_dates(attrs, message) or (
+                not current.specific_topics(self.generic)
+                and (bool(current.topics & {"cursos", "capacitacion", "formacion", "modalidades"})
+                     or bool(set(tokenize(normalize(message))) & {"curso", "cursos", "capacitacion", "capacitaciones"}))
+            ))
         ):
             courses = [
                 r for r in self.kb.records

@@ -2364,6 +2364,133 @@
         },
         "suggestions": []
       }
+    },
+    {
+      "query": "¿Y cuánto dura?",
+      "state": null,
+      "reply": {
+        "answer": "«Ofimática para oficinas»: dura 8 semanas.\n«Redes para principiantes»: dura 4 semanas.\n«Comunicacion»: dura 2 semanas.",
+        "intent": "followup_attribute",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_publicacion_7",
+            "title": "Ofimática para oficinas",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_8",
+            "title": "Redes para principiantes",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_9",
+            "title": "Comunicacion",
+            "url_path": "/educacion/cursos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": true
+        },
+        "state": {
+          "topics": [],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": null,
+          "cue_age": null,
+          "focus_ids": [
+            "cat_curso_publicacion_7",
+            "cat_curso_publicacion_8"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
+        },
+        "suggestions": [
+          "compare",
+          "schedule",
+          "enrollment"
+        ]
+      }
+    },
+    {
+      "query": "¿Cuándo empiezan?",
+      "state": null,
+      "reply": {
+        "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+        "intent": "followup_attribute",
+        "match_level": "media",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": false,
+        "recommendations": [],
+        "missing_data": [],
+        "general_guidance": null,
+        "sources": [
+          {
+            "id": "cat_curso_publicacion_7",
+            "title": "Ofimática para oficinas",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_8",
+            "title": "Redes para principiantes",
+            "url_path": "/educacion/cursos"
+          },
+          {
+            "id": "cat_curso_publicacion_9",
+            "title": "Comunicacion",
+            "url_path": "/educacion/cursos"
+          }
+        ],
+        "mode": "lexical",
+        "context": {
+          "turns_considered": 0,
+          "topics": [],
+          "level": null,
+          "modality": null,
+          "focus_ids": [],
+          "topic_changed": false,
+          "referential": false
+        },
+        "state": {
+          "topics": [],
+          "objectives": [],
+          "level": "desconocido",
+          "modality": "cualquiera",
+          "audience": "desconocido",
+          "goal": "unknown",
+          "profile_age": null,
+          "cue_age": null,
+          "focus_ids": [
+            "cat_curso_publicacion_7",
+            "cat_curso_publicacion_8"
+          ],
+          "focus_age": 0,
+          "out_of_scope": false,
+          "quote": false
+        },
+        "suggestions": [
+          "compare",
+          "enrollment"
+        ]
+      }
     }
   ]
 }

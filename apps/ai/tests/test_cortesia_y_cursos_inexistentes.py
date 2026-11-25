@@ -42,7 +42,8 @@ def test_despues_de_no_tener_un_curso_no_se_sigue_hablando_del_anterior(motor):
     respuesta = motor.chat("hay curso de cocina?", [], estado)
     assert respuesta.state.focus_ids == []
     assert respuesta.suggestions == []
-    assert EN_FOCO not in motor.chat("¿y cuánto dura?", [], respuesta.state).answer
+    # No se sigue hablando solo del curso anterior: o no se elige ninguno o se muestran todos.
+    assert len(motor.chat("¿y cuánto dura?", [], respuesta.state).sources) > 1
 
 
 def test_una_consulta_sin_dato_no_borra_el_curso_en_foco(motor):
@@ -78,3 +79,45 @@ def test_cortesia(motor, mensaje, intencion):
 ])
 def test_una_consulta_con_cortesia_sigue_siendo_una_consulta(motor, mensaje, prohibidas):
     assert motor.chat(mensaje, [], None).intent not in prohibidas
+
+
+@pytest.mark.parametrize(("pregunta", "dato"), [
+    ("¿cuánto dura?", "dura "),
+    ("¿Y cuánto dura?", "dura "),
+    ("y cuanto duran", "dura "),
+    ("¿cuál es la duración?", "dura "),
+    ("cuántas semanas dura", "dura "),
+    ("¿cuándo empiezan?", "el horario es"),
+    ("¿Y cuándo inicia?", "el horario es"),
+])
+def test_duracion_o_inicio_sin_curso_elegido_muestra_lo_publicado(motor, pregunta, dato):
+    anterior = motor.chat("hay curso de cocina?", [], motor.chat(PREGUNTA_CON_FOCO, [], None).state).state
+    for previo in (None, anterior):
+        respuesta = motor.chat(pregunta, [], previo)
+        assert respuesta.intent == "followup_attribute", respuesta.answer
+        assert "No tengo un calendario" not in respuesta.answer
+        assert dato in respuesta.answer and f"«{EN_FOCO}»" in respuesta.answer
+        assert len(respuesta.sources) > 1  # todos los publicados, sin elegir uno por la persona
+
+
+@pytest.mark.parametrize("pregunta", [
+    "¿cuánto dura el soporte técnico?",
+    "¿cuánto dura la instalación de cámaras?",
+    "¿cuánto dura la garantía?",
+    "¿cuánto dura el convenio?",
+    "¿cuándo empiezan a atender?",
+    "¿cuál es el horario?",
+])
+def test_la_duracion_de_otra_cosa_no_devuelve_datos_de_los_cursos(motor, pregunta):
+    respuesta = motor.chat(pregunta, [], None)
+    assert not (respuesta.intent == "followup_attribute" and len(respuesta.sources) > 1), respuesta.answer
+
+
+def test_duracion_con_un_curso_elegido_responde_solo_ese(motor):
+    estado = motor.chat(PREGUNTA_CON_FOCO, [], None).state
+    respuesta = motor.chat("¿y cuánto dura?", [], estado)
+    assert [s.title for s in respuesta.sources] == [EN_FOCO]
+
+
+def test_sin_catalogo_se_mantiene_la_respuesta_de_que_no_hay_calendario():
+    assert "No tengo un calendario" in make_engine([]).chat("¿cuánto dura?", [], None).answer

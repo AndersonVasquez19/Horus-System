@@ -69,6 +69,35 @@ class FiltroPrivacidadChatTest extends TestCase
         $this->assertSame($categoriaEsperada, $this->filtro->motivoBloqueo($mensaje));
     }
 
+    /** Las cortesías que el motor reconoce deben llegarle: la lista se lee de su propio archivo para que no se desajusten. */
+    public function test_las_cortesias_que_reconoce_el_motor_no_se_toman_por_nombres(): void
+    {
+        $ruta = dirname(__DIR__, 3).'/ai/data/intents.json';
+        /** @var array{templates: list<array{name: string, patterns: list<string>}>} $datos */
+        $datos = json_decode((string) file_get_contents($ruta), true, 512, JSON_THROW_ON_ERROR);
+
+        $probadas = 0;
+        foreach ($datos['templates'] as $plantilla) {
+            if (! in_array($plantilla['name'], ['greeting', 'thanks', 'farewell'], true)) {
+                continue;
+            }
+            foreach ($plantilla['patterns'] as $patron) {
+                foreach ([$patron, mb_strtoupper(mb_substr($patron, 0, 1)).mb_substr($patron, 1)] as $mensaje) {
+                    $this->assertNull($this->filtro->motivoBloqueo($mensaje), $mensaje);
+                    $probadas++;
+                }
+            }
+        }
+        $this->assertGreaterThan(50, $probadas);
+    }
+
+    public function test_un_saludo_alargado_no_exime_el_nombre_que_lo_acompana(): void
+    {
+        foreach (['holaa Pinedo', 'Holaaa Quilcate', 'holaa soy anderson vela', 'Holaa María Pérez', 'holaaa kike quilcate', 'Holguín', 'Holaya'] as $mensaje) {
+            $this->assertSame('nombre_personal', $this->filtro->motivoBloqueo($mensaje), $mensaje);
+        }
+    }
+
     public function test_rechaza_mensajes_vacios_excesivos_o_con_caracteres_de_control(): void
     {
         $this->assertSame('vacio_o_excesivo', $this->filtro->motivoBloqueo('   '));

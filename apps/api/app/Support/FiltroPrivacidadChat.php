@@ -871,7 +871,7 @@ final class FiltroPrivacidadChat
     private const VERBOS_DE_ENLACE = ['es', 'son', 'soy', 'somos', 'fue', 'era', 'eran', 'se', 'esta', 'estan', 'llama', 'llaman', 'dice', 'dicen', 'ofrece', 'ofrecen', 'cuenta', 'tienen', 'trabaja', 'trabajo', 'estudio', 'vivo', 'pertenezco', 'represento', 'dirijo', 'atiende', 'atienden', 'responde', 'contesta'];
 
     /** Saludos y cortesías que no cuentan como contenido al juzgar mensajes muy cortos. */
-    private const CORTESIA = ['hola', 'ola', 'buenas', 'buenos', 'buen', 'dia', 'dias', 'tarde', 'tardes', 'noche', 'noches', 'gracias', 'saludos', 'ok', 'okay', 'por', 'favor', 'porfa', 'disculpa', 'disculpe', 'perdon', 'estimados', 'estimado', 'estimada', 'hey'];
+    private const CORTESIA = ['hola', 'holaa', 'holaaa', 'ola', 'buenas', 'buenos', 'buen', 'dia', 'dias', 'tarde', 'tardes', 'noche', 'noches', 'gracias', 'saludos', 'ok', 'okay', 'por', 'favor', 'porfa', 'disculpa', 'disculpe', 'perdon', 'estimados', 'estimado', 'estimada', 'hey'];
 
     /** Tras estas palabras un nombre propio es casi seguro, aunque aparezca solo («se llama …», «identificado como …»). */
     private const ANCLAS_NOMBRE_FUERTE = ['llama', 'llamado', 'llamada', 'llamados', 'llamadas', 'identifico', 'identificado', 'identificada', 'representacion', 'atentamente', 'atte', 'att'];
