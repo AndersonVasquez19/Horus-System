@@ -30,7 +30,8 @@ class PublicarCursoRequest extends FormRequest
             'resumen' => ['required', 'string', 'min:10', 'max:500'],
             'modalidad' => ['required', Rule::in(['presencial', 'semipresencial', 'virtual', 'hibrido'])],
             'horario' => ['nullable', 'string', 'max:200', 'not_regex:/[<>]/u'],
-            'fecha_inicio' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:2020-01-01', 'before_or_equal:2035-12-31'],
+            // Opcional, pero nunca de hoy ni pasada (día de Lima). También al volver a guardar una ficha ya publicada.
+            'fecha_inicio' => ['nullable', 'date_format:Y-m-d', 'after:'.now('America/Lima')->toDateString(), 'before_or_equal:2035-12-31'],
             'duracion' => ['nullable', 'string', 'max:120', 'not_regex:/[<>]/u'],
             'certificacion' => ['nullable', 'string', 'max:200', 'not_regex:/[<>]/u'],
             'temario' => ['nullable', 'string', 'max:1500', 'not_regex:/[<>]/u'],
@@ -39,6 +40,12 @@ class PublicarCursoRequest extends FormRequest
             'vigente_hasta' => ['required', 'date_format:Y-m-d', ...$comparaConDesde, 'after_or_equal:'.now('America/Lima')->toDateString(), 'before_or_equal:2035-12-31'],
             'confirmacion_publica' => ['accepted'],
         ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['fecha_inicio.after' => 'La fecha de inicio debe ser posterior a hoy. Si el curso ya empezó, deja el campo vacío o indica la próxima fecha.'];
     }
 
     /**

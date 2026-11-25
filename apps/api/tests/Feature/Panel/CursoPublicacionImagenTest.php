@@ -64,13 +64,14 @@ class CursoPublicacionImagenTest extends TestCase
 
         $hoy = now('America/Lima')->toDateString();
         $vigenteHasta = now('America/Lima')->addDays(15)->toDateString();
+        $inicio = now('America/Lima')->addDays(2)->toDateString();
 
         $revision = (string) $this->withHeaders($headers)
             ->putJson("/api/panel/v1/academico/cursos/{$curso->id}/publicacion", [
                 'titulo' => 'Curso con imagen',
                 'resumen' => 'Resumen editorial del curso.',
                 'modalidad' => 'presencial',
-                'fecha_inicio' => $hoy,
+                'fecha_inicio' => $inicio,
                 'duracion' => '24 horas · 4 semanas',
                 'certificacion' => 'Certificado físico y digital',
                 'temario' => "Módulo 1\nMódulo 2",
@@ -96,7 +97,7 @@ class CursoPublicacionImagenTest extends TestCase
         config(['catalogo-publico.enabled' => true]);
         $catalogo = app(CatalogoPublicoCursos::class)->paraWeb();
         $this->assertSame($respuestaSubida->json('data.ficha.imagen_url'), $catalogo['cursos'][0]['imagen_url']);
-        $this->assertSame($hoy, $catalogo['cursos'][0]['fecha_inicio']);
+        $this->assertSame($inicio, $catalogo['cursos'][0]['fecha_inicio']);
         $this->assertSame('24 horas · 4 semanas', $catalogo['cursos'][0]['duracion']);
         $this->assertSame('Certificado físico y digital', $catalogo['cursos'][0]['certificacion']);
         $this->assertSame("Módulo 1\nMódulo 2", $catalogo['cursos'][0]['temario']);

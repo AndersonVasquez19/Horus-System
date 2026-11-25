@@ -372,7 +372,15 @@ function FormularioFicha({ curso, datos, onGuardado, onCancelar, onOcupado, onEx
         <CampoArea etiqueta="Resumen" value={valores.resumen} onChange={cambiar('resumen')} error={err('resumen')} required rows={3} maxLength={500} className="sm:col-span-2" />
         <CampoSeleccion etiqueta="Modalidad" value={valores.modalidad} onChange={cambiar('modalidad')} error={err('modalidad')} opciones={ETIQUETAS.modalidad} />
         <Campo etiqueta="Horario (opcional)" value={valores.horario} onChange={cambiar('horario')} error={err('horario')} maxLength={200} />
-        <Campo etiqueta="Fecha de inicio (opcional)" type="date" value={valores.fecha_inicio} onChange={cambiar('fecha_inicio')} error={err('fecha_inicio')} />
+        <Campo
+          etiqueta="Fecha de inicio (opcional)"
+          type="date"
+          min={sumarDias(hoy, 1)}
+          ayuda="Desde mañana. Si el curso ya empezó, déjala vacía o indica la próxima fecha."
+          value={valores.fecha_inicio}
+          onChange={cambiar('fecha_inicio')}
+          error={err('fecha_inicio')}
+        />
         <Campo etiqueta="Duración (opcional)" value={valores.duracion} onChange={cambiar('duracion')} error={err('duracion')} maxLength={120} placeholder="Ej. 24 horas · 4 semanas" />
         <Campo etiqueta="Certificación (opcional)" value={valores.certificacion} onChange={cambiar('certificacion')} error={err('certificacion')} maxLength={200} placeholder="Ej. Certificado físico y digital" className="sm:col-span-2" />
         <CampoArea etiqueta="Temario / lo que aprenderás (opcional)" value={valores.temario} onChange={cambiar('temario')} error={err('temario')} rows={4} maxLength={1500} placeholder="Escribe un tema o requisito por línea" className="sm:col-span-2" />

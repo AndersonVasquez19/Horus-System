@@ -212,6 +212,51 @@ class CursoPublicacionTest extends TestCase
         $this->assertDatabaseCount('curso_publicaciones', 0);
     }
 
+    public static function fechasDeInicioNoFuturas(): iterable
+    {
+        yield 'hoy' => ['2026-10-28'];
+        yield 'ayer' => ['2026-10-27'];
+        yield 'hace meses' => ['2026-03-01'];
+    }
+
+    /** El reloj de la prueba marca el 28/10/2026 en Lima (25/11/2026: no se publican cursos con inicio pasado). */
+    #[DataProvider('fechasDeInicioNoFuturas')]
+    public function test_la_fecha_de_inicio_debe_ser_posterior_a_hoy(string $fecha): void
+    {
+        $course = $this->course();
+
+        $this->actingAs($this->adminUser())->publicarFichaCursoPanel($course, [...$this->data(), 'fecha_inicio' => $fecha])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['fecha_inicio' => 'La fecha de inicio debe ser posterior a hoy. Si el curso ya empezó, deja el campo vacío o indica la próxima fecha.']);
+        $this->assertDatabaseCount('curso_publicaciones', 0);
+    }
+
+    public function test_acepta_una_fecha_de_inicio_futura_o_ninguna_y_cuenta_el_dia_de_lima(): void
+    {
+        // En UTC ya es 29/10; en Lima sigue siendo 28/10, así que el 29 es «mañana».
+        $this->travelTo(Carbon::parse('2026-10-28 23:59:30', 'America/Lima'));
+        $course = $this->course();
+        $this->actingAs($this->adminUser());
+
+        $this->publicarFichaCursoPanel($course, [...$this->data(), 'fecha_inicio' => '2026-10-29'])->assertOk();
+        $this->assertSame('2026-10-29', CursoPublicacion::firstOrFail()->fecha_inicio?->format('Y-m-d'));
+        $this->publicarFichaCursoPanel($course, [...$this->data(), 'fecha_inicio' => null])->assertOk();
+        $this->assertNull(CursoPublicacion::firstOrFail()->fecha_inicio);
+    }
+
+    public function test_al_editar_una_ficha_cuyo_curso_ya_empezo_hay_que_cambiar_o_vaciar_la_fecha(): void
+    {
+        $course = $this->publish(['fecha_inicio' => '2026-10-29']);
+        // El curso ya empezó: la fecha guardada quedó en el pasado.
+        CursoPublicacion::query()->update(['fecha_inicio' => '2026-10-27']);
+        $cambio = [...$this->data(), 'horario' => 'Horario nuevo', 'fecha_inicio' => '2026-10-27'];
+
+        $this->publicarFichaCursoPanel($course, $cambio)->assertUnprocessable()->assertJsonValidationErrors('fecha_inicio');
+        $this->assertNull(CursoPublicacion::firstOrFail()->horario);
+        $this->publicarFichaCursoPanel($course, [...$cambio, 'fecha_inicio' => ''])->assertOk();
+        $this->assertSame('Horario nuevo', CursoPublicacion::firstOrFail()->horario);
+    }
+
     /** Lo que el exportador del asistente rechazaría después (y dejaría sin catálogo a todos) se rechaza al guardar. */
     public static function textoQueBloqueariaElCatalogo(): iterable
     {

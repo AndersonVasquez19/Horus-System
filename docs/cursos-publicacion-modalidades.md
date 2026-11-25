@@ -24,6 +24,10 @@ El valor anterior `hibrido` continúa siendo válido en administración y public
 
 No se cambian `chatbot.public_catalog_enabled`, `.env`, claves, transporte de correo ni sincronización de IA. No se crean cursos reales ni se ejecutan migraciones o seeders contra PostgreSQL. El esquema versionado ya define `modalidad` como texto; este cambio no necesita una migración nueva. No se ha inspeccionado el esquema de la base real.
 
+## Fecha de inicio de la ficha (25/11/2026)
+
+Es opcional, pero si se indica debe ser **posterior a hoy** (día de Lima): hoy y las fechas pasadas se rechazan (`PublicarCursoRequest`). La regla se aplica cada vez que se guarda la ficha, también al editar una ya publicada cuyo curso empezó: hay que dejar el campo vacío o indicar la próxima fecha (decisión del propietario). Las fichas ya publicadas con fecha pasada **no se ocultan ni se modifican** hasta que se vuelvan a guardar. No cambia las fechas de las ediciones (convocatorias), que sí registran periodos pasados.
+
 ## Validación
 
 Las pruebas funcionales y la fixture de navegador usan exclusivamente SQLite `:memory:`, datos ficticios y HTTP externo bloqueado. SQLite no acredita bloqueos/concurrencia de PostgreSQL, disponibilidad del entorno real ni despliegue. Los resultados ejecutados se registran al cerrar la tarea.
