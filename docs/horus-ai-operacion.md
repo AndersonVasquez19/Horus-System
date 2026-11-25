@@ -168,3 +168,26 @@ Mensajes cortos que solo tienen sentido dentro de una conversación se resuelven
 - **Memoria:** 5 turnos (edades de 0 a 4) y 10 minutos. Orden de despliegue: Laravel primero (acepta edades hasta 4), Horus AI después; con el orden inverso solo se perdería la memoria de esos turnos, sin errores visibles.
 - **Gemini apagado (25/11/2026):** el selector opcional (`app/services/gemini.py`), que elegía entre las tres mejores fichas sin redactar texto, se desactiva quitando `GEMINI_API_KEY` en Railway (`horus-ai`) y en el `.env` local. Así el motor es determinista, local y coherente con «sin modelos generativos». El código se conserva y vuelve a activarse con la variable.
 - **Rendimiento (25/11/2026):** `contains_phrase` compila cada frase una sola vez (`lru_cache`); en la evaluación léxica la mediana bajó de unos 88 ms a unos 9 ms por consulta y el p95 de 215 ms a 30 ms, con los mismos resultados.
+
+## Métricas del asistente y votos 👍/👎 (25/11/2026)
+
+**Qué se guarda en `chat_logs`** (nunca el texto del visitante):
+
+- `intent_detectado`: la intención de la respuesta aceptada de Horus AI, de la lista cerrada `App\Support\IntencionesAsistente` (lo desconocido queda como `otro`). En contingencia queda vacía.
+- `canal`: `web` (sitio público) o `admin` (probador del panel).
+- `voto`: `up` o `down`. Solo cuenta el primero.
+
+**Voto:** `POST /api/public/v1/chat` entrega `respuesta_id`, una referencia firmada ligada a la fila y a la sesión. El navegador la envía a `/api/chat/voto` (Next), que llama a `POST /api/public/v1/chat/voto` con el token de servicio. Límite propio `chat-voto-bff`: 20 por minuto y por visitante. Una referencia alterada o de otra sesión responde 404.
+
+**Panel** (`/admin/academico/asistente`, permiso `asistente.ver`): resumen de 30 días calculado por `MetricasAsistente`, sin contar el probador. Las filas anteriores a la migración no tienen canal y sí cuentan.
+
+**Migración `2026_11_25_000104_add_metricas_to_chat_logs`:** agrega dos columnas nulas; no modifica filas. Probada solo en SQLite en memoria (instalación nueva y base con registros). El despliegue **no** la aplica. Antes de aplicarla, el chat funciona igual, el voto responde 503 sin avisar al visitante y el panel muestra los votos como no disponibles e incluye las consultas del probador.
+
+**Aplicación en producción (requiere autorización expresa del propietario):**
+
+1. Respaldo de la base con `pg_dump -Fc` y comprobación de que el archivo se lista con `pg_restore --list`.
+2. `railway ssh --service horus-api`, luego `php artisan migrate:status` y confirmar que la única pendiente es `000104`.
+3. `php artisan migrate --force`.
+4. Enviar una consulta en la web, votar y comprobar la cifra en el panel.
+
+Reversión: `php artisan migrate:rollback --step=1` elimina las dos columnas (se pierden los votos y el canal).

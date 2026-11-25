@@ -53,8 +53,11 @@ class ApiPublicaChatTest extends TestCase
 
     public function test_sin_horus_ai_responde_la_contingencia_institucional_sin_campos_internos(): void
     {
-        $r = $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff())->assertOk()
-            ->assertExactJson(['respuesta' => AsistenteVirtualService::RESPUESTA_FALLBACK, 'fuente' => 'respaldo']);
+        $r = $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff())->assertOk();
+        // `respuesta_id` es la referencia firmada para votar; nada interno viaja al navegador.
+        $referencia = (string) $r->json('respuesta_id');
+        $this->assertMatchesRegularExpression('/\A[1-9]\d*\.[a-f0-9]{64}\z/', $referencia);
+        $r->assertExactJson(['respuesta' => AsistenteVirtualService::RESPUESTA_FALLBACK, 'fuente' => 'respaldo', 'respuesta_id' => $referencia]);
         $r->assertHeader('Cache-Control', 'no-store, private')->assertDontSee('intent');
         // Solo metadatos: nunca el texto libre del visitante.
         $this->assertSame('[contenido omitido por privacidad]', ChatLog::query()->value('mensaje_usuario'));
@@ -83,7 +86,9 @@ class ApiPublicaChatTest extends TestCase
     public function test_solo_se_devuelven_campos_de_presentacion_y_las_tarjetas_si_existen(): void
     {
         $tarjeta = ['id' => 'cat_x', 'tipo' => 'curso', 'titulo' => 'Curso', 'descripcion' => 'Resumen', 'imagen' => null, 'url' => '/educacion/cursos', 'accion' => 'Ver cursos'];
-        $this->mock(AsistenteVirtualService::class)->shouldReceive('procesarMensaje')->once()
+        $asistente = $this->mock(AsistenteVirtualService::class);
+        $asistente->shouldReceive('referenciaRespuesta')->andReturnNull();
+        $asistente->shouldReceive('procesarMensaje')->once()
             ->andReturn(['respuesta' => 'Hola', 'intent' => 'interno', 'fuente' => 'advisor', 'recomendaciones' => []]);
         $this->mock(PresentacionRecomendacionesHorus::class)->shouldReceive('paraFrontend')->once()
             ->andReturn(['respuesta' => 'Hola', 'intent' => 'interno', 'fuente' => 'advisor', 'tarjetas' => [$tarjeta]]);

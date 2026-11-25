@@ -12,5 +12,7 @@ class ChatLog extends Model
         'respuesta_bot',
         'intent_detectado',
         'fuente',
+        'canal',
+        'voto',
     ];
 }

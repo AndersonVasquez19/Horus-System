@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
+use App\Services\MetricasAsistente;
 use App\Support\BusquedaLike;
 use App\Support\Entrada;
 use App\Support\HoraLocal;
@@ -94,6 +95,7 @@ final class AsistenteController extends Controller implements HasMiddleware
                     'fuente' => $r->fuente,
                 ])->values()->all(),
                 'filtro' => $intentValido,
+                'metricas' => app(MetricasAsistente::class)->resumen(),
                 'horus_ai' => [
                     'habilitado' => (bool) config('horus-advisor.enabled'),
                     'url_configurada' => trim(Entrada::texto(config('horus-advisor.url', ''))) !== '',

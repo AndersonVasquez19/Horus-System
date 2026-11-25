@@ -84,7 +84,10 @@ class HorusJuradoTest extends TestCase
                 Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded',
                     'auth' => 'configured', 'semantic' => 'disabled', 'catalog' => 'loaded',
                     'catalog_version' => $catalogo['catalog_version']]), '*/api/v1/chat' => Http::response($reply)]);
-                $resultado = app(HorusAdvisorClient::class)->orientar($caso['query']);
+                $cliente = app(HorusAdvisorClient::class);
+                $resultado = $cliente->orientar($caso['query']);
+                // La intención se anota solo cuando la respuesta se acepta (métricas del panel).
+                $this->assertSame($resultado === null ? null : $reply['intent'], $cliente->intencionDetectada(), $caso['query']);
                 if ($alterar ? $resultado !== null : ($resultado === null || $resultado['respuesta'] !== $this->textoEsperado($reply))) {
                     $rechazadas[] = ($alterar ? 'aceptó cifra inventada: ' : 'rechazada: ').$caso['query'];
                 }

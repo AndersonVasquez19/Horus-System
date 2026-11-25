@@ -64,7 +64,30 @@ final class ChatPublicoController extends Controller
             $salida['sugerencias'] = array_values(array_filter($resultado['sugerencias'], 'is_string'));
         }
 
+        $referencia = $asistente->referenciaRespuesta();
+        if ($referencia !== null) {
+            $salida['respuesta_id'] = $referencia;
+        }
+
         return response()->json($salida);
+    }
+
+    /** 👍/👎 sobre una respuesta propia: solo guarda el voto en el registro; no cambia nada más. */
+    public function voto(Request $request, AsistenteVirtualService $asistente): JsonResponse
+    {
+        $datos = $request->validate([
+            'session_id' => ['required', 'string', 'regex:/\A[A-Za-z0-9_-]{8,64}\z/'],
+            'respuesta_id' => ['required', 'string', 'regex:/\A[1-9][0-9]{0,17}\.[a-f0-9]{64}\z/'],
+            'voto' => ['required', 'string', 'in:up,down'],
+        ]);
+        $resultado = $asistente->registrarVoto($datos['respuesta_id'], $datos['voto'], $datos['session_id'],
+            'web:'.$this->visitante($request));
+
+        return match ($resultado) {
+            'registrado' => response()->json(['registrado' => true]),
+            'no_encontrado' => response()->json(['error' => ['code' => 'respuesta_no_encontrada', 'message' => 'No se encontró esa respuesta.']], 404),
+            default => response()->json(['error' => ['code' => 'voto_no_disponible', 'message' => 'No se pudo guardar el voto.']], 503),
+        };
     }
 
     /** Identificador opaco del visitante que calcula el BFF (HMAC de su IP, nunca la IP); sin él, se agrupa por origen. */

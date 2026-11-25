@@ -32,6 +32,32 @@ export interface RespuestaChat {
   enlaces?: string[];
   /** Siguientes pasos (claves cerradas) que propone el asistente; el widget los traduce a botones. */
   sugerencias?: ClaveSugerencia[];
+  /** Referencia firmada por Laravel para votar esta respuesta. */
+  respuesta_id?: string;
+}
+
+export const REFERENCIA_RESPUESTA = /^[1-9][0-9]{0,17}\.[a-f0-9]{64}$/;
+
+export async function enviarVotoChat(sessionId: string, referencia: string, voto: 'up' | 'down', visitante: string): Promise<boolean> {
+  const cfg = configuracionApi();
+  if (cfg === null) return false;
+  try {
+    const respuesta = await fetch(`${cfg.base}/api/public/v1/chat/voto`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Horus-Web-Token': cfg.token,
+        'X-Horus-Visitante': visitante,
+      },
+      body: JSON.stringify({ session_id: sessionId, respuesta_id: referencia, voto }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return respuesta.ok;
+  } catch {
+    return false;
+  }
 }
 
 export type ResultadoChat =
@@ -90,6 +116,7 @@ export function sanearRespuesta(bruto: unknown): RespuestaChat | null {
   }
   const sugerencias = sanearSugerencias(r.sugerencias);
   if (sugerencias.length > 0) salida.sugerencias = sugerencias;
+  if (typeof r.respuesta_id === 'string' && REFERENCIA_RESPUESTA.test(r.respuesta_id)) salida.respuesta_id = r.respuesta_id;
   return salida;
 }
 

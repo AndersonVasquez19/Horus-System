@@ -104,6 +104,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('publico-web', fn (Request $request) => Limit::perMinute(300)->by('publico-web'));
         // Chat del BFF: el visitante lo identifica el servidor de Next con un HMAC de su IP (opaco, sin IP en claro).
         RateLimiter::for('chat-bff', fn (Request $request) => Limit::perMinute(20)->by('chat-bff:'.ChatPublicoController::visitante($request)));
+        RateLimiter::for('chat-voto-bff', fn (Request $request) => Limit::perMinute(20)->by('chat-voto-bff:'.ChatPublicoController::visitante($request)));
         RateLimiter::for('chat', fn (Request $request) => Limit::perMinute(30)->by(
             $request->user() !== null ? 'chat-user:'.Entrada::texto($request->user()->getAuthIdentifier()) : 'chat-ip:'.$request->ip(),
         ));

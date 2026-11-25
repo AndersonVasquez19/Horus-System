@@ -48,6 +48,7 @@ interface RespuestaApi {
   tarjetas?: ChatCard[];
   enlaces?: string[];
   sugerencias?: string[];
+  respuesta_id?: string;
 }
 
 const MAX_MENSAJE = 2000;
@@ -121,6 +122,19 @@ async function consultar(mensaje: string, sessionId: string): Promise<ResultadoE
   }
 }
 
+/** Datos para votar una respuesta: la referencia firmada por el servidor y la sesión que la recibió. */
+interface ReferenciaVoto {
+  referencia: string;
+  sesion: string;
+}
+
+function restaurarReferencia(valor: unknown): ReferenciaVoto | null {
+  const v = (valor ?? {}) as Record<string, unknown>;
+  if (typeof v.referencia !== 'string' || !/^[1-9][0-9]{0,17}\.[a-f0-9]{64}$/.test(v.referencia)) return null;
+  if (typeof v.sesion !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(v.sesion)) return null;
+  return { referencia: v.referencia, sesion: v.sesion };
+}
+
 /** Historial guardado en la pestaña: puede haber sido alterado, así que se reconstruye solo con campos seguros. */
 function restaurarMensajes(valor: unknown): Message[] {
   if (!Array.isArray(valor)) return [];
@@ -148,6 +162,8 @@ function restaurarMensajes(valor: unknown): Message[] {
       }
       const rapidas = restaurarRespuestasRapidas(c.quickReplies);
       if (rapidas.length > 0) mensaje.quickReplies = rapidas;
+      const referencia = restaurarReferencia(c.voto);
+      if (referencia !== null) mensaje.voto = referencia;
     }
     salida.push(mensaje);
   }
@@ -168,6 +184,7 @@ interface Message {
   quickReplies?: QuickReply[];
   /** Consulta que falló y que la persona puede reintentar. */
   retry?: string;
+  voto?: ReferenciaVoto;
 }
 
 const INITIAL_MESSAGE: Message = {
@@ -516,9 +533,11 @@ export function ChatWidget() {
       return enlace;
     });
     const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
+    const referencia = restaurarReferencia({ referencia: resultado.data.respuesta_id, sesion: sessionIdRef.current });
     return {
       id: idMensaje('bot'),
       role: 'bot',
+      voto: referencia ?? undefined,
       text: resultado.data.respuesta,
       cards: resultado.data.tarjetas,
       links: enlaces.length > 0 ? enlaces : undefined,
@@ -619,6 +638,16 @@ export function ChatWidget() {
     // Un voto por respuesta: repetir el clic no vuelve a enviar el mensaje de ayuda.
     if (feedbackByMsg[messageId]) return;
     setFeedbackByMsg((prev) => ({ ...prev, [messageId]: value }));
+    const voto = messages.find((m) => m.id === messageId)?.voto;
+    if (voto) {
+      // Sin esperar ni avisar: si no se puede guardar, la conversación sigue igual.
+      void fetch('/api/chat/voto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: voto.sesion, respuesta_id: voto.referencia, voto: value }),
+        keepalive: true,
+      }).catch(() => {});
+    }
     if (value === 'down') {
       setMessages((prev) => [
         ...prev,

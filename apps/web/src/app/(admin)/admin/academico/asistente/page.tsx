@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { MetricasAsistente, type Metricas } from '@/components/compartido/metricas-asistente';
 import { ProbadorAsistente } from '@/components/compartido/probador-asistente';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
@@ -20,6 +21,7 @@ interface Datos {
   intenciones: { nombre: string; respuesta: string; prioridad: number; activo: boolean }[];
   registros: { id: number; fecha_local: string; mensaje: string; respuesta: string; intencion: string | null; fuente: string | null }[];
   filtro?: string | null;
+  metricas?: Metricas;
   horus_ai?: { habilitado: boolean; url_configurada: boolean };
 }
 
@@ -40,6 +42,29 @@ const ETIQUETAS_INTENCION: Record<string, string> = {
   company_info: 'Sobre Horus Group',
   tech_services: 'Servicios tecnológicos',
   out_of_scope: 'Consulta fuera de alcance',
+  // Intenciones de Horus AI (lista cerrada en App\Support\IntencionesAsistente).
+  acknowledgement: 'Cortesía y aclaraciones breves',
+  advisory_info: 'Asesoramiento',
+  agreement_info: 'Convenios',
+  capabilities: 'Sobre el asistente',
+  clarification: 'Pidió precisar la consulta',
+  contact_info: 'Contacto y ubicación',
+  course_recommendation: 'Recomendación de cursos',
+  enrollment_request: 'Quiere matricularse',
+  faq: 'Preguntas frecuentes',
+  farewell: 'Despedida',
+  greeting: 'Saludo',
+  human_handoff: 'Pidió un asesor',
+  policy: 'Políticas y reclamos',
+  prompt_injection: 'Intento de manipulación',
+  quote_request: 'Cotización',
+  sensitive_request: 'Pedido de datos reservados',
+  service_info: 'Servicios',
+  service_recommendation: 'Recomendación de servicios',
+  thanks: 'Agradecimiento',
+  unavailable_info: 'Dato no publicado',
+  unverified_info: 'Dato sin confirmar',
+  otro: 'Otros',
 };
 
 function etiquetaIntencion(nombre: string): string {
@@ -71,7 +96,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
   if (resultado.estado === 'prohibido') return <EstadoProhibido volver="/admin/academico" />;
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
-  const { intenciones, registros, horus_ai: horusAi } = resultado.datos.data;
+  const { intenciones, registros, metricas, horus_ai: horusAi } = resultado.datos.data;
   const meta = resultado.datos.meta;
   const busqueda = parametro(parametros, 'busqueda');
   const intent = parametro(parametros, 'intent');
@@ -88,6 +113,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }
 
   return (
     <div className="space-y-8">
+      {metricas ? <MetricasAsistente metricas={metricas} etiqueta={etiquetaIntencion} /> : null}
+
       <Seccion
         id="titulo-probador"
         titulo="Probador"

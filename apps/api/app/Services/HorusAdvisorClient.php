@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Support\Entrada;
 use App\Support\FiltroPrivacidadChat;
+use App\Support\IntencionesAsistente;
 use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -155,6 +156,9 @@ class HorusAdvisorClient
 
     private ?int $latenciaMs = null;
 
+    /** Intención de la última respuesta aceptada (vocabulario cerrado), solo para las métricas del registro. */
+    private ?string $intencion = null;
+
     private const CLAVE_FALLOS = 'horus-advisor.circuito.fallos';
 
     private const CLAVE_ABIERTO = 'horus-advisor.circuito.abierto';
@@ -183,6 +187,11 @@ class HorusAdvisorClient
     public function latenciaMs(): ?int
     {
         return $this->latenciaMs;
+    }
+
+    public function intencionDetectada(): ?string
+    {
+        return $this->intencion;
     }
 
     /** Revalidación actual de una respuesta de caché autenticada por el intermediario.
@@ -323,6 +332,7 @@ class HorusAdvisorClient
         $this->motivoContingencia = null;
         $this->causaFallo = null;
         $this->latenciaMs = null;
+        $this->intencion = null;
         if (! config('horus-advisor.enabled')) {
             $this->motivoContingencia = 'deshabilitado';
 
@@ -408,6 +418,7 @@ class HorusAdvisorClient
             return null;
         }
         $this->motivoContingencia = null;
+        $this->intencion = IntencionesAsistente::normalizar($reply['intent'] ?? null);
         $this->estadoConversacional = $this->estadoValido($reply['state'] ?? null);
 
         $contexto = $reply['context'] ?? null;

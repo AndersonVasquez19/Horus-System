@@ -31,6 +31,8 @@ class AsistenteVirtualService
 
     private FiltroPrivacidadChat $privacidad;
 
+    private ?string $referencia = null;
+
     private HorusAdvisorClient $advisor;
 
     public function __construct(?FiltroPrivacidadChat $privacidad = null, ?HorusAdvisorClient $advisor = null)
@@ -46,13 +48,15 @@ class AsistenteVirtualService
             throw ValidationException::withMessages(['mensaje' => 'Escribe una consulta de hasta 2000 caracteres.']);
         }
 
-        $session = hash_hmac('sha256', $scope.'|'.$sessionId, Entrada::texto(config('app.key')));
+        $this->referencia = null;
+        $session = $this->hashSesion($sessionId, $scope);
+        $canal = str_starts_with($scope, 'admin:') ? 'admin' : 'web';
         // Decisión actual antes de lock/caché: ni una respuesta antigua ni una sesión ocupada la omiten.
         if ($this->privacidad->contieneDatosPersonales($mensaje)) {
             $result = $this->reply(self::RESPUESTA_PRIVACIDAD, null, 'respaldo');
             Log::info('chatbot.contingencia', ['motivo' => 'privacidad']);
             $this->registrarSinInterrumpir(['session_id' => $session, 'mensaje_usuario' => '[contenido omitido por privacidad]',
-                'respuesta_bot' => $result['respuesta'], 'intent_detectado' => null, 'fuente' => 'respaldo']);
+                'respuesta_bot' => $result['respuesta'], 'intent_detectado' => null, 'fuente' => 'respaldo', 'canal' => $canal]);
             $this->metric('respaldo');
 
             return $result;
@@ -113,6 +117,8 @@ class AsistenteVirtualService
                     && hash_equals(hash_hmac('sha256', $key.serialize($estadoCache), Entrada::texto(config('app.key'))), $cached['state_mac'])
                     ? $estadoCache : []);
                 $this->metric('duplicate');
+                $referenciaPrevia = $cached['ref'] ?? null; // la firma se comprueba al votar
+                $this->referencia = is_string($referenciaPrevia) ? $referenciaPrevia : null;
 
                 return $cached['reply'];
             }
@@ -131,19 +137,20 @@ class AsistenteVirtualService
                     Log::info('chatbot.advisor_fallo', ['causa' => $causa, 'latencia_ms' => $this->advisor->latenciaMs()]);
                 }
             }
+            $registro = [
+                'session_id' => $session,
+                'mensaje_usuario' => '[contenido omitido por privacidad]',
+                'respuesta_bot' => $result['respuesta'],
+                'intent_detectado' => $result['fuente'] === 'advisor' ? $this->advisor->intencionDetectada() : $result['intent'],
+                'canal' => $canal,
+            ];
+            $registro['fuente'] = $result['fuente'];
+            $this->registrarSinInterrumpir($registro);
             $this->guardarRespuesta($key, $result, $nuevoFoco, $nuevoEstado);
             if ($consulta === $mensaje && $nuevoEstado !== $estado) {
                 // Doble envío: al repetir el mensaje el estado ya es el de esta respuesta; también se deduplica.
                 $this->guardarRespuesta($clave($mensaje, $nuevoEstado), $result, $nuevoFoco, $nuevoEstado);
             }
-            $registro = [
-                'session_id' => $session,
-                'mensaje_usuario' => '[contenido omitido por privacidad]',
-                'respuesta_bot' => $result['respuesta'],
-                'intent_detectado' => $result['intent'],
-            ];
-            $registro['fuente'] = $result['fuente'];
-            $this->registrarSinInterrumpir($registro);
             $this->metric($result['fuente']);
 
             return $result;
@@ -175,6 +182,7 @@ class AsistenteVirtualService
         Cache::put($key, ['reply' => $result, 'focus' => $foco,
             'focus_mac' => hash_hmac('sha256', $key.serialize($foco), $secreto),
             'state' => $estado,
+            'ref' => $this->referencia,
             'state_mac' => hash_hmac('sha256', $key.serialize($estado), $secreto),
             'mac' => hash_hmac('sha256', $key.serialize($result), $secreto)], Entrada::entero(config('chatbot.duplicate_seconds', 60)));
     }
@@ -284,32 +292,95 @@ class AsistenteVirtualService
     private function registrarSinInterrumpir(array $registro): void
     {
         try {
-            $this->registrar($registro);
+            $fila = $this->registrar($registro);
+            $id = Entrada::texto($fila->getKey());
+            $this->referencia = $id.'.'.$this->firmaReferencia($id, Entrada::texto($registro['session_id'] ?? ''));
         } catch (Throwable) {
             Log::warning('chatbot.registro_fallo');
         }
     }
 
+    /** Referencia firmada de la última respuesta registrada: es lo único que permite votarla. */
+    public function referenciaRespuesta(): ?string
+    {
+        return $this->referencia;
+    }
+
+    /**
+     * Guarda el 👍/👎 de una respuesta. La referencia está firmada y ligada a la sesión que la recibió, así que nadie
+     * puede votar filas ajenas. Solo cuenta el primer voto.
+     *
+     * @return 'registrado'|'no_encontrado'|'no_disponible'
+     */
+    public function registrarVoto(string $referencia, string $voto, string $sessionId, string $scope): string
+    {
+        [$id, $firma] = array_pad(explode('.', $referencia, 2), 2, '');
+        $session = $this->hashSesion($sessionId, $scope);
+        if (! hash_equals($this->firmaReferencia($id, $session), $firma)) {
+            return 'no_encontrado';
+        }
+        try {
+            $consulta = ChatLog::query()->whereKey((int) $id)->where('session_id', $session);
+            if (! (clone $consulta)->exists()) {
+                return 'no_encontrado';
+            }
+            $consulta->whereNull('voto')->update(['voto' => $voto]);
+        } catch (QueryException) {
+            // La migración de métricas aún no está aplicada: el voto se pierde, el chat sigue igual.
+            Log::warning('chatbot.voto_no_disponible');
+
+            return 'no_disponible';
+        }
+
+        return 'registrado';
+    }
+
+    private function hashSesion(string $sessionId, string $scope): string
+    {
+        return hash_hmac('sha256', $scope.'|'.$sessionId, Entrada::texto(config('app.key')));
+    }
+
+    private function firmaReferencia(string $id, string $session): string
+    {
+        return hash_hmac('sha256', 'chat-voto|'.$id.'|'.$session, Entrada::texto(config('app.key')));
+    }
+
     /** @param array<string, mixed> $registro */
-    private function registrar(array $registro): void
+    private function registrar(array $registro): ChatLog
     {
         $connection = (new ChatLog)->getConnection();
-        try {
-            // Savepoint si hay transacción externa: PostgreSQL no queda abortado
-            // cuando una instalación aún no contiene la columna aditiva.
-            $connection->transaction(fn () => ChatLog::create($registro));
-        } catch (QueryException $error) {
-            $cause = $error->getPrevious();
-            $missing = $cause !== null && (
-                ((string) $error->getCode() === '42703' && str_contains($cause->getMessage(), '"fuente"'))
-                || ((string) $error->getCode() === 'HY000' && str_contains($cause->getMessage(), 'has no column named fuente'))
-            );
-            if (! $missing) {
-                throw $error;
+        $opcionales = ['fuente', 'canal'];
+        while (true) {
+            try {
+                // Savepoint si hay transacción externa: PostgreSQL no queda abortado
+                // cuando una instalación aún no contiene una columna aditiva.
+                return $connection->transaction(fn (): ChatLog => ChatLog::create($registro));
+            } catch (QueryException $error) {
+                $ausente = $this->columnaAusente($error, array_values(array_intersect($opcionales, array_keys($registro))));
+                if ($ausente === null) {
+                    throw $error;
+                }
+                // Sin caché de esquema: una migración posterior se ve inmediatamente.
+                unset($registro[$ausente]);
             }
-            // Sin caché de esquema: una migración posterior se ve inmediatamente.
-            unset($registro['fuente']);
-            $connection->transaction(fn () => ChatLog::create($registro));
         }
+    }
+
+    /** @param list<string> $candidatas */
+    private function columnaAusente(QueryException $error, array $candidatas): ?string
+    {
+        $causa = $error->getPrevious();
+        if ($causa === null) {
+            return null;
+        }
+        foreach ($candidatas as $columna) {
+            if (((string) $error->getCode() === '42703' && str_contains($causa->getMessage(), '"'.$columna.'"'))
+                || ((string) $error->getCode() === 'HY000'
+                    && preg_match('/has no column named '.$columna.'\b/', $causa->getMessage()) === 1)) {
+                return $columna;
+            }
+        }
+
+        return null;
     }
 }

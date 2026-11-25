@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { connection } from 'next/server';
+import { mismoOrigen } from '@/lib/chat-origen';
 import { enviarMensajeChat, identificadorVisitante, MAX_CUERPO_BYTES, MAX_MENSAJE } from '@/lib/horus-chat';
 
 /**
@@ -34,17 +35,6 @@ function limitado(clave: string): number | null {
 
 function error(estado: number, code: string, message: string, extra?: Record<string, string>) {
   return NextResponse.json({ error: { code, message } }, { status: estado, headers: { 'Cache-Control': 'no-store', ...extra } });
-}
-
-function mismoOrigen(request: NextRequest): boolean {
-  const origen = request.headers.get('origin');
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
-  if (!origen || !host) return false;
-  try {
-    return new URL(origen).host === host;
-  } catch {
-    return false;
-  }
 }
 
 export async function POST(request: NextRequest) {

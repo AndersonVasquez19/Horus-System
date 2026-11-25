@@ -594,8 +594,9 @@ class HorusAdvisorTest extends TestCase
         $this->fake();
         $this->postChatPublico(['mensaje' => '', 'session_id' => 'test'])->assertUnprocessable();
         Http::assertNothingSent();
-        $this->postChatPublico(['mensaje' => 'Orientame sobre cursos', 'session_id' => 'test'])
-            ->assertOk()->assertExactJson(['respuesta' => $this->reply()['answer'], 'fuente' => 'advisor', 'enlaces' => ['/educacion/cursos']]);
+        $respuesta = $this->postChatPublico(['mensaje' => 'Orientame sobre cursos', 'session_id' => 'test'])->assertOk();
+        $respuesta->assertExactJson(['respuesta' => $this->reply()['answer'], 'fuente' => 'advisor', 'enlaces' => ['/educacion/cursos'],
+            'respuesta_id' => (string) $respuesta->json('respuesta_id')]);
         $route = app('router')->getRoutes()->getByName('api.publico.chat');
         // Límite propio del chat del BFF: 20/min y por visitante, con limitador propio para no compartir contador.
         $this->assertContains('throttle:chat-bff', $route->gatherMiddleware());
