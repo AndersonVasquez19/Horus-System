@@ -109,16 +109,15 @@ def test_un_estado_manipulado_se_descarta(engine) -> None:
     assert "registro_que_no_existe" not in reply.state.focus_ids
 
 
-def test_el_contexto_caduca_a_los_tres_turnos(engine) -> None:
+def test_el_contexto_caduca_a_los_cinco_turnos(engine) -> None:
     state = engine.chat("Quiero aprender ofimática nivel básico").state
     assert state.profile_age == 0 and state.cue_age == 0
     edades = []
-    for mensaje in ("Hola", "¿Dónde están ubicados?", "¿Aceptan Yape?"):
+    for mensaje in ("Hola", "¿Dónde están ubicados?", "¿Aceptan Yape?", "¿Tienen convenios?", "¿Entregan factura?"):
         state = engine.chat(mensaje, [], state).state
         edades.append((state.profile_age, state.cue_age))
-    assert edades[0] == (1, 1)
-    assert edades[1] == (2, 2)
-    assert edades[2] == (None, None)
+    assert edades[:4] == [(1, 1), (2, 2), (3, 3), (4, 4)]
+    assert edades[4] == (None, None)
     assert state.topics == [] and state.level == "desconocido"
 
 
@@ -147,7 +146,7 @@ def test_la_api_acepta_el_estado_y_rechaza_campos_ajenos(client: TestClient, aut
         {**state, "texto": "lo que escribió el usuario"},
         {**state, "topics": ["quiero aprender ofimática"]},
         {**state, "focus_ids": ["a", "b", "c"]},
-        {**state, "profile_age": 3},
+        {**state, "profile_age": 5},
     ):
         respuesta = client.post("/api/v1/chat", json={"message": "hola", "state": malo}, headers=auth)
         assert respuesta.status_code == 422, malo

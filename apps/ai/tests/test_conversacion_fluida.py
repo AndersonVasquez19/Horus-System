@@ -265,3 +265,40 @@ def test_banco_de_preguntas_del_jurado_procede_del_motor_actual(kb):
     motor = AdvisorEngine(kb)
     for caso in json.loads(ruta.read_text(encoding="utf-8")):
         assert motor.chat(caso["query"]).model_dump() == caso["reply"], caso["query"]
+
+
+# ---------------------------------------------------------------- varias preguntas en un mensaje (25/11/2026)
+@pytest.fixture(scope="module")
+def base(kb):
+    from app.services.chat_engine import AdvisorEngine
+
+    return AdvisorEngine(kb)
+
+
+@pytest.mark.parametrize(("mensaje", "fuentes"), [
+    ("¿Dónde están y cómo pago?", {"ubicacion_sede", "faq_medios_pago"}),
+    ("¿Cuál es su teléfono y dónde están?", {"contacto_canales", "ubicacion_sede"}),
+    ("¿Tienen convenios y hacen asesoría de tesis?", {"convenios_resumen", "asesoramiento_educativo"}),
+    ("¿Dónde están, cómo pago y entregan certificado?", {"ubicacion_sede", "faq_medios_pago", "certificados_entrega_validez"}),
+])
+def test_varias_preguntas_reciben_cada_respuesta_verificada(base, mensaje, fuentes):
+    reply = base.chat(mensaje)
+    assert {s.id for s in reply.sources} == fuentes
+    assert reply.answer.count("\n\n") == len(fuentes) - 1
+    for bloque in reply.answer.split("\n\n"):
+        assert any(bloque in (base.kb.get(f).answer, base.kb.get(f).detail_answer or "") or bloque in base.kb.get(f).answer
+                   or bloque in (base.kb.get(f).detail_answer or "") for f in fuentes)
+
+
+def test_una_parte_sin_dato_verificado_no_se_inventa(base):
+    reply = base.chat("¿Dónde están y cuánto cuesta?")
+    assert "S/" not in reply.answer and "soles" not in reply.answer
+    assert reply.answer.count("\n\n") <= 1
+
+
+def test_un_tema_con_y_dentro_no_se_divide(base):
+    assert base._several_questions.__doc__  # el divisor exige una pregunta después de «y»
+    from app.services.chat_engine import SEVERAL_QUESTIONS
+
+    assert [p for p in SEVERAL_QUESTIONS.split("Quiero aprender limpieza de datos y gráficos") if p.strip()] == [
+        "Quiero aprender limpieza de datos y gráficos"]

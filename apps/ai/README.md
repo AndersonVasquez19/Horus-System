@@ -118,7 +118,7 @@ Las pruebas bloquean cualquier conexión de red no local (`tests/conftest.py`). 
 | `test_api.py` | Health/ready, estructura, mensajes vacíos o largos, historial excesivo, cuerpo grande, JSON inválido, Swagger |
 | `test_knowledge.py` | Solo lo verificado se recomienda, las fuentes existen, no hay datos privados, se rechazan registros incompletos |
 | `test_recommendations.py` | Principiante, redes, mantenimiento, empresas, ambigüedad, multi-turno, catálogo ficticio |
-| `test_conversation.py` | **Sprint 2**: «eso», cambio de tema, límite de 3 turnos, historial `assistant` no confiable, cotizaciones (sin cifras), cotización privada, atributos no publicados, explicabilidad, objetivos con evidencia, control semántico |
+| `test_conversation.py` | **Sprint 2**: «eso», cambio de tema, límite de 5 turnos, historial `assistant` no confiable, cotizaciones (sin cifras), cotización privada, atributos no publicados, explicabilidad, objetivos con evidencia, control semántico |
 | `test_catalog.py` | **Sprint 2**: estados de publicación, `no_publicado` nunca aparece, retirado y desconocido no se afirman, caducidad, firma, campos prohibidos (cotizaciones, estudiantes), privacidad, validación en seco, catálogo dañado → servicio con la base verificada |
 | `test_semantic.py` | Sinónimos, errores ortográficos, reformulaciones, irrelevantes, abstención |
 | `test_security.py` | Prompt injection, datos sensibles, campos inesperados, token, host, sin CORS, sin secretos, sin HTTP externo, sin claves de OpenAI ni Resend |

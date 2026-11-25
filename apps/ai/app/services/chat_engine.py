@@ -70,7 +70,7 @@ SEMANTIC_WEIGHT = 0.5
 # Contra falsos positivos semánticos: sin apoyo léxico, la similitud solo cuenta si es alta.
 SEMANTIC_MIN_LEXICAL = 0.15
 SEMANTIC_ONLY_MIN_COSINE = 0.72
-MAX_CONTEXT_TURNS = 3
+MAX_CONTEXT_TURNS = 5
 # Relleno de cortesía (raíces) que no convierte «muchas gracias por todo» en una consulta.
 # Pedido de ayuda sin tema («ayuda por favor», «tengo una duda»): se pregunta qué necesita. «Más información»
 # a secas no entra aquí: lleva a los canales de contacto (decisión de test_cierre_funcional).
@@ -97,6 +97,17 @@ CATEGORY_INTENTS = {
     "faq": "faq",
     "politica": "policy",
 }
+
+INFO_INTENTS = frozenset(CATEGORY_INTENTS.values()) | {"human_handoff"}
+# Separadores entre preguntas de un mismo mensaje: signos de pregunta, punto y coma, o «y / también / además» seguidos
+# de una palabra interrogativa o de un verbo de consulta («¿dónde están y cómo pago?»). «limpieza de datos y gráficos»
+# no se divide: después de «y» no viene una pregunta.
+SEVERAL_QUESTIONS = re.compile(
+    r"\s*[?;]+\s*|\s*¿\s*|,\s*(?=(?:qu[eé]|cu[aá]l(?:es)?|c[oó]mo|d[oó]nde|cu[aá]ndo|cu[aá]nt[oa]s?)\b)"
+    r"|\s+(?:y|e|adem[aá]s|tambi[eé]n)\s+(?=(?:qu[eé]|cu[aá]l(?:es)?|c[oó]mo|d[oó]nde|cu[aá]ndo|cu[aá]nt[oa]s?|tienen|hacen|"
+    r"dan|entregan|aceptan|puedo|ofrecen|hay|emiten|atienden|trabajan|tambi[eé]n|si)\b)",
+    re.IGNORECASE,
+)
 
 FALLBACK_TOPICS = (
     "cursos y capacitaciones, asesoramiento, convenios, pagos y contacto"
@@ -1073,6 +1084,8 @@ class AdvisorEngine:
             reply = self._out_of_scope()
         else:
             reply = self._decide(message, corrected, u, current, profile, continued, focus, previous_quote)
+            if depth == 0 and not focus:
+                reply = self._several_questions(message, reply)
         if depth == 0:
             reply.state = self._next_state(message, prior, u.quote, profile, reply)
             reply.context = ConversationContext(
@@ -1085,6 +1098,59 @@ class AdvisorEngine:
                 referential=u.referential,
             )
         return reply
+
+    def _verified_blocks(self, reply: AdvisorReply) -> list[str] | None:
+        """Bloques de una respuesta que son, cada uno, el texto exacto de una ficha verificada citada (lo que Laravel
+        acepta como contenido institucional sin reescribir). None si alguna parte no lo es."""
+        if reply.abstained or reply.needs_clarification or not reply.sources or reply.recommendations:
+            return None
+        if reply.intent not in INFO_INTENTS:
+            return None
+        texts: set[str] = set()
+        for source in reply.sources:
+            record = self.kb.get(source.id)
+            if record is None or record.status != "verified" or record.source.kind == "catalogo_laravel":
+                return None
+            for text in (record.answer, record.detail_answer):
+                if not text:
+                    continue
+                texts.add(text)
+                # Frases sueltas del texto verificado: Laravel las acepta con el mismo corte (10 a 600 caracteres).
+                texts.update(s.strip() for s in re.split(r"(?<=[.;])\s+", text) if 10 <= len(s.strip()) <= 600)
+        blocks = reply.answer.split("\n\n")
+        return blocks if all(b in texts for b in blocks) else None
+
+    def _several_questions(self, message: str, reply: AdvisorReply) -> AdvisorReply:
+        """«¿Dónde están y cómo pago?»: cada pregunta se resuelve por separado y se unen las respuestas verificadas.
+
+        Solo se combinan textos exactos de fichas verificadas (hasta tres bloques). Si alguna parte no tiene respuesta
+        verificada (p. ej. el precio), se conserva la respuesta original: nunca se inventa la parte que falta.
+        """
+        if reply.intent not in INFO_INTENTS | {"clarification", "out_of_scope", "unavailable_info"}:
+            return reply  # seguimiento de cursos, matrícula, recomendaciones: ya tienen su propio camino
+        parts = [p.strip(" ,.") for p in SEVERAL_QUESTIONS.split(message)]
+        parts = [p for p in parts if p and content_tokens(p)]
+        if not 2 <= len(parts) <= 3:
+            return reply
+        blocks: list[str] = []
+        sources: list[SourceRef] = []
+        for part in parts:
+            partial = self._respond(part, [], depth=1)
+            found = self._verified_blocks(partial)
+            if found is None:
+                return reply
+            for block in found:
+                if block not in blocks:
+                    blocks.append(block)
+            for source in partial.sources:
+                if all(s.id != source.id for s in sources):
+                    sources.append(source)
+        if len(blocks) < 2 or len(blocks) > 3 or len(sources) <= len(reply.sources):
+            return reply
+        first = self.kb.get(sources[0].id)
+        assert first is not None
+        return self._reply(answer="\n\n".join(blocks), intent=CATEGORY_INTENTS[first.category], match_level="media",
+                           sources=sources)
 
     def _decide(
         self,

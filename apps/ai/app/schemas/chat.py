@@ -57,10 +57,10 @@ class ConversationState(StrictModel):
     modality: Key = "cualquiera"
     audience: Key = "desconocido"
     goal: Literal["learn", "service", "unknown"] = "unknown"
-    profile_age: int | None = Field(default=None, ge=0, le=2)
-    cue_age: int | None = Field(default=None, ge=0, le=2)
+    profile_age: int | None = Field(default=None, ge=0, le=4)
+    cue_age: int | None = Field(default=None, ge=0, le=4)
     focus_ids: list[RecordId] = Field(default_factory=list, max_length=2)
-    focus_age: int | None = Field(default=None, ge=0, le=2)
+    focus_age: int | None = Field(default=None, ge=0, le=4)
     out_of_scope: bool = False
     quote: bool = False
 

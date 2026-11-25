@@ -56,9 +56,9 @@ def test_topic_change_discards_context(engine: AdvisorEngine) -> None:
     assert reply.context is not None and reply.context.topic_changed and reply.context.turns_considered == 0
 
 
-def test_context_is_limited_to_three_user_turns(engine: AdvisorEngine) -> None:
+def test_context_is_limited_to_five_user_turns(engine: AdvisorEngine) -> None:
     reply = engine.chat("¿Y eso es presencial?", _h(*[f"Consulta número {i}" for i in range(8)]))
-    assert reply.context is not None and reply.context.turns_considered == 3
+    assert reply.context is not None and reply.context.turns_considered == 5
 
 
 def test_quote_request_guides_without_prices(engine: AdvisorEngine) -> None:
