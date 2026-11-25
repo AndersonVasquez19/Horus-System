@@ -86,7 +86,7 @@ class ChatComprensionTest extends TestCase
         $service->procesarMensaje('que asesoría legal tienen', 'same-session', 'public:uno');
         $service->procesarMensaje('sí', 'same-session', 'public:dos');
         $this->assertSame('sí', $messages[1]);
-        $this->travel(6)->minutes();
+        $this->travel(11)->minutes(); // memoria de 10 minutos (AsistenteVirtualService::MEMORIA_SEGUNDOS)
         $service->procesarMensaje('sí', 'same-session', 'public:uno');
         $this->assertSame('sí', $messages[2]);
     }

@@ -23,6 +23,9 @@ class AsistenteVirtualService
     /** Intento de manipulación o pedido de datos internos bloqueado antes de Horus AI: negativa clara, no «no disponible». */
     public const RESPUESTA_SEGURIDAD = 'No puedo cambiar mis reglas ni compartir datos personales o información interna. Sí puedo ayudarte con cursos, capacitaciones, asesoramiento, convenios, pagos y contacto de Horus Group.';
 
+    /** Memoria de la conversación (foco y estado firmados): diez minutos sin escribir y el asistente empieza de cero. */
+    private const MEMORIA_SEGUNDOS = 600;
+
     public const RESPUESTA_FALLBACK = 'Ahora mismo no puedo responder esa consulta. Puedo ayudarte con cursos, capacitaciones y atención al cliente. Escríbenos al +51 972 021 374 o a horusgroupcajamarca@gmail.com y un asesor te atenderá.';
 
     private FiltroPrivacidadChat $privacidad;
@@ -157,7 +160,7 @@ class AsistenteVirtualService
             return;
         }
         Cache::put($key, ['ids' => $ids,
-            'mac' => hash_hmac('sha256', $key.serialize($ids), Entrada::texto(config('app.key')))], 300);
+            'mac' => hash_hmac('sha256', $key.serialize($ids), Entrada::texto(config('app.key')))], self::MEMORIA_SEGUNDOS);
     }
 
     /**
@@ -201,7 +204,7 @@ class AsistenteVirtualService
             return;
         }
         Cache::put($key, [$campo => $valor,
-            'mac' => hash_hmac('sha256', $key.serialize($valor), Entrada::texto(config('app.key')))], 300);
+            'mac' => hash_hmac('sha256', $key.serialize($valor), Entrada::texto(config('app.key')))], self::MEMORIA_SEGUNDOS);
     }
 
     /** Diagnóstico histórico; no participa en procesarMensaje ni en rutas del chat. */

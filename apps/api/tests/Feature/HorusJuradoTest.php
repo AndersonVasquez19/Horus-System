@@ -74,6 +74,15 @@ class HorusJuradoTest extends TestCase
         $this->assertSame([], $rechazadas);
     }
 
+    /** Memoria de cinco turnos (25/11/2026): Horus AI envía edades de 0 a 4; una edad mayor descarta el estado. */
+    public function test_el_estado_acepta_edades_hasta_cuatro_y_descarta_las_mayores(): void
+    {
+        $metodo = new \ReflectionMethod(HorusAdvisorClient::class, 'estadoValido');
+        $cliente = app(HorusAdvisorClient::class);
+        $this->assertSame(4, $metodo->invoke($cliente, ['profile_age' => 4, 'cue_age' => 4, 'focus_age' => null])['profile_age'] ?? null);
+        $this->assertSame([], $metodo->invoke($cliente, ['profile_age' => 5]));
+    }
+
     public function test_un_intento_de_manipulacion_recibe_una_negativa_clara_y_no_la_contingencia(): void
     {
         config(['horus-advisor.enabled' => true, 'horus-advisor.url' => 'http://127.0.0.1:8001',

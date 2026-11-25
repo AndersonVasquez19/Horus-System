@@ -37,6 +37,9 @@ class HorusAdvisorClient
 
     private const ESTADO_EDADES = ['profile_age', 'cue_age', 'focus_age'];
 
+    /** Turnos que un dato del estado sigue vigente menos uno (Horus AI: MAX_CONTEXT_TURNS = 5, edades de 0 a 4). */
+    private const ESTADO_EDAD_MAXIMA = 4;
+
     /** @return array<string, mixed> */
     public function estadoConversacional(): array
     {
@@ -533,7 +536,7 @@ class HorusAdvisorClient
         }
         foreach (self::ESTADO_EDADES as $campo) {
             $valor = $estado[$campo] ?? null;
-            if ($valor !== null && (! is_int($valor) || $valor < 0 || $valor > 2)) {
+            if ($valor !== null && (! is_int($valor) || $valor < 0 || $valor > self::ESTADO_EDAD_MAXIMA)) {
                 return [];
             }
             $limpio[$campo] = $valor;

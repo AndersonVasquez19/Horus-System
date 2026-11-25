@@ -1925,9 +1925,9 @@
   {
     "query": "Perdí mi certificado, ¿qué hago?",
     "reply": {
-      "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).",
+      "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).\n\nSi tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad.",
       "intent": "faq",
-      "match_level": "alta",
+      "match_level": "media",
       "needs_clarification": false,
       "clarification_question": null,
       "abstained": false,
@@ -1938,6 +1938,11 @@
         {
           "id": "faq_certificado_perdido",
           "title": "Reimpresión de certificado o diploma perdido",
+          "url_path": "/legales/preguntas-frecuentes"
+        },
+        {
+          "id": "faq_practica_perdida",
+          "title": "Si faltaste a una sesión práctica",
           "url_path": "/legales/preguntas-frecuentes"
         }
       ],
@@ -1965,7 +1970,8 @@
         "profile_age": 0,
         "cue_age": null,
         "focus_ids": [
-          "faq_certificado_perdido"
+          "faq_certificado_perdido",
+          "faq_practica_perdida"
         ],
         "focus_age": 0,
         "out_of_scope": false,
@@ -4813,6 +4819,503 @@
       "sources": [],
       "mode": "lexical",
       "context": null,
+      "state": {
+        "topics": [],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": null,
+        "cue_age": null,
+        "focus_ids": [],
+        "focus_age": null,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Dónde están y cómo pago?",
+    "reply": {
+      "answer": "Se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.\n\nLa sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
+      "intent": "faq",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "faq_medios_pago",
+          "title": "Medios de pago",
+          "url_path": "/legales/preguntas-frecuentes"
+        },
+        {
+          "id": "ubicacion_sede",
+          "title": "Ubicación de la sede",
+          "url_path": "/contactos"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": null,
+        "cue_age": null,
+        "focus_ids": [
+          "faq_medios_pago",
+          "ubicacion_sede"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Cuál es su teléfono y dónde están?",
+    "reply": {
+      "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de contacto de la web (asuntos: educación, asesoramiento, capacitaciones, cursos u otro).\n\nLa sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
+      "intent": "contact_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "contacto_canales",
+          "title": "Canales de contacto",
+          "url_path": "/contactos"
+        },
+        {
+          "id": "ubicacion_sede",
+          "title": "Ubicación de la sede",
+          "url_path": "/contactos"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": null,
+        "cue_age": null,
+        "focus_ids": [
+          "contacto_canales",
+          "ubicacion_sede"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Aceptan Yape y entregan factura?",
+    "reply": {
+      "answer": "Se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.\n\nSí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa.",
+      "intent": "faq",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "faq_medios_pago",
+          "title": "Medios de pago",
+          "url_path": "/legales/preguntas-frecuentes"
+        },
+        {
+          "id": "faq_comprobantes",
+          "title": "Comprobantes de pago",
+          "url_path": "/legales/preguntas-frecuentes"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": null,
+        "cue_age": null,
+        "focus_ids": [
+          "faq_medios_pago",
+          "faq_comprobantes"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Tienen convenios y hacen asesoría de tesis?",
+    "reply": {
+      "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad\n\nEl asesoramiento educativo te ayuda a estructurar, redactar y finalizar tu tesis o trabajo de grado con rigor académico y claridad, con metodología rigurosa y acompañamiento continuo.",
+      "intent": "agreement_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "convenios_resumen",
+          "title": "Convenios institucionales",
+          "url_path": "/#convenios"
+        },
+        {
+          "id": "asesoramiento_educativo",
+          "title": "Asesoramiento educativo (tesis)",
+          "url_path": "/educacion/asesoramiento"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "tesis"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [
+          "tesis"
+        ],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": 0,
+        "cue_age": null,
+        "focus_ids": [
+          "convenios_resumen",
+          "asesoramiento_educativo"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Cuál es su misión y cuáles son sus valores?",
+    "reply": {
+      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.\n\nLos valores institucionales de Horus Group SRL son: puntualidad, confianza, calidad, vocación, superación, trabajo en equipo y empatía.",
+      "intent": "company_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "empresa_mision_vision",
+          "title": "Misión y visión",
+          "url_path": "/quienes-somos"
+        },
+        {
+          "id": "empresa_valores",
+          "title": "Valores institucionales",
+          "url_path": "/quienes-somos"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": null,
+        "cue_age": null,
+        "focus_ids": [
+          "empresa_mision_vision",
+          "empresa_valores"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Dónde están ubicados? ¿Entregan certificado?",
+    "reply": {
+      "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.\n\nOfrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio).",
+      "intent": "contact_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "ubicacion_sede",
+          "title": "Ubicación de la sede",
+          "url_path": "/contactos"
+        },
+        {
+          "id": "certificados_entrega_validez",
+          "title": "Entrega y modalidad de certificados",
+          "url_path": "/educacion/cursos"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "certificacion"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [
+          "certificacion"
+        ],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": 0,
+        "cue_age": null,
+        "focus_ids": [
+          "ubicacion_sede",
+          "certificados_entrega_validez"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Dónde están, cómo pago y entregan certificado?",
+    "reply": {
+      "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.\n\nSe aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.\n\nOfrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio).",
+      "intent": "contact_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "ubicacion_sede",
+          "title": "Ubicación de la sede",
+          "url_path": "/contactos"
+        },
+        {
+          "id": "faq_medios_pago",
+          "title": "Medios de pago",
+          "url_path": "/legales/preguntas-frecuentes"
+        },
+        {
+          "id": "certificados_entrega_validez",
+          "title": "Entrega y modalidad de certificados",
+          "url_path": "/educacion/cursos"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "certificacion"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [
+          "certificacion"
+        ],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": 0,
+        "cue_age": null,
+        "focus_ids": [
+          "ubicacion_sede",
+          "faq_medios_pago"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Tienen clases virtuales y entregan certificado?",
+    "reply": {
+      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse con un asesor.\n\nOfrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio).",
+      "intent": "training_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": false,
+      "recommendations": [],
+      "missing_data": [],
+      "general_guidance": null,
+      "sources": [
+        {
+          "id": "cursos_modalidades",
+          "title": "Modalidades de los cursos",
+          "url_path": "/educacion/cursos"
+        },
+        {
+          "id": "certificados_entrega_validez",
+          "title": "Entrega y modalidad de certificados",
+          "url_path": "/educacion/cursos"
+        }
+      ],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [
+          "certificacion",
+          "cursos"
+        ],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
+      "state": {
+        "topics": [
+          "certificacion",
+          "cursos"
+        ],
+        "objectives": [],
+        "level": "desconocido",
+        "modality": "cualquiera",
+        "audience": "desconocido",
+        "goal": "unknown",
+        "profile_age": 0,
+        "cue_age": null,
+        "focus_ids": [
+          "cursos_modalidades",
+          "certificados_entrega_validez"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
+        "quote": false
+      },
+      "suggestions": []
+    }
+  },
+  {
+    "query": "¿Dónde están y cuánto cuesta?",
+    "reply": {
+      "answer": "No tengo precios de cursos ni capacitaciones, así que no puedo darte un monto. Para consultar costos, escribe a un asesor por WhatsApp: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+      "intent": "unavailable_info",
+      "match_level": "media",
+      "needs_clarification": false,
+      "clarification_question": null,
+      "abstained": true,
+      "recommendations": [],
+      "missing_data": [
+        "precios y tarifas"
+      ],
+      "general_guidance": null,
+      "sources": [],
+      "mode": "lexical",
+      "context": {
+        "turns_considered": 0,
+        "topics": [],
+        "level": null,
+        "modality": null,
+        "focus_ids": [],
+        "topic_changed": false,
+        "referential": false
+      },
       "state": {
         "topics": [],
         "objectives": [],
