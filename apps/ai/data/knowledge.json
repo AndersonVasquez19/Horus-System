@@ -327,7 +327,7 @@
       "kind": "agreement",
       "title": "Instituto de Educación Superior ISAM",
       "description": "Convenio Interinstitucional con el Instituto de Educación Superior ISAM. La empresa Horus Group SRL firma convenio con el instituto para la realización de talleres, charlas y cursos, con entrega de certificados a los participantes.",
-      "answer": "Horus Group tiene un convenio con el Instituto de Educación Superior ISAM, vigente hasta el 6 de enero del 2027. Los detalles de las actividades incluidas están pendientes de confirmación.",
+      "answer": "Horus Group tiene un convenio con el Instituto de Educación Superior ISAM. Los detalles de las actividades incluidas están pendientes de confirmación.",
       "status": "provisional",
       "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "../web/src/app/page.tsx", "checked_on": "2026-11-06"},
       "keywords": ["isam", "instituto isam"],

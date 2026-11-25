@@ -375,7 +375,10 @@ class AdvisorEngine:
         if kind == "general" and len(named) < 2 and set(tokenize(normalize(message))) & {"cursos", "capacitaciones"}:
             kind = None  # «compárame los cursos disponibles» (botón del orientador): ficha detallada del listado
         if kind is not None:
-            chosen = (named if len(named) >= 2 else focus_courses if len(focus_courses) >= 2
+            # «¿cuál es el más corto/largo?» pregunta por todo el catálogo: el foco guarda solo 2 cursos y dejaba fuera al
+            # tercero (producción, 25/11/2026). «compáralos» sí compara los cursos en foco.
+            in_focus = focus_courses if kind == "general" else []
+            chosen = (named if len(named) >= 2 else in_focus if len(in_focus) >= 2
                       else courses if len(courses) <= 5 else [])
             if len(chosen) < 2:
                 return None

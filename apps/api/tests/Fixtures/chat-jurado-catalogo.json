@@ -215,7 +215,7 @@
         "quote": false
       },
       "reply": {
-        "answer": "«Redes para principiantes»: dura 4 semanas.\n«Ofimática para oficinas»: dura 8 semanas.",
+        "answer": "«Comunicacion»: dura 2 semanas.\n«Redes para principiantes»: dura 4 semanas.\n«Ofimática para oficinas»: dura 8 semanas.",
         "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,
@@ -225,6 +225,11 @@
         "missing_data": [],
         "general_guidance": null,
         "sources": [
+          {
+            "id": "cat_curso_publicacion_9",
+            "title": "Comunicacion",
+            "url_path": "/educacion/cursos"
+          },
           {
             "id": "cat_curso_publicacion_8",
             "title": "Redes para principiantes",
@@ -260,8 +265,8 @@
           "profile_age": 2,
           "cue_age": 2,
           "focus_ids": [
-            "cat_curso_publicacion_8",
-            "cat_curso_publicacion_7"
+            "cat_curso_publicacion_9",
+            "cat_curso_publicacion_8"
           ],
           "focus_age": 0,
           "out_of_scope": false,
@@ -288,15 +293,15 @@
         "profile_age": 2,
         "cue_age": 2,
         "focus_ids": [
-          "cat_curso_publicacion_8",
-          "cat_curso_publicacion_7"
+          "cat_curso_publicacion_9",
+          "cat_curso_publicacion_8"
         ],
         "focus_age": 0,
         "out_of_scope": false,
         "quote": false
       },
       "reply": {
-        "answer": "Redes para principiantes: Conoce redes y cableado desde cero.",
+        "answer": "Comunicacion: Se centra en cómo las personas intercambian información.",
         "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,
@@ -307,8 +312,8 @@
         "general_guidance": null,
         "sources": [
           {
-            "id": "cat_curso_publicacion_8",
-            "title": "Redes para principiantes",
+            "id": "cat_curso_publicacion_9",
+            "title": "Comunicacion",
             "url_path": "/educacion/cursos"
           }
         ],
@@ -326,7 +331,7 @@
           "profile_age": 3,
           "cue_age": 3,
           "focus_ids": [
-            "cat_curso_publicacion_8"
+            "cat_curso_publicacion_9"
           ],
           "focus_age": 0,
           "out_of_scope": false,

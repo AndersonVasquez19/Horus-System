@@ -394,6 +394,12 @@ def test_mas_corto_y_mas_largo_ordenan_por_duracion(auditoria):
     assert [linea.split("»")[0] for linea in largo] == ["«Ofimática para oficinas", "«Redes para principiantes", "«Comunicacion"]
 
 
+def test_mas_largo_tras_mas_corto_compara_todo_el_catalogo(auditoria):
+    """Producción (25/11/2026): tras «¿cuál es más corto?», «¿cuál es el más largo?» mostraba solo los 2 cursos en foco."""
+    reply = _por_estado(auditoria, "¿cuál es más corto?", "¿cuál es el más largo?")
+    assert len(reply.answer.split("\n")) == 3, reply.answer
+
+
 def test_duracion_en_dias_solo_compara_unidades_de_calendario():
     assert glue.duration_days("2 semanas") == 14
     assert glue.duration_days("3 meses") == 90
