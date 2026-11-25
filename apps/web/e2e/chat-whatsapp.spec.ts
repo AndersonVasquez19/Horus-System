@@ -16,10 +16,13 @@ async function preguntar(page: Page, texto: string) {
 const mensajeDe = async (enlace: ReturnType<Page['getByRole']>) =>
   new URL((await enlace.getAttribute('href')) ?? '').searchParams.get('text');
 
+const SIN_CURSO =
+  'No encontré un curso o capacitación sobre ese tema. Pregúntame «¿Qué cursos ofrecen?» y te cuento qué hay. También puedes consultarlo con un asesor.';
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/chat', async (ruta) => {
     const { mensaje } = ruta.request().postDataJSON() as { mensaje: string };
-    await ruta.fulfill({ json: { respuesta: mensaje.includes('matricul') ? PASOS : CURSOS } });
+    await ruta.fulfill({ json: { respuesta: mensaje.includes('cocina') ? SIN_CURSO : mensaje.includes('matricul') ? PASOS : CURSOS } });
   });
   await page.goto('/');
   const abrirChat = page.getByRole('button', { name: 'Abrir chat con el asistente Horus' });
@@ -49,6 +52,23 @@ test('cada botón de WhatsApp lleva un mensaje escrito según la respuesta, tamb
     await expect(botones).toHaveCount(2, { timeout: 2000 });
   }).toPass();
   expect(await mensajeDe(botones.last())).toBe(matricula);
+});
+
+test('un curso que no está publicado ofrece ver los disponibles y WhatsApp, también al recargar', async ({ page }) => {
+  const general = 'Hola Horus Group, consulté el asistente web y deseo más información.';
+  await preguntar(page, '¿Tienen el curso de cocina?');
+  const grupo = page.getByRole('group', { name: 'Consultas rápidas sugeridas' });
+  await expect(grupo.getByRole('button')).toHaveText(['Ver cursos disponibles']);
+  const boton = page.getByRole('link', { name: 'Contactar por WhatsApp' });
+  expect(await mensajeDe(boton)).toBe(general);
+
+  // El texto no menciona el número: antes el botón desaparecía al recargar.
+  await page.reload();
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Abrir chat con el asistente Horus' }).click({ timeout: 2000 });
+    await expect(boton).toHaveCount(1, { timeout: 2000 });
+  }).toPass();
+  expect(await mensajeDe(boton)).toBe(general);
 });
 
 test('los pasos de matrícula se muestran numerados', async ({ page }, info) => {

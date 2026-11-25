@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from app.core.security import detect_prompt_injection, detect_sensitive_request
-from app.core.text import contains_phrase, content_tokens, correct_tokens, normalize, tokenize
+from app.core.text import contains_phrase, content_tokens, correct_tokens, normalize, tokenize, tokens_match
 from app.schemas.chat import (
     AdvisorReply,
     ConversationContext,
@@ -81,6 +81,10 @@ GENERIC_REQUEST = HELP_REQUEST | {"informacion", "info", "dato", "detall"}
 # Apertura común de las respuestas que declaran un tema fuera del alcance del asistente.
 OUT_OF_SCOPE_OPENING = "Por ahora este asistente solo"
 COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable"})
+# Palabras de cierre que acompañan un saludo o un agradecimiento sin convertirlo en consulta («listo, gracias»).
+CLOSING_FILLER = frozenset({"perfecto", "listo", "genial", "excelente", "ok", "okay", "vale", "entendido", "super", "bueno"})
+# Texto común de las respuestas de «ese curso no está publicado» (Laravel valida la frase completa).
+UNPUBLISHED_COURSE = "un curso o capacitación sobre ese tema"
 MODALITY_ASKED = {
     "presencial": "presencial",
     "semipresencial": "semipresencial",
@@ -304,7 +308,7 @@ class AdvisorEngine:
                 rest = normalized
                 for p in sorted(found, key=len, reverse=True):
                     rest = rest.replace(normalize(p), " ")
-                if set(content_tokens(rest)) - COURTESY_FILLER:
+                if set(content_tokens(rest)) - COURTESY_FILLER - CLOSING_FILLER:
                     continue  # "hola, quiero aprender redes" sigue al siguiente nivel
             return self._reply(answer=template.response, intent=template.name, match_level="alta")
         return None
@@ -332,11 +336,18 @@ class AdvisorEngine:
         return None
 
     def _names_unpublished_course(self, text: str) -> bool:
-        "Nombra un curso con una palabra que ningún contenido publicado usa: sin esto se respondía con el curso en foco."
-        if not self._published_courses():
+        """Nombra «curso de X» y ningún curso publicado menciona X: sin esto se respondía con el curso en foco.
+
+        Se mira solo el contenido de los cursos: en el índice completo «contabilidad» se daba por conocida por
+        parecerse a «contacto».
+        """
+        courses = self._published_courses()
+        if not courses:
             return False  # sin catálogo vigente no se puede afirmar que un curso no exista
+        words = {word for r in courses
+                 for word in content_tokens(" ".join([r.title, r.description, *r.keywords, *r.topics]))}
         subjects = [content_tokens(word) for word in glue.named_course_subjects(self.corrected(text))]
-        return any(tokens and not self.lexical.knows(tokens[0]) for tokens in subjects)
+        return any(tokens and not any(tokens_match(tokens[0], word) for word in words) for tokens in subjects)
 
     def _complaint(self) -> AdvisorReply:
         """Un reclamo («me cobraron de más», «no me llegó el certificado»): Libro de Reclamaciones y un asesor.
@@ -1010,7 +1021,8 @@ class AdvisorEngine:
         ids = [r.id for r in reply.recommendations] or [s.id for s in reply.sources]
         focus_ids = [x for x in ids if (r := self.kb.get(x)) is not None and r.status == "verified"][:2]
         focus_age: int | None = 0 if focus_ids else None
-        if not focus_ids and prior is not None and prior.focus:
+        # Tras «no tengo ese curso» no se arrastra el anterior: «¿y cuánto dura?» no puede responder por otro.
+        if not focus_ids and prior is not None and prior.focus and UNPUBLISHED_COURSE not in reply.answer:
             focus_age = _older(prior.focus_age)
             focus_ids = [r.id for r in prior.focus] if focus_age is not None else []
         return ConversationState(
@@ -1243,6 +1255,9 @@ class AdvisorEngine:
             reply = shortcut or self._decide(message, corrected, u, current, profile, continued, focus, previous_quote)
             if depth == 0 and not focus and shortcut is None:
                 reply = self._several_questions(message, reply)
+        # «¿Tienen el curso de contabilidad?»: antes de pedir una aclaración se dice que ese curso no está.
+        if depth == 0 and reply.intent == "clarification" and self._names_unpublished_course(message):
+            reply = self._unpublished_topic("learn", message)
         if depth == 0:
             reply.state = self._next_state(message, prior, u.quote, profile, reply)
             reply.context = ConversationContext(

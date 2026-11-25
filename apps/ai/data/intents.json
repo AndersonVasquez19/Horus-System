@@ -15,7 +15,11 @@
         "saludos",
         "que tal",
         "holi",
-        "alo"
+        "alo",
+        "holaa",
+        "holaaa",
+        "holis",
+        "buen dia"
       ],
       "response": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?"
     },
@@ -28,7 +32,9 @@
         "te agradezco",
         "mil gracias",
         "genial gracias",
-        "ok gracias"
+        "ok gracias",
+        "muy amable",
+        "eres muy amable"
       ],
       "response": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy."
     },
@@ -42,7 +48,13 @@
         "hasta luego",
         "nos vemos",
         "bye",
-        "hasta pronto"
+        "hasta pronto",
+        "hasta manana",
+        "hasta mañana",
+        "que tengas buen dia",
+        "que tenga buen dia",
+        "que tengas un buen dia",
+        "que tenga un buen dia"
       ],
       "response": "¡Gracias por escribir a Horus Group SRL! Hasta pronto."
     },

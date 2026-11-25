@@ -86,6 +86,8 @@ final class UsuariosRolesPanelTest extends PanelApiTestCase
     public function test_lista_busca_ordena_y_no_expone_secretos(): void
     {
         $admin = $this->admin();
+        // Nombre fijo: uno aleatorio puede contener «ana» y colarse en la búsqueda.
+        $admin->forceFill(['name' => 'Responsable del sistema'])->save();
         User::factory()->create(['name' => 'Ana Torres', 'email' => 'ana@example.test'])->assignRole('secretaria');
         User::factory()->create(['name' => 'Beto Ruiz', 'email' => 'beto@example.test']);
 

@@ -29,8 +29,8 @@ import { armarMenuOrientador, cursosValidos } from '@/lib/chat-orientador';
 import { compararCursos, type Comparacion } from '@/lib/chat-comparacion';
 import { resolverFoco } from '@/lib/chat-foco';
 import { colapsarPuntos, imagenRestaurable, restaurarRespuestasRapidas, separarEtiquetas } from '@/lib/chat-formato';
-import { urlWhatsappChat } from '@/lib/chat-whatsapp';
-import { botonesDeSugerencias, sanearSugerencias } from '@/lib/chat-sugerencias';
+import { urlWhatsappChat, whatsappGuardado } from '@/lib/chat-whatsapp';
+import { botonesDeCursoNoPublicado, botonesDeSugerencias, sanearSugerencias } from '@/lib/chat-sugerencias';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 type ChatLink = EnlaceChat;
@@ -152,7 +152,12 @@ function restaurarMensajes(valor: unknown): Message[] {
       const guardadas = Array.isArray(c.links) ? c.links.map((l) => (l as Record<string, unknown> | null)?.url) : [];
       const curso = typeof c.curso === 'string' && c.curso.trim() !== '' ? c.curso.slice(0, 120) : null;
       if (curso !== null) mensaje.curso = curso;
-      const enlaces = enlacesDeRespuesta(mensaje.text, guardadas, curso);
+      const enlaces: ChatLink[] = enlacesDeRespuesta(mensaje.text, guardadas, curso);
+      const propio = enlaces.some((e) => e.whatsapp) ? null : whatsappGuardado(guardadas);
+      if (propio !== null) {
+        const label = mensaje.id.startsWith('cotiz-') ? 'Solicitar cotización por WhatsApp' : CONTACTO_WHATSAPP.label;
+        enlaces.push({ url: propio, label, whatsapp: true });
+      }
       if (enlaces.length > 0) mensaje.links = enlaces;
       if (Array.isArray(c.cards)) {
         const tarjetas: ChatCard[] = [];
@@ -576,7 +581,10 @@ export function ChatWidget() {
       tarjetas: resultado.data.tarjetas,
     });
     if (foco !== cursoEnFocoRef.current) actualizarCursoEnFoco(foco);
-    const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces, cursoContexto);
+    const enlaces: ChatLink[] = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces, cursoContexto);
+    const sinCurso = botonesDeCursoNoPublicado(resultado.data.respuesta);
+    // «También puedes consultarlo con un asesor»: se ofrece el botón, con el mensaje general.
+    if (sinCurso !== null && !enlaces.some((e) => e.whatsapp)) enlaces.push(CONTACTO_WHATSAPP);
     const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
     const referencia = restaurarReferencia({ referencia: resultado.data.respuesta_id, sesion: sessionIdRef.current });
     return {
@@ -588,9 +596,9 @@ export function ChatWidget() {
       cards: resultado.data.tarjetas,
       links: enlaces.length > 0 ? enlaces : undefined,
       // El servidor decide los botones (claves cerradas); el cálculo por texto queda solo como respaldo.
-      quickReplies: botonesSugeridos.length > 0
+      quickReplies: sinCurso ?? (botonesSugeridos.length > 0
         ? botonesSugeridos
-        : generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current),
+        : generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current)),
     };
   };
 

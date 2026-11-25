@@ -34,6 +34,14 @@ export function sanearSugerencias(valor: unknown): ClaveSugerencia[] {
   return claves.size === valor.length ? [...claves] : [];
 }
 
+/** Frase común de las respuestas de Horus AI cuando el curso pedido no está publicado. */
+const CURSO_NO_PUBLICADO = 'un curso o capacitación sobre ese tema';
+
+/** Tras «no tengo ese curso» los siguientes pasos no son su modalidad ni su matrícula: se ofrece ver los que sí hay. */
+export function botonesDeCursoNoPublicado(respuesta: string): BotonSugerido[] | null {
+  return respuesta.includes(CURSO_NO_PUBLICADO) ? [{ label: 'Ver cursos disponibles', query: '¿Qué cursos ofrecen?' }] : null;
+}
+
 export function botonesDeSugerencias(claves: readonly ClaveSugerencia[]): BotonSugerido[] {
   return claves.map((clave) => ({ ...BOTONES[clave] }));
 }

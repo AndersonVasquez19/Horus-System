@@ -25,6 +25,23 @@ export function mensajeWhatsapp(respuesta: string, curso: string | null): string
   return `${SALUDO} deseo más información${curso ? ` sobre el curso «${curso}»` : ''}.`;
 }
 
+const MAX_MENSAJE_GUARDADO = 400;
+
+/**
+ * Botón de WhatsApp de un mensaje propio del chat (menú, 👎, cotización) guardado en la pestaña: su texto no menciona el
+ * número, así que no se puede recalcular. De lo guardado, que puede estar alterado, solo se recupera el mensaje ya
+ * escrito; la dirección se vuelve a armar con el número oficial.
+ */
+export function whatsappGuardado(urls: readonly unknown[]): string | null {
+  const prefijo = `${WHATSAPP_BASE}?text=`;
+  for (const url of urls) {
+    if (typeof url !== 'string' || !url.startsWith(prefijo)) continue;
+    const mensaje = new URL(url).searchParams.get('text')?.slice(0, MAX_MENSAJE_GUARDADO) ?? '';
+    if (mensaje.trim() !== '') return `${prefijo}${encodeURIComponent(mensaje)}`;
+  }
+  return null;
+}
+
 export function urlWhatsappChat(respuesta: string, curso: string | null): string {
   return `${WHATSAPP_BASE}?text=${encodeURIComponent(mensajeWhatsapp(respuesta, curso))}`;
 }
