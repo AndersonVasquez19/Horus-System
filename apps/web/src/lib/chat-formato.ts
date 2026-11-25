@@ -15,7 +15,19 @@ const ETIQUETA_PEGADA = /([^\s.!?:;,])\s+(?=(?:Modalidad|Horario|Duración|Inici
  * solo en la presentación; el texto verificado del servidor no se toca.
  */
 export function separarEtiquetas(texto: string): string {
-  return texto.replace(ETIQUETA_PEGADA, '$1. ');
+  return colapsarPuntos(texto).replace(ETIQUETA_PEGADA, '$1. ');
+}
+
+/** Un dato que ya termina en punto («5:00 p. m.») dentro de una frase deja dos. Los puntos suspensivos se respetan. */
+export function colapsarPuntos(texto: string): string {
+  return texto.replace(/(?<!\.)\.\.(?!\.)/g, '.');
+}
+
+const PORTADA_DE_CURSO = /^https:\/\/[A-Za-z0-9.-]+(?::\d+)?\/storage\/cursos\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\.(?:jpg|png|webp)$/;
+
+/** Imagen guardada en la pestaña (podría haber sido alterada): solo se recupera una portada de curso bien formada. */
+export function imagenRestaurable(valor: unknown): string | null {
+  return typeof valor === 'string' && PORTADA_DE_CURSO.test(valor) ? valor : null;
 }
 
 const MAX_RAPIDAS = 6;

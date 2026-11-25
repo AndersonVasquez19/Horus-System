@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { restaurarRespuestasRapidas, separarEtiquetas } from '../chat-formato.ts';
+import { colapsarPuntos, imagenRestaurable, restaurarRespuestasRapidas, separarEtiquetas } from '../chat-formato.ts';
 
 test('separarEtiquetas: añade el punto que falta antes de la primera etiqueta', () => {
   assert.equal(
@@ -38,4 +38,20 @@ test('restaurarRespuestasRapidas: lo que no es un arreglo da vacío y hay un má
   assert.deepEqual(restaurarRespuestasRapidas('x'), []);
   assert.deepEqual(restaurarRespuestasRapidas(undefined), []);
   assert.equal(restaurarRespuestasRapidas(Array.from({ length: 20 }, (_, i) => ({ label: `b${i}`, query: `q${i}` }))).length, 6);
+});
+
+test('colapsarPuntos: quita el punto repetido y respeta los puntos suspensivos', () => {
+  assert.equal(colapsarPuntos('de 2:00 p. m. a 5:00 p. m.. Aviso: digital..'), 'de 2:00 p. m. a 5:00 p. m. Aviso: digital.');
+  assert.equal(colapsarPuntos('Espera... listo.'), 'Espera... listo.');
+  assert.equal(separarEtiquetas('Horario: 5 p. m.. Modalidad: virtual.'), 'Horario: 5 p. m. Modalidad: virtual.');
+});
+
+test('imagenRestaurable: solo portadas de cursos por https con nombre válido', () => {
+  const buena = 'https://api.ejemplo.pe/storage/cursos/037d4074-1111-2222-3333-444455556666.png';
+  assert.equal(imagenRestaurable(buena), buena);
+  for (const mala of [
+    'http://api.ejemplo.pe/storage/cursos/037d4074-1111-2222-3333-444455556666.png', `${buena}?x=1`,
+    'https://api.ejemplo.pe/storage/otros/037d4074-1111-2222-3333-444455556666.png', 'https://x.pe/storage/cursos/a.svg',
+    'javascript:alert(1)', null, 7,
+  ]) assert.equal(imagenRestaurable(mala), null, String(mala));
 });

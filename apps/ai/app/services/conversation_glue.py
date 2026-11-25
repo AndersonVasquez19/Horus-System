@@ -239,6 +239,24 @@ def not_offered_topic(message: str) -> bool:
     return bool(_NOT_OFFERED.search(normalized))
 
 
+# La consulta nombra un curso concreto: «el curso de cocina», «el taller de oratoria».
+_NAMED_COURSE = re.compile(
+    r"\b(?:curso|taller|diplomado|seminario|capacitacion|programa)s? (?:de|del|sobre) (?:(?:la|el|las|los) )?([a-z0-9]+)"
+)
+# Palabras que siguen a esas frases sin nombrar un tema.
+_NOT_A_SUBJECT = frozenset(
+    "curso cursos taller talleres capacitacion capacitaciones programa clases este ese esto eso aquel mismo actual "
+    "algun alguno ninguno todos otro otros nuevo ustedes horus group linea persona grupo forma manera modalidad virtual "
+    "presencial semipresencial hibrido distancia online verano invierno fin fines semana noche manana tarde sabado "
+    "sabados domingo domingos hoy ahora mes ano que ahi alli".split()
+)
+
+
+def named_course_subjects(message: str) -> list[str]:
+    "Primera palabra de cada tema que la consulta nombra como curso («curso de X», «taller de X»)."
+    return [word for word in _NAMED_COURSE.findall(normalize(message)) if word not in _NOT_A_SUBJECT]
+
+
 INSTALLMENTS_REPLY = (
     "No tengo confirmado si el pago puede hacerse en cuotas. Un asesor te lo confirma por WhatsApp junto con los medios "
     "de pago disponibles."

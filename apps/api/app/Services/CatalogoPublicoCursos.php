@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\Entrada;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
@@ -60,6 +61,29 @@ class CatalogoPublicoCursos
         return ['version' => '1.0', 'habilitado' => $habilitado, 'total' => count($fichas), 'cursos' => $fichas];
     }
 
+    /**
+     * Título y ruta guardada de la portada de una ficha que la web pública puede mostrar ahora (mismo interruptor y
+     * misma autorización que `paraWeb()`), o `null` si esa ficha no es visible.
+     *
+     * @return array{titulo: string, imagen_ruta: ?string}|null
+     */
+    public function portadaAutorizada(int $publicacionId): ?array
+    {
+        if (! config('catalogo-publico.enabled', false)) {
+            return null;
+        }
+        foreach ($this->consultarFilas(true) as $p) {
+            if (Entrada::entero($p->id ?? null) === $publicacionId) {
+                return [
+                    'titulo' => Entrada::texto($p->titulo ?? null),
+                    'imagen_ruta' => isset($p->imagen_ruta) ? Entrada::texto($p->imagen_ruta) : null,
+                ];
+            }
+        }
+
+        return null;
+    }
+
     /** @return list<stdClass> */
     private function consultarFilas(bool $autorizacionActual): array
     {
@@ -87,7 +111,7 @@ class CatalogoPublicoCursos
 
         $columnas = ['p.titulo', 'p.resumen', 'p.modalidad', 'p.horario', 'p.inscripcion', 'p.vigente_desde', 'p.vigente_hasta'];
         if ($autorizacionActual) {
-            $columnas = [...$columnas, 'p.imagen_ruta', 'p.fecha_inicio', 'p.duracion', 'p.certificacion', 'p.temario'];
+            $columnas = [...$columnas, 'p.id', 'p.imagen_ruta', 'p.fecha_inicio', 'p.duracion', 'p.certificacion', 'p.temario'];
         }
 
         return array_values($consulta->get($columnas)->all());

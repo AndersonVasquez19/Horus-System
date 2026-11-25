@@ -736,6 +736,71 @@ body {
   background: var(--hc-blue);
 }
 
+/* Comparación de cursos: lo común una vez; lo distinto, en la tarjeta de cada curso. */
+.hc-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.hc-compare-common {
+  padding: 8px 12px;
+  border: 1px solid #e3ecf8;
+  border-radius: 11px;
+  background: #f8fbff;
+}
+
+.hc-compare-common h3,
+.hc-compare-title {
+  margin: 0 0 4px !important;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e4a8c;
+}
+
+.hc-compare-title {
+  margin: 4px 0 0 !important;
+}
+
+.hc-compare-data {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.hc-compare-data > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hc-compare-data dt {
+  color: #475569;
+}
+
+.hc-compare-data dd {
+  margin: 0;
+  font-weight: 600;
+  color: #142e52;
+}
+
+.hc-compare-card-data {
+  margin: 8px 0 4px;
+  padding-top: 8px;
+  border-top: 1px solid #e3ecf8;
+}
+
+.hc-compare-data dd.hc-compare-missing {
+  font-weight: 400;
+  color: #64748b;
+}
+
 .hc-rich-number {
   flex: none;
   min-width: 16px;

@@ -26,7 +26,9 @@ import {
 import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
 import { armarMenuOrientador, cursosValidos } from '@/lib/chat-orientador';
-import { restaurarRespuestasRapidas, separarEtiquetas } from '@/lib/chat-formato';
+import { compararCursos, type Comparacion } from '@/lib/chat-comparacion';
+import { resolverFoco } from '@/lib/chat-foco';
+import { colapsarPuntos, imagenRestaurable, restaurarRespuestasRapidas, separarEtiquetas } from '@/lib/chat-formato';
 import { urlWhatsappChat } from '@/lib/chat-whatsapp';
 import { botonesDeSugerencias, sanearSugerencias } from '@/lib/chat-sugerencias';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
@@ -159,8 +161,8 @@ function restaurarMensajes(valor: unknown): Message[] {
           const url = rutaNext(x.url);
           if (url === null || typeof x.id !== 'string' || typeof x.titulo !== 'string' || typeof x.descripcion !== 'string' || typeof x.accion !== 'string') continue;
           if (x.tipo !== 'curso' && x.tipo !== 'servicio') continue;
-          // La imagen no se restaura: solo se muestra la que acaba de validar el servidor.
-          tarjetas.push({ id: x.id, tipo: x.tipo, titulo: x.titulo.slice(0, 120), descripcion: x.descripcion.slice(0, 500), url, imagen: null, accion: x.accion.slice(0, 60) });
+          // De lo guardado solo se recupera una portada de curso bien formada; cualquier otra imagen se descarta.
+          tarjetas.push({ id: x.id, tipo: x.tipo, titulo: x.titulo.slice(0, 120), descripcion: x.descripcion.slice(0, 500), url, imagen: imagenRestaurable(x.imagen), accion: x.accion.slice(0, 60) });
         }
         if (tarjetas.length > 0) mensaje.cards = tarjetas;
       }
@@ -279,6 +281,29 @@ function renderMessageContent(text: string, role: 'user' | 'bot', tieneBotonWhat
           </p>
         );
       })}
+    </div>
+  );
+}
+
+/** Encabezado de una comparación: lo que comparten todos se dice una sola vez; lo distinto va en cada tarjeta. */
+function ResumenComparacion({ comparacion }: { comparacion: Comparacion }) {
+  const hayDiferencias = comparacion.cursos.some((curso) => curso.diferencias.length > 0);
+  return (
+    <div className="hc-compare">
+      {comparacion.comunes.length > 0 && (
+        <div className="hc-compare-common">
+          <h3>En común</h3>
+          <dl className="hc-compare-data">
+            {comparacion.comunes.map((dato) => (
+              <div key={dato.etiqueta}>
+                <dt>{dato.etiqueta}</dt>
+                <dd>{dato.valor}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+      <p className="hc-compare-title">{hayDiferencias ? 'En qué se diferencian' : 'Los datos publicados son iguales en estos cursos.'}</p>
     </div>
   );
 }
@@ -501,6 +526,22 @@ export function ChatWidget() {
   }, [isOpen]);
 
   const sessionIdRef = useRef<string | null>(null);
+  /** Nombres oficiales de cursos ya vistos: solo con ellos se cambia el curso en foco. */
+  const cursosConocidosRef = useRef<Set<string>>(new Set());
+  const catalogoPedidoRef = useRef(false);
+  /** Completa la lista de cursos mientras hay uno en foco, para notar que la conversación pasó a otro. */
+  const cargarCursosConocidos = async () => {
+    if (catalogoPedidoRef.current) return;
+    catalogoPedidoRef.current = true;
+    try {
+      const respuesta = await fetch('/api/chat/orientador', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+      const cuerpo = respuesta.ok ? ((await respuesta.json()) as { cursos?: unknown }) : null;
+      for (const curso of cursosValidos(cuerpo?.cursos ?? [])) cursosConocidosRef.current.add(curso.titulo);
+    } catch {
+      catalogoPedidoRef.current = false; // se reintenta en la siguiente consulta
+    }
+  };
+
   /** Sube con cada reinicio: una respuesta que llega tarde a una conversación ya reiniciada se descarta. */
   const generacionRef = useRef(0);
 
@@ -523,11 +564,18 @@ export function ChatWidget() {
       }
       return { id: idMensaje('err'), role: 'bot', text: MENSAJE_NO_DISPONIBLE, links: [CONTACTO_WHATSAPP], retry: text };
     }
-    const cursoContexto =
-      cursoEnFocoRef.current ??
-      (resultado.data.tarjetas && resultado.data.tarjetas.length === 1 && resultado.data.tarjetas[0].tipo === 'curso'
-        ? resultado.data.tarjetas[0].titulo
-        : null);
+    for (const tarjeta of resultado.data.tarjetas ?? []) {
+      if (tarjeta.tipo === 'curso') cursosConocidosRef.current.add(tarjeta.titulo);
+    }
+    // El curso lo decide la respuesta: la barra no puede seguir en uno del que ya no se está hablando.
+    const { curso: cursoContexto, foco } = resolverFoco({
+      respuesta: resultado.data.respuesta,
+      pregunta: text,
+      foco: cursoEnFocoRef.current,
+      conocidos: [...cursosConocidosRef.current],
+      tarjetas: resultado.data.tarjetas,
+    });
+    if (foco !== cursoEnFocoRef.current) actualizarCursoEnFoco(foco);
     const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces, cursoContexto);
     const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
     const referencia = restaurarReferencia({ referencia: resultado.data.respuesta_id, sesion: sessionIdRef.current });
@@ -563,7 +611,10 @@ export function ChatWidget() {
     const generacion = generacionRef.current;
     try {
       // El foco de la conversación lo lleva el servidor (estado firmado): el cliente ya no reescribe la consulta.
-      const resultado = await consultarConReintento(text);
+      const [resultado] = await Promise.all([
+        consultarConReintento(text),
+        cursoEnFocoRef.current === null ? Promise.resolve() : cargarCursosConocidos(),
+      ]);
       // Si la persona reinició la conversación mientras esperaba, la respuesta vieja ya no corresponde.
       if (generacion !== generacionRef.current) return;
       const botMsg = armarRespuesta(resultado, text);
@@ -617,7 +668,7 @@ export function ChatWidget() {
   };
 
   const handleCopyMessage = (messageId: string, text: string) => {
-    const limpio = limpiarUrlWhatsappVisible(text);
+    const limpio = colapsarPuntos(limpiarUrlWhatsappVisible(text));
     if (!navigator.clipboard) return;
     navigator.clipboard
       .writeText(limpio)
@@ -724,6 +775,7 @@ export function ChatWidget() {
 
     setSending(false);
     if (generacion !== generacionRef.current) return;
+    for (const curso of cursos ?? []) cursosConocidosRef.current.add(curso.titulo);
     const menu = armarMenuOrientador(cursos);
     const orientadorMsg: Message = {
       id: idMensaje('orientador'),
@@ -810,7 +862,12 @@ export function ChatWidget() {
   const idUltimoBot = [...messages].reverse().find((m) => m.role === 'bot')?.id;
   const anuncio = (() => {
     const ultimo = [...messages].reverse().find((m) => m.role === 'bot');
-    return ultimo && ultimo.id !== 'init-1' ? ultimo.text.slice(0, 400) : '';
+    if (!ultimo || ultimo.id === 'init-1') return '';
+    // De una comparación se anuncia de qué trata; los datos se leen en las tarjetas.
+    const comparacion = compararCursos(ultimo.text, ultimo.cards);
+    return comparacion
+      ? `Comparación de ${comparacion.cursos.length} cursos: ${comparacion.cursos.map((c) => c.titulo).join(', ')}. Los datos están en la conversación.`
+      : colapsarPuntos(ultimo.text).slice(0, 400);
   })();
 
   // Mantiene el foco dentro del diálogo mientras está abierto (Tab y Mays+Tab dan la vuelta).
@@ -954,7 +1011,9 @@ export function ChatWidget() {
                 tabIndex={0}
                 aria-label="Conversación con Horus"
               >
-                {messages.map((message) => (
+                {messages.map((message) => {
+                  const comparacion = message.role === 'bot' ? compararCursos(message.text, message.cards) : null;
+                  return (
                   <article
                     key={message.id}
                     id={`hc-msg-${message.id}`}
@@ -968,16 +1027,18 @@ export function ChatWidget() {
                       )}
                       <span>{message.role === 'user' ? 'Tú' : 'Horus'}</span>
                     </strong>
-                    {renderMessageContent(
-                      message.text,
-                      message.role,
-                      Boolean(message.links?.some((l) => l.whatsapp))
+                    {comparacion ? (
+                      <ResumenComparacion comparacion={comparacion} />
+                    ) : (
+                      renderMessageContent(message.text, message.role, Boolean(message.links?.some((l) => l.whatsapp)))
                     )}
 
                     {/* Rich Cards */}
                     {message.cards && message.cards.length > 0 && (
                       <div className="hc-cards mt-3" aria-label="Contenidos relacionados">
-                        {message.cards.map((card) => (
+                        {message.cards.map((card) => {
+                          const diferencias = comparacion?.cursos.find((c) => c.titulo === card.titulo)?.diferencias;
+                          return (
                           <section key={card.id} className="hc-card" aria-label={card.titulo}>
                             <div
                               className={`hc-card-cover ${
@@ -1010,7 +1071,22 @@ export function ChatWidget() {
                                   : 'Curso y capacitación'}
                               </span>
                               <h3>{card.titulo}</h3>
-                              <p>{card.descripcion}</p>
+                              {diferencias === undefined ? (
+                                <p>{card.descripcion}</p>
+                              ) : (
+                                diferencias.length > 0 && (
+                                  <dl className="hc-compare-data hc-compare-card-data">
+                                    {diferencias.map((dato) => (
+                                      <div key={dato.etiqueta}>
+                                        <dt>{dato.etiqueta}</dt>
+                                        <dd className={dato.valor === null ? 'hc-compare-missing' : undefined}>
+                                          {dato.valor ?? 'Sin dato publicado'}
+                                        </dd>
+                                      </div>
+                                    ))}
+                                  </dl>
+                                )
+                              )}
                               {card.tipo === 'curso' ? (
                                 <div className="hc-card-actions">
                                   <button
@@ -1047,7 +1123,8 @@ export function ChatWidget() {
                               )}
                             </div>
                           </section>
-                        ))}
+                        );
+                        })}
                       </div>
                     )}
 
@@ -1169,7 +1246,8 @@ export function ChatWidget() {
                       </div>
                     )}
                   </article>
-                ))}
+                );
+                })}
 
                 {/* Suggestions pill group (shown when conversation just started) */}
                 {messages.length === 1 && messages[0].role === 'bot' && (

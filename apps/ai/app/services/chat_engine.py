@@ -331,6 +331,13 @@ class AdvisorEngine:
             return self._unpublished_topic("learn", text)
         return None
 
+    def _names_unpublished_course(self, text: str) -> bool:
+        "Nombra un curso con una palabra que ningún contenido publicado usa: sin esto se respondía con el curso en foco."
+        if not self._published_courses():
+            return False  # sin catálogo vigente no se puede afirmar que un curso no exista
+        subjects = [content_tokens(word) for word in glue.named_course_subjects(self.corrected(text))]
+        return any(tokens and not self.lexical.knows(tokens[0]) for tokens in subjects)
+
     def _complaint(self) -> AdvisorReply:
         """Un reclamo («me cobraron de más», «no me llegó el certificado»): Libro de Reclamaciones y un asesor.
 
@@ -1337,6 +1344,10 @@ class AdvisorEngine:
             if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen"}:
                 return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
                     intent="agreement_info", match_level="alta", sources=[self._source(record)])
+
+        # Pide un dato de un curso que no existe: no se contesta con el del curso en foco ni con los de todos.
+        if (u.attributes or u.asked_modalities) and not u.private_quote and self._names_unpublished_course(message):
+            return self._unpublished_topic("learn", message)
 
         # 2. Solicitudes comerciales.
         if u.private_quote:

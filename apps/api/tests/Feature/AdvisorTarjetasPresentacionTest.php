@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Curso;
+use App\Models\CursoPublicacion;
+use App\Models\User;
 use App\Services\AsistenteVirtualService;
 use App\Services\ContenidoPublicoServicios;
 use App\Services\ExportadorCatalogoAdvisor;
 use App\Services\FirmaCatalogoAdvisor;
 use App\Services\HorusAdvisorClient;
 use App\Services\PresentacionRecomendacionesHorus;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\ChatPublicoBff;
 use Tests\TestCase;
 
@@ -178,6 +183,80 @@ class AdvisorTarjetasPresentacionTest extends TestCase
         }
         $pagina['titulo'] = 'Otra publicacion';
         $this->assertNull($presentacion->paraFrontend($reply)['tarjetas'][0]['imagen']);
+    }
+
+    public function test_a_course_card_carries_the_cover_of_its_authorized_publication(): void
+    {
+        [, $reply, $ruta] = $this->cursoPublicadoConImagen();
+
+        $card = app(PresentacionRecomendacionesHorus::class)->paraFrontend($reply)['tarjetas'][0];
+
+        $this->assertSame('curso', $card['tipo']);
+        $this->assertSame('/storage/'.$ruta, $card['imagen']);
+    }
+
+    public function test_a_course_card_has_no_cover_unless_everything_is_in_order(): void
+    {
+        [$ficha, $reply, $ruta] = $this->cursoPublicadoConImagen();
+        $presentacion = app(PresentacionRecomendacionesHorus::class);
+        $sinImagen = function (string $caso) use ($presentacion, $reply): void {
+            $tarjetas = $presentacion->paraFrontend($reply)['tarjetas'] ?? null;
+            $this->assertNotNull($tarjetas, $caso.': la tarjeta se conserva');
+            $this->assertNull($tarjetas[0]['imagen'], $caso);
+        };
+
+        foreach ([
+            'retirada' => ['publicada' => false],
+            'vencida' => ['vigente_desde' => now()->subMonths(2)->toDateString(), 'vigente_hasta' => now()->subMonth()->toDateString()],
+            'autorización aún no vigente' => ['autorizado_at' => now()->addDay()],
+            'otro título' => ['titulo' => 'Otro curso'],
+            'sin imagen' => ['imagen_ruta' => null],
+            'ruta no permitida' => ['imagen_ruta' => '../.env'],
+            'archivo ausente' => ['imagen_ruta' => 'cursos/00000000-0000-0000-0000-000000000000.png'],
+        ] as $caso => $cambio) {
+            $original = array_intersect_key($ficha->getAttributes(), $cambio);
+            $ficha->forceFill($cambio)->save();
+            $sinImagen($caso);
+            $ficha->setRawAttributes([...$ficha->getAttributes(), ...$original]);
+            $ficha->save();
+        }
+        $this->assertSame('/storage/'.$ruta, $presentacion->paraFrontend($reply)['tarjetas'][0]['imagen'], 'restaurada');
+
+        Storage::disk('public')->put($ruta, 'esto no es una imagen');
+        $sinImagen('el archivo no es una imagen');
+
+        config(['catalogo-publico.enabled' => false]);
+        $sinImagen('catálogo web apagado');
+    }
+
+    /** @return array{CursoPublicacion, array{respuesta: string, intent: null, fuente: string, recomendaciones: list<array{id: string, title: string, url_path: string}>}, string} */
+    private function cursoPublicadoConImagen(): array
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        config(['catalogo-publico.enabled' => true]);
+        Storage::fake('public');
+        $autor = User::factory()->create();
+        $autor->assignRole('admin');
+        $curso = Curso::create(['codigo' => 'IMG-1', 'nombre' => 'Interno', 'descripcion' => 'Interno', 'categoria' => 'Interno',
+            'duracion_horas' => 10, 'precio' => 10, 'modalidad' => 'virtual', 'horario' => 'Interno', 'cupos_maximos' => 10,
+            'cupos_disponibles' => 10, 'estado' => 'activo']);
+        $ruta = 'cursos/11111111-2222-3333-4444-555555555555.png';
+        Storage::disk('public')->put($ruta, (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='));
+        $ficha = CursoPublicacion::create(['curso_id' => $curso->id, 'titulo' => 'Comunicacion efectiva',
+            'resumen' => 'Aprende a comunicar tus ideas.', 'modalidad' => 'virtual', 'horario' => null, 'inscripcion' => null,
+            'vigente_desde' => now()->subDay()->toDateString(), 'vigente_hasta' => now()->addMonth()->toDateString(),
+            'publicada' => true, 'autorizado_por' => $autor->id, 'autorizado_at' => now()->subMinute()]);
+        $ficha->forceFill(['imagen_ruta' => $ruta])->save();
+
+        $item = ['stable_id' => 'curso:publicacion-'.$ficha->id, 'type' => 'curso', 'publication_status' => 'vigente',
+            'title' => 'Comunicacion efectiva', 'summary' => 'Aprende a comunicar tus ideas.',
+            'url_path' => '/educacion/cursos', 'updated_at' => now()->toIso8601String()];
+        $this->catalogo['items'] = [$item];
+        $this->catalogo['signature'] = app(FirmaCatalogoAdvisor::class)->firmar($this->catalogo);
+        $reply = ['respuesta' => 'Informacion publicada.', 'intent' => null, 'fuente' => 'advisor',
+            'recomendaciones' => [['id' => 'cat_curso_publicacion_'.$ficha->id, 'title' => $item['title'], 'url_path' => $item['url_path']]]];
+
+        return [$ficha->refresh(), $reply, $ruta];
     }
 
     public function test_unavailable_expired_or_manipulated_catalogs_never_produce_cards(): void

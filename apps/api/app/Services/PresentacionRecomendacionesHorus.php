@@ -26,6 +26,7 @@ class PresentacionRecomendacionesHorus
         private ExportadorCatalogoAdvisor $exportador,
         private FirmaCatalogoAdvisor $firma,
         private ContenidoPublicoServicios $servicios,
+        private CatalogoPublicoCursos $cursos,
         private FiltroPrivacidadChat $privacidad,
     ) {}
 
@@ -124,9 +125,36 @@ class PresentacionRecomendacionesHorus
             && ! $this->privacidad->contieneDatosPrivadosEnRespuesta($texto);
     }
 
+    /**
+     * Portada de la ficha pública del curso, solo si la web la mostraría ahora y el archivo es una imagen permitida.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function portadaDeCurso(array $item): ?string
+    {
+        if (preg_match('~\Acurso:publicacion-([1-9][0-9]{0,17})\z~D', Entrada::texto($item['stable_id']), $coincidencias) !== 1) {
+            return null;
+        }
+        $ficha = $this->cursos->portadaAutorizada((int) $coincidencias[1]);
+        $ruta = $ficha['imagen_ruta'] ?? null;
+        if ($ficha === null || trim($ficha['titulo']) !== trim(Entrada::texto($item['title']))
+            || $ruta === null || ! ImagenesCursos::rutaValida($ruta)
+            || config('filesystems.disks.public.driver') !== 'local'
+            || ! Storage::disk(ImagenesCursos::DISCO)->exists($ruta)
+            // Por el contenido: `Storage::mimeType` recurre a la extensión y aceptaría un archivo que no es imagen.
+            || ! in_array((new \finfo(FILEINFO_MIME_TYPE))->file(Storage::disk(ImagenesCursos::DISCO)->path($ruta)), ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            return null;
+        }
+
+        return '/storage/'.$ruta;
+    }
+
     /** @param array<string, mixed> $item */
     private function imagenPublicada(array $item): ?string
     {
+        if ($item['type'] === 'curso') {
+            return $this->portadaDeCurso($item);
+        }
         if ($item['type'] !== 'servicio') {
             return null;
         }

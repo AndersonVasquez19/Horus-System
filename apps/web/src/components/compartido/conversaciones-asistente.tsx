@@ -2,6 +2,7 @@ import { ChevronRight, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { ETAPAS, etiquetaTema } from '@/components/compartido/temas-asistente';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { TextoPlegable } from '@/components/shared/ui/texto-plegable';
+import { colapsarPuntos } from '@/lib/chat-formato';
 import { ocultarEnlaceWhatsapp } from '@/lib/chat-whatsapp';
 
 export interface Intercambio {
@@ -85,7 +86,7 @@ export function ConversacionesAsistente({ conversaciones }: { conversaciones: Co
                   </div>
                   <p className="mt-1.5 truncate text-sm text-panel-muted group-open/conversacion:hidden">
                     <span className="sr-only">Última respuesta: </span>
-                    {conversacion.vista_previa}
+                    {colapsarPuntos(conversacion.vista_previa)}
                   </p>
                 </div>
               </summary>
@@ -112,7 +113,7 @@ export function ConversacionesAsistente({ conversaciones }: { conversaciones: Co
                       <div className="mt-1.5 flex items-end gap-2">
                         <div className="min-w-0 max-w-2xl break-words rounded-2xl rounded-tl-sm border border-panel-border bg-panel-surface px-4 py-2.5 text-sm text-panel-text">
                           <span className="sr-only">Horus respondió: </span>
-                          <TextoPlegable texto={ocultarEnlaceWhatsapp(intercambio.respuesta)} limite={320} />
+                          <TextoPlegable texto={colapsarPuntos(ocultarEnlaceWhatsapp(intercambio.respuesta))} limite={320} />
                         </div>
                         {intercambio.voto === 'up' ? <Insignia color="verde">Útil</Insignia> : null}
                         {intercambio.voto === 'down' ? <Insignia color="ambar">No útil</Insignia> : null}
