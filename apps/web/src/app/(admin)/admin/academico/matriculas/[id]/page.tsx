@@ -1,19 +1,31 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { Suspense } from 'react';
-import { AccionesMatricula } from '@/components/academico/acciones-matricula';
+import {
+  AccionesMatricula,
+  ETIQUETAS_OPERATIVAS,
+  SelectorEtiquetaMatricula,
+  TarjetaContactoMatricula,
+} from '@/components/academico/acciones-matricula';
 import { BotonEmitirCertificadoMatricula } from '@/components/academico/acciones-certificado';
-import { BotonCrearObligacion, COLOR_COBRO, ComprobantesDeLaMatricula, ETIQUETA_COBRO, EnlaceObligacion } from '@/components/academico/paneles-pagos';
+import {
+  BotonCrearObligacion,
+  BotonReciboPdf,
+  COLOR_COBRO,
+  ETIQUETA_COBRO,
+  EnlaceObligacion,
+  ResumenFinancieroMatricula,
+} from '@/components/academico/paneles-pagos';
 import { Alerta } from '@/components/shared/ui/alerta';
-import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
+import { parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia, colorEstado } from '@/components/shared/ui/insignia';
-import { EsqueletoFicha, ListaDatos, Seccion } from '@/components/shared/ui/tabla';
+import { ListaDatos, Seccion } from '@/components/shared/ui/tabla';
 import type { EventoHistorial, MatriculaDetalle, ObligacionDetalle } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { mensajeBienvenida } from '@/lib/panel/contacto';
-import { etiqueta, fecha, moneda, numero } from '@/lib/panel/formato';
+import { etiqueta, fecha, numero } from '@/lib/panel/formato';
 
 export const metadata = { title: 'Matrícula · Gestión académica' };
 
@@ -23,16 +35,27 @@ export const instant = false;
 const LISTADO = '/admin/academico/matriculas';
 const FECHA_HORA = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' });
 
-export default function MatriculaDetallePage({ params }: { params: Promise<{ id: string }> }) {
+type Parametros = Record<string, string | string[] | undefined>;
+
+export default function MatriculaDetallePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Parametros>;
+}) {
   return (
-    <Suspense fallback={<EsqueletoFicha etiqueta="Cargando la matrícula" />}>
-      <Ficha params={params} />
+    <Suspense fallback={<EsqueletoDetalleMatricula />}>
+      <Ficha params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Ficha({ params }: { params: Promise<{ id: string }> }) {
+async function Ficha({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Parametros> }) {
   const { id } = await params;
+  const query = await searchParams;
+  const abrirEditarInicial = parametro(query, 'editar') === '1';
+
   const volver = (
     <Link href={LISTADO} className="inline-flex items-center gap-1 text-sm font-semibold text-academico-700 hover:underline">
       <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver a matrículas
@@ -47,6 +70,14 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." accion={volver} />;
 
   const matricula = resultado.datos.data;
+  const mostrarPagos = (!matricula.eliminado && matricula.estado !== 'anulada') || Boolean(matricula.obligacion_identificador);
+  const textoBienvenida = mensajeBienvenida({
+    nombre: matricula.estudiante?.nombre ?? 'estudiante',
+    curso: matricula.curso?.nombre ?? 'nuestro curso',
+    edicion: matricula.convocatoria?.codigo,
+    enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
+  });
+  const etiquetaOp = matricula.etiqueta ? (ETIQUETAS_OPERATIVAS[matricula.etiqueta] ?? matricula.etiqueta) : null;
 
   return (
     <>
@@ -59,152 +90,211 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           { etiqueta: `#${matricula.id}` },
         ]}
         acciones={
-          <div className="flex flex-wrap items-center gap-2">
-            {!matricula.eliminado && matricula.estado !== 'anulada' ? (
-              <BotonEmitirCertificadoMatricula matriculaId={matricula.id} />
-            ) : null}
-            <AccionesMatricula matricula={matricula} />
-          </div>
+          <AccionesMatricula
+            matricula={matricula}
+            abrirEditarInicial={abrirEditarInicial}
+            accionCertificado={
+              !matricula.eliminado && matricula.estado !== 'anulada' ? (
+                <BotonEmitirCertificadoMatricula matriculaId={matricula.id} />
+              ) : null
+            }
+          />
         }
       />
 
-      {matricula.eliminado ? <Alerta tipo="aviso" className="mb-6">Esta matrícula está eliminada y no ocupa cupo.</Alerta> : null}
+      {/* Banda compacta de estado e indicadores clave */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
+        {matricula.estado_cobro && matricula.estado_cobro !== 'sin_obligacion' ? (
+          <Insignia color={COLOR_COBRO[matricula.estado_cobro] ?? 'gris'}>
+            Cobro: {ETIQUETA_COBRO[matricula.estado_cobro] ?? matricula.estado_cobro}
+          </Insignia>
+        ) : (
+          <Insignia color="gris">Sin obligación</Insignia>
+        )}
+        {etiquetaOp ? <Insignia color="azul">{etiquetaOp}</Insignia> : null}
+        {matricula.eliminado ? <Insignia color="rojo">Eliminada</Insignia> : null}
+      </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Seccion
-          id="titulo-matricula"
-          titulo="Datos de la matrícula"
-          acciones={
-          <div className="flex flex-wrap gap-1">
-            <Insignia color={colorEstado(matricula.estado)}>{etiqueta('estadoMatricula', matricula.estado)}</Insignia>
-            {matricula.estado_cobro && matricula.estado_cobro !== 'sin_obligacion' ? (
-              <Insignia color={COLOR_COBRO[matricula.estado_cobro] ?? 'gris'}>
-                Cobro: {ETIQUETA_COBRO[matricula.estado_cobro] ?? matricula.estado_cobro}
-              </Insignia>
-            ) : (
-              <Insignia color="gris">Sin obligación</Insignia>
-            )}
-            {matricula.eliminado ? <Insignia color="rojo">Eliminada</Insignia> : null}
-          </div>
-        }
-        >
-          <ListaDatos
-            filas={[
-              [
-                'Estudiante',
-                matricula.estudiante ? (
-                  <Link href={`/admin/academico/estudiantes/${matricula.estudiante.id}`} className="text-academico-800 hover:underline">
-                    {matricula.estudiante.nombre} <span className="font-mono text-xs text-panel-muted">({matricula.estudiante.dni})</span>
-                  </Link>
-                ) : '—',
-              ],
-              [
-                'Curso',
-                matricula.curso ? (
-                  <Link href={`/admin/academico/cursos/${matricula.curso.id}`} className="text-academico-800 hover:underline">
-                    {matricula.curso.nombre} <span className="text-xs text-panel-muted">({matricula.curso.codigo})</span>
-                  </Link>
-                ) : '—',
-              ],
-              [
-                'Edición',
-                matricula.convocatoria ? (
-                  <Link href={`/admin/academico/convocatorias/${matricula.convocatoria.identificador}`} className="font-mono text-academico-800 hover:underline">
-                    {matricula.convocatoria.codigo}
-                  </Link>
-                ) : 'Sin edición (el cupo es el del curso)',
-              ],
-              ['Cupos libres del curso', numero(matricula.curso_cupos_disponibles)],
-              ['Fecha', fecha(matricula.fecha)],
-              ['Monto pagado (libro)', moneda(matricula.monto_pagado)],
-              ...(matricula.motivo_anulacion ? [['Motivo anulación/elim.', matricula.motivo_anulacion] as [string, string]] : []),
-              ['Observaciones', matricula.observaciones ? <span className="whitespace-pre-line font-normal">{matricula.observaciones}</span> : '—'],
-              ['Registrada', fecha(matricula.creado_en)],
-              ['Última actualización', fecha(matricula.actualizado_en)],
-            ]}
-          />
-          {matricula.estudiante ? (
-            <div className="mt-4 space-y-2 border-t border-panel-border pt-3">
-              <BotonesContacto
-                telefono={matricula.estudiante.telefono}
-                email={matricula.estudiante.email}
-                mensajeWa={mensajeBienvenida({
-                  nombre: matricula.estudiante.nombre,
-                  curso: matricula.curso?.nombre ?? 'nuestro curso',
-                  edicion: matricula.convocatoria?.codigo,
-                  enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
-                })}
-                asuntoCorreo={`Bienvenida · ${matricula.curso?.nombre ?? 'Horus Group'}`}
-                cuerpoCorreo={mensajeBienvenida({
-                  nombre: matricula.estudiante.nombre,
-                  curso: matricula.curso?.nombre ?? 'nuestro curso',
-                  edicion: matricula.convocatoria?.codigo,
-                  enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
-                })}
-              />
-              <BotonesGrupoWhatsApp enlace={matricula.curso?.enlace_grupo_whatsapp} />
-            </div>
-          ) : matricula.curso?.enlace_grupo_whatsapp ? (
-            <div className="mt-4 border-t border-panel-border pt-3">
-              <BotonesGrupoWhatsApp enlace={matricula.curso.enlace_grupo_whatsapp} />
-            </div>
+      {/* Alertas contextuales de estado excepcional */}
+      {matricula.eliminado || matricula.motivo_anulacion ? (
+        <div className="mb-6 space-y-3">
+          {matricula.eliminado ? (
+            <Alerta tipo="aviso">Esta matrícula está eliminada y no ocupa cupo.</Alerta>
           ) : null}
-        </Seccion>
+          {matricula.motivo_anulacion ? (
+            <Alerta tipo="aviso" titulo={matricula.eliminado ? 'Motivo de eliminación' : 'Motivo de anulación'}>
+              {matricula.motivo_anulacion}
+            </Alerta>
+          ) : null}
+        </div>
+      ) : null}
 
-        {matricula.convocatoria && !matricula.eliminado && matricula.estado !== 'anulada' ? (
-          <Suspense fallback={null}>
-            <PagosDeLaMatricula matriculaId={matricula.id} />
-          </Suspense>
-        ) : null}
+      {/* Layout balanceado de 2 columnas (7 / 5) sin huecos huérfanos */}
+      <div className="grid items-start gap-6 xl:grid-cols-12">
+        <div className="space-y-6 xl:col-span-7">
+          {mostrarPagos ? (
+            <Suspense fallback={<EsqueletoPagosMatricula />}>
+              <PagosDeLaMatricula matriculaId={matricula.id} permiteCrear={!matricula.eliminado && matricula.estado !== 'anulada'} />
+            </Suspense>
+          ) : null}
 
-        <Seccion id="titulo-historial" titulo="Historial" descripcion="Operaciones registradas en la auditoría." className="xl:col-span-2">
-          <Historial eventos={matricula.historial ?? []} />
-        </Seccion>
+          <Seccion id="titulo-matricula" titulo="Detalle académico y notas">
+            <ListaDatos
+              filas={[
+                [
+                  'Curso',
+                  matricula.curso ? (
+                    <Link href={`/admin/academico/cursos/${matricula.curso.id}`} className="inline-flex items-center gap-1 text-academico-800 hover:underline">
+                      <span>{matricula.curso.nombre}</span>
+                      <span className="font-mono text-xs text-panel-muted">({matricula.curso.codigo})</span>
+                    </Link>
+                  ) : (
+                    '—'
+                  ),
+                ],
+                [
+                  'Edición',
+                  matricula.convocatoria ? (
+                    <Link
+                      href={`/admin/academico/convocatorias/${matricula.convocatoria.identificador}`}
+                      className="font-mono text-academico-800 hover:underline"
+                    >
+                      {matricula.convocatoria.codigo}
+                    </Link>
+                  ) : (
+                    <span className="font-normal text-panel-muted">Sin edición (el cupo es el del curso)</span>
+                  ),
+                ],
+                ['Cupos libres del curso', <span key="cupos" className="tabular-nums">{numero(matricula.curso_cupos_disponibles)}</span>],
+                ['Fecha de matrícula', <span key="fecha" className="tabular-nums">{fecha(matricula.fecha)}</span>],
+                [
+                  'Etiqueta operativa',
+                  <SelectorEtiquetaMatricula key="etiqueta" matriculaId={matricula.id} inicial={matricula.etiqueta ?? ''} />,
+                ],
+                [
+                  'Observaciones',
+                  matricula.observaciones ? (
+                    <span className="whitespace-pre-line font-normal text-panel-text">{matricula.observaciones}</span>
+                  ) : (
+                    <span className="font-normal text-panel-muted">Sin observaciones registradas.</span>
+                  ),
+                ],
+              ]}
+            />
+          </Seccion>
+        </div>
+
+        <div className="space-y-6 xl:col-span-5">
+          <Seccion
+            id="titulo-estudiante"
+            titulo="Estudiante y contacto"
+            acciones={
+              matricula.estudiante ? (
+                <Link
+                  href={`/admin/academico/estudiantes/${matricula.estudiante.id}`}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-academico-700 hover:underline"
+                >
+                  Ver perfil
+                  <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              ) : null
+            }
+          >
+            <TarjetaContactoMatricula
+              estudiante={matricula.estudiante}
+              mensajeWa={textoBienvenida}
+              asuntoCorreo={`Bienvenida · ${matricula.curso?.nombre ?? 'Horus Group'}`}
+              cuerpoCorreo={textoBienvenida}
+              enlaceGrupo={matricula.curso?.enlace_grupo_whatsapp}
+            />
+          </Seccion>
+
+          <Seccion
+            id="titulo-historial"
+            titulo="Historial de actividad"
+            descripcion={`Registrada ${fecha(matricula.creado_en)} · Actualizada ${fecha(matricula.actualizado_en)}`}
+          >
+            <Historial eventos={matricula.historial ?? []} />
+          </Seccion>
+        </div>
       </div>
     </>
   );
 }
 
-/** Obligación de pago de la matrícula: solo se muestra a quien tiene `pagos.ver`. */
-async function PagosDeLaMatricula({ matriculaId }: { matriculaId: number }) {
+/** Obligación de pago y comprobantes de la matrícula (solo se muestra a quien tiene `pagos.ver`). */
+async function PagosDeLaMatricula({ matriculaId, permiteCrear }: { matriculaId: number; permiteCrear: boolean }) {
   const r = await consultarPanel<{ data: ObligacionDetalle | null }>(`academico/matriculas/${matriculaId}/obligacion`, `${LISTADO}/${matriculaId}`);
   if (r.estado !== 'ok') return null;
   const o = r.datos.data;
-  return (
-    <>
-    <Seccion id="titulo-pagos" titulo="Pagos" descripcion="Obligación de pago en soles (PEN).">
-      {o === null ? (
-        <div className="space-y-3">
-          <p className="text-sm text-panel-muted">Esta matrícula todavía no tiene una obligación de pago.</p>
-          <BotonCrearObligacion matriculaId={matriculaId} />
+
+  if (o === null) {
+    if (!permiteCrear) return null;
+    return (
+      <Seccion id="titulo-pagos" titulo="Pagos y comprobantes" descripcion="Obligación de pago en soles (PEN).">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <p className="text-sm text-panel-muted">Esta matrícula todavía no tiene una obligación de pago asignada.</p>
+          <BotonCrearObligacion matriculaId={matriculaId} lado="centro" ancho="lg" />
         </div>
-      ) : (
-        <div className="space-y-2">
-          <Insignia color={COLOR_COBRO[o.estado]}>{ETIQUETA_COBRO[o.estado]}</Insignia>
-          <p className="text-sm text-panel-text">{o.concepto}: pagado {moneda(o.pagado)} de {moneda(o.monto_total)}; saldo {moneda(o.saldo)}.</p>
-          <EnlaceObligacion identificador={o.identificador} />
-        </div>
-      )}
-    </Seccion>
-    {o !== null ? (
-      <Seccion id="titulo-comprobante" titulo="Comprobante de pago" descripcion="Captura de cada pago: ábrela, descárgala o adjúntala si el pago aún está por confirmar.">
-        <ComprobantesDeLaMatricula obligacion={o} />
       </Seccion>
-    ) : null}
-    </>
+    );
+  }
+
+  return (
+    <Seccion
+      id="titulo-pagos"
+      titulo="Pagos y comprobantes"
+      descripcion="Estado financiero en soles (PEN) y comprobantes registrados."
+      acciones={
+        <div className="flex flex-wrap items-center gap-2">
+          <BotonReciboPdf identificador={o.identificador} />
+          <EnlaceObligacion identificador={o.identificador} etiqueta="Ver pagos y cuotas" />
+        </div>
+      }
+    >
+      <ResumenFinancieroMatricula obligacion={o} />
+    </Seccion>
+  );
+}
+
+function EsqueletoPagosMatricula() {
+  return (
+    <div className="h-56 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando pagos y comprobantes" />
+  );
+}
+
+function EsqueletoDetalleMatricula() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Cargando la matrícula">
+      <div className="h-16 animate-pulse rounded-xl bg-panel-surface" />
+      <div className="grid items-start gap-6 xl:grid-cols-12">
+        <div className="space-y-6 xl:col-span-7">
+          <div className="h-56 animate-pulse rounded-xl border border-panel-border bg-panel-surface" />
+          <div className="h-64 animate-pulse rounded-xl border border-panel-border bg-panel-surface" />
+        </div>
+        <div className="space-y-6 xl:col-span-5">
+          <div className="h-52 animate-pulse rounded-xl border border-panel-border bg-panel-surface" />
+          <div className="h-64 animate-pulse rounded-xl border border-panel-border bg-panel-surface" />
+        </div>
+      </div>
+    </div>
   );
 }
 
 function Historial({ eventos }: { eventos: EventoHistorial[] }) {
-  if (eventos.length === 0) return <p className="py-8 text-center text-sm text-panel-muted">Sin operaciones registradas.</p>;
+  if (eventos.length === 0) return <p className="py-6 text-center text-sm text-panel-muted">Sin operaciones registradas.</p>;
 
   return (
-    <ol className="relative space-y-5 border-l border-panel-border pl-5">
+    <ol className="relative ml-1.5 space-y-5 border-l border-panel-border pl-5">
       {eventos.map((evento) => {
         const campos = evento.campos.map((campo) => etiqueta('campoMatricula', campo));
         return (
           <li key={evento.id} className="relative">
-            <span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-panel-surface bg-academico-600" aria-hidden="true" />
+            <span
+              className="absolute -left-[25px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-panel-surface bg-academico-600"
+              aria-hidden="true"
+            />
             <p className="text-sm font-semibold text-panel-text">{etiqueta('accionMatricula', evento.accion)}</p>
             <p className="text-xs text-panel-muted">
               <time dateTime={evento.fecha}>{FECHA_HORA.format(new Date(evento.fecha))}</time>

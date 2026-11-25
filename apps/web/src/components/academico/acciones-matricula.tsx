@@ -1,28 +1,88 @@
 'use client';
 
-import { ArchiveRestore, Ban, Copy, Download, FileText, MessageCircle, Pencil, Plus, Receipt, Trash2 } from 'lucide-react';
+import {
+  ArchiveRestore,
+  Ban,
+  Copy,
+  Download,
+  ExternalLink,
+  Eye,
+  FileText,
+  Mail,
+  MessageCircle,
+  Pencil,
+  Phone,
+  Plus,
+  Receipt,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useState, type FormEvent, type ReactNode } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
+import { BotonCopiarDato, EnlaceAccionFila } from '@/components/shared/ui/acciones-celda';
 import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { CampoArea } from '@/components/shared/ui/campo';
 import { Dialogo, DialogoConfirmacion } from '@/components/shared/ui/dialogo';
+import { Insignia } from '@/components/shared/ui/insignia';
+import { MenuFila, type ElementoMenuFila } from '@/components/shared/ui/menu-fila';
 import type { MatriculaDetalle } from '@/features/academico/tipos';
-import { copiarAlPortapapeles, enlaceWaMe, mensajeBienvenidaMatricula } from '@/lib/panel/whatsapp-plantillas';
+import { esEnlaceGrupoWhatsApp, urlMailto, urlWhatsApp } from '@/lib/panel/contacto';
+import { copiarAlPortapapeles, mensajeBienvenidaMatricula } from '@/lib/panel/whatsapp-plantillas';
+import { ModalEditarMatricula, ModalNuevaMatricula } from './modal-matricula';
 
 const LISTADO = '/admin/academico/matriculas';
-const ENLACE = 'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold outline-offset-2 transition focus-visible:outline-2 focus-visible:outline-academico-700';
 
-/** Acciones de cabecera del listado: nueva matrícula y exportación CSV (cada una con su permiso). */
-export function AccionesListadoMatriculas({ filtros, mostrarNueva = true }: { filtros: string; mostrarNueva?: boolean }) {
+export const ETIQUETAS_OPERATIVAS: Record<string, string> = {
+  factura: 'Requiere factura',
+  becado: 'Becado',
+  seguimiento: 'Seguimiento',
+  empresa: 'Empresa',
+};
+
+/**
+ * Acciones de cabecera del listado: exportación CSV y «Nueva matrícula» (abre modal centrado amplio).
+ * Si se llega desde un acceso externo redirigido (`?nueva=1&estudiante_id=...&curso_id=...`), abre el modal
+ * automáticamente con la preselección y limpia la URL al cerrarlo.
+ */
+export function AccionesListadoMatriculas({
+  filtros,
+  mostrarNueva = true,
+  abrirNuevaInicial = false,
+  estudianteInicialId = null,
+  cursoInicialId = null,
+}: {
+  filtros: string;
+  mostrarNueva?: boolean;
+  abrirNuevaInicial?: boolean;
+  estudianteInicialId?: string | null;
+  cursoInicialId?: string | null;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const puedeCrear = usePuede('matriculas.crear');
   const puedeExportar = usePuede('matriculas.exportar');
   const { descargar } = useOperacionPanel();
   const { mostrar } = useAvisos();
   const [exportando, setExportando] = useState(false);
+  const [modalNueva, setModalNueva] = useState(abrirNuevaInicial && mostrarNueva);
+  const abiertoPorUrl = mostrarNueva && puedeCrear && searchParams.get('nueva') === '1';
+  const modalAbierto = modalNueva || abiertoPorUrl;
+
+  const cerrarModalNueva = useCallback(() => {
+    setModalNueva(false);
+    if (searchParams.has('nueva') || searchParams.has('estudiante_id') || searchParams.has('pre_curso_id')) {
+      const qs = new URLSearchParams(searchParams.toString());
+      qs.delete('nueva');
+      qs.delete('estudiante_id');
+      qs.delete('pre_curso_id');
+      const destino = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
+      router.replace(destino, { scroll: false });
+    }
+  }, [pathname, router, searchParams]);
 
   async function exportar() {
     setExportando(true);
@@ -40,10 +100,35 @@ export function AccionesListadoMatriculas({ filtros, mostrarNueva = true }: { fi
         </Boton>
       ) : null}
       {mostrarNueva && puedeCrear ? (
-        <Link href={`${LISTADO}/nueva`} className={`${ENLACE} bg-academico-700 text-white hover:bg-academico-800`}>
-          <Plus className="h-4 w-4" aria-hidden="true" /> Nueva matrícula
-        </Link>
+        <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setModalNueva(true)}>
+          Nueva matrícula
+        </Boton>
       ) : null}
+      {mostrarNueva && puedeCrear ? (
+        <ModalNuevaMatricula
+          abierto={modalAbierto}
+          onCerrar={cerrarModalNueva}
+          estudianteInicialId={searchParams.get('estudiante_id') ?? estudianteInicialId}
+          cursoInicialId={searchParams.get('pre_curso_id') ?? cursoInicialId}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** Botón CTA del estado vacío del listado: abre el mismo modal centrado de nueva matrícula. */
+export function BotonNuevaMatriculaVacio() {
+  const puedeCrear = usePuede('matriculas.crear');
+  const [abierto, setAbierto] = useState(false);
+
+  if (!puedeCrear) return null;
+
+  return (
+    <>
+      <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>
+        Registrar primera matrícula
+      </Boton>
+      <ModalNuevaMatricula abierto={abierto} onCerrar={() => setAbierto(false)} />
     </>
   );
 }
@@ -75,7 +160,7 @@ export function BotonGenerarCobro({ matriculaId }: { matriculaId: number }) {
       type="button"
       onClick={generar}
       disabled={cargando}
-      className="inline-flex items-center gap-1 rounded-md border border-academico-300 bg-academico-50 px-2.5 py-1 text-xs font-semibold text-academico-800 transition hover:bg-academico-100 disabled:opacity-50"
+      className="inline-flex items-center gap-1 rounded-md border border-academico-300 bg-academico-50 px-2.5 py-1 text-xs font-semibold text-academico-800 transition hover:bg-academico-100 disabled:opacity-50 cursor-pointer"
     >
       <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
       {cargando ? 'Generando…' : 'Generar cobro'}
@@ -107,8 +192,8 @@ const TEXTOS: Record<Operacion, { titulo: string; texto: string; confirmar: stri
 };
 
 /**
- * Diálogo de anulación, eliminación (ambas con motivo obligatorio) o restauración de una matrícula. Lo comparten la ficha y el
- * menú ⋯ del listado. `operacion = null` lo mantiene cerrado.
+ * Diálogo de anulación, eliminación (ambas con motivo obligatorio) o restauración de una matrícula.
+ * Compartido entre el menú del listado y la ficha de detalle.
  */
 export function OperacionMatricula({ matriculaId, operacion, onCerrar }: { matriculaId: number; operacion: Operacion | null; onCerrar: () => void }) {
   const router = useRouter();
@@ -195,76 +280,253 @@ export function OperacionMatricula({ matriculaId, operacion, onCerrar }: { matri
   );
 }
 
-/** Acciones directas por fila en el listado de matrículas (sin menú de 3 puntos). */
+/**
+ * Acciones por fila en el listado de matrículas:
+ *  - Acción directa «Ver» (estándar `EnlaceAccionFila`)
+ *  - Menú contextual accesible `⋯` (`MenuFila`) con permisos verificados y edición en modal centrado.
+ */
 export function MenuFilaMatricula({ matricula }: { matricula: { id: number; estado: string; eliminado: boolean } }) {
+  const { mostrar } = useAvisos();
+  const { descargar } = useOperacionPanel();
+  const puedeVer = usePuede('matriculas.ver');
+  const puedeEditar = usePuede('matriculas.editar');
   const puedeAnular = usePuede('matriculas.anular');
   const puedeEliminar = usePuede('matriculas.eliminar');
   const puedeRestaurar = usePuede('matriculas.restaurar');
   const [operacion, setOperacion] = useState<Operacion | null>(null);
+  const [editando, setEditando] = useState(false);
+  const [descargando, setDescargando] = useState(false);
+
+  async function descargarConstancia() {
+    setDescargando(true);
+    const resultado = await descargar(`academico/matriculas/${matricula.id}/constancia`, 'GET');
+    setDescargando(false);
+    if (resultado.ok) mostrar('exito', 'Constancia descargada en PDF.');
+    else mostrar('error', resultado.error.message);
+  }
+
+  const elementos: ElementoMenuFila[] = [];
+  if (!matricula.eliminado && puedeEditar) {
+    elementos.push({ tipo: 'accion', etiqueta: 'Editar matrícula', icono: Pencil, onClick: () => setEditando(true) });
+  }
+  if (puedeVer) {
+    elementos.push({ tipo: 'accion', etiqueta: 'Descargar constancia PDF', icono: FileText, onClick: () => void descargarConstancia() });
+  }
+  if (matricula.eliminado && puedeRestaurar) {
+    elementos.push({ tipo: 'accion', etiqueta: 'Restaurar matrícula', icono: ArchiveRestore, onClick: () => setOperacion('restaurar') });
+  }
+  if (!matricula.eliminado && puedeAnular && matricula.estado !== 'anulada') {
+    elementos.push({ tipo: 'accion', etiqueta: 'Anular matrícula', icono: Ban, peligro: true, onClick: () => setOperacion('anular') });
+  }
+  if (!matricula.eliminado && puedeEliminar) {
+    elementos.push({ tipo: 'accion', etiqueta: 'Eliminar matrícula', icono: Trash2, peligro: true, onClick: () => setOperacion('eliminar') });
+  }
 
   return (
     <>
       <div className="inline-flex items-center justify-end gap-1.5">
-        <Link
-          href={`/admin/academico/matriculas/${matricula.id}`}
-          title="Ver matrícula"
-          aria-label={`Ver matrícula #${matricula.id}`}
-          className="inline-flex h-8 items-center gap-1 rounded-lg border border-panel-border bg-panel-surface px-2.5 text-xs font-semibold text-panel-text transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-800"
-        >
-          Ver
-        </Link>
-        {!matricula.eliminado ? (
-          <Link
-            href={`/admin/academico/matriculas/${matricula.id}/editar`}
-            title="Editar matrícula"
-            aria-label={`Editar matrícula #${matricula.id}`}
-            className="inline-flex h-8 items-center gap-1 rounded-lg border border-academico-600/30 bg-academico-50 px-2.5 text-xs font-semibold text-academico-800 transition hover:bg-academico-100"
-          >
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          </Link>
-        ) : null}
-        {matricula.eliminado && puedeRestaurar ? (
-          <button
-            type="button"
-            title="Restaurar matrícula"
-            aria-label={`Restaurar matrícula #${matricula.id}`}
-            onClick={() => setOperacion('restaurar')}
-            className="inline-flex h-8 items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 cursor-pointer"
-          >
-            <ArchiveRestore className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        ) : null}
-        {!matricula.eliminado && puedeAnular && matricula.estado !== 'anulada' ? (
-          <button
-            type="button"
-            title="Anular matrícula"
-            aria-label={`Anular matrícula #${matricula.id}`}
-            onClick={() => setOperacion('anular')}
-            className="inline-flex h-8 items-center gap-1 rounded-lg border border-amber-600/30 bg-amber-50 px-2.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 cursor-pointer"
-          >
-            <Ban className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        ) : null}
-        {!matricula.eliminado && puedeEliminar ? (
-          <button
-            type="button"
-            title="Eliminar matrícula"
-            aria-label={`Eliminar matrícula #${matricula.id}`}
-            onClick={() => setOperacion('eliminar')}
-            className="inline-flex h-8 items-center gap-1 rounded-lg border border-red-600/30 bg-red-50 px-2.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 cursor-pointer"
-          >
-            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        ) : null}
+        <EnlaceAccionFila href={`${LISTADO}/${matricula.id}`} etiqueta="Ver" icono={<Eye className="h-3.5 w-3.5" aria-hidden="true" />} />
+        <MenuFila etiqueta={`Más acciones para matrícula #${matricula.id}`} cargando={descargando} elementos={elementos} />
       </div>
+
+      {!matricula.eliminado && puedeEditar ? (
+        <ModalEditarMatricula abierto={editando} matriculaId={matricula.id} onCerrar={() => setEditando(false)} />
+      ) : null}
       <OperacionMatricula matriculaId={matricula.id} operacion={operacion} onCerrar={() => setOperacion(null)} />
     </>
   );
 }
 
-/** Acciones de la ficha de una matrícula: constancia PDF, edición, anulación/eliminación con motivo obligatorio y restauración. */
-export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }) {
+/** Selector inline de etiqueta operativa para la tarjeta «Datos de la matrícula» en la ficha de detalle. */
+export function SelectorEtiquetaMatricula({ matriculaId, inicial }: { matriculaId: number; inicial: string }) {
   const router = useRouter();
+  const { mostrar } = useAvisos();
+  const { ejecutar } = useOperacionPanel();
+  const puedeEditar = usePuede('matriculas.editar');
+  const [valor, setValor] = useState(inicial);
+  const [guardando, setGuardando] = useState(false);
+
+  if (!puedeEditar) {
+    return valor ? <Insignia color="azul">{ETIQUETAS_OPERATIVAS[valor] ?? valor}</Insignia> : <span className="text-panel-muted">Sin etiqueta</span>;
+  }
+
+  return (
+    <select
+      aria-label="Etiqueta operativa"
+      value={valor}
+      disabled={guardando}
+      onChange={async (e) => {
+        const nuevo = e.target.value;
+        const previo = valor;
+        setValor(nuevo);
+        setGuardando(true);
+        const r = await ejecutar<{ message: string }>(`academico/matriculas/${matriculaId}/etiqueta`, 'POST', { etiqueta: nuevo || null });
+        setGuardando(false);
+        if (r.ok) {
+          mostrar('exito', r.datos.message);
+          router.refresh();
+        } else {
+          setValor(previo);
+          mostrar('error', r.error.message);
+        }
+      }}
+      className="h-9 max-w-full rounded-lg border border-panel-border bg-panel-surface px-2.5 text-sm font-medium text-panel-text transition hover:border-academico-300 focus:border-academico-700 focus:outline-none focus:ring-4 focus:ring-academico-700/20 disabled:opacity-60"
+    >
+      <option value="">Sin etiqueta</option>
+      {Object.entries(ETIQUETAS_OPERATIVAS).map(([clave, texto]) => (
+        <option key={clave} value={clave}>
+          {texto}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/**
+ * Bloque de estudiante y canales de comunicación de la ficha de matrícula.
+ * Evita duplicar WhatsApp en cabecera y presenta acciones uniformes (h-8/h-9) sin saturar el `<dl>`.
+ */
+export function TarjetaContactoMatricula({
+  estudiante,
+  mensajeWa,
+  asuntoCorreo,
+  cuerpoCorreo,
+  enlaceGrupo,
+}: {
+  estudiante: MatriculaDetalle['estudiante'];
+  mensajeWa: string;
+  asuntoCorreo: string;
+  cuerpoCorreo: string;
+  enlaceGrupo?: string | null;
+}) {
+  const { mostrar } = useAvisos();
+  const hrefWa = urlWhatsApp(estudiante?.telefono, mensajeWa);
+  const hrefMail = urlMailto(estudiante?.email, asuntoCorreo, cuerpoCorreo);
+  const grupoValido = esEnlaceGrupoWhatsApp((enlaceGrupo ?? '').trim()) ? (enlaceGrupo ?? '').trim() : null;
+
+  const claseBotonCompacto =
+    'inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-panel-border bg-panel-surface px-2.5 text-xs font-semibold text-panel-text transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-academico-700 cursor-pointer';
+
+  async function copiarEnlaceGrupo() {
+    if (!grupoValido) return;
+    const ok = await copiarAlPortapapeles(grupoValido);
+    mostrar(ok ? 'exito' : 'error', ok ? 'Enlace del grupo de WhatsApp copiado.' : 'No se pudo copiar el enlace.');
+  }
+
+  return (
+    <div className="space-y-4">
+      {estudiante ? (
+        <div className="space-y-3">
+          <div>
+            <Link
+              href={`/admin/academico/estudiantes/${estudiante.id}`}
+              className="text-base font-semibold text-panel-text hover:text-academico-800 hover:underline"
+            >
+              {estudiante.nombre}
+            </Link>
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className="font-mono text-xs text-panel-muted">DNI {estudiante.dni}</span>
+              <BotonCopiarDato valor={estudiante.dni} etiqueta={`Copiar DNI ${estudiante.dni}`} />
+            </div>
+          </div>
+
+          <div className="divide-y divide-panel-border rounded-lg border border-panel-border bg-panel-bg/40">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 shrink-0 text-panel-muted" aria-hidden="true" />
+                {estudiante.telefono ? (
+                  <span className="font-mono text-xs font-medium text-panel-text">{estudiante.telefono}</span>
+                ) : (
+                  <span className="text-xs text-panel-muted">Sin teléfono</span>
+                )}
+              </div>
+              {estudiante.telefono ? (
+                <div className="flex items-center gap-1.5">
+                  {hrefWa ? (
+                    <a
+                      href={hrefWa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-academico-700"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      WhatsApp
+                    </a>
+                  ) : null}
+                  <BotonCopiarDato valor={estudiante.telefono} etiqueta={`Copiar teléfono ${estudiante.telefono}`} />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                <Mail className="h-4 w-4 shrink-0 text-panel-muted" aria-hidden="true" />
+                {estudiante.email ? (
+                  <span className="truncate text-xs font-medium text-panel-text" title={estudiante.email}>
+                    {estudiante.email}
+                  </span>
+                ) : (
+                  <span className="text-xs text-panel-muted">Sin correo</span>
+                )}
+              </div>
+              {estudiante.email ? (
+                <div className="flex items-center gap-1.5">
+                  {hrefMail ? (
+                    <a href={hrefMail} className={claseBotonCompacto}>
+                      <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                      Correo
+                    </a>
+                  ) : null}
+                  <BotonCopiarDato valor={estudiante.email} etiqueta={`Copiar correo ${estudiante.email}`} />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-panel-muted">Estudiante no disponible.</p>
+      )}
+
+      {grupoValido ? (
+        <div className="space-y-2 border-t border-panel-border pt-3.5">
+          <p className="text-xs font-medium text-panel-muted">Grupo de WhatsApp del curso</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={grupoValido}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-academico-700"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              Abrir grupo
+            </a>
+            <button type="button" onClick={() => void copiarEnlaceGrupo()} className={claseBotonCompacto}>
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+              Copiar enlace
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Acciones de cabecera de la ficha de matrícula, ordenadas por prioridad operativa:
+ *  Constancia PDF → Emitir certificado (si aplica) → Editar/Restaurar (primario) → Más acciones ▾.
+ */
+export function AccionesMatricula({
+  matricula,
+  abrirEditarInicial = false,
+  accionCertificado,
+}: {
+  matricula: MatriculaDetalle;
+  abrirEditarInicial?: boolean;
+  accionCertificado?: ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { mostrar } = useAvisos();
   const { descargar, ejecutar } = useOperacionPanel();
   const puedeVer = usePuede('matriculas.ver');
@@ -273,8 +535,20 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
   const puedeEliminar = usePuede('matriculas.eliminar');
   const puedeRestaurar = usePuede('matriculas.restaurar');
   const [operacion, setOperacion] = useState<Operacion | null>(null);
+  const [editando, setEditando] = useState(abrirEditarInicial && !matricula.eliminado);
   const [descargandoConstancia, setDescargandoConstancia] = useState(false);
-  const [etiquetaActual, setEtiquetaActual] = useState(matricula.etiqueta ?? '');
+  const editarPorUrl = !matricula.eliminado && puedeEditar && searchParams.get('editar') === '1';
+  const modalEdicionAbierto = editando || editarPorUrl;
+
+  const cerrarEdicion = useCallback(() => {
+    setEditando(false);
+    if (searchParams.has('editar')) {
+      const qs = new URLSearchParams(searchParams.toString());
+      qs.delete('editar');
+      const destino = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
+      router.replace(destino, { scroll: false });
+    }
+  }, [pathname, router, searchParams]);
 
   async function descargarConstancia() {
     setDescargandoConstancia(true);
@@ -290,110 +564,75 @@ export function AccionesMatricula({ matricula }: { matricula: MatriculaDetalle }
     edicion: matricula.convocatoria?.codigo,
     enlaceGrupo: matricula.curso?.enlace_grupo_whatsapp,
   });
-  const urlWa = enlaceWaMe(matricula.estudiante?.telefono, textoBienvenida);
+
+  const masAcciones: ElementoMenuFila[] = [];
+  if (puedeVer) {
+    masAcciones.push({
+      tipo: 'copiar',
+      etiqueta: 'Copiar mensaje de bienvenida',
+      valor: textoBienvenida,
+      aviso: 'Mensaje de bienvenida copiado para WhatsApp.',
+      icono: Copy,
+    });
+    if (matricula.convocatoria) {
+      masAcciones.push({
+        tipo: 'accion',
+        etiqueta: 'Copiar enlace de encuesta',
+        icono: Copy,
+        onClick: () => {
+          void (async () => {
+            const r = await ejecutar<{ data: { identificador: string } }>(`academico/matriculas/${matricula.id}/encuesta`, 'POST', {});
+            if (!r.ok) {
+              mostrar('error', r.error.message);
+              return;
+            }
+            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/encuesta/${r.datos.data.identificador}`;
+            const ok = await copiarAlPortapapeles(url);
+            mostrar(ok ? 'exito' : 'error', ok ? 'Enlace de encuesta copiado.' : 'No se pudo copiar.');
+          })();
+        },
+      });
+    }
+  }
+  if (!matricula.eliminado && puedeAnular && matricula.estado !== 'anulada') {
+    masAcciones.push({ tipo: 'accion', etiqueta: 'Anular matrícula', icono: Ban, peligro: true, onClick: () => setOperacion('anular') });
+  }
+  if (!matricula.eliminado && puedeEliminar) {
+    masAcciones.push({ tipo: 'accion', etiqueta: 'Eliminar matrícula', icono: Trash2, peligro: true, onClick: () => setOperacion('eliminar') });
+  }
 
   return (
     <>
       {puedeVer ? (
-        <>
-          <Boton
-            variante="secundario"
-            icono={<FileText className="h-4 w-4" aria-hidden="true" />}
-            cargando={descargandoConstancia}
-            onClick={descargarConstancia}
-          >
-            Constancia PDF
-          </Boton>
-          <Boton
-            variante="fantasma"
-            icono={<Copy className="h-4 w-4" aria-hidden="true" />}
-            onClick={async () => {
-              const ok = await copiarAlPortapapeles(textoBienvenida);
-              mostrar(ok ? 'exito' : 'error', ok ? 'Mensaje de bienvenida copiado para WhatsApp.' : 'No se pudo copiar.');
-            }}
-          >
-            Copiar bienvenida
-          </Boton>
-          {urlWa ? (
-            <a
-              href={urlWa}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${ENLACE} border border-emerald-600/30 bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden="true" /> Enviar WhatsApp
-            </a>
-          ) : null}
-          {matricula.convocatoria ? (
-            <Boton
-              variante="fantasma"
-              icono={<Copy className="h-4 w-4" aria-hidden="true" />}
-              onClick={async () => {
-                const r = await ejecutar<{ data: { identificador: string } }>(`academico/matriculas/${matricula.id}/encuesta`, 'POST', {});
-                if (!r.ok) {
-                  mostrar('error', r.error.message);
-                  return;
-                }
-                const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/encuesta/${r.datos.data.identificador}`;
-                const ok = await copiarAlPortapapeles(url);
-                mostrar(ok ? 'exito' : 'error', ok ? 'Enlace de encuesta copiado.' : 'No se pudo copiar.');
-              }}
-            >
-              Copiar encuesta
-            </Boton>
-          ) : null}
-          {puedeEditar ? (
-            <select
-              aria-label="Etiqueta operativa"
-              value={etiquetaActual}
-              onChange={async (e) => {
-                const valor = e.target.value;
-                setEtiquetaActual(valor);
-                const r = await ejecutar<{ message: string }>(`academico/matriculas/${matricula.id}/etiqueta`, 'POST', { etiqueta: valor || null });
-                if (r.ok) {
-                  mostrar('exito', r.datos.message);
-                  router.refresh();
-                } else {
-                  mostrar('error', r.error.message);
-                }
-              }}
-              className="rounded-lg border border-panel-border bg-panel-surface px-2.5 py-2 text-sm text-panel-text"
-            >
-              <option value="">Sin etiqueta</option>
-              <option value="factura">Requiere factura</option>
-              <option value="becado">Becado</option>
-              <option value="seguimiento">Seguimiento</option>
-              <option value="empresa">Empresa</option>
-            </select>
-          ) : null}
-        </>
+        <Boton
+          variante="secundario"
+          icono={<FileText className="h-4 w-4" aria-hidden="true" />}
+          cargando={descargandoConstancia}
+          onClick={descargarConstancia}
+        >
+          Constancia PDF
+        </Boton>
       ) : null}
+
+      {accionCertificado}
 
       {matricula.eliminado ? (
         puedeRestaurar ? (
-          <Boton variante="secundario" icono={<ArchiveRestore className="h-4 w-4" aria-hidden="true" />} onClick={() => setOperacion('restaurar')}>
+          <Boton variante="primario" icono={<ArchiveRestore className="h-4 w-4" aria-hidden="true" />} onClick={() => setOperacion('restaurar')}>
             Restaurar
           </Boton>
         ) : null
-      ) : (
-        <>
-          {puedeEditar ? (
-            <Link href={`${LISTADO}/${matricula.id}/editar`} className={`${ENLACE} border border-panel-border bg-panel-surface text-panel-text hover:bg-academico-50`}>
-              <Pencil className="h-4 w-4" aria-hidden="true" /> Editar
-            </Link>
-          ) : null}
-          {puedeAnular && matricula.estado !== 'anulada' ? (
-            <Boton variante="secundario" icono={<Ban className="h-4 w-4" aria-hidden="true" />} onClick={() => setOperacion('anular')}>
-              Anular
-            </Boton>
-          ) : null}
-          {puedeEliminar ? (
-            <Boton variante="secundario" icono={<Trash2 className="h-4 w-4" aria-hidden="true" />} onClick={() => setOperacion('eliminar')}>
-              Eliminar
-            </Boton>
-          ) : null}
-        </>
-      )}
+      ) : puedeEditar ? (
+        <Boton variante="primario" icono={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={() => setEditando(true)}>
+          Editar
+        </Boton>
+      ) : null}
+
+      <MenuFila etiqueta="Más acciones de la matrícula" disparador={{ texto: 'Más acciones' }} elementos={masAcciones} />
+
+      {!matricula.eliminado && puedeEditar ? (
+        <ModalEditarMatricula abierto={modalEdicionAbierto} matriculaId={matricula.id} matriculaInicial={matricula} onCerrar={cerrarEdicion} />
+      ) : null}
 
       <OperacionMatricula matriculaId={matricula.id} operacion={operacion} onCerrar={() => setOperacion(null)} />
     </>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, Check, CirclePlus, Copy, FileText, MessageCircle, Plus, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowUpRight, Ban, Check, CirclePlus, Copy, Download, Eye, FileText, MessageCircle, Plus, Trash2, Undo2, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -41,7 +41,15 @@ const esquemaObligacion = z.object({
 });
 
 /** Crea la obligación de pago de una matrícula (completo o fraccionado). La suma de cuotas se valida aquí y en Laravel. */
-export function BotonCrearObligacion({ matriculaId }: { matriculaId: number }) {
+export function BotonCrearObligacion({
+  matriculaId,
+  lado = 'derecha',
+  ancho = 'lg',
+}: {
+  matriculaId: number;
+  lado?: 'centro' | 'derecha';
+  ancho?: 'sm' | 'lg' | 'xl';
+}) {
   const puede = usePuede('pagos.planificar');
   const [abierto, setAbierto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -49,8 +57,8 @@ export function BotonCrearObligacion({ matriculaId }: { matriculaId: number }) {
   return (
     <>
       <Boton icono={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setAbierto(true)}>Crear obligación de pago</Boton>
-      <Dialogo abierto={abierto} lado="derecha" titulo="Obligación de pago" descripcion="Solo soles (PEN), monto fijo." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
-        <FormularioObligacion matriculaId={matriculaId} onOcupado={setOcupado} onCerrar={() => setAbierto(false)} />
+      <Dialogo abierto={abierto} lado={lado} ancho={ancho} titulo="Obligación de pago" descripcion="Solo soles (PEN), monto fijo." onCerrar={() => setAbierto(false)} bloqueado={ocupado}>
+        {abierto ? <FormularioObligacion matriculaId={matriculaId} onOcupado={setOcupado} onCerrar={() => setAbierto(false)} /> : null}
       </Dialogo>
     </>
   );
@@ -420,38 +428,55 @@ function ComprobanteTransaccion({ transaccion: t, puedeAdjuntar }: { transaccion
     router.refresh();
   }
 
+  const claseAccionComprobante =
+    'inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-panel-border bg-panel-surface px-2.5 text-xs font-semibold text-panel-text transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-academico-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer';
+
   return (
     <>
-      {error ? <p className="w-full text-sm text-estado-error">{error}</p> : null}
+      {error ? <p role="alert" className="w-full text-sm text-estado-error">{error}</p> : null}
       {t.tiene_comprobante && puedeVer && t.tipo_comprobante === 'pdf' ? (
         // Un PDF solo se descarga: nunca se abre dentro del navegador.
         <a
           href={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`}
           download="comprobante-de-pago.pdf"
-          className="inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-semibold text-panel-text underline transition hover:bg-panel-bg"
+          className={claseAccionComprobante}
         >
-          Descargar comprobante (PDF)
+          <Download className="h-3.5 w-3.5" aria-hidden="true" />
+          Descargar PDF
         </a>
       ) : null}
-      {t.tiene_comprobante && puedeVer && t.tipo_comprobante !== 'pdf' ? <Boton variante="fantasma" onClick={() => setViendo(true)}>Ver comprobante</Boton> : null}
+      {t.tiene_comprobante && puedeVer && t.tipo_comprobante !== 'pdf' ? (
+        <button type="button" onClick={() => setViendo(true)} className={claseAccionComprobante}>
+          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+          Ver comprobante
+        </button>
+      ) : null}
       {puedeAdjuntar ? (
         <>
           <input ref={entrada} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only" aria-label="Elegir comprobante (captura o PDF)" onChange={(e) => void adjuntar(e.target.files?.[0])} />
-          <Boton variante="fantasma" cargando={subiendo} onClick={() => entrada.current?.click()}>{t.tiene_comprobante ? 'Reemplazar comprobante' : 'Adjuntar comprobante'}</Boton>
+          <button type="button" disabled={subiendo} onClick={() => entrada.current?.click()} className={claseAccionComprobante}>
+            <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+            {subiendo ? 'Subiendo…' : t.tiene_comprobante ? 'Reemplazar comprobante' : 'Adjuntar comprobante'}
+          </button>
         </>
       ) : null}
       <Dialogo abierto={viendo} titulo="Comprobante de pago" onCerrar={() => setViendo(false)}>
         {viendo ? (
-          <p className="mb-3 text-right">
-            <a href={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`} download={`comprobante-de-pago-${t.identificador}`} className="text-sm font-semibold text-panel-text underline">
-              Descargar imagen
-            </a>
-          </p>
-        ) : null}
-        {viendo ? (
-          // Imagen privada servida por el BFF con la sesión: no hay URL pública; `no-store` y `nosniff` los pone Laravel.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`} alt="Captura del comprobante de pago" className="mx-auto max-h-[70vh] w-auto rounded-lg border border-panel-border" />
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <a
+                href={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`}
+                download={`comprobante-de-pago-${t.identificador}`}
+                className={claseAccionComprobante}
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                Descargar imagen
+              </a>
+            </div>
+            {/* Imagen privada servida por el BFF con la sesión: no hay URL pública; `no-store` y `nosniff` los pone Laravel. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/api/bff/panel/academico/pagos/transacciones/${t.identificador}/comprobante`} alt="Captura del comprobante de pago" className="mx-auto max-h-[70vh] w-auto rounded-lg border border-panel-border" />
+          </div>
         ) : null}
       </Dialogo>
     </>
@@ -502,11 +527,125 @@ function FormularioMotivo({ motivo, onOcupado, onCerrar }: { motivo: Motivo; onO
 }
 
 /** Enlace a la obligación de la matrícula (o a la lista de pagos). */
-export function EnlaceObligacion({ identificador }: { identificador: string }) {
-  return <Link href={`/admin/academico/pagos/${identificador}`} className="font-semibold text-academico-700 hover:underline">Ver pagos y cuotas</Link>;
+export function EnlaceObligacion({ identificador, etiqueta = 'Ver pagos y cuotas' }: { identificador: string; etiqueta?: string }) {
+  return (
+    <Link
+      href={`/admin/academico/pagos/${identificador}`}
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-panel-border bg-panel-surface px-4 py-2.5 text-sm font-semibold text-panel-text transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-academico-700"
+    >
+      {etiqueta}
+      <ArrowUpRight className="h-4 w-4 text-panel-muted" aria-hidden="true" />
+    </Link>
+  );
 }
 
 export { COLOR_COBRO };
+
+/**
+ * Módulo financiero unificado para la ficha de matrícula: cifras tabulares (Total / Pagado / Saldo),
+ * barra de progreso y lista limpia de abonos y comprobantes sin tarjetas anidadas.
+ */
+export function ResumenFinancieroMatricula({ obligacion: o }: { obligacion: ObligacionDetalle }) {
+  const puedeRegistrar = usePuede('pagos.registrar');
+  const pagos = o.transacciones.filter((t) => t.tipo === 'pago');
+  const vigente = o.estado !== 'anulada';
+  const totalNum = Number.parseFloat(o.monto_total) || 0;
+  const pagadoNum = Number.parseFloat(o.pagado) || 0;
+  const saldoNum = Number.parseFloat(o.saldo) || 0;
+  const pendienteConfirmarNum = Number.parseFloat(o.pendiente_confirmar) || 0;
+  const porcentaje = totalNum > 0 ? Math.min(100, Math.round((pagadoNum / totalNum) * 100)) : 0;
+
+  return (
+    <div className="space-y-5">
+      {/* Cifras financieras y progreso */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 divide-y divide-panel-border rounded-lg border border-panel-border bg-panel-bg/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="px-3.5 py-2.5">
+            <p className="text-xs font-medium text-panel-muted">Total</p>
+            <p className="mt-0.5 text-base font-semibold tabular-nums text-panel-text">{moneda(o.monto_total)}</p>
+          </div>
+          <div className="px-3.5 py-2.5">
+            <p className="text-xs font-medium text-panel-muted">Pagado</p>
+            <p className={`mt-0.5 text-base font-semibold tabular-nums ${pagadoNum > 0 ? 'text-estado-exito' : 'text-panel-text'}`}>
+              {moneda(o.pagado)}
+            </p>
+          </div>
+          <div className="px-3.5 py-2.5">
+            <p className="text-xs font-medium text-panel-muted">Saldo pendiente</p>
+            <p className={`mt-0.5 text-base font-semibold tabular-nums ${saldoNum > 0 ? 'text-estado-aviso' : 'text-panel-muted'}`}>
+              {moneda(o.saldo)}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="truncate font-medium text-panel-muted">{o.concepto}</span>
+            <span className="shrink-0 font-semibold tabular-nums text-panel-text">{porcentaje} %</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-panel-border" role="progressbar" aria-valuenow={porcentaje} aria-valuemin={0} aria-valuemax={100} aria-label="Progreso de pago">
+            <div
+              className={`h-full rounded-full transition-all ${porcentaje >= 100 ? 'bg-estado-exito' : 'bg-academico-700'}`}
+              style={{ width: `${porcentaje}%` }}
+            />
+          </div>
+          {pendienteConfirmarNum > 0 ? (
+            <p className="text-xs font-medium text-estado-aviso tabular-nums">
+              Hay {moneda(o.pendiente_confirmar)} en abonos pendientes de confirmación.
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Lista integrada de pagos y comprobantes */}
+      <div className="border-t border-panel-border pt-4">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-panel-text">
+            Comprobantes y abonos {pagos.length > 0 ? <span className="font-normal tabular-nums text-panel-muted">({pagos.length})</span> : null}
+          </h3>
+        </div>
+
+        {pagos.length === 0 ? (
+          <p className="text-sm text-panel-muted">
+            Todavía no hay abonos registrados. Registra pagos o cuotas desde{' '}
+            <Link href={`/admin/academico/pagos/${o.identificador}`} className="font-semibold text-academico-700 hover:underline">
+              Pagos y cuotas
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="divide-y divide-panel-border">
+            {pagos.map((t) => (
+              <li key={t.identificador} className="space-y-2 py-3 first:pt-1 last:pb-0">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold tabular-nums text-panel-text">
+                      {moneda(t.monto)}{' '}
+                      <span className="font-normal text-panel-muted">
+                        · {t.metodo} · {fecha(t.fecha_pago)}
+                      </span>
+                    </p>
+                    {t.referencia ? <p className="mt-0.5 font-mono text-xs text-panel-muted">Op. {t.referencia}</p> : null}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Insignia color={COLOR_TX[t.estado]}>
+                      {t.estado === 'confirmada' ? 'Confirmado' : t.estado === 'pendiente' ? 'Por confirmar' : 'Rechazado'}
+                    </Insignia>
+                    {!t.tiene_comprobante ? <Insignia color="gris">Sin captura</Insignia> : null}
+                    {t.imagen_repetida && t.estado !== 'rechazada' ? <Insignia color="rojo">Captura repetida</Insignia> : null}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ComprobanteTransaccion transaccion={t} puedeAdjuntar={t.estado === 'pendiente' && puedeRegistrar && vigente} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /**
  * «Comprobante de pago» de la ficha de la matrícula: cada pago con su estado y su captura (ver, descargar, adjuntar o reemplazar si
