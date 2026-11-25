@@ -20,6 +20,9 @@ class AsistenteVirtualService
     /** Aclaración ante un dato personal: genérica a propósito (nunca repite ni resume lo detectado). */
     public const RESPUESTA_PRIVACIDAD = 'Parece que incluiste un nombre o dato personal. Por seguridad, evita compartir información personal. Si deseas consultar sobre un curso o servicio, puedes reformular tu pregunta sin esos datos.';
 
+    /** Intento de manipulación o pedido de datos internos bloqueado antes de Horus AI: negativa clara, no «no disponible». */
+    public const RESPUESTA_SEGURIDAD = 'No puedo cambiar mis reglas ni compartir datos personales o información interna. Sí puedo ayudarte con cursos, capacitaciones, asesoramiento, convenios, pagos y contacto de Horus Group.';
+
     public const RESPUESTA_FALLBACK = 'Ahora mismo no puedo responder esa consulta. Puedo ayudarte con cursos, capacitaciones y atención al cliente. Escríbenos al +51 972 021 374 o a horusgroupcajamarca@gmail.com y un asesor te atenderá.';
 
     private FiltroPrivacidadChat $privacidad;
@@ -109,7 +112,8 @@ class AsistenteVirtualService
 
                 return $cached['reply'];
             }
-            $result = $this->advisor->orientar($consulta, null, $estado) ?? $this->reply(self::RESPUESTA_FALLBACK, null, 'respaldo');
+            $result = $this->advisor->orientar($consulta, null, $estado)
+                ?? $this->reply($this->advisor->motivoContingencia() === 'seguridad' ? self::RESPUESTA_SEGURIDAD : self::RESPUESTA_FALLBACK, null, 'respaldo');
             $nuevoFoco = $result['fuente'] === 'advisor' ? $this->advisor->focoConversacional() : [];
             $this->guardarFoco($focoKey, $nuevoFoco);
             $nuevoEstado = $result['fuente'] === 'advisor' ? $this->advisor->estadoConversacional() : [];

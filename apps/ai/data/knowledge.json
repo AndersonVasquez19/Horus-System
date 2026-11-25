@@ -16,7 +16,7 @@
       "answer": "Horus Group SRL es una empresa cajamarquina que ofrece cursos, capacitaciones y asesoramiento.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/quienes-somos", "file": "../web/src/components/layout/footer.tsx; ../web/src/app/quienes-somos/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["que es horus", "quienes son", "sobre horus", "la empresa", "a que se dedican", "empresa", "ruc de la empresa", "ruc de horus", "numero de ruc", "que servicios tienen", "servicios", "compañia", "rubro", "giro del negocio"],
+      "keywords": ["que es horus", "quienes son", "sobre horus", "la empresa", "a que se dedican", "empresa", "que servicios tienen", "servicios", "compañia", "rubro", "giro del negocio"],
       "examples": ["¿Qué es Horus Group?", "Cuéntame sobre la empresa", "¿A qué se dedica Horus?"],
       "topics": ["empresa"],
       "related": ["empresa_mision_vision"],
@@ -60,7 +60,7 @@
       "answer": "El equipo de Horus Group SRL está conformado por las áreas de Gerencia General, Coordinación Institucional, Asesoría Legal y Atención Administrativa, con profesionales en Economía, Enfermería, Derecho y atención al cliente. Puedes conocer más en la página Quiénes somos.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/quienes-somos", "file": "../web/src/app/quienes-somos/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["equipo de trabajo", "nuestro equipo", "equipo directivo", "gerente general", "coordinadora institucional", "asesora legal", "liderazgo y experiencia"],
+      "keywords": ["equipo de trabajo", "nuestro equipo", "equipo directivo", "gerente general", "coordinadora institucional", "asesora legal", "liderazgo y experiencia", "quienes forman el equipo", "quienes trabajan en horus", "quien dirige la empresa", "quienes son los responsables", "equipo"],
       "examples": ["¿Quiénes conforman el equipo de Horus Group?"],
       "topics": ["empresa"],
       "related": ["empresa_descripcion", "empresa_mision_vision"]
@@ -703,7 +703,7 @@
       "answer": "Horus Group SRL es una empresa formal con RUC 20611010977. Emitimos boletas de venta y facturas electrónicas válidas ante SUNAT para personas y empresas.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/quienes-somos", "file": "../web/src/app/quienes-somos/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["ruc", "cual es su ruc", "numero de ruc", "razon social", "empresa formal", "son formales", "sunat", "emiten factura", "factura para empresas"],
+      "keywords": ["ruc", "cual es su ruc", "numero de ruc", "razon social", "empresa formal", "son formales", "sunat", "emiten factura", "factura para empresas", "ruc de la empresa", "cual es el ruc", "ruc de horus group"],
       "examples": ["¿Cuál es el RUC de Horus Group?", "¿Son una empresa formal?", "¿Emiten factura electrónica?"],
       "topics": ["empresa"],
       "related": ["empresa_descripcion", "faq_comprobantes"]
@@ -717,7 +717,7 @@
       "answer": "Nuestra sede física está en Cajamarca (Jr. José Gálvez N.° 322), pero puedes llevar nuestros cursos virtuales desde Lima, Trujillo, Chiclayo o cualquier ciudad del Perú. Para confirmar si una edición específica es en vivo o grabada, consulta al +51 972 021 374.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["desde otra ciudad", "otras ciudades", "soy de lima", "soy de trujillo", "fuera de cajamarca", "solo en cajamarca", "todo el peru", "alcance nacional", "clases en vivo o grabadas", "puedo estudiar desde otra ciudad"],
+      "keywords": ["desde otra ciudad", "otras ciudades", "soy de lima", "soy de trujillo", "fuera de cajamarca", "solo en cajamarca", "todo el peru", "alcance nacional", "clases en vivo o grabadas", "puedo estudiar desde otra ciudad", "estudiar desde lima", "desde lima", "desde trujillo", "desde chiclayo", "puedo estudiar desde", "estudiar a distancia"],
       "examples": ["Soy de Lima, ¿puedo llevar los cursos?", "¿Solo atienden en Cajamarca?", "¿Las clases virtuales son en vivo o grabadas?"],
       "topics": ["cursos", "modalidades"],
       "related": ["cursos_modalidades", "ubicacion_sede"]
@@ -745,7 +745,7 @@
       "answer": "Ofrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio). Al matricularte, el asesor te confirma el formato de entrega y, si estás en otra ciudad, las opciones de envío físico o digital.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/educacion/capacitaciones/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["como entregan el certificado", "certificado fisico o digital", "envian certificado a provincia", "validez del certificado", "sirve para mi cv", "entrega de certificados", "envio de certificado"],
+      "keywords": ["como entregan el certificado", "certificado fisico o digital", "envian certificado a provincia", "validez del certificado", "sirve para mi cv", "entrega de certificados", "envio de certificado", "el certificado tiene valor", "tiene valor el certificado", "cuando entregan el certificado", "tiempo de entrega del certificado"],
       "examples": ["¿Cómo entregan el certificado?", "¿Envían el certificado físico a otras provincias?"],
       "topics": ["certificacion", "cursos"],
       "related": ["cursos_certificados", "faq_certificado_perdido", "convenios_resumen"]

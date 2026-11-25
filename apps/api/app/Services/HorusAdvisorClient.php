@@ -853,7 +853,9 @@ class HorusAdvisorClient
 
         // Aclaraciones y abstenciones honestas admitidas
         $esAclaracion = $reply['needs_clarification'] && in_array($reply['intent'], ['clarification', 'quote_request', 'course_recommendation', 'service_recommendation'], true);
-        $esAbstencionHonesta = $reply['abstained'] && in_array($reply['intent'], ['unavailable_info', 'unverified_info', 'out_of_scope', 'quote_request', 'course_recommendation', 'service_recommendation'], true);
+        // `sensitive_request` y `prompt_injection`: negativas fijas de Horus AI («no tengo acceso a datos personales…»,
+        // «no puedo cambiar mis reglas…»), sin fuentes; el texto pasa los mismos filtros de cifras, enlaces y datos.
+        $esAbstencionHonesta = $reply['abstained'] && in_array($reply['intent'], ['unavailable_info', 'unverified_info', 'out_of_scope', 'quote_request', 'course_recommendation', 'service_recommendation', 'sensitive_request', 'prompt_injection'], true);
         if ($reply['intent'] === 'out_of_scope' && (! $reply['abstained'] || $reply['needs_clarification']
             || $reply['sources'] !== [] || $reply['recommendations'] !== [] || $reply['match_level'] !== 'ninguna')) {
             return false;
@@ -1066,9 +1068,30 @@ class HorusAdvisorClient
             && count(array_filter($lineas, static fn (string $linea): bool => in_array($linea, $fragmentosCitados, true))) === count($lineas)) {
             return true;
         }
-        $conocimiento = self::conocimiento();
-        foreach ($conocimiento['porTexto'][$reply['answer']] ?? [] as $origen) {
-            foreach ($reply['sources'] as $source) {
+        if ($this->esBloqueVerificado($reply['answer'], $reply['sources'])) {
+            return true;
+        }
+        // Respuesta a varias preguntas («¿dónde están y cuál es su horario de atención?»): de dos a tres bloques separados
+        // por una línea en blanco, cada uno el texto exacto de un registro verificado citado. Nada se añade ni se altera.
+        $bloques = explode("\n\n", $reply['answer']);
+        if (count($bloques) >= 2 && count($bloques) <= 3) {
+            foreach ($bloques as $bloque) {
+                if (! $this->esBloqueVerificado($bloque, $reply['sources'])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /** @param array<mixed> $sources */
+    private function esBloqueVerificado(string $texto, array $sources): bool
+    {
+        foreach (self::conocimiento()['porTexto'][$texto] ?? [] as $origen) {
+            foreach ($sources as $source) {
                 if (is_array($source) && ($source['id'] ?? null) === $origen['id'] && ($source['url_path'] ?? null) === $origen['url_path']) {
                     return true;
                 }

@@ -194,6 +194,17 @@ def is_unpublished_fact(message: str) -> bool:
 _MATH = re.compile(r"^\s*(cuanto es|cuanto da|cuanto son|calcula|resuelve)?\s*\d+(\s*[-+*/x×÷]\s*\d+)+\s*$")
 
 
+_CREATIVE = re.compile(
+    r"\b(escribeme|escribe|hazme|haz|redacta|redactame|componme|compon|inventa|inventame|cantame|recitame|dime)\b.{0,15}"
+    r"\b(poema|poesia|cancion|cuento|historia|rap|verso|versos|chiste|chistes|adivinanza|trabalenguas|ensayo|carta de amor)\b"
+)
+
+
+def is_creative_request(message: str) -> bool:
+    """«Escríbeme un poema», «cántame una canción»: pedidos creativos fuera de lo que atiende el asistente."""
+    return bool(_CREATIVE.search(normalize(message)))
+
+
 def is_math(message: str) -> bool:
     """«¿Cuánto es 2+2?»: operación aritmética, fuera de lo que atiende el asistente.
 

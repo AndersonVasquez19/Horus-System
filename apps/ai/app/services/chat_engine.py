@@ -297,7 +297,7 @@ class AdvisorEngine:
         """
         if glue.is_identity_question(text):
             return self._reply(answer=glue.IDENTITY_REPLY, intent="capabilities", match_level="alta")
-        if glue.is_math(text):
+        if glue.is_math(text) or glue.is_creative_request(text):
             return self._off_topic(text)
         if glue.is_unpublished_fact(text):
             return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",

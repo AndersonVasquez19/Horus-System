@@ -134,7 +134,8 @@ final class FiltroPrivacidadChat
         'hello', 'hi', 'do', 'does', 'you', 'your', 'what', 'how', 'where', 'when', 'which', 'speak', 'english', 'spanish',
         'please', 'thanks', 'thank', 'offer', 'courses', 'course', 'cost', 'price', 'help', 'located', 'location',
         // Temas generales fuera de alcance que un visitante puede preguntar.
-        'mundial', 'futbol', 'chiste', 'capital', 'presidente', 'clima',
+        'mundial', 'futbol', 'chiste', 'capital', 'presidente', 'clima', 'receta', 'recetas', 'ceviche', 'comida', 'pelicula',
+        'peliculas', 'musica', 'cancion', 'poema', 'cuento', 'politica', 'perro', 'gato', 'mascota',
     ];
 
     /** Precede a un nombre propio: presentación personal o saludo firmado. Las variantes de «soy» se reconocen aparte. */

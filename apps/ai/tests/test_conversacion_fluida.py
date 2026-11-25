@@ -252,3 +252,16 @@ def test_aprender_un_tema_que_nombra_un_curso_lo_recomienda(engine):
 def test_horario_de_atencion_combinado_no_cae_en_el_calendario_de_cursos(engine):
     reply = engine.chat("¿Dónde están ubicados y cuál es su horario de atención?", [], None)
     assert reply.intent == "contact_info" and "calendario" not in reply.answer
+
+
+def test_banco_de_preguntas_del_jurado_procede_del_motor_actual(kb):
+    """El fixture que valida Laravel (`chat-jurado-replies.json`) debe ser exactamente lo que responde el motor."""
+    import json
+    from pathlib import Path
+
+    from app.services.chat_engine import AdvisorEngine
+
+    ruta = Path(__file__).parents[2] / "api" / "tests" / "Fixtures" / "chat-jurado-replies.json"
+    motor = AdvisorEngine(kb)
+    for caso in json.loads(ruta.read_text(encoding="utf-8")):
+        assert motor.chat(caso["query"]).model_dump() == caso["reply"], caso["query"]

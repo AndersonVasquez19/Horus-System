@@ -1612,7 +1612,7 @@
     "answer"
    ],
    "expected_ids": [
-    "empresa_descripcion"
+    "empresa_ruc_formalidad"
    ],
    "intents": [
     "company_info"
