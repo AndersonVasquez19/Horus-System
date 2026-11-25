@@ -5,7 +5,13 @@ import { abrir, capturar, limpiarPeticiones } from './ayudas';
 test.describe('Probador del asistente', () => {
   test.beforeEach(async ({ page }) => {
     await limpiarPeticiones(page);
-    await abrir(page, '/admin/academico/asistente');
+    await abrir(page, '/admin/academico/asistente?vista=probar');
+  });
+
+  test('una pregunta de ejemplo se envía con un clic', async ({ page }) => {
+    await page.getByRole('button', { name: '¿Qué cursos tienen?' }).click();
+    const registro = page.getByRole('log', { name: 'Conversación de prueba' });
+    await expect(registro.getByText('Respuesta de prueba a: ¿Qué cursos tienen?')).toBeVisible();
   });
 
   test('Enter envía, Shift+Enter salta de línea y el campo se vacía', async ({ page }) => {
@@ -85,42 +91,42 @@ test.describe('Probador del asistente', () => {
   });
 });
 
-test.describe('Historial del asistente', () => {
-  test.beforeEach(async ({ page }) => {
+test.describe('Resumen y conversaciones del asistente', () => {
+  test('el resumen abre por omisión y las pestañas llevan a cada sección', async ({ page }, info) => {
     await abrir(page, '/admin/academico/asistente');
+    const pestanas = page.getByRole('navigation', { name: 'Secciones del asistente' });
+    await expect(pestanas.getByRole('link', { name: 'Resumen' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('heading', { name: '¿Sobre qué preguntan?' })).toBeVisible();
+    await expect(page.getByText('3 de 41 consultas con tema')).toBeVisible();
+    await expect(page.getByRole('log')).toHaveCount(0);
+    await capturar(page, info, 'asistente-resumen');
+
+    await pestanas.getByRole('link', { name: 'Conversaciones' }).click();
+    await expect(page.getByRole('heading', { name: 'Visitante 7F3A' })).toBeVisible();
   });
 
-  test('un mensaje largo se recorta y se despliega con «Ver completo»', async ({ page }) => {
-    const celda = page.getByRole('cell').filter({ hasText: 'Mensaje muy largo del historial' });
-    const detalle = celda.locator('details');
+  test('cada conversación se abre como un chat, sin repetir el texto omitido', async ({ page }, info) => {
+    await abrir(page, '/admin/academico/asistente?vista=conversaciones');
+    await expect(page.getByText('contenido omitido')).toHaveCount(0);
+    const tarjeta = page.locator('details').filter({ has: page.getByRole('heading', { name: 'Visitante 7F3A' }) });
+    await expect(tarjeta.getByText('Visitante preguntó sobre: Cursos y capacitaciones')).toBeHidden();
 
-    // Cerrado: el texto se recorta a tres líneas y el control invita a ver el resto.
-    await expect(detalle).not.toHaveAttribute('open', '');
-    await expect(celda.locator('.line-clamp-3')).toBeVisible();
-    await expect(celda.getByText('Ver completo')).toBeVisible();
-    const alturaCerrado = (await detalle.boundingBox())!.height;
+    await tarjeta.getByRole('heading', { name: 'Visitante 7F3A' }).click();
+    await expect(tarjeta.getByText('Visitante preguntó sobre: Cursos y capacitaciones')).toBeVisible();
+    await expect(tarjeta.getByText('Ver completo')).toBeVisible();
 
-    // Abierto: sin recorte, más alto, y el control pasa a «Ver menos».
-    await celda.getByText('Ver completo').click();
-    await expect(detalle).toHaveAttribute('open', '');
-    await expect(celda.locator('.line-clamp-3')).toBeHidden();
-    await expect(celda.getByText('Ver menos')).toBeVisible();
-    expect((await detalle.boundingBox())!.height).toBeGreaterThan(alturaCerrado);
+    const bloqueada = page.locator('details').filter({ has: page.getByRole('heading', { name: 'Visitante B21C' }) });
+    await bloqueada.getByRole('heading', { name: 'Visitante B21C' }).click();
+    await expect(bloqueada.getByText('Bloqueada por privacidad')).toBeVisible();
+    await expect(bloqueada.getByText('Contingencia', { exact: true })).toBeVisible();
+    await capturar(page, info, 'asistente-conversaciones');
   });
 
-  test('un mensaje corto se muestra entero, sin control', async ({ page }) => {
-    const celda = page.getByRole('cell', { name: '¿Cuánto cuesta el curso?' });
-    await expect(celda).toBeVisible();
-    await expect(celda.getByText('Ver completo')).toHaveCount(0);
-  });
-
-  test('las intenciones configuradas están plegadas y se pueden abrir', async ({ page }) => {
-    const bloque = page.locator('details').filter({ hasText: 'Intenciones configuradas' });
-    await expect(bloque).not.toHaveAttribute('open', '');
-    await expect(page.getByRole('table', { name: /^Intenciones/ })).toBeHidden();
-
-    await bloque.getByText('Intenciones configuradas (2)').click();
-    await expect(page.getByRole('table', { name: /^Intenciones/ })).toBeVisible();
-    await expect(page.getByText('Inactiva')).toBeVisible();
+  test('la página no se desplaza en horizontal', async ({ page }) => {
+    for (const vista of ['', '?vista=conversaciones', '?vista=probar']) {
+      await abrir(page, `/admin/academico/asistente${vista}`);
+      const sobra = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(sobra, vista).toBeLessThanOrEqual(0);
+    }
   });
 });

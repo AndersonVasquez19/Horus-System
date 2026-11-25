@@ -197,12 +197,12 @@ test('asistente pagina registros con meta y estado de horus_ai', function (): vo
         ChatLog::create(['session_id' => "s-{$i}", 'mensaje_usuario' => "Msg {$i}", 'respuesta_bot' => "Resp {$i}", 'intent_detectado' => 'saludo', 'fuente' => 'respaldo']);
     }
 
-    $r = $this->panelComo($admin, 'GET', 'compartido/asistente?per_page=2&page=2')->assertOk();
-    $r->assertJsonCount(2, 'data.registros')
-        ->assertJsonPath('meta.pagina', 2)
-        ->assertJsonPath('meta.por_pagina', 2)
+    $r = $this->panelComo($admin, 'GET', 'compartido/asistente?vista=conversaciones')->assertOk();
+    $r->assertJsonCount(5, 'data.conversaciones')
+        ->assertJsonPath('meta.pagina', 1)
+        ->assertJsonPath('meta.por_pagina', 10)
         ->assertJsonPath('meta.total', 5)
-        ->assertJsonPath('meta.paginas', 3)
+        ->assertJsonPath('meta.paginas', 1)
         ->assertJsonPath('data.horus_ai.habilitado', false);
 });
 

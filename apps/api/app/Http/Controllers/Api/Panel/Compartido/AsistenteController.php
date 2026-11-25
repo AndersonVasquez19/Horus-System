@@ -5,25 +5,23 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Panel\Compartido;
 
 use App\Http\Controllers\Controller;
-use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
+use App\Services\ConversacionesAsistente;
 use App\Services\MetricasAsistente;
-use App\Support\BusquedaLike;
-use App\Support\Entrada;
-use App\Support\HoraLocal;
 use App\Support\ListFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Schema;
 
 /**
- * Probador y registros del asistente virtual para el panel de apps/web (equivale al módulo Blade `admin/asistente`).
+ * Sección del asistente virtual del panel de apps/web: resumen de uso, conversaciones y probador.
  *
  * El motor es Horus AI (Python) con contingencia institucional; el filtro de privacidad se aplica antes de cualquier
  * llamada o registro, dentro de {@see AsistenteVirtualService}. Esta clase no decide nada del asistente: valida la
- * entrada, lo invoca con un ámbito `admin:` propio y lista lo ya registrado (metadatos y el texto ya filtrado).
+ * entrada, lo invoca con un ámbito `admin:` propio y presenta lo ya registrado (la pregunta del visitante no se guarda).
  */
 final class AsistenteController extends Controller implements HasMiddleware
 {
@@ -33,88 +31,54 @@ final class AsistenteController extends Controller implements HasMiddleware
         return [new Middleware('permission:asistente.ver', only: ['index', 'mensaje'])];
     }
 
-    public function index(Request $request): JsonResponse
+    /** Cada pestaña pide solo lo suyo: `vista` = resumen (por defecto), conversaciones o probar. */
+    public function index(Request $request, MetricasAsistente $metricas, ConversacionesAsistente $conversaciones): JsonResponse
     {
-        $intenciones = ChatIntent::query()->orderByDesc('prioridad')->get();
-        $intencionesRegistradas = ChatLog::query()
-            ->whereNotNull('intent_detectado')
-            ->where('intent_detectado', '!=', '')
-            ->distinct()
-            ->pluck('intent_detectado')
-            ->all();
+        $vista = ListFilter::in($request, 'vista', ['resumen', 'conversaciones', 'probar']) ?: 'resumen';
+        $dias = ListFilter::in($request, 'dias', array_map('strval', MetricasAsistente::PERIODOS));
+        $datos = ['vista' => $vista, 'horus_ai' => ['habilitado' => (bool) config('horus-advisor.enabled')]];
+        $meta = null;
 
-        $nombresDisponibles = array_values(array_unique([
-            ...$intenciones->pluck('nombre')->all(),
-            ...$intencionesRegistradas,
-        ]));
-
-        $filtro = ListFilter::text($request, 'intent', 80);
-        $intentValido = $filtro !== '' && in_array($filtro, $nombresDisponibles, true) ? $filtro : null;
-        $fuente = ListFilter::in($request, 'fuente', ['advisor', 'respaldo']);
-        $busqueda = ListFilter::text($request, 'busqueda', 120);
-        $porPagina = filter_var($request->query('per_page'), FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => 100],
-        ]) ?: 50;
-        $pagina = max(1, (int) $request->query('page', 1));
-
-        $consulta = ChatLog::query()
-            ->when($intentValido, fn ($q) => $q->where('intent_detectado', $intentValido))
-            ->when($fuente !== '', fn ($q) => $q->where('fuente', $fuente));
-
-        if ($busqueda !== '') {
-            BusquedaLike::contiene($consulta, ['mensaje_usuario', 'respuesta_bot'], $busqueda);
+        if ($vista === 'resumen') {
+            $datos['metricas'] = $metricas->resumen($dias === '' ? 30 : (int) $dias);
         }
 
-        $paginado = $consulta
-            ->latest()
-            ->orderByDesc('id')
-            ->paginate($porPagina, ['*'], 'page', $pagina);
-
-        $registros = collect($paginado->items());
-        $mapaIntenciones = $intenciones->keyBy('nombre');
-        $listaIntenciones = array_map(static function (string $nombre) use ($mapaIntenciones): array {
-            $i = $mapaIntenciones->get($nombre);
-
-            return [
-                'nombre' => $nombre,
-                'respuesta' => $i?->respuesta ?? '',
-                'prioridad' => $i?->prioridad ?? 0,
-                'activo' => $i ? (bool) $i->activo : true,
+        if ($vista === 'conversaciones') {
+            $temas = $conversaciones->temas();
+            $conCanal = Schema::hasColumn((new ChatLog)->getTable(), 'canal');
+            $filtros = [
+                'busqueda' => ListFilter::text($request, 'busqueda', 120),
+                'tema' => ListFilter::in($request, 'intent', [...$temas, ConversacionesAsistente::TEMA_SIN_DATO]),
+                'fuente' => ListFilter::in($request, 'fuente', ['advisor', 'respaldo']),
+                'voto' => ListFilter::in($request, 'voto', ['up', 'down']),
+                'canal' => ListFilter::in($request, 'canal', ['admin']) ?: 'web',
+                'dias' => $dias === '' ? null : (int) $dias,
             ];
-        }, $nombresDisponibles);
+            $pagina = max(1, (int) ListFilter::text($request, 'page', 6));
+            $listado = $conversaciones->listar($filtros, $pagina);
 
-        return response()->json([
-            'data' => [
-                'intenciones' => $listaIntenciones,
-                'registros' => $registros->map(fn (ChatLog $r): array => [
-                    'id' => $r->id,
-                    'fecha_local' => HoraLocal::formato($r->created_at),
-                    'mensaje' => $r->mensaje_usuario,
-                    'respuesta' => $r->respuesta_bot,
-                    'intencion' => $r->intent_detectado,
-                    'fuente' => $r->fuente,
-                ])->values()->all(),
-                'filtro' => $intentValido,
-                'metricas' => app(MetricasAsistente::class)->resumen(),
-                'horus_ai' => [
-                    'habilitado' => (bool) config('horus-advisor.enabled'),
-                    'url_configurada' => trim(Entrada::texto(config('horus-advisor.url', ''))) !== '',
-                ],
-            ],
-            'meta' => [
-                'pagina' => $paginado->currentPage(),
-                'por_pagina' => $paginado->perPage(),
-                'total' => $paginado->total(),
-                'paginas' => $paginado->lastPage(),
+            $datos['conversaciones'] = $listado['conversaciones'];
+            $datos['temas'] = $temas;
+            $datos['con_votos'] = Schema::hasColumn((new ChatLog)->getTable(), 'voto');
+            $datos['separa_canal'] = $conCanal;
+            $meta = [
+                'pagina' => $listado['pagina'],
+                'por_pagina' => ConversacionesAsistente::POR_PAGINA,
+                'total' => $listado['total'],
+                'paginas' => $listado['paginas'],
                 'orden' => '-creado',
                 'filtros' => array_filter([
-                    'intent' => $intentValido,
-                    'fuente' => $fuente !== '' ? $fuente : null,
-                    'busqueda' => $busqueda !== '' ? $busqueda : null,
-                    'per_page' => $request->query('per_page'),
-                ], fn ($v): bool => $v !== null && $v !== ''),
-            ],
-        ]);
+                    'busqueda' => $filtros['busqueda'],
+                    'intent' => $filtros['tema'],
+                    'fuente' => $filtros['fuente'],
+                    'voto' => $filtros['voto'],
+                    'canal' => $filtros['canal'] === 'admin' ? 'admin' : '',
+                    'dias' => $dias,
+                ], fn (string $v): bool => $v !== ''),
+            ];
+        }
+
+        return response()->json($meta === null ? ['data' => $datos] : ['data' => $datos, 'meta' => $meta]);
     }
 
     public function mensaje(Request $request, AsistenteVirtualService $asistente): JsonResponse

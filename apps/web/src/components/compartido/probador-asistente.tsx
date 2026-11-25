@@ -18,6 +18,8 @@ const MAXIMO = 2000;
 /** El contador solo aparece cuando el límite está cerca: antes sería ruido. */
 const AVISO_DESDE = 1800;
 const ALTO_MAXIMO_CAMPO = 160;
+/** Preguntas de ejemplo: recorren listado, comparación, matrícula y reclamo (útiles para una demostración). */
+const EJEMPLOS = ['¿Qué cursos tienen?', '¿Cuál es más corto?', '¿Cómo puedo matricularme?', 'Me cobraron de más'];
 
 /**
  * Probador del asistente virtual. La conversación vive solo en esta pantalla (no se guarda en el navegador); el servidor
@@ -75,6 +77,13 @@ export function ProbadorAsistente() {
     await pedirRespuesta(turnoId, texto);
   }
 
+  async function preguntarEjemplo(texto: string) {
+    if (enviando) return;
+    const turnoId = siguienteId.current++;
+    setTurnos((anteriores) => [...anteriores, { id: turnoId, autor: 'persona', texto }]);
+    await pedirRespuesta(turnoId, texto);
+  }
+
   function reiniciar() {
     sesion.current = null;
     setTurnos([]);
@@ -105,7 +114,7 @@ export function ProbadorAsistente() {
         role="log"
         aria-live="polite"
         aria-label="Conversación de prueba"
-        className="max-h-96 min-h-40 space-y-3 overflow-y-auto rounded-lg border border-panel-border bg-panel-bg p-4"
+        className="max-h-[28rem] min-h-72 space-y-3 overflow-y-auto rounded-lg border border-panel-border bg-panel-bg p-4"
       >
         {turnos.length === 0 ? <p className="text-sm text-panel-muted">Escribe un mensaje para ver cómo responde el asistente.</p> : null}
         {turnos.map((turno) => (
@@ -143,6 +152,20 @@ export function ProbadorAsistente() {
       </div>
 
       {error ? <Alerta tipo="error">{error}</Alerta> : null}
+
+      <div role="group" aria-label="Preguntas de ejemplo" className="flex flex-wrap gap-2">
+        {EJEMPLOS.map((ejemplo) => (
+          <button
+            key={ejemplo}
+            type="button"
+            disabled={enviando}
+            onClick={() => void preguntarEjemplo(ejemplo)}
+            className="inline-flex min-h-10 items-center rounded-full border border-panel-border bg-panel-surface px-3.5 text-sm font-medium text-panel-text hover:bg-panel-bg disabled:opacity-60"
+          >
+            {ejemplo}
+          </button>
+        ))}
+      </div>
 
       <form onSubmit={enviar} className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">

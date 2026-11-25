@@ -179,7 +179,13 @@ Mensajes cortos que solo tienen sentido dentro de una conversación se resuelven
 
 **Voto:** `POST /api/public/v1/chat` entrega `respuesta_id`, una referencia firmada ligada a la fila y a la sesión. El navegador la envía a `/api/chat/voto` (Next), que llama a `POST /api/public/v1/chat/voto` con el token de servicio. Límite propio `chat-voto-bff`: 20 por minuto y por visitante. Una referencia alterada o de otra sesión responde 404.
 
-**Panel** (`/admin/academico/asistente`, permiso `asistente.ver`): resumen de 30 días calculado por `MetricasAsistente`, sin contar el probador. Las filas anteriores a la migración no tienen canal y sí cuentan.
+**Panel** (`/admin/academico/asistente`, permiso `asistente.ver`), en tres pestañas con su propia dirección (`?vista=`):
+
+- **Resumen** (7 o 30 días, `MetricasAsistente`): conversaciones, consultas, porcentaje respondido, votos útiles, consultas por día (hora de Lima) y temas. Saludos, gracias y despedidas se agrupan. «Sin dato» se mide solo sobre las consultas con tema registrado.
+- **Conversaciones** (`ConversacionesAsistente`, 10 por página): agrupadas por sesión y presentadas como «Visitante» más un código de 4 caracteres; el `session_id` no viaja al panel. La pregunta no se guarda: se muestra el tema y la respuesta. Filtros por texto de la respuesta, tema, resultado, voto y origen. El probador queda oculto salvo que se elija ese origen.
+- **Probar asistente:** el probador, con preguntas de ejemplo.
+
+La lista de intenciones PHP históricas ya no se muestra (la tabla `chat_intents` no cambia). Las filas anteriores a la migración no tienen canal y cuentan como del sitio público.
 
 **Migración `2026_11_25_000104_add_metricas_to_chat_logs`:** agrega dos columnas nulas; no modifica filas. Probada solo en SQLite en memoria (instalación nueva y base con registros). El despliegue **no** la aplica. Antes de aplicarla, el chat funciona igual, el voto responde 503 sin avisar al visitante y el panel muestra los votos como no disponibles e incluye las consultas del probador.
 

@@ -1,84 +1,46 @@
-import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { ConversacionesAsistente, type Conversacion } from '@/components/compartido/conversaciones-asistente';
 import { MetricasAsistente, type Metricas } from '@/components/compartido/metricas-asistente';
 import { ProbadorAsistente } from '@/components/compartido/probador-asistente';
+import { etiquetaTema } from '@/components/compartido/temas-asistente';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados, EstadoVacio } from '@/components/shared/ui/estados';
-import { FiltrosListado, CampoBusqueda, SelectorFiltro, SelectorPorPagina, parametro } from '@/components/shared/ui/filtros-listado';
+import { FiltrosListado, CampoBusqueda, SelectorFiltro, parametro } from '@/components/shared/ui/filtros-listado';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { Paginacion, type MetaListado } from '@/components/shared/ui/paginacion';
-import { EsqueletoListado, Seccion, Tabla } from '@/components/shared/ui/tabla';
-import { TextoPlegable } from '@/components/shared/ui/texto-plegable';
+import { EsqueletoListado, Seccion } from '@/components/shared/ui/tabla';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 
 export const metadata = { title: 'Asistente virtual' };
 
 type Parametros = Record<string, string | string[] | undefined>;
-const PARAMETROS = ['busqueda', 'intent', 'fuente', 'per_page', 'page'] as const;
+const RUTA = '/admin/academico/asistente';
+const PARAMETROS = ['vista', 'busqueda', 'intent', 'fuente', 'voto', 'canal', 'dias', 'page'] as const;
+const VISTAS = [
+  { id: 'resumen', etiqueta: 'Resumen', href: RUTA },
+  { id: 'conversaciones', etiqueta: 'Conversaciones', href: `${RUTA}?vista=conversaciones` },
+  { id: 'probar', etiqueta: 'Probar asistente', href: `${RUTA}?vista=probar` },
+] as const;
+
+type Vista = (typeof VISTAS)[number]['id'];
 
 interface Datos {
-  intenciones: { nombre: string; respuesta: string; prioridad: number; activo: boolean }[];
-  registros: { id: number; fecha_local: string; mensaje: string; respuesta: string; intencion: string | null; fuente: string | null }[];
-  filtro?: string | null;
+  vista: Vista;
+  horus_ai?: { habilitado: boolean };
   metricas?: Metricas;
-  horus_ai?: { habilitado: boolean; url_configurada: boolean };
+  conversaciones?: Conversacion[];
+  temas?: string[];
+  con_votos?: boolean;
+  separa_canal?: boolean;
 }
-
-const ETIQUETAS_INTENCION: Record<string, string> = {
-  saludo: 'Saludo y bienvenida',
-  cursos_disponibles: 'Cursos disponibles',
-  horarios_modalidad: 'Horarios y modalidad',
-  precios_matricula: 'Precios y matrícula',
-  contacto_asesor: 'Contacto con asesor',
-  reclamaciones: 'Libro de reclamaciones',
-  training_info: 'Información de cursos',
-  followup_attribute: 'Seguimiento de atributo (horario/modalidad)',
-  vocational_guidance: 'Orientación vocacional',
-  course_comparison: 'Comparación de cursos',
-  enrollment_info: 'Proceso de matrícula',
-  certification_info: 'Certificación y constancias',
-  payment_methods: 'Medios de pago',
-  company_info: 'Sobre Horus Group',
-  tech_services: 'Servicios tecnológicos',
-  out_of_scope: 'Consulta fuera de alcance',
-  // Intenciones de Horus AI (lista cerrada en App\Support\IntencionesAsistente).
-  acknowledgement: 'Cortesía y aclaraciones breves',
-  advisory_info: 'Asesoramiento',
-  agreement_info: 'Convenios',
-  capabilities: 'Sobre el asistente',
-  clarification: 'Pidió precisar la consulta',
-  contact_info: 'Contacto y ubicación',
-  course_recommendation: 'Recomendación de cursos',
-  enrollment_request: 'Quiere matricularse',
-  faq: 'Preguntas frecuentes',
-  farewell: 'Despedida',
-  greeting: 'Saludo',
-  human_handoff: 'Pidió un asesor',
-  policy: 'Políticas y reclamos',
-  prompt_injection: 'Intento de manipulación',
-  quote_request: 'Cotización',
-  sensitive_request: 'Pedido de datos reservados',
-  service_info: 'Servicios',
-  service_recommendation: 'Recomendación de servicios',
-  thanks: 'Agradecimiento',
-  unavailable_info: 'Dato no publicado',
-  unverified_info: 'Dato sin confirmar',
-  otro: 'Otros',
-};
-
-function etiquetaIntencion(nombre: string): string {
-  return ETIQUETAS_INTENCION[nombre] ?? nombre.replaceAll('_', ' ');
-}
-
-const FUENTES: Record<string, string> = { advisor: 'Horus AI', respaldo: 'Contingencia institucional' };
 
 export default function AsistentePage({ searchParams }: { searchParams: Promise<Parametros> }) {
   return (
     <>
       <EncabezadoPagina
         titulo="Asistente virtual"
-        descripcion="Prueba el asistente y revisa sus últimas conversaciones."
+        descripcion="Revisa cómo se usa el asistente, lee sus conversaciones y pruébalo."
         migas={[{ etiqueta: 'Inicio', href: '/admin/academico' }, { etiqueta: 'Asistente virtual' }]}
       />
       <Suspense fallback={<EsqueletoListado etiqueta="Cargando el asistente" />}>
@@ -88,133 +50,119 @@ export default function AsistentePage({ searchParams }: { searchParams: Promise<
   );
 }
 
+/** Pestañas como enlaces: cada una tiene su dirección, así filtrar o paginar no devuelve a la primera. */
+function PestanasAsistente({ activa, habilitado }: { activa: Vista; habilitado: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-panel-border pb-2">
+      <nav aria-label="Secciones del asistente" className="flex flex-wrap gap-1.5">
+        {VISTAS.map((vista) => (
+          <Link
+            key={vista.id}
+            href={vista.href}
+            aria-current={vista.id === activa ? 'page' : undefined}
+            className={`inline-flex min-h-10 items-center rounded-lg px-3.5 text-sm font-semibold transition ${
+              vista.id === activa ? 'bg-academico-700 text-white shadow-sm' : 'text-panel-muted hover:bg-panel-bg hover:text-panel-text'
+            }`}
+          >
+            {vista.etiqueta}
+          </Link>
+        ))}
+      </nav>
+      <Insignia color={habilitado ? 'verde' : 'ambar'}>{habilitado ? 'Horus AI activo' : 'Contingencia institucional'}</Insignia>
+    </div>
+  );
+}
+
 async function Contenido({ searchParams }: { searchParams: Promise<Parametros> }) {
   const parametros = await searchParams;
+  const pedida = parametro(parametros, 'vista');
+  const vista: Vista = VISTAS.find((v) => v.id === pedida)?.id ?? 'resumen';
   const cadena = consulta(parametros, PARAMETROS);
-  const ruta = '/admin/academico/asistente';
-  const resultado = await consultarPanel<{ data: Datos; meta?: MetaListado }>(`compartido/asistente${cadena}`, `${ruta}${cadena}`);
+  const resultado = await consultarPanel<{ data: Datos; meta?: MetaListado }>(`compartido/asistente${cadena}`, `${RUTA}${cadena}`);
   if (resultado.estado === 'prohibido') return <EstadoProhibido volver="/admin/academico" />;
   if (resultado.estado !== 'ok') return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
 
-  const { intenciones, registros, metricas, horus_ai: horusAi } = resultado.datos.data;
-  const meta = resultado.datos.meta;
-  const busqueda = parametro(parametros, 'busqueda');
-  const intent = parametro(parametros, 'intent');
-  const fuente = parametro(parametros, 'fuente');
-  const porPagina = parametro(parametros, 'per_page');
-  const hayFiltros = busqueda !== '' || intent !== '' || fuente !== '';
-  const actuales = Object.fromEntries(
-    PARAMETROS.filter((n) => n !== 'page' && parametro(parametros, n) !== '').map((n) => [n, parametro(parametros, n)]),
-  );
-
-  const opcionesIntent = Object.fromEntries(
-    intenciones.map((i) => [i.nombre, etiquetaIntencion(i.nombre)]),
-  );
+  const datos = resultado.datos.data;
 
   return (
-    <div className="space-y-8">
-      {metricas ? <MetricasAsistente metricas={metricas} etiqueta={etiquetaIntencion} /> : null}
+    <div className="space-y-5">
+      <PestanasAsistente activa={vista} habilitado={datos.horus_ai?.habilitado === true} />
 
-      <Seccion
-        id="titulo-probador"
-        titulo="Probador"
-        descripcion="Responde con Horus AI y, si no está disponible, con la contingencia institucional."
-        acciones={
-          <Insignia color={horusAi?.habilitado ? 'verde' : 'ambar'}>
-            {horusAi?.habilitado ? 'Horus AI activo' : 'Contingencia institucional'}
-          </Insignia>
-        }
-      >
-        <ProbadorAsistente />
-      </Seccion>
-
-      <section aria-labelledby="titulo-registros" className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="titulo-registros" className="font-heading text-base font-semibold text-panel-text">
-            Últimas conversaciones
-          </h2>
-          {intent ? (
-            <p className="text-xs text-panel-muted">
-              Filtrado por intención: <strong className="text-panel-text">{etiquetaIntencion(intent)}</strong>
-            </p>
-          ) : null}
-        </div>
-        <FiltrosListado tono="academico" ruta={ruta} hayFiltros={hayFiltros}>
-          <CampoBusqueda tono="academico" nombre="busqueda" valor={busqueda} marcador="Buscar en pregunta o respuesta" />
-          <SelectorFiltro
-            tono="academico"
-            nombre="fuente"
-            etiqueta="Motor"
-            valor={fuente}
-            opciones={{ advisor: 'Horus AI', respaldo: 'Contingencia institucional' }}
-            todos="Todos"
-          />
-          {intenciones.length > 0 ? (
-            <SelectorFiltro
-              tono="academico"
-              nombre="intent"
-              etiqueta="Intención"
-              valor={intent}
-              opciones={opcionesIntent}
-              todos="Todas"
-            />
-          ) : null}
-          <SelectorPorPagina tono="academico" valor={porPagina || '50'} />
-        </FiltrosListado>
-        {registros.length === 0 ? (
-          hayFiltros ? (
-            <EstadoSinResultados titulo="Ninguna conversación coincide con la intención" texto="Prueba con otra intención o quita el filtro." />
-          ) : (
-            <EstadoVacio titulo="Todavía no hay conversaciones" texto="Aparecerán aquí las del sitio público y las de este probador." />
-          )
-        ) : (
-          <Tabla
-            titulo={`Últimas conversaciones (${meta?.total ?? registros.length})`}
-            columnas={['Fecha (Lima)', 'Mensaje', 'Respuesta', 'Intención', 'Origen']}
-            pie={meta ? <Paginacion meta={meta} ruta={ruta} parametros={actuales} /> : undefined}
-          >
-            {registros.map((registro) => (
-              <tr key={registro.id} className="align-top">
-                <td className="whitespace-nowrap px-4 py-3 text-panel-muted">{registro.fecha_local}</td>
-                <td className="max-w-xs px-4 py-3 font-medium text-panel-text"><TextoPlegable texto={registro.mensaje} /></td>
-                <td className="max-w-md px-4 py-3 text-panel-muted"><TextoPlegable texto={registro.respuesta} /></td>
-                <td className="px-4 py-3">
-                  {registro.intencion ? <Insignia color="azul">{etiquetaIntencion(registro.intencion)}</Insignia> : <span className="text-panel-muted">—</span>}
-                </td>
-                <td className="px-4 py-3 text-panel-muted">{(registro.fuente && FUENTES[registro.fuente]) ?? 'No registrado'}</td>
-              </tr>
-            ))}
-          </Tabla>
-        )}
-      </section>
-
-      {intenciones.length > 0 ? (
-        <details className="group overflow-hidden rounded-xl border border-panel-border bg-panel-surface shadow-sm">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 outline-offset-[-2px] focus-visible:outline-2 focus-visible:outline-academico-700 [&::-webkit-details-marker]:hidden">
-            <h2 id="titulo-intenciones" className="font-heading text-base font-semibold text-panel-text">
-              Intenciones configuradas ({intenciones.length})
-            </h2>
-            <ChevronDown className="h-4 w-4 shrink-0 text-panel-muted transition-transform group-open:rotate-180" aria-hidden="true" />
-          </summary>
-          <Tabla plana titulo={`Intenciones (${intenciones.length})`} columnas={['Intención', 'Prioridad', 'Estado']}>
-            {intenciones.map((intencion) => {
-              const destino = `/admin/academico/asistente?intent=${encodeURIComponent(intencion.nombre)}${porPagina ? `&per_page=${encodeURIComponent(porPagina)}` : ''}`;
-              return (
-                <tr key={intencion.nombre}>
-                  <td className="px-4 py-3">
-                    <Link href={destino} className="font-medium text-panel-text hover:underline">
-                      {etiquetaIntencion(intencion.nombre)}
-                    </Link>
-                    <p className="mt-0.5 max-w-xl truncate text-xs text-panel-muted">{intencion.respuesta}</p>
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">{intencion.prioridad}</td>
-                  <td className="px-4 py-3">{intencion.activo ? <Insignia color="verde">Activa</Insignia> : <Insignia color="gris">Inactiva</Insignia>}</td>
-                </tr>
-              );
-            })}
-          </Tabla>
-        </details>
+      {vista === 'resumen' ? (
+        datos.metricas ? <MetricasAsistente metricas={datos.metricas} ruta={RUTA} /> : <EstadoError texto="Inténtalo de nuevo en unos minutos." />
       ) : null}
+
+      {vista === 'conversaciones' ? <Conversaciones datos={datos} meta={resultado.datos.meta} parametros={parametros} /> : null}
+
+      {vista === 'probar' ? (
+        <Seccion
+          id="titulo-probador"
+          titulo="Probador"
+          descripcion="Responde con Horus AI y, si no está disponible, con la contingencia institucional."
+        >
+          <ProbadorAsistente />
+        </Seccion>
+      ) : null}
+    </div>
+  );
+}
+
+function Conversaciones({ datos, meta, parametros }: { datos: Datos; meta?: MetaListado; parametros: Parametros }) {
+  const conversaciones = datos.conversaciones;
+  if (!conversaciones) return <EstadoError texto="Inténtalo de nuevo en unos minutos." />;
+
+  const valor = (nombre: (typeof PARAMETROS)[number]) => parametro(parametros, nombre);
+  const hayFiltros = ['busqueda', 'intent', 'fuente', 'voto', 'canal', 'dias'].some((n) => parametro(parametros, n) !== '');
+  const actuales = Object.fromEntries(
+    PARAMETROS.filter((n) => n !== 'page' && valor(n) !== '').map((n) => [n, valor(n)]),
+  );
+  const temas = Object.fromEntries(
+    [['sin_dato', etiquetaTema('sin_dato')], ...(datos.temas ?? []).map((t) => [t, etiquetaTema(t)])],
+  );
+  const rutaLimpia = `${RUTA}?vista=conversaciones`;
+
+  return (
+    <div className="space-y-4">
+      <FiltrosListado tono="academico" ruta={RUTA} rutaLimpiar={rutaLimpia} hayFiltros={hayFiltros}>
+        <input type="hidden" name="vista" value="conversaciones" />
+        {valor('dias') !== '' ? <input type="hidden" name="dias" value={valor('dias')} /> : null}
+        <CampoBusqueda tono="academico" nombre="busqueda" valor={valor('busqueda')} marcador="Buscar en las respuestas" />
+        <SelectorFiltro tono="academico" nombre="intent" etiqueta="Tema" valor={valor('intent')} opciones={temas} todos="Todos" />
+        <SelectorFiltro
+          tono="academico"
+          nombre="fuente"
+          etiqueta="Resultado"
+          valor={valor('fuente')}
+          opciones={{ advisor: 'Respondida', respaldo: 'Contingencia o privacidad' }}
+          todos="Todos"
+        />
+        {datos.con_votos ? (
+          <SelectorFiltro tono="academico" nombre="voto" etiqueta="Voto" valor={valor('voto')} opciones={{ up: 'Útil', down: 'No útil' }} todos="Todos" />
+        ) : null}
+        {datos.separa_canal ? (
+          <SelectorFiltro tono="academico" nombre="canal" etiqueta="Origen" valor={valor('canal')} opciones={{ admin: 'Probador del panel' }} todos="Sitio público" />
+        ) : null}
+      </FiltrosListado>
+
+      {valor('dias') !== '' ? (
+        <p className="text-xs text-panel-muted">Mostrando los últimos {valor('dias')} días.</p>
+      ) : null}
+      <p className="text-xs text-panel-muted">
+        Por privacidad no se guarda lo que escribe el visitante: verás el tema de su consulta y lo que respondió el asistente.
+      </p>
+
+      {conversaciones.length === 0 ? (
+        hayFiltros ? (
+          <EstadoSinResultados titulo="Ninguna conversación coincide" texto="Prueba con otro filtro o límpialos." />
+        ) : (
+          <EstadoVacio titulo="Todavía no hay conversaciones" texto="Aparecerán aquí las del sitio público." />
+        )
+      ) : (
+        <>
+          <ConversacionesAsistente conversaciones={conversaciones} />
+          {meta ? <Paginacion meta={meta} ruta={RUTA} parametros={actuales} suelta /> : null}
+        </>
+      )}
     </div>
   );
 }

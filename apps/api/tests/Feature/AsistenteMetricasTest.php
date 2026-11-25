@@ -8,6 +8,7 @@ use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
 use App\Services\MetricasAsistente;
 use App\Support\IntencionesAsistente;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -143,8 +144,28 @@ class AsistenteMetricasTest extends TestCase
         $this->assertSame(3, $resumen['respondidas']);
         $this->assertSame(1, $resumen['contingencia']);
         $this->assertSame(1, $resumen['sin_dato']);
-        $this->assertSame([['nombre' => 'training_info', 'total' => 2], ['nombre' => 'unavailable_info', 'total' => 1]], $resumen['intenciones']);
+        $this->assertSame(3, $resumen['con_tema']);
+        $this->assertSame([['nombre' => 'training_info', 'total' => 2], ['nombre' => 'unavailable_info', 'total' => 1]], $resumen['temas']);
         $this->assertSame(['utiles' => 1, 'no_utiles' => 1], $resumen['votos']);
+    }
+
+    public function test_las_cortesias_se_agrupan_y_el_grafico_cuenta_por_dia_de_lima(): void
+    {
+        // 02:00 UTC del día 25 son las 21:00 del 24 en Lima.
+        $this->travelTo(CarbonImmutable::parse('2026-11-25 15:00:00', 'UTC'));
+        $fila = static fn (array $datos): ChatLog => ChatLog::create([...[
+            'session_id' => 'a', 'mensaje_usuario' => '', 'respuesta_bot' => '', 'fuente' => 'advisor', 'canal' => 'web',
+        ], ...$datos]);
+        $fila(['intent_detectado' => 'greeting']);
+        $fila(['intent_detectado' => 'thanks']);
+        $fila(['intent_detectado' => null])->forceFill(['created_at' => '2026-11-25 02:00:00'])->save();
+
+        $resumen = app(MetricasAsistente::class)->resumen(7);
+
+        $this->assertSame([['nombre' => 'cortesia', 'total' => 2]], $resumen['temas']);
+        $this->assertSame(2, $resumen['con_tema']);
+        $this->assertCount(7, $resumen['por_dia']);
+        $this->assertSame([['etiqueta' => '24/11', 'total' => 1], ['etiqueta' => '25/11', 'total' => 2]], array_slice($resumen['por_dia'], -2));
     }
 
     public function test_el_probador_se_registra_como_admin(): void

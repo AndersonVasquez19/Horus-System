@@ -8,13 +8,15 @@ interface GraficoBarrasProps {
   tono: TonoUi;
   titulo: string;
   datos: { etiqueta: string; total: number }[];
+  /** Encabezado de la primera columna de la tabla accesible. */
+  columna?: string;
 }
 
 /**
  * Gráfico de barras sin dependencias. Las barras son decorativas (`aria-hidden`): la misma información se ofrece
  * como tabla para lectores de pantalla.
  */
-export function GraficoBarras({ tono, titulo, datos }: GraficoBarrasProps) {
+export function GraficoBarras({ tono, titulo, datos, columna = 'Mes' }: GraficoBarrasProps) {
   const maximo = Math.max(1, ...datos.map((dato) => dato.total));
 
   return (
@@ -41,7 +43,7 @@ export function GraficoBarras({ tono, titulo, datos }: GraficoBarrasProps) {
         <caption>{titulo}</caption>
         <thead>
           <tr>
-            <th scope="col">Mes</th>
+            <th scope="col">{columna}</th>
             <th scope="col">Total</th>
           </tr>
         </thead>

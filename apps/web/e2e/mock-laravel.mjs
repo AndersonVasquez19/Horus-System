@@ -122,9 +122,37 @@ const RESUMEN = {
 
 const MENSAJE_LARGO = `Mensaje muy largo del historial. ${'Quisiera saber más detalles sobre el curso, los horarios y las modalidades disponibles. '.repeat(5)}Fin del mensaje largo.`;
 
-const REGISTROS_ASISTENTE = [
-  { id: 1, fecha_local: '20/11/2026 10:15', mensaje: '¿Cuánto cuesta el curso?', respuesta: 'Los precios se informan por asesoría.', intencion: 'precios', fuente: 'advisor' },
-  { id: 2, fecha_local: '20/11/2026 10:20', mensaje: MENSAJE_LARGO, respuesta: 'Respuesta breve.', intencion: null, fuente: 'respaldo' },
+const METRICAS_ASISTENTE = {
+  dias: 30, consultas: 97, conversaciones: 32, respondidas: 87, contingencia: 10, con_tema: 41, sin_dato: 3,
+  temas: [
+    { nombre: 'training_info', total: 24 }, { nombre: 'enrollment_request', total: 11 },
+    { nombre: 'cortesia', total: 6 }, { nombre: 'unavailable_info', total: 3 },
+  ],
+  por_dia: ['19/11', '20/11', '21/11', '22/11', '23/11', '24/11', '25/11'].map((etiqueta, i) => ({ etiqueta, total: [4, 7, 15, 11, 3, 0, 22][i] })),
+  votos: { utiles: 9, no_utiles: 1 }, separa_canal: true,
+};
+
+const intercambio = (id, tema, respuesta, extra = {}) => ({
+  id, hora_local: '25/11 08:3' + (id % 10), tema, respuesta, privacidad: false, contingencia: false, voto: null, ...extra,
+});
+
+const CONVERSACIONES_ASISTENTE = [
+  {
+    clave: 3, visitante: '7F3A', probador: false, ultima_local: '25/11/2026 08:33', total: 2,
+    temas: ['training_info', 'followup_attribute'], utiles: 1, no_utiles: 0,
+    intercambios: [
+      intercambio(1, 'training_info', 'Cursos y capacitaciones vigentes: Comunicacion; Matemática; Ciencias Sociales.', { voto: 'up' }),
+      intercambio(2, 'followup_attribute', MENSAJE_LARGO),
+    ],
+  },
+  {
+    clave: 2, visitante: 'B21C', probador: false, ultima_local: '25/11/2026 07:43', total: 2,
+    temas: [], utiles: 0, no_utiles: 1,
+    intercambios: [
+      intercambio(3, null, 'Parece que incluiste un nombre o dato personal.', { privacidad: true, contingencia: true }),
+      intercambio(4, null, 'Ahora mismo no puedo responder esa consulta.', { contingencia: true, voto: 'down' }),
+    ],
+  },
 ];
 
 /** Cuántas veces ha llegado cada mensaje de prueba: «falla una vez» falla solo la primera. */
@@ -188,17 +216,15 @@ function manejarPanel(req, res, ruta, consulta, cuerpo) {
   }
 
   if (ruta === 'compartido/asistente' && req.method === 'GET') {
-    return enviar(res, 200, {
-      data: {
-        intenciones: [
-          { nombre: 'precios', respuesta: 'Los precios se informan por asesoría.', prioridad: 10, activo: true },
-          { nombre: 'horarios', respuesta: 'Los horarios se confirman con la sede.', prioridad: 20, activo: false },
-        ],
-        registros: REGISTROS_ASISTENTE,
-        horus_ai: { habilitado: true },
-      },
-      meta: { pagina: 1, por_pagina: 50, total: REGISTROS_ASISTENTE.length, paginas: 1, orden: '', filtros: {} },
-    });
+    const vista = new URLSearchParams(consulta).get('vista') ?? 'resumen';
+    const base = { vista, horus_ai: { habilitado: true } };
+    if (vista === 'conversaciones') {
+      return enviar(res, 200, {
+        data: { ...base, conversaciones: CONVERSACIONES_ASISTENTE, temas: ['followup_attribute', 'training_info'], con_votos: true, separa_canal: true },
+        meta: { pagina: 1, por_pagina: 10, total: CONVERSACIONES_ASISTENTE.length, paginas: 1, orden: '', filtros: {} },
+      });
+    }
+    return enviar(res, 200, { data: vista === 'resumen' ? { ...base, metricas: METRICAS_ASISTENTE } : base });
   }
   if (ruta === 'compartido/asistente/mensaje' && req.method === 'POST') {
     const mensaje = String(cuerpo?.mensaje ?? '');
