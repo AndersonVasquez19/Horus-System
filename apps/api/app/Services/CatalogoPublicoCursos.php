@@ -46,7 +46,7 @@ class CatalogoPublicoCursos
                     'imagen_url' => ImagenesCursos::url(isset($p->imagen_ruta) ? (string) $p->imagen_ruta : null),
                     'modalidad' => (string) $p->modalidad,
                     'horario' => $p->horario === null ? null : (string) $p->horario,
-                    'fecha_inicio' => isset($p->fecha_inicio) ? substr((string) $p->fecha_inicio, 0, 10) : null,
+                    'fecha_inicio' => self::inicioPublicable(isset($p->fecha_inicio) ? (string) $p->fecha_inicio : null),
                     'duracion' => isset($p->duracion) ? (string) $p->duracion : null,
                     'certificacion' => isset($p->certificacion) ? (string) $p->certificacion : null,
                     'temario' => isset($p->temario) ? (string) $p->temario : null,
@@ -59,6 +59,18 @@ class CatalogoPublicoCursos
             : [];
 
         return ['version' => '1.0', 'habilitado' => $habilitado, 'total' => count($fichas), 'cursos' => $fichas];
+    }
+
+    /**
+     * Fecha de inicio (`Y-m-d`) que puede mostrarse al público: solo mientras sea posterior a hoy en Lima, la misma
+     * regla que `PublicarCursoRequest` aplica al guardar. Después la ficha sigue publicada sin ese dato y el panel
+     * conserva la fecha guardada. La usan la web (`paraWeb()`) y el catálogo del asistente.
+     */
+    public static function inicioPublicable(?string $fecha): ?string
+    {
+        $dia = substr(trim((string) $fecha), 0, 10);
+
+        return $dia !== '' && $dia > now('America/Lima')->toDateString() ? $dia : null;
     }
 
     /**

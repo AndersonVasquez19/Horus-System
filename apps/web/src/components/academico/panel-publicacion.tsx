@@ -168,7 +168,9 @@ export function PanelPublicacion({ curso }: { curso: CursoDetalle }) {
               ['Resumen', ficha.resumen],
               ['Imagen referencial', ficha.imagen_url ? 'Cargada' : 'Sin imagen'],
               ['Modalidad', ETIQUETAS.modalidad[ficha.modalidad as keyof typeof ETIQUETAS.modalidad] ?? ficha.modalidad],
-              ['Fecha de inicio', ficha.fecha_inicio ? fecha(ficha.fecha_inicio) : '—'],
+              ['Fecha de inicio', ficha.fecha_inicio
+                ? `${fecha(ficha.fecha_inicio)}${hoy && ficha.fecha_inicio <= hoy ? ' (ya no se muestra en la web ni en el chat)' : ''}`
+                : '—'],
               ['Duración', ficha.duracion ?? '—'],
               ['Horario', ficha.horario ?? '—'],
               ['Certificación', ficha.certificacion ?? '—'],

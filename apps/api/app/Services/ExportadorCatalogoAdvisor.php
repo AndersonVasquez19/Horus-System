@@ -91,7 +91,14 @@ class ExportadorCatalogoAdvisor
                     throw new InvalidArgumentException('La ficha requiere revisión de privacidad o longitud.');
                 }
                 $detalles = $this->conTemario($detalles, $this->textoOpcional($p->temario ?? null));
-                $fechaInicio = $this->textoOpcional($p->fecha_inicio ?? null);
+                $fechaInicio = CatalogoPublicoCursos::inicioPublicable($this->textoOpcional($p->fecha_inicio ?? null));
+                // El snapshot caduca cuando el inicio deja de ser futuro: Horus AI no sigue anunciando esa fecha.
+                if ($fechaInicio !== null) {
+                    $llegada = Carbon::parse($fechaInicio, 'America/Lima')->startOfDay();
+                    if ($llegada->lessThan($vence)) {
+                        $vence = $llegada;
+                    }
+                }
                 $fin = Carbon::parse((string) $p->vigente_hasta, 'America/Lima')->startOfDay()->addDay();
                 if ($fin->lessThan($vence)) {
                     $vence = $fin;
@@ -104,7 +111,7 @@ class ExportadorCatalogoAdvisor
                     'modalities' => $modalidad === 'hibrido' ? [] : [$modalidad],
                     'schedule_text' => $horario,
                     'duration_text' => $duracion,
-                    'start_date' => $fechaInicio === null ? null : substr($fechaInicio, 0, 10),
+                    'start_date' => $fechaInicio,
                     'certification_text' => $certificacion,
                     // No hay página por curso: se enlaza el listado público donde aparece la ficha.
                     'url_path' => '/educacion/cursos',

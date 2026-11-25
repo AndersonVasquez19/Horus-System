@@ -6,12 +6,14 @@ namespace Tests\Feature;
 
 use App\Models\Curso;
 use App\Models\CursoPublicacion;
+use App\Services\CatalogoPublicoCursos;
 use App\Services\ExportadorCatalogoAdvisor;
 use App\Services\FirmaCatalogoAdvisor;
 use App\Services\FuentesCatalogoAdvisor;
 use App\Services\HorusAdvisorClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -45,6 +47,8 @@ class AdvisorCamposAcademicosTest extends TestCase
     {
         parent::setUp();
         $this->assertIsolatedTestDatabase();
+        // Reloj fijo: el inicio solo se publica mientras sea futuro (el ITEM empieza el 05/12/2026).
+        $this->travelTo(Carbon::parse('2026-11-20 12:00:00', 'America/Lima'));
         Http::swap(new Factory);
         Http::preventStrayRequests();
     }
@@ -135,6 +139,47 @@ class AdvisorCamposAcademicosTest extends TestCase
         $this->assertNull($item['duration_text']);
         $this->assertNull($item['start_date']);
         $this->assertNull($item['certification_text']);
+    }
+
+    public function test_el_inicio_se_publica_mientras_sea_futuro_y_se_oculta_desde_ese_dia(): void
+    {
+        $publicacion = $this->publicar();
+        $publicacion->forceFill(['fecha_inicio' => '2026-12-05', 'duracion' => '8 semanas'])->save();
+        config(['catalogo-publico.enabled' => true]);
+
+        // En UTC ya es 05/12; en Lima todavía es la víspera.
+        $this->travelTo(Carbon::parse('2026-12-04 23:59:00', 'America/Lima'));
+        $this->assertSame('2026-12-05', $this->itemExportado($publicacion)['start_date']);
+        $this->assertSame('2026-12-05', app(CatalogoPublicoCursos::class)->paraWeb()['cursos'][0]['fecha_inicio']);
+
+        foreach (['2026-12-05 00:00:00', '2026-12-12 12:00:00'] as $momento) {
+            $this->travelTo(Carbon::parse($momento, 'America/Lima'));
+            $item = $this->itemExportado($publicacion);
+            $web = app(CatalogoPublicoCursos::class)->paraWeb()['cursos'];
+
+            $this->assertNull($item['start_date'], $momento);
+            $this->assertSame('8 semanas', $item['duration_text']);
+            $this->assertCount(1, $web, 'El curso sigue publicado.');
+            $this->assertNull($web[0]['fecha_inicio'], $momento);
+        }
+        // El panel y la base conservan la fecha guardada.
+        $this->assertSame('2026-12-05', $publicacion->refresh()->fecha_inicio?->format('Y-m-d'));
+    }
+
+    public function test_el_catalogo_del_chat_caduca_a_medianoche_cuando_el_inicio_deja_de_ser_futuro(): void
+    {
+        $publicacion = $this->publicar();
+        $publicacion->forceFill(['fecha_inicio' => '2026-12-05'])->save();
+        config(['horus-advisor.signing_key' => str_repeat('k', 32), 'horus-catalog.ttl_minutes' => 30]);
+
+        $this->travelTo(Carbon::parse('2026-12-04 23:50:00', 'America/Lima'));
+        $antes = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
+        $this->assertTrue(Carbon::parse($antes['expires_at'])->equalTo(Carbon::parse('2026-12-05 00:00:00', 'America/Lima')));
+
+        $this->travelTo(Carbon::parse('2026-12-05 00:01:00', 'America/Lima'));
+        $despues = app(ExportadorCatalogoAdvisor::class)->construirParaSincronizacion();
+        $this->assertNotSame($antes['catalog_version'], $despues['catalog_version']);
+        $this->assertTrue(Carbon::parse($despues['expires_at'])->equalTo(Carbon::parse('2026-12-05 00:31:00', 'America/Lima')));
     }
 
     private function publicar(): CursoPublicacion

@@ -26,7 +26,9 @@ No se cambian `chatbot.public_catalog_enabled`, `.env`, claves, transporte de co
 
 ## Fecha de inicio de la ficha (25/11/2026)
 
-Es opcional, pero si se indica debe ser **posterior a hoy** (día de Lima): hoy y las fechas pasadas se rechazan (`PublicarCursoRequest`). La regla se aplica cada vez que se guarda la ficha, también al editar una ya publicada cuyo curso empezó: hay que dejar el campo vacío o indicar la próxima fecha (decisión del propietario). Las fichas ya publicadas con fecha pasada **no se ocultan ni se modifican** hasta que se vuelvan a guardar. No cambia las fechas de las ediciones (convocatorias), que sí registran periodos pasados.
+Es opcional, pero si se indica debe ser **posterior a hoy** (día de Lima): hoy y las fechas pasadas se rechazan (`PublicarCursoRequest`). La regla se aplica cada vez que se guarda la ficha, también al editar una ya publicada cuyo curso empezó: hay que dejar el campo vacío o indicar la próxima fecha (decisión del propietario). No cambia las fechas de las ediciones (convocatorias), que sí registran periodos pasados.
+
+**Visibilidad:** la web pública (`CatalogoPublicoCursos::paraWeb()`) y el catálogo del asistente (`ExportadorCatalogoAdvisor`) muestran la fecha solo mientras sea posterior a hoy en Lima (`CatalogoPublicoCursos::inicioPublicable()`). Desde el mismo día del inicio la ficha sigue publicada sin ese dato; la base y el panel conservan la fecha y el panel avisa que ya no se muestra. El snapshot del asistente caduca a las 00:00 de Lima de la fecha de inicio más próxima (si cae dentro de su vigencia normal) y la sincronización programada cada 2 minutos publica la versión sin la fecha; en ese intervalo el asistente puede no dar datos de cursos.
 
 ## Validación
 
