@@ -302,3 +302,23 @@ def test_un_tema_con_y_dentro_no_se_divide(base):
 
     assert [p for p in SEVERAL_QUESTIONS.split("Quiero aprender limpieza de datos y gráficos") if p.strip()] == [
         "Quiero aprender limpieza de datos y gráficos"]
+
+
+def test_nombrar_un_curso_tras_el_horario_de_atencion_responde_el_del_curso():
+    """Producción (25/11/2026): tras «¿cuál es el horario?» (horario de atención), «¿cuál es el horario del curso de
+    comunicación?» respondía «Horario de atención (fuentes discrepantes): las fechas y horarios los confirma un asesor»."""
+    com = dict(ITEM, stable_id="curso:publicacion-9", title="Comunicacion", summary="Se centra en la comunicación.",
+               details="", modalities=["presencial"], schedule_text="2 pm a 5pm", duration_text="2 semanas",
+               updated_at=datetime.now(UTC).isoformat())
+    for clave in ("start_date", "start_text"):
+        com.pop(clave, None)
+    motor = make_engine([com])
+    reply = _por_estado(motor, "Quiero información del curso Comunicacion", "¿Aceptan Yape?", "¿cuál es el horario?",
+                        "¿Cuál es el horario del curso de comunicación?")
+    assert reply.answer == "«Comunicacion»: el horario es 2 pm a 5pm."
+    assert "fuentes discrepantes" not in reply.answer
+
+
+def test_un_dato_de_curso_no_se_atribuye_a_una_ficha_institucional_en_foco(engine):
+    reply = _por_estado(engine, "¿Cuál es su horario de atención?", "¿y cuánto dura?")
+    assert "«Horario de atención" not in reply.answer

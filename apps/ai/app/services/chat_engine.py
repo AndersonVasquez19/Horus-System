@@ -98,6 +98,7 @@ CATEGORY_INTENTS = {
     "politica": "policy",
 }
 
+COURSE_ONLY_ATTRIBUTES = frozenset({"fechas", "duracion", "precio", "cupos", "requisitos", "contenido"})
 INFO_INTENTS = frozenset(CATEGORY_INTENTS.values()) | {"human_handoff"}
 # Separadores entre preguntas de un mismo mensaje: signos de pregunta, punto y coma, o «y / también / además» seguidos
 # de una palabra interrogativa o de un verbo de consulta («¿dónde están y cómo pago?»). «limpieza de datos y gráficos»
@@ -1074,6 +1075,15 @@ class AdvisorEngine:
         focus: list[KnowledgeRecord] = []
         if depth == 0 and has_context and not current_specific and (u.attributes or u.quote or u.referential or wants_detail_followup):
             focus = list(prior.focus) if prior is not None else self._focus(users)
+            # «¿Cuál es el horario del curso de comunicación?»: si el mensaje nombra otro curso publicado, manda ese
+            # curso, no el tema del turno anterior.
+            named = self._course_by_title(corrected, set()) if u.attributes else None
+            if named is not None and all(r.id != named.id for r in focus):
+                focus = [named]
+            # Fechas, duración, precio, cupos, requisitos o temario son datos de un curso: una ficha institucional en
+            # foco (p. ej. el horario de atención) no se presenta como «curso» con esos datos.
+            if set(u.attributes) & COURSE_ONLY_ATTRIBUTES and not u.quote:
+                focus = [r for r in focus if r.stable_id is not None]
         if prior is not None:
             previous_quote = prior.quote
         else:
