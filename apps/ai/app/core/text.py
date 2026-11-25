@@ -177,9 +177,17 @@ def _closest(token: str, vocab_list: list[str]) -> str:
     return token
 
 
+@lru_cache(maxsize=16384)
+def _phrase_pattern(phrase: str) -> re.Pattern[str] | None:
+    """Patrón compilado una sola vez por frase: antes se normalizaba y compilaba en cada llamada (92 % del tiempo del
+    motor, 25/11/2026). Las frases vienen de intents.json y de constantes del código: un conjunto cerrado y pequeño."""
+    normalized = normalize(phrase)
+    if not normalized:
+        return None
+    return re.compile(rf"(?<![a-z0-9ñ]){re.escape(normalized)}(?![a-z0-9ñ])")
+
+
 def contains_phrase(normalized_text: str, phrase: str) -> bool:
     """¿Aparece la frase normalizada como secuencia de palabras completas?"""
-    phrase = normalize(phrase)
-    if not phrase:
-        return False
-    return re.search(rf"(?<![a-z0-9ñ]){re.escape(phrase)}(?![a-z0-9ñ])", normalized_text) is not None
+    pattern = _phrase_pattern(phrase)
+    return pattern is not None and pattern.search(normalized_text) is not None

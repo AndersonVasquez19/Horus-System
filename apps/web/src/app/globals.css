@@ -795,33 +795,6 @@ body {
   border-top: 1px solid #eef4fc;
 }
 
-.hc-msg-tool-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: #60758d;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
-}
-
-.hc-msg-tool-btn:hover {
-  background: #edf4ff;
-  color: #1847a3;
-}
-
-.hc-msg-tool-btn[data-active="true"] {
-  background: #e6f0ff;
-  border-color: #bfd4f2;
-  color: #1847a3;
-}
-
 .hc-card-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -857,13 +830,6 @@ body {
 .hc-card-action-secondary:hover {
   background: #e4efff;
   border-color: var(--hc-blue);
-}
-
-.hc-mic-btn {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
 }
 
 .hc-header :focus-visible {

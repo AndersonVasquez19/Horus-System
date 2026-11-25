@@ -22,8 +22,6 @@ import {
   Check,
   ThumbsUp,
   ThumbsDown,
-  Mic,
-  MicOff,
 } from 'lucide-react';
 import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
@@ -314,15 +312,12 @@ export function ChatWidget() {
   const [cursoEnFoco, setCursoEnFoco] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [feedbackByMsg, setFeedbackByMsg] = useState<Record<string, 'up' | 'down'>>({});
-  const [voiceSupported, setVoiceSupported] = useState(false);
-  const [listening, setListening] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const cursoEnFocoRef = useRef<string | null>(null);
   const lastSendAtRef = useRef<number>(0);
-  const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
   const actualizarCursoEnFoco = (titulo: string | null) => {
     cursoEnFocoRef.current = titulo;
@@ -335,10 +330,6 @@ export function ChatWidget() {
     queueMicrotask(() => {
       if (cancelado) return;
       setIsOffline(!navigator.onLine);
-      const w = window as unknown as Record<string, unknown>;
-      if (typeof w.SpeechRecognition === 'function' || typeof w.webkitSpeechRecognition === 'function') {
-        setVoiceSupported(true);
-      }
     });
     window.addEventListener('online', syncOnline);
     window.addEventListener('offline', syncOnline);
@@ -346,7 +337,6 @@ export function ChatWidget() {
       cancelado = true;
       window.removeEventListener('online', syncOnline);
       window.removeEventListener('offline', syncOnline);
-      recognitionRef.current?.stop();
     };
   }, []);
 
@@ -390,6 +380,15 @@ export function ChatWidget() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, sending, isOpen]);
+
+  // Al terminar una respuesta el foco vuelve al campo: se puede seguir escribiendo sin hacer clic.
+  const estabaEnviandoRef = useRef(false);
+  useEffect(() => {
+    if (estabaEnviandoRef.current && !sending && isOpen) {
+      textareaRef.current?.focus();
+    }
+    estabaEnviandoRef.current = sending;
+  }, [sending, isOpen]);
 
   // Handle focus when opening
   useEffect(() => {
@@ -570,6 +569,8 @@ export function ChatWidget() {
   };
 
   const handleFeedback = (messageId: string, value: 'up' | 'down') => {
+    // Un voto por respuesta: repetir el clic no vuelve a enviar el mensaje de ayuda.
+    if (feedbackByMsg[messageId]) return;
     setFeedbackByMsg((prev) => ({ ...prev, [messageId]: value }));
     if (value === 'down') {
       setMessages((prev) => [
@@ -585,47 +586,6 @@ export function ChatWidget() {
           ],
         },
       ]);
-    }
-  };
-
-  const handleToggleVoice = () => {
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
-    const w = window as unknown as Record<string, unknown>;
-    const SpeechRec = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as
-      | (new () => {
-          lang: string;
-          interimResults: boolean;
-          maxAlternatives: number;
-          onresult: ((ev: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-          onerror: (() => void) | null;
-          onend: (() => void) | null;
-          start: () => void;
-          stop: () => void;
-        })
-      | undefined;
-    if (!SpeechRec) return;
-    const rec = new SpeechRec();
-    rec.lang = 'es-PE';
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    rec.onresult = (ev) => {
-      const transcript = ev.results?.[0]?.[0]?.transcript?.trim();
-      if (transcript) {
-        setDraft((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, MAX_MENSAJE));
-      }
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    recognitionRef.current = rec;
-    setListening(true);
-    try {
-      rec.start();
-    } catch {
-      setListening(false);
     }
   };
 
@@ -1089,6 +1049,7 @@ export function ChatWidget() {
                                 : 'border-slate-200/80 bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
                             }`}
                             onClick={() => handleFeedback(message.id, 'up')}
+                            aria-pressed={feedbackByMsg[message.id] === 'up'}
                             aria-label="Respuesta útil"
                             title="Útil"
                           >
@@ -1102,6 +1063,7 @@ export function ChatWidget() {
                                 : 'border-slate-200/80 bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
                             }`}
                             onClick={() => handleFeedback(message.id, 'down')}
+                            aria-pressed={feedbackByMsg[message.id] === 'down'}
                             aria-label="Necesito más ayuda"
                             title="No resolvió mi duda"
                           >
@@ -1218,8 +1180,9 @@ export function ChatWidget() {
                     maxLength={2000}
                     rows={1}
                     autoComplete="off"
-                    placeholder={listening ? 'Escuchando…' : '¿Qué te gustaría saber?'}
-                    disabled={sending}
+                    placeholder="¿Qué te gustaría saber?"
+                    readOnly={sending}
+                    aria-busy={sending}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -1230,27 +1193,6 @@ export function ChatWidget() {
                     }}
                     aria-describedby="hc-question-help"
                   />
-                  {voiceSupported && (
-                    <button
-                      type="button"
-                      className={`hc-mic-btn inline-flex items-center justify-center w-9 h-10 rounded-xl border transition-colors cursor-pointer shrink-0 ${
-                        listening
-                          ? 'bg-red-50 border-red-200 text-red-600'
-                          : 'bg-white border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
-                      }`}
-                      data-listening={listening}
-                      disabled={sending}
-                      onClick={handleToggleVoice}
-                      title={listening ? 'Detener dictado' : 'Dictar consulta por voz'}
-                      aria-label={listening ? 'Detener dictado por voz' : 'Dictar consulta por voz'}
-                    >
-                      {listening ? (
-                        <MicOff className="w-4 h-4" aria-hidden="true" />
-                      ) : (
-                        <Mic className="w-4 h-4" aria-hidden="true" />
-                      )}
-                    </button>
-                  )}
                   <button
                     type="submit"
                     disabled={sending || !draft.trim()}

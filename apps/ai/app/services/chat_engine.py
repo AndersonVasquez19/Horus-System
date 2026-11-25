@@ -124,10 +124,11 @@ QUOTE_INTRO = (
 class Hit:
     record: KnowledgeRecord
     score: float
-    lexical: float
-    semantic: float | None
-    phrase_hit: bool
-    matched: tuple[str, ...]
+    # Valores por defecto: `_browse_courses_reply` crea aciertos sintéticos solo con ficha y puntaje.
+    lexical: float = 0.0
+    semantic: float | None = None
+    phrase_hit: bool = False
+    matched: tuple[str, ...] = ()
     fragment: PublicFragment | None = None
 
 
