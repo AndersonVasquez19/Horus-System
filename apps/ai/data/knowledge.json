@@ -728,7 +728,7 @@
       "kind": "info",
       "title": "Pasos para matricularte en un curso",
       "description": "Guía paso a paso verificada para la inscripción: seleccionar el curso publicado, coordinar cupo y tarifa con un asesor por WhatsApp +51 972 021 374, realizar el pago por BCP, BBVA o Banco de la Nación según indicación del asesor y recibir la confirmación junto con el comprobante SUNAT.",
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio.\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu constancia por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-23"},
       "keywords": ["pasos para matricularme", "proceso de matricula", "como reservo mi vacante", "reservar vacante", "como funciona la inscripcion", "pasos para inscribirme", "que sigue despues de pagar"],

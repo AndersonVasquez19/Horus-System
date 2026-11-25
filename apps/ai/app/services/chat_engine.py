@@ -451,8 +451,8 @@ class AdvisorEngine:
         flujo de seguimiento ya verificado («sí» con un curso en foco pide más detalles de ese curso). Nada se afirma
         que la ficha publicada no tenga: el precio, por ejemplo, sigue derivándose a un asesor.
         """
-        if " ".join(glue.content_words(message)) in glue.ENROLLMENT_WORDS:
-            return None, glue.ENROLLMENT_QUERY  # «inscripción» sola: los pasos de matrícula
+        if " ".join(glue.content_words(message)) in glue.ENROLLMENT_WORDS or glue.asks_how_to_enroll(message):
+            return None, glue.ENROLLMENT_QUERY  # «inscripción» sola o «¿cómo puedo matricularme?»: los pasos
         if re.search(r"\b(gratis|gratuit[oa]s?|sin costo)\b", normalize(message)):
             return None, "¿Tienen becas o descuentos?"  # «¿hay cursos gratuitos?»: promociones (sin dato confirmado)
         kind = glue.classify(message)
@@ -1417,6 +1417,15 @@ class AdvisorEngine:
             if courses and any(self._attribute_line(c, a, u)[1] for c in courses for a in u.attributes):
                 return self._followup(courses, u)
         if plan is not None:
+            course_hit = bool(hits and hits[0].record.source.kind == "catalogo_laravel"
+                              and hits[0].record.status == "verified" and hits[0].score >= ANSWER_THRESHOLD)
+            steps = self.kb.get("proceso_matricula_pasos")
+            if (plan.enrollment and not course_hit and steps is not None and steps.status == "verified"
+                    and normalize(message) == normalize(glue.ENROLLMENT_QUERY)):
+                # «¿Cómo puedo matricularme?» sin curso (botón del widget): los pasos verificados, no solo «escribe al
+                # WhatsApp». Con catálogo cargado el plan de matrícula ganaba a la ficha (producción, 25/11/2026).
+                return self._reply(answer=steps.answer, intent=CATEGORY_INTENTS[steps.category], match_level="alta",
+                                   sources=[self._source(steps)])
             if plan.enrollment:
                 contact = self.kb.get(self.kb.intents.human_handoff.record_id)
                 sources = [self._source(contact)] if contact else []

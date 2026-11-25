@@ -347,6 +347,7 @@ AUDITORIA_CONVERSACIONES = [
     ["Quiero información del curso Comunicacion", "el otro"], ["¿Qué cursos tienen?", "cuál me recomiendas?"],
     ["tienen inglés?"], ["maestría?"], ["puedo pagar en cuotas?"], ["info"], ["hay cursos gratuitos?"],
     ["cuanto cuesta el curso de redez", "orario"], ["¿Quiénes son los docentes?"],
+    ["¿Cómo puedo matricularme?"], ["¿cómo me inscribo?"], ["Quiero matricularme"],
 ]
 
 
@@ -392,6 +393,21 @@ def test_mas_corto_y_mas_largo_ordenan_por_duracion(auditoria):
     largo = auditoria.chat("¿cuál es el más largo?").answer.split("\n")
     assert [linea.split("»")[0] for linea in corto] == ["«Comunicacion", "«Redes para principiantes", "«Ofimática para oficinas"]
     assert [linea.split("»")[0] for linea in largo] == ["«Ofimática para oficinas", "«Redes para principiantes", "«Comunicacion"]
+
+
+@pytest.mark.parametrize("pregunta", ["¿Cómo puedo matricularme?", "¿cómo me inscribo?", "como me matriculo en un curso"])
+def test_como_matricularme_sin_curso_da_los_pasos_verificados(auditoria, pregunta):
+    """Producción (25/11/2026): el botón «Cómo matricularme» respondía solo «continúa por el WhatsApp»."""
+    reply = auditoria.chat(pregunta)
+    assert reply.answer.startswith("Para matricularte sigue estos pasos:"), reply.answer
+    assert [s.id for s in reply.sources] == ["proceso_matricula_pasos"]
+
+
+@pytest.mark.parametrize("pregunta", ["Quiero matricularme", "Como me inscribo en Python", "¿cómo me inscribo en Comunicacion?"])
+def test_querer_matricularse_o_nombrar_un_curso_sigue_yendo_al_whatsapp(auditoria, pregunta):
+    reply = auditoria.chat(pregunta)
+    assert reply.intent == "enrollment_request"
+    assert "https://wa.me/51972021374" in reply.answer
 
 
 def test_mas_largo_tras_mas_corto_compara_todo_el_catalogo(auditoria):

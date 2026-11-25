@@ -248,6 +248,17 @@ INSTALLMENTS_REPLY = (
 ENROLLMENT_WORDS = frozenset({"inscripcion", "inscripciones", "matricula", "matriculas", "inscribirse", "matricularse"})
 ENROLLMENT_QUERY = "¿Cuáles son los pasos para matricularme?"
 
+# «¿Cómo puedo matricularme?» (botón del widget) sin curso nombrado: es una pregunta por el procedimiento, que tiene los
+# pasos verificados. «Quiero matricularme» o «cómo me inscribo en Python» siguen yendo al WhatsApp de matrícula.
+_HOW_TO_ENROLL = re.compile(
+    r"^(?:y )?como (?:puedo |me |hago para |hago |se |debo |podria )?"
+    r"(?:matricular(?:me|se)?|matriculo|inscribir(?:me|se)?|inscribo)(?: (?:en|a) (?:un|el|algun) curso)?$"
+)
+
+
+def asks_how_to_enroll(message: str) -> bool:
+    return _HOW_TO_ENROLL.match(normalize(message)) is not None
+
 # Comparar cursos: «compáralos», «¿cuál es más corto?», «¿cuál es mejor, redes u ofimática?».
 _COMPARE = re.compile(
     r"\b(comparalos|comparalas|compararlos|comparame|comparar|compara|comparacion|diferencias?|en que se diferencian|"
