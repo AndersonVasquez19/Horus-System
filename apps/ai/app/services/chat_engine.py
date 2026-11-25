@@ -100,6 +100,11 @@ CATEGORY_INTENTS = {
 
 MODALITY_PLURALS = {"virtual": "virtual", "virtuales": "virtual", "online": "virtual", "presencial": "presencial",
                     "presenciales": "presencial", "semipresencial": "semipresencial", "semipresenciales": "semipresencial"}
+def _plural(label: str) -> str:
+    """«virtual» → «virtuales», «online» → «online» (palabra invariable)."""
+    return f"{label}es" if label.endswith("l") else label
+
+
 COURSE_ONLY_ATTRIBUTES = frozenset({"fechas", "duracion", "precio", "cupos", "requisitos", "contenido"})
 INFO_INTENTS = frozenset(CATEGORY_INTENTS.values()) | {"human_handoff"}
 # Separadores entre preguntas de un mismo mensaje: signos de pregunta, punto y coma, o «y / también / además» seguidos
@@ -374,8 +379,15 @@ class AdvisorEngine:
                       else courses if len(courses) <= 5 else [])
             if len(chosen) < 2:
                 return None
+            chosen = chosen[:5]
+            if kind == "duration":
+                days = [glue.duration_days(r.duration) for r in chosen]
+                if all(d is not None for d in days):  # sin datos comparables se conserva el orden del catálogo
+                    longest = glue.asks_longest(message)
+                    chosen = [r for _, r in sorted(zip(days, chosen, strict=True), key=lambda p: p[0] or 0.0,
+                                                   reverse=longest)]
             attrs = ("duracion",) if kind == "duration" else ("modalidad", "duracion", "fechas")
-            return self._followup(chosen[:5], replace(u, attributes=attrs, asked_modalities=()))
+            return self._followup(chosen, replace(u, attributes=attrs, asked_modalities=()))
 
         if glue.is_open_recommendation(message) and (listing_in_focus or not focus_courses):
             titles = [f"«{r.title}»" for r in courses[:4]]
@@ -393,13 +405,13 @@ class AdvisorEngine:
         if rejected is not None:
             others = [r for r in courses if rejected not in {"virtual" if m == "online" else m for m in r.modalities}]
             if not others:
-                return self._reply(answer=f"Por ahora todos los cursos vigentes son {MODALITY_LABEL[rejected]}.",
+                return self._reply(answer=f"Por ahora todos los cursos vigentes son {_plural(MODALITY_LABEL[rejected])}.",
                                    intent="training_info", match_level="media",
                                    sources=[self._source(r) for r in courses[:5]])
             labels = ", ".join(
                 f"{r.title} ({', '.join(MODALITY_LABEL.get(m, m) for m in r.modalities)})" if r.modalities else r.title
                 for r in others[:6])
-            return self._reply(answer=f"Sin modalidad {MODALITY_LABEL[rejected]} están vigentes: {labels}.",
+            return self._reply(answer=f"Cursos vigentes que no son {_plural(MODALITY_LABEL[rejected])}: {labels}.",
                                intent="training_info", match_level="media", sources=[self._source(r) for r in others[:5]])
 
         named_course = self._course_by_title(corrected, set())

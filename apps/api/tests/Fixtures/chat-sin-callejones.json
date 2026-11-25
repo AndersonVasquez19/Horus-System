@@ -48,7 +48,7 @@
   {
     "query": "¿Qué detalles tiene el convenio con ISAM?",
     "reply": {
-      "answer": "La tarjeta del inicio menciona un convenio con ISAM. Sus detalles están pendientes de confirmación con un asesor.\n\nSi necesitas ese dato, un asesor puede ayudarte por WhatsApp al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
+      "answer": "Horus Group tiene un convenio con el Instituto de Educación Superior ISAM, vigente hasta el 6 de enero del 2027. Los detalles de las actividades incluidas están pendientes de confirmación.\n\nSi necesitas ese dato, un asesor puede ayudarte por WhatsApp al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
       "intent": "unverified_info",
       "match_level": "media",
       "needs_clarification": false,

@@ -546,7 +546,7 @@
   {
     "query": "¿Cuál es su misión?",
     "reply": {
-      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
       "intent": "company_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -594,7 +594,7 @@
   {
     "query": "¿Cuál es su visión?",
     "reply": {
-      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
       "intent": "company_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -690,7 +690,7 @@
   {
     "query": "¿Quiénes forman el equipo?",
     "reply": {
-      "answer": "El equipo de Horus Group SRL está conformado por las áreas de Gerencia General, Coordinación Institucional, Asesoría Legal y Atención Administrativa, con profesionales en Economía, Enfermería, Derecho y atención al cliente. Puedes conocer más en la página Quiénes somos.",
+      "answer": "El equipo de Horus Group SRL está conformado por las áreas de Gerencia General, Coordinación Institucional, Asesoría Legal y Atención Administrativa, con profesionales en Economía, Enfermería, Derecho y Enfermería técnica. Puedes conocer más en la página Quiénes somos.",
       "intent": "company_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -962,7 +962,7 @@
       "sources": [
         {
           "id": "horario_atencion",
-          "title": "Horario de atención (fuentes discrepantes)",
+          "title": "Horario de atención",
           "url_path": "/contactos"
         }
       ],
@@ -1010,7 +1010,7 @@
       "sources": [
         {
           "id": "horario_atencion",
-          "title": "Horario de atención (fuentes discrepantes)",
+          "title": "Horario de atención",
           "url_path": "/contactos"
         }
       ],
@@ -1063,7 +1063,7 @@
         },
         {
           "id": "horario_atencion",
-          "title": "Horario de atención (fuentes discrepantes)",
+          "title": "Horario de atención",
           "url_path": "/contactos"
         }
       ],
@@ -2525,7 +2525,7 @@
   {
     "query": "¿Hacen devoluciones?",
     "reply": {
-      "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+      "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
       "intent": "policy",
       "match_level": "media",
       "needs_clarification": false,
@@ -3057,7 +3057,7 @@
   {
     "query": "¿Ofrecen diplomados?",
     "reply": {
-      "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca y el Instituto de Educación Superior ISAM, para realizar talleres, charlas, cursos y diplomados.",
+      "answer": "Horus Group tiene convenios con el Colegio de Enfermeros de Cajamarca (CR XIII), el Colegio de Enfermeros del Perú CR II La Libertad, el Colegio Regional de Licenciados en Administración de Cajamarca (CORLAD), el Colegio de Economistas de Cajamarca, para realizar talleres, charlas, cursos y diplomados, y con el Instituto de Educación Superior ISAM, cuyas actividades confirma un asesor.",
       "intent": "agreement_info",
       "match_level": "media",
       "needs_clarification": false,
@@ -5059,7 +5059,7 @@
   {
     "query": "¿Cuál es su misión y cuáles son sus valores?",
     "reply": {
-      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.\n\nLos valores institucionales de Horus Group SRL son: puntualidad, confianza, calidad, vocación, superación, trabajo en equipo y empatía.",
+      "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante la capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.\n\nLos valores institucionales de Horus Group SRL son: puntualidad, confianza, calidad, vocación, superación, trabajo en equipo y empatía.",
       "intent": "company_info",
       "match_level": "media",
       "needs_clarification": false,

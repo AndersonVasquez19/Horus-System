@@ -336,7 +336,7 @@ AUDITORIA_ITEMS = [
 ]
 AUDITORIA_CONVERSACIONES = [
     ["¿Qué cursos tienen?", "compáralos", "¿cuál es más corto?", "el primero"],
-    ["cuál es el más corto"], ["cuál es mejor, redes u ofimática?"],
+    ["cuál es el más corto"], ["cuál es el más largo"], ["cuál es mejor, redes u ofimática?"],
     ["me cobraron de más"], ["no me llegó el certificado"], ["el profesor no vino"],
     ["Quiero información del curso de Ofimática para oficinas", "y el de redes?"],
     ["Quiero información del curso Comunicacion", "y en qué fecha es el examen?"],
@@ -367,7 +367,7 @@ def auditoria():
     (["oe causa qué cursos hay pe"], "Cursos y capacitaciones vigentes"),
     (["modalidad"], "«Comunicacion»: es presencial."),
     (["¿cuáles son virtuales?"], "En modalidad virtual"),
-    (["no quiero virtual"], "Sin modalidad virtual"),
+    (["no quiero virtual"], "Cursos vigentes que no son virtuales:"),
     (["Quiero información del curso Comunicacion", "es físico o digital?"], "Certificado digital"),
     (["el curso de comunicación es virtual?"], "«Comunicacion»: no es virtual"),
     (["el curso empieza este mes?"], "inicia el"),
@@ -384,6 +384,22 @@ def test_conversaciones_de_la_auditoria(auditoria, conversacion, esperado):
     texto = reply.answer + " " + (reply.clarification_question or "")
     assert esperado in texto, (conversacion, texto)
     assert "No tengo precios" not in texto or "cuesta" in conversacion[-1]
+
+
+def test_mas_corto_y_mas_largo_ordenan_por_duracion(auditoria):
+    """Producción (25/11/2026): «¿cuál es más corto?» listaba las duraciones en el orden del catálogo."""
+    corto = auditoria.chat("¿cuál es el más corto?").answer.split("\n")
+    largo = auditoria.chat("¿cuál es el más largo?").answer.split("\n")
+    assert [linea.split("»")[0] for linea in corto] == ["«Comunicacion", "«Redes para principiantes", "«Ofimática para oficinas"]
+    assert [linea.split("»")[0] for linea in largo] == ["«Ofimática para oficinas", "«Redes para principiantes", "«Comunicacion"]
+
+
+def test_duracion_en_dias_solo_compara_unidades_de_calendario():
+    assert glue.duration_days("2 semanas") == 14
+    assert glue.duration_days("3 meses") == 90
+    assert glue.duration_days("1 año") == 365
+    assert glue.duration_days("40 horas") is None
+    assert glue.duration_days(None) is None
 
 
 def test_fixture_de_la_auditoria_procede_del_motor_actual(auditoria):

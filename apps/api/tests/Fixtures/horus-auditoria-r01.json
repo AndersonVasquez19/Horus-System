@@ -240,7 +240,7 @@
  {
   "q": "¿Cuál es la visión de Horus?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -271,7 +271,7 @@
  {
   "q": "¿Cuál es la misión de la empresa?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -827,7 +827,7 @@
  {
   "q": "¿Cuál es la visión de Horus?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -858,7 +858,7 @@
  {
   "q": "¿Cuál es la misión de la empresa?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1487,7 +1487,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -1626,7 +1626,7 @@
  {
   "q": "¿Cuál es su política de devolución?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1752,7 +1752,7 @@
  {
   "q": "¿Cuál es la misión de Horus?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1783,7 +1783,7 @@
  {
   "q": "¿Qué visión tiene la empresa?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2016,7 +2016,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -2047,7 +2047,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -2078,7 +2078,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -4335,7 +4335,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4519,7 +4519,7 @@
  {
   "q": "¿Cuál es la misión de Horus?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4550,7 +4550,7 @@
  {
   "q": "¿Qué visión tiene la empresa?",
   "r": {
-   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en Cajamarca por estas competencias.",
+   "answer": "Nuestra misión es contribuir al desarrollo de la comunidad mediante tecnología y capacitación. Nuestra visión es ser una empresa reconocida en la Región de Cajamarca como líder en competencias tecnológicas y capacitaciones de alto nivel.",
    "intent": "company_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4783,7 +4783,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -4814,7 +4814,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -4845,7 +4845,7 @@
    "sources": [
     {
      "id": "horario_atencion",
-     "title": "Horario de atención (fuentes discrepantes)",
+     "title": "Horario de atención",
      "url_path": "/contactos"
     }
    ],
@@ -7102,7 +7102,7 @@
  {
   "q": "¿Me devuelven el dinero si no puedo asistir?",
   "r": {
-   "answer": "Las devoluciones se evalúan según los casos previstos en la política de devoluciones. Puedes solicitar la evaluación por correo a horusgroupcajamarca@gmail.com.",
+   "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
    "intent": "policy",
    "match_level": "alta",
    "needs_clarification": false,

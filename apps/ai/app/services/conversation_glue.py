@@ -264,6 +264,30 @@ def comparison_kind(message: str) -> str | None:
     return "duration" if re.search(r"\b(cort[oa]s?|larg[oa]s?)\b", normalized) else "general"
 
 
+def asks_longest(message: str) -> bool:
+    """«¿cuál es más largo?»: ordenar de mayor a menor duración (por defecto, de menor a mayor)."""
+    return re.search(r"\blarg[oa]s?\b", normalize(message)) is not None
+
+
+_DURATION = re.compile(r"(\d+(?:[.,]\d+)?)\s*(dias?|semanas?|mes(?:es)?|anos?|años?)\b")
+_DAYS_PER_UNIT = {"dia": 1, "semana": 7, "mes": 30, "ano": 365, "año": 365}
+
+
+def duration_days(text: str | None) -> float | None:
+    """Duración publicada en días aproximados («2 semanas» → 14) para ordenar; None si no se puede comparar.
+
+    Las horas no se convierten: «40 horas» no dice cuántas semanas dura el curso, así que no se ordena con ellas.
+    """
+    if not text:
+        return None
+    match = _DURATION.search(normalize(text))
+    if match is None:
+        return None
+    unit = match.group(2)
+    base = "mes" if unit.startswith("mes") else unit.rstrip("s")
+    return float(match.group(1).replace(",", ".")) * _DAYS_PER_UNIT[base]
+
+
 _OPEN_RECOMMEND = re.compile(
     r"^(?:y )?(?:cual|que curso|que)(?: me)? (?:recomiendas|recomiendan|sugieres|aconsejas|conviene)$"
     r"|^(?:cual|que) (?:elijo|escojo|tomo)$|^por cual empiezo$|^cual es mejor para mi$|^que me recomiendas$"
