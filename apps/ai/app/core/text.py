@@ -151,12 +151,21 @@ def _phonetic_index(vocabulary: frozenset[str]) -> dict[str, str]:
     return index
 
 
+# Palabras correctas que el corrector confundía con otra del vocabulario (auditoría del 25/11/2026): «corto» → «costo»
+# convertía «¿cuál es más corto?» en una pregunta de precios; «cobraron» → «cobran», un reclamo en una cotización.
+NEVER_CORRECT = frozenset({
+    "corto", "corta", "cortos", "cortas", "largo", "larga", "largos", "largas", "compara", "comparar", "comparame",
+    "comparalos", "compararlos", "comparacion", "comparalas", "cobraron", "cobro", "cobraste", "cobrado", "cobrada",
+    "mejor", "peor", "examen", "examenes", "quejarme", "cuotas", "cuota", "financiamiento", "gratuitos",
+})
+
+
 def correct_tokens(tokens: list[str], vocabulary: frozenset[str]) -> list[str]:
     """Corrige errores ortográficos sencillos contra el vocabulario conocido (difflib, sin dependencias)."""
     corrected: list[str] = []
     for token in tokens:
         if (
-            token in vocabulary or token in STOPWORDS or len(token) < 4 or token.isdigit()
+            token in vocabulary or token in STOPWORDS or token in NEVER_CORRECT or len(token) < 4 or token.isdigit()
         ):  # "cuales" != "cables"
             corrected.append(token)
             continue

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Services\AsistenteVirtualService;
+use App\Services\ExportadorCatalogoAdvisor;
+use App\Services\FirmaCatalogoAdvisor;
 use App\Services\HorusAdvisorClient;
 use App\Support\FiltroPrivacidadChat;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -48,6 +51,46 @@ class HorusJuradoTest extends TestCase
             }
         }
         $this->assertSame([], $bloqueadas);
+    }
+
+    /**
+     * Auditoría del 25/11/2026: comparaciones, listados por modalidad, reclamos, «el otro», recomendación sin tema…
+     * sobre un catálogo firmado de 3 cursos. Cada respuesta del motor debe pasar la validación tal cual, y una cifra
+     * inventada añadida al final debe rechazarse.
+     */
+    public function test_las_respuestas_con_catalogo_de_la_auditoria_pasan_la_validacion(): void
+    {
+        $fixture = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/chat-jurado-catalogo.json'), true, 512, JSON_THROW_ON_ERROR);
+        config(['horus-advisor.enabled' => true, 'horus-advisor.url' => 'http://127.0.0.1:8001',
+            'horus-advisor.token' => str_repeat('t', 32), 'horus-advisor.signing_key' => str_repeat('k', 32),
+            'horus-catalog.sync_enabled' => true]);
+        $contenido = ['managed_types' => ['curso', 'servicio'], 'items' => $fixture['items']];
+        $firma = app(FirmaCatalogoAdvisor::class);
+        $catalogo = ['schema_version' => '1.0', 'catalog_version' => $firma->versionContenido($contenido),
+            'source_system' => 'horus-laravel', 'generated_at' => now()->toIso8601String(),
+            'expires_at' => now()->addMinutes(5)->toIso8601String(), ...$contenido];
+        $catalogo['signature'] = $firma->firmar($catalogo);
+        $this->mock(ExportadorCatalogoAdvisor::class)->shouldReceive('construirParaSincronizacion')->andReturn($catalogo);
+        Cache::forever('horus-ai.catalog.expected-version', $catalogo['catalog_version']);
+        $rechazadas = [];
+        foreach ($fixture['cases'] as $caso) {
+            foreach ([false, true] as $alterar) {
+                $reply = $caso['reply'];
+                if ($alterar) {
+                    $reply['answer'] .= ' Inicia el 2099-01-01 y cuesta S/ 150.';
+                }
+                Http::swap(new Factory);
+                Http::preventStrayRequests();
+                Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded',
+                    'auth' => 'configured', 'semantic' => 'disabled', 'catalog' => 'loaded',
+                    'catalog_version' => $catalogo['catalog_version']]), '*/api/v1/chat' => Http::response($reply)]);
+                $resultado = app(HorusAdvisorClient::class)->orientar($caso['query']);
+                if ($alterar ? $resultado !== null : ($resultado === null || $resultado['respuesta'] !== $this->textoEsperado($reply))) {
+                    $rechazadas[] = ($alterar ? 'aceptó cifra inventada: ' : 'rechazada: ').$caso['query'];
+                }
+            }
+        }
+        $this->assertSame([], $rechazadas);
     }
 
     public function test_ninguna_respuesta_legitima_de_horus_ai_cae_en_contingencia(): void

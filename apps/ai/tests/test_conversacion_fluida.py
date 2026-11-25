@@ -322,3 +322,77 @@ def test_nombrar_un_curso_tras_el_horario_de_atencion_responde_el_del_curso():
 def test_un_dato_de_curso_no_se_atribuye_a_una_ficha_institucional_en_foco(engine):
     reply = _por_estado(engine, "¿Cuál es su horario de atención?", "¿y cuánto dura?")
     assert "«Horario de atención" not in reply.answer
+
+
+# ---------------------------------------------------------------- auditoría del 25/11/2026 (catálogo de 3 cursos)
+AUDITORIA_ITEMS = [
+    {k: v for k, v in ITEM.items() if k != "updated_at"} | {"updated_at": "2026-11-25T00:00:00+00:00"},
+    {k: v for k, v in ITEM_REDES.items() if k != "updated_at"} | {"updated_at": "2026-11-25T00:00:00+00:00"},
+    {k: v for k, v in ITEM.items() if k not in {"start_date", "start_text", "updated_at"}} | {
+        "stable_id": "curso:publicacion-9", "title": "Comunicacion",
+        "summary": "Se centra en cómo las personas intercambian información.", "details": "", "modalities": ["presencial"],
+        "schedule_text": "2 pm a 5pm", "duration_text": "2 semanas", "certification_text": "Certificado digital",
+        "updated_at": "2026-11-25T00:00:00+00:00"},
+]
+AUDITORIA_CONVERSACIONES = [
+    ["¿Qué cursos tienen?", "compáralos", "¿cuál es más corto?", "el primero"],
+    ["cuál es el más corto"], ["cuál es mejor, redes u ofimática?"],
+    ["me cobraron de más"], ["no me llegó el certificado"], ["el profesor no vino"],
+    ["Quiero información del curso de Ofimática para oficinas", "y el de redes?"],
+    ["Quiero información del curso Comunicacion", "y en qué fecha es el examen?"],
+    ["cómo te llamas"], ["hola pe"], ["ya pe pásame con alguien"], ["oe causa qué cursos hay pe"],
+    ["modalidad"], ["¿cuáles son virtuales?"], ["¿tienen cursos virtuales?"], ["no quiero virtual"],
+    ["Quiero información del curso Comunicacion", "es físico o digital?"],
+    ["el curso de comunicación es virtual?"], ["el curso empieza este mes?"],
+    ["Quiero información del curso Comunicacion", "el otro"], ["¿Qué cursos tienen?", "cuál me recomiendas?"],
+    ["tienen inglés?"], ["maestría?"], ["puedo pagar en cuotas?"], ["info"], ["hay cursos gratuitos?"],
+    ["cuanto cuesta el curso de redez", "orario"], ["¿Quiénes son los docentes?"],
+]
+
+
+@pytest.fixture(scope="module")
+def auditoria():
+    return make_engine(AUDITORIA_ITEMS)
+
+
+@pytest.mark.parametrize(("conversacion", "esperado"), [
+    (["¿Qué cursos tienen?", "compáralos"], "«Comunicacion»: dura 2 semanas."),
+    (["cuál es el más corto"], "«Comunicacion»: dura 2 semanas."),
+    (["me cobraron de más"], "Libro de Reclamaciones"),
+    (["el profesor no vino"], "Libro de Reclamaciones"),
+    (["Quiero información del curso Comunicacion", "y en qué fecha es el examen?"], "evaluaciones"),
+    (["cómo te llamas"], "Soy Horus"),
+    (["hola pe"], "¡Hola!"),
+    (["ya pe pásame con alguien"], "WhatsApp"),
+    (["oe causa qué cursos hay pe"], "Cursos y capacitaciones vigentes"),
+    (["modalidad"], "«Comunicacion»: es presencial."),
+    (["¿cuáles son virtuales?"], "En modalidad virtual"),
+    (["no quiero virtual"], "Sin modalidad virtual"),
+    (["Quiero información del curso Comunicacion", "es físico o digital?"], "Certificado digital"),
+    (["el curso de comunicación es virtual?"], "«Comunicacion»: no es virtual"),
+    (["el curso empieza este mes?"], "inicia el"),
+    (["Quiero información del curso Comunicacion", "el otro"], "¿Te refieres a"),
+    (["¿Qué cursos tienen?", "cuál me recomiendas?"], "¿Cuál se acerca más a tu objetivo"),
+    (["tienen inglés?"], "sobre ese tema"),
+    (["puedo pagar en cuotas?"], "cuotas"),
+    (["hay cursos gratuitos?"], "becas"),
+    (["cuanto cuesta el curso de redez", "orario"], "lunes de 6 a 8 pm"),
+    (["¿Quiénes son los docentes?"], "No tengo ese dato"),
+])
+def test_conversaciones_de_la_auditoria(auditoria, conversacion, esperado):
+    reply = _por_estado(auditoria, *conversacion)
+    texto = reply.answer + " " + (reply.clarification_question or "")
+    assert esperado in texto, (conversacion, texto)
+    assert "No tengo precios" not in texto or "cuesta" in conversacion[-1]
+
+
+def test_fixture_de_la_auditoria_procede_del_motor_actual(auditoria):
+    import json
+    from pathlib import Path
+
+    from app.schemas.chat import ConversationState
+
+    ruta = Path(__file__).parents[2] / "api" / "tests" / "Fixtures" / "chat-jurado-catalogo.json"
+    for caso in json.loads(ruta.read_text(encoding="utf-8"))["cases"]:
+        estado = ConversationState(**caso["state"]) if caso["state"] else None
+        assert auditoria.chat(caso["query"], [], estado).model_dump() == caso["reply"], caso["query"]

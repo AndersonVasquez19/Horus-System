@@ -74,7 +74,14 @@
       "persona real",
       "quiero un asesor",
       "comunicarme con un asesor",
-      "hablar con un asesor"
+      "hablar con un asesor",
+      "pasame con alguien",
+      "pasame con un asesor",
+      "pasame con una persona",
+      "comunicame con alguien",
+      "comunicame con un asesor",
+      "quiero hablar con alguien",
+      "con quien puedo hablar"
     ],
     "record_id": "contacto_canales"
   },
@@ -456,7 +463,11 @@
       "certificacion",
       "certifican",
       "diploma",
-      "constancia"
+      "constancia",
+      "fisico o digital",
+      "digital o fisico",
+      "es fisico",
+      "es digital"
     ],
     "precio": [
       "precio",
@@ -473,6 +484,13 @@
     ],
     "fechas": [
       "cuando empieza",
+      "empieza este",
+      "empiezan este",
+      "inicia este",
+      "comienza",
+      "comienzan",
+      "este mes",
+      "proximo mes",
       "cuando empiezan",
       "cuando inicia",
       "cuando inician",

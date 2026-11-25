@@ -102,7 +102,7 @@
       "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/contactos", "file": "../web/src/app/contactos/page.tsx; ../web/src/components/layout/schedule-location.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["ubicacion", "direccion", "donde estan", "donde quedan", "donde se ubican", "como llegar", "sede", "local", "oficina", "ubicar", "ubicarlos", "encontrarlos", "operan", "donde operan", "donde funcionan"],
+      "keywords": ["ubicacion", "direccion", "donde estan", "donde quedan", "donde se ubican", "como llegar", "sede", "local", "ubicar", "ubicarlos", "encontrarlos", "operan", "donde operan", "donde funcionan"],
       "examples": ["¿Dónde están ubicados?", "¿Cuál es su dirección?"],
       "topics": ["ubicacion"],
       "related": ["contacto_canales"]
@@ -674,7 +674,7 @@
       "answer": "No tengo información confirmada sobre promociones, descuentos o becas. Consulta si hay alguna vigente al +51 972 021 374.",
       "status": "unavailable",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app", "checked_on": "2026-10-28"},
-      "keywords": ["promocion", "promociones", "descuento", "descuentos", "oferta", "ofertas", "beca", "becas", "gratis", "gratuito"],
+      "keywords": ["promocion", "promociones", "descuento", "descuentos", "oferta", "ofertas", "beca", "becas", "gratis", "gratuito", "gratuitos", "cursos gratuitos", "cursos gratis", "sin costo"],
       "examples": [],
       "topics": ["promociones"],
       "related": ["contacto_canales"]

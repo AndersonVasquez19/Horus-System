@@ -45,6 +45,7 @@ class Understanding:
         return bool(self.attributes)
 
 
+EXAMS = re.compile(r"\b(examen|examenes|evaluacion|evaluaciones|prueba final)\b")
 ATTENTION_HOURS = re.compile(r"\batencion\b|\batiend(?:en|e)\b|\ba que hora (?:abren|cierran)\b|\bhasta que hora\b")
 
 
@@ -57,6 +58,9 @@ def understand(text: str, kb: KnowledgeBase) -> Understanding:
     normalized = normalize(text)
     tokens = tokenize(text)
     attributes = tuple(name for name, phrases in rules.attribute_lexicon.items() if _any(normalized, phrases))
+    if "fechas" in attributes and EXAMS.search(normalized):
+        # «¿en qué fecha es el examen?»: es la evaluación (FAQ), no la fecha de inicio de un curso.
+        attributes = tuple(a for a in attributes if a != "fechas")
     if "fechas" in attributes and ATTENTION_HOURS.search(normalized):
         # «horario de atención», «a qué hora atienden»: es el horario de la sede, no el de un curso.
         attributes = tuple(a for a in attributes if a != "fechas")

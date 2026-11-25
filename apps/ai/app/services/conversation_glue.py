@@ -60,6 +60,7 @@ _HELP = frozenset({
     "ayudenme", "ayuda", "ayuda por favor", "necesito ayuda", "necesito tu ayuda", "tengo una duda", "tengo una pregunta",
     "tengo una consulta", "una pregunta", "una consulta", "una duda", "quisiera hacer una consulta", "quiero hacer una consulta",
     "quiero hacer una pregunta", "puedo hacerte una pregunta", "te puedo hacer una pregunta", "consulta", "pregunta",
+    "info", "informes", "mas info", "quiero info", "una info",
 })
 _TIME = frozenset({
     "que hora es", "que dia es", "que dia es hoy", "que fecha es", "que fecha es hoy", "en que fecha estamos",
@@ -178,14 +179,118 @@ _UNPUBLISHED_FACT = re.compile(
 )
 
 
+_NAME_QUESTION = re.compile(r"\b(como te llamas|cual es tu nombre|tu nombre|como te dicen|quien eres tu|con quien hablo)\b")
+
+
 def is_identity_question(message: str) -> bool:
-    """«¿Eres una IA?», «¿qué modelo usas?», «¿quién te creó?»: preguntas sobre el propio asistente."""
-    return bool(_IDENTITY.search(normalize(message)))
+    """«¿Eres una IA?», «¿qué modelo usas?», «¿quién te creó?», «¿cómo te llamas?»: preguntas sobre el asistente."""
+    normalized = normalize(message)
+    return bool(_IDENTITY.search(normalized) or _NAME_QUESTION.search(normalized))
+
+
+# Muletillas del habla peruana que no cambian la consulta («hola pe», «oe causa qué cursos hay»). «a causa de» se respeta.
+_FILLER = re.compile(r"(?<![\w])(?:pe|pes|oe|oye|manito|bro|broder|causita|(?<!a )causa)(?![\w])", re.IGNORECASE)
+
+
+def strip_filler(message: str) -> str:
+    """Quita muletillas sueltas; si no queda nada, devuelve el mensaje tal cual."""
+    cleaned = re.sub(r"\s{2,}", " ", _FILLER.sub(" ", message)).strip(" ,")
+    return cleaned if content_words(cleaned) else message
+
+
+def content_words(text: str) -> list[str]:
+    return [t for t in tokenize(normalize(text)) if t]
+
+
+# Reclamos: un problema con un pago, un certificado o una clase. Se deriva al Libro de Reclamaciones y a un asesor.
+_COMPLAINT = re.compile(
+    r"\b(me cobraron|cobraron de mas|cobraron doble|me cobro de mas|cobro doble|cobro indebido|me estafaron|estafa|"
+    r"no me llego|no me ha llegado|nunca me llego|todavia no me llega|aun no me llega|no me entregaron|no me dieron mi|"
+    r"(el|la) (profesor|profesora|docente|instructor|instructora) no (vino|llego|asistio|se presento)|"
+    r"no hubo clase|cancelaron la clase|mala atencion|pesimo servicio|quiero quejarme|quiero poner una queja|"
+    r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo)\b"
+)
+
+
+def is_complaint(message: str) -> bool:
+    return bool(_COMPLAINT.search(normalize(message)))
+
+
+# Pago fraccionado: la información oficial no dice si se acepta; se responde con honestidad.
+_INSTALLMENTS = re.compile(r"\b(cuotas?|financiamiento|financiar|fraccionad[oa]|en partes|pagar por partes|a plazos)\b")
+
+
+def asks_installments(message: str) -> bool:
+    return bool(_INSTALLMENTS.search(normalize(message)))
+
+
+# Ofertas que Horus Group no publica (idiomas, posgrados, títulos universitarios): «No encontré un curso sobre ese tema».
+_NOT_OFFERED = re.compile(
+    r"\b(ingles|idiomas?|frances|portugues|quechua|maestrias?|doctorados?|posgrados?|postgrados?|"
+    r"titulos? universitarios?|carreras? universitarias?|licenciaturas?|bachillerato)\b"
+)
+
+
+def not_offered_topic(message: str) -> bool:
+    """«¿Tienen inglés?», «maestría?»; no «asesoría para mi tesis de maestría» (eso es asesoramiento)."""
+    normalized = normalize(message)
+    if re.search(r"(tesis|asesor|investigacion|convenio|tradu)", normalized):
+        return False
+    return bool(_NOT_OFFERED.search(normalized))
+
+
+INSTALLMENTS_REPLY = (
+    "No tengo confirmado si el pago puede hacerse en cuotas. Un asesor te lo confirma por WhatsApp junto con los medios "
+    "de pago disponibles."
+)
+
+# «inscripción» o «matrícula» solas: se entiende como «¿cuáles son los pasos para matricularme?».
+ENROLLMENT_WORDS = frozenset({"inscripcion", "inscripciones", "matricula", "matriculas", "inscribirse", "matricularse"})
+ENROLLMENT_QUERY = "¿Cuáles son los pasos para matricularme?"
+
+# Comparar cursos: «compáralos», «¿cuál es más corto?», «¿cuál es mejor, redes u ofimática?».
+_COMPARE = re.compile(
+    r"\b(comparalos|comparalas|compararlos|comparame|comparar|compara|comparacion|diferencias?|en que se diferencian|"
+    r"cual es (?:el |la )?mas (?:corto|corta|largo|larga)|el mas (?:corto|largo)|mas cort[oa]s?|mas larg[oa]s?|"
+    r"cual (?:es|seria) (?:el )?mejor|cual conviene mas|cual me conviene mas)\b"
+)
+
+
+def comparison_kind(message: str) -> str | None:
+    """'duration' para «más corto/largo», 'general' para comparar o «mejor», None si no compara."""
+    normalized = normalize(message)
+    if not _COMPARE.search(normalized):
+        return None
+    return "duration" if re.search(r"\b(cort[oa]s?|larg[oa]s?)\b", normalized) else "general"
+
+
+_OPEN_RECOMMEND = re.compile(
+    r"^(?:y )?(?:cual|que curso|que)(?: me)? (?:recomiendas|recomiendan|sugieres|aconsejas|conviene)$"
+    r"|^(?:cual|que) (?:elijo|escojo|tomo)$|^por cual empiezo$|^cual es mejor para mi$|^que me recomiendas$"
+)
+
+
+def is_open_recommendation(message: str) -> bool:
+    """«¿Cuál me recomiendas?» sin tema: se ayuda a elegir entre los cursos publicados."""
+    return bool(_OPEN_RECOMMEND.match(" ".join(content_words(message))))
+
+
+_MODALITY_NEGATION = re.compile(r"\bno (?:quiero|me interesa|busco|deseo|me sirve)\b.{0,12}\b(virtual|online|presencial|semipresencial)\b")
+
+
+def rejected_modality(message: str) -> str | None:
+    match = _MODALITY_NEGATION.search(normalize(message))
+    if match is None:
+        return None
+    return "virtual" if match.group(1) == "online" else match.group(1)
 
 
 def is_unpublished_fact(message: str) -> bool:
-    """Fundación, historia, significado del nombre: datos que la información oficial no incluye."""
+    """Fundación, historia, significado del nombre, docentes: datos que la información oficial no incluye."""
     normalized = normalize(message)
+    if re.search(r"\b(quienes son|quien es|como se llaman?|quienes dictan|quien dicta|que)\b.{0,15}"
+                 r"\b(docentes?|profesor(?:es|a|as)?|instructor(?:es|a|as)?|capacitador(?:es)?|ponentes?)\b", normalized):
+        return True
     if re.search(r"\b(que significa|significado de|significado del nombre|origen del nombre|por que se llaman?)\b", normalized):
         return bool(re.search(r"\b(horus|nombre|empresa)\b", normalized))
     return bool(_UNPUBLISHED_FACT.search(normalized))

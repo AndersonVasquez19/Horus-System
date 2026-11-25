@@ -17,7 +17,7 @@ los últimos MAX_CONTEXT_TURNS mensajes del USUARIO, volviendo a ejecutar el mot
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -98,6 +98,8 @@ CATEGORY_INTENTS = {
     "politica": "policy",
 }
 
+MODALITY_PLURALS = {"virtual": "virtual", "virtuales": "virtual", "online": "virtual", "presencial": "presencial",
+                    "presenciales": "presencial", "semipresencial": "semipresencial", "semipresenciales": "semipresencial"}
 COURSE_ONLY_ATTRIBUTES = frozenset({"fechas", "duracion", "precio", "cupos", "requisitos", "contenido"})
 INFO_INTENTS = frozenset(CATEGORY_INTENTS.values()) | {"human_handoff"}
 # Separadores entre preguntas de un mismo mensaje: signos de pregunta, punto y coma, o «y / también / además» seguidos
@@ -315,6 +317,104 @@ class AdvisorEngine:
         if glue.is_unpublished_fact(text):
             return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
                                abstained=True)
+        if glue.is_complaint(text):
+            return self._complaint()
+        if glue.asks_installments(text):
+            return self._reply(answer=glue.INSTALLMENTS_REPLY, intent="unavailable_info", match_level="ninguna",
+                               abstained=True)
+        if glue.not_offered_topic(text) and self._course_by_title(text, set()) is None:
+            return self._unpublished_topic("learn", text)
+        return None
+
+    def _complaint(self) -> AdvisorReply:
+        """Un reclamo («me cobraron de más», «no me llegó el certificado»): Libro de Reclamaciones y un asesor.
+
+        Dos textos exactos de fichas verificadas, separados por una línea en blanco (Laravel los acepta tal cual).
+        """
+        records = [r for r in (self.kb.get("libro_reclamaciones"), self.kb.get("contacto_canales"))
+                   if r is not None and r.status == "verified"]
+        return self._reply(answer="\n\n".join(r.answer for r in records), intent="policy", match_level="media",
+                           sources=[self._source(r) for r in records])
+
+    def _published_courses(self) -> list[KnowledgeRecord]:
+        """Cursos publicados del catálogo vigente (vacío si el catálogo caducó)."""
+        if self.kb.catalog is None or self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+            return []
+        return [r for r in self.kb.records
+                if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}]
+
+    def _courses_in_message(self, message: str) -> list[KnowledgeRecord]:
+        generic = {"curso", "cursos", "capacitacion", "capacitaciones", "taller", "programa", "mejor", "corto", "largo"}
+        asked = set(content_tokens(message)) - generic
+        return [r for r in self._published_courses() if asked & set(content_tokens(r.title))]
+
+    def _course_shortcuts(self, message: str, users: list[str], prior: _Prior | None) -> AdvisorReply | None:
+        """Preguntas sobre los cursos publicados que el flujo general resolvía mal (auditoría del 25/11/2026).
+
+        Comparar («compáralos», «¿cuál es más corto?», «¿cuál es mejor, redes u ofimática?»), pedir una recomendación
+        sin tema, listar por modalidad («¿cuáles son virtuales?», «no quiero virtual») y preguntar un dato de un curso
+        nombrado («¿el curso de comunicación es virtual?»). Todo sale de las fichas publicadas, con las frases que
+        Laravel ya verifica; si no hay catálogo vigente, se sigue el flujo general.
+        """
+        courses = self._published_courses()
+        if not courses:
+            return None
+        focus = list(prior.focus) if prior is not None else (self._focus(users) if users else [])
+        focus_courses = [r for r in focus if r.stable_id is not None]
+        listing_in_focus = any(r.id == "cat_listado_formacion" for r in focus)
+        corrected = self.corrected(message)
+        u = understand(corrected, self.kb)
+
+        kind = glue.comparison_kind(message)
+        named = self._courses_in_message(message) if kind is not None else []
+        if kind == "general" and len(named) < 2 and set(tokenize(normalize(message))) & {"cursos", "capacitaciones"}:
+            kind = None  # «compárame los cursos disponibles» (botón del orientador): ficha detallada del listado
+        if kind is not None:
+            chosen = (named if len(named) >= 2 else focus_courses if len(focus_courses) >= 2
+                      else courses if len(courses) <= 5 else [])
+            if len(chosen) < 2:
+                return None
+            attrs = ("duracion",) if kind == "duration" else ("modalidad", "duracion", "fechas")
+            return self._followup(chosen[:5], replace(u, attributes=attrs, asked_modalities=()))
+
+        if glue.is_open_recommendation(message) and (listing_in_focus or not focus_courses):
+            titles = [f"«{r.title}»" for r in courses[:4]]
+            options = titles[0] if len(titles) == 1 else f"{', '.join(titles[:-1])} o {titles[-1]}"
+            listing = self.kb.get("cat_listado_formacion")
+            return self._reply(
+                answer="Te ayudo a elegir según lo que buscas.",
+                intent="course_recommendation", match_level="media", needs_clarification=True,
+                clarification_question=f"¿Cuál se acerca más a tu objetivo: {options}? También puedo compararlos.",
+                sources=[self._source(listing)] if listing is not None else [],
+                context=ConversationContext(turns_considered=0, focus_ids=[listing.id] if listing else []),
+            )
+
+        rejected = glue.rejected_modality(message)
+        if rejected is not None:
+            others = [r for r in courses if rejected not in {"virtual" if m == "online" else m for m in r.modalities}]
+            if not others:
+                return self._reply(answer=f"Por ahora todos los cursos vigentes son {MODALITY_LABEL[rejected]}.",
+                                   intent="training_info", match_level="media",
+                                   sources=[self._source(r) for r in courses[:5]])
+            labels = ", ".join(
+                f"{r.title} ({', '.join(MODALITY_LABEL.get(m, m) for m in r.modalities)})" if r.modalities else r.title
+                for r in others[:6])
+            return self._reply(answer=f"Sin modalidad {MODALITY_LABEL[rejected]} están vigentes: {labels}.",
+                               intent="training_info", match_level="media", sources=[self._source(r) for r in others[:5]])
+
+        named_course = self._course_by_title(corrected, set())
+        if named_course is not None and (u.attributes or u.asked_modalities):
+            attrs = u.attributes or ("modalidad",)
+            return self._followup([named_course], replace(u, attributes=attrs))
+
+        words = set(tokenize(normalize(message)))
+        if words <= {"modalidad", "modalidades", "la", "las", "y", "cual", "cuales", "es", "son"} and words & {"modalidad", "modalidades"}:
+            # «modalidad» sola: la de cada curso publicado, no la frase genérica «consúltalo con un asesor».
+            return self._followup((focus_courses or courses)[:5], replace(u, attributes=("modalidad",), asked_modalities=()))
+        listing_words = {"curso", "cursos", "capacitacion", "capacitaciones", "cuales", "hay", "tienen", "ofrecen", "son"}
+        asked = {MODALITY_PLURALS[w] for w in words if w in MODALITY_PLURALS}
+        if len(asked) == 1 and not focus_courses and not named_course and words & listing_words:
+            return self._browse_courses_reply(asked.pop(), False)
         return None
 
     def _off_topic(self, seed: str) -> AdvisorReply:
@@ -336,6 +436,10 @@ class AdvisorEngine:
         flujo de seguimiento ya verificado («sí» con un curso en foco pide más detalles de ese curso). Nada se afirma
         que la ficha publicada no tenga: el precio, por ejemplo, sigue derivándose a un asesor.
         """
+        if " ".join(glue.content_words(message)) in glue.ENROLLMENT_WORDS:
+            return None, glue.ENROLLMENT_QUERY  # «inscripción» sola: los pasos de matrícula
+        if re.search(r"\b(gratis|gratuit[oa]s?|sin costo)\b", normalize(message)):
+            return None, "¿Tienen becas o descuentos?"  # «¿hay cursos gratuitos?»: promociones (sin dato confirmado)
         kind = glue.classify(message)
         pick = glue.pick_of(message)
         comparative = glue.comparative_of(message)
@@ -395,6 +499,9 @@ class AdvisorEngine:
                 others = [r for r in self.kb.records if r.source.kind == "catalogo_laravel" and r.status == "verified"
                           and r.kind in {"course", "training_program"} and r.id != focus[0].id]
                 chosen = others[0] if len(others) == 1 else None
+                if len(others) > 1:
+                    # Con varios cursos, «el otro» no es uno solo: se ofrecen los demás para elegir.
+                    return self._clarify([Hit(record=r, score=1.0) for r in others]), message
             elif pick == "last" and len(options) >= 2:
                 chosen = options[-1]
             if chosen is not None:
@@ -522,6 +629,12 @@ class AdvisorEngine:
         options = [
             h.record for h in hits[:3] if h.record.status == "verified" and h.score >= CLARIFY_THRESHOLD
         ]
+        if any(r.stable_id is not None for r in options):
+            # «¿y el de redes?»: entre un curso y una ficha institucional («Redes sociales») se elige entre cursos;
+            # si queda uno solo, no hay nada que aclarar.
+            options = [r for r in options if r.stable_id is not None]
+            if len(options) == 1:
+                return self._focus_reference(options)
         titles = list(dict.fromkeys(r.title for r in options))[:2]
         if len(titles) >= 2:
             question = f"¿Te refieres a «{titles[0]}» o a «{titles[1]}»?"
@@ -567,9 +680,8 @@ class AdvisorEngine:
                     else f"no es {MODALITY_ASKED[m]}"
                     for m in u.asked_modalities
                 ]
-                return f"{title}: {'; '.join(parts)} (modalidad: {published}).", any(
-                    m in offered for m in u.asked_modalities
-                )
+                # Publicada, la modalidad es un dato confirmado tanto si la respuesta es «sí» como «no».
+                return f"{title}: {'; '.join(parts)} (modalidad: {published}).", True
             return f"{title}: es {published}.", True
         if attr == "audiencia":
             if not rec.audience:
@@ -696,8 +808,10 @@ class AdvisorEngine:
 
     def _focus_reference(self, focus: list[KnowledgeRecord]) -> AdvisorReply:
         rec = focus[0]
+        # La ficha de un curso ya empieza con su título («Comunicacion: …»): no se repite.
+        answer = rec.answer if rec.answer.startswith(f"{rec.title}:") else f"Sobre «{rec.title}»: {rec.answer}"
         return self._reply(
-            answer=f"Sobre «{rec.title}»: {rec.answer}",
+            answer=answer,
             intent="followup_attribute",
             match_level="media",
             sources=[self._source(rec)],
@@ -743,7 +857,8 @@ class AdvisorEngine:
             self.kb.catalog is not None
             and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
             and not current.specific_topics(self.generic)
-            and bool(current.topics & {"cursos", "capacitacion", "formacion", "modalidades"})
+            and (bool(current.topics & {"cursos", "capacitacion", "formacion", "modalidades"})
+                 or bool(set(tokenize(normalize(message))) & {"curso", "cursos", "capacitacion", "capacitaciones"}))
         ):
             courses = [
                 r for r in self.kb.records
@@ -1033,6 +1148,7 @@ class AdvisorEngine:
         users = [h.content for h in history if h.role == "user"][-MAX_CONTEXT_TURNS:]
         # El historial, si llega, manda; el estado estructurado lo sustituye cuando el cliente no guarda texto.
         prior = self._prior(state) if depth == 0 and not users else None
+        message = glue.strip_filler(message)  # «hola pe», «oe causa qué cursos hay»
         early = self._safety(message) or self._about(message) or self._rules(message)
         if early is None:
             # También en los turnos que se reconstruyen desde el historial: así «el primero» deja el mismo foco
@@ -1074,6 +1190,13 @@ class AdvisorEngine:
             for cue in ("detalles", "mas detalles", "dame detalles", "dame mas detalles", "de que trata", "de que tratan", "en que consiste", "que incluye")
         )
         focus: list[KnowledgeRecord] = []
+        words = set(tokenize(normalize(corrected)))
+        if (depth == 0 and has_context and not u.attributes and words & {"horario", "horarios"}
+                and words <= {"y", "el", "su", "cual", "es", "que", "horario", "horarios", "de", "los", "sus", "son"}):
+            # «horario» u «orario» solo, con un curso en foco: el horario de ese curso (no el de atención).
+            prior_focus = list(prior.focus) if prior is not None else self._focus(users)
+            if any(r.stable_id is not None for r in prior_focus):
+                u = replace(u, attributes=("fechas",))
         if depth == 0 and has_context and not current_specific and (u.attributes or u.quote or u.referential or wants_detail_followup):
             focus = list(prior.focus) if prior is not None else self._focus(users)
             # «¿Cuál es el horario del curso de comunicación?»: si el mensaje nombra otro curso publicado, manda ese
@@ -1094,8 +1217,9 @@ class AdvisorEngine:
             # «¿Y eso lo hacen para casas?» tras un tema fuera de alcance: no se responde por palabras sueltas.
             reply = self._out_of_scope()
         else:
-            reply = self._decide(message, corrected, u, current, profile, continued, focus, previous_quote)
-            if depth == 0 and not focus:
+            shortcut = self._course_shortcuts(message, users, prior) if depth == 0 else None
+            reply = shortcut or self._decide(message, corrected, u, current, profile, continued, focus, previous_quote)
+            if depth == 0 and not focus and shortcut is None:
                 reply = self._several_questions(message, reply)
         if depth == 0:
             reply.state = self._next_state(message, prior, u.quote, profile, reply)
