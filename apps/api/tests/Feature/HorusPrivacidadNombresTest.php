@@ -122,4 +122,30 @@ class HorusPrivacidadNombresTest extends TestCase
             $this->assertFalse($filtro->esSeguro($mensaje), $mensaje);
         }
     }
+
+    /** Un error de tecleo de una letra en una palabra larga del vocabulario no es un nombre. */
+    #[DataProvider('erratas')]
+    public function test_una_errata_de_una_letra_en_palabra_larga_no_se_toma_por_un_nombre(string $mensaje): void
+    {
+        $this->assertTrue(app(\App\Support\FiltroPrivacidadChat::class)->esSeguro($mensaje), $mensaje);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function erratas(): iterable
+    {
+        foreach (['matricuña', 'matricula', 'certifcado', 'certificadoo', 'modalidaad', 'matriculaa'] as $r) {
+            yield $r => [$r];
+        }
+    }
+
+    /** La tolerancia no alcanza a nombres ni a palabras cortas; los nombres con presentación siguen bloqueados. */
+    public function test_la_tolerancia_de_errata_no_abre_la_puerta_a_nombres(): void
+    {
+        $filtro = app(\App\Support\FiltroPrivacidadChat::class);
+        foreach (['soy matricuña vela', 'me llamo matricuña tello', 'soy anderson vela', 'mi nombre es Mariana Quispe'] as $mensaje) {
+            $this->assertFalse($filtro->esSeguro($mensaje), $mensaje);
+        }
+        $this->assertFalse(\App\Support\Privacidad\LexicoPublico::contieneConErrata('mario'));
+        $this->assertFalse(\App\Support\Privacidad\LexicoPublico::contieneConErrata('quispe'));
+    }
 }

@@ -915,6 +915,11 @@ final class FiltroPrivacidadChat
         if (isset($vocabulario[$palabra]) || LexicoPublico::contiene($palabra)) {
             return self::C_CONOCIDA;
         }
+        // Errata de tecleo en una palabra larga del léxico («matricuña», «certifcado»): una letra de diferencia, misma inicial y 9 letras o más.
+        // Los nombres listados ya se descartaron arriba; las palabras cortas no se tolerarán nunca.
+        if (LexicoPublico::contieneConErrata($palabra)) {
+            return self::C_CONOCIDA;
+        }
 
         return self::C_DESCONOCIDA;
     }

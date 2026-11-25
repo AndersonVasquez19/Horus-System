@@ -80,6 +80,34 @@ final class LexicoPublico
         return false;
     }
 
+    /** Longitud mínima para tolerar un error de tecleo: en palabras largas un nombre propio casi nunca difiere en una letra. */
+    public const LARGO_MINIMO_ERRATA = 9;
+
+    /**
+     * Errata de tecleo: palabra normalizada de {@see LARGO_MINIMO_ERRATA} letras o más que difiere en UNA sola letra
+     * (cambio, sobra o falta) de una entrada del léxico de igual o mayor longitud mínima («matricuna» → «matricula»).
+     * Las formas muy cortas no se toleran: «Mario» o «Sara» no se vuelven conocidos por parecerse a otra palabra.
+     */
+    public static function contieneConErrata(string $palabra): bool
+    {
+        $largo = strlen($palabra);
+        if ($largo < self::LARGO_MINIMO_ERRATA || $largo > 40 || preg_match('/^[a-z]+$/', $palabra) !== 1) {
+            return false;
+        }
+        foreach (self::$palabras ??= self::cargar() as $entrada => $_) {
+            $e = (string) $entrada;
+            $d = strlen($e) - $largo;
+            if ($d < -1 || $d > 1 || strlen($e) < self::LARGO_MINIMO_ERRATA) {
+                continue;
+            }
+            if ($e[0] === $palabra[0] && levenshtein($palabra, $e) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function total(): int
     {
         return count(self::$palabras ??= self::cargar());
