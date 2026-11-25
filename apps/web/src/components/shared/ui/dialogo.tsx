@@ -10,8 +10,8 @@ interface DialogoProps {
   descripcion?: string;
   onCerrar: () => void;
   children: ReactNode;
-  /** Ancho máximo del panel centrado. En móvil, `lg` ocupa toda la pantalla. */
-  ancho?: 'sm' | 'lg';
+  /** Ancho máximo del panel centrado. En móvil, `lg` y `xl` ocupan toda la pantalla. */
+  ancho?: 'sm' | 'lg' | 'xl';
   /**
    * `centro` (modal) o `derecha` (panel lateral a toda la altura). Los paneles laterales son para crear o editar
    * entidades con varios campos; en móvil ocupan toda la pantalla.
@@ -75,16 +75,18 @@ export function Dialogo({ abierto, titulo, descripcion, onCerrar, children, anch
   }
 
   const esPanel = lado === 'derecha';
+  const esGrande = ancho === 'lg' || ancho === 'xl';
+  const claseAnchoCentro = ancho === 'sm' ? 'max-w-md' : ancho === 'xl' ? 'max-w-3xl' : 'max-w-2xl';
   const claseDialogo = esPanel
     ? 'm-0 ml-auto h-dvh max-h-none w-full max-w-xl rounded-none border-y-0 border-r-0 sm:rounded-l-xl'
-    : `m-auto w-[calc(100%-2rem)] rounded-xl border ${
-        ancho === 'sm'
-          ? 'max-w-md'
-          : 'max-w-2xl max-sm:m-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0'
+    : `m-auto w-[calc(100%-2rem)] rounded-xl border ${claseAnchoCentro} ${
+        esGrande
+          ? 'max-sm:m-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0'
+          : ''
       }`;
   const clasePanel = esPanel
     ? 'flex h-dvh max-h-dvh flex-col'
-    : `flex max-h-[85dvh] flex-col ${ancho === 'lg' ? 'max-sm:h-dvh max-sm:max-h-dvh' : ''}`;
+    : `flex max-h-[88dvh] flex-col ${esGrande ? 'max-sm:h-dvh max-sm:max-h-dvh' : ''}`;
 
   return (
     <dialog
@@ -94,6 +96,7 @@ export function Dialogo({ abierto, titulo, descripcion, onCerrar, children, anch
       aria-describedby={descripcion ? idDescripcion : undefined}
       onCancel={(evento) => {
         evento.preventDefault();
+        if (referencia.current?.querySelector('[role="combobox"][aria-expanded="true"]')) return;
         if (confirmandoDescarte) setConfirmandoDescarte(false);
         else intentarCerrar();
       }}

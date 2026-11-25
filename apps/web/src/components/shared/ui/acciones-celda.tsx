@@ -22,7 +22,7 @@ export function BotonCopiarDato({ valor, etiqueta }: { valor: string; etiqueta: 
       onClick={copiar}
       title={copiado ? 'Copiado' : etiqueta}
       aria-label={copiado ? 'Copiado' : etiqueta}
-      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-panel-border bg-panel-surface text-panel-muted transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-700 cursor-pointer"
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-panel-border bg-panel-surface text-panel-muted transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-700 cursor-pointer"
     >
       {copiado ? <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
     </button>
@@ -51,7 +51,7 @@ export function CeldaTelefono({
           rel="noopener noreferrer"
           title="Contactar por WhatsApp"
           aria-label={`Contactar por WhatsApp al ${telefono}`}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-600/30 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-emerald-600/30 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
         >
           <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
         </a>
@@ -81,7 +81,7 @@ export function CeldaCorreo({
           href={`mailto:${email}`}
           title={`Enviar correo a ${email}`}
           aria-label={`Enviar correo a ${email}`}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-panel-border bg-panel-surface text-panel-muted transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-700"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-panel-border bg-panel-surface text-panel-muted transition hover:border-academico-300 hover:bg-academico-50 hover:text-academico-700"
         >
           <Mail className="h-3.5 w-3.5" aria-hidden="true" />
         </a>

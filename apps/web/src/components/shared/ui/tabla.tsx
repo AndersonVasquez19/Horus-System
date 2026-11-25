@@ -37,7 +37,7 @@ interface TablaProps {
 const ACCIONES_FIJAS = [
   '[&_thead_th:last-child]:sticky [&_thead_th:last-child]:right-0 [&_thead_th:last-child]:z-10 [&_thead_th:last-child]:bg-panel-bg',
   '[&_tbody_td:last-child]:sticky [&_tbody_td:last-child]:right-0 [&_tbody_td:last-child]:bg-panel-surface',
-  '[&_tbody_tr:hover_td:last-child]:bg-[color-mix(in_srgb,var(--color-academico-50)_50%,white)]',
+  '[&_tbody_tr:hover_td:last-child]:bg-[color-mix(in_srgb,var(--color-academico-50)_50%,var(--color-panel-surface))]',
   'max-md:[&_tbody_td:last-child]:shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.18)]',
 ].join(' ');
 

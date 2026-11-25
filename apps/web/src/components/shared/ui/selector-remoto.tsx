@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { TonoUi } from './boton';
 
@@ -22,6 +22,7 @@ interface SelectorRemotoProps {
   error?: string;
   tono?: TonoUi;
   deshabilitado?: boolean;
+  requerido?: boolean;
 }
 
 const PAUSA_MS = 300;
@@ -35,7 +36,7 @@ const FOCO: Record<TonoUi, string> = {
  * proponen: Laravel vuelve a validar la elección al guardar. Flechas para moverse, Enter para elegir, Escape para
  * cerrar.
  */
-export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, ayuda, error, tono = 'academico', deshabilitado = false }: SelectorRemotoProps) {
+export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, ayuda, error, tono = 'academico', deshabilitado = false, requerido = false }: SelectorRemotoProps) {
   const id = useId();
   const idLista = `${id}-lista`;
   const idAyuda = `${id}-ayuda`;
@@ -86,7 +87,10 @@ export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, a
 
   return (
     <div className="relative">
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-panel-text">{etiqueta}</label>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-panel-text">
+        {etiqueta}
+        {requerido ? <span aria-hidden="true" className="ml-0.5 text-estado-error">*</span> : null}
+      </label>
       <div className="relative">
         <input
           id={id}
@@ -97,6 +101,7 @@ export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, a
           aria-expanded={abierto}
           aria-controls={idLista}
           aria-activedescendant={abierto && activa >= 0 ? `${idLista}-${activa}` : undefined}
+          aria-required={requerido || undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={descritoPor}
           disabled={deshabilitado}
@@ -126,17 +131,36 @@ export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, a
               setAbierto(false);
             }
           }}
-          className={`block w-full rounded-lg border bg-panel-surface py-2.5 pl-3 pr-10 text-sm text-panel-text shadow-sm outline-none transition placeholder:text-slate-500 focus:ring-4 disabled:opacity-60 ${
+          className={`block w-full rounded-lg border bg-panel-surface py-2.5 pl-3 text-sm text-panel-text shadow-sm outline-none transition placeholder:text-panel-muted focus:ring-4 disabled:opacity-60 ${
+            valor !== null && !deshabilitado ? 'pr-16' : 'pr-10'
+          } ${
             error ? 'border-estado-error' : 'border-panel-border'
           } ${FOCO[tono]}`}
         />
-        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-panel-muted" aria-hidden="true">
-          {cargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronsUpDown className="h-4 w-4" />}
-        </span>
+        <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+          {valor !== null && !deshabilitado ? (
+            <button
+              type="button"
+              onMouseDown={(evento) => evento.preventDefault()}
+              onClick={() => {
+                onCambiar(null);
+                setTexto('');
+                setAbierto(true);
+              }}
+              aria-label={`Quitar ${etiqueta.toLowerCase()}`}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-panel-muted transition hover:bg-panel-bg hover:text-panel-text"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          ) : null}
+          <span className="pointer-events-none flex items-center pr-1 text-panel-muted" aria-hidden="true">
+            {cargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronsUpDown className="h-4 w-4" />}
+          </span>
+        </div>
       </div>
 
       {abierto ? (
-        <ul id={idLista} role="listbox" aria-label={etiqueta} className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-panel-border bg-panel-surface py-1 text-sm shadow-lg">
+        <ul id={idLista} role="listbox" aria-label={etiqueta} className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-panel-border bg-panel-surface py-1 text-sm shadow-lg">
           {opciones.length === 0 ? (
             <li className="px-3 py-2 text-panel-muted" role="presentation">
               {cargando ? 'Buscando…' : fallo ? 'No se pudieron cargar las opciones.' : 'Sin resultados.'}
@@ -150,10 +174,10 @@ export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, a
                 aria-selected={valor?.id === opcion.id}
                 onMouseDown={(evento) => evento.preventDefault()}
                 onClick={() => elegir(opcion)}
-                className={`flex cursor-pointer items-center justify-between gap-2 px-3 py-2 ${indice === activa ? 'bg-panel-bg' : ''} ${opcion.eliminado ? 'text-panel-muted' : 'text-panel-text'}`}
+                className={`flex cursor-pointer items-center justify-between gap-2 px-3 py-2 transition-colors hover:bg-academico-50 ${indice === activa ? 'bg-academico-50' : ''} ${opcion.eliminado ? 'text-panel-muted' : 'text-panel-text'}`}
               >
                 <span className="truncate">{opcion.texto}</span>
-                {valor?.id === opcion.id ? <Check className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+                {valor?.id === opcion.id ? <Check className="h-4 w-4 shrink-0 text-academico-700" aria-hidden="true" /> : null}
               </li>
             ))
           )}
@@ -161,7 +185,7 @@ export function SelectorRemoto({ etiqueta, valor, onCambiar, buscar, marcador, a
       ) : null}
 
       {ayuda ? <p id={idAyuda} className="mt-1.5 text-xs text-panel-muted">{ayuda}</p> : null}
-      {error ? <p id={idError} className="mt-1.5 text-sm text-estado-error">{error}</p> : null}
+      {error ? <p id={idError} role="alert" className="mt-1.5 text-sm text-estado-error">{error}</p> : null}
     </div>
   );
 }

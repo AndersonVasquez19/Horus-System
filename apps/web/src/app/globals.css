@@ -139,13 +139,13 @@ body:has([data-panel-root]) [data-chrome-publico] {
     color: #64748B;
   }
 
-  /* Movimiento reducido: sin pulso ni transiciones. El spinner de carga se mantiene (es información de estado). */
+  /* Movimiento reducido: suprime pulsos y desplazamientos decorativos sin anular feedback de estado. */
   @media (prefers-reduced-motion: reduce) {
     :root:has([data-panel-root]) .animate-pulse {
       animation: none;
     }
-    :root:has([data-panel-root]) * {
-      transition-duration: 0.01ms !important;
+    :root:has([data-panel-root]) dialog[data-lado="derecha"][open] {
+      animation: none;
     }
   }
 }
