@@ -46,6 +46,13 @@ final class ChatPublicoController extends Controller
             return response()->json(['error' => ['code' => 'chat_no_disponible', 'message' => 'El asistente no está disponible.']], 503);
         }
 
+        if ($resultado['fuente'] === 'ocupado') {
+            // La consulta anterior de esta sesión aún se procesa: no es una respuesta del asistente, sino «espera».
+            // El BFF lo traduce en «espera un momento» y no lo muestra como si fuera una contestación.
+            return response()->json(['error' => ['code' => 'consulta_en_proceso', 'message' => 'Tu consulta anterior sigue en proceso.']], 429)
+                ->header('Retry-After', '3');
+        }
+
         $salida = ['respuesta' => $resultado['respuesta'], 'fuente' => $resultado['fuente']];
         if (isset($resultado['tarjetas']) && is_array($resultado['tarjetas'])) {
             $salida['tarjetas'] = $resultado['tarjetas'];

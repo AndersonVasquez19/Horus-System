@@ -51,7 +51,9 @@ interface RespuestaApi {
 }
 
 const MAX_MENSAJE = 2000;
-const TIMEOUT_MS = 20_000;
+// Laravel corta la consulta a Horus AI en pocos segundos: 12 s cubren una respuesta lenta sin dejar a la persona
+// mirando «Buscando…» medio minuto. Agotado el tiempo no se reintenta (la espera total sería el doble).
+const TIMEOUT_MS = 12_000;
 const ESPERA_REINTENTO_MS = 1200;
 const CONTACTO_WHATSAPP: ChatLink = { url: 'https://wa.me/51972021374', label: 'Contactar por WhatsApp', whatsapp: true };
 
@@ -112,7 +114,8 @@ async function consultar(mensaje: string, sessionId: string): Promise<ResultadoE
     }
     return { ok: true, data: data as RespuestaApi };
   } catch {
-    return { ok: false, motivo: 'no_disponible', reintentable: true };
+    // Solo un fallo de red se reintenta; si se agotó el tiempo, el servidor ya tuvo su oportunidad.
+    return { ok: false, motivo: 'no_disponible', reintentable: !control.signal.aborted };
   } finally {
     clearTimeout(temporizador);
   }
@@ -374,11 +377,16 @@ export function ChatWidget() {
     }
   }, [messages]);
 
-  // Scroll to bottom on new messages
+  // Desplazamiento: una respuesta nueva del asistente se muestra desde su inicio (en las largas, ir al final obligaba a
+  // subir para leerla); el mensaje propio y el indicador «Buscando…» se muestran al final.
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isOpen) return;
+    const ultimo = messages[messages.length - 1];
+    if (!sending && ultimo?.role === 'bot' && messages.length > 1) {
+      document.getElementById(`hc-msg-${ultimo.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
     }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending, isOpen]);
 
   // Al terminar una respuesta el foco vuelve al campo: se puede seguir escribiendo sin hacer clic.
@@ -469,6 +477,8 @@ export function ChatWidget() {
   }, [isOpen]);
 
   const sessionIdRef = useRef<string | null>(null);
+  /** Sube con cada reinicio: una respuesta que llega tarde a una conversación ya reiniciada se descarta. */
+  const generacionRef = useRef(0);
 
   async function consultarConReintento(text: string): Promise<ResultadoEnvio> {
     sessionIdRef.current ??= obtenerSessionId();
@@ -480,6 +490,44 @@ export function ChatWidget() {
     }
     return resultado;
   }
+
+  const armarRespuesta = (resultado: ResultadoEnvio, text: string): Message => {
+    if (!resultado.ok) {
+      if (resultado.motivo === 'demasiadas') return { id: idMensaje('err'), role: 'bot', text: MENSAJE_DEMASIADAS };
+      if (resultado.motivo === 'invalido') {
+        return { id: idMensaje('err'), role: 'bot', text: 'No pude procesar ese mensaje. Revisa que no esté vacío ni supere los 2000 caracteres.' };
+      }
+      return { id: idMensaje('err'), role: 'bot', text: MENSAJE_NO_DISPONIBLE, links: [CONTACTO_WHATSAPP], retry: text };
+    }
+    const cursoContexto =
+      cursoEnFocoRef.current ??
+      (resultado.data.tarjetas && resultado.data.tarjetas.length === 1 && resultado.data.tarjetas[0].tipo === 'curso'
+        ? resultado.data.tarjetas[0].titulo
+        : null);
+    const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces).map((enlace) => {
+      if (enlace.whatsapp && cursoContexto) {
+        const textoWa = `Hola Horus Group, consulté en el asistente web por el curso «${cursoContexto}» y deseo más información para matricularme.`;
+        return {
+          ...enlace,
+          url: `https://wa.me/51972021374?text=${encodeURIComponent(textoWa)}`,
+          label: `Consultar «${cursoContexto}» por WhatsApp`,
+        };
+      }
+      return enlace;
+    });
+    const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
+    return {
+      id: idMensaje('bot'),
+      role: 'bot',
+      text: resultado.data.respuesta,
+      cards: resultado.data.tarjetas,
+      links: enlaces.length > 0 ? enlaces : undefined,
+      // El servidor decide los botones (claves cerradas); el cálculo por texto queda solo como respaldo.
+      quickReplies: botonesSugeridos.length > 0
+        ? botonesSugeridos
+        : generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current),
+    };
+  };
 
   const enviarConsulta = async (text: string) => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -495,52 +543,41 @@ export function ChatWidget() {
       return;
     }
     setSending(true);
-    // El foco de la conversación lo lleva el servidor (estado firmado): el cliente ya no reescribe la consulta.
-    const consultaEfectiva = text;
-    const resultado = await consultarConReintento(consultaEfectiva);
-    let botMsg: Message;
-    if (resultado.ok) {
-      const cursoContexto =
-        cursoEnFocoRef.current ??
-        (resultado.data.tarjetas && resultado.data.tarjetas.length === 1 && resultado.data.tarjetas[0].tipo === 'curso'
-          ? resultado.data.tarjetas[0].titulo
-          : null);
-      const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces).map((enlace) => {
-        if (enlace.whatsapp && cursoContexto) {
-          const textoWa = `Hola Horus Group, consulté en el asistente web por el curso «${cursoContexto}» y deseo más información para matricularme.`;
-          return {
-            ...enlace,
-            url: `https://wa.me/51972021374?text=${encodeURIComponent(textoWa)}`,
-            label: `Consultar «${cursoContexto}» por WhatsApp`,
-          };
-        }
-        return enlace;
-      });
-      const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
-      botMsg = {
-        id: idMensaje('bot'),
-        role: 'bot',
-        text: resultado.data.respuesta,
-        cards: resultado.data.tarjetas,
-        links: enlaces.length > 0 ? enlaces : undefined,
-        // El servidor decide los botones (claves cerradas); el cálculo por texto queda solo como respaldo.
-        quickReplies: botonesSugeridos.length > 0
-          ? botonesSugeridos
-          : generarChipsSeguimiento(resultado.data.respuesta, resultado.data.tarjetas, cursoEnFocoRef.current),
-      };
-    } else if (resultado.motivo === 'demasiadas') {
-      botMsg = { id: idMensaje('err'), role: 'bot', text: MENSAJE_DEMASIADAS };
-    } else if (resultado.motivo === 'invalido') {
-      botMsg = { id: idMensaje('err'), role: 'bot', text: 'No pude procesar ese mensaje. Revisa que no esté vacío ni supere los 2000 caracteres.' };
-    } else {
-      botMsg = { id: idMensaje('err'), role: 'bot', text: MENSAJE_NO_DISPONIBLE, links: [CONTACTO_WHATSAPP], retry: text };
+    const generacion = generacionRef.current;
+    try {
+      // El foco de la conversación lo lleva el servidor (estado firmado): el cliente ya no reescribe la consulta.
+      const resultado = await consultarConReintento(text);
+      // Si la persona reinició la conversación mientras esperaba, la respuesta vieja ya no corresponde.
+      if (generacion !== generacionRef.current) return;
+      const botMsg = armarRespuesta(resultado, text);
+      setMessages((prev) => [...prev, botMsg]);
+    } catch {
+      if (generacion === generacionRef.current) {
+        setMessages((prev) => [
+          ...prev,
+          { id: idMensaje('err'), role: 'bot', text: MENSAJE_NO_DISPONIBLE, links: [CONTACTO_WHATSAPP], retry: text },
+        ]);
+      }
+    } finally {
+      // Siempre se libera el campo, aunque algo falle al armar la respuesta.
+      setSending(false);
     }
-    setMessages((prev) => [...prev, botMsg]);
-    setSending(false);
+  };
+
+  /** Sesión nueva: el servidor olvida el curso en foco y el resto del estado de la conversación anterior. */
+  const rotarSesion = () => {
+    try {
+      const nuevo = nuevoSessionId();
+      sessionStorage.setItem('horus_chat_session', nuevo);
+      sessionIdRef.current = nuevo;
+    } catch {
+      sessionIdRef.current = nuevoSessionId();
+    }
   };
 
   const handleResetConversation = () => {
     if (sending) return;
+    generacionRef.current += 1; // descarta un menú del orientador que aún esté llegando
     actualizarCursoEnFoco(null);
     setMessages([INITIAL_MESSAGE]);
     setDraft('');
@@ -550,22 +587,32 @@ export function ChatWidget() {
     }
     try {
       sessionStorage.removeItem('horus_chat_history');
-      const nuevo = nuevoSessionId();
-      sessionStorage.setItem('horus_chat_session', nuevo);
-      sessionIdRef.current = nuevo;
     } catch {
-      sessionIdRef.current = nuevoSessionId();
+      // ignore storage errors
     }
+    rotarSesion();
+  };
+
+  /** «Ver todos»: además de la barra, el servidor deja de responder sobre el curso anterior. */
+  const handleVerTodos = () => {
+    actualizarCursoEnFoco(null);
+    rotarSesion();
   };
 
   const handleCopyMessage = (messageId: string, text: string) => {
     const limpio = limpiarUrlWhatsappVisible(text);
-    void navigator.clipboard?.writeText(limpio).then(() => {
-      setCopiedId(messageId);
-      setTimeout(() => {
-        setCopiedId((curr) => (curr === messageId ? null : curr));
-      }, 1800);
-    });
+    if (!navigator.clipboard) return;
+    navigator.clipboard
+      .writeText(limpio)
+      .then(() => {
+        setCopiedId(messageId);
+        setTimeout(() => {
+          setCopiedId((curr) => (curr === messageId ? null : curr));
+        }, 1800);
+      })
+      .catch(() => {
+        // Sin permiso para el portapapeles (navegador o iframe): no hay nada que copiar ni que mostrar.
+      });
   };
 
   const handleFeedback = (messageId: string, value: 'up' | 'down') => {
@@ -607,11 +654,12 @@ export function ChatWidget() {
     ]);
   };
 
-  const orientadorCargandoRef = useRef(false);
-
   const handleIniciarOrientador = async () => {
-    if (sending || orientadorCargandoRef.current) return;
-    orientadorCargandoRef.current = true;
+    if (sending) return;
+    // Mientras llega el menú la conversación queda ocupada (indicador «Buscando…» y campo en solo lectura): así una
+    // pregunta escrita en ese momento no queda por encima del menú, que llegaría después.
+    setSending(true);
+    const generacion = generacionRef.current;
     actualizarCursoEnFoco(null);
     const userMsg: Message = {
       id: idMensaje('user'),
@@ -632,6 +680,8 @@ export function ChatWidget() {
       cursos = null;
     }
 
+    setSending(false);
+    if (generacion !== generacionRef.current) return;
     const menu = armarMenuOrientador(cursos);
     const orientadorMsg: Message = {
       id: idMensaje('orientador'),
@@ -641,7 +691,6 @@ export function ChatWidget() {
       links: menu.conWhatsapp ? [CONTACTO_WHATSAPP] : undefined,
     };
     setMessages((prev) => [...prev, orientadorMsg]);
-    orientadorCargandoRef.current = false;
   };
 
   const handleSend = (textToSend?: string) => {
@@ -812,7 +861,10 @@ export function ChatWidget() {
                 )}
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    launcherRef.current?.focus(); // como con Escape: el foco vuelve al botón que abrió el chat
+                  }}
                   className="hc-close"
                   aria-label="Cerrar chat"
                 >
@@ -843,7 +895,7 @@ export function ChatWidget() {
                 <button
                   type="button"
                   className="hc-focus-bar-clear"
-                  onClick={() => actualizarCursoEnFoco(null)}
+                  onClick={handleVerTodos}
                   aria-label="Salir del curso actual y consultar todos los cursos"
                 >
                   <span>Ver todos</span>
@@ -863,6 +915,7 @@ export function ChatWidget() {
                 {messages.map((message) => (
                   <article
                     key={message.id}
+                    id={`hc-msg-${message.id}`}
                     className={`hc-message ${
                       message.role === 'user' ? 'hc-user' : 'hc-assistant'
                     } ${message.cards && message.cards.length > 0 ? 'hc-message-with-cards' : ''}`}
@@ -1103,6 +1156,7 @@ export function ChatWidget() {
                       {TECNOLOGIAS_VISIBLES && (
                         <button
                           type="button"
+                          disabled={sending}
                           onClick={() =>
                             handleSuggestionClick('¿Qué servicios tecnológicos brindan?')
                           }
@@ -1117,6 +1171,7 @@ export function ChatWidget() {
                       {TECNOLOGIAS_VISIBLES && (
                         <button
                           type="button"
+                          disabled={sending}
                           onClick={() =>
                             handleSuggestionClick('¿Cómo puedo solicitar una cotización?')
                           }

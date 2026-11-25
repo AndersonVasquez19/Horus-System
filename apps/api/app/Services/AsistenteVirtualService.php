@@ -14,6 +14,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AsistenteVirtualService
 {
@@ -50,7 +51,7 @@ class AsistenteVirtualService
         if ($this->privacidad->contieneDatosPersonales($mensaje)) {
             $result = $this->reply(self::RESPUESTA_PRIVACIDAD, null, 'respaldo');
             Log::info('chatbot.contingencia', ['motivo' => 'privacidad']);
-            $this->registrar(['session_id' => $session, 'mensaje_usuario' => '[contenido omitido por privacidad]',
+            $this->registrarSinInterrumpir(['session_id' => $session, 'mensaje_usuario' => '[contenido omitido por privacidad]',
                 'respuesta_bot' => $result['respuesta'], 'intent_detectado' => null, 'fuente' => 'respaldo']);
             $this->metric('respaldo');
 
@@ -142,7 +143,7 @@ class AsistenteVirtualService
                 'intent_detectado' => $result['intent'],
             ];
             $registro['fuente'] = $result['fuente'];
-            $this->registrar($registro);
+            $this->registrarSinInterrumpir($registro);
             $this->metric($result['fuente']);
 
             return $result;
@@ -272,6 +273,21 @@ class AsistenteVirtualService
     private function metric(string $outcome): void
     {
         Log::info('chatbot.metric', ['outcome' => $outcome]);
+    }
+
+    /**
+     * El registro es auditoría, no parte de la respuesta: si la base falla al guardarlo, la persona igual recibe la
+     * respuesta ya calculada (antes el fallo terminaba en un 503). Solo se anota una categoría fija, sin texto.
+     *
+     * @param  array<string, mixed>  $registro
+     */
+    private function registrarSinInterrumpir(array $registro): void
+    {
+        try {
+            $this->registrar($registro);
+        } catch (Throwable) {
+            Log::warning('chatbot.registro_fallo');
+        }
     }
 
     /** @param array<string, mixed> $registro */

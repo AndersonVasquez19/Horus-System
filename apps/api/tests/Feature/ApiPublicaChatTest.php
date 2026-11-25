@@ -8,8 +8,10 @@ use App\Models\ChatLog;
 use App\Services\AsistenteVirtualService;
 use App\Services\PresentacionRecomendacionesHorus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -111,6 +113,34 @@ class ApiPublicaChatTest extends TestCase
         $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff($b))->assertOk();
         // Un valor mal formado no abre un cubo propio: comparte el de anonimo.
         $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff('no-es-hmac'))->assertOk();
+    }
+
+    public function test_una_sesion_ocupada_responde_429_con_retry_after_y_no_un_texto_como_respuesta(): void
+    {
+        // Auditoría del 25/11/2026: «Tu consulta anterior sigue en proceso» llegaba como 200 y el widget lo mostraba
+        // como si fuera la contestación del asistente.
+        $sesion = hash_hmac('sha256', 'web:anonimo|sesion-de-prueba-0123', (string) config('app.key'));
+        $lock = Cache::lock('chat:lock:'.$sesion, 30);
+        $this->assertTrue($lock->get());
+        try {
+            $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff())->assertStatus(429)
+                ->assertHeader('Retry-After', '3')
+                ->assertExactJson(['error' => ['code' => 'consulta_en_proceso', 'message' => 'Tu consulta anterior sigue en proceso.']]);
+        } finally {
+            $lock->release();
+        }
+        $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff())->assertOk();
+    }
+
+    public function test_un_fallo_al_guardar_el_registro_no_anula_la_respuesta(): void
+    {
+        // El registro es auditoría: sin la tabla, la persona igual recibe la respuesta (antes era un 503).
+        Schema::drop('chat_logs');
+        Log::spy();
+
+        $this->postJson('/api/public/v1/chat', $this->cuerpo(), $this->bff())->assertOk()
+            ->assertExactJson(['respuesta' => AsistenteVirtualService::RESPUESTA_FALLBACK, 'fuente' => 'respaldo']);
+        Log::shouldHaveReceived('warning')->with('chatbot.registro_fallo')->once();
     }
 
     public function test_la_ruta_de_blade_del_chat_ya_no_existe(): void
