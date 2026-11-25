@@ -140,6 +140,36 @@ final class AsistentePanelTest extends PanelApiTestCase
         $this->conversaciones('&etapa=inventada')->assertJsonPath('meta.total', 3);
     }
 
+    public function test_la_etapa_es_de_la_conversacion_y_se_combina_con_los_demas_filtros(): void
+    {
+        // La etapa la dio una respuesta; la contingencia, el voto, el tema y el texto buscado están en otra.
+        $this->fila('ambas', ['respuesta_bot' => 'Cursos y capacitaciones vigentes: X.'])->forceFill(['created_at' => now()->subHour()])->save();
+        $this->fila('ambas', ['respuesta_bot' => 'Ahora mismo no puedo responder.', 'fuente' => 'respaldo', 'voto' => 'down', 'intent_detectado' => 'faq']);
+        $this->fila('solo-etapa', ['respuesta_bot' => 'Cursos y capacitaciones vigentes: Y.']);
+        $this->fila('solo-falla', ['respuesta_bot' => 'Ahora mismo no puedo responder.', 'fuente' => 'respaldo', 'voto' => 'down', 'intent_detectado' => 'faq']);
+
+        foreach (['&fuente=respaldo', '&voto=down', '&intent=faq', '&busqueda=no+puedo+responder'] as $filtro) {
+            $this->conversaciones('&etapa=interesado'.$filtro)->assertJsonPath('meta.total', 1)
+                ->assertJsonPath('data.conversaciones.0.total', 2)
+                ->assertJsonPath('data.conversaciones.0.etapas', ['interesado']);
+        }
+        $this->conversaciones('&etapa=interesado')->assertJsonPath('meta.total', 2);
+        $this->conversaciones('&etapa=reclamos&fuente=respaldo')->assertJsonPath('meta.total', 0);
+    }
+
+    public function test_la_etapa_respeta_el_periodo_y_el_origen(): void
+    {
+        // La etapa solo cuenta si ocurrió dentro del periodo y en el origen que se está mirando.
+        $this->fila('vieja', ['respuesta_bot' => 'Cursos y capacitaciones vigentes: X.'])->forceFill(['created_at' => now()->subDays(20)])->save();
+        $this->fila('vieja', ['respuesta_bot' => '¡Hola!']);
+        $this->fila('mixta', ['respuesta_bot' => 'Cursos y capacitaciones vigentes: Y.', 'canal' => 'admin']);
+        $this->fila('mixta', ['respuesta_bot' => '¡Hola!']);
+
+        $this->conversaciones('&etapa=interesado')->assertJsonPath('meta.total', 1);
+        $this->conversaciones('&etapa=interesado&dias=7')->assertJsonPath('meta.total', 0);
+        $this->conversaciones('&etapa=interesado&canal=admin')->assertJsonPath('meta.total', 1);
+    }
+
     public function test_un_bloqueo_de_privacidad_no_se_presenta_como_contingencia(): void
     {
         $bloqueo = ['respuesta_bot' => AsistenteVirtualService::RESPUESTA_PRIVACIDAD, 'fuente' => 'respaldo'];

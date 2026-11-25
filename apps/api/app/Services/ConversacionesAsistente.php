@@ -45,20 +45,24 @@ final class ConversacionesAsistente
             ? $q->where('canal', 'admin')
             : $q->where(fn (Builder $w) => $w->whereNull('canal')->orWhere('canal', 'web')));
 
-        $coinciden = $delCanal()
-            ->when($filtros['dias'] !== null, fn (Builder $q) => $q->where('created_at', '>=', now()->subDays((int) $filtros['dias'])))
+        $delPeriodo = static fn (): Builder => $delCanal()
+            ->when($filtros['dias'] !== null, fn (Builder $q) => $q->where('created_at', '>=', now()->subDays((int) $filtros['dias'])));
+
+        $coinciden = $delPeriodo()
             ->when($filtros['tema'] === self::TEMA_SIN_DATO, fn (Builder $q) => $q->whereIn('intent_detectado', IntencionesAsistente::SIN_DATO))
             ->when($filtros['tema'] !== '' && $filtros['tema'] !== self::TEMA_SIN_DATO, fn (Builder $q) => $q->where('intent_detectado', $filtros['tema']))
             ->when($filtros['fuente'] !== '', fn (Builder $q) => $q->where('fuente', $filtros['fuente']))
             ->when($conVoto && $filtros['voto'] !== '', fn (Builder $q) => $q->where('voto', $filtros['voto']));
+        // La etapa es de la conversación, no de una respuesta: la respuesta que la dio y la que cumple los demás filtros
+        // pueden ser distintas.
         if ($etapa !== '') {
-            SenalesAsistente::filtrar($coinciden, $etapa);
+            $coinciden->whereIn('session_id', SenalesAsistente::filtrar($delPeriodo(), $etapa)->select('session_id'));
         }
         if ($filtros['busqueda'] !== '') {
             BusquedaLike::contiene($coinciden, ['respuesta_bot'], $filtros['busqueda']);
         }
 
-        // Una conversación entra si alguno de sus intercambios coincide; después se muestra completa.
+        // Con los demás filtros, una conversación entra si alguno de sus intercambios coincide; después se muestra completa.
         $paginado = $coinciden->toBase()
             ->selectRaw('session_id, max(created_at) as ultima, max(id) as ultimo_id')
             ->groupBy('session_id')
