@@ -594,7 +594,7 @@
     {
       "query": "¿Hacen mantenimiento de computadoras?",
       "reply": {
-        "answer": "No tengo información confirmada sobre eso. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto. ¿Sobre cuál de estos temas necesitas información?",
+        "answer": "Esa consulta está fuera de lo que puedo responder con información verificada. Te puedo orientar sobre cursos y capacitaciones, asesoramiento, convenios, pagos y contacto. ¿Qué te interesa?",
         "intent": "out_of_scope",
         "match_level": "ninguna",
         "needs_clarification": false,

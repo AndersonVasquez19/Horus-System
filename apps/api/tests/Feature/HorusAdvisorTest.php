@@ -203,6 +203,57 @@ class HorusAdvisorTest extends TestCase
         }
     }
 
+    /**
+     * Cobertura para la sustentación (25/11/2026): identidad del asistente, fuera de tema con variantes, insultos, inglés,
+     * hora, pedido de ayuda y datos institucionales sin registro. Cada frase de Horus AI debe pasar la validación tal cual.
+     *
+     * @return iterable<string, array{string, string, bool}>
+     */
+    public static function frasesDeCoberturaAmpliada(): iterable
+    {
+        $temas = 'cursos y capacitaciones, asesoramiento, convenios, pagos y contacto';
+        yield 'ayuda 1' => ['¡Claro que sí! Cuéntame tu consulta. Puedo ayudarte con '.$temas.'.', 'acknowledgement', false];
+        yield 'ayuda 2' => ['Por supuesto, dime en qué te ayudo. Puedo ayudarte con '.$temas.'.', 'acknowledgement', false];
+        yield 'ayuda 3' => ['Con gusto. ¿Cuál es tu consulta? Puedo ayudarte con '.$temas.'.', 'acknowledgement', false];
+        yield 'insulto 1' => ['Lamento si algo no salió como esperabas. Estoy aquí para ayudarte con cursos, matrícula y atención de Horus Group; si prefieres, un asesor puede atenderte por WhatsApp.', 'acknowledgement', false];
+        yield 'insulto 2' => ['Entiendo tu molestia y quiero ayudarte. Dime qué necesitas sobre cursos, asesoramiento o matrícula, o pide hablar con un asesor y te indico cómo contactarlo.', 'acknowledgement', false];
+        yield 'hora 1' => ['No tengo acceso a la hora ni a la fecha actual. Si quieres saber cuándo atiende Horus Group, pregúntame por el horario de atención.', 'acknowledgement', false];
+        yield 'hora 2' => ['No puedo consultar la hora ni el calendario de hoy. Sí puedo ayudarte con cursos, horarios de atención y contacto de Horus Group.', 'acknowledgement', false];
+        yield 'ingles' => ['Hi! For now I can only answer in Spanish. Puedo ayudarte con '.$temas.' de Horus Group. ¿En qué te ayudo?', 'acknowledgement', false];
+        yield 'identidad' => ['Soy Horus, el asistente virtual de Horus Group. Soy un programa automático, no una persona: busco tu pregunta en la información oficial de Horus Group (cursos, capacitaciones, asesoramiento, convenios, pagos y contacto) y te respondo solo con lo que está verificado. No uso un modelo que invente respuestas: si no tengo un dato, te lo digo y te derivo a un asesor.', 'capabilities', false];
+        yield 'dato sin registro' => ['No tengo ese dato en la información oficial de Horus Group, así que prefiero no darte una respuesta inexacta. Un asesor puede confirmártelo por WhatsApp o en los canales de contacto.', 'unavailable_info', true];
+        yield 'fuera de tema 1' => ['No tengo información confirmada sobre eso. Puedo ayudarte con '.$temas.'. ¿Sobre cuál de estos temas necesitas información?', 'out_of_scope', true];
+        yield 'fuera de tema 2' => ['Esa consulta está fuera de lo que puedo responder con información verificada. Te puedo orientar sobre '.$temas.'. ¿Qué te interesa?', 'out_of_scope', true];
+        yield 'fuera de tema 3' => ['Prefiero no responder algo que no figure en la información oficial de Horus Group. Sí puedo ayudarte con '.$temas.'. ¿Por dónde empezamos?', 'out_of_scope', true];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('frasesDeCoberturaAmpliada')]
+    public function test_las_frases_de_cobertura_ampliada_pasan_la_validacion(string $frase, string $intent, bool $abstencion): void
+    {
+        $reply = [
+            'answer' => $frase, 'intent' => $intent, 'mode' => 'lexical', 'match_level' => $abstencion ? 'ninguna' : 'alta',
+            'abstained' => $abstencion, 'needs_clarification' => false, 'sources' => [], 'recommendations' => [],
+        ];
+        Http::fake(['*/ready' => Http::response($this->ready()), '*/api/v1/chat' => Http::response($reply)]);
+        $answer = app(AsistenteVirtualService::class)->procesarMensaje('una consulta', 'sess-cobertura', 'public:browser');
+        $this->assertSame('advisor', $answer['fuente'], $frase);
+        $this->assertSame($frase, $answer['respuesta']);
+    }
+
+    /** Lo que un jurado escribiría no debe confundirse con un dato personal: llega a Horus AI. */
+    public function test_las_preguntas_tipo_jurado_no_se_toman_por_datos_personales(): void
+    {
+        $filtro = app(\App\Support\FiltroPrivacidadChat::class);
+        foreach ([
+            'idiota', 'eres un inútil', 'qué bot tan malo', 'hello', 'What courses do you offer?', 'do you speak english?',
+            '¿Eres ChatGPT?', '¿Eres una IA?', '¿Qué modelo usas?', '¿Quién te creó?', 'me puedes ayudar', 'tengo una duda',
+            'bien y tú', '¿Qué hora es?', '¿En qué año se fundó Horus Group?', '¿Qué significa Horus?', '¿Cuánto es 2+2?',
+            'Cuéntame un chiste', '¿Cuál es la capital de Francia?', '¿Cuánto cuesta y cuándo empieza el curso de redes?',
+        ] as $mensaje) {
+            $this->assertNull($filtro->motivoBloqueo($mensaje), $mensaje);
+        }
+    }
+
     /** @return array<string, mixed> */
     private function respuestaDeCortesia(mixed $sugerencias): array
     {

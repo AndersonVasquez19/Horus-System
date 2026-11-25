@@ -159,7 +159,7 @@ def test_principiante_sin_tema_pregunta_el_area(engine: AdvisorEngine) -> None:
     assert reply.needs_clarification and reply.intent == "course_recommendation"
 
 
-@pytest.mark.parametrize("consulta", ["necesito ayuda", "tengo una duda", "dame información de eso"])
+@pytest.mark.parametrize("consulta", ["dame información de eso", "quisiera información sobre eso"])
 def test_pedido_generico_sin_contexto_pide_aclaracion(engine: AdvisorEngine, consulta: str) -> None:
     reply = engine.chat(consulta)
     assert reply.needs_clarification and reply.sources == []

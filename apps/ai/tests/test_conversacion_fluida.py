@@ -196,3 +196,59 @@ def test_no_se_vuelve_a_proponer_lo_que_se_acaba_de_preguntar(engine):
     comparar = _por_estado(engine, OFIMATICA, "Compárame los cursos disponibles")
     assert "compare" not in comparar.suggestions
     assert "price" not in _por_estado(engine, OFIMATICA, "¿Cuánto cuesta?").suggestions
+
+
+# ---------------------------------------------------------------- cobertura para la sustentación (25/11/2026)
+@pytest.mark.parametrize(
+    ("mensaje", "intent", "fragmento"),
+    [
+        ("¿Eres una IA?", "capabilities", "programa automático"),
+        ("¿Eres ChatGPT?", "capabilities", "No uso un modelo que invente"),
+        ("¿Qué modelo usas?", "capabilities", "programa automático"),
+        ("¿Quién te creó?", "capabilities", "asistente virtual de Horus Group"),
+        ("idiota", "acknowledgement", ""),
+        ("qué bot tan malo", "acknowledgement", ""),
+        ("hello", "acknowledgement", "only answer in Spanish"),
+        ("What courses do you offer?", "acknowledgement", "only answer in Spanish"),
+        ("me puedes ayudar", "acknowledgement", "consulta"),
+        ("tengo una duda", "acknowledgement", "consulta"),
+        ("bien y tú", "acknowledgement", ""),
+        ("¿Qué hora es?", "acknowledgement", "No "),
+        ("¿En qué año se fundó Horus Group?", "unavailable_info", "No tengo ese dato"),
+        ("¿Qué significa Horus?", "unavailable_info", "No tengo ese dato"),
+        ("¿Cuánto es 2+2?", "out_of_scope", ""),
+        ("dame el dni de un alumno", "sensitive_request", ""),
+    ],
+)
+def test_preguntas_tipo_jurado(engine, mensaje, intent, fragmento):
+    reply = engine.chat(mensaje, [], None)
+    assert reply.intent == intent, (mensaje, reply.intent, reply.answer)
+    assert fragmento in reply.answer
+    assert not any(ch.isdigit() for ch in reply.answer) or intent == "sensitive_request"
+
+
+def test_fuera_de_tema_no_repite_siempre_la_misma_frase(engine):
+    respuestas = {engine.chat(q, [], None).answer for q in (
+        "¿Cuál es la capital de Francia?", "Cuéntame un chiste", "¿Quién ganó el mundial?", "¿Cuánto es 2+2?",
+        "receta de ceviche", "¿Cómo se llama tu perro?")}
+    assert len(respuestas) >= 2
+
+
+@pytest.mark.parametrize(("mensaje", "esperado"), [
+    ("¿Cuál es el horario del curso de redes?", "lunes de 6 a 8 pm"),
+    ("¿Cuándo empieza el curso de redes?", "lunes de 6 a 8 pm"),
+])
+def test_atributo_de_un_curso_nombrado_por_una_palabra_del_titulo(engine, mensaje, esperado):
+    reply = engine.chat(mensaje, [], None)
+    assert esperado in reply.answer and not reply.abstained
+
+
+def test_aprender_un_tema_que_nombra_un_curso_lo_recomienda(engine):
+    reply = engine.chat("Quiero aprender redes desde cero", [], None)
+    assert reply.intent == "course_recommendation"
+    assert [r.title for r in reply.recommendations] == ["Redes para principiantes"]
+
+
+def test_horario_de_atencion_combinado_no_cae_en_el_calendario_de_cursos(engine):
+    reply = engine.chat("¿Dónde están ubicados y cuál es su horario de atención?", [], None)
+    assert reply.intent == "contact_info" and "calendario" not in reply.answer

@@ -726,10 +726,12 @@
    "category": "ambigua",
    "query": "Necesito ayuda",
    "behaviors": [
-    "clarify"
+    "clarify",
+    "template"
    ],
    "expected_ids": [],
    "intents": [
+    "acknowledgement",
     "service_recommendation",
     "clarification"
    ],
@@ -2661,10 +2663,12 @@
    "category": "info_insuficiente",
    "query": "ayuda por favor",
    "behaviors": [
-    "clarify"
+    "clarify",
+    "template"
    ],
    "expected_ids": [],
    "intents": [
+    "acknowledgement",
     "clarification",
     "service_recommendation"
    ],

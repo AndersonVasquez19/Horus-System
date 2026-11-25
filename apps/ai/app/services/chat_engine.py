@@ -289,6 +289,26 @@ class AdvisorEngine:
             return self._reply(answer=template.response, intent=template.name, match_level="alta")
         return None
 
+    def _about(self, text: str) -> AdvisorReply | None:
+        """Preguntas sobre el propio asistente, operaciones aritméticas y datos institucionales no publicados.
+
+        Van antes de la búsqueda: «¿quién te creó?» no debe responder con los canales de contacto, «¿cuánto es 2+2?» no
+        es una consulta de precios y «¿en qué año se fundó?» no tiene registro publicado (se dice con honestidad).
+        """
+        if glue.is_identity_question(text):
+            return self._reply(answer=glue.IDENTITY_REPLY, intent="capabilities", match_level="alta")
+        if glue.is_math(text):
+            return self._off_topic(text)
+        if glue.is_unpublished_fact(text):
+            return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
+                               abstained=True)
+        return None
+
+    def _off_topic(self, seed: str) -> AdvisorReply:
+        """Fuera de lo publicado: tres variantes estables para no repetir la misma frase palabra por palabra."""
+        answer = glue.variant(glue.OFF_TOPIC_REPLY, seed).format(topics=FALLBACK_TOPICS)
+        return self._reply(answer=answer, intent="out_of_scope", match_level="ninguna", abstained=True)
+
     # ------------------------------------------------------------------ pegamento conversacional
     def _courtesy(self, options: tuple[str, ...], message: str) -> AdvisorReply:
         """Frase de cortesía con variante estable: sin fuentes, cifras ni enlaces (Laravel la valida como cortesía)."""
@@ -310,11 +330,19 @@ class AdvisorEngine:
             return None, message  # consulta normal: sin coste añadido
         has_context = bool(users) or prior is not None
         focus: list[KnowledgeRecord] = []
-        if has_context and kind not in {"empty", "laugh", "howareyou", "sorry", "no"}:
+        if has_context and kind not in {"empty", "laugh", "howareyou", "sorry", "no", "help", "rude", "time", "english"}:
             focus = list(prior.focus) if prior is not None else self._focus(users)
 
         if kind == "empty":
             return self._courtesy(glue.EMPTY_REPLY, message), message
+        if kind == "help":
+            return self._courtesy(glue.HELP_REPLY, message), message
+        if kind == "rude":
+            return self._courtesy(glue.RUDE_REPLY, message), message
+        if kind == "time":
+            return self._courtesy(glue.TIME_REPLY, message), message
+        if kind == "english":
+            return self._courtesy(glue.ENGLISH_REPLY, message), message
         if kind == "laugh":
             return self._courtesy(glue.LAUGH_REPLY, message), message
         if kind == "howareyou":
@@ -367,15 +395,7 @@ class AdvisorEngine:
     # ------------------------------------------------------------------ búsqueda
     def _answer_from_hits(self, hits: list[Hit], query_terms: set[str]) -> AdvisorReply:
         if not hits or hits[0].score < CLARIFY_THRESHOLD:
-            return self._reply(
-                answer=(
-                    "No tengo información confirmada sobre eso. Puedo ayudarte con "
-                    f"{FALLBACK_TOPICS}. ¿Sobre cuál de estos temas necesitas información?"
-                ),
-                intent="out_of_scope",
-                match_level="ninguna",
-                abstained=True,
-            )
+            return self._off_topic(" ".join(sorted(query_terms)))
         top = hits[0]
         second = hits[1] if len(hits) > 1 else None
 
@@ -670,8 +690,20 @@ class AdvisorEngine:
             sources=[self._source(rec)],
         )
 
+    def _course_by_title(self, message: str, ignore: set[str]) -> KnowledgeRecord | None:
+        """Curso publicado cuyo título comparte una palabra propia con la consulta, solo si es uno y sin ambigüedad."""
+        generic = {"curso", "cursos", "capacitacion", "capacitaciones", "taller", "programa", "clase", "clases", "horario",
+                   "horarios", "empieza", "inicia", "dura", "duracion", "cuesta", "precio", "modalidad", "certificado"}
+        asked = set(content_tokens(message)) - ignore - generic
+        if not asked or self.kb.catalog is None or self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
+            return None
+        found = [r for r in self.kb.records
+                 if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
+                 and asked & set(content_tokens(r.title))]
+        return found[0] if len(found) == 1 else None
+
     def _unavailable_attribute(
-        self, attrs: list[str], u: Understanding, hits: list[Hit], current: Profile
+        self, attrs: list[str], u: Understanding, hits: list[Hit], current: Profile, message: str = ""
     ) -> AdvisorReply | None:
         top = hits[0] if hits else None
         if (
@@ -685,7 +717,11 @@ class AdvisorEngine:
             t for a in attrs for p in self.kb.intents.attribute_lexicon.get(a, []) for t in content_tokens(p)
         }
         ranked = self.recommender.rank(current, goal="unknown")
-        subject = ranked[0].record if ranked else self._confirmed_subject(hits, attr_terms)
+        # «¿Cuál es el horario del curso de redes?»: el título publicado nombra el curso aunque la búsqueda priorice la
+        # ficha genérica de «sin calendario»; va antes que una coincidencia parcial con otra ficha.
+        subject = (ranked[0].record if ranked else None) or (self._course_by_title(message, attr_terms) if message else None)
+        if subject is None:
+            subject = self._confirmed_subject(hits, attr_terms)
         if subject is not None:
             lines = [self._attribute_line(subject, a, u) for a in u.attributes]
             if any(ok for _, ok in lines):  # responde lo publicado (p. ej. horario) y aclara lo faltante (p. ej. precio)
@@ -984,7 +1020,7 @@ class AdvisorEngine:
         users = [h.content for h in history if h.role == "user"][-MAX_CONTEXT_TURNS:]
         # El historial, si llega, manda; el estado estructurado lo sustituye cuando el cliente no guarda texto.
         prior = self._prior(state) if depth == 0 and not users else None
-        early = self._safety(message) or self._rules(message)
+        early = self._safety(message) or self._about(message) or self._rules(message)
         if early is None:
             # También en los turnos que se reconstruyen desde el historial: así «el primero» deja el mismo foco
             # con el historial que con el estado.
@@ -1133,7 +1169,7 @@ class AdvisorEngine:
                     return self._reply(answer=line, intent=CATEGORY_INTENTS[hits[0].record.category],
                         match_level=_retrieval_level(hits[0].score), sources=[self._source(hits[0].record)])
                 return self._answer_from_hits(hits, terms)
-            reply = self._unavailable_attribute(unavailable, u, hits, current)
+            reply = self._unavailable_attribute(unavailable, u, hits, current, corrected)
             if reply is not None:
                 return reply
 
@@ -1225,7 +1261,8 @@ class AdvisorEngine:
                     and not any(h.record.source.kind == "catalogo_laravel" and h.record.kind == "course"
                         and h.record.status == "verified" and h.score >= ANSWER_THRESHOLD for h in relevant)):
                     return self._unpublished_topic("learn", corrected)
-                return (self._multi_recommend(corrected) or self._catalog_recommend(relevant, current)
+                return (self._multi_recommend(corrected)
+                        or self._catalog_recommend(relevant, current, by_title=plan.goal == "learn" and not u.attributes)
                         or self._clarify(relevant))
 
         cue = has_recommendation_cue(corrected, self.kb)
@@ -1483,7 +1520,7 @@ class AdvisorEngine:
         return ("La lista de cursos se está actualizando en este momento, así que no puedo confirmarte cuáles están abiertos. "
                 f"Un asesor puede indicarte la oferta actual al {self.contact.phone} o en {self.contact.email}.")
 
-    def _catalog_recommend(self, hits: list[Hit], profile: Profile) -> AdvisorReply | None:
+    def _catalog_recommend(self, hits: list[Hit], profile: Profile, by_title: bool = False) -> AdvisorReply | None:
         candidates = []
         for hit in hits:
             record = hit.record
@@ -1497,6 +1534,15 @@ class AdvisorEngine:
         if (len(candidates) > 1 and candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN
             and not set(content_tokens(candidates[0].record.title)) <= set(content_tokens(profile.text))):
             return None
+        title_match = False
+        if not candidates and by_title:
+            # «Quiero aprender redes desde cero»: el título de un curso publicado coincide aunque la puntuación léxica
+            # sea baja; se recomienda ese curso (único) con nivel medio, nunca uno inventado.
+            named = self._course_by_title(profile.text, set())
+            candidates = [h for h in hits if named is not None and h.record.id == named.id and named.kind == "course"][:1]
+            if candidates and (profile.modality != "cualquiera" and profile.modality not in candidates[0].record.modalities):
+                candidates = []
+            title_match = bool(candidates)
         if not candidates:
             return None
         hit = candidates[0]
@@ -1512,6 +1558,6 @@ class AdvisorEngine:
                         "¿Quieres que te cuente de alguno?")
         return self._reply(answer=hit.fragment.answer if hit.fragment else record.answer,
             intent="course_recommendation" if record.kind == "course" else "service_recommendation",
-            match_level=_retrieval_level(hit.score), sources=[self._source(h.record) for h in chosen],
+            match_level="media" if title_match else _retrieval_level(hit.score), sources=[self._source(h.record) for h in chosen],
             recommendations=[self._recommendation(h) for h in chosen],
             needs_clarification=bool(others), clarification_question=question)

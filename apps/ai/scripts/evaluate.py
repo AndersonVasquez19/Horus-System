@@ -49,7 +49,7 @@ from scripts.sysinfo import process_memory_mb  # noqa: E402
 _NUMBER = re.compile(r"\d+")
 _ENUMERATION = re.compile(r"(?m)^\d+\.\s")  # "1. Opción" no es una cifra
 REFUSAL_INTENTS = {"prompt_injection", "sensitive_request"}
-TEMPLATE_INTENTS = {"greeting", "thanks", "farewell", "capabilities"}
+TEMPLATE_INTENTS = {"greeting", "thanks", "farewell", "capabilities", "acknowledgement"}
 
 
 def build_engine(mode: str, settings: Settings) -> tuple[AdvisorEngine, float | None]:

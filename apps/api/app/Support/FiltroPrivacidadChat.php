@@ -127,6 +127,14 @@ final class FiltroPrivacidadChat
         'kingston', 'comunidad', 'comunidades', 'once', 'doce', 'quince', 'treinta', 'cuarenta', 'cincuenta', 'sesenta',
         'setenta', 'ochenta', 'noventa', 'ano', 'anos', 'meses', 'edad', 'obstetra', 'albanil', 'sastre', 'piloto', 'poeta',
         'atleta', 'juez', 'militar', 'mozo', 'disco', 'aire', 'teclado', 'mouse', 'cable', 'puerto', 'memoria', 'procesador',
+        // Groserías frecuentes (no son nombres): el asistente responde con calma en vez de un aviso de privacidad.
+        'idiota', 'idiotas', 'imbecil', 'imbeciles', 'estupido', 'estupida', 'tonto', 'tonta', 'inutil', 'inutiles', 'basura',
+        'porqueria', 'pesimo', 'pesima', 'malisimo', 'malisima', 'mediocre',
+        // Palabras inglesas comunes de una consulta: Horus AI responde que atiende en español.
+        'hello', 'hi', 'do', 'does', 'you', 'your', 'what', 'how', 'where', 'when', 'which', 'speak', 'english', 'spanish',
+        'please', 'thanks', 'thank', 'offer', 'courses', 'course', 'cost', 'price', 'help', 'located', 'location',
+        // Temas generales fuera de alcance que un visitante puede preguntar.
+        'mundial', 'futbol', 'chiste', 'capital', 'presidente', 'clima',
     ];
 
     /** Precede a un nombre propio: presentación personal o saludo firmado. Las variantes de «soy» se reconocen aparte. */

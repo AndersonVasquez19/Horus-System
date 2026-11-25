@@ -66,7 +66,7 @@ _INJECTION_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(p)
     for p in (
-        r"\b(datos|lista|listado|nombres|correos|telefonos|dni|notas)\b.{0,30}\b(estudiantes|alumnos|matriculados|inscritos|participantes|clientes|usuarios)\b",
+        r"\b(datos|lista|listado|nombres|correos|telefonos|dni|notas)\b.{0,30}\b(estudiantes?|alumnos?|alumnas?|matriculad[oa]s?|inscrit[oa]s?|participantes?|clientes?|usuarios?)\b",
         r"\b(acceso de administrador|acceso de admin|acceso al panel|cuenta de administrador)\b",
         r"\b(base de datos|postgres|postgresql|tabla de matriculas|panel administrativo|panel de admin)\b",
         r"\b(contrase[nñ]a|password|clave de acceso)\b.{0,30}\b(de|del|admin|administrador|usuario)\b",

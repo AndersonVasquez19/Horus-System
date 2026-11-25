@@ -45,6 +45,9 @@ class Understanding:
         return bool(self.attributes)
 
 
+ATTENTION_HOURS = re.compile(r"\batencion\b|\batiend(?:en|e)\b|\ba que hora (?:abren|cierran)\b|\bhasta que hora\b")
+
+
 def _any(normalized: str, phrases: list[str] | tuple[str, ...]) -> bool:
     return any(contains_phrase(normalized, p) for p in phrases)
 
@@ -54,6 +57,9 @@ def understand(text: str, kb: KnowledgeBase) -> Understanding:
     normalized = normalize(text)
     tokens = tokenize(text)
     attributes = tuple(name for name, phrases in rules.attribute_lexicon.items() if _any(normalized, phrases))
+    if "fechas" in attributes and ATTENTION_HOURS.search(normalized):
+        # «horario de atención», «a qué hora atienden»: es el horario de la sede, no el de un curso.
+        attributes = tuple(a for a in attributes if a != "fechas")
     starts_with_y = bool(re.match(r"^(y|e)\s", normalized))
     referential = _any(normalized, rules.reference_markers) or (starts_with_y and len(tokens) <= 9)
     private_quote = _any(normalized, rules.quote.private_patterns)
