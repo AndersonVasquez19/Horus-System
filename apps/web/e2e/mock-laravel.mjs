@@ -145,12 +145,13 @@ const CONVERSACIONES_ASISTENTE = [
     intercambios: [
       intercambio(1, 'training_info', 'Cursos y capacitaciones vigentes: Comunicacion; Matemática; Ciencias Sociales.', { voto: 'up' }),
       intercambio(2, 'followup_attribute', MENSAJE_LARGO),
+      intercambio(5, 'enrollment_request', 'Escríbenos: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar.'),
     ],
   },
   {
     clave: 2, visitante: 'B21C', probador: false, ultima_local: '25/11/2026 07:43', total: 2,
     temas: [], utiles: 0, no_utiles: 1,
-    etapas: ['reclamos'], contingencia: true, vista_previa: 'Ahora mismo no puedo responder esa consulta.',
+    etapas: ['reclamos'], privacidad: true, contingencia: true, vista_previa: 'Ahora mismo no puedo responder esa consulta.',
     intercambios: [
       intercambio(3, null, 'Parece que incluiste un nombre o dato personal.', { privacidad: true, contingencia: true }),
       intercambio(4, null, 'Ahora mismo no puedo responder esa consulta.', { contingencia: true, voto: 'down' }),

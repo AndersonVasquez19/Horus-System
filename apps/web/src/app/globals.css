@@ -736,6 +736,13 @@ body {
   background: var(--hc-blue);
 }
 
+.hc-rich-number {
+  flex: none;
+  min-width: 16px;
+  font-weight: 700;
+  color: var(--hc-blue);
+}
+
 .hc-badge-course {
   font-weight: 700;
   color: #142e52;

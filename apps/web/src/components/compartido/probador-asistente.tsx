@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent 
 import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import { Alerta } from '@/components/shared/ui/alerta';
 import { Boton } from '@/components/shared/ui/boton';
+import { ocultarEnlaceWhatsapp } from '@/lib/chat-whatsapp';
 
 interface Turno {
   id: number;
@@ -125,7 +126,7 @@ export function ProbadorAsistente() {
               } ${turno.fallido ? 'opacity-70 ring-2 ring-estado-error' : ''}`}
             >
               <span className="sr-only">{turno.autor === 'persona' ? 'Tú: ' : 'Asistente: '}</span>
-              {turno.texto}
+              {turno.autor === 'asistente' ? ocultarEnlaceWhatsapp(turno.texto) : turno.texto}
             </p>
             {turno.fallido ? (
               <div className="flex items-center gap-2 text-sm text-estado-error">

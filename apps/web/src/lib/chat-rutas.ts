@@ -4,6 +4,7 @@
  * blanca: ni el texto del modelo ni el navegador pueden introducir destinos nuevos.
  */
 
+import { urlWhatsappChat, WHATSAPP_BASE } from '@/lib/chat-whatsapp';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 const RUTAS_NEXT: Record<string, string> = {
@@ -49,8 +50,6 @@ const ETIQUETAS: Record<string, string> = {
   '/quienes-somos': 'Quiénes somos',
 };
 
-const WHATSAPP = 'https://wa.me/51972021374';
-
 export interface EnlaceChat {
   url: string;
   label: string;
@@ -71,9 +70,10 @@ export function rutaPermitida(ruta: unknown): string | null {
 
 /**
  * Botones de la respuesta: las secciones del sitio vienen de datos estructurados validados en el servidor (nunca de rutas
- * escritas en el texto) y el de WhatsApp aparece si la respuesta menciona el canal oficial.
+ * escritas en el texto) y el de WhatsApp aparece si la respuesta menciona el canal oficial, con un mensaje ya escrito
+ * según la respuesta y, si lo hay, el curso consultado.
  */
-export function enlacesDeRespuesta(texto: string, rutas: readonly unknown[] = []): EnlaceChat[] {
+export function enlacesDeRespuesta(texto: string, rutas: readonly unknown[] = [], curso: string | null = null): EnlaceChat[] {
   const enlaces: EnlaceChat[] = [];
   const vistas = new Set<string>();
   for (const ruta of rutas.slice(0, 3)) {
@@ -82,8 +82,11 @@ export function enlacesDeRespuesta(texto: string, rutas: readonly unknown[] = []
     vistas.add(url);
     enlaces.push({ url, label: ETIQUETAS[url] ?? 'Ver más información', whatsapp: false });
   }
-  if (/(?:^|[^\d+])\+51[\s-]*972[\s-]*021[\s-]*374(?!\d)/.test(texto) || texto.includes(WHATSAPP)) {
-    enlaces.push({ url: WHATSAPP, label: 'Contactar por WhatsApp', whatsapp: true });
+  if (/(?:^|[^\d+])\+51[\s-]*972[\s-]*021[\s-]*374(?!\d)/.test(texto) || texto.includes(WHATSAPP_BASE)) {
+    const url = urlWhatsappChat(texto, curso);
+    // El nombre del curso va en el botón solo si también va en el mensaje (en un reclamo, no).
+    const conCurso = curso !== null && url !== urlWhatsappChat(texto, null);
+    enlaces.push({ url, label: conCurso ? `Consultar «${curso}» por WhatsApp` : 'Contactar por WhatsApp', whatsapp: true });
   }
   return enlaces;
 }

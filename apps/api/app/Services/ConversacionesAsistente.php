@@ -92,8 +92,10 @@ final class ConversacionesAsistente
                 'total' => $propias->count(),
                 'temas' => $temas,
                 'etapas' => SenalesAsistente::deConversacion($propias),
-                'contingencia' => $propias->contains(static fn (ChatLog $fila): bool => $fila->getAttribute('fuente') === 'respaldo'),
-                'vista_previa' => Str::limit(Str::squish(Entrada::texto($ultima->getAttribute('respuesta_bot'))), 160, '…'),
+                // Un bloqueo por privacidad es una protección, no una falla: se anota aparte de la contingencia.
+                'privacidad' => $propias->contains(fn (ChatLog $fila): bool => $this->esBloqueo($fila)),
+                'contingencia' => $propias->contains(fn (ChatLog $fila): bool => $fila->getAttribute('fuente') === 'respaldo' && ! $this->esBloqueo($fila)),
+                'vista_previa' => $this->vistaPrevia(Entrada::texto($ultima->getAttribute('respuesta_bot'))),
                 'utiles' => $conVoto ? $propias->where('voto', 'up')->count() : 0,
                 'no_utiles' => $conVoto ? $propias->where('voto', 'down')->count() : 0,
                 'intercambios' => $propias->slice(-self::MAX_INTERCAMBIOS)->map(fn (ChatLog $fila): array => $this->intercambio($fila))->values()->all(),
@@ -120,6 +122,19 @@ final class ConversacionesAsistente
         return $temas;
     }
 
+    private function esBloqueo(ChatLog $fila): bool
+    {
+        return $fila->getAttribute('respuesta_bot') === AsistenteVirtualService::RESPUESTA_PRIVACIDAD;
+    }
+
+    /** Comienzo de una respuesta en una línea; el enlace de WhatsApp, largo e ilegible, se resume antes de recortar. */
+    private function vistaPrevia(string $respuesta): string
+    {
+        $texto = preg_replace('~https://wa\.me/\S*[^\s.,;:)]~u', 'enlace de WhatsApp', $respuesta) ?? $respuesta;
+
+        return Str::limit(Str::squish($texto), 160, '…');
+    }
+
     /** @return array<string, mixed> */
     private function intercambio(ChatLog $fila): array
     {
@@ -132,7 +147,7 @@ final class ConversacionesAsistente
             'hora_local' => HoraLocal::formato($fila->created_at, 'd/m H:i'),
             'tema' => $tema === '' ? null : $tema,
             'respuesta' => $respuesta,
-            'privacidad' => $respuesta === AsistenteVirtualService::RESPUESTA_PRIVACIDAD,
+            'privacidad' => $this->esBloqueo($fila),
             'contingencia' => $fila->getAttribute('fuente') === 'respaldo',
             'voto' => in_array($voto, ['up', 'down'], true) ? $voto : null,
         ];

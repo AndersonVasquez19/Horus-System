@@ -140,6 +140,31 @@ final class AsistentePanelTest extends PanelApiTestCase
         $this->conversaciones('&etapa=inventada')->assertJsonPath('meta.total', 3);
     }
 
+    public function test_un_bloqueo_de_privacidad_no_se_presenta_como_contingencia(): void
+    {
+        $bloqueo = ['respuesta_bot' => AsistenteVirtualService::RESPUESTA_PRIVACIDAD, 'fuente' => 'respaldo'];
+        $this->fila('ambas', $bloqueo)->forceFill(['created_at' => now()->subHour()])->save();
+        $this->fila('ambas', ['respuesta_bot' => 'Contingencia', 'fuente' => 'respaldo']);
+        $this->fila('bloqueada', $bloqueo)->forceFill(['created_at' => now()->subMinutes(5)])->save();
+
+        $this->conversaciones()
+            ->assertJsonPath('data.conversaciones.0.privacidad', true)
+            ->assertJsonPath('data.conversaciones.0.contingencia', true)
+            ->assertJsonPath('data.conversaciones.1.privacidad', true)
+            ->assertJsonPath('data.conversaciones.1.contingencia', false);
+        // El filtro «Contingencia o privacidad» sigue trayendo ambas.
+        $this->conversaciones('&fuente=respaldo')->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_la_vista_previa_acorta_el_enlace_de_whatsapp(): void
+    {
+        $this->fila('enlace', ['respuesta_bot' => 'Escríbenos: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar. Luego te respondemos.']);
+
+        $this->conversaciones()->assertJsonPath('data.conversaciones.0.vista_previa', 'Escríbenos: enlace de WhatsApp. Luego te respondemos.')
+            // La conversación completa conserva la respuesta tal como se envió.
+            ->assertJsonPath('data.conversaciones.0.intercambios.0.respuesta', 'Escríbenos: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar. Luego te respondemos.');
+    }
+
     public function test_el_probador_se_oculta_salvo_que_se_pida_y_el_periodo_acota(): void
     {
         $this->fila('web');

@@ -2,6 +2,7 @@ import { ChevronRight, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { ETAPAS, etiquetaTema } from '@/components/compartido/temas-asistente';
 import { Insignia } from '@/components/shared/ui/insignia';
 import { TextoPlegable } from '@/components/shared/ui/texto-plegable';
+import { ocultarEnlaceWhatsapp } from '@/lib/chat-whatsapp';
 
 export interface Intercambio {
   id: number;
@@ -22,6 +23,8 @@ export interface Conversacion {
   total: number;
   temas: string[];
   etapas: string[];
+  /** Hubo un bloqueo por datos personales; `contingencia` ya no lo incluye. */
+  privacidad?: boolean;
   contingencia: boolean;
   /** Comienzo de la última respuesta: dice de qué trató sin abrir la conversación. */
   vista_previa: string;
@@ -76,6 +79,7 @@ export function ConversacionesAsistente({ conversaciones }: { conversaciones: Co
                     {conversacion.etapas.map((etapa) =>
                       ETAPAS[etapa] ? <Insignia key={etapa} color={ETAPAS[etapa].color}>{ETAPAS[etapa].etiqueta}</Insignia> : null,
                     )}
+                    {conversacion.privacidad ? <Insignia color="gris">Privacidad</Insignia> : null}
                     {conversacion.contingencia ? <Insignia color="ambar">Contingencia</Insignia> : null}
                     <Votos utiles={conversacion.utiles} noUtiles={conversacion.no_utiles} />
                   </div>
@@ -108,7 +112,7 @@ export function ConversacionesAsistente({ conversaciones }: { conversaciones: Co
                       <div className="mt-1.5 flex items-end gap-2">
                         <div className="min-w-0 max-w-2xl break-words rounded-2xl rounded-tl-sm border border-panel-border bg-panel-surface px-4 py-2.5 text-sm text-panel-text">
                           <span className="sr-only">Horus respondió: </span>
-                          <TextoPlegable texto={intercambio.respuesta} limite={320} />
+                          <TextoPlegable texto={ocultarEnlaceWhatsapp(intercambio.respuesta)} limite={320} />
                         </div>
                         {intercambio.voto === 'up' ? <Insignia color="verde">Útil</Insignia> : null}
                         {intercambio.voto === 'down' ? <Insignia color="ambar">No útil</Insignia> : null}

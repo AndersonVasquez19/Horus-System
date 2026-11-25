@@ -27,6 +27,7 @@ import { RobotMascot } from './robot-mascot';
 import { enlacesDeRespuesta, rutaNext, type EnlaceChat } from '@/lib/chat-rutas';
 import { armarMenuOrientador, cursosValidos } from '@/lib/chat-orientador';
 import { restaurarRespuestasRapidas, separarEtiquetas } from '@/lib/chat-formato';
+import { urlWhatsappChat } from '@/lib/chat-whatsapp';
 import { botonesDeSugerencias, sanearSugerencias } from '@/lib/chat-sugerencias';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
@@ -56,7 +57,8 @@ const MAX_MENSAJE = 2000;
 // mirando «Buscando…» medio minuto. Agotado el tiempo no se reintenta (la espera total sería el doble).
 const TIMEOUT_MS = 12_000;
 const ESPERA_REINTENTO_MS = 1200;
-const CONTACTO_WHATSAPP: ChatLink = { url: 'https://wa.me/51972021374', label: 'Contactar por WhatsApp', whatsapp: true };
+/** Botón de los mensajes propios del chat (menú, error o 👎): lleva el mensaje general. */
+const CONTACTO_WHATSAPP: ChatLink = { url: urlWhatsappChat('', null), label: 'Contactar por WhatsApp', whatsapp: true };
 
 const MENSAJE_NO_DISPONIBLE =
   'El asistente no está disponible en este momento. Puedes intentarlo de nuevo en unos minutos o escribirnos por WhatsApp.';
@@ -146,7 +148,9 @@ function restaurarMensajes(valor: unknown): Message[] {
     const mensaje: Message = { id: c.id.slice(0, 64), role: c.role, text: c.text.slice(0, 6000) };
     if (c.role === 'bot') {
       const guardadas = Array.isArray(c.links) ? c.links.map((l) => (l as Record<string, unknown> | null)?.url) : [];
-      const enlaces = enlacesDeRespuesta(mensaje.text, guardadas);
+      const curso = typeof c.curso === 'string' && c.curso.trim() !== '' ? c.curso.slice(0, 120) : null;
+      if (curso !== null) mensaje.curso = curso;
+      const enlaces = enlacesDeRespuesta(mensaje.text, guardadas, curso);
       if (enlaces.length > 0) mensaje.links = enlaces;
       if (Array.isArray(c.cards)) {
         const tarjetas: ChatCard[] = [];
@@ -185,6 +189,8 @@ interface Message {
   /** Consulta que falló y que la persona puede reintentar. */
   retry?: string;
   voto?: ReferenciaVoto;
+  /** Curso consultado en esta respuesta: se conserva para el mensaje de WhatsApp al restaurar la pestaña. */
+  curso?: string;
 }
 
 const INITIAL_MESSAGE: Message = {
@@ -257,11 +263,12 @@ function renderMessageContent(text: string, role: 'user' | 'bot', tieneBotonWhat
         const esItem =
           /^(?:\d+[.)]\s+|[-•]\s+|«[^»]+»:)/.test(linea) ||
           (lineas.length >= 2 && /\b(?:Modalidad|Horario):/.test(linea));
+        const numero = /^(\d+)[.)]\s+/.exec(linea)?.[1];
         const limpia = linea.replace(/^(?:\d+[.)]\s+|[-•]\s+)/, '');
         if (esItem) {
           return (
             <div key={idx} className="hc-rich-item">
-              <span className="hc-rich-bullet" aria-hidden="true" />
+              {numero ? <span className="hc-rich-number">{numero}.</span> : <span className="hc-rich-bullet" aria-hidden="true" />}
               <div>{formatearLineaConBadges(limpia)}</div>
             </div>
           );
@@ -521,23 +528,14 @@ export function ChatWidget() {
       (resultado.data.tarjetas && resultado.data.tarjetas.length === 1 && resultado.data.tarjetas[0].tipo === 'curso'
         ? resultado.data.tarjetas[0].titulo
         : null);
-    const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces).map((enlace) => {
-      if (enlace.whatsapp && cursoContexto) {
-        const textoWa = `Hola Horus Group, consulté en el asistente web por el curso «${cursoContexto}» y deseo más información para matricularme.`;
-        return {
-          ...enlace,
-          url: `https://wa.me/51972021374?text=${encodeURIComponent(textoWa)}`,
-          label: `Consultar «${cursoContexto}» por WhatsApp`,
-        };
-      }
-      return enlace;
-    });
+    const enlaces = enlacesDeRespuesta(resultado.data.respuesta, resultado.data.enlaces, cursoContexto);
     const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
     const referencia = restaurarReferencia({ referencia: resultado.data.respuesta_id, sesion: sessionIdRef.current });
     return {
       id: idMensaje('bot'),
       role: 'bot',
       voto: referencia ?? undefined,
+      curso: cursoContexto ?? undefined,
       text: resultado.data.respuesta,
       cards: resultado.data.tarjetas,
       links: enlaces.length > 0 ? enlaces : undefined,

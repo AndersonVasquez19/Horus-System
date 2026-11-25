@@ -123,7 +123,8 @@ function Conversaciones({ datos, meta, parametros }: { datos: Datos; meta?: Meta
   const etapas = Object.fromEntries(
     Object.entries(ETAPAS)
       .filter(([clave]) => clave !== 'whatsapp' || datos.con_whatsapp)
-      .map(([clave, etapa]) => [clave, etapa.etiqueta]),
+      // El filtro «Interesado» trae también a quien quiere matricularse, aunque su tarjeta no repita la etiqueta.
+      .map(([clave, etapa]) => [clave, clave === 'interesado' ? `${etapa.etiqueta} (incluye matrícula)` : etapa.etiqueta]),
   );
   const rutaLimpia = `${RUTA}?vista=conversaciones`;
 

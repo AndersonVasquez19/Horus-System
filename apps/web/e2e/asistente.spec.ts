@@ -121,7 +121,10 @@ test.describe('Resumen y conversaciones del asistente', () => {
     await expect(cabecera.getByText('Quiere matricularse')).toBeVisible();
     await expect(cabecera.getByText('Abrió WhatsApp')).toBeVisible();
     await expect(cabecera.getByText(/Para matricularte sigue estos pasos/)).toBeVisible();
-    await expect(page.locator('summary').filter({ hasText: 'Visitante B21C' }).getByText('Contingencia', { exact: true })).toBeVisible();
+    const otra = page.locator('summary').filter({ hasText: 'Visitante B21C' });
+    await expect(otra.getByText('Contingencia', { exact: true })).toBeVisible();
+    await expect(otra.getByText('Privacidad', { exact: true })).toBeVisible();
+    await expect(page.locator('select[name="etapa"] option[value="interesado"]')).toHaveText('Interesado (incluye matrícula)');
   });
 
   test('cada conversación se abre como un chat, sin repetir el texto omitido', async ({ page }, info) => {
@@ -133,6 +136,8 @@ test.describe('Resumen y conversaciones del asistente', () => {
     await tarjeta.getByRole('heading', { name: 'Visitante 7F3A' }).click();
     await expect(tarjeta.getByText('Visitante preguntó sobre: Cursos y capacitaciones')).toBeVisible();
     await expect(tarjeta.getByText('Ver completo')).toBeVisible();
+    await expect(tarjeta.getByText('Escríbenos: enlace de WhatsApp.')).toBeVisible();
+    await expect(tarjeta.getByText(/wa\.me/)).toHaveCount(0);
 
     const bloqueada = page.locator('details').filter({ has: page.getByRole('heading', { name: 'Visitante B21C' }) });
     await bloqueada.getByRole('heading', { name: 'Visitante B21C' }).click();
