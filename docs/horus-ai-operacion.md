@@ -187,6 +187,36 @@ El filtro bloqueaba como nombre 20 de 171 frases comunes elegidas para la prueba
 
 Laravel rechaza una respuesta afirmativa con coincidencia «baja»: el visitante vería la contingencia. Al desbloquear una frase hay que comprobar también su respuesta en `HorusJuradoTest`.
 
+### Elegir un curso y respuestas corregidas (26/11/2026)
+
+- **Elegir sin escribir el título:** «quiero ese», «mejor redes», «opción 1», «2» o «y el otro» (`_choose_course`). La posición se toma de los cursos mostrados antes. Si no está claro, se pregunta «¿Te refieres a…?» con los nombres (hasta cinco); nunca se elige al azar. Si se venía hablando de convenios u otro tema, no se ofrece un curso.
+- La pregunta no puede pedir que la persona «escriba el nombre»: la barrera de datos personales de Laravel la rechaza, y debe seguir haciéndolo.
+- **«Información» sola** lleva a los canales de contacto (criterio de la evaluación). «Quiero información» o «información porfa» muestran los temas disponibles.
+- **Grabación de clases:** se responde con el texto de «Modalidades de los cursos».
+- **Nivel:** ninguna ficha lo publica; se dice que no está confirmado.
+- «¿Quiénes son?» ya no se recorta a «Más información en la página Quiénes somos»; «¿con quiénes?» tras los convenios muestra la lista.
+- Horario, modalidad y matrícula solo se ofrecen tras «ok» o «chévere» si se venía hablando de cursos.
+
+### Cómo se estudia y se matricula, según Horus Group (26/11/2026)
+
+Lo confirmó el propietario el 26/11/2026 y se añadió a las fichas, sin quitar nada de lo que publica la web:
+
+- **Virtual:** clases en vivo por Google Meet, que quedan grabadas (`cursos_modalidades`, `alcance_nacional_virtual`). No se afirma quién envía el enlace ni cuánto tiempo duran las grabaciones.
+- **Presencial:** se indica a cada estudiante qué días son las clases teóricas y las prácticas.
+- **Semipresencial:** se conserva el texto de la web, por decisión del propietario, para que chat y web coincidan. Si se deja de ofrecer, hay que cambiar ambos a la vez.
+- **Matrícula** (`proceso_matricula_pasos`, quinto paso nuevo): la persona envía su comprobante y sus datos por WhatsApp, el personal registra la matrícula en el curso pedido y la agrega al grupo de WhatsApp del curso. La primera línea no cambia: la usan el panel (`SenalesAsistente`) y las pruebas.
+
+Preguntas que ahora se reconocen (`conversation_glue.py`, en `_about` y `_glue`):
+
+| Preguntan | Responde |
+|---|---|
+| Plataforma, Zoom, Meet, clases en vivo, «¿cómo son las clases?» | Modalidades |
+| Grupo de WhatsApp, «¿qué pasa después de matricularme?», «¿cómo ingreso a las clases?» | Pasos de matrícula |
+| «¿Qué días son las clases presenciales?» sin curso elegido | Modalidades; con un curso elegido, su horario publicado |
+| Edad mínima, niños, adultos mayores, laptop o computadora, turnos | «No tengo ese dato», con asesor |
+
+Cada regla tiene pruebas de que no captura otras preguntas («curso de computación», «no me agregaron al grupo», «turno de atención»). «Mi hijo de 10 años puede estudiar» sigue bloqueada por el filtro de privacidad (dato de un menor) y queda en `bloqueadas_a_proposito` del banco.
+
 ## Métricas del asistente y votos 👍/👎 (25/11/2026)
 
 **Qué se guarda en `chat_logs`** (nunca el texto del visitante):

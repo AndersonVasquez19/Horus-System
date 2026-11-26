@@ -52,7 +52,7 @@ _CONFUSED = frozenset({
     "no entendi nada", "no comprendo", "no me quedo claro",
 })
 _HOWAREYOU = frozenset({
-    "como estas", "que tal", "como te va", "como andas", "como te encuentras", "todo bien", "bien y tu", "muy bien y tu",
+    "como estas", "que tal", "q tal", "como te va", "como andas", "como te encuentras", "todo bien", "bien y tu", "muy bien y tu",
     "bien gracias y tu", "y tu", "y tu como estas", "como has estado", "que tal estas", "como vas",
 })
 # Piden ayuda sin decir todavía sobre qué: se invita a contar la consulta (sin adivinar un tema).
@@ -62,6 +62,9 @@ _HELP = frozenset({
     "tengo una consulta", "una pregunta", "una consulta", "una duda", "quisiera hacer una consulta", "quiero hacer una consulta",
     "quiero hacer una pregunta", "puedo hacerte una pregunta", "te puedo hacer una pregunta", "consulta", "pregunta",
     "info", "informes", "mas info", "quiero info", "una info", "menu", "ver menu", "opciones", "ver opciones",
+    # Pedir «información» sin tema respondía con la ficha del primer curso que la mencionaba.
+    "quiero informacion", "quisiera informacion", "necesito informacion", "deseo informacion",
+    "dame informacion", "informacion porfa", "informacion por favor", "info porfa", "info por favor",
 })
 _TIME = frozenset({
     "que hora es", "que dia es", "que dia es hoy", "que fecha es", "que fecha es hoy", "en que fecha estamos",
@@ -322,6 +325,7 @@ def duration_days(text: str | None) -> float | None:
 _OPEN_RECOMMEND = re.compile(
     r"^(?:y )?(?:cual|que curso|que)(?: me)? (?:recomiendas|recomiendan|sugieres|aconsejas|conviene)$"
     r"|^(?:cual|que) (?:elijo|escojo|tomo)$|^por cual empiezo$|^cual es mejor para mi$|^que me recomiendas$"
+    r"|^(?:no se|no estoy segur[oa] de) (?:cual|que curso) (?:elegir|escoger|tomar|llevar)$"
 )
 
 
@@ -382,6 +386,130 @@ def pick_of(message: str) -> Pick | None:
 def comparative_of(message: str) -> Comparative | None:
     """«más barato», «más corto», «más temprano»: piden comparar lo que la ficha no publica o sí publica."""
     return _COMPARATIVES.get(_clean(message))
+
+
+_PREFERENCE = r"(?:quiero|me interesa|me gusta|elijo|escojo|prefiero|me quedo con)"
+_THIS_ONE = re.compile(
+    rf"^(?:(?:si|ya|ok) )?(?:{_PREFERENCE} (?:ese|esa|este|esta)(?: curso)?|(?:ese|esa|este|esta)(?: curso)? (?:quiero|me interesa|me gusta)"
+    r"|ese|esa|ese curso|ese mismo)$"
+)
+_NUMBERED = re.compile(
+    rf"^(?:{_PREFERENCE} )?(?:(?:la |el )?(?:opcion|numero|curso)(?: numero)? |(?:el|la) )?([1-9])$"
+)
+_SWITCH = re.compile(
+    r"^(?:no )?(?:mejor|quiero mejor|prefiero|cambio a) (?:(?:el|la) )?(?:(?:curso|capacitacion) )?(?:(?:de|del) )?(.+)$"
+)
+
+
+def points_at_this(message: str) -> bool:
+    """«quiero ese», «me interesa ese», «ese curso»: señala algo ya mencionado sin nombrarlo."""
+    return _THIS_ONE.match(" ".join(content_words(message))) is not None
+
+
+def numbered_choice(message: str) -> int | None:
+    """«1», «el 2», «la opción 3»: elige por posición en una lista."""
+    match = _NUMBERED.match(" ".join(content_words(message)))
+    return int(match.group(1)) if match else None
+
+
+def switch_target(message: str) -> str | None:
+    """«mejor redes», «prefiero el de comunicación»: lo que viene después del cambio de opinión."""
+    match = _SWITCH.match(" ".join(content_words(message)))
+    return match.group(1) if match else None
+
+
+_RECORDINGS = re.compile(
+    r"\b(se graban?|quedan? grabad[ao]s?|dejan? grabad[ao]s?|grabaciones|en vivo o grabad[ao]s?|(?:son|es) grabad[ao]s?)\b"
+)
+
+
+def asks_recordings(message: str) -> bool:
+    """«¿Se graban las clases?» respondía con la dirección de la sede. «Examen del curso grabado» es otra pregunta."""
+    normalized = normalize(message)
+    return bool(_RECORDINGS.search(normalized)) and not re.search(r"\b(examen(?:es)?|evaluacion(?:es)?)\b", normalized)
+
+
+# Solo estas palabras: «quiero aprender Excel nivel básico» sigue siendo una búsqueda de curso.
+_LEVEL_WORDS = frozenset(
+    "nivel basico intermedio avanzado es son de que tiene tienen hay cual el los la curso cursos un del y".split()
+)
+
+
+def asks_level(message: str) -> bool:
+    """«¿Nivel básico?»: ninguna ficha publica el nivel; antes devolvía el temario que decía «Excel básico»."""
+    words = set(content_words(message))
+    return "nivel" in words and words <= _LEVEL_WORDS
+
+
+# «¿Con quiénes?» después de hablar de convenios pregunta por las instituciones, no por la empresa.
+_WITH_WHOM = re.compile(r"^(?:y )?con quien(?:es)?(?: son| trabajan| tienen(?: convenios?)?)?$")
+
+
+def asks_with_whom(message: str) -> bool:
+    return _WITH_WHOM.match(" ".join(content_words(message))) is not None
+
+
+# Cómo se dictan las clases: plataforma de lo virtual y días de lo presencial.
+_CLASS_PLATFORM = re.compile(
+    r"\b(?:zoom|google meet|meet)\b"
+    r"|\bclases\b.{0,25}\ben vivo\b"
+    # Preguntar cómo es una modalidad mixta: la respuesta publicada dice cuáles se ofrecen y que esa no.
+    r"|\bmodalidad (?:mixta|hibrida|semipresencial)\b|\bcomo (?:funciona|es) (?:lo )?(?:semipresencial|mixto|hibrido)\b"
+    r"|\b(?:que|cual) (?:es )?(?:la )?plataforma\b(?!.*\bpag)"
+    r"|\bplataforma (?:usan|utilizan|de (?:las )?clases)\b"
+    r"|^(?:y )?(?:como|por donde|por que medio) (?:son|se dictan|se llevan|serian) (?:las )?clases(?: virtuales| online)?$"
+)
+
+
+def asks_class_platform(message: str) -> bool:
+    return _CLASS_PLATFORM.search(" ".join(content_words(message))) is not None
+
+
+_PRACTICE_DAYS = re.compile(
+    r"\b(?:que dias|cuando)\b.{0,20}\b(?:clases )?(?:presencial(?:es)?|practicas?|teoricas?|teoria)\b"
+)
+
+
+def asks_class_days(message: str) -> bool:
+    """«¿Qué días son las clases presenciales?»: sin curso elegido no hay un horario concreto que dar."""
+    normalized = normalize(message)
+    return bool(_PRACTICE_DAYS.search(normalized)) and not re.search(r"\b(falt\w*|perdi\w*|recuper\w*|examen\w*)\b", normalized)
+
+
+# Qué pasa una vez matriculado: grupo de WhatsApp del curso y acceso a las clases. «No me agregaron» es un reclamo.
+_AFTER_ENROLLING = re.compile(
+    r"\b(?:me )?(?:agregan|a[nñ]aden|unen|incluyen|meten)\b.{0,20}\bgrupo\b"
+    r"|\bgrupos? de (?:whatsapp|wsp|wasap)\b"
+    r"|\bque (?:pasa|sigue|hago) (?:despues|luego) de (?:matricularme|inscribirme|pagar)\b"
+    r"|\bcomo (?:ingreso|entro|accedo|me conecto) (?:a )?(?:las |mis )?clases\b"
+)
+
+
+def asks_after_enrolling(message: str) -> bool:
+    normalized = normalize(message)
+    return bool(_AFTER_ENROLLING.search(normalized)) and not re.search(r"\bno me\b", normalized)
+
+
+# Datos de estudio que Horus Group no ha publicado: edad, turnos y si hace falta equipo propio.
+_UNPUBLISHED_STUDY = re.compile(
+    r"\bedad (?:minima|maxima|requerida|limite)\b|\blimite de edad\b|\bque edad (?:se )?(?:necesita|piden|debo|hay que)\b"
+    r"|\b(?:desde|a partir de|hasta) (?:que|cuantos) (?:edad|a[nñ]os)\b"
+    r"|\b(?:aceptan|admiten|reciben)\b.{0,15}\b(?:ni[nñ][oa]s|menores|adultos mayores)\b"
+    r"|\b(?:cursos?|clases|talleres?) para (?:ni[nñ][oa]s|adultos mayores)\b"
+    r"|\b(?:necesito|necesita|se necesita|requiere|requieren|se requiere|debo|hay que|es necesari[oa]|tengo que|piden)\b"
+    r"(?: (?:tener|llevar|contar|con|una|un|la|mi|propia|propio))* (?:laptop|computadora|pc)\b"
+    r"|\bturnos?\b(?!.*\batencion\b)"
+)
+
+
+def asks_unpublished_study_fact(message: str) -> bool:
+    return _UNPUBLISHED_STUDY.search(" ".join(content_words(message))) is not None
+
+
+LEVEL_REPLY = (
+    "No tengo confirmado el nivel de cada curso. Pregúntame por un curso para ver lo que está publicado, "
+    "o consúltalo con un asesor."
+)
 
 
 def variant(options: tuple[str, ...], message: str) -> str:

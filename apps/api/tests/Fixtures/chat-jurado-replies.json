@@ -1570,7 +1570,7 @@
   {
     "query": "¿Tienen clases virtuales?",
     "reply": {
-      "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, grabadas para repasar).",
+      "answer": "Los cursos se ofrecen en tres modalidades: presencial (sesiones teóricas y prácticas íntegramente presenciales, en los días que se te indican), semipresencial (teoría en sesiones online en vivo con acceso a grabaciones, y práctica 100% presencial con horarios semanales o mensuales) y virtual (clases desde casa, en vivo por Google Meet y grabadas para repasar).",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -1674,7 +1674,7 @@
   {
     "query": "¿Puedo estudiar desde Lima?",
     "reply": {
-      "answer": "Nuestra sede física está en Cajamarca (Jr. José Gálvez N.° 322), pero puedes llevar nuestros cursos virtuales desde Lima, Trujillo, Chiclayo o cualquier ciudad del Perú. Para confirmar si una edición específica es en vivo o grabada, consulta al +51 972 021 374.",
+      "answer": "Nuestra sede física está en Cajamarca (Jr. José Gálvez N.° 322), pero puedes llevar nuestros cursos virtuales desde Lima, Trujillo, Chiclayo o cualquier ciudad del Perú. Las clases virtuales son en vivo por Google Meet y quedan grabadas para repasar.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2201,7 +2201,7 @@
   {
     "query": "¿Cómo me inscribo?",
     "reply": {
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2249,7 +2249,7 @@
   {
     "query": "¿Cómo me matriculo?",
     "reply": {
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2297,7 +2297,7 @@
   {
     "query": "¿Cuáles son los pasos para matricularme?",
     "reply": {
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -4853,7 +4853,7 @@
     "reply": {
       "answer": "Se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.\n\nLa sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
       "intent": "faq",
-      "match_level": "media",
+      "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
       "abstained": false,

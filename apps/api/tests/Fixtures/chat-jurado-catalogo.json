@@ -2218,7 +2218,7 @@
       "query": "¿Cómo puedo matricularme?",
       "state": null,
       "reply": {
-        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -2267,7 +2267,7 @@
       "query": "¿cómo me inscribo?",
       "state": null,
       "reply": {
-        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,

@@ -80,7 +80,8 @@ HELP_REQUEST = frozenset({"ayuda", "ayudar", "ayudame", "apoyo", "orientacion", 
 GENERIC_REQUEST = HELP_REQUEST | {"informacion", "info", "dato", "detall"}
 # Apertura común de las respuestas que declaran un tema fuera del alcance del asistente.
 OUT_OF_SCOPE_OPENING = "Por ahora este asistente solo"
-COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable"})
+COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable",
+    "amigo", "amiga"})
 # Palabras de cierre que acompañan un saludo o un agradecimiento sin convertirlo en consulta («listo, gracias»).
 CLOSING_FILLER = frozenset({"perfecto", "listo", "genial", "excelente", "ok", "okay", "vale", "entendido", "super", "bueno"})
 # Saludos y despedidas alargados («holaaaa», «chauu»): las mismas formas que deja pasar el filtro de Laravel.
@@ -332,6 +333,14 @@ class AdvisorEngine:
             return self._reply(answer=template.response, intent=template.name, match_level="alta")
         return None
 
+    def _modalities(self) -> AdvisorReply | None:
+        """Cómo se dictan las clases (texto publicado de modalidades: Google Meet, grabaciones y días presenciales)."""
+        record = self.kb.get("cursos_modalidades")
+        if record is None or record.status != "verified" or not record.detail_answer:
+            return None
+        return self._reply(answer=record.detail_answer, intent=CATEGORY_INTENTS[record.category], match_level="alta",
+                           sources=[self._source(record)])
+
     def _about(self, text: str) -> AdvisorReply | None:
         """Preguntas sobre el propio asistente, operaciones aritméticas y datos institucionales no publicados.
 
@@ -345,8 +354,20 @@ class AdvisorEngine:
         if glue.is_unpublished_fact(text):
             return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
                                abstained=True)
+        if (glue.asks_recordings(text) or glue.asks_class_platform(text)) and (reply := self._modalities()) is not None:
+            return reply
+        if glue.asks_level(text):
+            return self._reply(answer=glue.LEVEL_REPLY, intent="unavailable_info", match_level="ninguna", abstained=True)
         if glue.is_complaint(text):
             return self._complaint()
+        if glue.asks_after_enrolling(text):
+            steps = self.kb.get("proceso_matricula_pasos")
+            if steps is not None and steps.status == "verified":
+                return self._reply(answer=steps.answer, intent=CATEGORY_INTENTS[steps.category], match_level="alta",
+                                   sources=[self._source(steps)])
+        if glue.asks_unpublished_study_fact(text):
+            return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
+                               abstained=True)
         if glue.asks_installments(text):
             return self._reply(answer=glue.INSTALLMENTS_REPLY, intent="unavailable_info", match_level="ninguna",
                                abstained=True)
@@ -492,6 +513,21 @@ class AdvisorEngine:
             return None, glue.ENROLLMENT_QUERY  # «inscripción» sola o «¿cómo puedo matricularme?»: los pasos
         if re.search(r"\b(gratis|gratuit[oa]s?|sin costo)\b", normalize(message)):
             return None, "¿Tienen becas o descuentos?"  # «¿hay cursos gratuitos?»: promociones (sin dato confirmado)
+        contact = self.kb.get(self.kb.intents.human_handoff.record_id)
+        if contact is not None and " ".join(glue.content_words(message)) == "informacion":
+            # «Información» sola lleva a los canales de contacto; con cursos cargados respondía la ficha de uno.
+            return self._reply(answer=contact.answer, intent=CATEGORY_INTENTS[contact.category], match_level="alta",
+                               sources=[self._source(contact)]), message
+        choice = self._choose_course(message, users, prior)
+        if choice is not None:
+            return choice, message
+        partners = self._partners(message, users, prior)
+        if partners is not None:
+            return partners, message
+        if glue.asks_class_days(message):
+            seen = list(prior.focus) if prior is not None else self._focus(users) if users else []
+            if not any(r.stable_id is not None for r in seen) and (reply := self._modalities()) is not None:
+                return reply, message
         kind = glue.classify(message)
         pick = glue.pick_of(message)
         comparative = glue.comparative_of(message)
@@ -520,12 +556,13 @@ class AdvisorEngine:
             return self._courtesy(glue.SORRY_REPLY, message), message
         if kind == "no":
             return self._courtesy(glue.NO_REPLY, message), message
+        course_focus = any(r.stable_id is not None or r.id == "cat_listado_formacion" for r in focus)
         if kind == "ack":
-            options = glue.ACK_WITH_FOCUS if focus else glue.ACK_NO_FOCUS
+            options = glue.ACK_WITH_FOCUS if course_focus else glue.ACK_NO_FOCUS
             return self._courtesy(options, message), message
         if kind == "confused":
             # «No entendí»: repetir lo mismo no ayuda; se pregunta qué parte aclarar (sin inventar contenido).
-            options = glue.CONFUSED_WITH_FOCUS if focus else glue.REPEAT_NO_FOCUS
+            options = glue.CONFUSED_WITH_FOCUS if course_focus else glue.REPEAT_NO_FOCUS
             return self._courtesy(options, message), message
         if kind in {"yes", "repeat"}:
             if focus:
@@ -553,7 +590,7 @@ class AdvisorEngine:
                 chosen = others[0] if len(others) == 1 else None
                 if len(others) > 1:
                     # Con varios cursos, «el otro» no es uno solo: se ofrecen los demás para elegir.
-                    return self._clarify([Hit(record=r, score=1.0) for r in others]), message
+                    return self._which_course(others), message
             elif pick == "last" and len(options) >= 2:
                 chosen = options[-1]
             if chosen is not None:
@@ -563,6 +600,70 @@ class AdvisorEngine:
             rewritten = {"price": "cuánto cuesta", "duration": "cuánto dura", "schedule": "cuál es el horario"}[comparative]
             return None, rewritten
         return None, message
+
+    def _choose_course(self, message: str, users: list[str], prior: _Prior | None) -> AdvisorReply | None:
+        """«quiero ese», «mejor redes», «opción 1», «y el otro»: elegir un curso sin escribir su nombre completo.
+
+        Si no está claro cuál es, se pregunta con los nombres; nunca se elige uno al azar.
+        """
+        target = glue.switch_target(message)
+        number = glue.numbered_choice(message)
+        this = glue.points_at_this(message)
+        other = glue.pick_of(message) == "other"
+        if target is None and number is None and not this and not other:
+            return None
+        courses = self._published_courses()
+        if not courses:
+            return None
+        if target is not None:
+            corrected = self.corrected(target)
+            named = self._course_by_title(corrected, set())
+            # Todo lo que sigue a «mejor» tiene que ser parte del título: «prefiero el horario de redes» es otra cosa.
+            if named is None or not set(content_tokens(corrected)) <= set(content_tokens(named.title)):
+                return None
+            return self._focus_reference([named])
+        focus: list[KnowledgeRecord] = []
+        if prior is not None:
+            focus = list(prior.focus)
+        elif users:
+            focus = self._focus(users)
+        listing = len(focus) == 1 and focus[0].id == "cat_listado_formacion"
+        shown = courses if listing else focus if all(r in courses for r in focus) else []
+        if focus and not listing and not shown:
+            return None  # se venía hablando de otra cosa (convenios, pagos): sigue el flujo general
+        if number is not None:
+            if (listing or len(shown) >= 2) and number <= len(shown):
+                return self._focus_reference([shown[number - 1]])
+            return self._which_course(courses)
+        if this:
+            return self._focus_reference(shown) if len(shown) == 1 else self._which_course(shown or courses)
+        if not focus or listing:
+            return self._which_course(courses)
+        return None  # «el otro» entre dos opciones concretas: lo resuelve el flujo que sigue
+
+    def _which_course(self, options: list[KnowledgeRecord]) -> AdvisorReply:
+        if len(options) == 1:
+            return self._focus_reference(options)
+        titles = [f"«{r.title}»" for r in options[:5]]
+        joined = f"{', '.join(titles[:-1])} o a {titles[-1]}"
+        return self._reply(
+            answer="Quiero asegurarme de entenderte bien antes de responder.",
+            intent="clarification",
+            match_level="baja",
+            needs_clarification=True,
+            clarification_question=f"¿Te refieres a {joined}?",
+            context=ConversationContext(turns_considered=0, focus_ids=[r.id for r in options[:2]]),
+        )
+
+    def _partners(self, message: str, users: list[str], prior: _Prior | None) -> AdvisorReply | None:
+        if not glue.asks_with_whom(message):
+            return None
+        focus = list(prior.focus) if prior is not None else self._focus(users) if users else []
+        listing = self.kb.get("convenios_resumen")
+        if listing is None or listing.status != "verified" or not any(r.category == "convenio" for r in focus):
+            return None
+        return self._reply(answer=listing.answer, intent=CATEGORY_INTENTS[listing.category], match_level="alta",
+                           sources=[self._source(listing)])
 
     # ------------------------------------------------------------------ búsqueda
     def _answer_from_hits(self, hits: list[Hit], query_terms: set[str]) -> AdvisorReply:
@@ -1220,6 +1321,8 @@ class AdvisorEngine:
             return reply
         specific = set(content_tokens(message)) - set(content_tokens(record.title + " " + record.answer))
         sentences = [s.strip() for s in re.split(r"(?<=[.;])\s+", record.detail_answer) if 10 <= len(s.strip()) <= 600]
+        # «Más información en la página…» solo remite a otra parte: como respuesta única no dice nada.
+        sentences = [s for s in sentences if not s.startswith(("Más información", "Puedes conocer más"))]
         best = max(sentences, key=lambda s: len(specific & set(content_tokens(s))), default="")
         if best and specific & set(content_tokens(best)):
             return reply.model_copy(update={"answer": best})
@@ -1397,7 +1500,7 @@ class AdvisorEngine:
             generic = {"convenio", "convenios", "alianza", "alianzas", "institucion", "instituciones",
                 "colegio", "colegios", "profesionales", "horus", "group", "tienen", "tiene", "cuentan",
                 "trabajan", "cuales", "cuantos", "actualmente", "lista", "listado", "son", "hay", "estrategicos",
-                "interinstitucionales", "informacion", "saber"}
+                "interinstitucionales", "informacion", "saber", "con", "quien", "quienes"}
             listing = self.kb.get("convenios_resumen")
             if listing is not None and listing.status == "verified" and not terms - generic:
                 return self._reply(answer=listing.answer, intent="agreement_info", match_level="alta",

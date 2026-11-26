@@ -66,6 +66,194 @@
    "intencion": "thanks"
   },
   {
+   "texto": "información porfa",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "quiero informacion",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "info porfa",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "quisiera información",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "nivel básico",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "es nivel avanzado?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "se graban las clases",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "las clases quedan grabadas?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "¿Las clases virtuales son en vivo o grabadas?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "¿quiénes son?",
+   "intencion": "company_info"
+  },
+  {
+   "texto": "quienes son ustedes",
+   "intencion": "company_info"
+  },
+  {
+   "texto": "quienes somos",
+   "intencion": "company_info"
+  },
+  {
+   "texto": "quiero ese",
+   "intencion": "clarification"
+  },
+  {
+   "texto": "opción 1",
+   "intencion": "clarification"
+  },
+  {
+   "texto": "1",
+   "intencion": "clarification"
+  },
+  {
+   "texto": "y el otro",
+   "intencion": "clarification"
+  },
+  {
+   "texto": "que plataforma usan",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "usan zoom?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "las clases son por meet?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "como son las clases virtuales",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "como son las clases",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "me agregan a un grupo?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "hay grupo de whatsapp?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "que pasa despues de matricularme",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "como ingreso a las clases",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "que dias son las clases presenciales",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "tienen semipresencial?",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "que modalidades tienen",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "hay edad minima?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "desde que edad puedo estudiar",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "aceptan niños?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "hay cursos para adultos mayores",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "necesito laptop?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "necesito una computadora?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "se necesita tener pc",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "tienen turno noche?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "hay turnos?",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "que turnos tienen",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "ola q tal",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "buenas noches amigo",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "saludos cordiales",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "q tal",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "info xfa",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "no se cual elegir",
+   "intencion": "course_recommendation"
+  },
+  {
+   "texto": "no sé qué curso elegir",
+   "intencion": "course_recommendation"
+  },
+  {
+   "texto": "informacion",
+   "intencion": "contact_info"
+  },
+  {
+   "texto": "Información",
+   "intencion": "contact_info"
+  },
+  {
    "texto": "bye bye",
    "intencion": "farewell"
   },
@@ -225,6 +413,289 @@
  "conversaciones": [
   [
    {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "no se cual elegir",
+    "intencion": "course_recommendation"
+   },
+   {
+    "texto": "redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "que plataforma usan",
+    "intencion": "training_info",
+    "cursos": []
+   },
+   {
+    "texto": "tienen turno noche?",
+    "intencion": "unavailable_info",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "como me matriculo",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "me agregan a un grupo?",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "gracias",
+    "intencion": "thanks"
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "quiero ese",
+    "intencion": "clarification",
+    "cursos": []
+   },
+   {
+    "texto": "redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "opción 1",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas"
+    ]
+   },
+   {
+    "texto": "¿y cuánto dura?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "1",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "el 2",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "el numero 3",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Comunicacion"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "la opcion 9",
+    "intencion": "clarification",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "y el otro",
+    "intencion": "clarification",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "me interesa ese",
+    "intencion": "clarification",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "mejor redes",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "quiero ese",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "me interesa ese",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "mejor ofimatica",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas"
+    ]
+   },
+   {
+    "texto": "y el horario",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "no, mejor el curso de comunicacion",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Comunicacion"
+    ]
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "y el otro",
+    "intencion": "clarification",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "1",
+    "intencion": "clarification",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "tienen convenios",
+    "intencion": "agreement_info"
+   },
+   {
+    "texto": "¿con quiénes?",
+    "intencion": "agreement_info"
+   }
+  ],
+  [
+   {
+    "texto": "que hacen con mis datos",
+    "intencion": "policy"
+   },
+   {
+    "texto": "chevere",
+    "intencion": "acknowledgement"
+   }
+  ],
+  [
+   {
     "texto": "tienen el curso de contabilidad",
     "intencion": "unavailable_info",
     "cursos": []
@@ -368,6 +839,7 @@
   "dale",
   "aja",
   "comu",
-  "certificado a nombre de quien"
+  "certificado a nombre de quien",
+  "mi hijo de 10 años puede estudiar"
  ]
 }

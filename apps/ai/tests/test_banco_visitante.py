@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from app.services import conversation_glue as glue
 from tests.test_phase_c import make_engine
 
 FIXTURES = Path(__file__).parents[2] / "api" / "tests" / "Fixtures"
@@ -42,6 +43,47 @@ def test_conversacion(motor, turnos):
         respuesta = motor.chat(turno["texto"], [], estado)
         _comprobar(turno, respuesta)
         estado = respuesta.state
+
+
+@pytest.mark.parametrize("regla, mensaje", [
+    (glue.asks_level, "quiero aprender excel nivel básico"),
+    (glue.asks_recordings, "¿cuándo es el examen del curso grabado?"),
+    (glue.asks_with_whom, "con quiénes puedo hablar sobre el pago"),
+    (glue.points_at_this, "quiero ese certificado"),
+    (glue.numbered_choice, "quiero 2 certificados"),
+    (glue.asks_unpublished_study_fact, "curso de computación"),
+    (glue.asks_unpublished_study_fact, "necesito reparar mi laptop"),
+    (glue.asks_unpublished_study_fact, "capacitación para adultos de mi empresa"),
+    (glue.asks_unpublished_study_fact, "¿cuál es el turno de atención?"),
+    (glue.asks_class_platform, "¿qué plataforma de pago usan?"),
+    (glue.asks_class_platform, "¿cómo son las clases de redes?"),
+    (glue.asks_after_enrolling, "no me agregaron al grupo de WhatsApp"),
+    (glue.asks_class_days, "falté a la clase práctica, ¿cuándo la recupero?"),
+    (glue.is_open_recommendation, "no sé cuál es el horario"),
+])
+def test_las_reglas_nuevas_no_capturan_otras_preguntas(regla, mensaje):
+    assert not regla(mensaje)
+
+
+@pytest.mark.parametrize("mensaje", ["quiero ese", "1", "prefiero el horario de redes", "mejor virtual"])
+def test_tras_hablar_de_convenios_no_se_ofrece_un_curso_por_posicion(motor, mensaje):
+    estado = motor.chat("tienen convenios", [], None).state
+    assert motor._choose_course(mensaje, [], motor._prior(estado)) is None
+
+
+def test_con_dos_cursos_el_otro_tras_la_lista_pregunta_cual():
+    cursos = json.loads((FIXTURES / "chat-jurado-catalogo.json").read_text(encoding="utf-8"))["items"][:2]
+    motor_dos = make_engine(cursos)
+    estado = motor_dos.chat("que cursos tienen", [], None).state
+    respuesta = motor_dos.chat("y el otro", [], estado)
+    assert respuesta.needs_clarification
+    assert all(c["title"] in respuesta.clarification_question for c in cursos)
+
+
+def test_con_un_curso_elegido_los_dias_de_clase_siguen_saliendo_de_su_ficha(motor):
+    estado = motor.chat("me interesa redes", [], None).state
+    respuesta = motor.chat("¿qué días son las clases presenciales?", [], estado)
+    assert [s.id for s in respuesta.sources] != ["cursos_modalidades"], respuesta.answer
 
 
 def _respuestas(motor):
