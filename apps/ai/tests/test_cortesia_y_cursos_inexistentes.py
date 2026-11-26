@@ -121,3 +121,47 @@ def test_duracion_con_un_curso_elegido_responde_solo_ese(motor):
 
 def test_sin_catalogo_se_mantiene_la_respuesta_de_que_no_hay_calendario():
     assert "No tengo un calendario" in make_engine([]).chat("¿cuánto dura?", [], None).answer
+
+
+TODOS = ["Ofimática para oficinas", "Redes para principiantes", EN_FOCO]
+
+
+def _conversar(motor, preguntas):
+    estado, respuesta = None, None
+    for pregunta in preguntas:
+        respuesta = motor.chat(pregunta, [], estado)
+        estado = respuesta.state
+    return respuesta
+
+
+@pytest.mark.parametrize("siguiente", [
+    "¿Cuándo empiezan?", "¿Cuál es el horario?", "¿y el horario?", "¿Cuál es la modalidad?", "¿y cuánto duran?",
+])
+@pytest.mark.parametrize("lista", ["¿cuánto duran los cursos?", "¿Y cuánto dura?", "¿Qué cursos ofrecen?"])
+def test_tras_una_lista_de_todos_los_cursos_no_se_pierde_ninguno(motor, lista, siguiente):
+    respuesta = _conversar(motor, [lista, siguiente])
+    assert [s.title for s in respuesta.sources] == TODOS, respuesta.answer
+
+
+@pytest.mark.parametrize("otra", [
+    "¿Cuánto dura el soporte técnico?", "¿cuánto dura la garantía?", "¿cuánto dura el convenio?",
+    "¿cuánto dura la asesoría?", "¿cuánto dura la instalación de cámaras?", "¿cuánto dura el mantenimiento?",
+])
+@pytest.mark.parametrize("antes", [PREGUNTA_CON_FOCO, "¿cuánto duran los cursos?"])
+def test_la_duracion_de_otra_cosa_no_se_responde_con_el_curso_anterior(motor, antes, otra):
+    respuesta = _conversar(motor, [antes, otra])
+    assert not {s.title for s in respuesta.sources} & set(TODOS), respuesta.answer
+
+
+@pytest.mark.parametrize("seguimiento", [
+    "¿y cuánto dura?", "¿y ese curso cuánto dura?", "cuánto dura el taller", "¿y cuánto duran las clases?",
+])
+def test_el_seguimiento_del_curso_en_foco_se_mantiene(motor, seguimiento):
+    assert [s.title for s in _conversar(motor, [PREGUNTA_CON_FOCO, seguimiento]).sources] == [EN_FOCO]
+
+
+def test_tras_ordenar_por_duracion_se_recuerda_ese_orden_y_no_el_del_catalogo(motor):
+    orden = motor.chat("¿cuál es el curso más corto?", [], None)
+    titulos = [s.title for s in orden.sources]
+    assert titulos != TODOS
+    assert orden.state.focus_ids == [s.id for s in orden.sources][:2]  # «el primero» sigue siendo el de la respuesta

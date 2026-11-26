@@ -175,6 +175,10 @@ Saludos, agradecimientos y despedidas reconocen más variantes (`intents.json`) 
 
 **Duración o inicio sin curso elegido.** «¿Cuánto dura?» o «¿cuándo empiezan?» muestran ese dato de los cursos publicados (hasta cinco), en lugar de «No tengo un calendario vigente…», que contradecía a las fichas. Solo se aplica si **todas** las palabras son de ese tipo de pregunta (`BARE_DATE_WORDS`): con cualquier otra («soporte», «garantía», «atender») o con «horario», que también es el de atención, nada cambia. Con un curso en foco se responde solo ese; sin catálogo vigente o sin el dato se mantiene el texto anterior. El formato es el que Laravel ya validaba.
 
+**Lo que se recuerda tras una lista.** `focus_ids` admite dos entradas. Si una respuesta de seguimiento lista **todos** los cursos (más de dos) en el orden del catálogo, se guarda `cat_listado_formacion`; antes se guardaban los dos primeros y «¿cuándo empiezan?» omitía el resto. Las fechas y horarios conservan ese listado como foco (antes «¿Qué cursos ofrecen?» → «¿Cuál es el horario?» daba el horario de atención). Limitación: tras una lista parcial u ordenada por duración se siguen recordando solo dos.
+
+**Otro asunto con un curso en foco.** Si la pregunta nombra soporte, mantenimiento, instalación, cámaras, garantía, convenio, asesoría, servicio u otra palabra de `NOT_A_COURSE_WORDS`, sin decir «curso», «clases» o «taller» y sin que esté en el título del curso, no se responde con ese curso. Es una lista cerrada: un asunto que no figure en ella todavía puede responderse con el curso en foco.
+
 ## Métricas del asistente y votos 👍/👎 (25/11/2026)
 
 **Qué se guarda en `chat_logs`** (nunca el texto del visitante):

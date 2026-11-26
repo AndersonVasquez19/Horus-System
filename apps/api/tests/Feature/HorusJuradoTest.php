@@ -73,6 +73,7 @@ class HorusJuradoTest extends TestCase
         $this->mock(ExportadorCatalogoAdvisor::class)->shouldReceive('construirParaSincronizacion')->andReturn($catalogo);
         Cache::forever('horus-ai.catalog.expected-version', $catalogo['catalog_version']);
         $rechazadas = [];
+        $listados = 0;
         foreach ($fixture['cases'] as $caso) {
             foreach ([false, true] as $alterar) {
                 $reply = $caso['reply'];
@@ -88,12 +89,19 @@ class HorusJuradoTest extends TestCase
                 $resultado = $cliente->orientar($caso['query']);
                 // La intención se anota solo cuando la respuesta se acepta (métricas del panel).
                 $this->assertSame($resultado === null ? null : $reply['intent'], $cliente->intencionDetectada(), $caso['query']);
+                // Si Laravel descartara el estado con el listado en foco, el siguiente turno perdería el contexto sin aviso.
+                if (! $alterar && ($reply['state']['focus_ids'] ?? []) === ['cat_listado_formacion']) {
+                    $estado = (new \ReflectionMethod($cliente, 'estadoValido'))->invoke($cliente, $reply['state']);
+                    $this->assertSame(['cat_listado_formacion'], $estado['focus_ids'] ?? null, $caso['query']);
+                    $listados++;
+                }
                 if ($alterar ? $resultado !== null : ($resultado === null || $resultado['respuesta'] !== $this->textoEsperado($reply))) {
                     $rechazadas[] = ($alterar ? 'aceptó cifra inventada: ' : 'rechazada: ').$caso['query'];
                 }
             }
         }
         $this->assertSame([], $rechazadas);
+        $this->assertGreaterThanOrEqual(6, $listados);
     }
 
     public function test_ninguna_respuesta_legitima_de_horus_ai_cae_en_contingencia(): void

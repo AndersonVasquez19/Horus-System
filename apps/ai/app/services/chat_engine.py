@@ -90,6 +90,12 @@ BARE_DATE_WORDS = frozenset((
     "que cual es son la las el su de en cuanto cuanta cuantas cuantos cuando duracion dura duran tiempo horas semanas "
     "meses fecha fechas inicio inicia inician empieza empiezan comienza comienzan"
 ).split())
+# Asuntos que no son un curso: «¿cuánto dura el soporte?» no pregunta por el curso del que se venía hablando.
+NOT_A_COURSE_WORDS = frozenset((
+    "soporte mantenimiento reparacion instalacion camaras cableado garantia convenio convenios asesoria asesorias "
+    "asesoramiento servicio servicios cotizacion tramite"
+).split())
+COURSE_WORDS = frozenset({"curso", "cursos", "capacitacion", "capacitaciones", "clase", "clases", "taller", "talleres"})
 # Texto común de las respuestas de «ese curso no está publicado» (Laravel valida la frase completa).
 UNPUBLISHED_COURSE = "un curso o capacitación sobre ese tema"
 MODALITY_ASKED = {
@@ -870,6 +876,16 @@ class AdvisorEngine:
         return found[0] if len(found) == 1 else None
 
     @staticmethod
+    def _asks_about_something_else(focus: list[KnowledgeRecord], message: str) -> bool:
+        if not all(r.source.kind == "catalogo_laravel" and (r.stable_id is None or r.kind in {"course", "training_program"})
+                   for r in focus):
+            return False  # el foco no son cursos: se conserva el seguimiento de siempre
+        words = set(tokenize(normalize(message)))
+        other = words & NOT_A_COURSE_WORDS
+        titles = {w for r in focus for w in tokenize(normalize(r.title))}
+        return bool(other - titles) and not words & COURSE_WORDS
+
+    @staticmethod
     def _only_asks_dates(attrs: list[str], message: str) -> bool:
         words = set(tokenize(normalize(message)))
         return bool(words) and set(attrs) <= {"duracion", "fechas"} and words <= BARE_DATE_WORDS
@@ -1019,6 +1035,14 @@ class AdvisorEngine:
             quote=state.quote,
         )
 
+    def _is_every_course(self, ids: list[str]) -> bool:
+        listing = self.kb.get("cat_listado_formacion")
+        # También el orden: tras ordenar por duración, «el primero» no es el primero del catálogo.
+        return listing is not None and listing.status == "verified" and ids == [
+            r.id for r in self.kb.records
+            if r.source.kind == "catalogo_laravel" and r.status == "verified" and r.kind in {"course", "training_program"}
+        ]
+
     def _next_state(
         self, message: str, prior: _Prior | None, quote: bool, profile: Profile | None, reply: AdvisorReply
     ) -> ConversationState:
@@ -1033,7 +1057,12 @@ class AdvisorEngine:
             saved = prior.profile if profile_age is not None else None
         cue_age = 0 if cue else (_older(prior.cue_age) if prior is not None else None)
         ids = [r.id for r in reply.recommendations] or [s.id for s in reply.sources]
-        focus_ids = [x for x in ids if (r := self.kb.get(x)) is not None and r.status == "verified"][:2]
+        focus_ids = [x for x in ids if (r := self.kb.get(x)) is not None and r.status == "verified"]
+        # El estado solo guarda 2: tras una lista con TODOS los cursos, en el orden del catálogo, se recuerda el
+        # listado; si no, «¿cuándo empiezan?» perdería los demás.
+        if len(focus_ids) > 2 and reply.intent == "followup_attribute" and self._is_every_course(focus_ids):
+            focus_ids = ["cat_listado_formacion"]
+        focus_ids = focus_ids[:2]
         focus_age: int | None = 0 if focus_ids else None
         # Tras «no tengo ese curso» no se arrastra el anterior: «¿y cuánto dura?» no puede responder por otro.
         if not focus_ids and prior is not None and prior.focus and UNPUBLISHED_COURSE not in reply.answer:
@@ -1243,7 +1272,7 @@ class AdvisorEngine:
                 and words <= {"y", "el", "su", "cual", "es", "que", "horario", "horarios", "de", "los", "sus", "son"}):
             # «horario» u «orario» solo, con un curso en foco: el horario de ese curso (no el de atención).
             prior_focus = list(prior.focus) if prior is not None else self._focus(users)
-            if any(r.stable_id is not None for r in prior_focus):
+            if any(r.stable_id is not None or r.id == "cat_listado_formacion" for r in prior_focus):
                 u = replace(u, attributes=("fechas",))
         if depth == 0 and has_context and not current_specific and (u.attributes or u.quote or u.referential or wants_detail_followup):
             focus = list(prior.focus) if prior is not None else self._focus(users)
@@ -1255,7 +1284,7 @@ class AdvisorEngine:
             # Fechas, duración, precio, cupos, requisitos o temario son datos de un curso: una ficha institucional en
             # foco (p. ej. el horario de atención) no se presenta como «curso» con esos datos.
             if set(u.attributes) & COURSE_ONLY_ATTRIBUTES and not u.quote:
-                focus = [r for r in focus if r.stable_id is not None]
+                focus = [r for r in focus if r.stable_id is not None or r.id == "cat_listado_formacion"]
         if prior is not None:
             previous_quote = prior.quote
         else:
@@ -1387,6 +1416,8 @@ class AdvisorEngine:
 
         # 3. Seguimiento sobre la opción anterior.
         names_other = bool(focus) and self._names_other_record(focus, hits)
+        if focus and self._asks_about_something_else(focus, corrected):
+            names_other = True
         if focus and u.attributes and (u.referential or u.short) and not names_other:
             return self._followup(focus, u)
         if (

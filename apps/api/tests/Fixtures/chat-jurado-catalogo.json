@@ -180,8 +180,7 @@
           "profile_age": 1,
           "cue_age": 1,
           "focus_ids": [
-            "cat_curso_publicacion_7",
-            "cat_curso_publicacion_8"
+            "cat_listado_formacion"
           ],
           "focus_age": 0,
           "out_of_scope": false,
@@ -459,8 +458,7 @@
           "profile_age": null,
           "cue_age": null,
           "focus_ids": [
-            "cat_curso_publicacion_7",
-            "cat_curso_publicacion_8"
+            "cat_listado_formacion"
           ],
           "focus_age": 0,
           "out_of_scope": false,
@@ -1177,8 +1175,7 @@
           "profile_age": null,
           "cue_age": null,
           "focus_ids": [
-            "cat_curso_publicacion_7",
-            "cat_curso_publicacion_8"
+            "cat_listado_formacion"
           ],
           "focus_age": 0,
           "out_of_scope": false,
@@ -1604,8 +1601,7 @@
           "profile_age": 0,
           "cue_age": null,
           "focus_ids": [
-            "cat_curso_publicacion_7",
-            "cat_curso_publicacion_8"
+            "cat_listado_formacion"
           ],
           "focus_age": 0,
           "out_of_scope": false,
@@ -2415,8 +2411,7 @@
           "profile_age": null,
           "cue_age": null,
           "focus_ids": [
-            "cat_curso_publicacion_7",
-            "cat_curso_publicacion_8"
+            "cat_listado_formacion"
           ],
           "focus_age": 0,
           "out_of_scope": false,
@@ -2479,8 +2474,7 @@
           "profile_age": null,
           "cue_age": null,
           "focus_ids": [
-            "cat_curso_publicacion_7",
-            "cat_curso_publicacion_8"
+            "cat_listado_formacion"
           ],
           "focus_age": 0,
           "out_of_scope": false,
