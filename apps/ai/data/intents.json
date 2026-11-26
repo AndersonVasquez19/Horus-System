@@ -17,6 +17,7 @@
         "holi",
         "alo",
         "holaa",
+        "wenas",
         "holaaa",
         "holis",
         "buen dia"
@@ -32,6 +33,9 @@
         "te agradezco",
         "mil gracias",
         "genial gracias",
+        "grax",
+        "grasias",
+        "muchas grasias",
         "ok gracias",
         "muy amable",
         "eres muy amable"
@@ -43,6 +47,7 @@
       "standalone": true,
       "patterns": [
         "adios",
+        "chaito",
         "chao",
         "chau",
         "hasta luego",

@@ -83,6 +83,10 @@ OUT_OF_SCOPE_OPENING = "Por ahora este asistente solo"
 COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable"})
 # Palabras de cierre que acompañan un saludo o un agradecimiento sin convertirlo en consulta («listo, gracias»).
 CLOSING_FILLER = frozenset({"perfecto", "listo", "genial", "excelente", "ok", "okay", "vale", "entendido", "super", "bueno"})
+# Saludos y despedidas alargados («holaaaa», «chauu»): las mismas formas que deja pasar el filtro de Laravel.
+ELONGATED_COURTESY = tuple((re.compile(p), word) for p, word in (
+    (r"\bhol+a{2,}\b", "hola"), (r"\bholi{2,}\b", "holi"), (r"\bwena+s+\b", "wenas"), (r"\bchau{2,}\b", "chau"),
+))
 # Palabras de una pregunta que SOLO pide cuánto dura o cuándo empieza («¿y cuánto dura?»). Lista cerrada: cualquier otra
 # palabra (soporte, garantía, atender…) puede referirse a otra cosa. «Horario» queda fuera: también es el de atención.
 BARE_DATE_WORDS = frozenset((
@@ -313,6 +317,8 @@ class AdvisorEngine:
                 match_level="alta",
                 sources=[self._source(record)],
             )
+        for pattern, word in ELONGATED_COURTESY:
+            normalized = pattern.sub(word, normalized)
         for template in self.kb.intents.templates:
             found = [p for p in template.patterns if contains_phrase(normalized, p)]
             if not found:

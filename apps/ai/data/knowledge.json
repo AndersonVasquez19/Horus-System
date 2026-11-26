@@ -588,7 +588,7 @@
       "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/politicas-privacidad", "file": "../web/src/app/legales/politicas-privacidad/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["politica de privacidad", "politicas de privacidad", "proteccion de datos", "datos personales", "derechos arco", "ley 29733"],
+      "keywords": ["politica de privacidad", "politicas de privacidad", "proteccion de datos", "datos personales", "derechos arco", "ley 29733", "mis datos"],
       "examples": ["¿Cómo protegen mis datos personales?", "¿Cómo ejerzo mis derechos ARCO?"],
       "topics": ["empresa"],
       "related": ["politica_cookies", "libro_reclamaciones"],

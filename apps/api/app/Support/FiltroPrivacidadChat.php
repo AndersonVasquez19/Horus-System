@@ -241,6 +241,29 @@ final class FiltroPrivacidadChat
     }
 
     /**
+     * Mensajes que solo pasan si son TODO el mensaje (sin mayúsculas, tildes, signos ni emojis): jerga, órdenes y dos
+     * preguntas que las reglas de nombres tomaban por datos personales. Al no admitir nada más, no eximen a un nombre
+     * ni a un dato que los acompañe. No se incluye lo que escrito solo puede ser un nombre («dale», «aja», «comu»).
+     *
+     * @var list<string>
+     */
+    private const MENSAJES_COMPLETOS_SEGUROS = [
+        'wenas', 'gracias bro', 'grax', 'grasias', 'chevere', 'ok chevere', 'bacan', 'mmm', 'chaito', 'menu', 'repite',
+        'eres inteligente', 'que hacen con mis datos',
+    ];
+
+    /** Saludos y despedidas con letras repetidas, también como mensaje completo («holaaaa», «holiii», «chauu»). */
+    private const SALUDO_ALARGADO = '/\A(?:hol+a+|holi+|wena+s+|chau{2,})\z/';
+
+    private function esMensajeCompletoSeguro(string $mensaje): bool
+    {
+        // Solo se retiran signos, símbolos y espacios: cualquier letra (de cualquier escritura) o cifra se conserva.
+        $texto = trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $this->aNormal($mensaje)) ?? '');
+
+        return in_array($texto, self::MENSAJES_COMPLETOS_SEGUROS, true) || preg_match(self::SALUDO_ALARGADO, $texto) === 1;
+    }
+
+    /**
      * Devuelve el código de categoría si el mensaje debe bloquearse, o null si es seguro.
      * Nunca incluye contenido del mensaje original.
      */
@@ -268,6 +291,10 @@ final class FiltroPrivacidadChat
         $limpio = trim($mensaje);
         if ($limpio === '' || mb_strlen($mensaje) > 2000 || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $mensaje) === 1) {
             return 'vacio_o_excesivo';
+        }
+
+        if ($this->esMensajeCompletoSeguro($limpio)) {
+            return null;
         }
 
         if ($this->detectaCredencial($limpio)) {

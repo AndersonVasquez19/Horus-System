@@ -70,6 +70,10 @@ class HorusJuradoTest extends TestCase
             'source_system' => 'horus-laravel', 'generated_at' => now()->toIso8601String(),
             'expires_at' => now()->addMinutes(5)->toIso8601String(), ...$contenido];
         $catalogo['signature'] = $firma->firmar($catalogo);
+        // El banco de frases de visitantes se responde sobre este mismo catálogo.
+        $banco = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/chat-frases-replies.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertGreaterThanOrEqual(70, count($banco));
+        $fixture['cases'] = [...$fixture['cases'], ...$banco];
         $this->mock(ExportadorCatalogoAdvisor::class)->shouldReceive('construirParaSincronizacion')->andReturn($catalogo);
         Cache::forever('horus-ai.catalog.expected-version', $catalogo['catalog_version']);
         $rechazadas = [];

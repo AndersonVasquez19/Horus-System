@@ -179,6 +179,14 @@ Saludos, agradecimientos y despedidas reconocen más variantes (`intents.json`) 
 
 **Otro asunto con un curso en foco.** Si la pregunta nombra soporte, mantenimiento, instalación, cámaras, garantía, convenio, asesoría, servicio u otra palabra de `NOT_A_COURSE_WORDS`, sin decir «curso», «clases» o «taller» y sin que esté en el título del curso, no se responde con ese curso. Es una lista cerrada: un asunto que no figure en ella todavía puede responderse con el curso en foco.
 
+## Banco de frases de visitantes (26/11/2026)
+
+`apps/api/tests/Fixtures/chat-frases-visitante.json` reúne frases y conversaciones de varios mensajes. Lo prueban las dos partes: `ChatFrasesVisitanteTest` (que el filtro de privacidad no las bloquee) y `apps/ai/tests/test_banco_visitante.py` (qué responde el motor, arrastrando el estado). Las respuestas reales se guardan en `chat-frases-replies.json` (`REGENERAR_BANCO=1` las regenera) y `HorusJuradoTest` comprueba que Laravel las acepte. Una frase nueva se añade al banco, no solo a una de las capas.
+
+El filtro bloqueaba como nombre 20 de 171 frases comunes elegidas para la prueba (no es una tasa de uso real). `MENSAJES_COMPLETOS_SEGUROS` y `SALUDO_ALARGADO` las dejan pasar **solo si son el mensaje completo**; con cualquier letra o cifra adicional deciden las reglas de siempre. Siguen bloqueadas a propósito «dale», «aja» y «comu», que escritas solas pueden ser un nombre. También sigue bloqueado «¿certificado a nombre de quién?»: al desbloquearlo, la única respuesta posible tenía coincidencia «baja» y hacerlo reconocible empeoraba la evaluación. Tampoco pasan combinaciones no listadas («wenas bro»). Es un cambio en la barrera de privacidad, todavía sin auditoría independiente.
+
+Laravel rechaza una respuesta afirmativa con coincidencia «baja»: el visitante vería la contingencia. Al desbloquear una frase hay que comprobar también su respuesta en `HorusJuradoTest`.
+
 ## Métricas del asistente y votos 👍/👎 (25/11/2026)
 
 **Qué se guarda en `chat_logs`** (nunca el texto del visitante):

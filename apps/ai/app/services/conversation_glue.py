@@ -33,7 +33,8 @@ _MAX_TOKENS = 6
 
 _ACK = frozenset({
     "ok", "okay", "okey", "vale", "listo", "perfecto", "entiendo", "entendido", "genial", "excelente", "buenisimo",
-    "ya veo", "ya entendi", "esta bien", "muy bien", "de acuerdo", "super", "bacan", "chevere", "ah ok", "ok ok",
+    "ya veo", "ya entendi", "esta bien", "muy bien", "de acuerdo", "super", "bacan", "chevere", "ok chevere", "ah ok",
+    "ok ok",
 })
 _YES = frozenset({
     "si", "sii", "claro", "dale", "por favor", "si por favor", "claro que si", "cuentame", "adelante", "quiero",
@@ -60,7 +61,7 @@ _HELP = frozenset({
     "ayudenme", "ayuda", "ayuda por favor", "necesito ayuda", "necesito tu ayuda", "tengo una duda", "tengo una pregunta",
     "tengo una consulta", "una pregunta", "una consulta", "una duda", "quisiera hacer una consulta", "quiero hacer una consulta",
     "quiero hacer una pregunta", "puedo hacerte una pregunta", "te puedo hacer una pregunta", "consulta", "pregunta",
-    "info", "informes", "mas info", "quiero info", "una info",
+    "info", "informes", "mas info", "quiero info", "una info", "menu", "ver menu", "opciones", "ver opciones",
 })
 _TIME = frozenset({
     "que hora es", "que dia es", "que dia es hoy", "que fecha es", "que fecha es hoy", "en que fecha estamos",
@@ -133,7 +134,7 @@ def classify(message: str) -> Kind | None:
         return "empty"  # solo emojis o signos
     clean = _clean(message)
     if not clean:
-        return None
+        return "ack" if base.strip() == "mmm" else None
     if is_rude(message):
         return "rude"
     if _english(clean.split()):
@@ -165,7 +166,8 @@ def classify(message: str) -> Kind | None:
 
 _IDENTITY = re.compile(
     r"\b(eres|seras|es usted|usas|utilizas|funcionas con)\b.{0,25}\b(ia|inteligencia artificial|chatgpt|chat gpt|gpt|openai|"
-    r"gemini|copilot|un modelo|modelo de lenguaje|robot|bot|chatbot|maquina|programa|real|una persona|humano|humana)\b"
+    r"gemini|copilot|un modelo|modelo de lenguaje|robot|bot|chatbot|maquina|programa|real|una persona|humano|humana|"
+    r"inteligente)\b"
     r"|\b(que|cual)\b.{0,12}\b(modelo|tecnologia|ia|inteligencia artificial)\b.{0,15}\b(usas|utilizas|eres|tienes|te impulsa)\b"
     r"|\bquien(es)?\b.{0,6}\b(te|lo)\b.{0,4}\b(creo|crearon|hizo|hicieron|programo|programaron|desarrollo|desarrollaron|diseno|disenaron|construyo)\b"
     r"|\b(tu|su)\s+(creador|creadores|programador|desarrollador)\b|\bcomo (estas hecho|te hicieron|fuiste creado|fuiste hecho)\b"

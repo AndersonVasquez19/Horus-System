@@ -1,0 +1,373 @@
+{
+ "descripcion": "Frases y conversaciones de visitantes. Las leen el filtro de privacidad (PHPUnit) y el motor (pytest) sobre el catálogo de chat-jurado-catalogo.json. «cursos» es la lista exacta de cursos citados.",
+ "frases": [
+  {
+   "texto": "hola",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "holaa",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "holaaa",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "holaaaa",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "holiii",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "wenas",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "Wenas",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "buenas!",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "Buen día",
+   "intencion": "greeting"
+  },
+  {
+   "texto": "gracias",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "gracias bro",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "grax",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "grasias",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "muchas grasias",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "ya gracias",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "listo, gracias",
+   "intencion": "thanks"
+  },
+  {
+   "texto": "bye bye",
+   "intencion": "farewell"
+  },
+  {
+   "texto": "chaito",
+   "intencion": "farewell"
+  },
+  {
+   "texto": "chauu",
+   "intencion": "farewell"
+  },
+  {
+   "texto": "hasta mañana",
+   "intencion": "farewell"
+  },
+  {
+   "texto": "que tengas buen día",
+   "intencion": "farewell"
+  },
+  {
+   "texto": "ok",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "chevere",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "ok chevere",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "bacan",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "mmm",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "Chévere 👍",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "menu",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "menú",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "repite",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "ayuda",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "no entendi",
+   "intencion": "acknowledgement"
+  },
+  {
+   "texto": "eres humano",
+   "intencion": "capabilities"
+  },
+  {
+   "texto": "eres inteligente",
+   "intencion": "capabilities"
+  },
+  {
+   "texto": "¿Eres inteligente?",
+   "intencion": "capabilities"
+  },
+  {
+   "texto": "como te llamas",
+   "intencion": "capabilities"
+  },
+  {
+   "texto": "eres chatgpt",
+   "intencion": "capabilities"
+  },
+  {
+   "texto": "como me inscribo",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "que cursos tienen",
+   "intencion": "training_info"
+  },
+  {
+   "texto": "que hacen con mis datos",
+   "intencion": "policy"
+  },
+  {
+   "texto": "¿Qué hacen con mis datos?",
+   "intencion": "policy"
+  },
+  {
+   "texto": "politica de privacidad",
+   "intencion": "policy"
+  },
+  {
+   "texto": "quiero devolucion",
+   "intencion": "policy"
+  },
+  {
+   "texto": "precio",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "cuanto cuesta",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "hay descuentos",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "pago en cuotas",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "vacantes",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "tienen el curso de contabilidad",
+   "intencion": "unavailable_info"
+  },
+  {
+   "texto": "donde estan ubicados",
+   "intencion": "contact_info"
+  },
+  {
+   "texto": "telefono",
+   "intencion": "contact_info"
+  },
+  {
+   "texto": "atienden domingos",
+   "intencion": "contact_info"
+  },
+  {
+   "texto": "tienen facebook",
+   "intencion": "contact_info"
+  },
+  {
+   "texto": "puedo pagar con yape",
+   "intencion": "faq"
+  },
+  {
+   "texto": "dan factura",
+   "intencion": "faq"
+  }
+ ],
+ "conversaciones": [
+  [
+   {
+    "texto": "tienen el curso de contabilidad",
+    "intencion": "unavailable_info",
+    "cursos": []
+   },
+   {
+    "texto": "¿Y cuánto dura?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas",
+     "Redes para principiantes",
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "¿Cuándo empiezan?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas",
+     "Redes para principiantes",
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "¿Cuál es el horario?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas",
+     "Redes para principiantes",
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "¿Cuánto dura el soporte técnico?",
+    "intencion": "unavailable_info",
+    "cursos": []
+   }
+  ],
+  [
+   {
+    "texto": "wenas",
+    "intencion": "greeting"
+   },
+   {
+    "texto": "que cursos tienen",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "¿Cuál es el horario?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Ofimática para oficinas",
+     "Redes para principiantes",
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "grax",
+    "intencion": "thanks"
+   }
+  ],
+  [
+   {
+    "texto": "¿Cuál es el horario del curso Comunicacion?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "¿y cuánto dura?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "chevere",
+    "intencion": "acknowledgement"
+   },
+   {
+    "texto": "¿y la modalidad?",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Comunicacion"
+    ]
+   },
+   {
+    "texto": "chaito",
+    "intencion": "farewell"
+   }
+  ],
+  [
+   {
+    "texto": "me interesa redes",
+    "intencion": "course_recommendation"
+   },
+   {
+    "texto": "precio",
+    "intencion": "unavailable_info"
+   },
+   {
+    "texto": "y el horario",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "tiene certificado",
+    "intencion": "followup_attribute",
+    "cursos": [
+     "Redes para principiantes"
+    ]
+   },
+   {
+    "texto": "como me inscribo",
+    "intencion": "training_info"
+   },
+   {
+    "texto": "gracias bro",
+    "intencion": "thanks"
+   }
+  ]
+ ],
+ "aprobadas_solo_completas": [
+  "wenas",
+  "gracias bro",
+  "grax",
+  "grasias",
+  "chevere",
+  "ok chevere",
+  "bacan",
+  "mmm",
+  "chaito",
+  "menu",
+  "repite",
+  "eres inteligente",
+  "que hacen con mis datos"
+ ],
+ "bloqueadas_a_proposito": [
+  "dale",
+  "aja",
+  "comu",
+  "certificado a nombre de quien"
+ ]
+}

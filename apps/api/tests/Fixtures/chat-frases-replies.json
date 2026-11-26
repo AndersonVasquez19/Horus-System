@@ -1,0 +1,3379 @@
+[
+ {
+  "query": "hola",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "holaa",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "holaaa",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "holaaaa",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "holiii",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "wenas",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "Wenas",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "buenas!",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "Buen día",
+  "state": null,
+  "reply": {
+   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "intent": "greeting",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "gracias",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "gracias bro",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "grax",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "grasias",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "muchas grasias",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "ya gracias",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "listo, gracias",
+  "state": null,
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "bye bye",
+  "state": null,
+  "reply": {
+   "answer": "¡Gracias por escribir a Horus Group SRL! Hasta pronto.",
+   "intent": "farewell",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "chaito",
+  "state": null,
+  "reply": {
+   "answer": "¡Gracias por escribir a Horus Group SRL! Hasta pronto.",
+   "intent": "farewell",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "chauu",
+  "state": null,
+  "reply": {
+   "answer": "¡Gracias por escribir a Horus Group SRL! Hasta pronto.",
+   "intent": "farewell",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "hasta mañana",
+  "state": null,
+  "reply": {
+   "answer": "¡Gracias por escribir a Horus Group SRL! Hasta pronto.",
+   "intent": "farewell",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "que tengas buen día",
+  "state": null,
+  "reply": {
+   "answer": "¡Gracias por escribir a Horus Group SRL! Hasta pronto.",
+   "intent": "farewell",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "ok",
+  "state": null,
+  "reply": {
+   "answer": "¡Claro! ¿Qué te gustaría saber? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "chevere",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto. Cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "ok chevere",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto. Cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "bacan",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto. Cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "mmm",
+  "state": null,
+  "reply": {
+   "answer": "¡Claro! ¿Qué te gustaría saber? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "Chévere 👍",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto. Cuéntame qué necesitas. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "menu",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto. ¿Cuál es tu consulta? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "menú",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto. ¿Cuál es tu consulta? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "repite",
+  "state": null,
+  "reply": {
+   "answer": "Con gusto te lo explico de nuevo. ¿Sobre qué curso o tema quieres que te cuente? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "ayuda",
+  "state": null,
+  "reply": {
+   "answer": "Por supuesto, dime en qué te ayudo. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "no entendi",
+  "state": null,
+  "reply": {
+   "answer": "Disculpa si no fui claro. Dime sobre qué tema necesitas ayuda y lo vemos paso a paso. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "eres humano",
+  "state": null,
+  "reply": {
+   "answer": "Soy Horus, el asistente virtual de Horus Group. Soy un programa automático, no una persona: busco tu pregunta en la información oficial de Horus Group (cursos, capacitaciones, asesoramiento, convenios, pagos y contacto) y te respondo solo con lo que está verificado. No uso un modelo que invente respuestas: si no tengo un dato, te lo digo y te derivo a un asesor.",
+   "intent": "capabilities",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "eres inteligente",
+  "state": null,
+  "reply": {
+   "answer": "Soy Horus, el asistente virtual de Horus Group. Soy un programa automático, no una persona: busco tu pregunta en la información oficial de Horus Group (cursos, capacitaciones, asesoramiento, convenios, pagos y contacto) y te respondo solo con lo que está verificado. No uso un modelo que invente respuestas: si no tengo un dato, te lo digo y te derivo a un asesor.",
+   "intent": "capabilities",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "¿Eres inteligente?",
+  "state": null,
+  "reply": {
+   "answer": "Soy Horus, el asistente virtual de Horus Group. Soy un programa automático, no una persona: busco tu pregunta en la información oficial de Horus Group (cursos, capacitaciones, asesoramiento, convenios, pagos y contacto) y te respondo solo con lo que está verificado. No uso un modelo que invente respuestas: si no tengo un dato, te lo digo y te derivo a un asesor.",
+   "intent": "capabilities",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "como te llamas",
+  "state": null,
+  "reply": {
+   "answer": "Soy Horus, el asistente virtual de Horus Group. Soy un programa automático, no una persona: busco tu pregunta en la información oficial de Horus Group (cursos, capacitaciones, asesoramiento, convenios, pagos y contacto) y te respondo solo con lo que está verificado. No uso un modelo que invente respuestas: si no tengo un dato, te lo digo y te derivo a un asesor.",
+   "intent": "capabilities",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "eres chatgpt",
+  "state": null,
+  "reply": {
+   "answer": "Soy Horus, el asistente virtual de Horus Group. Soy un programa automático, no una persona: busco tu pregunta en la información oficial de Horus Group (cursos, capacitaciones, asesoramiento, convenios, pagos y contacto) y te respondo solo con lo que está verificado. No uso un modelo que invente respuestas: si no tengo un dato, te lo digo y te derivo a un asesor.",
+   "intent": "capabilities",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "como me inscribo",
+  "state": null,
+  "reply": {
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+   "intent": "training_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "proceso_matricula_pasos",
+     "title": "Pasos para matricularte en un curso",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "proceso_matricula_pasos"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "que cursos tienen",
+  "state": null,
+  "reply": {
+   "answer": "Cursos y capacitaciones vigentes: Ofimática para oficinas; Redes para principiantes; Comunicacion. Pregúntame por cualquiera para ver su modalidad o requisitos.",
+   "intent": "training_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_listado_formacion",
+     "title": "Cursos y capacitaciones vigentes",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [
+     "cursos"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 0,
+    "cue_age": 0,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "schedule",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "que hacen con mis datos",
+  "state": null,
+  "reply": {
+   "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
+   "intent": "policy",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "politica_privacidad",
+     "title": "Política de privacidad y protección de datos",
+     "url_path": "/legales/politicas-privacidad"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "politica_privacidad"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "¿Qué hacen con mis datos?",
+  "state": null,
+  "reply": {
+   "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
+   "intent": "policy",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "politica_privacidad",
+     "title": "Política de privacidad y protección de datos",
+     "url_path": "/legales/politicas-privacidad"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "politica_privacidad"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "politica de privacidad",
+  "state": null,
+  "reply": {
+   "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
+   "intent": "policy",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "politica_privacidad",
+     "title": "Política de privacidad y protección de datos",
+     "url_path": "/legales/politicas-privacidad"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "politica_privacidad"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "quiero devolucion",
+  "state": null,
+  "reply": {
+   "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
+   "intent": "policy",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "politica_devoluciones",
+     "title": "Política de devoluciones (educación)",
+     "url_path": "/legales/politicas-devolucion"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "politica_devoluciones"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "precio",
+  "state": null,
+  "reply": {
+   "answer": "No tengo precios de cursos ni capacitaciones, así que no puedo darte un monto. Para consultar costos, escribe a un asesor por WhatsApp: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+   "intent": "unavailable_info",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [
+    "precios y tarifas"
+   ],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "cuanto cuesta",
+  "state": null,
+  "reply": {
+   "answer": "No tengo precios de cursos ni capacitaciones, así que no puedo darte un monto. Para consultar costos, escribe a un asesor por WhatsApp: https://wa.me/51972021374?text=Hola%2C%20deseo%20solicitar%20una%20cotizaci%C3%B3n.",
+   "intent": "unavailable_info",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [
+    "precios y tarifas"
+   ],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "hay descuentos",
+  "state": null,
+  "reply": {
+   "answer": "No tengo información confirmada sobre promociones, descuentos o becas. Consulta si hay alguna vigente al +51 972 021 374.",
+   "intent": "unavailable_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [
+    "promociones, descuentos y becas"
+   ],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "pago en cuotas",
+  "state": null,
+  "reply": {
+   "answer": "No tengo confirmado si el pago puede hacerse en cuotas. Un asesor te lo confirma por WhatsApp junto con los medios de pago disponibles.",
+   "intent": "unavailable_info",
+   "match_level": "ninguna",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "vacantes",
+  "state": null,
+  "reply": {
+   "answer": "No tengo información pública sobre cupos o vacantes disponibles. Un asesor puede confirmarlo al +51 972 021 374.",
+   "intent": "unavailable_info",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [
+    "cupos y vacantes"
+   ],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "tienen el curso de contabilidad",
+  "state": null,
+  "reply": {
+   "answer": "Por ahora no tengo un curso o capacitación sobre ese tema. Pregúntame «¿Qué cursos ofrecen?» y te cuento qué hay. También puedes consultarlo con un asesor.",
+   "intent": "unavailable_info",
+   "match_level": "ninguna",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 0,
+    "cue_age": null,
+    "focus_ids": [],
+    "focus_age": null,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "donde estan ubicados",
+  "state": null,
+  "reply": {
+   "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
+   "intent": "contact_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "ubicacion_sede",
+     "title": "Ubicación de la sede",
+     "url_path": "/contactos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "ubicacion_sede"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "telefono",
+  "state": null,
+  "reply": {
+   "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de contacto de la web (asuntos: educación, asesoramiento, capacitaciones, cursos u otro).",
+   "intent": "contact_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "contacto_canales",
+     "title": "Canales de contacto",
+     "url_path": "/contactos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "contacto_canales"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "atienden domingos",
+  "state": null,
+  "reply": {
+   "answer": "Los horarios de atención varían según la sección de la web. Confirma el horario al +51 972 021 374 antes de acudir.",
+   "intent": "contact_info",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "horario_atencion",
+     "title": "Horario de atención",
+     "url_path": "/contactos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "horario_atencion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "tienen facebook",
+  "state": null,
+  "reply": {
+   "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
+   "intent": "contact_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "redes_sociales",
+     "title": "Redes sociales",
+     "url_path": "/"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "redes_sociales"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "puedo pagar con yape",
+  "state": null,
+  "reply": {
+   "answer": "Se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
+   "intent": "faq",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "faq_medios_pago",
+     "title": "Medios de pago",
+     "url_path": "/legales/preguntas-frecuentes"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "faq_medios_pago"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "dan factura",
+  "state": null,
+  "reply": {
+   "answer": "Sí, se emiten boletas y facturas electrónicas. Al momento de la compra puedes indicar si necesitas factura con los datos de tu empresa.",
+   "intent": "faq",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "faq_comprobantes",
+     "title": "Comprobantes de pago",
+     "url_path": "/legales/preguntas-frecuentes"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": null,
+    "cue_age": null,
+    "focus_ids": [
+     "faq_comprobantes"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "¿Y cuánto dura?",
+  "state": {
+   "topics": [
+    "cursos",
+    "finanzas"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 0,
+   "cue_age": null,
+   "focus_ids": [],
+   "focus_age": null,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Ofimática para oficinas»: dura 8 semanas.\n«Redes para principiantes»: dura 4 semanas.\n«Comunicacion»: dura 2 semanas.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_7",
+     "title": "Ofimática para oficinas",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": true
+   },
+   "state": {
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 1,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "schedule",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "¿Cuándo empiezan?",
+  "state": {
+   "topics": [
+    "cursos",
+    "finanzas"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 1,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_listado_formacion"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_7",
+     "title": "Ofimática para oficinas",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 2,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "¿Cuál es el horario?",
+  "state": {
+   "topics": [
+    "cursos",
+    "finanzas"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 2,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_listado_formacion"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_7",
+     "title": "Ofimática para oficinas",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos",
+     "finanzas"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 3,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "¿Cuánto dura el soporte técnico?",
+  "state": {
+   "topics": [
+    "cursos",
+    "finanzas"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 3,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_listado_formacion"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "No tengo un calendario vigente con fechas de inicio, horarios ni duración de los cursos. Para confirmarlo, indica el curso que te interesa y consulta al +51 972 021 374.",
+   "intent": "unavailable_info",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [
+    "fechas de inicio y horarios de cursos"
+   ],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos",
+     "finanzas",
+     "tecnologia"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos",
+     "finanzas",
+     "tecnologia"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 0,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 1,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "schedule",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "que cursos tienen",
+  "state": {
+   "topics": [],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": null,
+   "cue_age": null,
+   "focus_ids": [],
+   "focus_age": null,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "Cursos y capacitaciones vigentes: Ofimática para oficinas; Redes para principiantes; Comunicacion. Pregúntame por cualquiera para ver su modalidad o requisitos.",
+   "intent": "training_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_listado_formacion",
+     "title": "Cursos y capacitaciones vigentes",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 0,
+    "cue_age": 0,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "schedule",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "¿Cuál es el horario?",
+  "state": {
+   "topics": [
+    "cursos"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 0,
+   "cue_age": 0,
+   "focus_ids": [
+    "cat_listado_formacion"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_7",
+     "title": "Ofimática para oficinas",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    },
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 1,
+    "cue_age": 1,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "compare",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "grax",
+  "state": {
+   "topics": [
+    "cursos"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 1,
+   "cue_age": 1,
+   "focus_ids": [
+    "cat_listado_formacion"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 2,
+    "cue_age": 2,
+    "focus_ids": [
+     "cat_listado_formacion"
+    ],
+    "focus_age": 1,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "¿Cuál es el horario del curso Comunicacion?",
+  "state": null,
+  "reply": {
+   "answer": "«Comunicacion»: el horario es 2 pm a 5pm.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [
+     "cursos"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 0,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "modality",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "¿y cuánto dura?",
+  "state": {
+   "topics": [
+    "cursos"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 0,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_curso_publicacion_9"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Comunicacion»: dura 2 semanas.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "topic_changed": false,
+    "referential": true
+   },
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 1,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "schedule",
+    "modality",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "chevere",
+  "state": {
+   "topics": [
+    "cursos"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 1,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_curso_publicacion_9"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "¡Genial! Si quieres, te cuento más sobre el horario, la modalidad o la matrícula. ¿Qué te interesa?",
+   "intent": "acknowledgement",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 2,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "focus_age": 1,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "schedule",
+    "modality",
+    "enrollment"
+   ]
+  }
+ },
+ {
+  "query": "¿y la modalidad?",
+  "state": {
+   "topics": [
+    "cursos"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 2,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_curso_publicacion_9"
+   ],
+   "focus_age": 1,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Comunicacion»: es presencial.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_9",
+     "title": "Comunicacion",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "cursos"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "topic_changed": false,
+    "referential": true
+   },
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 3,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "schedule",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "chaito",
+  "state": {
+   "topics": [
+    "cursos"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "unknown",
+   "profile_age": 3,
+   "cue_age": null,
+   "focus_ids": [
+    "cat_curso_publicacion_9"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "¡Gracias por escribir a Horus Group SRL! Hasta pronto.",
+   "intent": "farewell",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [
+     "cursos"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "unknown",
+    "profile_age": 4,
+    "cue_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_9"
+    ],
+    "focus_age": 1,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "me interesa redes",
+  "state": null,
+  "reply": {
+   "answer": "Redes para principiantes: Conoce redes y cableado desde cero.",
+   "intent": "course_recommendation",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "kind": "course",
+     "reason": "Lo que dice el contenido sobre tu consulta: «Conoce redes y cableado desde cero.».",
+     "evidence": [
+      "cat_curso_publicacion_8"
+     ],
+     "match_level": "alta",
+     "url_path": "/educacion/cursos",
+     "evidence_text": "Conoce redes y cableado desde cero.",
+     "signals": [],
+     "limitations": [],
+     "needs_clarification": false,
+     "clarification_question": null,
+     "next_step": "Para consultar la matrícula, continúa por el WhatsApp oficial: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula."
+    }
+   ],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 0,
+    "topics": [
+     "redes"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "redes"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 0,
+    "cue_age": 0,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "schedule",
+    "modality",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "precio",
+  "state": {
+   "topics": [
+    "redes"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 0,
+   "cue_age": 0,
+   "focus_ids": [
+    "cat_curso_publicacion_8"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Redes para principiantes»: el precio lo confirma un asesor.\nPara confirmar fechas, precios y cupos, escribe al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
+   "intent": "unavailable_info",
+   "match_level": "baja",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": true,
+   "recommendations": [],
+   "missing_data": [
+    "precio de «Redes para principiantes»"
+   ],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "redes"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "redes"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 1,
+    "cue_age": 1,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "schedule",
+    "modality",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "y el horario",
+  "state": {
+   "topics": [
+    "redes"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 1,
+   "cue_age": 1,
+   "focus_ids": [
+    "cat_curso_publicacion_8"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "redes"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "topic_changed": false,
+    "referential": true
+   },
+   "state": {
+    "topics": [
+     "redes"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 2,
+    "cue_age": 2,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "modality",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "tiene certificado",
+  "state": {
+   "topics": [
+    "redes"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 2,
+   "cue_age": 2,
+   "focus_ids": [
+    "cat_curso_publicacion_8"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "«Redes para principiantes»: certificación: Certificado digital a nombre de Horus Group.",
+   "intent": "followup_attribute",
+   "match_level": "media",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "cat_curso_publicacion_8",
+     "title": "Redes para principiantes",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "certificacion",
+     "redes"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "certificacion",
+     "redes"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 0,
+    "cue_age": 3,
+    "focus_ids": [
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": [
+    "schedule",
+    "modality",
+    "enrollment",
+    "compare"
+   ]
+  }
+ },
+ {
+  "query": "como me inscribo",
+  "state": {
+   "topics": [
+    "certificacion",
+    "redes"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 0,
+   "cue_age": 3,
+   "focus_ids": [
+    "cat_curso_publicacion_8"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía tu comprobante de pago por WhatsApp para recibir la confirmación y tu boleta o factura electrónica.",
+   "intent": "training_info",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [
+    {
+     "id": "proceso_matricula_pasos",
+     "title": "Pasos para matricularte en un curso",
+     "url_path": "/educacion/cursos"
+    }
+   ],
+   "mode": "lexical",
+   "context": {
+    "turns_considered": 1,
+    "topics": [
+     "certificacion",
+     "redes"
+    ],
+    "level": null,
+    "modality": null,
+    "focus_ids": [],
+    "topic_changed": false,
+    "referential": false
+   },
+   "state": {
+    "topics": [
+     "certificacion",
+     "redes"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 1,
+    "cue_age": 4,
+    "focus_ids": [
+     "proceso_matricula_pasos"
+    ],
+    "focus_age": 0,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ },
+ {
+  "query": "gracias bro",
+  "state": {
+   "topics": [
+    "certificacion",
+    "redes"
+   ],
+   "objectives": [],
+   "level": "desconocido",
+   "modality": "cualquiera",
+   "audience": "desconocido",
+   "goal": "learn",
+   "profile_age": 1,
+   "cue_age": 4,
+   "focus_ids": [
+    "proceso_matricula_pasos"
+   ],
+   "focus_age": 0,
+   "out_of_scope": false,
+   "quote": false
+  },
+  "reply": {
+   "answer": "¡Con gusto! Si necesitas algo más sobre Horus Group, aquí estoy.",
+   "intent": "thanks",
+   "match_level": "alta",
+   "needs_clarification": false,
+   "clarification_question": null,
+   "abstained": false,
+   "recommendations": [],
+   "missing_data": [],
+   "general_guidance": null,
+   "sources": [],
+   "mode": "lexical",
+   "context": null,
+   "state": {
+    "topics": [
+     "certificacion",
+     "redes"
+    ],
+    "objectives": [],
+    "level": "desconocido",
+    "modality": "cualquiera",
+    "audience": "desconocido",
+    "goal": "learn",
+    "profile_age": 2,
+    "cue_age": null,
+    "focus_ids": [
+     "proceso_matricula_pasos"
+    ],
+    "focus_age": 1,
+    "out_of_scope": false,
+    "quote": false
+   },
+   "suggestions": []
+  }
+ }
+]
