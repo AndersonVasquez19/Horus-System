@@ -35,8 +35,8 @@ from app.schemas.chat import (
     Suggestion,
 )
 from app.schemas.knowledge import KnowledgeRecord
-from app.services.catalog_documents import PublicFragment
 from app.services import conversation_glue as glue
+from app.services.catalog_documents import PublicFragment
 from app.services.contact import PublicContact
 from app.services.gemini import GeminiSelector
 from app.services.knowledge import KnowledgeBase
@@ -803,9 +803,10 @@ class AdvisorEngine:
             and not set(content_tokens(top.record.title)) <= query_terms):
             return self._clarify([])
 
+        level: MatchLevel = "media" if near_sure and top.score < ANSWER_THRESHOLD else _retrieval_level(top.score)
         if top.fragment is not None:
             return self._reply(answer=top.fragment.answer, intent=CATEGORY_INTENTS[top.record.category],
-                match_level=_retrieval_level(top.score), sources=[self._source(top.record)])
+                match_level=level, sources=[self._source(top.record)])
 
         records = [top.record]
         if (
@@ -819,7 +820,7 @@ class AdvisorEngine:
         return self._reply(
             answer="\n\n".join(r.answer for r in records),
             intent=CATEGORY_INTENTS[top.record.category],
-            match_level=_retrieval_level(top.score),
+            match_level=level,
             sources=[self._source(r) for r in records],
         )
 
@@ -1130,6 +1131,28 @@ class AdvisorEngine:
             ][:5]
             if courses and any(self._attribute_line(c, a, u)[1] for c in courses for a in u.attributes):
                 return self._followup(courses, u)
+        # Con catálogo vigente cargado, no contradecir al catálogo diciendo «no tengo la lista de cursos».
+        if (
+            attrs[0] == "contenido"
+            and self.kb.catalog is not None
+            and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
+        ):
+            answer = (
+                "No tengo el temario disponible para esa consulta. "
+                f"Un asesor puede confirmártelo por WhatsApp al {self.contact.phone} o en {self.contact.email}."
+            )
+            sources: list[SourceRef] = []
+            if subject is not None:
+                answer += f"\n\n¿Quieres que te cuente más sobre «{subject.title}»?"
+                sources.append(self._source(subject))
+            return self._reply(
+                answer=answer,
+                intent="unavailable_info",
+                match_level="media" if sources else "ninguna",
+                abstained=True,
+                sources=sources,
+                missing_data=["temario"],
+            )
         unavailable = self.kb.unavailable_record(attrs[0])
         if unavailable is None:
             return None

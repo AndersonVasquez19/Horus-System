@@ -59,6 +59,8 @@ class AdvisorCamposAcademicosTest extends TestCase
         yield 'certificación' => ['«Ofimática para oficinas»: certificación: Certificado digital a nombre de Horus Group.'];
         yield 'duración' => ['«Ofimática para oficinas»: dura 8 semanas.'];
         yield 'temario' => ['Ofimática para oficinas: Inscripción por WhatsApp oficial. Temario: Excel básico, tablas dinámicas y Word profesional.'];
+        yield 'plazo de atención sin dato' => ['«Ofimática para oficinas»: el plazo de atención lo confirma un asesor.'];
+        yield 'público sin dato' => ['«Ofimática para oficinas»: el público al que se dirige lo confirma un asesor.'];
         yield 'ficha completa' => [self::RESPUESTA_COMPLETA];
     }
 

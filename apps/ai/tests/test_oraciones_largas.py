@@ -201,3 +201,23 @@ def test_la_fecha_vencida_se_calcula_con_la_hora_de_cajamarca():
 def test_los_pasos_de_matricula_nombran_los_medios_de_pago_reales(produccion):
     respuesta = produccion.chat("¿Cómo me matriculo?")
     assert "transferencia bancaria, Yape, Plin, tarjeta o efectivo" in respuesta.answer
+
+
+@pytest.mark.parametrize("mensaje", [
+    "¿Con qué bancos trabajan para transferencias bancarias?",
+    "¿En cuánto tiempo responden una solicitud de devolución?",
+    "Quiero presentar una queja formal por la web",
+    "Vivo en Arequipa, ¿puedo llevar clases con Horus Group?",
+    "¿Cómo puedo desactivar o borrar las cookies de su página?",
+])
+def test_respuestas_dominantes_emiten_nivel_aceptado_por_laravel(visita, mensaje):
+    # Contrato con HorusAdvisorClient::respuestaValida(): toda respuesta afirmativa con fuente exige match_level alta|media.
+    respuesta = visita.chat(mensaje, [], None)
+    assert not respuesta.abstained and not respuesta.needs_clarification
+    assert respuesta.sources
+    assert respuesta.match_level in {"alta", "media"}, (mensaje, respuesta.match_level, respuesta.sources)
+
+
+def test_temario_con_catalogo_vigente_no_contradice_el_catalogo(visita):
+    respuesta = visita.chat("¿Pueden diseñar un temario exclusivo para nuestra empresa?", [], None)
+    assert "Todavía no tengo la lista de cursos vigentes" not in respuesta.answer

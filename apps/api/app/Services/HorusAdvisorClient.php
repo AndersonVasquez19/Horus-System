@@ -867,9 +867,9 @@ class HorusAdvisorClient
 
         // Aclaraciones y abstenciones honestas admitidas
         $esAclaracion = $reply['needs_clarification'] && in_array($reply['intent'], ['clarification', 'quote_request', 'course_recommendation', 'service_recommendation'], true);
-        // `sensitive_request` y `prompt_injection`: negativas fijas de Horus AI («no tengo acceso a datos personales…»,
-        // «no puedo cambiar mis reglas…»), sin fuentes; el texto pasa los mismos filtros de cifras, enlaces y datos.
-        $esAbstencionHonesta = $reply['abstained'] && in_array($reply['intent'], ['unavailable_info', 'unverified_info', 'out_of_scope', 'quote_request', 'course_recommendation', 'service_recommendation', 'sensitive_request', 'prompt_injection'], true);
+        // `sensitive_request`, `prompt_injection` y `followup_attribute` abstenido («el plazo/modalidad lo confirma un asesor»):
+        // textos fijos sin cifras ni enlaces ajenos, ya validados por los filtros previos de procedencia y privacidad.
+        $esAbstencionHonesta = $reply['abstained'] && in_array($reply['intent'], ['unavailable_info', 'unverified_info', 'out_of_scope', 'quote_request', 'course_recommendation', 'service_recommendation', 'sensitive_request', 'prompt_injection', 'followup_attribute'], true);
         if ($reply['intent'] === 'out_of_scope' && (! $reply['abstained'] || $reply['needs_clarification']
             || $reply['sources'] !== [] || $reply['recommendations'] !== [] || $reply['match_level'] !== 'ninguna')) {
             return false;

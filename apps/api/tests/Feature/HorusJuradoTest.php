@@ -154,6 +154,30 @@ class HorusJuradoTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_followup_attribute_abstenido_se_acepta_como_abstencion_honesta(): void
+    {
+        config(['horus-advisor.enabled' => true, 'horus-advisor.url' => 'http://127.0.0.1:8001',
+            'horus-advisor.token' => str_repeat('t', 32), 'horus-catalog.sync_enabled' => false]);
+        Http::swap(new Factory);
+        Http::preventStrayRequests();
+        $reply = [
+            'answer' => "«Asesoramiento educativo (tesis)»: el plazo de atención lo confirma un asesor.\nPara confirmar fechas, precios y cupos, escribe al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
+            'intent' => 'followup_attribute',
+            'mode' => 'lexical',
+            'match_level' => 'baja',
+            'abstained' => true,
+            'needs_clarification' => false,
+            'sources' => [['id' => 'asesoramiento_educativo', 'title' => 'Asesoramiento educativo (tesis)', 'url_path' => '/educacion/asesoramiento']],
+            'recommendations' => [],
+        ];
+        Http::fake(['*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured',
+            'semantic' => 'disabled', 'catalog' => 'none']), '*/api/v1/chat' => Http::response($reply)]);
+
+        $resultado = app(HorusAdvisorClient::class)->orientar('¿cuánto demoran en responder una consulta?');
+        $this->assertNotNull($resultado);
+        $this->assertSame($reply['answer'], $resultado['respuesta']);
+    }
+
     /** @param  array<string, mixed>  $reply */
     private function textoEsperado(array $reply): string
     {

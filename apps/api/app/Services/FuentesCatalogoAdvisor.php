@@ -132,6 +132,8 @@ class FuentesCatalogoAdvisor
                 $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el precio lo confirma un asesor.';
                 $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: los cupos los confirma un asesor.';
                 $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el temario lo confirma un asesor.';
+                $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el plazo de atención lo confirma un asesor.';
+                $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el público al que se dirige lo confirma un asesor.';
                 if ($item['type'] === 'curso') {
                     $cursos[] = $item['title'];
                     $detallesCursos[] = $respuestaDetallada;
