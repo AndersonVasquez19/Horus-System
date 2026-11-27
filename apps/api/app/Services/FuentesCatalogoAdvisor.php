@@ -14,6 +14,27 @@ class FuentesCatalogoAdvisor
 {
     private const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
+    /** Etiquetas espejo de Python (`chat_engine.MODALITY_ASKED`), en el orden fijo de `understanding.MODALITY_WORDS`. */
+    private const MODALIDADES_PEDIDAS = [
+        'presencial' => 'presencial',
+        'semipresencial' => 'semipresencial',
+        'virtual' => 'virtual u online',
+    ];
+
+    /** @return list<list<'presencial'|'semipresencial'|'virtual'>> */
+    private static function combinacionesModalidad(): array
+    {
+        return [
+            ['presencial'],
+            ['semipresencial'],
+            ['virtual'],
+            ['presencial', 'semipresencial'],
+            ['presencial', 'virtual'],
+            ['semipresencial', 'virtual'],
+            ['presencial', 'semipresencial', 'virtual'],
+        ];
+    }
+
     /** «5 de diciembre de 2026»: la misma frase que compone Python (app/services/catalog.py, long_date). */
     public static function fechaLarga(string $iso): string
     {
@@ -118,9 +139,25 @@ class FuentesCatalogoAdvisor
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: si incluye certificado lo confirma un asesor.';
                 }
                 if (! empty($item['modalities'])) {
-                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es '.implode(', ', $item['modalities']).'.';
+                    $publicadas = implode(', ', $item['modalities']);
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es '.$publicadas.'.';
+                    $ofrecidas = array_map(static fn (string $m): string => $m === 'online' ? 'virtual' : $m, $item['modalities']);
+                    foreach (self::combinacionesModalidad() as $combo) {
+                        $etiquetas = array_map(
+                            static fn (string $m): string => (in_array($m, $ofrecidas, true) ? 'sí es ' : 'no es ').self::MODALIDADES_PEDIDAS[$m],
+                            $combo,
+                        );
+                        $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: '.implode('; ', $etiquetas).' (modalidad: '.$publicadas.').';
+                    }
                 } elseif ($esHibrido) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: es híbrido.';
+                    foreach (self::combinacionesModalidad() as $combo) {
+                        $etiquetas = array_map(
+                            static fn (string $m): string => ($m === 'semipresencial' ? 'sí es ' : 'no es ').self::MODALIDADES_PEDIDAS[$m],
+                            $combo,
+                        );
+                        $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: '.implode('; ', $etiquetas).' (modalidad: híbrido).';
+                    }
                 } else {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: la modalidad la confirma un asesor.';
                 }

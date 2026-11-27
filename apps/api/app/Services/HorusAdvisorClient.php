@@ -258,6 +258,11 @@ class HorusAdvisorClient
                 return $this->enlacesDeTextoVerificado($reply['respuesta']);
             }
         }
+        // Misma comprobación de procedencia que en respuestaValida(): texto exacto de conocimiento institucional
+        // verificado (1 a 3 bloques separados por línea en blanco), p. ej. dirección pública, Ley N.° o vigencias.
+        if ($this->esTextoInstitucionalVerificado($reply['respuesta'])) {
+            return $this->enlacesDeTextoVerificado($reply['respuesta']);
+        }
         $texto = $this->sinEntidadesVerificadas(str_ireplace(self::CANALES_OFICIALES_PUBLICOS, '', $reply['respuesta']));
 
         return ! $this->privacidad->contieneDatosPrivadosEnRespuesta($texto)
@@ -1126,6 +1131,26 @@ class HorusAdvisorClient
         }
 
         return false;
+    }
+
+    /** Comprueba si el texto completo (o de 2 a 3 bloques separados por línea en blanco) proviene de `knowledge.json`. */
+    private function esTextoInstitucionalVerificado(string $texto): bool
+    {
+        $porTexto = self::conocimiento()['porTexto'];
+        if (isset($porTexto[$texto])) {
+            return true;
+        }
+        $bloques = explode("\n\n", $texto);
+        if (count($bloques) < 2 || count($bloques) > 3) {
+            return false;
+        }
+        foreach ($bloques as $bloque) {
+            if (! isset($porTexto[$bloque])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @param array<string, mixed> $reply */
