@@ -35,6 +35,17 @@ use App\Support\Privacidad\LexicoPublico;
  */
 final class FiltroPrivacidadChat
 {
+    /**
+     * Ciudades, regiones y países (alternancia de regex, minúsculas, tildes opcionales). Decir en qué ciudad se vive, sin
+     * calle ni número, no identifica a nadie y es habitual al preguntar por la modalidad virtual.
+     */
+    private const LUGARES_PUBLICOS = 'cajamarca|ba[nñ]os\s+del\s+inca|celend[ií]n|cajabamba|bambamarca|chota|cutervo|ja[eé]n|'
+        .'san\s+ignacio|san\s+marcos|san\s+miguel|san\s+pablo|contumaz[aá]|hualgayoc|santa\s+cruz|lima|callao|trujillo|chiclayo|'
+        .'lambayeque|piura|sullana|tumbes|chimbote|huaraz|arequipa|cusco|cuzco|puno|juliaca|tacna|moquegua|ica|huancayo|'
+        .'ayacucho|huancavelica|abancay|hu[aá]nuco|pucallpa|iquitos|tarapoto|moyobamba|chachapoyas|bagua|amazonas|'
+        .'la\s+libertad|[aá]ncash|jun[ií]n|loreto|ucayali|san\s+mart[ií]n|apur[ií]mac|madre\s+de\s+dios|pasco|'
+        .'per[uú]|ecuador|colombia|chile|bolivia|argentina|brasil|venezuela|m[eé]xico|espa[nñ]a|estados\s+unidos|usa|eeuu';
+
     /** @var list<string> */
     private const TERMINOS_INSTITUCIONALES = [
         'horus', 'group', 'srl', 'sac', 'eirl', 'isam', 'peru', 'cajamarca',
@@ -558,6 +569,10 @@ final class FiltroPrivacidadChat
 
     private function detectaDatoBancario(string $mensaje): bool
     {
+        // Decir que NO se tiene cuenta («no tengo cuenta bancaria», «sin cuenta de ahorros»), sin cifras, no entrega ninguna.
+        if (preg_match('/\d/u', $mensaje) !== 1) {
+            $mensaje = preg_replace('/\b(?:no\s+tengo|no\s+cuento\s+con|sin)\s+(?:una\s+|ninguna\s+)?cuenta\s+(?:bancaria|de\s+ahorros|corriente|en\s+(?:el\s+|ning[uú]n\s+)?banco)\b/iu', ' ', $mensaje) ?? $mensaje;
+        }
         if (preg_match('/\b(cci|iban|swift|bic|cvv|cvc|clabe|n[uú]mero\s+de\s+cuenta|nro\.?\s+de\s+cuenta|cuenta\s+bancaria|cuenta\s+de\s+ahorros|cuenta\s+corriente|cuenta\s+sueldo|cuenta\s+interbancaria|mi\s+cuenta\s+es|mi\s+tarjeta|tarjeta\s+visa|tarjeta\s+mastercard|c[oó]digo\s+de\s+seguridad)\b/iu', $mensaje) === 1) {
             return true;
         }
@@ -599,6 +614,10 @@ final class FiltroPrivacidadChat
         $mensajeEvaluado = $sinCifras
             ? (preg_replace('/\b(?:llega|llegue|lleg[oó]|env[ií]o|env[ií]an|entrega|entreguen|reparto)\s+a\s+mi\s+domicilio\b(?!\s*(?:es\b|queda\b|est[aá]\b|en\b|[:=]))/iu', ' ', $mensaje) ?? $mensaje)
             : $mensaje;
+        // «vivo en Chiclayo», «vivo lejos de la ciudad»: una ciudad, región o país sin calle ni número no ubica a nadie.
+        if ($sinCifras) {
+            $mensajeEvaluado = preg_replace('/\b(?:vivo|resido|radico|estoy)\s+(?:en\s+(?:la\s+ciudad\s+de\s+|la\s+provincia\s+de\s+|el\s+distrito\s+de\s+)?(?:'.self::LUGARES_PUBLICOS.')|lejos(?:\s+de\s+la\s+ciudad)?|fuera\s+de\s+(?:la\s+ciudad|cajamarca)|en\s+(?:otra\s+ciudad|provincia|el\s+extranjero|el\s+campo))\b(?!\s*(?:jr|jir[oó]n|av|avenida|calle|pasaje|psje|urb|mz|manzana|lote))/iu', ' ', $mensajeEvaluado) ?? $mensajeEvaluado;
+        }
         $preguntaSinCifras = $sinCifras && preg_match('/[¿?]/u', $mensajeEvaluado) === 1;
         if (! $preguntaSinCifras && preg_match('/\b(vivo\s+en|mi\s+direcci[oó]n|mi\s+domicilio|domiciliad[oa]\s+en|resido\s+en|mi\s+casa\s+queda|enviar\s+a\s+la\s+direcci[oó]n)\b/iu', $mensajeEvaluado) === 1) {
             return true;
@@ -619,6 +638,8 @@ final class FiltroPrivacidadChat
         // Consultar el RUC público de la empresa sin cifras ni signos de interrogación («cual es su ruc»,
         // «necesito conocer su razón social, su RUC») es información institucional pública.
         if (! $conDigitos) {
+            // «factura a nombre de mi empresa con RUC» sin cifras pide un comprobante para una organización: no entrega su número.
+            $mensaje = preg_replace('/\b(?:mi|nuestra)\s+(?:empresa|instituci[oó]n|organizaci[oó]n|compa[nñ][ií]a|negocio)\s+con\s+(?:su\s+)?r\.?u\.?c\.?(?![\p{L}\d]|\s*(?:es\b|[:=#]|n[°º.]|nro|n[uú]mero))/iu', ' ', $mensaje) ?? $mensaje;
             $mensaje = preg_replace('/\b(?:cu[aá]l\s+es|conocer|saber|ver|pedir|solicitar|me\s+dan|me\s+pasan|p[aá]same|dame)\s+(?:su\s+raz[oó]n\s+social\s*(?:,|y)\s*)?(?:el|su)\s+r\.?u\.?c\.?(?![\p{L}\d]|\s*(?:es\b|[:=#]|n[°º.]|nro|n[uú]mero))/iu', ' ', $mensaje) ?? $mensaje;
         }
         // Una pregunta sin cifras con «su/sus» se dirige a la empresa («¿Cuál es su RUC?»): es información pública.
@@ -696,7 +717,7 @@ final class FiltroPrivacidadChat
     {
         // Productos, topónimos y referencias institucionales verificadas; el resto de la frase sigue siendo examinado.
         $mensaje = preg_replace('/\b(?:Power BI|Ofimática Básica|San Marcos|Colegio de Enfermeros(?: de Cajamarca| del Perú)?|Colegio de Economistas de Cajamarca|Instituto ISAM)\b/iu', ' institucional ', $mensaje) ?? $mensaje;
-        $mensaje = preg_replace('/\ba\s+nombre\s+de\s+(?:horus(?:\s+group(?:\s+s\.?r\.?l\.?)?)?|la\s+naci[oó]n|la\s+empresa|qu[eé]\s+empresa|alg[uú]n\s+colegio|un\s+colegio|una\s+instituci[oó]n|la\s+instituci[oó]n|qu[eé]\s+instituci[oó]n)\b/iu', ' institucional ', $mensaje) ?? $mensaje;
+        $mensaje = preg_replace('/\ba\s+nombre\s+de\s+(?:horus(?:\s+group(?:\s+s\.?r\.?l\.?)?)?|la\s+naci[oó]n|la\s+empresa|qu[eé]\s+empresa|(?:mi|nuestra)\s+(?:empresa|instituci[oó]n|organizaci[oó]n)|mi\s+negocio|alg[uú]n\s+colegio|un\s+colegio|una\s+instituci[oó]n|la\s+instituci[oó]n|qu[eé]\s+instituci[oó]n)\b/iu', ' institucional ', $mensaje) ?? $mensaje;
         if (preg_match('/\b(me\s+llamo|mi\s+nombre(?:\s+completo)?\s+es|mi\s+apellido\s+es|mis\s+apellidos\s+son|a\s+nombre\s+de|de\s+parte\s+de|inscrito\s+como|matriculado\s+como|atentamente|atte\.?)\s+[\p{L}]{2,}/iu', $mensaje) === 1) {
             return true;
         }
@@ -1388,12 +1409,14 @@ final class FiltroPrivacidadChat
 
         // Preguntar cómo se tratan los datos («¿Usan mis datos para publicidad?», «¿Es seguro dar mis datos?») no entrega ninguno.
         if (preg_match('/[¿?]/u', $mensaje) === 1) {
-            $mensaje = preg_replace('/\b(?:usan|usar|utilizan|guardan|almacenan|protegen|comparten|compartir|dar|brindar|ingresar|escribir|venden|tratan|manejan|cuidan|publican|recopilan|piden|necesitan|requieren|ven)\s+(?:mis|mi|los|sus|tus)?\s*(?:datos(?:\s+personales)?|informaci[oó]n(?:\s+personal)?)/iu', ' ', $mensaje) ?? $mensaje;
+            $mensaje = preg_replace('/\b(?:usan|usar|utilizan|guardan|guardar|almacenan|almacenar|protegen|comparten|compartir|dar|brindar|ingresar|escribir|venden|tratan|manejan|cuidan|publican|recopilan|piden|necesitan|requieren|ven)\s+(?:mis|mi|los|sus|tus)?\s*(?:datos(?:\s+personales)?|informaci[oó]n(?:\s+personal)?)/iu', ' ', $mensaje) ?? $mensaje;
         }
 
         // Pregunta o aviso sobre pérdida de certificado sin cifras remite a la FAQ pública de duplicado.
         if (preg_match('/\d/u', $mensaje) !== 1) {
             $mensaje = preg_replace('/\b(?:perd[ií]|se\s+me\s+perdi[oó]|extravi[eé]|se\s+me\s+extravi[oó])\s+mi\s+certificado\b/iu', ' ', $mensaje) ?? $mensaje;
+            // Pedir un duplicado o copia del propio certificado (sin cifras) es el trámite público de la FAQ, no un expediente.
+            $mensaje = preg_replace('/\b(?:duplicado|copia|reimpresi[oó]n|reposici[oó]n)\s+de\s+mi\s+(?:certificado|diploma|constancia)\b/iu', ' ', $mensaje) ?? $mensaje;
         }
 
         // Referencias a un trámite propio dentro de una pregunta sin cifras («¿Dónde veo mi certificado?», «¿puedo pedir la devolución de mi

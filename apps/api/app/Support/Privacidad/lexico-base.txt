@@ -186,3 +186,8 @@ tardes noches dias buenas buenos gracias gracias
 mandame mandenme dime dime digame digan expliqueme explicame explica explique cuentame cuentenme muestrame muestreme
 mira mire miren ve vean escucha escuche perdona perdone
 por favor porfa plis
+# --- verbos: formas irregulares frecuentes en consultas (no se derivan de lexico-verbos.txt) ---
+entiendo entiendes entiende entienden entendi entendio despido despide despiden despedirme pague pagues paguen
+cuidate cuidese cuidense cuidar pasaste paso pasamos resuelve resuelvo resuelven resolveme naci nacio nacimos
+hazme haz hago hace hacen hice hizo hicieron puedes puede pueden quieres tienes tiene vienen vengo voy vas va van
+fui fue fueron estoy estas esta estan soy eres sigo sigue siguen pierdo pierde perdi perdio

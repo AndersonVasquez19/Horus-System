@@ -356,6 +356,12 @@ class AdvisorEngine:
                 if set(content_tokens(rest)) - COURTESY_FILLER - CLOSING_FILLER:
                     continue  # "hola, quiero aprender redes" sigue al siguiente nivel
             return self._reply(answer=template.response, intent=template.name, match_level="alta")
+        # Cortesía que no coincide con una frase fija («buen día joven», «gracias de verdad», «me despido»).
+        kind = glue.courtesy_kind(text)
+        template = next((t for t in self.kb.intents.templates if t.name == kind), None)
+        # «bien gracias y tú», «no gracias», «perdón»: el pegamento conversacional ya tiene su respuesta.
+        if template is not None and not glue.is_rude(text) and glue.classify(text) not in {"howareyou", "yes", "no", "sorry"}:
+            return self._reply(answer=template.response, intent=template.name, match_level="alta")
         return None
 
     def _modalities(self) -> AdvisorReply | None:
@@ -730,6 +736,9 @@ class AdvisorEngine:
         partners = self._partners(message, users, prior)
         if partners is not None:
             return partners, message
+        validity = self._validity_followup(message, users, prior)
+        if validity is not None:
+            return validity, message
         if glue.asks_class_days(message):
             seen = list(prior.focus) if prior is not None else self._focus(users) if users else []
             if not any(r.stable_id is not None for r in seen) and (reply := self._modalities()) is not None:
@@ -741,7 +750,8 @@ class AdvisorEngine:
             return None, message  # consulta normal: sin coste añadido
         has_context = bool(users) or prior is not None
         focus: list[KnowledgeRecord] = []
-        if has_context and kind not in {"empty", "laugh", "howareyou", "sorry", "no", "help", "rude", "time", "english"}:
+        if has_context and kind not in {"empty", "laugh", "howareyou", "sorry", "no", "help", "rude", "time", "english",
+                                        "foreign"}:
             focus = list(prior.focus) if prior is not None else self._focus(users)
 
         if kind == "empty":
@@ -754,6 +764,8 @@ class AdvisorEngine:
             return self._courtesy(glue.TIME_REPLY, message), message
         if kind == "english":
             return self._courtesy(glue.ENGLISH_REPLY, message), message
+        if kind == "foreign":
+            return self._courtesy(glue.FOREIGN_REPLY, message), message
         if kind == "laugh":
             return self._courtesy(glue.LAUGH_REPLY, message), message
         if kind == "howareyou":
@@ -863,6 +875,31 @@ class AdvisorEngine:
             clarification_question=f"¿Te refieres a {joined}?",
             context=ConversationContext(turns_considered=0, focus_ids=[r.id for r in options[:2]]),
         )
+
+    def _agreement_validity(self, record: KnowledgeRecord) -> AdvisorReply | None:
+        """Vigencia publicada de un convenio verificado; None si la ficha no la tiene."""
+        if record.status != "verified" or record.public_card is None or not record.public_card.vigencia:
+            return None
+        if _date_passed(record.public_card.vigencia):
+            # Vigencia publicada ya vencida (CR XIII, 20/11/2026): no se afirma que siga vigente; se responde la
+            # frase verificada que lo dice y remite a un asesor por si se renovó.
+            sentence = next((s.strip() for s in re.split(r"(?<=[.;])\s+", record.detail_answer or "")
+                             if record.public_card.vigencia in s), None)
+            if sentence is None:
+                return None
+            return self._reply(answer=sentence, intent="agreement_info", match_level="alta", sources=[self._source(record)])
+        return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
+                           intent="agreement_info", match_level="alta", sources=[self._source(record)])
+
+    def _validity_followup(self, message: str, users: list[str], prior: _Prior | None) -> AdvisorReply | None:
+        """«¿Y hasta cuándo?» con un convenio en contexto: su vigencia (antes se tomaba como el horario de atención)."""
+        if not glue.asks_validity(message):
+            return None
+        focus = list(prior.focus) if prior is not None else self._focus(users) if users else []
+        agreements = [r for r in focus if r.category == "convenio" and r.public_card is not None]
+        if len(agreements) != 1:
+            return None  # sin convenio en foco, o varios (dos colegios de enfermeros): sigue la búsqueda normal
+        return self._agreement_validity(agreements[0])
 
     def _partners(self, message: str, users: list[str], prior: _Prior | None) -> AdvisorReply | None:
         if not glue.asks_with_whom(message):
@@ -1657,6 +1694,8 @@ class AdvisorEngine:
             reply = shortcut or self._decide(message, corrected, u, current, profile, continued, focus, previous_quote)
             if depth == 0 and not focus and shortcut is None:
                 reply = self._several_questions(message, reply)
+            if depth == 0 and has_context and not focus and not u.topic_change:
+                reply = self._stay_on_topic(reply, message, list(prior.focus) if prior is not None else self._focus(users))
         # «¿Tienen el curso de contabilidad?»: antes de pedir una aclaración se dice que ese curso no está.
         if depth == 0 and reply.intent == "clarification" and self._names_unpublished_course(message):
             reply = self._unpublished_topic("learn", message)
@@ -1758,20 +1797,10 @@ class AdvisorEngine:
 
         hits = self._disambiguate_agreements(corrected, hits)
 
-        if hits and hits[0].record.status == "verified" and hits[0].record.public_card is not None:
-            record = hits[0].record
-            if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen", "vigente"}:
-                if _date_passed(record.public_card.vigencia):
-                    # Vigencia publicada ya vencida (CR XIII, 20/11/2026): no se afirma que siga vigente; se responde la
-                    # frase verificada que lo dice y remite a un asesor por si se renovó.
-                    sentence = next((s.strip() for s in re.split(r"(?<=[.;])\s+", record.detail_answer or "")
-                                     if record.public_card.vigencia in s), None)
-                    if sentence:
-                        return self._reply(answer=sentence, intent="agreement_info", match_level="alta",
-                                           sources=[self._source(record)])
-                else:
-                    return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
-                        intent="agreement_info", match_level="alta", sources=[self._source(record)])
+        if hits and hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen", "vigente"}:
+            validity = self._agreement_validity(hits[0].record)
+            if validity is not None:
+                return validity
 
         # Pide un curso o un dato de un curso que no existe: no se contesta con otro curso del catálogo.
         if (
@@ -2035,6 +2064,25 @@ class AdvisorEngine:
                 return self._reply(answer=named.answer, intent=CATEGORY_INTENTS[named.category],
                     match_level="media", sources=[self._source(named)])
             return self._focus_reference(focus)  # "¿y eso qué incluye?"
+        return reply
+
+    def _stay_on_topic(self, reply: AdvisorReply, message: str, previous: list[KnowledgeRecord]) -> AdvisorReply:
+        """Seguimiento dentro de un tema institucional que iba a pedir aclaración («perdí el mío» tras los certificados,
+        «¿dónde presento la solicitud?» tras la devolución): se responde la opción ligada al tema en curso o, si el
+        seguimiento es corto, el propio tema. Los cursos del catálogo siguen su flujo de seguimiento propio."""
+        topics = [r for r in previous if r.stable_id is None and r.status == "verified" and r.id != "cat_listado_formacion"]
+        if not reply.needs_clarification or not topics:
+            return reply
+        options = [r for i in (reply.context.focus_ids if reply.context else []) if (r := self.kb.get(i)) is not None]
+        linked = [r for r in options if r.stable_id is None and r.status == "verified"
+                  and any(r.id == f.id or r.id in f.related or f.id in r.related for f in topics)]
+        if len(linked) == 1:
+            return self._reply(answer=linked[0].answer, intent=CATEGORY_INTENTS[linked[0].category],
+                               match_level="media", sources=[self._source(linked[0])])
+        if len(previous) == 1 and len(set(content_tokens(message))) <= 5:
+            topic = topics[0]  # el texto exacto de la ficha (Laravel no acepta el prefijo «Sobre «…»:» en fichas institucionales)
+            return self._reply(answer=topic.answer, intent=CATEGORY_INTENTS[topic.category], match_level="media",
+                               sources=[self._source(topic)])
         return reply
 
     def _dominant(self, hits: list[Hit]) -> bool:

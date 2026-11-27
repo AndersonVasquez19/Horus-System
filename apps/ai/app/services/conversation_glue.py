@@ -25,6 +25,7 @@ from app.core.text import normalize, tokenize
 
 Kind = Literal[
     "ack", "yes", "no", "repeat", "confused", "laugh", "howareyou", "sorry", "empty", "help", "rude", "time", "english",
+    "foreign",
 ]
 Pick = Literal["other", "first", "second", "last"]
 Comparative = Literal["price", "duration", "schedule"]
@@ -38,7 +39,7 @@ _ACK = frozenset({
 })
 _ACK_WORDS = frozenset({
     "ok", "okay", "okey", "vale", "listo", "perfecto", "entiendo", "entendido", "genial", "excelente", "buenisimo", "super",
-    "bacan", "chevere", "ya", "ah", "muy", "bien",
+    "bacan", "chevere", "ya", "ah", "muy", "bien", "aja", "ajam", "ahh", "ahhh", "okis", "oki", "okas", "okidoki", "claro",
 })
 _YES = frozenset({
     "si", "sii", "claro", "dale", "por favor", "si por favor", "claro que si", "cuentame", "adelante", "quiero",
@@ -57,7 +58,7 @@ _CONFUSED = frozenset({
     "explicame mejor", "explicalo mejor", "no entendi", "no comprendi", "no entiendo", "como asi",
     "no entendi explicame mejor", "no entiendo explicame mejor", "no entendi explica mejor",
     "que quieres decir", "no te entendi", "explica mejor", "puedes explicar mejor", "mas claro", "dilo de otra forma",
-    "no entendi nada", "no comprendo", "no me quedo claro",
+    "no entendi nada", "no comprendo", "no me quedo claro", "no me entiendes", "no me estas entendiendo",
 })
 _HOWAREYOU = frozenset({
     "como estas", "que tal", "q tal", "como te va", "como andas", "como te encuentras", "todo bien", "bien y tu", "muy bien y tu",
@@ -90,16 +91,24 @@ _RUDE_WORDS = frozenset({
     "conchatumadre", "puta", "puto", "webon", "burro", "burra", "baboso", "babosa", "mediocre", "pesimo", "pesima",
     "malisimo", "malisima", "apestas", "chafa",
 })
-_RUDE_PHRASES = ("bot tan malo", "no sirves", "no sirves para nada", "eres malo", "eres mala", "que malo eres", "no entiendes nada")
+_RUDE_PHRASES = ("bot tan malo", "no sirves", "no sirves para nada", "eres malo", "eres mala", "que malo eres", "no entiendes nada",
+                 # Frustración con el asistente: se responde con calma y se ofrece un asesor (no es un reclamo de servicio).
+                 "me tienes harto", "me tienes harta", "deja de repetir", "repites lo mismo", "me canse de escribirte",
+                 "no me ayudas", "nadie me ayuda", "respondeme bien")
 # Inglés: palabras que no son español. Basta un saludo suelto o una frase mayoritariamente inglesa.
 _ENGLISH_WORDS = frozenset({
     "hello", "hi", "hey", "what", "how", "do", "does", "you", "your", "the", "is", "are", "can", "i", "my", "offer",
     "courses", "course", "much", "it", "cost", "speak", "english", "please", "thanks", "thank", "where", "when", "which",
     "have", "any", "about", "want", "need", "help", "price", "good", "morning", "afternoon", "evening", "classes", "who",
     "information", "info", "location", "located", "schedule", "enroll", "certificate", "there", "this", "that", "tell", "me",
+    "opening", "hours", "open", "talk", "human", "person", "to", "lot", "bye", "goodbye", "see", "later", "online", "study",
+    "from", "abroad", "give", "certificates", "networking", "in", "thesis", "with", "pay", "ok", "office", "phone", "number",
+    "time", "sorry", "a", "an", "of", "for", "live", "learn", "excel", "yes", "no", "we", "they", "am",
 })
 _ENGLISH_ONLY = frozenset({"hello", "hi", "thanks", "thank", "please", "english", "help", "what", "how", "where", "you", "your",
-                           "does", "the", "offer", "speak", "much", "good", "morning", "afternoon", "evening", "who", "which"})
+                           "does", "the", "offer", "speak", "much", "good", "morning", "afternoon", "evening", "who", "which",
+                           "opening", "hours", "talk", "want", "bye", "goodbye", "see", "later", "give", "abroad", "study",
+                           "networking", "thesis", "office", "phone"})
 _SPANISH_HINTS = frozenset({"que", "como", "donde", "cuando", "cuanto", "curso", "cursos", "el", "la", "los", "las", "de", "y",
                             "quiero", "tienen", "hola", "por", "para", "un", "una", "es", "son"})
 _SORRY = frozenset({"perdon", "disculpa", "disculpame", "disculpe", "lo siento", "perdona"})
@@ -129,12 +138,76 @@ def _clean(message: str) -> str:
 
 
 def _english(tokens: list[str]) -> bool:
-    if not tokens or len(tokens) > 12 or set(tokens) & _SPANISH_HINTS:
+    # «hola, what time do you open?»: un «hola» delante no vuelve española una frase en inglés.
+    if not tokens or len(tokens) > 12 or set(tokens) & (_SPANISH_HINTS - {"hola"}):
         return False
     if len(tokens) == 1:
-        return tokens[0] in {"hello", "hi", "thanks", "english"}
+        return tokens[0] in {"hello", "hi", "thanks", "english", "bye", "goodbye"}
     english = sum(1 for t in tokens if t in _ENGLISH_WORDS)
     return english / len(tokens) >= 0.6 and bool(set(tokens) & _ENGLISH_ONLY)
+
+
+# Otros idiomas (portugués, francés, italiano y quechua): palabras frecuentes que no son español. Lista cerrada.
+_FOREIGN_WORDS = frozenset({
+    "ola", "oi", "tudo", "bem", "bom", "boa", "dia", "obrigado", "obrigada", "muito", "voce", "voces", "quais", "qual", "custa",
+    "onde", "fica", "escritorio", "aceitam", "pagamento", "pix", "quero", "estudar", "falar", "tchau", "oferecem", "cursos",
+    "curso", "o", "a", "por", "quanto", "bonjour", "bonsoir", "merci", "beaucoup", "salut", "avez", "vous", "des", "cours",
+    "au", "revoir", "je", "suis", "combien", "ciao", "grazie", "mille", "buongiorno", "buonasera", "prego", "arrivederci",
+    "corsi", "rimaykullayki", "allillanchu", "allinllachu", "imaynalla", "imaynallam", "kachkanki", "sulpayki", "yusulpayki",
+    "tupananchiskama", "tupananchikkama", "excel",
+})
+# Las que solo existen en esos idiomas: sin al menos una, «por curso» o «a dia» no se toman como otro idioma.
+_FOREIGN_ONLY = frozenset({
+    "oi", "tudo", "bom", "obrigado", "obrigada", "muito", "voce", "voces", "quais", "custa", "fica", "escritorio", "aceitam",
+    "pagamento", "pix", "quero", "estudar", "falar", "tchau", "oferecem", "bonjour", "bonsoir", "merci", "beaucoup", "salut",
+    "avez", "vous", "revoir", "je", "suis", "combien", "ciao", "grazie", "buongiorno", "buonasera", "prego", "arrivederci",
+    "corsi", "rimaykullayki", "allillanchu", "allinllachu", "imaynalla", "imaynallam", "kachkanki", "sulpayki", "yusulpayki",
+    "tupananchiskama", "tupananchikkama",
+})
+
+
+def _foreign(tokens: list[str]) -> bool:
+    """Mensaje breve en portugués, francés, italiano o quechua: se avisa que el asistente responde en español."""
+    if not tokens or len(tokens) > 12 or not set(tokens) & _FOREIGN_ONLY:
+        return False
+    return sum(1 for t in tokens if t in _FOREIGN_WORDS) / len(tokens) >= 0.6
+
+
+# Mensajes hechos solo de cortesía, aunque traigan vocativos o fórmulas («buen día joven», «gracias de verdad»,
+# «le agradezco», «hola, espero se encuentre bien», «me despido»): basta una marca y que el resto sea relleno de cortesía.
+_GREET_MARKS = frozenset({"hola", "ola", "holi", "holis", "holaa", "buenas", "buenass", "buenos", "buen", "wenas", "saludos",
+                          "hey", "alo"})
+_THANKS_MARKS = frozenset({"gracias", "graciass", "gracia", "grax", "grasias", "agradezco", "agradecido", "agradecida",
+                           "agradecemos", "agradece", "pague"})
+_BYE_MARKS = frozenset({"adios", "adiosito", "chau", "chao", "chaito", "chaufa", "bye", "despido", "despedimos"})
+_BYE_PHRASE = re.compile(r"\b(?:me (?:voy|retiro|despido)|nos vemos|hasta (?:luego|pronto|manana|la proxima|otro dia|la vista)"
+                         r"|luego (?:hablamos|te escribo|les escribo)|cuidate|cuidese)\b")
+_COURTESY_REST = frozenset((
+    "de verdad por todo toda la el lo los mucho muchas muchisimas muchisimo mil muy te le les me se nos ya ok okey bueno "
+    "listo perfecto excelente genial y joven senorita senor senora amigo amiga crack causa bro pata hermano estimado estimada "
+    "estimados estimadas horus dios bendiciones bendiga info informacion ayuda respuesta responder rapido tan tu su parte "
+    "espero encuentre encuentres bien que tenga tengas buen dia dias tarde tardes noche noches entendi entendido con todos "
+    "usted ustedes disculpe disculpa hasta otro voy pronto luego manana proxima un una a sirvio servido amable atencion q tal "
+    "como esta estas eso era seria es al vista hablamos escribo pasaste retiro despido cuidate cuidese siempre igualmente "
+    "tambien saludo cordial cordiales vemos"
+).split())
+
+
+def courtesy_kind(message: str) -> Literal["greeting", "thanks", "farewell"] | None:
+    """Saludo, agradecimiento o despedida aunque no coincida con una frase fija; None si trae una consulta."""
+    normalized = normalize(message).replace("ñ", "n")  # «señorita», «mañana»
+    tokens = tokenize(normalized)
+    if not tokens or len(tokens) > 10:
+        return None
+    if tokens in (["habla"], ["habla", "causa"], ["habla", "pe"]):
+        return "greeting"  # saludo peruano; solo como mensaje completo («habla inglés» es una pregunta)
+    marks = set(tokens) & (_GREET_MARKS | _THANKS_MARKS | _BYE_MARKS)
+    bye_phrase = _BYE_PHRASE.search(normalized) is not None
+    if not (marks or bye_phrase) or not set(tokens) <= _GREET_MARKS | _THANKS_MARKS | _BYE_MARKS | _COURTESY_REST:
+        return None
+    if bye_phrase or marks & _BYE_MARKS:
+        return "farewell"
+    return "thanks" if marks & _THANKS_MARKS else "greeting"
 
 
 def is_rude(message: str) -> bool:
@@ -153,11 +226,13 @@ def classify(message: str) -> Kind | None:
         return "empty"  # solo emojis o signos
     clean = _clean(message)
     if not clean:
-        return "ack" if base.strip() == "mmm" else None
+        return "ack" if base.strip(" .,!¡") in {"mmm", "bueno", "pues", "entonces"} else None
     if is_rude(message):
         return "rude"
     if _english(clean.split()):
         return "english"
+    if _foreign(clean.split()):
+        return "foreign"
     if _GREETING_PREFIX.sub("", clean) in _HELP and len(clean.split()) <= _MAX_TOKENS + 3:
         return "help"
     if len(clean.split()) > _MAX_TOKENS:
@@ -188,7 +263,9 @@ def classify(message: str) -> Kind | None:
 _IDENTITY = re.compile(
     r"\b(eres|seras|es usted|usas|utilizas|funcionas con)\b.{0,25}\b(ia|inteligencia artificial|chatgpt|chat gpt|gpt|openai|"
     r"gemini|copilot|un modelo|modelo de lenguaje|robot|bot|chatbot|maquina|programa|real|una persona|humano|humana|"
-    r"inteligente)\b"
+    r"inteligente|asistente|de verdad)\b"
+    r"|\bhablo con (?:una? )?(?:maquina|robot|bot|programa|persona|humano)\b"
+    r"|\bque (?:tipo de )?(?:preguntas|temas|cosas)\b.{0,12}\b(?:respondes|manejas|sabes|contestas|atiendes|puedo preguntarte)\b"
     r"|\b(que|cual)\b.{0,12}\b(modelo|tecnologia|ia|inteligencia artificial)\b.{0,15}\b(usas|utilizas|eres|tienes|te impulsa)\b"
     r"|\bquien(es)?\b.{0,6}\b(te|lo)\b.{0,4}\b(creo|crearon|hizo|hicieron|programo|programaron|desarrollo|desarrollaron|diseno|disenaron|construyo)\b"
     r"|\b(tu|su)\s+(creador|creadores|programador|desarrollador)\b|\bcomo (estas hecho|te hicieron|fuiste creado|fuiste hecho)\b"
@@ -234,7 +311,8 @@ _COMPLAINT = re.compile(
     r"no hubo clase|cancelaron la clase|mala atencion|pesimo servicio|quiero quejarme|quiero poner una queja|"
     r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo|informacion equivocada|"
     r"nadie me (?:ha )?(?:respondido|responde|contesta|atiende)|no me (?:han )?(?:respondido|agregado|contestado)|"
-    r"(?:todavia|aun) no me (?:agregan|añaden|anaden|responden|contestan))\b"
+    r"(?:todavia|aun) no me (?:agregan|añaden|anaden|responden|contestan)|"
+    r"nadie me (?:agrega|anade)|no me agregan)\b"
 )
 
 
@@ -515,6 +593,19 @@ def asks_level(message: str) -> bool:
 
 # «¿Con quiénes?» después de hablar de convenios pregunta por las instituciones, no por la empresa.
 _WITH_WHOM = re.compile(r"^(?:y )?con quien(?:es)?(?: son| trabajan| tienen(?: convenios?)?)?$")
+
+
+# Vigencia sin nombrar el convenio («¿y hasta cuándo?», «¿sigue vigente?»): solo tiene sentido con un convenio en contexto.
+_VALIDITY = re.compile(r"\b(?:hasta cuando|hasta que fecha|cuando vence|cuando caduca|sigue vigente|esta vigente|vigencia|"
+                       r"vence|vencimiento|hasta que ano)\b")
+_NOT_VALIDITY = re.compile(r"\b(?:curso|cursos|clase|clases|atienden|atencion|horario|oficina|abren|cierran|inscrib\w*|"
+                           r"matricul\w*|devolucion|reembolso|pago|certificado|promocion|descuento)\b")
+
+
+def asks_validity(message: str) -> bool:
+    normalized = normalize(message)
+    return (len(content_words(message)) <= 8 and _VALIDITY.search(normalized) is not None
+            and _NOT_VALIDITY.search(normalized) is None)
 
 
 def asks_with_whom(message: str) -> bool:
@@ -896,6 +987,10 @@ TIME_REPLY = (
 ENGLISH_REPLY = (
     "Hi! For now I can only answer in Spanish. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y "
     "contacto de Horus Group. ¿En qué te ayudo?",
+)
+FOREIGN_REPLY = (
+    "Por ahora solo puedo responder en español. Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos "
+    "y contacto de Horus Group. ¿En qué te ayudo?",
 )
 OFF_TOPIC_REPLY = (
     "No tengo información confirmada sobre eso. Puedo ayudarte con {topics}. ¿Sobre cuál de estos temas necesitas información?",

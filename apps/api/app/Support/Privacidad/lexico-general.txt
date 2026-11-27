@@ -101,6 +101,24 @@ estimado estimada estimados estimadas senor senora senores senoras senorita caba
 disculpe disculpa perdon molestia molestar consulta consultar duda dudas pregunta preguntar informacion informes info
 quisiera quiero necesito deseo busco requiero solicito pregunto consulto averiguar averiguo saber conocer
 urgente urgencia pronto rapido cuanto antes lo antes posible
+# --- vocabulario que antes aportaba texto público ya retirado (se conserva al regenerar para no perder cobertura) ---
+administrativo cautela coinciden discrepantes distintos franja fuentes mencionan previstos recaudado seleccionar varian
+# --- funcionales: cortesía, interjecciones y jerga coloquial peruana (no son nombres) ---
+okey okis oki okas okidoki ya ah oh uy ups mmm mmmm ehh uff
+chau chao chaufa adiosito adiosin bye byebye
+crack causa pata bro hermano hermanito jefe jefa profe seno
+graciass grax grasias xfa porfis pls bendiciones dios diosito bendiga suerte exitos
+genial chevere bacan buenazo buenisimo perfecto excelente listo listos vale entendido claro obvio nomas pe tranqui
+dnde xq pq porq tmb tbn ntp salu2 rembolso rembolsos cokies
+signo zodiacal resumen
+# --- funcionales: palabras básicas de otros idiomas (el asistente avisa que solo responde en español) ---
+want need talk speak human person office opening hours located location live study learn online certificate certificates
+payment pay many much time today tomorrow day days week english spanish information help great nice also there
+ola oi tudo bem bom boa dia tarde noite obrigado obrigada muito muita voce voces quais qual quanto custa onde fica escritorio
+aceitam aceita pagamento pix quero estudar falar tchau ate sim nao desculpe preciso informacao
+bonjour bonsoir merci beaucoup salut avez vous des cours je suis tres bien oui au revoir combien coute
+ciao grazie mille buongiorno buonasera prego arrivederci corsi costa dove
+rimaykullayki allillanchu allinllachu imaynalla imaynallam kachkanki sulpayki yusulpayki tupananchiskama tupananchikkama
 # --- inglés técnico y de uso común en consultas (sin nombres propios) ---
 the and you your are is was were be been being have has had do does did will would can could should may might must shall not no yes
 this that these those with without from into onto over under about after before between through during for of on in at by to as or if then than so too very

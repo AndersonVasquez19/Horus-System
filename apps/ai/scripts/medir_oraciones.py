@@ -40,6 +40,27 @@ VALIDADOR_LARAVEL = API / "scripts" / "horus-validar-contrato.php"
 # Lo que el asistente no debe ofrecer ni mencionar (decisión del propietario: solo educación).
 SERVICIOS = re.compile(r"c[aá]maras?|cableado|soporte t[eé]cnico|mantenimiento|reparaci[oó]n", re.IGNORECASE)
 CORTESIA = {"greeting", "thanks", "farewell", "acknowledgement"}
+# «IDIOMA»: en otro idioma basta el aviso de que solo responde en español.
+AVISO_IDIOMA = re.compile(r"\bspanish\b|solo (?:puedo )?(?:responder|atender) en espa[nñ]ol", re.IGNORECASE)
+# Datos que el asistente nunca debe afirmar por su cuenta (el «%XX» de un enlace codificado no es un porcentaje).
+PRECIO = re.compile(r"S/\s?\d|\d+\s?soles|\d+\s?%(?![0-9A-F]{2})|US\$|\$\s?\d", re.IGNORECASE)
+TELEFONO = re.compile(r"(?<!\d)9\d{2}\s?\d{3}\s?\d{3}(?!\d)")
+CORREO = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+TELEFONOS_OFICIALES = {"972021374"}
+CORREOS_OFICIALES = {"horusgroupcajamarca@gmail.com"}
+
+
+def datos_sospechosos(texto: str) -> list[str]:
+    """Precio, teléfono o correo no oficial en una respuesta: señal de dato inventado para revisar a mano."""
+    sospechas = ["precio/porcentaje"] if PRECIO.search(texto) else []
+    sospechas += [f"teléfono {t}" for t in TELEFONO.findall(texto) if re.sub(r"\s", "", t) not in TELEFONOS_OFICIALES]
+    sospechas += [f"correo {c}" for c in CORREO.findall(texto) if c.lower().rstrip(".") not in CORREOS_OFICIALES]
+    return sospechas
+
+
+def resultado_bloqueo(caso: dict) -> str:
+    """«BLOQUEO_OK»: el mensaje trae datos personales y el filtro hace bien en bloquearlo."""
+    return "acierta" if "BLOQUEO_OK" in caso["esperado"] else "bloqueada"
 
 
 def motor():
@@ -87,6 +108,8 @@ def calificar(caso: dict, respuesta) -> str:
             return "acierta"
     if "NO_DATO" in esperado and respuesta.abstained and respuesta.intent in {"unavailable_info", "unverified_info"}:
         return "acierta"  # una abstención no afirma ningún dato, cite la ficha que cite
+    if "IDIOMA" in esperado and AVISO_IDIOMA.search(respuesta.answer or ""):
+        return "acierta"
     if respuesta.intent in esperado:  # «capabilities», «thanks»…: la intención es la respuesta correcta
         return "acierta"
     if ids & esperado:
@@ -102,7 +125,7 @@ def medir(casos: list[dict], con_filtro: bool) -> tuple[list[dict], dict]:
     filas = []
     for caso, motivo in zip(casos, motivos, strict=True):
         if motivo is not None:
-            filas.append({**caso, "resultado": "bloqueada", "motivo": motivo, "_reply": None})
+            filas.append({**caso, "resultado": resultado_bloqueo(caso), "motivo": motivo, "_reply": None})
             continue
         r = m.chat(caso["texto"], [], None)
         filas.append({**caso, "resultado": calificar(caso, r), "intent": r.intent,
@@ -127,7 +150,7 @@ def medir_conversaciones(conversaciones: list[list[dict]], con_filtro: bool) -> 
             caso = {**turno, "tema": f"conversación {numero}"}
             motivo = next(motivos)
             if motivo is not None:
-                filas.append({**caso, "resultado": "bloqueada", "motivo": motivo, "_reply": None})
+                filas.append({**caso, "resultado": resultado_bloqueo(caso), "motivo": motivo, "_reply": None})
                 continue
             r = m.chat(turno["texto"], [], estado)
             estado = r.state
@@ -146,6 +169,7 @@ def main() -> None:
     parser.add_argument("--estricto", action="store_true",
                         help="terminar con código distinto de 0 si Laravel rechaza alguna respuesta o estado")
     parser.add_argument("--detalle", action="store_true", help="mostrar cada caso que no acierta")
+    parser.add_argument("--guardar", type=Path, help="escribir cada caso con su resultado en este JSON (fuera del repo)")
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -161,7 +185,7 @@ def main() -> None:
     if args.validar_laravel:
         validaciones = validar_contrato_laravel([{"query": f["texto"], "reply": f["_reply"]} for f in filas])
         for f, v in zip(filas, validaciones, strict=True):
-            if f["resultado"] == "bloqueada" or v["security"]:
+            if f["_reply"] is None or v["security"]:  # bloqueada por el filtro: no llegó a Horus AI
                 continue
             if not v["reply_valid"] or not v["state_valid"]:
                 f["laravel_error"] = "reply_valid=False" if not v["reply_valid"] else "state_valid=False"
@@ -179,6 +203,18 @@ def main() -> None:
           f"({total['aclara'] / n:.0%}) · equivocada {total['equivocada']} ({total['equivocada'] / n:.0%})"
           + (f" · bloqueada {total['bloqueada']} ({total['bloqueada'] / n:.0%})" if usar_filtro else "")
           + (f" · rechazadas_laravel {len(rechazadas_laravel)}" if args.validar_laravel else ""))
+    # Una equivocada sin fuente es «no entendió» (dice que no tiene el dato); con fuente, responde otro tema.
+    sin_dato = sum(1 for f in filas if f["resultado"] == "equivocada" and not f["fuentes"])
+    print(f"   de las equivocadas: {sin_dato} dicen no tener el dato · {total['equivocada'] - sin_dato} responden otro tema")
+    for f in filas:
+        f["sospechas"] = datos_sospechosos(f["respuesta"]) if f["_reply"] is not None else []
+    sospechosas = [f for f in filas if f["sospechas"]]
+    print(f"   respuestas con precio, teléfono o correo no oficial (revisar a mano): {len(sospechosas)}")
+    if args.guardar:
+        campos = ("tema", "texto", "esperado", "resultado", "intent", "fuentes", "respuesta", "motivo", "sospechas",
+                  "laravel_error")
+        args.guardar.write_text(json.dumps([{k: f.get(k) for k in campos} for f in filas], ensure_ascii=False, indent=1),
+                                encoding="utf-8")
     if args.detalle:
         for f in filas:
             if f["resultado"] != "acierta" or f.get("laravel_error"):

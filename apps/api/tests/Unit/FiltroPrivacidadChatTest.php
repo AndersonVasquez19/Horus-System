@@ -210,4 +210,38 @@ class FiltroPrivacidadChatTest extends TestCase
             $this->assertFalse(\App\Support\Privacidad\LexicoPublico::esVarianteFoneticaDeDominio($nombre), 'No debe tratarse como término de dominio: '.$nombre);
         }
     }
+
+    /** Pruebas de visitante del 27/11/2026: cortesía, jerga, otros idiomas y trámites sin datos ya no se bloquean. */
+    public function test_cortesia_jerga_otros_idiomas_y_tramites_sin_datos_pasan(): void
+    {
+        $permitidas = [
+            'okey', 'okis', 'chaufa', 'adiosito', 'me despido', 'cuídate', 'gracias crack',
+            'te pasaste, gracias', 'Dios te pague', 'no me entiendes', 'rembolso', 'cokies',
+            'What are your opening hours?', 'I want to talk to a human', 'Onde fica o escritório?', 'Muito obrigado',
+            'Vocês aceitam pagamento por Pix?', 'Bom dia', 'Tchau', 'quero estudar Excel', 'Rimaykullayki', 'Sulpayki',
+            'Imaynallam kachkanki?', 'Tupananchiskama', 'Bonjour, avez-vous des cours?', 'Merci', 'Grazie mille',
+            'Necesito factura a nombre de mi empresa con RUC',
+            'quisiera saber si aceptan Yape o Plin porque no tengo cuenta bancaria y vivo lejos de la ciudad',
+            'Buenas noches, vivo en Chiclayo y me interesa el curso de comunicación',
+            'Quisiera obtener un duplicado de mi certificado porque lo perdí en una mudanza',
+            '¿Pueden guardar mis datos para la próxima?',
+            'Horario de atención (fuentes discrepantes)',
+        ];
+        foreach ($permitidas as $mensaje) {
+            $this->assertNull($this->filtro->motivoBloqueo($mensaje), 'No debía bloquearse: '.$mensaje);
+        }
+
+        // Lo que sí entrega un dato sigue bloqueado, aunque lleve las mismas palabras.
+        $bloqueadas = [
+            'okey, me llamo Rosa Quispe', 'gracias crack, soy kirana qervali', 'Maria Silva quer estudar Excel',
+            'Bom dia, sou João Pereira', 'Merci, je suis Pierre Dubois', 'factura a nombre de mi empresa con RUC 20123456789',
+            'mi RUC es 10456789012', 'no tengo cuenta bancaria, mi tarjeta es 4111 1111 1111 1111',
+            'vivo en Chiclayo, calle Los Pinos 245', 'vivo en Jr. José Gálvez 450',
+            'duplicado de mi certificado, mi DNI es 45678912', 'Recomiéndame algo para mi hija de 17 años',
+            'Mi sobrino vive en Arequipa y quiere llevar un curso con ustedes, ¿es posible que lo haga de forma virtual?',
+        ];
+        foreach ($bloqueadas as $mensaje) {
+            $this->assertNotNull($this->filtro->motivoBloqueo($mensaje), 'Debía bloquearse: '.$mensaje);
+        }
+    }
 }
