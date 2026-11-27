@@ -79,6 +79,7 @@ final class FiltroPrivacidadChat
         'wi', 'fi', 'facebook', 'instagram', 'tiktok', 'youtube', 'whatsapp', 'yape', 'plin', 'bcp', 'interbank', 'bbva',
         'libro', 'reclamaciones', 'ciencia', 'ciencias', 'administrativas', 'economica', 'economicas', 'aceptan',
         'economistas', 'licenciados', 'enfermeros', 'trabajan',
+        'espana', 'estados', 'unidos', 'indecopi', 'plazuela', 'plaza',
     ];
 
     /**
@@ -136,6 +137,9 @@ final class FiltroPrivacidadChat
         // Temas generales fuera de alcance que un visitante puede preguntar.
         'mundial', 'futbol', 'chiste', 'capital', 'presidente', 'clima', 'receta', 'recetas', 'ceviche', 'comida', 'pelicula',
         'peliculas', 'musica', 'cancion', 'poema', 'cuento', 'politica', 'perro', 'gato', 'mascota',
+        // Palabras frecuentes en consultas legítimas del visitante.
+        'podrias', 'resumir', 'encaja', 'conmigo', 'hacking', 'etico', 'impide', 'denunciar', 'debo', 'adjuntar',
+        'pasame', 'xfa', 'wsp',
     ];
 
     /** Precede a un nombre propio: presentación personal o saludo firmado. Las variantes de «soy» se reconocen aparte. */
@@ -248,8 +252,8 @@ final class FiltroPrivacidadChat
      * @var list<string>
      */
     private const MENSAJES_COMPLETOS_SEGUROS = [
-        'wenas', 'gracias bro', 'grax', 'grasias', 'chevere', 'ok chevere', 'bacan', 'mmm', 'chaito', 'menu', 'repite',
-        'eres inteligente', 'que hacen con mis datos',
+        'wenas', 'wenas bro', 'gracias bro', 'grax', 'grax bro', 'grasias', 'chevere', 'ok chevere', 'bacan', 'mmm',
+        'chaito', 'menu', 'repite', 'eres inteligente', 'que hacen con mis datos', 'ubi xfa', 'ubi porfa',
     ];
 
     /** Saludos y despedidas con letras repetidas, también como mensaje completo («holaaaa», «holiii», «chauu»). */
@@ -333,12 +337,16 @@ final class FiltroPrivacidadChat
             return 'telefono';
         }
 
+        // Entidades públicas exactas del sitio (equipo directivo y dirección pública de Horus) solo se
+        // neutralizan para la detección de nombres; correo, teléfono, documento y dirección ya se evaluaron.
+        $paraNombres = $this->neutralizarEntidadesPublicas($limpio);
+
         // Las declaraciones personales se evalúan antes de cualquier exención léxica.
-        if ($this->detectaDeclaracionPersonal($limpio)) {
+        if ($this->detectaDeclaracionPersonal($paraNombres)) {
             // Conservar categorías anteriores; la decisión positiva ya no puede revocarse.
-            return $this->detectaNombrePersonal($limpio, false)
-                || $this->detectaNombreContextual($limpio)
-                || $this->detectaNombrePorComplementoDeLexico($limpio)
+            return $this->detectaNombrePersonal($paraNombres, false)
+                || $this->detectaNombreContextual($paraNombres)
+                || $this->detectaNombrePorComplementoDeLexico($paraNombres)
                 ? 'nombre_personal' : 'dato_personal_contextual';
         }
 
@@ -346,9 +354,9 @@ final class FiltroPrivacidadChat
             return 'unicode_ambiguo';
         }
 
-        if ($this->detectaNombrePersonal($limpio, false)
-            || $this->detectaNombreContextual($limpio)
-            || $this->detectaNombrePorComplementoDeLexico($limpio)) {
+        if ($this->detectaNombrePersonal($paraNombres, false)
+            || $this->detectaNombreContextual($paraNombres)
+            || $this->detectaNombrePorComplementoDeLexico($paraNombres)) {
             return 'nombre_personal';
         }
 
@@ -441,8 +449,10 @@ final class FiltroPrivacidadChat
             }
         }
         // Homónimos personales no dejan de ser candidatos por pertenecer al vocabulario común.
+        // La región peruana «La Libertad» es topónimo oficial, no un nombre personal.
+        $nSinRegion = preg_replace('/\b(?:de|en|region|departamento|cr\s+ii)\s+la\s+libertad\b/u', ' institucional ', $n) ?? $n;
         $homonimos = 'alma|abril|amparo|aurora|cielo|consuelo|estrella|esperanza|felicidad|libertad|luz|mar|nieves|oliva|paz|rosa|sol|triunfo|vida|victoria|blanca|clara|dolores|pilar|socorro';
-        if (preg_match_all('/\b(?:'.$homonimos.')\s+([\p{L}]{2,})(?:\s+([\p{L}]{2,}))?/u', $n, $pares, PREG_SET_ORDER)) {
+        if (preg_match_all('/\b(?:'.$homonimos.')\s+([\p{L}]{2,})(?:\s+([\p{L}]{2,}))?/u', $nSinRegion, $pares, PREG_SET_ORDER)) {
             $publicas = array_merge(self::TERMINOS_INSTITUCIONALES, self::PALABRAS_NO_PERSONALES, self::VERBOS_SUJETO, ['solar', 'natural', 'artificial', 'libre', 'de', 'del', 'y', 'en', 'es', 'para', 'con']);
             foreach ($pares as $par) {
                 if (! in_array($par[1], $publicas, true)) {
@@ -454,9 +464,24 @@ final class FiltroPrivacidadChat
         return false;
     }
 
+    /**
+     * Sustituye únicamente las menciones exactas de entidades públicas publicadas en el sitio de Horus Group
+     * (equipo directivo en /quienes-somos y referencias de ubicación en /contactos). Nunca exime nombres sueltos
+     * ni otras personas o datos que acompañen la consulta.
+     */
+    private function neutralizarEntidadesPublicas(string $texto): string
+    {
+        return preg_replace(
+            '/\b(?:marco\s+[aá]lvarez|m[oó]nica\s+monz[oó]n|karen\s+t[aá]vara|milagros\s+villegas|(?:jr\.?|jir[oó]n)\s+jos[eé]\s+g[aá]lvez(?:\s*(?:n\.?\s*[°º]?\s*322|322))?|plazuela\s+bolognesi)\b/iu',
+            ' institucional ',
+            $texto,
+        ) ?? $texto;
+    }
+
     /** Barrera de salida: entidades públicas exactas, no un vocabulario abierto de nombres. */
     public function contieneDatosPrivadosEnRespuesta(string $texto): bool
     {
+        $texto = $this->neutralizarEntidadesPublicas($texto);
         $texto = str_ireplace([
             'Soy Horus AI Advisor', 'Wi-Fi', 'Región de Cajamarca',
             'Colegio de Enfermeros de Cajamarca',
@@ -496,7 +521,7 @@ final class FiltroPrivacidadChat
 
         // Preguntar por una contraseña olvidada, sin posesivo ni valor, no la revela («¿Qué hago si olvidé la contraseña?»).
         $sinValor = preg_match('/[¿?]/u', $mensaje) === 1
-            && preg_match('/\b(?:contrase[ñn]a|password)\b(?:\s+[\p{L}]+){0,3}\s*(?:es|son|[:=])\s*\S+/iu', $mensaje) !== 1
+            && preg_match('/\b(?:contrase[ñn]a|password)\b(?:\s+[\p{L}]+){0,3}(?:\s+(?:es|son)\s+|\s*[:=]\s*)\S+/iu', $mensaje) !== 1
             && preg_match('/\d/u', $mensaje) !== 1;
         if ($sinValor) {
             $mensaje = preg_replace('/\b(?:(?:la|una|esa|otra|el|tu|su|mi|mis)\s+)?(?:contrase[ñn]as?|claves?|api[\s_-]?keys?|secret[\s_-]?keys?|access[\s_-]?tokens?|refresh[\s_-]?tokens?)\b/iu', ' ', $mensaje) ?? $mensaje;
@@ -566,8 +591,12 @@ final class FiltroPrivacidadChat
         }
 
         // Una pregunta sin cifras sobre dónde vive o a qué dirección alude («¿y si vivo en otra ciudad?») no entrega ninguna.
-        $preguntaSinCifras = preg_match('/[¿?]/u', $mensaje) === 1 && preg_match('/\d/u', $mensaje) !== 1;
-        if (! $preguntaSinCifras && preg_match('/\b(vivo\s+en|mi\s+direcci[oó]n|mi\s+domicilio|domiciliad[oa]\s+en|resido\s+en|mi\s+casa\s+queda|enviar\s+a\s+la\s+direcci[oó]n)\b/iu', $mensaje) === 1) {
+        $sinCifras = preg_match('/\d/u', $mensaje) !== 1;
+        $mensajeEvaluado = $sinCifras
+            ? (preg_replace('/\b(?:llega|llegue|lleg[oó]|env[ií]o|env[ií]an|entrega|entreguen|reparto)\s+a\s+mi\s+domicilio\b(?!\s*(?:es\b|queda\b|est[aá]\b|en\b|[:=]))/iu', ' ', $mensaje) ?? $mensaje)
+            : $mensaje;
+        $preguntaSinCifras = $sinCifras && preg_match('/[¿?]/u', $mensajeEvaluado) === 1;
+        if (! $preguntaSinCifras && preg_match('/\b(vivo\s+en|mi\s+direcci[oó]n|mi\s+domicilio|domiciliad[oa]\s+en|resido\s+en|mi\s+casa\s+queda|enviar\s+a\s+la\s+direcci[oó]n)\b/iu', $mensajeEvaluado) === 1) {
             return true;
         }
 
@@ -579,14 +608,22 @@ final class FiltroPrivacidadChat
         // Nombrar un documento («¿necesito DNI?») no es un dato; sí lo es aportarlo:
         // dígitos, posesivo o atribución («mi DNI», «el DNI de mi hijo es», «DNI: …»).
         $documento = '(?:dni|d\.n\.i\.?|ruc|r\.u\.c\.?|pasaporte|carn[eé]t?\s+de\s+extranjer[ií]a|c[eé]dula(?:\s+de\s+identidad)?|documento\s+de\s+identidad|documento\s+nacional|libreta\s+electoral|brevete|licencia\s+de\s+conducir)';
-        $conDigitos = preg_match('/\d/u', $mensaje) === 1;
+        // Dígitos asociados al documento (cercanos al término o secuencia de ≥4 dígitos), evitando falsos
+        // positivos cuando hay una cifra ajena lejana («25 trabajadores ... factura electrónica con RUC»).
+        $conDigitos = preg_match('/\d{4,}/u', $mensaje) === 1
+            || preg_match('/(?:(?<![\p{L}.])'.$documento.'[^.;!?]{0,40}\d|\d[^.;!?]{0,40}(?<![\p{L}.])'.$documento.')/iu', $mensaje) === 1;
+        // Consultar el RUC público de la empresa sin cifras ni signos de interrogación («cual es su ruc»,
+        // «necesito conocer su razón social, su RUC») es información institucional pública.
+        if (! $conDigitos) {
+            $mensaje = preg_replace('/\b(?:cu[aá]l\s+es|conocer|saber|ver|pedir|solicitar|me\s+dan|me\s+pasan|p[aá]same|dame)\s+(?:su\s+raz[oó]n\s+social\s*(?:,|y)\s*)?(?:el|su)\s+r\.?u\.?c\.?(?![\p{L}\d]|\s*(?:es\b|[:=#]|n[°º.]|nro|n[uú]mero))/iu', ' ', $mensaje) ?? $mensaje;
+        }
         // Una pregunta sin cifras con «su/sus» se dirige a la empresa («¿Cuál es su RUC?»): es información pública.
         // Con cifras, con posesivo propio o atribuida a una persona, sigue siendo identificación personal.
         $preguntaInstitucional = ! $conDigitos && preg_match('/[¿?]/u', $mensaje) === 1;
         $propio = $preguntaInstitucional ? '(?:mi|mis|nuestro|nuestra)' : '(?:mi|mis|tu|tus|su|sus|nuestro|nuestra)';
         if ($preguntaInstitucional) {
-            // «¿Es seguro compartir mi DNI?», «¿necesito dar mi RUC?»: pregunta sobre el trámite, sin valor alguno.
-            $mensaje = preg_replace('/\b(?:compartir|dar|darles|enviar|mandar|pasar|escribir|poner|ingresar|adjuntar|entregar|presentar|mostrar|llevar|traer|tener|facilitar|proporcionar|indicar|necesito|necesita|piden|exigen|requieren|solicitan|pedir|usar|usan)\s+(?:(?:mi|mis|el|su|sus)\s+)?'.$documento.'(?![\p{L}])/iu', ' ', $mensaje) ?? $mensaje;
+            // «¿Es seguro compartir mi DNI?», «¿necesito dar mi RUC?», «¿te paso mi DNI?»: pregunta sobre el trámite, sin valor alguno.
+            $mensaje = preg_replace('/\b(?:(?:te|les|le)\s+)?(?:compartir|comparto|dar|darles|doy|enviar|env[ií]o|mandar|mando|pasar|paso|escribir|escribo|poner|ingresar|adjuntar|entregar|presentar|mostrar|llevar|traer|tener|facilitar|proporcionar|indicar|necesito|necesita|piden|exigen|requieren|solicitan|pedir|usar|usan)\s+(?:(?:mi|mis|el|su|sus)\s+)?'.$documento.'(?![\p{L}])/iu', ' ', $mensaje) ?? $mensaje;
         }
         $atribucion = $preguntaInstitucional
             ? '(?:de\s+(?:mi|mis)\b|del\s+(?:alumno|estudiante|titular|cliente|participante)\b)'
@@ -617,7 +654,8 @@ final class FiltroPrivacidadChat
 
     private function detectaTelefono(string $mensaje): bool
     {
-        if (preg_match('/(?:^|[\s(])\+\d{1,3}[\s.\-()]*\d{2,}/u', $mensaje) === 1) {
+        // Prefijo internacional: exige al menos 7 dígitos totales para no confundir cifras publicitarias («+400 profesionales»).
+        if (preg_match('/(?:^|[\s(])\+\d(?:[\s.\-()]*\d){6,}/u', $mensaje) === 1) {
             return true;
         }
 
@@ -652,8 +690,9 @@ final class FiltroPrivacidadChat
      */
     private function detectaNombrePersonal(string $mensaje, bool $reglaMayusculas = true): bool
     {
-        // Productos y topónimo verificados; el resto de la frase sigue siendo examinado.
+        // Productos, topónimos y referencias institucionales verificadas; el resto de la frase sigue siendo examinado.
         $mensaje = preg_replace('/\b(?:Power BI|Ofimática Básica|San Marcos|Colegio de Enfermeros(?: de Cajamarca| del Perú)?|Colegio de Economistas de Cajamarca|Instituto ISAM)\b/iu', ' institucional ', $mensaje) ?? $mensaje;
+        $mensaje = preg_replace('/\ba\s+nombre\s+de\s+(?:horus(?:\s+group(?:\s+s\.?r\.?l\.?)?)?|la\s+naci[oó]n|la\s+empresa|qu[eé]\s+empresa|alg[uú]n\s+colegio|un\s+colegio|una\s+instituci[oó]n|la\s+instituci[oó]n|qu[eé]\s+instituci[oó]n)\b/iu', ' institucional ', $mensaje) ?? $mensaje;
         if (preg_match('/\b(me\s+llamo|mi\s+nombre(?:\s+completo)?\s+es|mi\s+apellido\s+es|mis\s+apellidos\s+son|a\s+nombre\s+de|de\s+parte\s+de|inscrito\s+como|matriculado\s+como|atentamente|atte\.?)\s+[\p{L}]{2,}/iu', $mensaje) === 1) {
             return true;
         }
@@ -890,7 +929,7 @@ final class FiltroPrivacidadChat
         'inmobiliaria', 'minera', 'agencia', 'banco', 'caja', 'municipalidad', 'junta', 'comite', 'iglesia', 'parroquia', 'museo', 'teatro',
         'cine', 'parque', 'hacienda', 'fundo', 'granja', 'servicios', 'soluciones', 'inversiones', 'consultores', 'representaciones',
         'rio', 'lago', 'laguna', 'cerro', 'valle', 'distrito', 'provincia', 'region', 'caserio', 'anexo', 'barrio', 'urbanizacion',
-        'sector', 'pueblo', 'ciudad', 'avenida', 'jiron', 'calle', 'puente', 'terminal', 'aeropuerto',
+        'sector', 'pueblo', 'ciudad', 'avenida', 'jiron', 'calle', 'plaza', 'plazuela', 'puente', 'terminal', 'aeropuerto',
         'software', 'aplicacion', 'plataforma', 'sistema', 'herramienta', 'marca', 'modelo', 'app',
     ];
 
@@ -951,9 +990,10 @@ final class FiltroPrivacidadChat
         if (isset($vocabulario[$palabra]) || LexicoPublico::contiene($palabra)) {
             return self::C_CONOCIDA;
         }
-        // Errata de tecleo en una palabra larga del léxico («matricuña», «certifcado»): una letra de diferencia, misma inicial y 9 letras o más.
-        // Los nombres listados ya se descartaron arriba; las palabras cortas no se tolerarán nunca.
-        if (LexicoPublico::contieneConErrata($palabra)) {
+        // Errata de tecleo en una palabra larga del léxico («matricuña», «certifcado») o variante fonética
+        // en el vocabulario cerrado del dominio («kurso», «birtual», «sertifikado»). Los nombres listados
+        // ya se descartaron arriba.
+        if (LexicoPublico::contieneConErrata($palabra) || LexicoPublico::esVarianteFoneticaDeDominio($palabra)) {
             return self::C_CONOCIDA;
         }
 
@@ -1335,9 +1375,21 @@ final class FiltroPrivacidadChat
             return true;
         }
 
-        // Preguntar cómo se tratan los datos («¿Usan mis datos para publicidad?») no entrega ninguno.
+        // Referencias a leyes/políticas de protección de datos, derechos ARCO o uso analítico de datos en Excel
+        // no entregan información personal. Las referencias a expedientes propios («mis datos están en el formulario»,
+        // «ya te dejé mis datos personales») siguen bloqueadas.
+        $mensaje = preg_replace('/\b(?:protecci[oó]n|tratamiento|pol[ií]ticas?|ley(?:\s+n\.?\s*[°º]?)?(?:\s+\d{4,6})?)\s+de\s+(?:los\s+)?datos\s+personales\b/iu', ' ', $mensaje) ?? $mensaje;
+        $mensaje = preg_replace('/\b(?:elimin(?:ar|en|e)|borr(?:ar|en|e)|suprim(?:ir|an)|rectific(?:ar|en)|(?:no\s+)?compart(?:en|ir))\s+(?:mis\s+datos(?:\s+personales)?|mi\s+informaci[oó]n(?:\s+personal)?)\b/iu', ' ', $mensaje) ?? $mensaje;
+        $mensaje = preg_replace('/\b(?:analizar|procesar|organizar|ordenar|graficar|visualizar|tabular|limpiar)\s+mis\s+datos\b/iu', ' ', $mensaje) ?? $mensaje;
+
+        // Preguntar cómo se tratan los datos («¿Usan mis datos para publicidad?», «¿Es seguro dar mis datos?») no entrega ninguno.
         if (preg_match('/[¿?]/u', $mensaje) === 1) {
-            $mensaje = preg_replace('/\b(?:usan|usar|utilizan|guardan|almacenan|protegen|comparten|venden|tratan|manejan|cuidan|publican|recopilan|piden|necesitan|requieren|ven)\s+(?:mis|mi|los|sus|tus)?\s*(?:datos(?:\s+personales)?|informaci[oó]n(?:\s+personal)?)/iu', ' ', $mensaje) ?? $mensaje;
+            $mensaje = preg_replace('/\b(?:usan|usar|utilizan|guardan|almacenan|protegen|comparten|compartir|dar|brindar|ingresar|escribir|venden|tratan|manejan|cuidan|publican|recopilan|piden|necesitan|requieren|ven)\s+(?:mis|mi|los|sus|tus)?\s*(?:datos(?:\s+personales)?|informaci[oó]n(?:\s+personal)?)/iu', ' ', $mensaje) ?? $mensaje;
+        }
+
+        // Pregunta o aviso sobre pérdida de certificado sin cifras remite a la FAQ pública de duplicado.
+        if (preg_match('/\d/u', $mensaje) !== 1) {
+            $mensaje = preg_replace('/\b(?:perd[ií]|se\s+me\s+perdi[oó]|extravi[eé]|se\s+me\s+extravi[oó])\s+mi\s+certificado\b/iu', ' ', $mensaje) ?? $mensaje;
         }
 
         // Referencias a un trámite propio dentro de una pregunta sin cifras («¿Dónde veo mi certificado?», «¿puedo pedir la devolución de mi

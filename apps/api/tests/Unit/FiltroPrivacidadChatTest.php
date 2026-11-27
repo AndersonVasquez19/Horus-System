@@ -123,4 +123,91 @@ class FiltroPrivacidadChatTest extends TestCase
         $this->assertTrue($this->filtro->esSeguro($mensaje));
         $this->assertNull($this->filtro->motivoBloqueo($mensaje));
     }
+
+    public function test_ola2_permite_consultas_publicas_equipo_privacidad_y_ortografia_de_dominio(): void
+    {
+        $permitidas = [
+            '¿Quién es Marco Alvarez?',
+            '¿Mónica Monzón trabaja en el área de salud o enfermería?',
+            '¿Karen Távara ve los temas legales en Horus?',
+            '¿Quién es Milagros Villegas?',
+            '¿Quedan cerca de la Plazuela Bolognesi?',
+            '¿El curso de Redes es presencial en su local de Jr José Gálvez?',
+            '¿Tienen convenio con el Colegio de Enfermeros de La Libertad porque soy de Trujillo?',
+            'cual es su ruc',
+            'Necesito conocer su razón social, su RUC y a qué se dedican exactamente',
+            'Somos una empresa con 25 trabajadores y necesitamos factura electrónica con RUC',
+            'Quiero matricularme, ¿te paso mi DNI por aquí o por WhatsApp?',
+            'Vi que ponen +400 profesionales capacitados y 4.8 de calificación, ¿eso está auditado?',
+            '¿Cómo recupero mi contraseña de acceso?',
+            'Compré un producto en su página web y todavía no llega a mi domicilio',
+            '¿Los certificados salen a nombre de Horus Group o de algún colegio profesional?',
+            '¿Ustedes entregan título profesional a nombre de la Nación?',
+            '¿A nombre de qué empresa sale la factura electrónica?',
+            '¿Cumplen con la Ley 29733 de protección de datos personales del Perú?',
+            '¿Es seguro dar mis datos para matricularme por WhatsApp?',
+            'Quiero solicitar que eliminen mis datos personales de su base de datos',
+            'derechos arko para borrar mis datos',
+            'Busco asesoría para mi tesis y aprender Excel para analizar mis datos',
+            'otra cosa, perdí mi certificado anterior',
+            'kual es su ruk de la enpresa',
+            'micion y bision de orus',
+            'kien es el jerente jeneral de horus',
+            'kuando empiesa el kurso de redez',
+            'tienen kursos birtuales o presensiales',
+            'se me perdio mi sertifikado komo sako duplikado',
+            'a k ora avren y sierran la ofisina',
+            'tienen feisbuk istangram o tictok',
+            'kiero ablar kon un asessor umano',
+            'wenas bro',
+            'grax bro',
+            'ubi xfa',
+            'manito pasame el wsp xfa',
+        ];
+
+        foreach ($permitidas as $mensaje) {
+            $this->assertNull($this->filtro->motivoBloqueo($mensaje), 'No debía bloquearse: '.$mensaje);
+        }
+
+        // Barrera de salida: los miembros públicos exactos se permiten; otros nombres siguen bloqueados.
+        $this->assertFalse($this->filtro->contieneDatosPrivadosEnRespuesta('Marco Alvarez es el Gerente General y Karen Távara es la Asesora Legal de Horus Group SRL.'));
+        $this->assertTrue($this->filtro->contieneDatosPrivadosEnRespuesta('Marco Pérez es el docente del curso.'));
+    }
+
+    public function test_ola2_mantiene_bloqueados_datos_personales_ofuscaciones_y_expedientes(): void
+    {
+        $bloqueadas = [
+            '¿Quién es Marco Alvarez? Mi DNI es 45678912',
+            'Marco Alvarez y mi amigo Carlos Pérez quieren información',
+            'Mónica Monzón, escríbeme a ana@correo.pe',
+            'Vivo en Jr. José Gálvez 450',
+            'Mi domicilio es Jr. Los Cedros 245',
+            'mi domicilio queda cerca de la plaza',
+            'soi karlos peres y kiero un kurso',
+            'me llamo juanito kispe',
+            'matrikula a rodrigo kabanillas en excel',
+            'a nombre de Carlos Mendoza por favor',
+            'certificado a nombre de quien',
+            '¿Mi contraseña de acceso es Clave123?',
+            '¿Mi contraseña es secreta?',
+            'mis datos están en el formulario',
+            'ya te dejé mis datos personales',
+            'mi certificado todavía no llega',
+            'ya envié mi comprobante de pago',
+            'adjunto mi voucher del banco',
+            'quiero reclamar por mi boleta',
+            'Llámame al +51 987 654 321',
+            'mi ruc es 10456789012',
+            'su DNI es el de la ficha',
+            '¿mi DNI es el que les pasé?',
+        ];
+
+        foreach ($bloqueadas as $mensaje) {
+            $this->assertNotNull($this->filtro->motivoBloqueo($mensaje), 'Debía bloquearse: '.$mensaje);
+        }
+
+        foreach (['karlos', 'peres', 'kispe', 'kike', 'libor', 'mariana', 'zelvani', 'quenzuli'] as $nombre) {
+            $this->assertFalse(\App\Support\Privacidad\LexicoPublico::esVarianteFoneticaDeDominio($nombre), 'No debe tratarse como término de dominio: '.$nombre);
+        }
+    }
 }

@@ -23,6 +23,55 @@ final class LexicoPublico
     /** @var array<string, int>|null */
     private static ?array $palabras = null;
 
+    /** @var array<string, true>|null */
+    private static ?array $clavesFoneticasDominio = null;
+
+    /** @var list<string>|null */
+    private static ?array $clavesFoneticasLargas = null;
+
+    /**
+     * Vocabulario cerrado del dominio educativo e institucional de Horus Group para tolerar
+     * escritura fonética o faltas ortográficas frecuentes del visitante («kurso», «birtual»,
+     * «sertifikado», «kuando», «enpresa», «jerente») sin relajar el complemento del léxico
+     * sobre los ~30 000 términos generales ni sobre nombres de personas.
+     *
+     * @var list<string>
+     */
+    private const DOMINIO_FONETICO = [
+        'cual', 'cuales', 'cuando', 'cuanto', 'cuanta', 'cuantos', 'cuantas', 'quien', 'quienes', 'como', 'donde',
+        'hasta', 'quiero', 'quiere', 'quieren', 'quisiera', 'necesito', 'necesita', 'busco', 'queda', 'quedan',
+        'cuesta', 'cuestan', 'empieza', 'empiezan', 'sirve', 'sirven', 'abren', 'cierran', 'atienden', 'trabajan',
+        'hablar', 'recomiendes', 'recomiendas', 'recupero', 'recuperar', 'agendar', 'devuelven', 'devolucion',
+        'sacar', 'saco', 'enviar', 'envian', 'contestar', 'contestan', 'postular', 'elegir', 'aprender', 'pasame',
+        'puedo', 'tienen', 'horus', 'empresa', 'mision', 'vision', 'gerente', 'general', 'curso', 'cursos', 'redes',
+        'virtual', 'virtuales', 'presencial', 'presenciales', 'semipresencial', 'cableado', 'cero', 'corto',
+        'ofimatica', 'boleta', 'factura', 'electronica', 'electronico', 'cupos', 'vacantes', 'vence', 'convenio',
+        'convenios', 'asesoria', 'asesoramiento', 'legal', 'abogado', 'tiempo', 'consulta', 'certificado',
+        'certificados', 'duplicado', 'fisico', 'digital', 'provincias', 'reclamo', 'reclamaciones', 'clase',
+        'clases', 'practica', 'practicas', 'hora', 'horarios', 'horario', 'oficina', 'asesor', 'humano', 'correo',
+        'videollamada', 'galeria', 'fotos', 'examenes', 'grabados', 'matricula', 'inscripcion', 'inscribirme',
+        'matricularme', 'whatsapp', 'facebook', 'instagram', 'tiktok', 'excel', 'word', 'corlad', 'indecopi', 'sunat',
+    ];
+
+    /**
+     * Grafías coloquiales o fonéticas breves e inequívocas del dominio (no coinciden con nombres).
+     *
+     * @var array<string, true>
+     */
+    private const VARIANTES_EXACTAS_DOMINIO = [
+        'ruk' => true,
+        'exel' => true,
+        'xfa' => true,
+        'wsp' => true,
+        'guasap' => true,
+        'feisbuk' => true,
+        'istangram' => true,
+        'tictok' => true,
+        'arko' => true,
+        'aseroia' => true,
+        'lejal' => true,
+    ];
+
     /**
      * Palabra normalizada (minúsculas, sin tildes, ñ→n). Coincidencia exacta con cualquier entrada; plural, género
      * (a↔o) y adverbio en -mente solo se derivan de sustantivos y adjetivos (valor 1). Las palabras funcionales y las
@@ -106,6 +155,69 @@ final class LexicoPublico
         }
 
         return false;
+    }
+
+    /**
+     * Variante fonética u ortográfica en español de una palabra del dominio cerrado de Horus Group.
+     * Solo se evalúa después de descartar nombres y apellidos listados.
+     */
+    public static function esVarianteFoneticaDeDominio(string $palabra): bool
+    {
+        if (isset(self::VARIANTES_EXACTAS_DOMINIO[$palabra])) {
+            return true;
+        }
+
+        $largo = strlen($palabra);
+        if ($largo < 4 || $largo > 30 || preg_match('/^[a-z]+$/', $palabra) !== 1) {
+            return false;
+        }
+
+        if (self::$clavesFoneticasDominio === null) {
+            self::$clavesFoneticasDominio = [];
+            self::$clavesFoneticasLargas = [];
+            foreach (self::DOMINIO_FONETICO as $termino) {
+                $clave = self::claveFonetica($termino);
+                self::$clavesFoneticasDominio[$clave] = true;
+                if (strlen($clave) >= 6) {
+                    self::$clavesFoneticasLargas[] = $clave;
+                }
+            }
+            self::$clavesFoneticasLargas = array_values(array_unique(self::$clavesFoneticasLargas));
+        }
+
+        $claveEntrada = self::claveFonetica($palabra);
+        if (isset(self::$clavesFoneticasDominio[$claveEntrada])) {
+            return true;
+        }
+
+        $largoClave = strlen($claveEntrada);
+        if ($largoClave < 6) {
+            return false;
+        }
+
+        foreach (self::$clavesFoneticasLargas ?? [] as $claveDominio) {
+            $dif = strlen($claveDominio) - $largoClave;
+            if ($dif < -1 || $dif > 1) {
+                continue;
+            }
+            if (levenshtein($claveEntrada, $claveDominio) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function claveFonetica(string $palabra): string
+    {
+        $clave = preg_replace('/(?<!c)h/', '', $palabra) ?? $palabra;
+        $clave = preg_replace('/qu(?=[ei])/', 'k', $clave) ?? $clave;
+        $clave = preg_replace('/c(?=[ei])/', 's', $clave) ?? $clave;
+        $clave = preg_replace('/g(?=[ei])/', 'j', $clave) ?? $clave;
+        $clave = str_replace(['ll', 'np', 'nb', 'ks', 'ck'], ['y', 'mp', 'mb', 'x', 'k'], $clave);
+        $clave = strtr($clave, ['c' => 'k', 'z' => 's', 'v' => 'b']);
+
+        return preg_replace('/(.)\1+/', '$1', $clave) ?? $clave;
     }
 
     public static function total(): int
