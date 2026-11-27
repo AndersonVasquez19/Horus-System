@@ -134,8 +134,8 @@ class HorusAdvisorTest extends TestCase
 
     public static function plantillasCortesia(): iterable
     {
-        yield 'hola' => ['Hola', 'greeting', '¡Hola! Soy Horus AI Advisor'];
-        yield 'buenos dias' => ['Buenos días', 'greeting', '¡Hola! Soy Horus AI Advisor'];
+        yield 'hola' => ['Hola', 'greeting', '¡Hola! Soy Horus, el asistente virtual'];
+        yield 'buenos dias' => ['Buenos días', 'greeting', '¡Hola! Soy Horus, el asistente virtual'];
         yield 'muchas gracias' => ['Muchas gracias', 'thanks', '¡Con gusto!'];
         yield 'adios' => ['Adiós', 'farewell', '¡Gracias por escribir'];
         yield 'capacidades' => ['¿Qué puedes hacer?', 'capabilities', 'Soy un asistente informativo'];

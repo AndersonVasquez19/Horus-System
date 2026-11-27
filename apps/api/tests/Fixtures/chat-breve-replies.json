@@ -50,7 +50,7 @@
   {
     "query": "Vigencia del convenio con CORLAD",
     "reply": {
-      "answer": "Colegio Regional de Licenciados en Administración de Cajamarca: el convenio está vigente hasta el 17 de febrero del 2027.",
+      "answer": "Colegio Regional de Licenciados en Administración de Cajamarca: el convenio está vigente hasta el 10 de diciembre del 2026.",
       "intent": "agreement_info",
       "match_level": "alta",
       "needs_clarification": false,

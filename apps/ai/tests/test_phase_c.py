@@ -137,8 +137,8 @@ def test_followup_attribute_after_two_course_listing_answers_for_both_published_
     assert not followup.abstained
     assert [s.id for s in followup.sources] == ["cat_curso_publicacion_2", "cat_curso_publicacion_3"]
     assert followup.answer == (
-        "«Atención al cliente y comunicación efectiva»: el horario es Vie, 18:00-21:00.\n"
-        "«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00."
+        "«Atención al cliente y comunicación efectiva»: el horario es Vie, 18:00-21:00; la fecha de inicio la confirma un asesor.\n"
+        "«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00; la fecha de inicio la confirma un asesor."
     )
 
     direct_schedules = engine.chat("los horarios de los cursos")
@@ -166,7 +166,8 @@ def test_followup_attribute_after_two_course_listing_answers_for_both_published_
 
     mixed = engine.chat("¿Cuál es el precio y horario del curso Marketing digital para emprendedores?")
     assert not mixed.abstained
-    assert "«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00." in mixed.answer
+    assert ("«Marketing digital para emprendedores»: el horario es Mar-Jue, 19:00-21:00; "
+            "la fecha de inicio la confirma un asesor.") in mixed.answer
     assert "«Marketing digital para emprendedores»: el precio lo confirma un asesor." in mixed.answer
 
 

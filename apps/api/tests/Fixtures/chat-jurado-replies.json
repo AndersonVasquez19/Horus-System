@@ -2,7 +2,7 @@
   {
     "query": "hola",
     "reply": {
-      "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+      "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
       "intent": "greeting",
       "match_level": "alta",
       "needs_clarification": false,
@@ -34,7 +34,7 @@
   {
     "query": "buenas tardes",
     "reply": {
-      "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+      "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
       "intent": "greeting",
       "match_level": "alta",
       "needs_clarification": false,
@@ -1490,7 +1490,7 @@
   {
     "query": "¿Qué modalidades tienen?",
     "reply": {
-      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse con un asesor.",
+      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso figura en su ficha de la página de cursos; pregúntame por un curso y te la digo.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -1590,7 +1590,7 @@
   {
     "query": "¿Los cursos son presenciales?",
     "reply": {
-      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse con un asesor.",
+      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso figura en su ficha de la página de cursos; pregúntame por un curso y te la digo.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2172,7 +2172,7 @@
   {
     "query": "¿Cómo me inscribo?",
     "reply": {
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2220,7 +2220,7 @@
   {
     "query": "¿Cómo me matriculo?",
     "reply": {
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2268,7 +2268,7 @@
   {
     "query": "¿Cuáles son los pasos para matricularme?",
     "reply": {
-      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+      "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "intent": "training_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -5189,7 +5189,7 @@
   {
     "query": "¿Tienen clases virtuales y entregan certificado?",
     "reply": {
-      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse con un asesor.\n\nOfrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio).",
+      "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso figura en su ficha de la página de cursos; pregúntame por un curso y te la digo.\n\nOfrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio).",
       "intent": "training_info",
       "match_level": "media",
       "needs_clarification": false,

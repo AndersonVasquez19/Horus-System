@@ -130,7 +130,7 @@
         "quote": false
       },
       "reply": {
-        "answer": "«Ofimática para oficinas»: es virtual.\n«Ofimática para oficinas»: dura 8 semanas.\n«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: es presencial.\n«Redes para principiantes»: dura 4 semanas.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: es presencial.\n«Comunicacion»: dura 2 semanas.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+        "answer": "«Ofimática para oficinas»: es virtual.\n«Ofimática para oficinas»: dura 8 semanas.\n«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: es presencial.\n«Redes para principiantes»: dura 4 semanas.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: es presencial.\n«Comunicacion»: dura 2 semanas.\n«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
         "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,
@@ -998,7 +998,7 @@
       "query": "hola pe",
       "state": null,
       "reply": {
-        "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+        "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
         "intent": "greeting",
         "match_level": "alta",
         "needs_clarification": false,
@@ -1551,7 +1551,7 @@
       "query": "el curso empieza este mes?",
       "state": null,
       "reply": {
-        "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+        "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
         "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,
@@ -2219,7 +2219,7 @@
       "query": "¿Cómo puedo matricularme?",
       "state": null,
       "reply": {
-        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -2268,7 +2268,7 @@
       "query": "¿cómo me inscribo?",
       "state": null,
       "reply": {
-        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
         "intent": "training_info",
         "match_level": "alta",
         "needs_clarification": false,
@@ -2317,7 +2317,7 @@
       "query": "Quiero matricularme",
       "state": null,
       "reply": {
-        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
         "intent": "enrollment_request",
         "match_level": "alta",
         "needs_clarification": false,
@@ -2429,7 +2429,7 @@
       "query": "¿Cuándo empiezan?",
       "state": null,
       "reply": {
-        "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+        "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
         "intent": "followup_attribute",
         "match_level": "media",
         "needs_clarification": false,

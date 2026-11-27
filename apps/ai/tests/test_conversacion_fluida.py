@@ -315,7 +315,7 @@ def test_nombrar_un_curso_tras_el_horario_de_atencion_responde_el_del_curso():
     motor = make_engine([com])
     reply = _por_estado(motor, "Quiero información del curso Comunicacion", "¿Aceptan Yape?", "¿cuál es el horario?",
                         "¿Cuál es el horario del curso de comunicación?")
-    assert reply.answer == "«Comunicacion»: el horario es 2 pm a 5pm."
+    assert reply.answer == "«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor."
     assert "fuentes discrepantes" not in reply.answer
 
 

@@ -264,7 +264,26 @@ Qué cambió:
 - **Cortesía:** «perfecto, entendido», «Hola, ¿qué tal? Quería hacer unas consultas», «¿qué cosas puedo preguntarte?» y «mañana paso por la oficina, gracias». «¿Con quién hablo para coordinar?» deriva a un asesor; «¿con quién hablo?» a secas sigue preguntando por el asistente.
 - **Frases clave** añadidas a fichas existentes, sin cambiar sus textos: devoluciones («me arrepiento»), cambios de fecha, certificado perdido, entrega del certificado, capacitación en las instalaciones del cliente, envío del comprobante, modalidades de estudio y dirección de correo.
 
+### Pruebas de un compañero en producción (26/11/2026)
+
+Un compañero hizo 60 pruebas en la web antes de `ca10b51`. Se repitieron en local, con el código actual y un catálogo parecido al publicado (Matemática, Comunicación y Ciencias Sociales). Lo que seguía fallando se corrigió así:
+
+- «Compara los tres cursos» y «¿En qué se diferencian los cursos?» dan la ficha comparativa del listado. «¿Qué diferencia hay entre presencial y semipresencial?» explica cada modalidad con el texto publicado.
+- «¿Qué modalidades tienen?» ya no manda al asesor: la modalidad de cada curso está en su ficha.
+- Un curso con horario y sin fecha de inicio publicada lo dice: «…el horario es X; la fecha de inicio la confirma un asesor.». Laravel reconstruye la misma frase en `FuentesCatalogoAdvisor`.
+- «Dame los detalles del curso X» da la ficha completa (modalidad, duración, horario y certificado). El temario sigue saliendo si se pregunta por él.
+- «¿El certificado es físico o digital?» responde lo que dice cada curso publicado.
+- El saludo usa el mismo nombre que la ventana: «Horus, el asistente virtual».
+- **Datos confirmados por el propietario:**
+  - Las fechas de los convenios son las de la web Next.js: CR XIII hasta el 20/11/2026 y CORLAD hasta el 10/12/2026.
+  - Los medios de pago son transferencias, Yape, Plin, tarjetas y efectivo, y así lo dicen ahora los pasos de matrícula.
+  - Si la vigencia publicada de un convenio ya pasó (`_date_passed`, hora de Perú UTC−5), el chat no lo da por vigente: responde la frase verificada «la vigencia de este convenio fue hasta…, y si se renovó lo confirma un asesor».
+- **A revisar cuando venza un convenio:** el del CORLAD (10/12/2026) necesita una frase como la de CR XIII en su `detail_answer`, porque la suya dice «está vigente hasta…».
+
 Siguen sin resolverse:
+- «Quiero matricularme, ¿te paso mi DNI?» lo bloquea el filtro de privacidad (fase 5).
+- «¿Con el certificado gano seguro la plaza?» pide confirmar el tema antes de responder.
+- La web todavía muestra «Vigente hasta 20 de noviembre del 2026» en el convenio CR XIII.
 - «quiero estudiar algo de computación» dice que no hay ese curso: el catálogo no usa esa palabra.
 - «¿Esta conversación queda guardada?» no tiene una ficha publicada que lo responda.
 - Algunas preguntas con dos fichas parecidas siguen pidiendo elegir («¿hay examen final?»).

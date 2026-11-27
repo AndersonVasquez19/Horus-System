@@ -108,6 +108,9 @@ class FuentesCatalogoAdvisor
                         : '«'.$item['title'].'»: inicia el '.$inicio.'; el horario es '.$item['schedule_text'].'.';
                 } elseif (empty($item['schedule_text'])) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: las fechas y horarios los confirma un asesor.';
+                } else {
+                    // Horario publicado sin fecha de inicio: Python lo dice en la misma frase.
+                    $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: el horario es '.$item['schedule_text'].'; la fecha de inicio la confirma un asesor.';
                 }
                 if ($certificacion !== null) {
                     $fuentes[$id]['fragments'][] = '«'.$item['title'].'»: certificación: '.$certificacion.'.';

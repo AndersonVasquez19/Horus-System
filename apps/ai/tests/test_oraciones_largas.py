@@ -127,3 +127,77 @@ def test_las_reglas_de_la_fase_3_no_capturan_otras_preguntas(visita, mensaje, no
 def test_con_quien_hablo_solo_sigue_preguntando_por_el_asistente(visita):
     assert visita.chat("¿Con quién hablo?", [], None).intent == "capabilities"
     assert visita.chat("Soy de una municipalidad y queremos firmar un convenio, ¿con quién hablo?", [], None).intent == "human_handoff"
+
+
+# ---------------------------------------------------------------- pruebas del compañero en producción (26/11/2026)
+_BASE = {"type": "curso", "publication_status": "vigente", "url_path": "/educacion/cursos",
+         "updated_at": "2026-11-25T00:00:00+00:00", "certification_text": "Certificado físico"}
+_CATALOGO_PRODUCCION = [  # parecido al catálogo publicado ese día (datos ficticios donde el documento no los da)
+    {**_BASE, "stable_id": "curso:publicacion-1", "title": "Matemática", "modalities": ["virtual"],
+     "summary": "Su enfoque y profundidad varían según el nivel educativo y la carrera del estudiante.",
+     "details": "Escríbenos al número de WhatsApp para inscribirte. Temario: álgebra y funciones.",
+     "duration_text": "4 semanas", "schedule_text": "martes y jueves de 7 a 9 pm"},
+    {**_BASE, "stable_id": "curso:publicacion-2", "title": "Comunicación", "modalities": ["presencial"],
+     "summary": "Se centra en cómo las personas intercambian información.", "details": "",
+     "duration_text": "2 semanas", "schedule_text": "2 pm a 5 pm", "start_date": "2026-11-30"},
+    {**_BASE, "stable_id": "curso:publicacion-3", "title": "Ciencias Sociales", "modalities": ["semipresencial"],
+     "summary": "Analiza el pasado de la humanidad y los hechos políticos, económicos y sociales.", "details": "",
+     "duration_text": "8 semanas", "schedule_text": "sábados de 9 a 12", "start_date": "2026-11-27"},
+]
+
+
+@pytest.fixture(scope="module")
+def produccion():
+    from tests.test_phase_c import make_engine
+
+    return make_engine(_CATALOGO_PRODUCCION)
+
+
+@pytest.mark.parametrize("mensaje", ["Compara los tres cursos", "¿En qué se diferencian los cursos?"])
+def test_comparar_los_cursos_dicho_de_otras_formas(produccion, mensaje):
+    respuesta = produccion.chat(mensaje)
+    assert [s.id for s in respuesta.sources] == ["cat_listado_formacion"]
+    assert "Modalidad: virtual" in respuesta.answer and "Ciencias Sociales" in respuesta.answer
+
+
+def test_la_diferencia_entre_modalidades_explica_cada_una(produccion):
+    respuesta = produccion.chat("¿Qué diferencia hay entre presencial y semipresencial?")
+    assert [s.id for s in respuesta.sources] == ["cursos_modalidades"]
+    assert "semipresencial (" in respuesta.answer
+
+
+def test_un_curso_sin_fecha_de_inicio_lo_dice(produccion):
+    respuesta = produccion.chat("¿Cuándo empieza el curso de Matemática?")
+    assert respuesta.answer == ("«Matemática»: el horario es martes y jueves de 7 a 9 pm; "
+                                "la fecha de inicio la confirma un asesor.")
+
+
+def test_los_detalles_de_un_curso_son_su_ficha_completa(produccion):
+    respuesta = produccion.chat("Dame los detalles del curso de Matemática")
+    assert respuesta.answer.startswith("Matemática: Su enfoque")
+    assert "Modalidad: virtual." in respuesta.answer and "Duración: 4 semanas." in respuesta.answer
+
+
+def test_el_tipo_de_certificado_es_el_de_cada_curso(produccion):
+    respuesta = produccion.chat("¿El certificado es físico o digital?")
+    assert respuesta.answer.count("certificación: Certificado físico.") == 3
+
+
+def test_un_convenio_con_la_vigencia_publicada_vencida_no_se_da_por_vigente(produccion):
+    # Fechas de la web Next.js, confirmadas por el propietario (26/11/2026): CR XIII hasta el 20/11/2026.
+    respuesta = produccion.chat("¿Sigue vigente el convenio con el Colegio de Enfermeros de Cajamarca?")
+    assert "fue hasta el 20 de noviembre del 2026" in respuesta.answer and "está vigente" not in respuesta.answer
+    corlad = produccion.chat("¿Hasta cuándo está vigente el convenio con CORLAD?")
+    assert "10 de diciembre del 2026" in corlad.answer
+
+
+def test_la_fecha_vencida_se_calcula_con_la_hora_de_cajamarca():
+    from app.services.chat_engine import _date_passed
+
+    assert _date_passed("20 de noviembre del 2026") and not _date_passed("4 de junio del 2029")
+    assert not _date_passed("sin fecha")
+
+
+def test_los_pasos_de_matricula_nombran_los_medios_de_pago_reales(produccion):
+    respuesta = produccion.chat("¿Cómo me matriculo?")
+    assert "transferencia bancaria, Yape, Plin, tarjeta o efectivo" in respuesta.answer

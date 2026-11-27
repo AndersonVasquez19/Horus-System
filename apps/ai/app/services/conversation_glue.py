@@ -649,6 +649,11 @@ _LOCATION = re.compile(
 _OTHER_CONTACT_DATA = re.compile(r"\b(?:telefono|whatsapp|correo|email|numero|celular|horario|hora|pago|pagar)\b")
 
 
+def asks_syllabus(message: str) -> bool:
+    """«¿qué incluye?», «el temario»: el contenido publicado del curso, no su ficha resumida."""
+    return re.search(r"\b(?:temario|silabo|contenidos?|que incluye|que temas|en que consiste)\b", normalize(message)) is not None
+
+
 def asks_location(message: str) -> bool:
     """Solo la ubicación: «dirección y teléfono» o «¿dónde están y a qué hora atienden?» siguen el flujo de varias
     preguntas, que une las dos fichas."""

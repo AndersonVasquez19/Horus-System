@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Literal
 
 from app.core.security import detect_prompt_injection, detect_sensitive_request
@@ -124,6 +124,24 @@ CATEGORY_INTENTS = {
     "faq": "faq",
     "politica": "policy",
 }
+
+# Hora de Cajamarca: UTC-5 todo el año (Perú no cambia de hora); no depende de la base de zonas del sistema.
+LIMA = timezone(timedelta(hours=-5))
+_SPANISH_MONTHS = {m: i for i, m in enumerate(("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+                                              "septiembre", "octubre", "noviembre", "diciembre"), 1)}
+
+
+def _date_passed(text: str) -> bool:
+    """¿La fecha publicada («20 de noviembre del 2026») ya pasó en Cajamarca? Si no se puede leer, se asume que no."""
+    match = re.search(r"(\d{1,2}) de ([a-z]+) del? (\d{4})", normalize(text))
+    if match is None or match.group(2) not in _SPANISH_MONTHS:
+        return False
+    try:
+        published = date(int(match.group(3)), _SPANISH_MONTHS[match.group(2)], int(match.group(1)))
+    except ValueError:
+        return False
+    return published < datetime.now(LIMA).date()
+
 
 MODALITY_PLURALS = {"virtual": "virtual", "virtuales": "virtual", "online": "virtual", "presencial": "presencial",
                     "presenciales": "presencial", "semipresencial": "semipresencial", "semipresenciales": "semipresencial"}
@@ -477,8 +495,21 @@ class AdvisorEngine:
 
         kind = glue.comparison_kind(message)
         named = self._courses_in_message(message) if kind is not None else []
-        if kind == "general" and len(named) < 2 and set(tokenize(normalize(message))) & {"cursos", "capacitaciones"}:
-            kind = None  # «compárame los cursos disponibles» (botón del orientador): ficha detallada del listado
+        words = set(tokenize(normalize(message)))
+        # «¿Qué diferencia hay entre presencial y semipresencial?»: cómo es cada modalidad (texto publicado), no los
+        # datos de cada curso (pruebas del compañero, 26/11/2026).
+        modalities_named = words & {"presencial", "semipresencial", "virtual", "virtuales", "presenciales",
+                                    "semipresenciales", "online"}
+        if kind is not None and not named and len(modalities_named) >= 2 and (reply := self._modalities()) is not None:
+            return reply
+        if kind == "general" and len(named) < 2 and words & {"cursos", "capacitaciones"}:
+            # «compárame los cursos disponibles» (botón del orientador), «Compara los tres cursos», «¿En qué se
+            # diferencian los cursos?»: la ficha detallada del listado, con los datos de cada curso.
+            listing = self.kb.get("cat_listado_formacion")
+            if listing is not None and listing.status == "verified" and listing.detail_answer:
+                return self._reply(answer=listing.detail_answer, intent="training_info", match_level="alta",
+                                   sources=[self._source(listing)])
+            kind = None
         if kind is not None:
             # «¿cuál es el más corto/largo?» pregunta por todo el catálogo: el foco guarda solo 2 cursos y dejaba fuera al
             # tercero (producción, 25/11/2026). «compáralos» sí compara los cursos en foco.
@@ -496,6 +527,16 @@ class AdvisorEngine:
                                                    reverse=longest)]
             attrs = ("duracion",) if kind == "duration" else ("modalidad", "duracion", "fechas")
             return self._followup(chosen, replace(u, attributes=attrs, asked_modalities=()))
+
+        normalized = normalize(message)
+        if (re.search(r"\bcertificad\w*\b", normalized) and re.search(r"\b(?:fisico|digital|impreso)\b", normalized)
+                and not glue.is_complaint(message)):
+            # «¿El certificado es físico o digital?»: lo que dice la ficha de cada curso publicado (la web anuncia
+            # ambos en general, pero cada curso puede decir solo uno; pruebas del compañero, 26/11/2026).
+            named_courses = self._courses_in_message(message)
+            chosen = named_courses or focus_courses or courses[:5]
+            if chosen and all(r.certification for r in chosen):
+                return self._followup(chosen, replace(u, attributes=("certificado",), asked_modalities=()))
 
         open_in_sentence = (glue.is_open_recommendation_in_sentence(message) and not self._courses_in_message(message)
                             and not extract_profile(corrected, self.kb).specific_topics(self.generic))
@@ -912,7 +953,9 @@ class AdvisorEngine:
             if rec.start_text:
                 return f"{title}: inicia el {rec.start_text}.", True
             if rec.schedule:
-                return f"{title}: el horario es {rec.schedule}.", True
+                # Sin fecha de inicio publicada se dice («¿cuándo empieza Matemática?» daba solo el horario; pruebas del
+                # compañero, 26/11/2026). Laravel reconstruye la misma frase en FuentesCatalogoAdvisor.
+                return f"{title}: el horario es {rec.schedule}; la fecha de inicio la confirma un asesor.", True
             return f"{title}: las fechas y horarios los confirma un asesor.", False
         if attr == "duracion":
             if rec.duration:
@@ -1366,6 +1409,10 @@ class AdvisorEngine:
             "compara", "comparar", "comparame", "diferencia", "diferencias", "resumen de los cursos",
         )):
             document = self.kb.documents_by_source.get(record.id)
+            if record.stable_id is not None and record.detail_answer != record.answer and not glue.asks_syllabus(message):
+                # «Dame los detalles del curso de Matemática»: la ficha completa (resumen, modalidad, duración, inicio,
+                # horario y certificado), no el texto de inscripción sin título (pruebas del compañero, 26/11/2026).
+                return reply.model_copy(update={"answer": record.detail_answer})
             if document is not None and document.fragments:
                 if reply.answer in {f.answer for f in document.fragments} and document.fragments[0].answer != record.answer:
                     return reply
@@ -1565,9 +1612,18 @@ class AdvisorEngine:
 
         if hits and hits[0].record.status == "verified" and hits[0].record.public_card is not None:
             record = hits[0].record
-            if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen"}:
-                return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
-                    intent="agreement_info", match_level="alta", sources=[self._source(record)])
+            if hits[0].score >= ANSWER_THRESHOLD and terms & {"vigencia", "vence", "vencimiento", "vencen", "vigente"}:
+                if _date_passed(record.public_card.vigencia):
+                    # Vigencia publicada ya vencida (CR XIII, 20/11/2026): no se afirma que siga vigente; se responde la
+                    # frase verificada que lo dice y remite a un asesor por si se renovó.
+                    sentence = next((s.strip() for s in re.split(r"(?<=[.;])\s+", record.detail_answer or "")
+                                     if record.public_card.vigencia in s), None)
+                    if sentence:
+                        return self._reply(answer=sentence, intent="agreement_info", match_level="alta",
+                                           sources=[self._source(record)])
+                else:
+                    return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
+                        intent="agreement_info", match_level="alta", sources=[self._source(record)])
 
         # Pide un dato de un curso que no existe: no se contesta con el del curso en foco ni con los de todos.
         if (u.attributes or u.asked_modalities) and not u.private_quote and self._names_unpublished_course(message):

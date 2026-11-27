@@ -3,7 +3,7 @@
   "query": "hola",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -36,7 +36,7 @@
   "query": "holaa",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -69,7 +69,7 @@
   "query": "holaaa",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -102,7 +102,7 @@
   "query": "holaaaa",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -135,7 +135,7 @@
   "query": "holiii",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -168,7 +168,7 @@
   "query": "wenas",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -201,7 +201,7 @@
   "query": "Wenas",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -234,7 +234,7 @@
   "query": "buenas!",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -267,7 +267,7 @@
   "query": "Buen día",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1392,7 +1392,7 @@
   "query": "me agregan a un grupo?",
   "state": null,
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1433,7 +1433,7 @@
   "query": "hay grupo de whatsapp?",
   "state": null,
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1474,7 +1474,7 @@
   "query": "que pasa despues de matricularme",
   "state": null,
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1515,7 +1515,7 @@
   "query": "como ingreso a las clases",
   "state": null,
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -1661,7 +1661,7 @@
   "query": "que modalidades tienen",
   "state": null,
   "reply": {
-   "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse con un asesor.",
+   "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso figura en su ficha de la página de cursos; pregúntame por un curso y te la digo.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2040,7 +2040,7 @@
   "query": "ola q tal",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2073,7 +2073,7 @@
   "query": "buenas noches amigo",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -2106,7 +2106,7 @@
   "query": "saludos cordiales",
   "state": null,
   "reply": {
-   "answer": "¡Hola! Soy Horus AI Advisor, el asistente informativo de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
+   "answer": "¡Hola! Soy Horus, el asistente virtual de Horus Group SRL. Puedo orientarte sobre cursos y capacitaciones, asesoramiento y canales de contacto. ¿Qué necesitas?",
    "intent": "greeting",
    "match_level": "alta",
    "needs_clarification": false,
@@ -3086,7 +3086,7 @@
   "query": "como me inscribo",
   "state": null,
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4257,7 +4257,7 @@
   "query": "como me matriculo",
   "state": null,
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -4321,7 +4321,7 @@
    "quote": false
   },
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
@@ -5898,7 +5898,7 @@
    "quote": false
   },
   "reply": {
-   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
    "intent": "followup_attribute",
    "match_level": "media",
    "needs_clarification": false,
@@ -5986,7 +5986,7 @@
    "quote": false
   },
   "reply": {
-   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
    "intent": "followup_attribute",
    "match_level": "media",
    "needs_clarification": false,
@@ -6220,7 +6220,7 @@
    "quote": false
   },
   "reply": {
-   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm.",
+   "answer": "«Ofimática para oficinas»: inicia el 5 de diciembre de 2026; el horario es sábados de 9 a 12.\n«Redes para principiantes»: inicia el 5 de diciembre de 2026; el horario es lunes de 6 a 8 pm.\n«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
    "intent": "followup_attribute",
    "match_level": "media",
    "needs_clarification": false,
@@ -6342,7 +6342,7 @@
   "query": "¿Cuál es el horario del curso Comunicacion?",
   "state": null,
   "reply": {
-   "answer": "«Comunicacion»: el horario es 2 pm a 5pm.",
+   "answer": "«Comunicacion»: el horario es 2 pm a 5pm; la fecha de inicio la confirma un asesor.",
    "intent": "followup_attribute",
    "match_level": "media",
    "needs_clarification": false,
@@ -6916,7 +6916,7 @@
    "quote": false
   },
   "reply": {
-   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
+   "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
    "intent": "training_info",
    "match_level": "alta",
    "needs_clarification": false,
