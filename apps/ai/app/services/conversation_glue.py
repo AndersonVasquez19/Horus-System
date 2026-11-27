@@ -108,8 +108,11 @@ _LAUGH = re.compile(r"^(?:j+[aeiou]+)+j*$|^(?:ha)+h?$|^(?:xd)+$|^lol$|^jaja\w*$|
 _PICKS: dict[str, Pick] = {
     "el otro": "other", "la otra": "other", "el otro curso": "other", "y el otro": "other", "y la otra": "other",
     "el primero": "first", "la primera": "first", "el primer curso": "first", "el de arriba": "first",
+    "y el primero": "first", "y la primera": "first",
     "el segundo": "second", "la segunda": "second", "el segundo curso": "second", "el de abajo": "second",
+    "y el segundo": "second", "y la segunda": "second",
     "el ultimo": "last", "la ultima": "last", "el ultimo curso": "last",
+    "y el ultimo": "last", "y la ultima": "last",
 }
 _COMPARATIVES: dict[str, Comparative] = {
     "mas barato": "price", "mas baratos": "price", "mas economico": "price", "mas economicos": "price",
@@ -277,22 +280,30 @@ def not_offered_topic(message: str) -> bool:
     return bool(_NOT_OFFERED.search(normalized))
 
 
-# La consulta nombra un curso concreto: «el curso de cocina», «el taller de oratoria».
+# La consulta nombra un curso concreto: «el curso de cocina», «el taller de oratoria», «aprender Python».
+# No captura infinitivos tras «aprender a …» («aprender a manejar hojas de cálculo», «aprender a usar Excel»).
 _NAMED_COURSE = re.compile(
-    r"\b(?:curso|taller|diplomado|seminario|capacitacion|programa)s? (?:de|del|sobre) (?:(?:la|el|las|los) )?([a-z0-9]+)"
+    r"\b(?:curso|taller|diplomado|seminario|capacitacion|programa)s? (?:de|del|sobre|para aprender) (?:(?:la|el|las|los) )?([a-z0-9]+)"
+    r"|\b(?:aprender|capacitarme en|estudiar)\s+(?:programacion en |instalacion de )?(?:(?:la|el|las|los|un|una)\s+)?(?!a\b)([a-z0-9]+)"
 )
 # Palabras que siguen a esas frases sin nombrar un tema.
 _NOT_A_SUBJECT = frozenset(
     "curso cursos taller talleres capacitacion capacitaciones programa clases este ese esto eso aquel mismo actual "
     "algun alguno ninguno todos otro otros nuevo ustedes horus group linea persona grupo forma manera modalidad virtual "
     "presencial semipresencial hibrido distancia online verano invierno fin fines semana noche manana tarde sabado "
-    "sabados domingo domingos hoy ahora mes ano que ahi alli".split()
+    "sabados domingo domingos hoy ahora mes ano que ahi alli algo mas desde gratis con para en por sobre aqui "
+    "cajamarca lima trujillo chiclayo peru mejor rapido rapidamente bien cero basico intermedio avanzado "
+    "personalizado personalizada empresarial empresariales empresas empresa personal trabajadores "
+    "colaboradores equipo herramientas digitales util trabajo cv "
+    "usar manejar instalar configurar hacer crear armar trabajar dominar mejorar gestionar administrar organizar "
+    "resolver entender conocer saber llevar tomar".split()
 )
 
 
 def named_course_subjects(message: str) -> list[str]:
-    "Primera palabra de cada tema que la consulta nombra como curso («curso de X», «taller de X»)."
-    return [word for word in _NAMED_COURSE.findall(normalize(message)) if word not in _NOT_A_SUBJECT]
+    "Primera palabra de cada tema que la consulta nombra como curso («curso de X», «aprender X»)."
+    words = [g for pair in _NAMED_COURSE.findall(normalize(message)) for g in pair if g]
+    return [word for word in words if word not in _NOT_A_SUBJECT]
 
 
 INSTALLMENTS_REPLY = (
@@ -380,9 +391,11 @@ def is_open_recommendation(message: str) -> bool:
 # «No sé cuál curso elegir, ¿me ayudas a decidir…?». Quien llama comprueba que no nombre un curso ni un tema.
 _OPEN_RECOMMEND_IN_SENTENCE = re.compile(
     r"\b(?:que|cual|cuales) (?:curso|cursos) (?:me )?(?:recomiendas|recomiendan|recomienda|sugieres|sugieren|conviene)\b"
-    r"|\bno se (?:cual|que) curso\b|\b(?:ayudas|ayudan|ayudar|ayuden) a (?:decidir|elegir|escoger)\b"
+    r"|\bno se (?:cual|que) curso\b|\b(?:ayudas|ayudan|ayudar|ayuden|ayuda) (?:a|para) (?:decidir|elegir|escoger)\b"
     r"|\bcual(?: me)? (?:recomiendas|recomiendan|conviene)(?: para (?:empezar|comenzar))?\b"
     r"|\b(?:me )?recomiendes un curso\b|\bpor cual curso (?:deberia )?(?:empezar|comenzar)\b"
+    r"|\borientame\b|\b(?:me )?(?:recomiendas|recomiendan|recomiendame) algo\b"
+    r"|\b(?:mas popular|mejor salida laboral)\b"
 )
 
 
@@ -566,7 +579,10 @@ _UNPUBLISHED_STUDY = re.compile(
 
 
 def asks_unpublished_study_fact(message: str) -> bool:
-    return _UNPUBLISHED_STUDY.search(" ".join(content_words(message))) is not None
+    normalized = " ".join(content_words(message))
+    if re.search(r"\b(?:horarios?\s+flexibles?|personalizad[ao]s?|turno\s+(?:cambia|rotativ\w*|de\s+trabajo|laboral))\b", normalized):
+        return False
+    return _UNPUBLISHED_STUDY.search(normalized) is not None
 
 
 # Faltar a una clase: qué hacer para recuperar la práctica.
@@ -594,7 +610,10 @@ def asks_certificate_validity(message: str) -> bool:
                  normalized):
         return False
     return bool(_CERT_VALIDITY.search(normalized)) and not re.search(
-        r"\b(?:perdi|perdido|malogr\w*|duplicado|internacional\w*|extranjero|otro pais|otros paises|fuera del pais)\b", normalized)
+        r"\b(?:perdi|perdido|malogr\w*|duplicado|internacional\w*|extranjero|otro pais|otros paises|fuera del pais|"
+        r"validez permanente|vencen|espana|estados unidos|eeuu|europa)\b",
+        normalized,
+    )
 
 
 def asks_public_job_validity(message: str) -> bool:
@@ -695,19 +714,74 @@ def asks_member_details(message: str) -> bool:
 
 
 _CONTACT_CHANNEL_FILLER = frozenset({
-    "cual", "es", "el", "la", "su", "de", "horus", "orus", "group", "srl", "empresa", "tienen", "tienes", "dame",
-    "pasame", "pasa", "numero", "nro", "num", "por", "favor", "porfa", "un", "una", "me", "puedes", "dar", "pasar",
-    "indicar", "dime", "electronico", "electronica", "oficial", "hay",
+    "y", "e", "cual", "es", "el", "la", "su", "de", "horus", "orus", "group", "srl", "empresa", "tienen", "tienes",
+    "dame", "pasame", "pasa", "numero", "nro", "num", "por", "favor", "porfa", "un", "una", "me", "puedes", "dar",
+    "pasar", "indicar", "dime", "electronico", "electronica", "oficial", "hay",
 })
 _CONTACT_CHANNEL_CORE = frozenset({"whatsapp", "telefono", "celular", "correo", "email"})
 
 
 def asks_bare_contact_channel(message: str) -> bool:
-    """«whatsapp», «kual es el guasap de orus», «¿tienen whatsapp?», «dame su correo» → canales de contacto."""
+    """«whatsapp», «¿y tienen WhatsApp?», «kual es el guasap de orus», «dame su correo» → canales de contacto."""
     tokens = set(tokenize(normalize(message)))
     if not (tokens & _CONTACT_CHANNEL_CORE):
         return False
     return bool(tokens - _CONTACT_CHANNEL_FILLER) and (tokens - _CONTACT_CHANNEL_FILLER) <= _CONTACT_CHANNEL_CORE
+
+
+_OUTSIDE_CAJAMARCA_CITY = re.compile(
+    r"\b(?:vivo en|soy de|estoy en|desde)\s+(?:lima|trujillo|chiclayo|piura|arequipa|cusco|cuzco|huancayo|iquitos|"
+    r"tacna|lambayeque|la libertad|provincia|otra ciudad)\b|\bvivo lejos\b"
+)
+
+
+def implies_virtual_city(message: str) -> bool:
+    """El visitante indica que vive fuera de Cajamarca (p. ej. Lima) al pedir recomendación de curso."""
+    return _OUTSIDE_CAJAMARCA_CITY.search(normalize(message)) is not None
+
+
+_DAYS_MAP = {
+    "lunes": "lunes", "martes": "martes", "miercoles": "miercoles", "jueves": "jueves",
+    "viernes": "viernes", "sabado": "sabado", "sabados": "sabado", "domingo": "domingo", "domingos": "domingo",
+}
+_HOUR_RANGE_RE = re.compile(r"\b(\d{1,2})(?::\d{2})?\s*(?:(am|pm)\b)?(?:\s*(?:a|-)\s*\d{1,2}(?::\d{2})?\s*(?:(am|pm)\b)?)?")
+
+
+def extract_schedule_preferences(message: str) -> tuple[set[str], set[str]]:
+    """Extrae días y franja horaria ('manana'|'tarde'|'noche') mencionados explícitamente (sin saludos)."""
+    normalized = re.sub(r"\b(?:buenos\s+dias|buenas\s+tardes|buenas\s+noches|buen\s+dia)\b", " ", normalize(message))
+    days = {canon for word, canon in _DAYS_MAP.items() if re.search(rf"\b{word}\b", normalized)}
+    slots: set[str] = set()
+    if re.search(r"\b(?:en la manana|por la manana|mananas)\b", normalized):
+        slots.add("manana")
+    if re.search(r"\b(?:en la tarde|en las tardes|por la tarde|por las tardes|tardes|2 a 5|14:00|15:00|16:00)\b", normalized):
+        slots.add("tarde")
+    if re.search(r"\b(?:en la noche|por la noche|noches|19:00|20:00|21:00)\b", normalized):
+        slots.add("noche")
+    return days, slots
+
+
+def schedule_matches_preferences(schedule: str | None, days: set[str], slots: set[str]) -> bool:
+    """Comprueba estrictamente contra el texto literal `record.schedule` (formatos 12h y 24h; cero horarios inventados)."""
+    if not schedule or (not days and not slots):
+        return False
+    norm = re.sub(r"\b([ap])\.\s*m\.?", r"\1m", normalize(schedule))
+    if days and not any(re.search(rf"\b{d}s?\b", norm) for d in days):
+        return False
+    if slots:
+        match = _HOUR_RANGE_RE.search(norm)
+        if match is None:
+            return False
+        start_hour = int(match.group(1))
+        meridiem = match.group(2) or match.group(3)
+        if meridiem == "pm" and start_hour < 12:
+            start_hour += 12
+        elif meridiem == "am" and start_hour == 12:
+            start_hour = 0
+        actual_slot = "manana" if start_hour < 12 else ("tarde" if start_hour < 18 else "noche")
+        if actual_slot not in slots:
+            return False
+    return True
 
 
 # «¿Con quién hablo para coordinar?» pide un asesor; «¿con quién estoy hablando?, ¿eres un programa?» pregunta por el

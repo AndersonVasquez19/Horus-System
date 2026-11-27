@@ -194,7 +194,8 @@
           "turns_considered": 0,
           "topics": [
             "capacitacion",
-            "cursos"
+            "cursos",
+            "ofimatica"
           ],
           "level": null,
           "modality": null,
@@ -205,7 +206,8 @@
         "state": {
           "topics": [
             "capacitacion",
-            "cursos"
+            "cursos",
+            "ofimatica"
           ],
           "objectives": [],
           "level": "desconocido",

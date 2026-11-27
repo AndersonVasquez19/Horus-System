@@ -579,10 +579,33 @@ class AdvisorEngine:
                     longest = glue.asks_longest(corrected)
                     chosen = [r for _, r in sorted(zip(days, chosen, strict=True), key=lambda p: p[0] or 0.0,
                                                    reverse=longest)]
+                    if (not longest
+                            and re.search(r"\b(?:muestrame|dame|quiero|prefiero|recomiendame)\b", normalize(message))
+                            and not re.search(r"\bcual\b", normalize(message))):
+                        return self._focus_reference([chosen[0]])
             attrs = ("duracion",) if kind == "duration" else ("modalidad", "duracion", "fechas")
             return self._followup(chosen, replace(u, attributes=attrs, asked_modalities=()))
 
         normalized = normalize(corrected)
+        raw_norm = normalize(message)
+        days_pref, slots_pref = glue.extract_schedule_preferences(message)
+        if ((days_pref or slots_pref)
+                and (has_recommendation_cue(corrected, self.kb) or glue.is_open_recommendation_in_sentence(message)
+                     or re.search(r"\b(?:encaja|me sirve|puedo asistir|puedo estudiar|tengo libre)\b", raw_norm))
+                and not self._courses_in_message(corrected)):
+            sched_matches = [r for r in courses if glue.schedule_matches_preferences(r.schedule, days_pref, slots_pref)]
+            if len(sched_matches) == 1 and sched_matches[0].kind == "course":
+                rec = sched_matches[0]
+                return self._reply(
+                    answer=rec.answer,
+                    intent="course_recommendation",
+                    match_level="alta",
+                    sources=[self._source(rec)],
+                    recommendations=[self._recommendation(Hit(record=rec, score=1.0))],
+                )
+            if len(sched_matches) > 1:
+                return self._followup(sched_matches[:5], replace(u, attributes=("fechas",), asked_modalities=()))
+
         non_format_cert = re.search(
             r"\b(?:envi\w*|provinci\w*|lima|trujillo|recog\w*|cobr\w*|cuest\w*|precio\w*|duplicad\w*|reimpresion\w*|"
             r"reenvi\w*|perdi\w*|extravi\w*|moj\w*|malogr\w*|firma\w*|decano|valid\w*|postular|estado|concurso\w*)\b",
@@ -597,9 +620,34 @@ class AdvisorEngine:
             if chosen and all(r.certification for r in chosen):
                 return self._followup(chosen, replace(u, attributes=("certificado",), asked_modalities=()))
 
-        open_in_sentence = (glue.is_open_recommendation_in_sentence(corrected) and not self._courses_in_message(corrected)
-                            and not extract_profile(corrected, self.kb).specific_topics(self.generic))
-        if (glue.is_open_recommendation(corrected) or open_in_sentence) and (listing_in_focus or not focus_courses):
+        course_desc_match = self._course_by_content(corrected)
+        wants_virtual_city = (
+            glue.implies_virtual_city(message)
+            and bool(re.search(r"\b(?:recomiend\w*|sugier\w*|conviene|que\s+curso|cual\s+curso)\b", raw_norm))
+            and not re.search(r"\b(?:otras?\s+ciudades|aceptan|desde\s+otra|fuera\s+de\s+cajamarca)\b", raw_norm)
+            and not self._courses_in_message(corrected)
+            and not course_desc_match
+            and not self._names_unpublished_course(corrected)
+            and not extract_profile(corrected, self.kb).specific_topics(self.generic)
+        )
+        if wants_virtual_city:
+            virtual_reply = self._browse_courses_reply("virtual", recommend=True)
+            if virtual_reply is not None:
+                return virtual_reply
+
+        prof_check = extract_profile(corrected, self.kb)
+        open_in_sentence = (
+            (glue.is_open_recommendation_in_sentence(message) or glue.is_open_recommendation_in_sentence(corrected))
+            and not self._courses_in_message(corrected)
+            and not course_desc_match
+            and not prof_check.specific_topics(self.generic)
+            and not prof_check.objectives
+            and prof_check.audience != "empresa"
+            and prof_check.modality == "cualquiera"
+            and not self._names_unpublished_course(corrected)
+        )
+        if ((glue.is_open_recommendation(message) or glue.is_open_recommendation(corrected) or open_in_sentence)
+                and (listing_in_focus or not focus_courses)):
             titles = [f"«{r.title}»" for r in courses[:4]]
             options = titles[0] if len(titles) == 1 else f"{', '.join(titles[:-1])} o {titles[-1]}"
             listing = self.kb.get("cat_listado_formacion")
@@ -627,7 +675,14 @@ class AdvisorEngine:
         named_course = self._course_by_title(corrected, set())
         if named_course is not None and (u.attributes or u.asked_modalities):
             attrs = u.attributes or ("modalidad",)
-            return self._followup([named_course], replace(u, attributes=attrs))
+            reply = self._followup([named_course], replace(u, attributes=attrs))
+            offered_mods = {"virtual" if m == "online" else m for m in named_course.modalities}
+            if (named_course.kind == "course"
+                    and has_recommendation_cue(corrected, self.kb)
+                    and not reply.abstained
+                    and (not u.asked_modalities or all(m in offered_mods for m in u.asked_modalities))):
+                reply.recommendations = [self._recommendation(Hit(record=named_course, score=1.0))]
+            return reply
 
         words = set(tokenize(normalize(corrected)))
         if words <= {"modalidad", "modalidades", "la", "las", "y", "cual", "cuales", "es", "son"} and words & {"modalidad", "modalidades"}:
@@ -723,10 +778,13 @@ class AdvisorEngine:
 
         if focus:
             options = focus
-            if len(focus) == 1 and focus[0].id == "cat_listado_formacion":
-                # «Qué cursos tienen» deja como foco la lista; «el primero» se refiere al primero de esa lista.
-                options = [r for r in self.kb.records if r.source.kind == "catalogo_laravel" and r.status == "verified"
-                           and r.kind in {"course", "training_program"}][:15]
+            catalog_courses = self._published_courses()[:15]
+            if len(focus) == 1 and (
+                focus[0].id == "cat_listado_formacion"
+                or (pick in {"first", "second", "last"} and focus[0] in catalog_courses and len(catalog_courses) >= 2)
+            ):
+                # «Qué cursos tienen» (o un curso elegido de esa lista) permite navegar «el primero / el último».
+                options = catalog_courses
             chosen: KnowledgeRecord | None = None
             if pick == "first":
                 chosen = options[0] if options else None
@@ -1757,8 +1815,17 @@ class AdvisorEngine:
             )
 
         # 4. Atributo no publicado sobre un tema concreto.
+        norm_msg = normalize(corrected)
+        corporate_query = bool(
+            set(norm_msg.split()) & {"empresarial", "empresariales", "empresas", "colaboradores", "personal", "inhouse", "trabajadores"}
+            or contains_phrase(norm_msg, "in house")
+            or contains_phrase(norm_msg, "para empresas")
+            or contains_phrase(norm_msg, "nuestra empresa")
+            or contains_phrase(norm_msg, "mi empresa")
+            or contains_phrase(norm_msg, "nuestro local")
+        )
         unavailable = [a for a in u.attributes if a in self.kb.intents.unavailable_attributes]
-        if unavailable:
+        if unavailable and not (unavailable == ["contenido"] and corporate_query):
             if (
                 unavailable == ["contenido"]
                 and hits
@@ -1785,12 +1852,6 @@ class AdvisorEngine:
             and hits[0].score >= ANSWER_THRESHOLD and not (plan and plan.browse)
             and (len(hits) == 1 or hits[1].record.stable_id is None or hits[0].score - hits[1].score >= AMBIGUITY_MARGIN)):
             return self._followup([hits[0].record], u)
-        norm_msg = normalize(corrected)
-        corporate_query = bool(
-            set(norm_msg.split()) & {"empresarial", "empresariales", "empresas", "colaboradores", "personal", "inhouse"}
-            or contains_phrase(norm_msg, "in house")
-            or contains_phrase(norm_msg, "para empresas")
-        )
         general_cert_query = (
             "certificado" in u.attributes
             and (
@@ -1913,9 +1974,12 @@ class AdvisorEngine:
                     and not any(h.record.source.kind == "catalogo_laravel" and h.record.kind == "course"
                         and h.record.status == "verified" and h.score >= ANSWER_THRESHOLD for h in relevant)):
                     return self._unpublished_topic("learn", corrected)
-                return (self._multi_recommend(corrected)
-                        or self._catalog_recommend(relevant, current, by_title=plan.goal == "learn" and not u.attributes)
-                        or self._clarify(relevant))
+                return (
+                    self._multi_recommend(corrected)
+                    or self._catalog_recommend(relevant, current, by_title=plan.goal == "learn" and not u.attributes)
+                    or self._institutional_recommend(profile)
+                    or self._clarify(relevant)
+                )
 
         cue = has_recommendation_cue(corrected, self.kb)
         follow_up = (
@@ -1930,7 +1994,12 @@ class AdvisorEngine:
                 # que coincide por frase clave y gana con holgura es la respuesta (fase 3, 26/11/2026).
                 if self._clear_institutional(hits):
                     return self._answer_from_hits(hits, terms)
-                return self._multi_recommend(corrected) or self._catalog_recommend(hits, current) or self._clarify([])
+                return (
+                    self._multi_recommend(corrected)
+                    or self._catalog_recommend(hits, current, by_title=True)
+                    or self._institutional_recommend(profile)
+                    or self._clarify([])
+                )
             top = hits[0] if hits else None
             wants_topic = bool(self.recommender.wanted_topics(profile))
             # «¿Dan comprobante a nombre de mi empresa?»: «mi empresa» no convierte una pregunta frecuente
@@ -1954,7 +2023,11 @@ class AdvisorEngine:
                 return evidenced
         reply = self._answer_from_hits(hits, terms)
         if reply.intent == "out_of_scope" and current.goal == "learn" and not focus:
-            # «Nunca he estudiado nada técnico, ¿por dónde empiezo?»: quiere aprender; se pregunta el área.
+            # «Nunca he estudiado nada técnico, ¿por dónde empiezo?»: quiere aprender; priorizar catálogo si coincide.
+            if self.kb.catalog is not None:
+                cat = self._catalog_recommend(hits, current, by_title=True)
+                if cat is not None:
+                    return cat
             return self.recommender.recommend(profile, self.mode)
         if focus and u.referential and (reply.needs_clarification or reply.intent == "out_of_scope"):
             if names_other:  # «¿y entregan certificado?» tras los convenios: responde el registro nombrado
@@ -2143,12 +2216,18 @@ class AdvisorEngine:
                 )
             if matches:
                 titles = ", ".join(r.title for r in matches[:8])
+                recs = (
+                    [self._recommendation(Hit(record=r, score=0.9)) for r in matches[:3] if r.kind == "course"]
+                    if recommend
+                    else []
+                )
                 return self._reply(
                     answer=(f"En modalidad {MODALITY_LABEL[modality]} están vigentes: {titles}. "
                             "Dime cuál te interesa y te cuento su horario y detalles."),
                     intent="training_info",
                     match_level="alta",
                     sources=[self._source(r) for r in matches[:5]],
+                    recommendations=recs,
                 )
             other = ", ".join(
                 f"{r.title} ({', '.join(MODALITY_LABEL[m] for m in r.modalities)})" if r.modalities else r.title
@@ -2197,7 +2276,67 @@ class AdvisorEngine:
         return ("La lista de cursos se está actualizando en este momento, así que no puedo confirmarte cuáles están abiertos. "
                 f"Un asesor puede indicarte la oferta actual al {self.contact.phone} o en {self.contact.email}.")
 
+    def _course_by_content(self, message: str) -> list[KnowledgeRecord]:
+        """Cursos publicados cuyo título o descripción comparte términos propios con la consulta (p. ej. Excel, Word)."""
+        if self._names_unpublished_course(message):
+            return []
+        generic = {
+            "curso", "cursos", "capacitacion", "capacitaciones", "taller", "programa", "clase", "clases", "aprender",
+            "estudiar", "trabajo", "diario", "persona", "personas", "otras", "otro", "desde", "cero", "mejorar",
+            "conocer", "conoce", "usar", "uso", "mucho", "necesito", "busco", "quiero", "recomiendan", "recomiendas",
+            "informacion", "centra", "intercambiar", "mision", "vision", "valores", "empresa", "empresas",
+            "institucion", "principiante", "principiantes", "basico", "basica", "habilidades",
+        }
+        asked = {t for t in content_tokens(message) if t not in generic and t not in TITLE_COMMON_WORDS and len(t) >= 4}
+        if not asked:
+            return []
+        matched: list[tuple[int, KnowledgeRecord]] = []
+        for rec in self._published_courses():
+            own = {t for t in content_tokens(f"{rec.title} {rec.description}")
+                   if t not in generic and t not in TITLE_COMMON_WORDS and len(t) >= 4}
+            overlap = len(asked & own)
+            if overlap >= 1:
+                matched.append((overlap, rec))
+        matched.sort(key=lambda pair: (-pair[0], pair[1].id))
+        if not matched:
+            return []
+        best = matched[0][0]
+        return [rec for count, rec in matched if count == best][:3]
+
+    def _institutional_recommend(self, profile: Profile) -> AdvisorReply | None:
+        """Con catálogo cargado, no perder recomendaciones institucionales verificadas (tesis, empresas, convenios)."""
+        wanted = self.recommender.wanted_topics(profile)
+        if not wanted:
+            return None
+        candidates = [
+            r for r in self.kb.records
+            if r.source.kind != "catalogo_laravel"
+            and r.status == "verified"
+            and r.recommendable
+            and r.kind in {"advisory", "training_program", "agreement"}
+        ]
+        if not candidates:
+            return None
+        sims = self._similarity(profile.text, {r.id for r in candidates})
+        scored = [self.recommender._score(r, profile, sims.get(r.id, 0.0)) for r in candidates]
+        ranked = [x for x in scored if x.covered and x.score >= 0.45]
+        ranked.sort(key=lambda x: (-x.score, x.record.id))
+        if not ranked:
+            return None
+        if len(ranked) == 1 or ranked[0].score - ranked[1].score >= AMBIGUITY_MARGIN:
+            rec = ranked[0].record
+            return self._reply(
+                answer=rec.answer,
+                intent=CATEGORY_INTENTS[rec.category],
+                match_level="alta" if ranked[0].score >= 0.7 else "media",
+                sources=[self._source(rec)],
+            )
+        return None
+
     def _catalog_recommend(self, hits: list[Hit], profile: Profile, by_title: bool = False) -> AdvisorReply | None:
+        effective_modality = profile.modality
+        if effective_modality == "cualquiera" and glue.implies_virtual_city(profile.text):
+            effective_modality = "virtual"
         candidates = []
         for hit in hits:
             record = hit.record
@@ -2205,7 +2344,7 @@ class AdvisorEngine:
                 continue
             if profile.goal == "learn" and record.kind != "course" or profile.goal == "service" and record.kind != "service":
                 continue
-            if profile.modality != "cualquiera" and profile.modality not in record.modalities:
+            if effective_modality != "cualquiera" and effective_modality not in {"virtual" if m == "online" else m for m in record.modalities}:
                 continue
             candidates.append(hit)
         if (len(candidates) > 1 and candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN
@@ -2213,14 +2352,25 @@ class AdvisorEngine:
             return None
         title_match = False
         if not candidates and by_title:
-            # «Quiero aprender redes desde cero»: el título de un curso publicado coincide aunque la puntuación léxica
-            # sea baja; se recomienda ese curso (único) con nivel medio, nunca uno inventado.
+            # «Quiero aprender redes desde cero» o consulta larga que nombra Excel/Word/comunicación del catálogo.
             named = self._course_by_title(profile.text, set())
-            candidates = [h for h in hits if named is not None and h.record.id == named.id and named.kind == "course"][:1]
-            if candidates and (profile.modality != "cualquiera" and profile.modality not in candidates[0].record.modalities):
-                candidates = []
+            if named is not None and named.kind == "course":
+                hit_named = next((h for h in hits if h.record.id == named.id), Hit(record=named, score=0.65))
+                candidates = [hit_named]
+            else:
+                by_content = [r for r in self._course_by_content(profile.text) if r.kind == "course"]
+                candidates = [next((h for h in hits if h.record.id == r.id), Hit(record=r, score=0.65)) for r in by_content]
+            if candidates and effective_modality != "cualquiera":
+                candidates = [
+                    c for c in candidates
+                    if effective_modality in {"virtual" if m == "online" else m for m in c.record.modalities}
+                ]
             title_match = bool(candidates)
         if not candidates:
+            if (effective_modality != "cualquiera"
+                    and not profile.specific_topics(self.generic)
+                    and not self._names_unpublished_course(profile.text)):
+                return self._browse_courses_reply(effective_modality, recommend=True)
             return None
         hit = candidates[0]
         record = hit.record

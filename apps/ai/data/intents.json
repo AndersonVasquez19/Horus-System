@@ -300,7 +300,9 @@
       "word",
       "office",
       "ofimatica",
-      "powerpoint"
+      "powerpoint",
+      "hojas de calculo",
+      "hoja de calculo"
     ],
     "enfermeria": [
       "enfermeria",
@@ -583,6 +585,11 @@
       "cuanto demoran",
       "cuanto tardan",
       "en cuanto tiempo",
+      "en cuantos dias responden",
+      "cuantos dias responden",
+      "cuantos dias demoran",
+      "cuanto tiempo responden",
+      "cuanto tiempo demoran",
       "plazo",
       "demora",
       "demoran"
@@ -612,6 +619,7 @@
     ],
     "tiempo_atencion": [
       "horas habiles",
+      "dias habiles",
       "plazo"
     ],
     "modalidad": [
@@ -671,6 +679,8 @@
       "coticen",
       "presupuesto",
       "proforma",
+      "propuesta economica",
+      "propuesta de capacitacion",
       "cuanto me cobrarian",
       "cuanto cobrarian",
       "cuanto me cobran por",

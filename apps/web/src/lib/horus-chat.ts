@@ -24,10 +24,27 @@ export interface TarjetaChat {
   accion: string;
 }
 
+export interface RedMiembroChat {
+  tipo: 'facebook' | 'whatsapp';
+  etiqueta: string;
+  url: string;
+}
+
+export interface TarjetaMiembroChat {
+  id: string;
+  nombre: string;
+  cargo: string;
+  descripcion: string;
+  foto: string;
+  redes: RedMiembroChat[];
+}
+
 export interface RespuestaChat {
   respuesta: string;
   fuente: string;
   tarjetas?: TarjetaChat[];
+  /** Tarjetas públicas del equipo de Horus Group SRL (Quiénes somos), validadas en Laravel y aquí. */
+  tarjetas_miembros?: TarjetaMiembroChat[];
   /** Rutas de secciones del sitio (lista blanca), ya validadas en Laravel y aquí. */
   enlaces?: string[];
   /** Siguientes pasos (claves cerradas) que propone el asistente; el widget los traduce a botones. */
@@ -37,6 +54,10 @@ export interface RespuestaChat {
 }
 
 export const REFERENCIA_RESPUESTA = /^[1-9][0-9]{0,17}\.[a-f0-9]{64}$/;
+const ID_MIEMBRO = /^[a-z0-9_-]{1,32}$/;
+const FOTO_MIEMBRO = /^\/images\/somos\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/;
+const URL_FACEBOOK_MIEMBRO = /^https:\/\/(?:www|web)\.facebook\.com\/[A-Za-z0-9./_%?=&-]+$/;
+const URL_WHATSAPP_OFICIAL = 'https://wa.me/51972021374';
 
 export async function enviarMetricaChat(tipo: 'voto' | 'contacto', datos: Record<string, string>, visitante: string): Promise<boolean> {
   const cfg = configuracionApi();
@@ -106,6 +127,50 @@ export function sanearRespuesta(bruto: unknown): RespuestaChat | null {
       });
     }
     if (tarjetas.length > 0) salida.tarjetas = tarjetas;
+  }
+  if (Array.isArray(r.tarjetas_miembros)) {
+    const tarjetasMiembros: TarjetaMiembroChat[] = [];
+    const vistos = new Set<string>();
+    for (const m of r.tarjetas_miembros.slice(0, 10)) {
+      if (typeof m !== 'object' || m === null) continue;
+      const c = m as Record<string, unknown>;
+      const id = texto(c.id, 32);
+      const nombre = texto(c.nombre, 80);
+      const cargo = texto(c.cargo, 80);
+      const descripcion = texto(c.descripcion, 320);
+      const foto = texto(c.foto, 160);
+      if (
+        id === null ||
+        !ID_MIEMBRO.test(id) ||
+        vistos.has(id) ||
+        nombre === null ||
+        cargo === null ||
+        descripcion === null ||
+        foto === null ||
+        foto.includes('..') ||
+        !FOTO_MIEMBRO.test(foto) ||
+        !Array.isArray(c.redes)
+      ) {
+        continue;
+      }
+      const redes: RedMiembroChat[] = [];
+      for (const red of c.redes.slice(0, 4)) {
+        if (typeof red !== 'object' || red === null) continue;
+        const item = red as Record<string, unknown>;
+        const etiqueta = texto(item.etiqueta, 32);
+        const url = texto(item.url, 300);
+        if (etiqueta === null || url === null) continue;
+        if (item.tipo === 'facebook' && URL_FACEBOOK_MIEMBRO.test(url)) {
+          redes.push({ tipo: 'facebook', etiqueta, url });
+        } else if (item.tipo === 'whatsapp' && url === URL_WHATSAPP_OFICIAL) {
+          redes.push({ tipo: 'whatsapp', etiqueta, url });
+        }
+      }
+      if (redes.length === 0) continue;
+      vistos.add(id);
+      tarjetasMiembros.push({ id, nombre, cargo, descripcion, foto, redes });
+    }
+    if (tarjetasMiembros.length > 0) salida.tarjetas_miembros = tarjetasMiembros;
   }
   if (Array.isArray(r.enlaces)) {
     const enlaces = r.enlaces

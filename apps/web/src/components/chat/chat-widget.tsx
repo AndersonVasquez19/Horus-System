@@ -45,10 +45,26 @@ interface ChatCard {
   accion: string;
 }
 
+interface MemberSocialLink {
+  tipo: 'facebook' | 'whatsapp';
+  etiqueta: string;
+  url: string;
+}
+
+interface MemberCard {
+  id: string;
+  nombre: string;
+  cargo: string;
+  descripcion: string;
+  foto: string;
+  redes: MemberSocialLink[];
+}
+
 /** Respuestas del BFF (`/api/chat`): el navegador solo ve estos campos; nunca tokens ni errores internos. */
 interface RespuestaApi {
   respuesta: string;
   tarjetas?: ChatCard[];
+  tarjetas_miembros?: MemberCard[];
   enlaces?: string[];
   sugerencias?: string[];
   respuesta_id?: string;
@@ -139,6 +155,58 @@ function restaurarReferencia(valor: unknown): ReferenciaVoto | null {
   return { referencia: v.referencia, sesion: v.sesion };
 }
 
+const ID_MIEMBRO = /^[a-z0-9_-]{1,32}$/;
+const FOTO_MIEMBRO = /^\/images\/somos\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/;
+const URL_FACEBOOK_MIEMBRO = /^https:\/\/(?:www|web)\.facebook\.com\/[A-Za-z0-9./_%?=&-]+$/;
+const URL_WHATSAPP_MIEMBRO = 'https://wa.me/51972021374';
+
+function restaurarTarjetasMiembros(valor: unknown): MemberCard[] {
+  if (!Array.isArray(valor)) return [];
+  const salida: MemberCard[] = [];
+  const vistos = new Set<string>();
+  for (const m of valor.slice(0, 10)) {
+    const x = (m ?? {}) as Record<string, unknown>;
+    if (
+      typeof x.id !== 'string' ||
+      !ID_MIEMBRO.test(x.id) ||
+      vistos.has(x.id) ||
+      typeof x.nombre !== 'string' ||
+      x.nombre.trim() === '' ||
+      typeof x.cargo !== 'string' ||
+      x.cargo.trim() === '' ||
+      typeof x.descripcion !== 'string' ||
+      x.descripcion.trim() === '' ||
+      typeof x.foto !== 'string' ||
+      x.foto.includes('..') ||
+      !FOTO_MIEMBRO.test(x.foto) ||
+      !Array.isArray(x.redes)
+    ) {
+      continue;
+    }
+    const redes: MemberSocialLink[] = [];
+    for (const r of x.redes.slice(0, 4)) {
+      const item = (r ?? {}) as Record<string, unknown>;
+      if (typeof item.etiqueta !== 'string' || item.etiqueta.trim() === '' || typeof item.url !== 'string') continue;
+      if (item.tipo === 'facebook' && URL_FACEBOOK_MIEMBRO.test(item.url)) {
+        redes.push({ tipo: 'facebook', etiqueta: item.etiqueta.slice(0, 32), url: item.url });
+      } else if (item.tipo === 'whatsapp' && item.url === URL_WHATSAPP_MIEMBRO) {
+        redes.push({ tipo: 'whatsapp', etiqueta: item.etiqueta.slice(0, 32), url: item.url });
+      }
+    }
+    if (redes.length === 0) continue;
+    vistos.add(x.id);
+    salida.push({
+      id: x.id,
+      nombre: x.nombre.slice(0, 80),
+      cargo: x.cargo.slice(0, 80),
+      descripcion: x.descripcion.slice(0, 320),
+      foto: x.foto,
+      redes,
+    });
+  }
+  return salida;
+}
+
 /** Historial guardado en la pestaña: puede haber sido alterado, así que se reconstruye solo con campos seguros. */
 function restaurarMensajes(valor: unknown): Message[] {
   if (!Array.isArray(valor)) return [];
@@ -171,6 +239,8 @@ function restaurarMensajes(valor: unknown): Message[] {
         }
         if (tarjetas.length > 0) mensaje.cards = tarjetas;
       }
+      const miembros = restaurarTarjetasMiembros(c.memberCards);
+      if (miembros.length > 0) mensaje.memberCards = miembros;
       const rapidas = restaurarRespuestasRapidas(c.quickReplies);
       if (rapidas.length > 0) mensaje.quickReplies = rapidas;
       const referencia = restaurarReferencia(c.voto);
@@ -191,6 +261,7 @@ interface Message {
   role: 'user' | 'bot';
   text: string;
   cards?: ChatCard[];
+  memberCards?: MemberCard[];
   links?: ChatLink[];
   quickReplies?: QuickReply[];
   /** Consulta que falló y que la persona puede reintentar. */
@@ -205,6 +276,14 @@ const INITIAL_MESSAGE: Message = {
   role: 'bot',
   text: '¡Hola! Soy Horus, tu asistente virtual. ¿En qué te puedo ayudar hoy?',
 };
+
+function FacebookIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1v2.1H7.7v3h2.5V21h3.3z" />
+    </svg>
+  );
+}
 
 function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -587,6 +666,7 @@ export function ChatWidget() {
     if (sinCurso !== null && !enlaces.some((e) => e.whatsapp)) enlaces.push(CONTACTO_WHATSAPP);
     const botonesSugeridos = botonesDeSugerencias(sanearSugerencias(resultado.data.sugerencias));
     const referencia = restaurarReferencia({ referencia: resultado.data.respuesta_id, sesion: sessionIdRef.current });
+    const miembros = restaurarTarjetasMiembros(resultado.data.tarjetas_miembros);
     return {
       id: idMensaje('bot'),
       role: 'bot',
@@ -594,6 +674,7 @@ export function ChatWidget() {
       curso: cursoContexto ?? undefined,
       text: resultado.data.respuesta,
       cards: resultado.data.tarjetas,
+      memberCards: miembros.length > 0 ? miembros : undefined,
       links: enlaces.length > 0 ? enlaces : undefined,
       // El servidor decide los botones (claves cerradas); el cálculo por texto queda solo como respaldo.
       quickReplies: sinCurso ?? (botonesSugeridos.length > 0
@@ -1027,7 +1108,12 @@ export function ChatWidget() {
                     id={`hc-msg-${message.id}`}
                     className={`hc-message ${
                       message.role === 'user' ? 'hc-user' : 'hc-assistant'
-                    } ${message.cards && message.cards.length > 0 ? 'hc-message-with-cards' : ''}`}
+                    } ${
+                      (message.cards && message.cards.length > 0) ||
+                      (message.memberCards && message.memberCards.length > 0)
+                        ? 'hc-message-with-cards'
+                        : ''
+                    }`}
                   >
                     <strong>
                       {message.role === 'bot' && (
@@ -1133,6 +1219,59 @@ export function ChatWidget() {
                           </section>
                         );
                         })}
+                      </div>
+                    )}
+
+                    {/* Public Team Member Cards */}
+                    {message.memberCards && message.memberCards.length > 0 && (
+                      <div className="hc-cards mt-3" aria-label="Miembros de Horus Group SRL">
+                        {message.memberCards.map((member) => (
+                          <section key={member.id} className="hc-card" aria-label={`${member.nombre}, ${member.cargo}`}>
+                            <div className="hc-card-cover">
+                              <Image
+                                src={member.foto}
+                                alt={`${member.nombre} — ${member.cargo}`}
+                                fill
+                                unoptimized
+                                sizes="(max-width: 480px) 100vw, 400px"
+                                className="object-cover object-top"
+                              />
+                            </div>
+                            <div className="hc-card-body">
+                              <span className="hc-card-kind">{member.cargo}</span>
+                              <h3>{member.nombre}</h3>
+                              <p>{member.descripcion}</p>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {member.redes.map((red) => (
+                                  <a
+                                    key={`${member.id}-${red.tipo}`}
+                                    className={
+                                      red.tipo === 'whatsapp'
+                                        ? 'hc-action hc-action-whatsapp'
+                                        : 'hc-action'
+                                    }
+                                    href={red.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={`${red.etiqueta} de ${member.nombre}`}
+                                    onClick={
+                                      red.tipo === 'whatsapp'
+                                        ? () => registrarClicWhatsapp(message)
+                                        : undefined
+                                    }
+                                  >
+                                    {red.tipo === 'whatsapp' ? (
+                                      <WhatsAppIcon className="w-4 h-4 shrink-0" />
+                                    ) : (
+                                      <FacebookIcon className="w-4 h-4 shrink-0" />
+                                    )}
+                                    <span>{red.etiqueta}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          </section>
+                        ))}
                       </div>
                     )}
 
