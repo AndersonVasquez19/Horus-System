@@ -48,12 +48,14 @@ _YES = frozenset({
     "si eso", "eso", "si es eso", "eso mismo", "exacto", "asi es", "correcto", "si sobre eso", "si de eso",
 })
 _NO = frozenset({
-    "no", "nop", "no gracias", "asi esta bien", "nada mas", "eso es todo", "por ahora no", "no por ahora",
-    "no por el momento", "eso seria todo", "ninguna", "ninguno", "no nada mas",
+    "no", "nop", "no gracias", "no gracias asi esta bien", "no asi esta bien", "asi esta bien", "nada mas",
+    "eso es todo", "por ahora no", "no por ahora", "no por el momento", "eso seria todo", "ninguna", "ninguno",
+    "no nada mas",
 })
 _REPEAT = frozenset({"repite", "repitelo", "repiteme", "otra vez", "de nuevo", "puedes repetir", "repetir"})
 _CONFUSED = frozenset({
     "explicame mejor", "explicalo mejor", "no entendi", "no comprendi", "no entiendo", "como asi",
+    "no entendi explicame mejor", "no entiendo explicame mejor", "no entendi explica mejor",
     "que quieres decir", "no te entendi", "explica mejor", "puedes explicar mejor", "mas claro", "dilo de otra forma",
     "no entendi nada", "no comprendo", "no me quedo claro",
 })
@@ -71,6 +73,7 @@ _HELP = frozenset({
     # Pedir «información» sin tema respondía con la ficha del primer curso que la mencionaba.
     "quiero informacion", "quisiera informacion", "necesito informacion", "deseo informacion",
     "dame informacion", "informacion porfa", "informacion por favor", "info porfa", "info por favor",
+    "por favor info", "por favor informacion", "por favor ayudame", "ayudame por favor",
     "queria hacer una consulta", "queria hacer unas consultas", "quisiera hacer unas consultas", "quiero hacer unas consultas",
     "tengo unas consultas", "tengo unas preguntas", "tengo unas dudas", "unas consultas", "unas preguntas",
 })
@@ -118,7 +121,7 @@ _COMPARATIVES: dict[str, Comparative] = {
 
 def _clean(message: str) -> str:
     """Texto normalizado sin los signos de cortesía que no cambian el sentido («y», «pues», «entonces»)."""
-    tokens = [t for t in tokenize(normalize(message)) if t not in {"pues", "entonces", "bueno", "mmm", "eh", "emm"}]
+    tokens = [t for t in tokenize(normalize(message)) if t not in {"pues", "entonces", "bueno", "mmm", "eh", "emm", "ahorita"}]
     return " ".join(tokens)
 
 
@@ -226,7 +229,7 @@ _COMPLAINT = re.compile(
     r"no me llego|no me ha llegado|nunca me llego|todavia no me llega|aun no me llega|no me entregaron|no me dieron mi|"
     r"(el|la) (profesor|profesora|docente|instructor|instructora) no (vino|llego|asistio|se presento)|"
     r"no hubo clase|cancelaron la clase|mala atencion|pesimo servicio|quiero quejarme|quiero poner una queja|"
-    r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo|"
+    r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo|informacion equivocada|"
     r"nadie me (?:ha )?(?:respondido|responde|contesta|atiende)|no me (?:han )?(?:respondido|agregado|contestado)|"
     r"(?:todavia|aun) no me (?:agregan|añaden|anaden|responden|contestan))\b"
 )
@@ -362,7 +365,8 @@ def duration_days(text: str | None) -> float | None:
 
 _OPEN_RECOMMEND = re.compile(
     r"^(?:y )?(?:cual|que curso|que)(?: me)? (?:recomiendas|recomiendan|sugieres|aconsejas|conviene)$"
-    r"|^(?:cual|que) (?:elijo|escojo|tomo)$|^por cual empiezo$|^cual es mejor para mi$|^que me recomiendas$"
+    r"|^(?:cual|que) (?:elijo|escojo|tomo)$|^por cual(?: curso)? (?:deberia )?(?:empiezo|empezar|comenzar)$"
+    r"|^cual es mejor para mi$|^que me recomiendas$"
     r"|^(?:no se|no estoy segur[oa] de) (?:cual|que curso) (?:elegir|escoger|tomar|llevar)$"
 )
 
@@ -377,7 +381,8 @@ def is_open_recommendation(message: str) -> bool:
 _OPEN_RECOMMEND_IN_SENTENCE = re.compile(
     r"\b(?:que|cual|cuales) (?:curso|cursos) (?:me )?(?:recomiendas|recomiendan|recomienda|sugieres|sugieren|conviene)\b"
     r"|\bno se (?:cual|que) curso\b|\b(?:ayudas|ayudan|ayudar|ayuden) a (?:decidir|elegir|escoger)\b"
-    r"|\bcual me (?:recomiendas|recomiendan|conviene)\b"
+    r"|\bcual(?: me)? (?:recomiendas|recomiendan|conviene)(?: para (?:empezar|comenzar))?\b"
+    r"|\b(?:me )?recomiendes un curso\b|\bpor cual curso (?:deberia )?(?:empezar|comenzar)\b"
 )
 
 
@@ -385,7 +390,10 @@ def is_open_recommendation_in_sentence(message: str) -> bool:
     return _OPEN_RECOMMEND_IN_SENTENCE.search(normalize(message)) is not None
 
 
-_MODALITY_NEGATION = re.compile(r"\bno (?:quiero|me interesa|busco|deseo|me sirve)\b.{0,12}\b(virtual|online|presencial|semipresencial)\b")
+_MODALITY_NEGATION = re.compile(
+    r"\b(?:no (?:quiero|puedo(?: (?:ir|asistir|llevar|estudiar))?|podre(?: (?:ir|asistir))?|me interesa|busco|deseo|me sirve|sea)"
+    r"|que no sea|sin(?: ir)?|nada de|evitar)\b.{0,15}\b(virtual|online|presencial|semipresencial)\b"
+)
 
 
 def rejected_modality(message: str) -> str | None:
@@ -593,11 +601,48 @@ def asks_public_job_validity(message: str) -> bool:
     return re.search(r"\b(?:postular|postulaciones|estado|entidad(?:es)? public\w*|trabajo)\b", normalize(message)) is not None
 
 
-# Servicios que Horus Group ya no ofrece por este canal: instalar, reparar o cotizar equipos (no aprenderlo en un curso).
-_DISCARDED_SERVICE = re.compile(
-    r"\b(?:camaras?|videovigilancia|cableado|cables|soporte tecnico|computadoras?|laptops?|maquinas?|equipos|pc)\b"
+# Devoluciones, reembolsos y anulación de matrícula educativa (prevalecen sobre matrícula o clase perdida).
+_REFUND = re.compile(
+    r"\b(?:devolucion(?:es)?|reembols\w*|devuelv\w*|reintegr\w*)\b"
+    r"|\b(?:anular|cancelar|desistir|retirar\w*)\b.{0,25}\b(?:matricul\w*|inscripcion\w*|curso)\b"
+    r"|\barrepent\w*\b.{0,25}\b(?:inscrib\w*|matricul\w*)\b"
 )
-_SERVICE_ACTION = re.compile(r"\b(?:instal\w*|repar\w*|arregl\w*|hacen|hagan|cobrar\w*|cotiz\w*|mantenimiento|lenta|falla\w*|malogr\w*)\b")
+
+
+def asks_refund(message: str) -> bool:
+    normalized = normalize(message)
+    # «Necesito factura porque mi empresa me va a reembolsar el curso»: pide comprobante, no devolución a Horus.
+    if re.search(r"\b(?:factura|boleta|comprobante)\b", normalized) and re.search(
+        r"\b(?:empresa|trabajo|empleador|oficina)\b.{0,35}\breembols\w*", normalized
+    ):
+        return False
+    return bool(_REFUND.search(normalized)) and not asks_discarded_service(message)
+
+
+# Certificado perdido, dañado, duplicado o reenvío (prevalece sobre el listado de certificación de cada curso).
+_LOST_CERT = re.compile(
+    r"\b(?:perdi|perdido|extravi\w*|moj\w*|malogr\w*|danad\w*|roto|duplicad\w*|reimpresion\w*|reenvi\w*|copia)\b"
+    r".{0,45}\b(?:certificad\w*|diplomas?|constancias?)\b"
+    r"|\b(?:certificad\w*|diplomas?|constancias?)\b"
+    r".{0,45}\b(?:perdi|perdido|extravi\w*|moj\w*|malogr\w*|danad\w*|roto|duplicad\w*|reimpresion\w*|reenvi\w*|copia)\b"
+)
+
+
+def asks_lost_certificate(message: str) -> bool:
+    return _LOST_CERT.search(normalize(message)) is not None
+
+
+# Servicios no educativos retirados: instalar, reparar, vender o alquilar equipos/infraestructura (no aprenderlo en un curso).
+_DISCARDED_SERVICE = re.compile(
+    r"\b(?:camaras?|videovigilancia|cableado|cables|puntos? de red|utp|red lan|router\w*|wifi|wi fi|"
+    r"soporte tecnico|computadoras?|laptops?|maquinas?|equipos?(?: defectuos[oa]s?)?|pc|impresoras?|celulares?|"
+    r"servidores?|software a medida|paginas? web|sitios? web|biometric\w*|cercos? electric\w*|paneles? solares?|"
+    r"proyectores?|aulas? por horas?)\b"
+)
+_SERVICE_ACTION = re.compile(
+    r"\b(?:instal\w*|repar\w*|arregl\w*|configur\w*|formate\w*|venden|vender|alquil\w*|renta\w*|"
+    r"desarroll\w*|hacen|hagan|cobrar\w*|cotiz\w*|mantenimiento|lenta|falla\w*|malogr\w*|defectuos\w*|usad[oa]s?|de segunda)\b"
+)
 _LEARNING = re.compile(r"\b(?:aprender|aprendo|estudiar|curso|cursos|capacitacion\w*|clases|taller\w*|ensenan|interesa\w*)\b")
 
 

@@ -344,6 +344,8 @@ class AdvisorEngine:
         for pattern, word in ELONGATED_COURTESY:
             normalized = pattern.sub(word, normalized)
         for template in self.kb.intents.templates:
+            if template.name == "capabilities" and glue.is_rude(text):
+                continue  # «eres un bot inútil»: responder con calma en _glue, no con la ficha de capacidades
             found = [p for p in template.patterns if contains_phrase(normalized, p)]
             if not found:
                 continue
@@ -394,7 +396,7 @@ class AdvisorEngine:
         Van antes de la búsqueda: «¿quién te creó?» no debe responder con los canales de contacto, «¿cuánto es 2+2?» no
         es una consulta de precios y «¿en qué año se fundó?» no tiene registro publicado (se dice con honestidad).
         """
-        if glue.is_identity_question(text) and not glue.asks_whom_to_contact(text):  # «¿con quién hablo para coordinar?»
+        if glue.is_identity_question(text) and not glue.asks_whom_to_contact(text) and not glue.is_rude(text):  # «¿con quién hablo para coordinar?»
             return self._reply(answer=glue.IDENTITY_REPLY, intent="capabilities", match_level="alta")
         if glue.is_math(text) or glue.is_creative_request(text):
             return self._off_topic(text)
@@ -409,6 +411,10 @@ class AdvisorEngine:
             return self._reply(answer=glue.LEVEL_REPLY, intent="unavailable_info", match_level="ninguna", abstained=True)
         if glue.is_complaint(text):
             return self._complaint()
+        if glue.asks_refund(text) and (reply := self._verified_answer("politica_devoluciones")) is not None:
+            return reply
+        if glue.asks_lost_certificate(text) and (reply := self._verified_answer("faq_certificado_perdido")) is not None:
+            return reply
         if glue.asks_after_enrolling(text):
             steps = self.kb.get("proceso_matricula_pasos")
             if steps is not None and steps.status == "verified":
@@ -446,6 +452,8 @@ class AdvisorEngine:
         Se mira solo el contenido de los cursos: en el índice completo «contabilidad» se daba por conocida por
         parecerse a «contacto».
         """
+        if set(content_tokens(text)) & {"convenio", "convenios", "alianza", "alianzas"}:
+            return False  # «diplomado de enfermería y convenio con el Colegio de Enfermeros»: consulta de convenio
         courses = self._published_courses()
         if not courses:
             return False  # sin catálogo vigente no se puede afirmar que un curso no exista
@@ -493,9 +501,15 @@ class AdvisorEngine:
         corrected = self.corrected(message)
         u = understand(corrected, self.kb)
 
-        kind = glue.comparison_kind(message)
-        named = self._courses_in_message(message) if kind is not None else []
-        words = set(tokenize(normalize(message)))
+        kind = glue.comparison_kind(corrected)
+        named = self._courses_in_message(corrected) if kind is not None else []
+        words = set(tokenize(normalize(corrected)))
+        non_course_compare = {
+            "convenio", "convenios", "reclamo", "reclamos", "queja", "quejas", "libro", "empresarial", "empresariales",
+            "boleta", "factura", "asesoria", "asesoramiento", "cr", "corlad", "isam",
+        }
+        if kind is not None and len(named) < 2 and words & non_course_compare:
+            kind = None
         # «¿Qué diferencia hay entre presencial y semipresencial?»: cómo es cada modalidad (texto publicado), no los
         # datos de cada curso (pruebas del compañero, 26/11/2026).
         modalities_named = words & {"presencial", "semipresencial", "virtual", "virtuales", "presenciales",
@@ -522,25 +536,30 @@ class AdvisorEngine:
             if kind == "duration":
                 days = [glue.duration_days(r.duration) for r in chosen]
                 if all(d is not None for d in days):  # sin datos comparables se conserva el orden del catálogo
-                    longest = glue.asks_longest(message)
+                    longest = glue.asks_longest(corrected)
                     chosen = [r for _, r in sorted(zip(days, chosen, strict=True), key=lambda p: p[0] or 0.0,
                                                    reverse=longest)]
             attrs = ("duracion",) if kind == "duration" else ("modalidad", "duracion", "fechas")
             return self._followup(chosen, replace(u, attributes=attrs, asked_modalities=()))
 
-        normalized = normalize(message)
+        normalized = normalize(corrected)
+        non_format_cert = re.search(
+            r"\b(?:envi\w*|provinci\w*|lima|trujillo|recog\w*|cobr\w*|cuest\w*|precio\w*|duplicad\w*|reimpresion\w*|"
+            r"reenvi\w*|perdi\w*|extravi\w*|moj\w*|malogr\w*|firma\w*|decano|valid\w*|postular|estado|concurso\w*)\b",
+            normalized,
+        )
         if (re.search(r"\bcertificad\w*\b", normalized) and re.search(r"\b(?:fisico|digital|impreso)\b", normalized)
-                and not glue.is_complaint(message)):
+                and not glue.is_complaint(corrected) and non_format_cert is None):
             # «¿El certificado es físico o digital?»: lo que dice la ficha de cada curso publicado (la web anuncia
             # ambos en general, pero cada curso puede decir solo uno; pruebas del compañero, 26/11/2026).
-            named_courses = self._courses_in_message(message)
+            named_courses = self._courses_in_message(corrected)
             chosen = named_courses or focus_courses or courses[:5]
             if chosen and all(r.certification for r in chosen):
                 return self._followup(chosen, replace(u, attributes=("certificado",), asked_modalities=()))
 
-        open_in_sentence = (glue.is_open_recommendation_in_sentence(message) and not self._courses_in_message(message)
+        open_in_sentence = (glue.is_open_recommendation_in_sentence(corrected) and not self._courses_in_message(corrected)
                             and not extract_profile(corrected, self.kb).specific_topics(self.generic))
-        if (glue.is_open_recommendation(message) or open_in_sentence) and (listing_in_focus or not focus_courses):
+        if (glue.is_open_recommendation(corrected) or open_in_sentence) and (listing_in_focus or not focus_courses):
             titles = [f"«{r.title}»" for r in courses[:4]]
             options = titles[0] if len(titles) == 1 else f"{', '.join(titles[:-1])} o {titles[-1]}"
             listing = self.kb.get("cat_listado_formacion")
@@ -552,7 +571,7 @@ class AdvisorEngine:
                 context=ConversationContext(turns_considered=0, focus_ids=[listing.id] if listing else []),
             )
 
-        rejected = glue.rejected_modality(message)
+        rejected = glue.rejected_modality(corrected)
         if rejected is not None:
             others = [r for r in courses if rejected not in {"virtual" if m == "online" else m for m in r.modalities}]
             if not others:
@@ -570,13 +589,15 @@ class AdvisorEngine:
             attrs = u.attributes or ("modalidad",)
             return self._followup([named_course], replace(u, attributes=attrs))
 
-        words = set(tokenize(normalize(message)))
+        words = set(tokenize(normalize(corrected)))
         if words <= {"modalidad", "modalidades", "la", "las", "y", "cual", "cuales", "es", "son"} and words & {"modalidad", "modalidades"}:
             # «modalidad» sola: la de cada curso publicado, no la frase genérica «consúltalo con un asesor».
             return self._followup((focus_courses or courses)[:5], replace(u, attributes=("modalidad",), asked_modalities=()))
         listing_words = {"curso", "cursos", "capacitacion", "capacitaciones", "cuales", "hay", "tienen", "ofrecen", "son"}
         asked = {MODALITY_PLURALS[w] for w in words if w in MODALITY_PLURALS}
-        if len(asked) == 1 and not focus_courses and not named_course and words & listing_words:
+        if (len(asked) == 1 and not focus_courses and not named_course and words & listing_words
+                and not (words & {"empresarial", "empresariales", "empresas", "sucursales", "personal", "colaboradores",
+                                  "fotos", "galeria", "aula", "plataforma", "sesion", "login"})):
             return self._browse_courses_reply(asked.pop(), False)
         return None
 
@@ -782,7 +803,7 @@ class AdvisorEngine:
                     match_level="media",
                     sources=[self._source(r) for r in pair],
                 )
-            return self._clarify(hits)
+            return self._clarify(hits, query_terms)
 
         ambiguous = (
             second is not None
@@ -795,7 +816,7 @@ class AdvisorEngine:
             and not top.phrase_hit
         )
         if ambiguous:
-            return self._clarify(hits)
+            return self._clarify(hits, query_terms)
 
         if (second is not None and second.record.status == "verified"
             and top.record.stable_id is not None and second.record.stable_id is not None
@@ -871,14 +892,18 @@ class AdvisorEngine:
             missing_data=[top.record.title.lower()],
         )
 
-    def _clarify(self, hits: list[Hit]) -> AdvisorReply:
+    def _clarify(self, hits: list[Hit], query_terms: set[str] | None = None) -> AdvisorReply:
         options = [
             h.record for h in hits[:3] if h.record.status == "verified" and h.score >= CLARIFY_THRESHOLD
         ]
-        if any(r.stable_id is not None for r in options):
-            # «¿y el de redes?»: entre un curso y una ficha institucional («Redes sociales») se elige entre cursos;
-            # si queda uno solo, no hay nada que aclarar.
-            options = [r for r in options if r.stable_id is not None]
+        course_opts = [r for r in options if r.stable_id is not None]
+        if course_opts and (
+            query_terms is None
+            or any((set(content_tokens(r.title)) - TITLE_COMMON_WORDS) & query_terms for r in course_opts)
+        ):
+            # «¿y el de redes?»: entre un curso nombrado por título y una ficha institucional («Redes sociales»)
+            # se elige el curso; si el curso no fue nombrado («¿Cómo me comunico?»), nunca se descarta la ficha.
+            options = course_opts
             if len(options) == 1:
                 return self._focus_reference(options)
         titles = list(dict.fromkeys(r.title for r in options))[:2]
@@ -1648,8 +1673,12 @@ class AdvisorEngine:
                     return self._reply(answer=f"{record.title}: el convenio está vigente hasta el {record.public_card.vigencia}.",
                         intent="agreement_info", match_level="alta", sources=[self._source(record)])
 
-        # Pide un dato de un curso que no existe: no se contesta con el del curso en foco ni con los de todos.
-        if (u.attributes or u.asked_modalities) and not u.private_quote and self._names_unpublished_course(message):
+        # Pide un curso o un dato de un curso que no existe: no se contesta con otro curso del catálogo.
+        if (
+            not u.private_quote
+            and (u.attributes or u.asked_modalities or (plan is not None and plan.goal == "learn"))
+            and self._names_unpublished_course(corrected)
+        ):
             return self._unpublished_topic("learn", message)
 
         # 2. Solicitudes comerciales.
@@ -1714,9 +1743,29 @@ class AdvisorEngine:
             and hits[0].score >= ANSWER_THRESHOLD and not (plan and plan.browse)
             and (len(hits) == 1 or hits[1].record.stable_id is None or hits[0].score - hits[1].score >= AMBIGUITY_MARGIN)):
             return self._followup([hits[0].record], u)
+        norm_msg = normalize(corrected)
+        corporate_query = bool(
+            set(norm_msg.split()) & {"empresarial", "empresariales", "empresas", "colaboradores", "personal", "inhouse"}
+            or contains_phrase(norm_msg, "in house")
+            or contains_phrase(norm_msg, "para empresas")
+        )
+        general_cert_query = (
+            "certificado" in u.attributes
+            and (
+                bool(hits and hits[0].record.status == "verified" and hits[0].record.source.kind != "catalogo_laravel"
+                     and hits[0].score >= NEAR_SURE_MIN)
+                or bool(re.search(
+                    r"\b(?:envi\w*|provinci\w*|recog\w*|firma\w*|decano|constancia\w*|sin llevar|"
+                    r"cuanto cobran|horas|en cuanto tiempo|al terminar|al acabar|postular|estado|concurso\w*)\b",
+                    norm_msg,
+                ))
+            )
+        )
         if (
             u.attributes
             and set(u.attributes) != {"audiencia"}
+            and not corporate_query
+            and not general_cert_query
             and self.kb.catalog is not None
             and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
             and not (current.specific_topics(self.generic) - {"modalidades", "horario", "fechas", "certificacion", "precios"})
@@ -1727,7 +1776,7 @@ class AdvisorEngine:
                      and hits[0].phrase_hit and hits[0].score >= NEAR_SURE_MIN)
             and (
                 bool(current.topics & {"cursos", "capacitacion", "formacion"})
-                or any(w in normalize(message).split() for w in ("curso", "cursos", "capacitacion", "capacitaciones"))
+                or any(w in norm_msg.split() for w in ("curso", "cursos", "capacitacion", "capacitaciones"))
             )
         ):
             courses = [
@@ -2094,11 +2143,11 @@ class AdvisorEngine:
             clarification_question="¿Buscas un curso o capacitación? ¿Sobre qué tema?")
 
     def _out_of_scope(self) -> AdvisorReply:
-        """Servicios tecnológicos y similares: el asistente solo atiende educación y atención al cliente."""
+        """Servicios no educativos: el asistente solo atiende educación y atención al cliente de Horus Group."""
         return self._reply(
-            answer=(f"{OUT_OF_SCOPE_OPENING} puede orientarte sobre cursos y capacitaciones, asesoramiento, "
-                    "convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: "
-                    f"{self.contact.phone} o {self.contact.email}."),
+            answer=(f"{OUT_OF_SCOPE_OPENING} atiende temas de educación (cursos, capacitaciones, asesoramiento, "
+                    "convenios, pagos y atención al cliente de Horus Group); no ofrecemos esos servicios. "
+                    f"Para consultas educativas, escríbenos al {self.contact.phone} o a {self.contact.email}."),
             intent="unavailable_info", match_level="ninguna", abstained=True)
 
     def _catalog_refreshing(self) -> str:

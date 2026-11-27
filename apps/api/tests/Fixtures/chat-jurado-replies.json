@@ -1896,9 +1896,9 @@
   {
     "query": "Perdí mi certificado, ¿qué hago?",
     "reply": {
-      "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374).\n\nSi tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad.",
+      "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento.",
       "intent": "faq",
-      "match_level": "media",
+      "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
       "abstained": false,
@@ -1910,39 +1910,21 @@
           "id": "faq_certificado_perdido",
           "title": "Reimpresión de certificado o diploma perdido",
           "url_path": "/legales/preguntas-frecuentes"
-        },
-        {
-          "id": "faq_practica_perdida",
-          "title": "Si faltaste a una sesión práctica",
-          "url_path": "/legales/preguntas-frecuentes"
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [
-          "certificacion"
-        ],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
-        "topics": [
-          "certificacion"
-        ],
+        "topics": [],
         "objectives": [],
         "level": "desconocido",
         "modality": "cualquiera",
         "audience": "desconocido",
         "goal": "unknown",
-        "profile_age": 0,
+        "profile_age": null,
         "cue_age": null,
         "focus_ids": [
-          "faq_certificado_perdido",
-          "faq_practica_perdida"
+          "faq_certificado_perdido"
         ],
         "focus_age": 0,
         "out_of_scope": false,
@@ -2510,7 +2492,7 @@
     "reply": {
       "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
       "intent": "policy",
-      "match_level": "media",
+      "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
       "abstained": false,
@@ -2525,15 +2507,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],

@@ -15,24 +15,123 @@ _NON_WORD = re.compile(r"[^a-z0-9ñ\s]+")
 _SPACES = re.compile(r"\s+")
 
 # Abreviaturas frecuentes en consultas reales en Perú (expansión determinista antes de tokenizar).
-_SLANG_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
-    (re.compile(rf"\b{re.escape(k)}\b"), v)
-    for k, v in (
-        ("wsp", "whatsapp"),
-        ("wasap", "whatsapp"),
-        ("guasap", "whatsapp"),
-        ("xfa", "por favor"),
-        ("porfis", "por favor"),
-        ("dcto", "descuento"),
-        ("dscto", "descuento"),
-        ("certi", "certificado"),
-        ("ubi", "ubicacion"),
-        ("xq", "porque"),
-        ("pq", "porque"),
-        ("tmb", "tambien"),
-        ("tb", "tambien"),
-        ("infos", "informacion"),
-    )
+_SLANG_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bq\b(?!\s+tal\b)"), "que"),
+    *tuple(
+        (re.compile(rf"\b{re.escape(k)}\b"), v)
+        for k, v in (
+            ("wsp", "whatsapp"),
+            ("wasap", "whatsapp"),
+            ("guasap", "whatsapp"),
+            ("xfa", "por favor"),
+            ("porfis", "por favor"),
+            ("dcto", "descuento"),
+            ("dscto", "descuento"),
+            ("certi", "certificado"),
+            ("ubi", "ubicacion"),
+            ("xq", "porque"),
+            ("pq", "porque"),
+            ("tmb", "tambien"),
+            ("tb", "tambien"),
+            ("infos", "informacion"),
+            ("ke", "que"),
+            ("a k ora", "a que hora"),
+            ("k ora", "que hora"),
+            ("pa", "para"),
+            ("aorita", "ahorita"),
+            ("ruk", "ruc"),
+            ("exel", "excel"),
+            ("y wor", "y word"),
+            ("feisbuk", "facebook"),
+            ("istangram", "instagram"),
+            ("tictok", "tiktok"),
+            ("kukis", "cookies"),
+            ("arko", "arco"),
+            ("in jaus", "in house"),
+            ("latop", "laptop"),
+            ("latops", "laptops"),
+            ("debolben", "devuelven"),
+            ("aseroia", "asesoria"),
+            ("lejal", "legal"),
+            ("jaleria", "galeria"),
+            ("ahendar", "agendar"),
+            ("konsula", "consulta"),
+            ("kiero ber", "quiero ver"),
+            ("no boy", "no voy"),
+            ("kiero", "quiero"),
+            ("kual", "cual"),
+            ("kuando", "cuando"),
+            ("kuanto", "cuanto"),
+            ("komo", "como"),
+            ("kien", "quien"),
+            ("kienes", "quienes"),
+            ("keda", "queda"),
+            ("kon", "con"),
+            ("kurso", "curso"),
+            ("kursos", "cursos"),
+            ("kuotas", "cuotas"),
+            ("kobraron", "cobraron"),
+            ("kontesta", "contesta"),
+            ("klase", "clase"),
+            ("korto", "corto"),
+            ("kupos", "cupos"),
+            ("kuesta", "cuesta"),
+            ("kableado", "cableado"),
+            ("konbenio", "convenio"),
+            ("korreo", "correo"),
+            ("kajamarka", "cajamarca"),
+            ("kapasitacion", "capacitacion"),
+            ("kapasitaciones", "capacitaciones"),
+            ("sertifikado", "certificado"),
+            ("sertificado", "certificado"),
+            ("birtual", "virtual"),
+            ("birtuales", "virtuales"),
+            ("presensiales", "presenciales"),
+            ("bense", "vence"),
+            ("avogado", "abogado"),
+            ("sirbe", "sirve"),
+            ("avren", "abren"),
+            ("sierran", "cierran"),
+            ("ofisina", "oficina"),
+            ("ablar", "hablar"),
+            ("umano", "humano"),
+            ("asessor", "asesor"),
+            ("atyenden", "atienden"),
+            ("travajan", "trabajan"),
+            ("enpresa", "empresa"),
+            ("micion", "mision"),
+            ("bision", "vision"),
+            ("orus", "horus"),
+            ("jerente", "gerente"),
+            ("jeneral", "general"),
+            ("empiesa", "empieza"),
+            ("redez", "redes"),
+            ("rekomiendes", "recomiendes"),
+            ("busko", "busco"),
+            ("sero", "cero"),
+            ("nesesito", "necesito"),
+            ("ofimatika", "ofimatica"),
+            ("facktura", "factura"),
+            ("elektronika", "electronica"),
+            ("elektroniko", "electronico"),
+            ("tienpo", "tiempo"),
+            ("sako", "saco"),
+            ("duplikado", "duplicado"),
+            ("fisiko", "fisico"),
+            ("dijital", "digital"),
+            ("provinsias", "provincias"),
+            ("praktika", "practica"),
+            ("rekupero", "recupero"),
+            ("bideollamada", "videollamada"),
+            ("eksamenes", "examenes"),
+            ("aliansa", "alianza"),
+            ("balides", "validez"),
+            ("internasional", "internacional"),
+            ("lokal", "local"),
+            ("hasen", "hacen"),
+            ("asta", "hasta"),
+        )
+    ),
 )
 
 STOPWORDS: frozenset[str] = frozenset(
@@ -43,7 +142,7 @@ STOPWORDS: frozenset[str] = frozenset(
     son su sus tambien te tengo ti tu tus un una uno unos unas y ya yo usted ustedes ustedes vosotros
     puedo puede pueden podria podrian quiero quisiera queria gustaria saber decir dime digan hola favor
     gracias porfa porfavor ok vale bueno buena buenas buen hacer hace tiene tienen tienes tener estoy
-    esta estan eres soy somos despues ahora mismo queda quedan ver verlas verlo voy va van exactamente
+    esta estan eres soy somos despues ahora ahorita mismo queda quedan ver verlas verlo voy va van exactamente
     aqui
     """.split()
 )
@@ -110,22 +209,34 @@ def tokens_match(query_token: str, doc_token: str) -> bool:
     common = 5
     while common < shortest and query_token[common] == doc_token[common]:
         common += 1
-    # El prefijo común debe cubrir buena parte de la palabra: "descubrio" no es "descuento".
-    return common >= 0.6 * shortest
+    # El prefijo común debe cubrir buena parte de la palabra: "descubrio" no es "descuento" ni "contacto" es "contabilidad".
+    return common >= 0.75 * shortest
 
 
 _DOUBLED = re.compile(r"(.)\1+")
 _SOFT_C = re.compile(r"c([ei])")
+_SOFT_G = re.compile(r"g([ei])")
 
 
 def phonetic_key(token: str) -> str:
-    """Clave por sonido en español: b/v, s/z/ce/ci, h muda, c/qu/k, ll/y y letras dobles.
+    """Clave por sonido en español: b/v, s/z/ce/ci, j/ge/gi, h muda, c/qu/k, ll/y, np/nb y letras dobles.
 
     «birtuales» ~ «virtuales», «teziz» ~ «tesis», «orarios» ~ «horarios», «cotisasion» ~ «cotizacion».
     """
     key = token.replace("ch", "\x02").replace("h", "")
     key = _SOFT_C.sub(r"s\1", key)
-    key = key.replace("qu", "k").replace("c", "k").replace("z", "s").replace("v", "b").replace("ll", "y")
+    key = _SOFT_G.sub(r"j\1", key)
+    key = (
+        key.replace("qu", "k")
+        .replace("ck", "k")
+        .replace("ks", "x")
+        .replace("np", "mp")
+        .replace("nb", "mb")
+        .replace("c", "k")
+        .replace("z", "s")
+        .replace("v", "b")
+        .replace("ll", "y")
+    )
     return _DOUBLED.sub(r"\1", key.replace("\x02", "ch"))
 
 

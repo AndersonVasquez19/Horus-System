@@ -155,7 +155,7 @@
     {
       "query": "Que servicios tecnologicos ofrecen",
       "reply": {
-        "answer": "Por ahora este asistente solo puede orientarte sobre cursos y capacitaciones, asesoramiento, convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: +51 972 021 374 o horusgroupcajamarca@gmail.com.",
+        "answer": "Por ahora este asistente solo atiende temas de educación (cursos, capacitaciones, asesoramiento, convenios, pagos y atención al cliente de Horus Group); no ofrecemos esos servicios. Para consultas educativas, escríbenos al +51 972 021 374 o a horusgroupcajamarca@gmail.com.",
         "intent": "unavailable_info",
         "match_level": "ninguna",
         "needs_clarification": false,

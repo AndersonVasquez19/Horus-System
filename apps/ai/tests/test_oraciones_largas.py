@@ -221,3 +221,51 @@ def test_respuestas_dominantes_emiten_nivel_aceptado_por_laravel(visita, mensaje
 def test_temario_con_catalogo_vigente_no_contradice_el_catalogo(visita):
     respuesta = visita.chat("¿Pueden diseñar un temario exclusivo para nuestra empresa?", [], None)
     assert "Todavía no tengo la lista de cursos vigentes" not in respuesta.answer
+
+
+def test_ola3_modalidad_negada_excluye_la_modalidad_rechazada(visita):
+    respuesta = visita.chat("No puedo ir presencial, ¿qué opciones tienen?", [], None)
+    assert [s.id for s in respuesta.sources] == ["cat_curso_publicacion_7"]
+    assert "no son presenciales" in respuesta.answer.lower()
+
+
+@pytest.mark.parametrize(("mensaje", "esperado"), [
+    ("Me arrepentí de inscribirme hoy mismo, ¿cómo pido la devolución de mi dinero?", "politica_devoluciones"),
+    ("Me inscribí ayer pero tuve un accidente familiar y no podré asistir a las clases, ¿cómo solicito la devolución?", "politica_devoluciones"),
+    ("me debolben mi plata si no boy al kurso", "politica_devoluciones"),
+    ("Se me extravió mi diploma del curso, ¿hacen duplicado?", "faq_certificado_perdido"),
+    ("Se me mojó y malogró mi certificado físico, ¿me pueden dar otro?", "faq_certificado_perdido"),
+    ("¿Cuál es la diferencia entre queja y reclamo en su libro de reclamaciones?", "libro_reclamaciones"),
+    ("me kobraron doble y nadie kontesta", "libro_reclamaciones"),
+    ("q cursos tienen aorita", "cat_listado_formacion"),
+])
+def test_ola3_precedencias_y_ortografia_temprana(visita, mensaje, esperado):
+    respuesta = visita.chat(mensaje, [], None)
+    assert esperado in [s.id for s in respuesta.sources], (mensaje, respuesta.intent, respuesta.sources, respuesta.answer)
+
+
+def test_ola3_no_confunde_comunicacion_ni_reembolso_empresarial_ni_cursos_inexistentes(visita):
+    from app.core.text import tokens_match
+
+    assert not tokens_match("contacto", "contabilidad")
+    assert not glue.asks_refund("Necesito factura porque la empresa donde trabajo me va a reembolsar el curso")
+    comunicarse = visita.chat("¿Cómo me comunico con Horus Group?", [], None)
+    assert "cat_curso_publicacion_9" not in [s.id for s in comunicarse.sources]
+    inexistente = visita.chat("¿Dictan curso de contabilidad básica?", [], None)
+    assert inexistente.intent == "unavailable_info" and not inexistente.sources
+    cuotas = visita.chat("se puede pagar en kuotas", [], None)
+    assert cuotas.intent == "unavailable_info" and "cuotas" in cuotas.answer.lower()
+    groseria = visita.chat("eres un bot inutil no sirves para nada", [], None)
+    assert groseria.intent == "acknowledgement"
+
+
+@pytest.mark.parametrize("mensaje", [
+    "Necesito instalar puntos de red UTP y configurar mi router WiFi en mi oficina",
+    "arreglan latops malogradas",
+    "¿Venden celulares de segunda o laptops usadas?",
+    "¿Alquilan aulas o proyectores por horas?",
+])
+def test_ola3_alcance_solo_educacion_rechaza_otros_servicios(visita, mensaje):
+    respuesta = visita.chat(mensaje, [], None)
+    assert respuesta.abstained and not respuesta.sources
+    assert "no ofrecemos esos servicios" in respuesta.answer.lower()

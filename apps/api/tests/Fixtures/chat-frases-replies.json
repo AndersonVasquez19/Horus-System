@@ -3340,15 +3340,7 @@
     }
    ],
    "mode": "lexical",
-   "context": {
-    "turns_considered": 0,
-    "topics": [],
-    "level": null,
-    "modality": null,
-    "focus_ids": [],
-    "topic_changed": false,
-    "referential": false
-   },
+   "context": null,
    "state": {
     "topics": [],
     "objectives": [],

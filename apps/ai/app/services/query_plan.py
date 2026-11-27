@@ -116,7 +116,7 @@ _AUDIENCE = {
     "organizaciones",
 }
 _SCAFFOLD = re.compile(
-    r"\b(que|cual|cuales|es|son|esta|estan|sus|tienen|tiene|ofrecen|ofrece|hay|disponible|disponibles|publicado|publicados|publicada|publicadas|"
+    r"\b(que|cual|cuales|cuantos|cuantas|ahorita|ahora|es|son|esta|estan|sus|tienen|tiene|ofrecen|ofrece|hay|disponible|disponibles|publicado|publicados|publicada|publicadas|"
     r"vigente|vigentes|actual|actuales|abierto|abiertos|abierta|abiertas|"
     r"quiero|quisiera|deseo|necesito|busco|llevar|saber|conocer|algun|alguna|alguno|un|una|de|del|en|sobre|acerca|para|mi|"
     r"recomiendame|recomiendas|sugiereme|sugieres|dame|dime|decirme|hablame|hablarme|cuentame|contarme|mencioname|nombrame|indicame|explicame|pasame|ver|mostrar|muestra|muestrame|lista|listado|me|mas|info|informacion|detalle|detalles|detallada|detallado|completa|completo|compara|comparar|comparame|comparacion|diferencia|diferencias|entre|resumen|"
@@ -198,7 +198,7 @@ def plan_query(text: str) -> QueryPlan:
     # Una mención aislada («mi poema dice curso») no constituye una solicitud.
     request = bool(
         re.search(
-            r"^(que|cual|cuales|tienen|dictan|dan|ofrecen|hay|dame|dime|hablame|cuentame|indicame|mencioname|explicame|pasame|muestra|muestrame|ver|recomiendame|me recomiendas|sugiereme|quiero ver|quisiera ver|quiero saber|quisiera saber|quiero llevar|me puedes decir|puedes decirme|podrias decirme|opciones de|informacion de|informacion sobre|info de|info sobre|acerca de|sobre los|sobre las|de que tratan|de que trata|lista de|listado de|(?:(?:el|la|los|las|esos|estos|ambos)\s+)?(?:(?:\d+|dos|tres|cuatro|cinco)\s+)?(?:cursos?|capacitaciones?|talleres?|servicios?)(?:\s+(?:publicados?|vigentes?|disponibles?|abiertos?|actuales?))?$)",
+            r"^(que|cual|cuales|cuantos|cuantas|tienen|dictan|dan|ofrecen|hay|dame|dime|hablame|cuentame|indicame|mencioname|explicame|pasame|muestra|muestrame|ver|recomiendame|me recomiendas|sugiereme|quiero ver|quisiera ver|quiero saber|quisiera saber|quiero llevar|me puedes decir|puedes decirme|podrias decirme|opciones de|informacion de|informacion sobre|info de|info sobre|acerca de|sobre los|sobre las|de que tratan|de que trata|lista de|listado de|(?:(?:el|la|los|las|esos|estos|ambos)\s+)?(?:(?:\d+|dos|tres|cuatro|cinco)\s+)?(?:cursos?|capacitaciones?|talleres?|servicios?)(?:\s+(?:publicados?|vigentes?|disponibles?|abiertos?|actuales?))?$)",
             normalized,
         )
     )
@@ -208,8 +208,10 @@ def plan_query(text: str) -> QueryPlan:
     # El asistente solo orienta sobre formación: «recomiéndame redes» es una búsqueda de cursos.
     learn = learn or (not hire and bool(re.match(r"(recomiendame|me recomiendas|sugiereme)", normalized)))
     enrollment = bool(re.search(r"\b(matricularme|inscribirme|me inscribo|me matriculo)\b", normalized))
-    # No convertir una negación o una pregunta factual sobre inscripciones en una acción.
-    enrollment = enrollment and not re.search(r"\b(no|sin|nunca)\b", normalized)
+    # No convertir una negación, devolución ni anulación en una solicitud de matrícula.
+    enrollment = enrollment and not re.search(
+        r"\b(no|sin|nunca|devolucion\w*|reembols\w*|devuelv\w*|anular|cancelar|arrepent\w*)\b", normalized
+    )
     phrases = (*LEARNING, *HIRING, *RELATED)
     subject = _PLACE.sub(" ", normalized)
     if request and (learn or hire):
