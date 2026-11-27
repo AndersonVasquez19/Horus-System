@@ -374,6 +374,38 @@ class AdvisorEngine:
         return self._reply(answer=record.answer, intent=CATEGORY_INTENTS[record.category], match_level="alta",
                            sources=[self._source(record)])
 
+    def _disambiguate_agreements(self, text: str, hits: list[Hit]) -> list[Hit]:
+        """Desempata convenios con léxico compartido (CEP Cajamarca CR XIII vs CEP La Libertad CR II, y CORLAD)."""
+        normalized = normalize(text)
+        has_libertad = bool(re.search(r"\b(?:la\s+libertad|trujillo|cr\s*ii|cr2|cr\s+2)\b", normalized))
+        has_cajamarca_cr13 = bool(re.search(r"\b(?:cr\s*xiii|cr13|cr\s+13)\b", normalized))
+        has_cajamarca = bool(re.search(r"\bcajamarca\b", normalized))
+        has_nursing_or_agreement = bool(
+            re.search(r"\b(?:enfermer\w*|convenio\w*|colegio|cep|vigencia|vence|vigente|alianza|decano|firma)\b", normalized)
+        )
+        target_id: str | None = None
+        drop_id: str | None = None
+        if has_libertad and has_nursing_or_agreement and not has_cajamarca_cr13 and not has_cajamarca:
+            target_id, drop_id = "convenio_enfermeria_libertad", "convenio_enfermeria"
+        elif (has_cajamarca_cr13 or (has_cajamarca and re.search(r"\benfermer\w*\b", normalized) and has_nursing_or_agreement)) and not has_libertad:
+            target_id, drop_id = "convenio_enfermeria", "convenio_enfermeria_libertad"
+        elif re.search(r"\bcorlad\b", normalized) and not re.search(r"\beconomist\w*\b", normalized):
+            target_id = "convenio_administracion"
+        if target_id is None:
+            return hits
+        record = self.kb.get(target_id)
+        if record is None or record.status != "verified":
+            return hits
+        top_score = max(0.85, hits[0].score if hits else 0.85)
+        existing = next((h for h in hits if h.record.id == target_id), None)
+        promoted = (
+            replace(existing, score=max(top_score, existing.score), phrase_hit=True)
+            if existing is not None
+            else Hit(record, top_score, top_score, None, True, (), None)
+        )
+        rest = [h for h in hits if h.record.id not in {target_id, drop_id}]
+        return [promoted, *rest]
+
     def _certificate_validity(self, public_job: bool) -> AdvisorReply | None:
         """Qué certificados se entregan y, si pregunta por postular, la frase publicada de los convenios."""
         delivery = self.kb.get("certificados_entrega_validez")
@@ -405,6 +437,14 @@ class AdvisorEngine:
         if glue.is_unpublished_fact(text):
             return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
                                abstained=True)
+        if glue.asks_public_team(text):
+            team = self.kb.get("empresa_equipo")
+            if team is not None and team.status == "verified":
+                body = (team.detail_answer or team.answer) if glue.asks_member_details(text) else team.answer
+                return self._reply(answer=body, intent=CATEGORY_INTENTS[team.category], match_level="alta",
+                                   sources=[self._source(team)])
+        if glue.asks_bare_contact_channel(text) and (reply := self._verified_answer("contacto_canales")) is not None:
+            return reply
         if (glue.asks_recordings(text) or glue.asks_class_platform(text)) and (reply := self._modalities()) is not None:
             return reply
         if glue.asks_level(text):
@@ -1657,6 +1697,8 @@ class AdvisorEngine:
             if listing is not None and listing.status == "verified" and not terms - generic:
                 return self._reply(answer=listing.answer, intent="agreement_info", match_level="alta",
                     sources=[self._source(listing)])
+
+        hits = self._disambiguate_agreements(corrected, hits)
 
         if hits and hits[0].record.status == "verified" and hits[0].record.public_card is not None:
             record = hits[0].record

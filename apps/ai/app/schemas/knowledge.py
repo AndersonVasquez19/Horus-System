@@ -93,6 +93,29 @@ class PublicAgreementCard(BaseModel):
     logo: str = Field(pattern=r"^assets/images/[a-z0-9/.-]+$")
 
 
+class PublicSocialLink(BaseModel):
+    """Enlace social público de un integrante del equipo (/quienes-somos)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    tipo: Literal["facebook", "whatsapp"]
+    etiqueta: str = Field(min_length=2, max_length=30)
+    url: str = Field(pattern=r"^https://(?:www\.facebook\.com|web\.facebook\.com|wa\.me)/[A-Za-z0-9./_%?=&-]+$")
+
+
+class PublicMemberCard(BaseModel):
+    """Tarjeta pública de un integrante del equipo (/quienes-somos)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    id: str = Field(pattern=r"^[a-z0-9-]{3,40}$")
+    nombre: str = Field(min_length=3, max_length=80)
+    cargo: str = Field(min_length=3, max_length=80)
+    descripcion: str = Field(min_length=10, max_length=500)
+    foto: str = Field(pattern=r"^/images/somos/[A-Za-z0-9._-]+$")
+    redes: list[PublicSocialLink] = Field(min_length=1, max_length=4)
+
+
 class KnowledgeRecord(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -105,6 +128,7 @@ class KnowledgeRecord(BaseModel):
     detail_answer: str | None = Field(default=None, min_length=10, max_length=1500)
     general_information: str | None = Field(default=None, min_length=10, max_length=600)
     public_card: PublicAgreementCard | None = None
+    public_members: list[PublicMemberCard] = Field(default_factory=list, max_length=10)
     status: Status
     source: Source
     keywords: list[str] = Field(min_length=1)
@@ -136,6 +160,8 @@ class KnowledgeRecord(BaseModel):
     def _consistency(self) -> KnowledgeRecord:
         if self.public_card is not None and (self.category != "convenio" or self.kind != "agreement"):
             raise ValueError("Solo un convenio puede aportar una tarjeta pública.")
+        if self.public_members and (self.category != "empresa" or self.kind != "info"):
+            raise ValueError("Solo una ficha informativa de empresa puede aportar tarjetas de miembros.")
         if self.recommendable and self.status != "verified":
             raise ValueError(f"{self.id}: solo un registro verificado puede ser recomendable.")
         if self.recommendable and not self.topics:

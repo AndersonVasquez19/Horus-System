@@ -198,10 +198,16 @@ class HorusAdvisorClient
      *
      * @param  array<mixed>  $reply
      *
-     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>} $reply
+     * @phpstan-assert-if-true array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>, miembros?: true} $reply
      */
     public function respuestaCacheValida(array $reply): bool
     {
+        if (array_key_exists('miembros', $reply)) {
+            if (($reply['fuente'] ?? null) !== 'advisor' || $reply['miembros'] !== true) {
+                return false;
+            }
+            unset($reply['miembros']);
+        }
         if (array_key_exists('sugerencias', $reply)) {
             // Solo las claves cerradas de siguiente paso, y solo en respuestas del asistente.
             if (($reply['fuente'] ?? null) !== 'advisor' || $this->sugerenciasValidas($reply['sugerencias']) !== $reply['sugerencias']
@@ -322,7 +328,7 @@ class HorusAdvisorClient
 
     /**
      * @param  array<string, mixed>  $estado  estado devuelto por Horus AI en el turno anterior (ya validado al recibirlo)
-     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>}|null
+     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>, miembros?: true}|null
      */
     public function orientar(string $mensajeOIntent, ?string $mensaje = null, array $estado = []): ?array
     {
@@ -370,7 +376,7 @@ class HorusAdvisorClient
 
     /**
      * @param  array<string, mixed>  $estado
-     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>}|null
+     * @return array{respuesta: string, intent: null, fuente: string, recomendaciones?: list<ReferenciaRecomendada>, enlaces?: list<string>, sugerencias?: list<string>, miembros?: true}|null
      */
     private function consultarAsesor(string $mensajeLimpio, float $inicio, array $estado): ?array
     {
@@ -490,6 +496,13 @@ class HorusAdvisorClient
         $sugerencias = $this->sugerenciasValidas($reply['suggestions'] ?? null);
         if ($sugerencias !== []) {
             $resultado['sugerencias'] = $sugerencias;
+        }
+        // Tarjetas públicas del equipo (Quiénes somos): solo cuando se cita la ficha verificada `empresa_equipo`.
+        $fuentesIds = array_column(Entrada::lista($reply['sources'] ?? []), 'id');
+        if (in_array('empresa_equipo', $fuentesIds, true)
+            && ! ($reply['abstained'] ?? false)
+            && ! ($reply['needs_clarification'] ?? false)) {
+            $resultado['miembros'] = true;
         }
 
         return $resultado;

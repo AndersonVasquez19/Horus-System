@@ -30,7 +30,7 @@ _EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 _PHONE = re.compile(r"\+?\d[\d\s\-]{7,}\d")
 _ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}(T[\d:.+\-]+)?\b")
 _PRIVATE_MARKERS = re.compile(
-    r"(contrase(n|ñ)a|password|api[_ ]?key|token|secret|dni\s*\d|matriculad[oa]s?\s+[A-ZÁÉÍÓÚ]|"
+    r"(contrase(n|ñ)a|password|api[_ ]?key|token|(?<![a-z])secret(?!ari[ao])|dni\s*\d|matriculad[oa]s?\s+[A-ZÁÉÍÓÚ]|"
     r"sk-[A-Za-z0-9]{8,}|re_[A-Za-z0-9]{8,}|cotizaci[oó]n\s*(n[°º.o]|#|nro)\s*\d|cliente:|estudiante:)",
     re.IGNORECASE,
 )

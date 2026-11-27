@@ -16,7 +16,7 @@
       "answer": "Horus Group SRL es una empresa cajamarquina que ofrece cursos, capacitaciones y asesoramiento.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/quienes-somos", "file": "../web/src/components/layout/footer.tsx; ../web/src/app/quienes-somos/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["que es horus", "quienes son", "sobre horus", "la empresa", "a que se dedican", "empresa", "que servicios tienen", "servicios", "compañia", "rubro", "giro del negocio"],
+      "keywords": ["que es horus", "quienes son", "sobre horus", "horus group", "horus group srl", "la empresa", "a que se dedican", "empresa", "que servicios tienen", "servicios", "compañia", "rubro", "giro del negocio", "academia", "empresa privada"],
       "examples": ["¿Qué es Horus Group?", "Cuéntame sobre la empresa", "¿A qué se dedica Horus?"],
       "topics": ["empresa"],
       "related": ["empresa_mision_vision"],
@@ -56,14 +56,61 @@
       "category": "empresa",
       "kind": "info",
       "title": "Equipo directivo y profesional",
-      "description": "La página Quiénes somos presenta el equipo de Horus Group SRL: Gerencia General, Coordinación Institucional, Asesoría Legal y Atención Administrativa, integrado por profesionales en Economía, Enfermería con maestría en Salud Ocupacional y Ambiental, Derecho y Enfermería Técnica.",
-      "answer": "El equipo de Horus Group SRL está conformado por las áreas de Gerencia General, Coordinación Institucional, Asesoría Legal y Atención Administrativa, con profesionales en Economía, Enfermería, Derecho y Enfermería técnica. Puedes conocer más en la página Quiénes somos.",
+      "description": "La página Quiénes somos presenta al equipo de Horus Group SRL: Marco Alvarez (Gerente General), Mónica Monzón (Coordinadora Institucional), Karen Távara (Asesora Legal) y Milagros Villegas (Secretaria), con sus tarjetas y perfiles públicos.",
+      "answer": "El equipo de Horus Group SRL está conformado por Marco Alvarez (Gerente General), Mónica Monzón (Coordinadora Institucional), Karen Távara (Asesora Legal) y Milagros Villegas (Secretaria). Te comparto sus tarjetas con su perfil y enlaces públicos.",
+      "detail_answer": "El equipo de Horus Group SRL en Quiénes somos está integrado por: Marco Alvarez (Gerente General, Economía por la Universidad Nacional de Cajamarca con experiencia en educación superior), Mónica Monzón (Coordinadora Institucional, Enfermería por la UNC y Maestra en Salud Ocupacional y Ambiental por la UPAO), Karen Távara (Asesora Legal, Derecho por la UPAGU con experiencia legal y en docencia) y Milagros Villegas (Secretaria, enfermería técnica con experiencia en atención al cliente).",
       "status": "verified",
-      "source": {"kind": "web_publica", "url_path": "/quienes-somos", "file": "../web/src/app/quienes-somos/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["equipo de trabajo", "nuestro equipo", "equipo directivo", "gerente general", "coordinadora institucional", "asesora legal", "liderazgo y experiencia", "quienes forman el equipo", "quienes trabajan en horus", "quien dirige la empresa", "quienes son los responsables", "equipo"],
-      "examples": ["¿Quiénes conforman el equipo de Horus Group?"],
+      "source": {"kind": "web_publica", "url_path": "/quienes-somos", "file": "../web/src/app/quienes-somos/page.tsx", "checked_on": "2026-11-26"},
+      "keywords": ["equipo de trabajo", "nuestro equipo", "equipo directivo", "miembros", "miembros de la empresa", "integrantes", "gerente general", "coordinadora institucional", "asesora legal", "secretaria", "quien es la secretaria", "liderazgo y experiencia", "quienes forman el equipo", "quienes trabajan en horus", "quienes trabajan en la empresa", "quien dirige la empresa", "quienes son los responsables", "equipo", "dueños", "fundadores", "equipo de 4 personas", "marco alvarez", "monica monzon", "karen tavara", "milagros villegas"],
+      "examples": ["¿Quiénes conforman el equipo de Horus Group?", "¿Quién es Marco Alvarez?", "¿Quién es Mónica Monzón?", "¿Quién es Karen Távara?", "¿Quién es Milagros Villegas?", "¿Quién es la secretaria de la empresa?", "Miembros de la empresa"],
       "topics": ["empresa"],
-      "related": ["empresa_descripcion", "empresa_mision_vision"]
+      "related": ["empresa_descripcion", "empresa_mision_vision"],
+      "public_members": [
+        {
+          "id": "marco",
+          "nombre": "Marco Alvarez",
+          "cargo": "Gerente General",
+          "descripcion": "Profesional de Economía de la Universidad Nacional de Cajamarca. Experiencia en manejo de personal, trabajo en equipo y docencia en institutos de educación superior.",
+          "foto": "/images/somos/marco2.jpeg",
+          "redes": [
+            {"tipo": "facebook", "etiqueta": "Facebook", "url": "https://www.facebook.com/share/174BEdCReB/"},
+            {"tipo": "whatsapp", "etiqueta": "WhatsApp", "url": "https://wa.me/51972021374"}
+          ]
+        },
+        {
+          "id": "monica",
+          "nombre": "Mónica Monzón",
+          "cargo": "Coordinadora Institucional",
+          "descripcion": "Profesional de Enfermería por la Universidad Nacional de Cajamarca. Maestra en Ciencias con mención en Salud Ocupacional y Ambiental por la UPAO. Labora en el Hospital Regional de Cajamarca (UCI).",
+          "foto": "/images/somos/monica.jpeg",
+          "redes": [
+            {"tipo": "facebook", "etiqueta": "Facebook", "url": "https://web.facebook.com/monica.monzongonzales"},
+            {"tipo": "whatsapp", "etiqueta": "WhatsApp", "url": "https://wa.me/51972021374"}
+          ]
+        },
+        {
+          "id": "karen",
+          "nombre": "Karen Távara",
+          "cargo": "Asesora Legal",
+          "descripcion": "Profesional en Derecho por la Universidad Privada Antonio Guillermo Urrelo, con sólida experiencia en el ejercicio legal, la docencia y funciones como abogada en instituciones públicas.",
+          "foto": "/images/somos/Persona4.jpeg",
+          "redes": [
+            {"tipo": "facebook", "etiqueta": "Facebook", "url": "https://web.facebook.com/karen.tavara1"},
+            {"tipo": "whatsapp", "etiqueta": "WhatsApp", "url": "https://wa.me/51972021374"}
+          ]
+        },
+        {
+          "id": "milagros",
+          "nombre": "Milagros Villegas",
+          "cargo": "Secretaria",
+          "descripcion": "Profesional de enfermería técnica, con experiencia en ventas y trato al cliente.",
+          "foto": "/images/somos/milagros.jpeg",
+          "redes": [
+            {"tipo": "facebook", "etiqueta": "Facebook", "url": "https://web.facebook.com/milagros.villegas.180"},
+            {"tipo": "whatsapp", "etiqueta": "WhatsApp", "url": "https://wa.me/51972021374"}
+          ]
+        }
+      ]
     },
     {
       "id": "galeria_institucional",
@@ -74,7 +121,7 @@
       "answer": "En la sección Galería de nuestra web («Momentos que inspiran») puedes ver fotografías de las capacitaciones, talleres, convenios y actividades de Horus Group SRL.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/galeria", "file": "../web/src/app/galeria/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["galeria", "galeria de fotos", "fotos de los cursos", "fotografias", "fotos de eventos", "momentos que inspiran", "fotos", "fotos de las actividades", "fotos de las capacitaciones", "ver fotos"],
+      "keywords": ["galeria", "galeria de fotos", "fotos de los cursos", "fotografias", "fotos de eventos", "momentos que inspiran", "fotos", "fotos de las actividades", "fotos de las capacitaciones", "fotos de los talleres", "fotos de talleres presenciales", "ver fotos"],
       "examples": ["¿Dónde puedo ver fotos de sus capacitaciones?"],
       "topics": ["empresa"],
       "related": ["empresa_descripcion"]
@@ -88,7 +135,7 @@
       "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de contacto de la web (asuntos: educación, asesoramiento, capacitaciones, cursos u otro).",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/contactos", "file": "../web/src/app/contactos/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["contacto", "contactar", "telefono", "numero", "celular", "whatsapp", "wsp", "wasap", "escribirles", "correo", "email", "direccion de correo", "correo electronico", "comunicarme", "solicitar informacion", "pedir informacion", "mas informacion", "informacion adicional", "encontrar informacion", "informes", "hablar con un asesor", "asesor"],
+      "keywords": ["contacto", "contactar", "telefono", "numero", "celular", "whatsapp", "wsp", "wasap", "escribirles", "correo", "email", "direccion de correo", "correo electronico", "comunicarme", "como me comunico", "solicitar informacion", "pedir informacion", "mas informacion", "informacion adicional", "encontrar informacion", "informes", "hablar con un asesor", "asesor", "seccion de preguntas frecuentes"],
       "examples": ["¿Cómo me comunico con ustedes?", "Pásame su número", "¿Tienen WhatsApp?", "¿Cómo puedo pedir más información?", "¿Dónde puedo encontrar más información?"],
       "topics": ["contacto"],
       "related": ["ubicacion_sede", "horario_atencion"]
@@ -102,10 +149,11 @@
       "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/contactos", "file": "../web/src/app/contactos/page.tsx; ../web/src/components/layout/schedule-location.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["ubicacion", "direccion", "donde estan", "donde quedan", "donde se ubican", "como llegar", "sede", "local", "ubicar", "ubicarlos", "encontrarlos", "operan", "donde operan", "donde funcionan"],
-      "examples": ["¿Dónde están ubicados?", "¿Cuál es su dirección?"],
+      "keywords": ["ubicacion", "direccion", "donde estan", "donde quedan", "donde se ubican", "como llegar", "sede", "local", "ubicar", "ubicarlos", "encontrarlos", "operan", "donde operan", "donde funcionan", "plazuela bolognesi", "jr jose galvez", "jose galvez", "acercarme en persona", "ir a su oficina", "oficina en cajamarca", "sucursales", "sedes fisicas"],
+      "examples": ["¿Dónde están ubicados?", "¿Cuál es su dirección?", "¿Quedan cerca de la Plazuela Bolognesi?"],
       "topics": ["ubicacion"],
-      "related": ["contacto_canales"]
+      "related": ["contacto_canales"],
+      "detail_answer": "Nuestra única sede física está en Jr. José Gálvez N.° 322, Cajamarca, Perú (cerca de la Plazuela Bolognesi). Puedes ver el mapa en la página de contacto; si estás en otra ciudad, puedes llevar nuestros cursos virtuales."
     },
     {
       "id": "horario_atencion",
@@ -132,10 +180,11 @@
       "answer": "Horus Group está en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). Encuentras los enlaces en nuestra web.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/", "file": "../web/src/app/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["redes sociales", "facebook", "instagram", "tiktok", "youtube"],
-      "examples": ["¿Tienen Facebook?", "¿Dónde los sigo en redes?"],
+      "keywords": ["redes sociales", "facebook", "instagram", "tiktok", "youtube", "donde puedo seguirlos", "seguirlos", "enterarme de nuevos cursos", "linkedin", "twitter", "redes oficiales", "cuentas oficiales", "publican sus convocatorias"],
+      "examples": ["¿Tienen Facebook?", "¿Dónde los sigo en redes?", "¿Dónde puedo seguirlos para enterarme de nuevos cursos?"],
       "topics": ["redes_sociales"],
-      "related": ["contacto_canales"]
+      "related": ["contacto_canales"],
+      "detail_answer": "Horus Group SRL publica sus convocatorias y novedades en Facebook, Instagram (@horusgroupsrl), TikTok (@horus.group.srl) y YouTube (@HORUSGROUPSRL). No tenemos cuentas oficiales publicadas en otras redes como LinkedIn o X."
     },
     {
       "id": "cursos_modalidades",
@@ -261,7 +310,7 @@
       "answer": "Tenemos convenios con:\n- Colegio de Enfermeros de Cajamarca - CR XIII\n- Colegio Regional de Licenciados en Administración de Cajamarca\n- Colegio de Economistas de Cajamarca\n- Instituto de Educación Superior ISAM\n- Colegio de Enfermeros del Perú - CR II La Libertad",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "../web/src/app/page.tsx", "checked_on": "2026-11-06"},
-      "keywords": ["convenio", "convenios", "alianzas", "colegio profesional", "colegios profesionales", "respaldo", "certificado valido", "postulaciones", "entidades publicas", "diplomado", "diplomados"],
+      "keywords": ["convenio", "convenios", "alianzas", "colegio profesional", "colegios profesionales", "respaldo", "certificado valido", "postulaciones", "entidades publicas", "diplomado", "diplomados", "firma del decano", "llevan firma del decano"],
       "examples": ["¿Con qué instituciones tienen convenio?", "¿Sus certificados sirven para postular al Estado?"],
       "topics": ["certificacion", "formacion"],
       "related": ["convenio_enfermeria", "convenio_administracion", "convenio_economia", "convenio_isam", "convenio_enfermeria_libertad"],
@@ -276,7 +325,7 @@
       "answer": "Convenio con Colegio de Enfermeros de Cajamarca - CR XIII para talleres, charlas, cursos y diplomados en Enfermería.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "../web/src/app/page.tsx", "checked_on": "2026-11-06"},
-      "keywords": ["enfermeria", "enfermera", "enfermero", "enfermeras", "salud", "colegio de enfermeros", "diplomado de enfermeria", "cep"],
+      "keywords": ["enfermeria", "enfermera", "enfermero", "enfermeras", "salud", "colegio de enfermeros", "colegio de enfermeros de cajamarca", "enfermeros de cajamarca", "cr xiii", "cep cr xiii", "diplomado de enfermeria", "cep"],
       "examples": ["Soy enfermera, ¿qué cursos tienen para mí?", "¿Hay diplomados de enfermería?"],
       "topics": ["enfermeria", "formacion", "certificacion"],
       "related": ["convenios_resumen"],
@@ -294,7 +343,7 @@
       "answer": "Convenio con Colegio Regional de Licenciados en Administración de Cajamarca para talleres, charlas, cursos y diplomados en Ciencias Administrativas.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "../web/src/app/page.tsx", "checked_on": "2026-11-06"},
-      "keywords": ["administracion", "administrador", "licenciado en administracion", "corlad", "gestion", "ciencias administrativas"],
+      "keywords": ["administracion", "administrador", "licenciado en administracion", "corlad", "convenio corlad", "vigencia corlad", "gestion", "ciencias administrativas"],
       "examples": ["Soy administrador, ¿qué capacitaciones hay para mí?"],
       "topics": ["administracion", "formacion", "certificacion"],
       "related": ["convenios_resumen", "asesoramiento_empresarial"],
@@ -353,7 +402,11 @@
       },
       "keywords": [
         "convenio la libertad",
+        "colegio de enfermeros de la libertad",
+        "enfermeros de la libertad",
         "enfermeros la libertad",
+        "la libertad",
+        "trujillo",
         "cr ii",
         "cep cr ii"
       ],
@@ -529,7 +582,7 @@
       "answer": "Se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/preguntas-frecuentes", "file": "../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["medio de pago", "medios de pago", "como pago", "formas de pago", "pagar", "pago", "yape", "plin", "billetera digital", "billeteras digitales", "pago con celular", "transferencia", "tarjeta", "efectivo", "contado", "al contado", "bcp", "bbva", "banco de la nacion"],
+      "keywords": ["medio de pago", "medios de pago", "como pago", "formas de pago", "pagar", "pago", "yape", "plin", "billetera digital", "billeteras digitales", "pago con celular", "transferencia", "tarjeta", "efectivo", "contado", "al contado", "bcp", "bbva", "banco de la nacion", "bancos", "que bancos", "interbank", "scotiabank", "dolares", "criptomonedas", "bitcoin"],
       "examples": ["¿Aceptan Yape?", "¿Cómo puedo pagar?"],
       "topics": ["pagos"],
       "related": ["faq_comprobantes"],
@@ -544,7 +597,7 @@
       "answer": "Para una atención más personalizada puedes escribir por WhatsApp al +51 972 021 374 o agendar una reunión virtual con un asesor.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/preguntas-frecuentes", "file": "../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["reunion virtual", "agendar reunion", "atencion personalizada", "cita", "videollamada"],
+      "keywords": ["reunion virtual", "agendar reunion", "atencion personalizada", "cita", "sacar una cita", "conversar con un coordinador", "videollamada"],
       "examples": ["¿Puedo agendar una reunión virtual?"],
       "topics": ["contacto"],
       "related": ["contacto_canales", "horario_atencion"]
@@ -573,7 +626,7 @@
       "answer": "Puedes registrar un reclamo o queja en el Libro de Reclamaciones virtual (Ley N.° 29571 – INDECOPI) en la página Libro de Reclamaciones.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/libro-reclamaciones", "file": "../web/src/app/contactos/page.tsx; ../web/src/app/legales/libro-reclamaciones/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["reclamo", "reclamos", "queja", "libro de reclamaciones", "indecopi"],
+      "keywords": ["reclamo", "reclamos", "queja", "libro de reclamaciones", "indecopi", "diferencia entre queja y reclamo", "seguimiento de un reclamo"],
       "examples": ["Quiero poner un reclamo"],
       "topics": ["reclamos"],
       "related": ["politica_devoluciones"],
@@ -588,7 +641,7 @@
       "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/politicas-privacidad", "file": "../web/src/app/legales/politicas-privacidad/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["politica de privacidad", "politicas de privacidad", "proteccion de datos", "datos personales", "derechos arco", "ley 29733", "mis datos", "mi informacion", "protegen mi informacion", "comparten mi informacion", "privacidad"],
+      "keywords": ["politica de privacidad", "politicas de privacidad", "proteccion de datos", "datos personales", "derechos arco", "ley 29733", "mis datos", "mi informacion", "protegen mi informacion", "comparten mi informacion", "eliminen mis datos", "borrar mis datos", "eliminar mi informacion", "conversacion del chat", "privacidad"],
       "examples": ["¿Cómo protegen mis datos personales?", "¿Cómo ejerzo mis derechos ARCO?"],
       "topics": ["empresa"],
       "related": ["politica_cookies", "libro_reclamaciones"],
@@ -603,7 +656,7 @@
       "answer": "El sitio web utiliza cookies técnicas necesarias para la navegación segura y los formularios, así como cookies de preferencias y rendimiento. Puedes gestionarlas desde tu navegador.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/politicas-cookies", "file": "../web/src/app/legales/politicas-cookies/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["politica de cookies", "politicas de cookies", "cookies", "uso de cookies"],
+      "keywords": ["politica de cookies", "politicas de cookies", "cookies", "uso de cookies", "cookies de publicidad", "rastreo", "desactivar cookies"],
       "examples": ["¿Qué cookies utiliza la web?"],
       "topics": ["empresa"],
       "related": ["politica_privacidad"],
@@ -717,7 +770,7 @@
       "answer": "Nuestra sede física está en Cajamarca (Jr. José Gálvez N.° 322), pero puedes llevar nuestros cursos virtuales desde Lima, Trujillo, Chiclayo o cualquier ciudad del Perú. Las clases virtuales son en vivo por Google Meet y quedan grabadas para repasar.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-26"},
-      "keywords": ["desde otra ciudad", "otras ciudades", "soy de lima", "soy de trujillo", "fuera de cajamarca", "solo en cajamarca", "todo el peru", "alcance nacional", "clases en vivo o grabadas", "puedo estudiar desde otra ciudad", "estudiar desde lima", "desde lima", "desde trujillo", "desde chiclayo", "puedo estudiar desde", "estudiar a distancia"],
+      "keywords": ["desde otra ciudad", "otras ciudades", "soy de lima", "soy de trujillo", "fuera de cajamarca", "solo en cajamarca", "solo atienden en cajamarca", "todo el peru", "nivel nacional", "alcance nacional", "clases en vivo o grabadas", "puedo estudiar desde otra ciudad", "estudiar desde lima", "desde lima", "desde trujillo", "desde chiclayo", "desde cusco", "desde piura", "desde arequipa", "puedo estudiar desde", "estudiar a distancia"],
       "examples": ["Soy de Lima, ¿puedo llevar los cursos?", "¿Solo atienden en Cajamarca?", "¿Las clases virtuales son en vivo o grabadas?"],
       "topics": ["cursos", "modalidades"],
       "related": ["cursos_modalidades", "ubicacion_sede"]
@@ -731,7 +784,7 @@
       "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por transferencia bancaria, Yape, Plin, tarjeta o efectivo, según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-26"},
-      "keywords": ["pasos para matricularme", "proceso de matricula", "como reservo mi vacante", "reservar vacante", "como funciona la inscripcion", "pasos para inscribirme", "que sigue despues de pagar", "envio el comprobante", "enviar el comprobante"],
+      "keywords": ["pasos para matricularme", "proceso de matricula", "como reservo mi vacante", "reservar vacante", "como funciona la inscripcion", "pasos para inscribirme", "que sigue despues de pagar", "despues de que pago", "mando mi comprobante", "envio el comprobante", "enviar el comprobante", "matricular por la pagina web", "matricula presencial", "matricularme en la oficina"],
       "examples": ["¿Cuáles son los pasos para matricularme?", "¿Cómo reservo mi vacante en un curso?"],
       "topics": ["cursos", "matricula"],
       "related": ["faq_medios_pago", "faq_comprobantes", "contacto_canales"]
@@ -745,7 +798,7 @@
       "answer": "Ofrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio). Al matricularte, el asesor te confirma el formato de entrega y, si estás en otra ciudad, las opciones de envío físico o digital.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/educacion/capacitaciones/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["como entregan el certificado", "certificado fisico o digital", "envian certificado a provincia", "validez del certificado", "sirve para mi cv", "entrega de certificados", "envio de certificado", "el certificado tiene valor", "tiene valor el certificado", "cuando entregan el certificado", "tiempo de entrega del certificado", "entregan el certificado"],
+      "keywords": ["como entregan el certificado", "certificado fisico o digital", "envian certificado a provincia", "envian el certificado fisico", "recoger mi certificado", "validez del certificado", "sirve para mi cv", "entrega de certificados", "envio de certificado", "el certificado tiene valor", "tiene valor el certificado", "cuando entregan el certificado", "tiempo de entrega del certificado", "entregan el certificado", "constancia de matricula"],
       "examples": ["¿Cómo entregan el certificado?", "¿Envían el certificado físico a otras provincias?"],
       "topics": ["certificacion", "cursos"],
       "related": ["cursos_certificados", "faq_certificado_perdido", "convenios_resumen"]

@@ -43,7 +43,7 @@ class AsistenteVirtualService
         $this->advisor = $advisor ?? app(HorusAdvisorClient::class);
     }
 
-    /** @return array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<array{id: string, title: string, url_path: string|null}>, enlaces?: list<string>, sugerencias?: list<string>} */
+    /** @return array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<array{id: string, title: string, url_path: string|null}>, enlaces?: list<string>, sugerencias?: list<string>, miembros?: true} */
     public function procesarMensaje(string $mensaje, string $sessionId, string $scope = 'direct'): array
     {
         if (trim($mensaje) === '' || mb_strlen($mensaje) > 2000) {

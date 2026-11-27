@@ -663,6 +663,53 @@ def asks_privacy(message: str) -> bool:
     return _PRIVACY.search(normalize(message)) is not None
 
 
+# Equipo público de Horus Group SRL (Quiénes somos): nombres exactos y consultas sobre miembros/cargos de la empresa.
+# No captura «capacitar a mi equipo» ni «necesito asesoría legal».
+_PUBLIC_MEMBER_NAMES = re.compile(
+    r"\b(?:marco\s+alvarez|monica\s+monzon|karen\s+tavara|milagros\s+villegas)\b"
+)
+_PUBLIC_TEAM = re.compile(
+    r"\b(?:miembros?\s+de\s+(?:la\s+empresa|horus)|integrantes?\s+de\s+(?:la\s+empresa|horus)|"
+    r"quien(?:es)?\s+(?:conforman|forman|integran)\s+(?:el\s+equipo|la\s+empresa|horus)|"
+    r"quien(?:es)?\s+(?:son\s+(?:las\s+personas|los)\s+que\s+)?trabajan\s+(?:ahi|alli|con\s+ustedes|en\s+(?:la\s+empresa|horus))|"
+    r"quien\s+(?:es\s+(?:la\s+|el\s+)?(?:secretaria|gerente\s+general|coordinadora\s+institucional|asesora\s+legal)|"
+    r"dirige\s+(?:la\s+empresa|horus))|"
+    r"equipo\s+directivo|equipo\s+de\s+(?:la\s+empresa|horus)|nuestro\s+equipo|sus\s+miembros|"
+    r"equipo\s+de\s+4\s+personas)\b"
+)
+_MEMBER_DETAIL_CUES = re.compile(
+    r"\b(?:profesion\w*|estudi\w*|universidad\w*|carrera\w*|experiencia|perfil\w*|especialidad\w*|"
+    r"enfermer\w*|salud|abogad\w*|derecho|economi\w*|hospital|docencia|cv|biografia|cargo)\b"
+)
+
+
+def asks_public_team(message: str) -> bool:
+    normalized = normalize(message)
+    if _PUBLIC_MEMBER_NAMES.search(normalized):
+        return True
+    return _PUBLIC_TEAM.search(normalized) is not None
+
+
+def asks_member_details(message: str) -> bool:
+    return asks_public_team(message) and _MEMBER_DETAIL_CUES.search(normalize(message)) is not None
+
+
+_CONTACT_CHANNEL_FILLER = frozenset({
+    "cual", "es", "el", "la", "su", "de", "horus", "orus", "group", "srl", "empresa", "tienen", "tienes", "dame",
+    "pasame", "pasa", "numero", "nro", "num", "por", "favor", "porfa", "un", "una", "me", "puedes", "dar", "pasar",
+    "indicar", "dime", "electronico", "electronica", "oficial", "hay",
+})
+_CONTACT_CHANNEL_CORE = frozenset({"whatsapp", "telefono", "celular", "correo", "email"})
+
+
+def asks_bare_contact_channel(message: str) -> bool:
+    """«whatsapp», «kual es el guasap de orus», «¿tienen whatsapp?», «dame su correo» → canales de contacto."""
+    tokens = set(tokenize(normalize(message)))
+    if not (tokens & _CONTACT_CHANNEL_CORE):
+        return False
+    return bool(tokens - _CONTACT_CHANNEL_FILLER) and (tokens - _CONTACT_CHANNEL_FILLER) <= _CONTACT_CHANNEL_CORE
+
+
 # «¿Con quién hablo para coordinar?» pide un asesor; «¿con quién estoy hablando?, ¿eres un programa?» pregunta por el
 # asistente y sigue siendo una pregunta de identidad.
 _WHOM_TO_CONTACT = re.compile(r"\bcon quien (?:hablo (?:para|sobre|si|acerca)|me comunico|coordino|puedo coordinar)\b")

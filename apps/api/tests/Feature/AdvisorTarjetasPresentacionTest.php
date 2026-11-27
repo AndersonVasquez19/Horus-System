@@ -269,4 +269,51 @@ class AdvisorTarjetasPresentacionTest extends TestCase
         $this->catalogo['signature'] = app(FirmaCatalogoAdvisor::class)->firmar($this->catalogo);
         $this->assertArrayNotHasKey('tarjetas', app(PresentacionRecomendacionesHorus::class)->paraFrontend($reply));
     }
+
+    public function test_company_team_reply_attaches_validated_public_member_cards_even_without_catalog_sync(): void
+    {
+        config(['horus-catalog.sync_enabled' => false]);
+        $conocimiento = json_decode((string) file_get_contents((string) config('horus-knowledge.path')), true, 512, JSON_THROW_ON_ERROR);
+        $equipo = array_values(array_filter($conocimiento['records'], static fn (array $r): bool => $r['id'] === 'empresa_equipo'))[0];
+        $respuestaEquipo = [
+            'answer' => $equipo['answer'],
+            'intent' => 'company_info',
+            'mode' => 'lexical',
+            'match_level' => 'alta',
+            'abstained' => false,
+            'needs_clarification' => false,
+            'clarification_question' => null,
+            'sources' => [['id' => 'empresa_equipo', 'title' => $equipo['title'], 'url_path' => '/quienes-somos']],
+            'recommendations' => [],
+            'actions' => [],
+            'suggestions' => [],
+        ];
+        Http::swap(new Factory);
+        Http::preventStrayRequests();
+        Http::fake([
+            '*/ready' => Http::response(['status' => 'ready', 'knowledge' => 'loaded', 'auth' => 'configured', 'semantic' => 'disabled', 'catalog' => 'none']),
+            '*/api/v1/chat' => Http::response($respuestaEquipo),
+        ]);
+
+        $response = $this->postChatPublico(['mensaje' => '¿Quiénes son los miembros de la empresa?', 'session_id' => 'team-cards']);
+        $response->assertOk()
+            ->assertJsonPath('fuente', 'advisor')
+            ->assertJsonCount(4, 'tarjetas_miembros')
+            ->assertJsonPath('tarjetas_miembros.0.id', 'marco')
+            ->assertJsonPath('tarjetas_miembros.0.nombre', 'Marco Alvarez')
+            ->assertJsonPath('tarjetas_miembros.0.foto', '/images/somos/marco2.jpeg')
+            ->assertJsonPath('tarjetas_miembros.0.redes.0.tipo', 'facebook')
+            ->assertJsonPath('tarjetas_miembros.0.redes.1.url', 'https://wa.me/51972021374');
+        $this->assertArrayNotHasKey('miembros', $response->json());
+
+        // Caché: la segunda llamada reutiliza el caché con `miembros: true` y revalida limpiamente.
+        $cached = $this->postChatPublico(['mensaje' => '¿Quiénes son los miembros de la empresa?', 'session_id' => 'team-cards']);
+        $cached->assertOk()->assertJsonCount(4, 'tarjetas_miembros');
+        Http::assertSentCount(2);
+
+        // Respuestas de respaldo o valores manipulados nunca adjuntan tarjetas_miembros.
+        $client = app(HorusAdvisorClient::class);
+        $this->assertFalse($client->respuestaCacheValida(['respuesta' => AsistenteVirtualService::RESPUESTA_FALLBACK, 'intent' => null, 'fuente' => 'respaldo', 'miembros' => true]));
+        $this->assertFalse($client->respuestaCacheValida(['respuesta' => $equipo['answer'], 'intent' => null, 'fuente' => 'advisor', 'miembros' => 'si']));
+    }
 }

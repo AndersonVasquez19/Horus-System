@@ -57,6 +57,9 @@ final class ChatPublicoController extends Controller
         if (isset($resultado['tarjetas']) && is_array($resultado['tarjetas'])) {
             $salida['tarjetas'] = $resultado['tarjetas'];
         }
+        if (isset($resultado['tarjetas_miembros']) && is_array($resultado['tarjetas_miembros']) && $resultado['tarjetas_miembros'] !== []) {
+            $salida['tarjetas_miembros'] = $resultado['tarjetas_miembros'];
+        }
         if (isset($resultado['enlaces']) && is_array($resultado['enlaces'])) {
             $salida['enlaces'] = array_values(array_filter($resultado['enlaces'], 'is_string'));
         }

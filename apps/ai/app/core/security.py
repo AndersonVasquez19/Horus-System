@@ -69,10 +69,15 @@ _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\b(datos|lista|listado|nombres|correos|telefonos|dni|notas)\b.{0,30}\b(estudiantes?|alumnos?|alumnas?|matriculad[oa]s?|inscrit[oa]s?|participantes?|clientes?|usuarios?)\b",
         r"\b(acceso de administrador|acceso de admin|acceso al panel|cuenta de administrador)\b",
         r"\b(base de datos|postgres|postgresql|tabla de matriculas|panel administrativo|panel de admin)\b",
-        r"\b(contrase[nñ]a|password|clave de acceso)\b.{0,30}\b(de|del|admin|administrador|usuario)\b",
+        r"\b(contrase[nñ]a|password|clave de acceso)\b.{0,30}\b(?:del?\s+(?:admin|administrador|usuario|sistema|panel|servidor)|admin|administrador)\b",
         r"\b(quien|quienes)\b.{0,20}\b(se matriculo|se matricularon|esta matriculado|estan matriculados)\b",
         r"\b(archivo env|dot env|horus ai service token|jsonpe token)\b",
     )
+)
+
+# Solicitud legítima de derechos ARCO sobre los propios datos del visitante (no pide acceso a la base de datos).
+_ARCO_DELETION = re.compile(
+    r"\b(?:elimin\w*|borr\w*|suprim\w*|retir\w*)\b.{0,35}\b(?:mis datos(?:\s+personales)?|mi informacion)\b.{0,25}\bbase de datos\b"
 )
 
 
@@ -101,4 +106,6 @@ def detect_prompt_injection(text: str) -> bool:
 
 def detect_sensitive_request(text: str) -> bool:
     normalized = normalize(strip_invisible(text))
+    if _ARCO_DELETION.search(normalized):
+        normalized = _ARCO_DELETION.sub(" ", normalized)
     return any(p.search(normalized) for p in _SENSITIVE_PATTERNS)

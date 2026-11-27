@@ -490,6 +490,10 @@ final class FiltroPrivacidadChat
             'Colegio Regional de Licenciados en Administración de Cajamarca',
             'Colegio de Economistas de Cajamarca',
             'Instituto de Educación Superior ISAM',
+            'Universidad Nacional de Cajamarca',
+            'Universidad Privada Antonio Guillermo Urrelo',
+            'Hospital Regional de Cajamarca',
+            'Salud Ocupacional y Ambiental',
             'Jr. José Gálvez N.° 322', 'Libro de Reclamaciones', 'Ley N.°',
         ], ' institución ', $texto);
 

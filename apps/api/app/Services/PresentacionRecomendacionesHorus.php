@@ -31,15 +31,23 @@ class PresentacionRecomendacionesHorus
     ) {}
 
     /**
-     * @param  array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<array{id: string, title: string, url_path: string|null}>, enlaces?: list<string>, sugerencias?: list<string>}  $resultado
+     * @param  array{respuesta: string, intent: string|null, fuente: string, recomendaciones?: list<array{id: string, title: string, url_path: string|null}>, enlaces?: list<string>, sugerencias?: list<string>, miembros?: true}  $resultado
      * @return array<string, mixed>
      */
     public function paraFrontend(array $resultado): array
     {
+        $incluirMiembros = ($resultado['miembros'] ?? false) === true;
+        unset($resultado['miembros']);
         $referencias = $resultado['recomendaciones'] ?? [];
         unset($resultado['recomendaciones']);
         if ($resultado['fuente'] !== 'advisor') {
             unset($resultado['enlaces']);
+        }
+        if ($resultado['fuente'] === 'advisor' && $incluirMiembros && config('horus-advisor.enabled')) {
+            $miembros = $this->tarjetasMiembrosPublicos();
+            if ($miembros !== []) {
+                $resultado['tarjetas_miembros'] = $miembros;
+            }
         }
         if ($resultado['fuente'] !== 'advisor' || $referencias === []
             || ! config('horus-advisor.enabled') || ! config('horus-catalog.sync_enabled')) {
@@ -118,11 +126,98 @@ class PresentacionRecomendacionesHorus
         return $respuesta;
     }
 
+    /** @phpstan-assert-if-true non-empty-string $texto */
     private function textoPublico(mixed $texto, int $maximo): bool
     {
         return is_string($texto) && trim($texto) !== '' && mb_strlen($texto) <= $maximo
             && ! preg_match('~[<>@\x00-\x1f]|https?://|www\.|\d[\d\s-]{6,}\d~iu', $texto)
             && ! $this->privacidad->contieneDatosPrivadosEnRespuesta($texto);
+    }
+
+    /**
+     * Tarjetas públicas del equipo de Horus Group SRL (Quiénes somos), leídas y revalidadas localmente desde
+     * `knowledge.json`. Si algún campo o enlace no cumple la lista blanca, se descarta todo el lote.
+     *
+     * @return list<array{id: string, nombre: string, cargo: string, descripcion: string, foto: string, redes: list<array{tipo: string, etiqueta: string, url: string}>}>
+     */
+    private function tarjetasMiembrosPublicos(): array
+    {
+        $ruta = Entrada::texto(config('horus-knowledge.path'));
+        if ($ruta === '' || ! is_file($ruta) || ! is_readable($ruta)) {
+            return [];
+        }
+        try {
+            $datos = json_decode((string) file_get_contents($ruta), true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return [];
+        }
+        if (! is_array($datos) || ! is_array($datos['records'] ?? null)) {
+            return [];
+        }
+        $registro = null;
+        foreach ($datos['records'] as $item) {
+            if (is_array($item) && ($item['id'] ?? null) === 'empresa_equipo' && ($item['status'] ?? null) === 'verified') {
+                $registro = $item;
+                break;
+            }
+        }
+        $brutos = is_array($registro) ? ($registro['public_members'] ?? null) : null;
+        if (! is_array($brutos) || ! array_is_list($brutos) || $brutos === [] || count($brutos) > 10) {
+            return [];
+        }
+        $tarjetas = [];
+        $vistos = [];
+        foreach ($brutos as $miembro) {
+            if (! is_array($miembro)) {
+                return [];
+            }
+            $id = $miembro['id'] ?? null;
+            $nombre = $miembro['nombre'] ?? null;
+            $cargo = $miembro['cargo'] ?? null;
+            $descripcion = $miembro['descripcion'] ?? null;
+            $foto = $miembro['foto'] ?? null;
+            $redesBrutas = $miembro['redes'] ?? null;
+            if (! is_string($id) || preg_match('/\A[a-z0-9_-]{1,32}\z/D', $id) !== 1 || isset($vistos[$id])
+                || ! $this->textoPublico($nombre, 80) || ! $this->textoPublico($cargo, 80)
+                || ! $this->textoPublico($descripcion, 320)
+                || ! is_string($foto) || str_contains($foto, '..')
+                || preg_match('~\A/images/somos/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)\z~D', $foto) !== 1
+                || ! is_array($redesBrutas) || ! array_is_list($redesBrutas) || $redesBrutas === [] || count($redesBrutas) > 4) {
+                return [];
+            }
+            $redes = [];
+            foreach ($redesBrutas as $red) {
+                if (! is_array($red)) {
+                    return [];
+                }
+                $tipo = $red['tipo'] ?? null;
+                $etiqueta = $red['etiqueta'] ?? null;
+                $url = $red['url'] ?? null;
+                if (! is_string($tipo) || ! $this->textoPublico($etiqueta, 32) || ! is_string($url)) {
+                    return [];
+                }
+                $urlValida = match ($tipo) {
+                    'facebook' => preg_match('~\Ahttps://(?:www|web)\.facebook\.com/[A-Za-z0-9./_%?=&-]+\z~D', $url) === 1,
+                    'whatsapp' => $url === 'https://wa.me/51972021374',
+                    default => false,
+                };
+                if (! $urlValida) {
+                    return [];
+                }
+                $redes[] = ['tipo' => $tipo, 'etiqueta' => $etiqueta, 'url' => $url];
+            }
+            $vistos[$id] = true;
+            $tarjetas[] = [
+                'id' => $id,
+                'nombre' => $nombre,
+                'cargo' => $cargo,
+                'descripcion' => $descripcion,
+                'foto' => $foto,
+                'redes' => $redes,
+            ];
+        }
+
+        return $tarjetas;
     }
 
     /**

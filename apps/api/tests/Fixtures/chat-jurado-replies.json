@@ -500,7 +500,7 @@
     "reply": {
       "answer": "Horus Group SRL es una empresa cajamarquina que ofrece cursos, capacitaciones y asesoramiento.",
       "intent": "company_info",
-      "match_level": "media",
+      "match_level": "alta",
       "needs_clarification": false,
       "clarification_question": null,
       "abstained": false,
@@ -690,7 +690,7 @@
   {
     "query": "¿Quiénes forman el equipo?",
     "reply": {
-      "answer": "El equipo de Horus Group SRL está conformado por las áreas de Gerencia General, Coordinación Institucional, Asesoría Legal y Atención Administrativa, con profesionales en Economía, Enfermería, Derecho y Enfermería técnica. Puedes conocer más en la página Quiénes somos.",
+      "answer": "El equipo de Horus Group SRL en Quiénes somos está integrado por: Marco Alvarez (Gerente General, Economía por la Universidad Nacional de Cajamarca con experiencia en educación superior), Mónica Monzón (Coordinadora Institucional, Enfermería por la UNC y Maestra en Salud Ocupacional y Ambiental por la UPAO), Karen Távara (Asesora Legal, Derecho por la UPAGU con experiencia legal y en docencia) y Milagros Villegas (Secretaria, enfermería técnica con experiencia en atención al cliente).",
       "intent": "company_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -707,15 +707,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -1085,15 +1077,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -1133,15 +1117,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -1181,15 +1157,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -3652,12 +3620,12 @@
   {
     "query": "Cuéntame un chiste",
     "reply": {
-      "answer": "Esa consulta está fuera de lo que puedo responder con información verificada. Te puedo orientar sobre cursos y capacitaciones, asesoramiento, convenios, pagos y contacto. ¿Qué te interesa?",
-      "intent": "out_of_scope",
-      "match_level": "ninguna",
-      "needs_clarification": false,
-      "clarification_question": null,
-      "abstained": true,
+      "answer": "Quiero asegurarme de entenderte bien antes de responder.",
+      "intent": "clarification",
+      "match_level": "baja",
+      "needs_clarification": true,
+      "clarification_question": "¿Tu consulta es sobre «Redes sociales»? Cuéntame un poco más para responderte con precisión.",
+      "abstained": false,
       "recommendations": [],
       "missing_data": [],
       "general_guidance": null,
@@ -3668,7 +3636,9 @@
         "topics": [],
         "level": null,
         "modality": null,
-        "focus_ids": [],
+        "focus_ids": [
+          "redes_sociales"
+        ],
         "topic_changed": false,
         "referential": false
       },
@@ -3681,9 +3651,11 @@
         "goal": "unknown",
         "profile_age": null,
         "cue_age": null,
-        "focus_ids": [],
-        "focus_age": null,
-        "out_of_scope": true,
+        "focus_ids": [
+          "redes_sociales"
+        ],
+        "focus_age": 0,
+        "out_of_scope": false,
         "quote": false
       },
       "suggestions": []
@@ -4782,7 +4754,7 @@
     "reply": {
       "answer": "Se aceptan transferencias bancarias, Yape, Plin, tarjetas de crédito o débito y pago en efectivo en la sede de Cajamarca. Confirma los datos de pago directamente con un asesor.\n\nLa sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.",
       "intent": "faq",
-      "match_level": "alta",
+      "match_level": "media",
       "needs_clarification": false,
       "clarification_question": null,
       "abstained": false,
