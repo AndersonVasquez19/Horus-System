@@ -451,46 +451,30 @@
     {
       "query": "Necesito cableado estructurado y mantenimiento de computadoras",
       "reply": {
-        "answer": "Quiero asegurarme de entenderte bien antes de responder.",
-        "intent": "clarification",
-        "match_level": "baja",
-        "needs_clarification": true,
-        "clarification_question": "¿Podrías darme más detalles? Puedo ayudarte con cursos y capacitaciones, asesoramiento, convenios, pagos y contacto.",
-        "abstained": false,
+        "answer": "Por ahora este asistente solo puede orientarte sobre cursos y capacitaciones, asesoramiento, convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: +51 972 021 374 o horusgroupcajamarca@gmail.com.",
+        "intent": "unavailable_info",
+        "match_level": "ninguna",
+        "needs_clarification": false,
+        "clarification_question": null,
+        "abstained": true,
         "recommendations": [],
         "missing_data": [],
         "general_guidance": null,
         "sources": [],
         "mode": "lexical",
-        "context": {
-          "turns_considered": 0,
-          "topics": [
-            "cableado",
-            "computadoras",
-            "mantenimiento"
-          ],
-          "level": null,
-          "modality": null,
-          "focus_ids": [],
-          "topic_changed": false,
-          "referential": false
-        },
+        "context": null,
         "state": {
-          "topics": [
-            "cableado",
-            "computadoras",
-            "mantenimiento"
-          ],
+          "topics": [],
           "objectives": [],
           "level": "desconocido",
           "modality": "cualquiera",
           "audience": "desconocido",
-          "goal": "service",
-          "profile_age": 0,
+          "goal": "unknown",
+          "profile_age": null,
           "cue_age": 0,
           "focus_ids": [],
           "focus_age": null,
-          "out_of_scope": false,
+          "out_of_scope": true,
           "quote": false
         },
         "suggestions": []
@@ -594,8 +578,8 @@
     {
       "query": "¿Hacen mantenimiento de computadoras?",
       "reply": {
-        "answer": "Esa consulta está fuera de lo que puedo responder con información verificada. Te puedo orientar sobre cursos y capacitaciones, asesoramiento, convenios, pagos y contacto. ¿Qué te interesa?",
-        "intent": "out_of_scope",
+        "answer": "Por ahora este asistente solo puede orientarte sobre cursos y capacitaciones, asesoramiento, convenios, pagos y atención al cliente de Horus Group. Para otras consultas, comunícate con un asesor: +51 972 021 374 o horusgroupcajamarca@gmail.com.",
+        "intent": "unavailable_info",
         "match_level": "ninguna",
         "needs_clarification": false,
         "clarification_question": null,
@@ -605,29 +589,15 @@
         "general_guidance": null,
         "sources": [],
         "mode": "lexical",
-        "context": {
-          "turns_considered": 0,
-          "topics": [
-            "computadoras",
-            "mantenimiento"
-          ],
-          "level": null,
-          "modality": null,
-          "focus_ids": [],
-          "topic_changed": false,
-          "referential": false
-        },
+        "context": null,
         "state": {
-          "topics": [
-            "computadoras",
-            "mantenimiento"
-          ],
+          "topics": [],
           "objectives": [],
           "level": "desconocido",
           "modality": "cualquiera",
           "audience": "desconocido",
           "goal": "unknown",
-          "profile_age": 0,
+          "profile_age": null,
           "cue_age": null,
           "focus_ids": [],
           "focus_age": null,

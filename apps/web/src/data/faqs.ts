@@ -76,7 +76,7 @@ export const FAQS: FaqItem[] = [
     number: '07',
     question: '¿Deseas una atención más personalizada o asesoría técnica para tu empresa?',
     answer:
-      'Contáctanos directamente por WhatsApp o agenda una reunión virtual o presencial con uno de nuestros especialistas técnicos y coordinadores académicos. Estamos disponibles de lunes a viernes de 8:00 AM a 7:00 PM y sábados hasta la 1:00 PM.',
+      'Contáctanos directamente por WhatsApp o agenda una reunión virtual o presencial con uno de nuestros especialistas técnicos y coordinadores académicos. Atendemos de lunes a viernes de 9:00 AM a 1:00 PM y de 3:00 PM a 6:00 PM, y los sábados de 9:00 AM a 1:00 PM.',
     keywords: 'atencion personalizada asesor reunion virtual soporte empresa',
   },
 ];

@@ -61,7 +61,13 @@
         "que tengas buen dia",
         "que tenga buen dia",
         "que tengas un buen dia",
-        "que tenga un buen dia"
+        "que tenga un buen dia",
+        "lo voy a pensar",
+        "lo pensare",
+        "les escribo",
+        "luego les escribo",
+        "despues les escribo",
+        "les aviso"
       ],
       "response": "¡Gracias por escribir a Horus Group SRL! Hasta pronto."
     },
@@ -100,7 +106,12 @@
       "comunicame con alguien",
       "comunicame con un asesor",
       "quiero hablar con alguien",
-      "con quien puedo hablar"
+      "con quien puedo hablar",
+      "conversar con una persona",
+      "conversar directamente con una persona",
+      "hablar directamente con una persona",
+      "persona encargada",
+      "hablar con una persona de verdad"
     ],
     "record_id": "contacto_canales"
   },

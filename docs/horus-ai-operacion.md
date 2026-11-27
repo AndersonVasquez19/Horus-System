@@ -217,6 +217,27 @@ Preguntas que ahora se reconocen (`conversation_glue.py`, en `_about` y `_glue`)
 
 Cada regla tiene pruebas de que no captura otras preguntas («curso de computación», «no me agregaron al grupo», «turno de atención»). «Mi hijo de 10 años puede estudiar» sigue bloqueada por el filtro de privacidad (dato de un menor) y queda en `bloqueadas_a_proposito` del banco.
 
+### Oraciones largas: cómo se mide (26/11/2026)
+
+La evaluación de `data/evaluation.json` no tiene consultas de 15 palabras o más (mediana: 6). Para medir oraciones como las que escribe un visitante hay dos archivos separados:
+
+- `apps/ai/data/oraciones_desarrollo.json`: con estas oraciones se buscan y prueban las correcciones. `test_oraciones_largas.py` exige que **ninguna** reciba una respuesta equivocada.
+- `apps/ai/data/oraciones_examen.json`: **solo mide**. No se usa en pruebas ni para elegir reglas, y no se modifica para aprobar. `test_oraciones_examen.py` solo comprueba que esté bien formado.
+
+`scripts/medir_oraciones.py [--archivo …] [--filtro] [--detalle]` clasifica cada respuesta en **acierta**, **aclara** (pide aclaración), **equivocada** (responde otra cosa) o **bloqueada** (con `--filtro`, pasa cada oración por `FiltroPrivacidadChat` con el PHP local). Usa el catálogo de prueba (`chat-jurado-catalogo.json`) y no guarda nada. Las oraciones son sintéticas, escritas por el equipo. El examen con preguntas de otras personas, cuando exista, se informa aparte.
+
+| Examen (120 oraciones) | Acierta | Aclara | Equivocada | Bloqueada |
+|---|---|---|---|---|
+| Antes (26/11/2026) | 47 % | 30 % | 17 % | 7 % |
+| Tras corregir respuestas equivocadas, horario y solo educación | 57 % | 24 % | 12 % | 7 % |
+
+Cambios de esa etapa:
+
+- **Horario confirmado** por el propietario: lunes a viernes de 9:00 a 13:00 y de 15:00 a 18:00; sábados de 9:00 a 13:00. La web (Contactos, preguntas frecuentes, `contactos.ts`) y `horario_atencion` dicen lo mismo, y el chat ya no advierte de discrepancias.
+- **Solo educación:** pedir instalar, reparar o cotizar cámaras, cableado o equipos recibe el mensaje de fuera de alcance, sin nombrar esos servicios (`asks_discarded_service`). Querer *aprender* esos temas sigue siendo una consulta educativa.
+- «Mi oficina», «principiante», «personal» o «empresa» ya no se toman como el nombre de un curso (`TITLE_COMMON_WORDS`): «me acerco a su oficina» respondía sobre «Ofimática para oficinas».
+- Nuevas reglas con textos verificados: pasos de matrícula aunque se nombre un curso, práctica perdida, validez de certificados (no en el extranjero: eso sigue sin confirmar), privacidad de la información enviada, reclamos por falta de respuesta, «desde hace cuánto existen» (no publicado), hablar con una persona y despedidas como «lo voy a pensar».
+
 ## Métricas del asistente y votos 👍/👎 (25/11/2026)
 
 **Qué se guarda en `chat_logs`** (nunca el texto del visitante):

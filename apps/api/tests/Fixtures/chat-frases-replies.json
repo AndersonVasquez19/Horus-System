@@ -3182,7 +3182,7 @@
   "reply": {
    "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
-   "match_level": "media",
+   "match_level": "alta",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -3197,15 +3197,7 @@
     }
    ],
    "mode": "lexical",
-   "context": {
-    "turns_considered": 0,
-    "topics": [],
-    "level": null,
-    "modality": null,
-    "focus_ids": [],
-    "topic_changed": false,
-    "referential": false
-   },
+   "context": null,
    "state": {
     "topics": [],
     "objectives": [],
@@ -3231,7 +3223,7 @@
   "reply": {
    "answer": "Horus Group SRL protege los datos personales conforme a la Ley N.° 29733. Puedes ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición) escribiendo a horusgroupcajamarca@gmail.com.",
    "intent": "policy",
-   "match_level": "media",
+   "match_level": "alta",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -3246,15 +3238,7 @@
     }
    ],
    "mode": "lexical",
-   "context": {
-    "turns_considered": 0,
-    "topics": [],
-    "level": null,
-    "modality": null,
-    "focus_ids": [],
-    "topic_changed": false,
-    "referential": false
-   },
+   "context": null,
    "state": {
     "topics": [],
     "objectives": [],
@@ -3726,7 +3710,7 @@
   "query": "atienden domingos",
   "state": null,
   "reply": {
-   "answer": "Los horarios de atención varían según la sección de la web. Confirma el horario al +51 972 021 374 antes de acudir.",
+   "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
    "intent": "contact_info",
    "match_level": "media",
    "needs_clarification": false,

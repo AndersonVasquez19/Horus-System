@@ -950,7 +950,7 @@
   {
     "query": "¿Cuál es su horario de atención?",
     "reply": {
-      "answer": "Los horarios de atención varían según la sección de la web. Confirma el horario al +51 972 021 374 antes de acudir.",
+      "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
       "intent": "contact_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -998,7 +998,7 @@
   {
     "query": "¿A qué hora atienden?",
     "reply": {
-      "answer": "Los horarios de atención varían según la sección de la web. Confirma el horario al +51 972 021 374 antes de acudir.",
+      "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
       "intent": "contact_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -1046,7 +1046,7 @@
   {
     "query": "¿Dónde están ubicados y cuál es su horario de atención?",
     "reply": {
-      "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.\n\nLos horarios de atención varían según la sección de la web. Confirma el horario al +51 972 021 374 antes de acudir.",
+      "answer": "La sede está en Jr. José Gálvez N.° 322, Cajamarca, Perú. Puedes ver el mapa en la página de contacto.\n\nAtendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
       "intent": "contact_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2650,15 +2650,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -2729,7 +2721,7 @@
   {
     "query": "¿Qué pasa si falto a una clase práctica?",
     "reply": {
-      "answer": "Si faltas a una sesión práctica o necesitas coordinar un cambio, escríbenos por WhatsApp al +51 972 021 374 para ver las opciones de recuperación. Para devoluciones en educación, la solicitud se presenta dentro de 1 día calendario y se atiende en hasta 2 días hábiles.",
+      "answer": "Si tu curso es presencial o semipresencial y faltaste a la parte práctica, comunícate antes de la siguiente sesión práctica para coordinar una recuperación o reprogramación, sujeta a disponibilidad.",
       "intent": "faq",
       "match_level": "alta",
       "needs_clarification": false,
@@ -2740,21 +2732,13 @@
       "general_guidance": null,
       "sources": [
         {
-          "id": "soporte_clases_cambios",
-          "title": "Inasistencias, reprogramaciones y devoluciones",
-          "url_path": "/legales/politicas-devolucion"
+          "id": "faq_practica_perdida",
+          "title": "Si faltaste a una sesión práctica",
+          "url_path": "/legales/preguntas-frecuentes"
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -2765,7 +2749,7 @@
         "profile_age": null,
         "cue_age": null,
         "focus_ids": [
-          "soporte_clases_cambios"
+          "faq_practica_perdida"
         ],
         "focus_age": 0,
         "out_of_scope": false,

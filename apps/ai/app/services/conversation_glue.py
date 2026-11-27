@@ -181,6 +181,7 @@ _UNPUBLISHED_FACT = re.compile(
     r"|\bdesde (cuando|que a[nñ]o)\b.{0,20}\b(existe|existen|funciona|funcionan|trabajan|operan|esta|estan)\b"
     r"|\bcuantos a[nñ]os\b.{0,15}\b(tiene|tienen|lleva|llevan)\b.{0,20}\b(empresa|horus|funcionando|operando|existiendo|en el mercado)\b"
     r"|\bhistoria de (horus|la empresa)\b"
+    r"|\bdesde hace cuanto\b|\bhace cuanto tiempo\b.{0,25}\b(funcionan|existen|estan|trabajan|operan)\b"
 )
 
 
@@ -213,7 +214,8 @@ _COMPLAINT = re.compile(
     r"no me llego|no me ha llegado|nunca me llego|todavia no me llega|aun no me llega|no me entregaron|no me dieron mi|"
     r"(el|la) (profesor|profesora|docente|instructor|instructora) no (vino|llego|asistio|se presento)|"
     r"no hubo clase|cancelaron la clase|mala atencion|pesimo servicio|quiero quejarme|quiero poner una queja|"
-    r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo)\b"
+    r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo|"
+    r"nadie me (?:ha )?(?:respondido|responde|contesta|atiende)|no me (?:han )?(?:respondido|agregado|contestado))\b"
 )
 
 
@@ -279,8 +281,16 @@ _HOW_TO_ENROLL = re.compile(
 )
 
 
+# «¿Cuáles son los pasos para inscribirme en el curso X?», «¿cómo sería el proceso para matricularme?»: el procedimiento.
+_ENROLL_STEPS = re.compile(
+    r"\b(?:pasos|proceso|procedimiento|tramite)\b.{0,80}\b(?:matricul\w*|inscri\w*)\b"
+    r"|\b(?:matricul\w*|inscri\w*)\b.{0,80}\b(?:pasos|proceso|procedimiento)\b"
+)
+
+
 def asks_how_to_enroll(message: str) -> bool:
-    return _HOW_TO_ENROLL.match(normalize(message)) is not None
+    normalized = normalize(message)
+    return _HOW_TO_ENROLL.match(normalized) is not None or _ENROLL_STEPS.search(normalized) is not None
 
 # Comparar cursos: «compáralos», «¿cuál es más corto?», «¿cuál es mejor, redes u ofimática?».
 _COMPARE = re.compile(
@@ -458,6 +468,8 @@ _CLASS_PLATFORM = re.compile(
     r"|\b(?:que|cual) (?:es )?(?:la )?plataforma\b(?!.*\bpag)"
     r"|\bplataforma (?:usan|utilizan|de (?:las )?clases)\b"
     r"|^(?:y )?(?:como|por donde|por que medio) (?:son|se dictan|se llevan|serian) (?:las )?clases(?: virtuales| online)?$"
+    r"|\b(?:por|con) (?:que|cual) (?:aplicacion|programa|app|plataforma)\b"
+    r"|\bclases como son\b|\btengo que ir\b.{0,30}\bdesde (?:mi )?casa\b"
 )
 
 
@@ -482,6 +494,8 @@ _AFTER_ENROLLING = re.compile(
     r"|\bgrupos? de (?:whatsapp|wsp|wasap)\b"
     r"|\bque (?:pasa|sigue|hago) (?:despues|luego) de (?:matricularme|inscribirme|pagar)\b"
     r"|\bcomo (?:ingreso|entro|accedo|me conecto) (?:a )?(?:las |mis )?clases\b"
+    r"|\bpara que me (?:agreguen|anadan|unan|incluyan)\b"
+    r"|\b(?:ya )?(?:hice|realice|pague|deposite)\b.{0,40}\bque (?:tengo que|debo) hacer\b"
 )
 
 
@@ -504,6 +518,63 @@ _UNPUBLISHED_STUDY = re.compile(
 
 def asks_unpublished_study_fact(message: str) -> bool:
     return _UNPUBLISHED_STUDY.search(" ".join(content_words(message))) is not None
+
+
+# Faltar a una clase: qué hacer para recuperar la práctica.
+_MISSED_CLASS = re.compile(
+    r"\b(?:falte|falto|faltar|faltando|perdi|pierdo|no (?:pude|puedo|podre|voy a poder) (?:ir|asistir|llegar))\b"
+    r".{0,40}\b(?:clases?|sesion(?:es)?|practicas?)\b"
+)
+
+
+def asks_missed_class(message: str) -> bool:
+    return _MISSED_CLASS.search(normalize(message)) is not None
+
+
+# Validez o respaldo de los certificados («¿es válido?», «¿sirve para postular?»). «Perdí mi certificado» es otra cosa.
+_CERT_VALIDITY = re.compile(
+    r"\bcertificad\w*\b.{0,60}\b(?:valid\w*|validez|sirve\w*|respald\w*|reconocid\w*|oficial\w*|postular)\b"
+    r"|\b(?:valid\w*|validez|respald\w*)\b.{0,40}\bcertificad\w*\b"
+)
+
+
+def asks_certificate_validity(message: str) -> bool:
+    normalized = normalize(message)
+    # La validez en otro país no está publicada: esa pregunta sigue abstenida («¿es válido en Europa?»).
+    if re.search(r"\b(?:valid\w*|sirve\w*) en (?!el estado|el peru|peru|cajamarca|entidad\w*|instituci\w*|empresas?|el trabajo|mi trabajo)\w+",
+                 normalized):
+        return False
+    return bool(_CERT_VALIDITY.search(normalized)) and not re.search(
+        r"\b(?:perdi|perdido|malogr\w*|duplicado|internacional\w*|extranjero|otro pais|otros paises|fuera del pais)\b", normalized)
+
+
+def asks_public_job_validity(message: str) -> bool:
+    return re.search(r"\b(?:postular|postulaciones|estado|entidad(?:es)? public\w*|trabajo)\b", normalize(message)) is not None
+
+
+# Servicios que Horus Group ya no ofrece por este canal: instalar, reparar o cotizar equipos (no aprenderlo en un curso).
+_DISCARDED_SERVICE = re.compile(
+    r"\b(?:camaras?|videovigilancia|cableado|cables|soporte tecnico|computadoras?|laptops?|maquinas?|equipos|pc)\b"
+)
+_SERVICE_ACTION = re.compile(r"\b(?:instal\w*|repar\w*|arregl\w*|hacen|hagan|cobrar\w*|cotiz\w*|mantenimiento|lenta|falla\w*|malogr\w*)\b")
+_LEARNING = re.compile(r"\b(?:aprender|aprendo|estudiar|curso|cursos|capacitacion\w*|clases|taller\w*|ensenan|interesa\w*)\b")
+
+
+def asks_discarded_service(message: str) -> bool:
+    normalized = normalize(message)
+    return (bool(_DISCARDED_SERVICE.search(normalized)) and bool(_SERVICE_ACTION.search(normalized))
+            and not _LEARNING.search(normalized))
+
+
+# Qué se hace con la información que envía el visitante: la política de privacidad publicada.
+_PRIVACY = re.compile(
+    r"\bque (?:van a hacer|hacen|haran|hara) con (?:mi|mis|la|las|los|esa|esos) (?:informacion|datos)\b"
+    r"|\b(?:protegen|comparten|venden|usan|cuidan) (?:mi|mis|la|las|los) (?:informacion|datos)\b"
+)
+
+
+def asks_privacy(message: str) -> bool:
+    return _PRIVACY.search(normalize(message)) is not None
 
 
 LEVEL_REPLY = (

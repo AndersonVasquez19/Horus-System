@@ -269,7 +269,7 @@ export default function ContactosPage() {
                         Horario de atención
                       </h3>
                       <p className="text-sm font-semibold text-[#0A2540]">
-                        Lunes - Viernes: 9:00 AM - 6:00 PM <span className="block text-slate-500 font-normal">Sábados: 9:00 AM - 1:00 PM</span>
+                        Lunes - Viernes: 9:00 AM - 1:00 PM / 3:00 PM - 6:00 PM <span className="block text-slate-500 font-normal">Sábados: 9:00 AM - 1:00 PM</span>
                       </p>
                     </div>
                   </div>

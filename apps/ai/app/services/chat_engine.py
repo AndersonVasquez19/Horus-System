@@ -101,6 +101,10 @@ NOT_A_COURSE_WORDS = frozenset((
     "asesoramiento servicio servicios cotizacion tramite"
 ).split())
 COURSE_WORDS = frozenset({"curso", "cursos", "capacitacion", "capacitaciones", "clase", "clases", "taller", "talleres"})
+# Palabras corrientes que también aparecen en títulos de cursos: «mi oficina» no nombra «Ofimática para oficinas».
+TITLE_COMMON_WORDS = frozenset(content_tokens(
+    "oficina oficinas principiante principiantes basico basica personal trabajo trabajos empresa empresas general nivel"
+))
 # Texto común de las respuestas de «ese curso no está publicado» (Laravel valida la frase completa).
 UNPUBLISHED_COURSE = "un curso o capacitación sobre ese tema"
 MODALITY_ASKED = {
@@ -341,6 +345,30 @@ class AdvisorEngine:
         return self._reply(answer=record.detail_answer, intent=CATEGORY_INTENTS[record.category], match_level="alta",
                            sources=[self._source(record)])
 
+    def _verified_answer(self, record_id: str) -> AdvisorReply | None:
+        """El texto exacto de una ficha verificada (Laravel lo acepta tal cual)."""
+        record = self.kb.get(record_id)
+        if record is None or record.status != "verified":
+            return None
+        return self._reply(answer=record.answer, intent=CATEGORY_INTENTS[record.category], match_level="alta",
+                           sources=[self._source(record)])
+
+    def _certificate_validity(self, public_job: bool) -> AdvisorReply | None:
+        """Qué certificados se entregan y, si pregunta por postular, la frase publicada de los convenios."""
+        delivery = self.kb.get("certificados_entrega_validez")
+        if delivery is None or delivery.status != "verified":
+            return None
+        blocks, sources = [delivery.answer], [self._source(delivery)]
+        agreements = self.kb.get("convenios_resumen")
+        if public_job and agreements is not None and agreements.status == "verified" and agreements.detail_answer:
+            sentence = next((s.strip() for s in re.split(r"(?<=[.;])\s+", agreements.detail_answer)
+                             if "postulaciones" in s and 10 <= len(s.strip()) <= 600), None)
+            if sentence:
+                blocks.append(sentence)
+                sources.append(self._source(agreements))
+        return self._reply(answer="\n\n".join(blocks), intent=CATEGORY_INTENTS[delivery.category], match_level="alta",
+                           sources=sources)
+
     def _about(self, text: str) -> AdvisorReply | None:
         """Preguntas sobre el propio asistente, operaciones aritméticas y datos institucionales no publicados.
 
@@ -351,6 +379,8 @@ class AdvisorEngine:
             return self._reply(answer=glue.IDENTITY_REPLY, intent="capabilities", match_level="alta")
         if glue.is_math(text) or glue.is_creative_request(text):
             return self._off_topic(text)
+        if glue.asks_discarded_service(text):
+            return self._out_of_scope()  # solo educación: no se ofrecen ni se nombran los servicios retirados
         if glue.is_unpublished_fact(text):
             return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
                                abstained=True)
@@ -365,6 +395,14 @@ class AdvisorEngine:
             if steps is not None and steps.status == "verified":
                 return self._reply(answer=steps.answer, intent=CATEGORY_INTENTS[steps.category], match_level="alta",
                                    sources=[self._source(steps)])
+        if glue.asks_privacy(text) and (reply := self._verified_answer("politica_privacidad")) is not None:
+            return reply
+        if glue.asks_missed_class(text) and (reply := self._verified_answer("faq_practica_perdida")) is not None:
+            return reply
+        if glue.asks_certificate_validity(text) and not has_recommendation_cue(text, self.kb):
+            reply = self._certificate_validity(glue.asks_public_job_validity(text))
+            if reply is not None:
+                return reply
         if glue.asks_unpublished_study_fact(text):
             return self._reply(answer=glue.UNPUBLISHED_FACT_REPLY, intent="unavailable_info", match_level="ninguna",
                                abstained=True)
@@ -408,7 +446,7 @@ class AdvisorEngine:
 
     def _courses_in_message(self, message: str) -> list[KnowledgeRecord]:
         generic = {"curso", "cursos", "capacitacion", "capacitaciones", "taller", "programa", "mejor", "corto", "largo"}
-        asked = set(content_tokens(message)) - generic
+        asked = set(content_tokens(message)) - generic - TITLE_COMMON_WORDS
         return [r for r in self._published_courses() if asked & set(content_tokens(r.title))]
 
     def _course_shortcuts(self, message: str, users: list[str], prior: _Prior | None) -> AdvisorReply | None:
@@ -974,7 +1012,7 @@ class AdvisorEngine:
         """Curso publicado cuyo título comparte una palabra propia con la consulta, solo si es uno y sin ambigüedad."""
         generic = {"curso", "cursos", "capacitacion", "capacitaciones", "taller", "programa", "clase", "clases", "horario",
                    "horarios", "empieza", "inicia", "dura", "duracion", "cuesta", "precio", "modalidad", "certificado"}
-        asked = set(content_tokens(message)) - ignore - generic
+        asked = set(content_tokens(message)) - ignore - generic - TITLE_COMMON_WORDS
         if not asked or self.kb.catalog is None or self.kb.catalog.catalog.is_expired(datetime.now(UTC)):
             return None
         found = [r for r in self.kb.records
