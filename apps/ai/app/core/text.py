@@ -157,6 +157,8 @@ NEVER_CORRECT = frozenset({
     "corto", "corta", "cortos", "cortas", "largo", "larga", "largos", "largas", "compara", "comparar", "comparame",
     "comparalos", "compararlos", "comparacion", "comparalas", "cobraron", "cobro", "cobraste", "cobrado", "cobrada",
     "mejor", "peor", "examen", "examenes", "quejarme", "cuotas", "cuota", "financiamiento", "gratuitos",
+    "tarea", "tareas",  # «mi tarea de matemáticas» no es «tarjeta»
+    "pasado", "pasada",  # «el año pasado» no es «pagado»
 })
 
 

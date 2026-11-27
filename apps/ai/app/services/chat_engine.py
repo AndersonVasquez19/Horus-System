@@ -83,7 +83,8 @@ OUT_OF_SCOPE_OPENING = "Por ahora este asistente solo"
 COURTESY_FILLER = frozenset({"mucha", "todo", "toda", "informacion", "info", "ayuda", "atencion", "respuesta", "amable",
     "amigo", "amiga"})
 # Palabras de cierre que acompañan un saludo o un agradecimiento sin convertirlo en consulta («listo, gracias»).
-CLOSING_FILLER = frozenset({"perfecto", "listo", "genial", "excelente", "ok", "okay", "vale", "entendido", "super", "bueno"})
+CLOSING_FILLER = frozenset({"perfecto", "listo", "genial", "excelente", "ok", "okay", "vale", "entendido", "super", "bueno",
+    "entonce"})
 # Saludos y despedidas alargados («holaaaa», «chauu»): las mismas formas que deja pasar el filtro de Laravel.
 ELONGATED_COURTESY = tuple((re.compile(p), word) for p, word in (
     (r"\bhol+a{2,}\b", "hola"), (r"\bholi{2,}\b", "holi"), (r"\bwena+s+\b", "wenas"), (r"\bchau{2,}\b", "chau"),
@@ -375,7 +376,7 @@ class AdvisorEngine:
         Van antes de la búsqueda: «¿quién te creó?» no debe responder con los canales de contacto, «¿cuánto es 2+2?» no
         es una consulta de precios y «¿en qué año se fundó?» no tiene registro publicado (se dice con honestidad).
         """
-        if glue.is_identity_question(text):
+        if glue.is_identity_question(text) and not glue.asks_whom_to_contact(text):  # «¿con quién hablo para coordinar?»
             return self._reply(answer=glue.IDENTITY_REPLY, intent="capabilities", match_level="alta")
         if glue.is_math(text) or glue.is_creative_request(text):
             return self._off_topic(text)
@@ -395,6 +396,14 @@ class AdvisorEngine:
             if steps is not None and steps.status == "verified":
                 return self._reply(answer=steps.answer, intent=CATEGORY_INTENTS[steps.category], match_level="alta",
                                    sources=[self._source(steps)])
+        if glue.asks_location(text) and (reply := self._verified_answer("ubicacion_sede")) is not None:
+            return reply
+        hours = self.kb.get("horario_atencion")
+        if glue.asks_office_hours(text) and hours is not None and hours.status == "verified":
+            # El texto ampliado publicado (horario y WhatsApp): «¿en qué horario responden por WhatsApp?» no se reduce a
+            # la frase del WhatsApp sin el horario.
+            return self._reply(answer=hours.detail_answer or hours.answer, intent=CATEGORY_INTENTS[hours.category],
+                               match_level="alta", sources=[self._source(hours)])
         if glue.asks_privacy(text) and (reply := self._verified_answer("politica_privacidad")) is not None:
             return reply
         if glue.asks_missed_class(text) and (reply := self._verified_answer("faq_practica_perdida")) is not None:
@@ -488,7 +497,9 @@ class AdvisorEngine:
             attrs = ("duracion",) if kind == "duration" else ("modalidad", "duracion", "fechas")
             return self._followup(chosen, replace(u, attributes=attrs, asked_modalities=()))
 
-        if glue.is_open_recommendation(message) and (listing_in_focus or not focus_courses):
+        open_in_sentence = (glue.is_open_recommendation_in_sentence(message) and not self._courses_in_message(message)
+                            and not extract_profile(corrected, self.kb).specific_topics(self.generic))
+        if (glue.is_open_recommendation(message) or open_in_sentence) and (listing_in_focus or not focus_courses):
             titles = [f"«{r.title}»" for r in courses[:4]]
             options = titles[0] if len(titles) == 1 else f"{', '.join(titles[:-1])} o {titles[-1]}"
             listing = self.kb.get("cat_listado_formacion")
@@ -719,6 +730,8 @@ class AdvisorEngine:
         near_sure = (top.phrase_hit and top.score >= NEAR_SURE_MIN
             and (second is None or top.score - second.score >= CLEAR_MARGIN)
             and bool(query_terms) and len(set(top.matched) & query_terms) >= len(query_terms) / 2)
+        # Oración larga: «donde queda su local? quiero ir a preguntar personalmente» (ver _dominant).
+        near_sure = near_sure or self._dominant(hits)
         if top.score < ANSWER_THRESHOLD and not near_sure:
             pair = self._complementary_pair(top, second, query_terms)
             if pair is not None:
@@ -1202,6 +1215,10 @@ class AdvisorEngine:
             saved = prior.profile if profile_age is not None else None
         cue_age = 0 if cue else (_older(prior.cue_age) if prior is not None else None)
         ids = [r.id for r in reply.recommendations] or [s.id for s in reply.sources]
+        if not ids and reply.needs_clarification and reply.context is not None:
+            # «¿Tu consulta es sobre «Ubicación de la sede»?» → «sí»: la opción propuesta queda en foco y el «sí»
+            # responde esa ficha (antes el foco quedaba vacío y se repetía la pregunta; prueba del 26/11/2026).
+            ids = list(reply.context.focus_ids)
         focus_ids = [x for x in ids if (r := self.kb.get(x)) is not None and r.status == "verified"]
         # El estado solo guarda 2: tras una lista con TODOS los cursos, en el orden del catálogo, se recuerda el
         # listado; si no, «¿cuándo empiezan?» perdería los demás.
@@ -1381,6 +1398,8 @@ class AdvisorEngine:
         if early is None and not content_tokens(message):
             early = self._clarify([])
         if early is not None:
+            if depth == 0 and (glue.asks_location(message) or glue.asks_office_hours(message)):
+                early = self._several_questions(message, early)  # «¿Dónde están ubicados? ¿Entregan certificado?»
             if depth == 0:
                 early.state = self._next_state(message, prior, False, None, early)
             return early
@@ -1623,6 +1642,10 @@ class AdvisorEngine:
             and not self.kb.catalog.catalog.is_expired(datetime.now(UTC))
             and not (current.specific_topics(self.generic) - {"modalidades", "horario", "fechas", "certificacion", "precios"})
             and not (hits and hits[0].record.stable_id is not None and hits[0].score >= ANSWER_THRESHOLD)
+            # «Perdí mi certificado del curso…», «¿puedo cambiarme a otra fecha o me devuelven?»: una pregunta
+            # frecuente o una política que coincide por frase clave manda sobre «el certificado/la fecha de cada curso».
+            and not (hits and hits[0].record.status == "verified" and hits[0].record.category in {"faq", "politica"}
+                     and hits[0].phrase_hit and hits[0].score >= NEAR_SURE_MIN)
             and (
                 bool(current.topics & {"cursos", "capacitacion", "formacion"})
                 or any(w in normalize(message).split() for w in ("curso", "cursos", "capacitacion", "capacitaciones"))
@@ -1644,6 +1667,14 @@ class AdvisorEngine:
                 # WhatsApp». Con catálogo cargado el plan de matrícula ganaba a la ficha (producción, 25/11/2026).
                 return self._reply(answer=steps.answer, intent=CATEGORY_INTENTS[steps.category], match_level="alta",
                                    sources=[self._source(steps)])
+            if plan.enrollment and steps is not None and steps.status == "verified":
+                # «Quiero inscribirme en el curso de Comunicación» (prueba del propietario, 26/11/2026): los pasos
+                # verificados, que ya incluyen el WhatsApp oficial (la web muestra el botón), en vez de solo el enlace.
+                # El curso nombrado se cita para que quede en foco («¿y qué horario tiene?»).
+                named = hits[0].record if course_hit else self._course_by_title(corrected, set())
+                cited = [self._source(named)] if named is not None else []
+                return self._reply(answer=steps.answer, intent="enrollment_request", match_level="alta",
+                                   sources=[*cited, self._source(steps)])
             if plan.enrollment:
                 contact = self.kb.get(self.kb.intents.human_handoff.record_id)
                 sources = [self._source(contact)] if contact else []
@@ -1699,6 +1730,14 @@ class AdvisorEngine:
                 if unpublished:
                     return self._unpublished_topic(plan.goal, corrected)
                 current.goal = plan.goal
+                # En modo híbrido no se codifica el mensaje una segunda vez (latencia); el modelo ya cubre paráfrasis.
+                whole = hits if not planned_search else (self.retrieve(message) if self.mode != "hybrid" else [])
+                # Solo fichas informativas: una de formación («aprender», «estudiar») no gana a los cursos publicados
+                # («quiero aprender redes desde cero» sigue recomendando el curso de redes).
+                if self._clear_institutional(whole) and not whole[0].record.recommendable:
+                    # «¿Tienen página de Facebook o Instagram donde publiquen sus cursos?»: la ficha de redes, no una
+                    # recomendación de cursos ni «¿Tu consulta es sobre «Redes sociales»?».
+                    return self._answer_from_hits(whole, terms)
                 relevant = hits if planned_search else self.retrieve(topic or plan.subject)
                 if (plan.goal == "learn" and any(h.record.general_information and h.score >= ANSWER_THRESHOLD for h in relevant)
                     and not any(h.record.source.kind == "catalogo_laravel" and h.record.kind == "course"
@@ -1715,6 +1754,11 @@ class AdvisorEngine:
         if cue or follow_up:
             if self.kb.catalog is not None:
                 if hits and hits[0].record.id == "cat_listado_formacion":
+                    return self._answer_from_hits(hits, terms)
+                # «Estoy haciendo mi tesis y necesito asesoría, ¿me pueden ayudar?», «me gustaría conocer sus valores…»:
+                # «necesito», «me gustaría» o «ayudar» suenan a pedir una recomendación, pero una ficha institucional
+                # que coincide por frase clave y gana con holgura es la respuesta (fase 3, 26/11/2026).
+                if self._clear_institutional(hits):
                     return self._answer_from_hits(hits, terms)
                 return self._multi_recommend(corrected) or self._catalog_recommend(hits, current) or self._clarify([])
             top = hits[0] if hits else None
@@ -1749,6 +1793,26 @@ class AdvisorEngine:
                     match_level="media", sources=[self._source(named)])
             return self._focus_reference(focus)  # "¿y eso qué incluye?"
         return reply
+
+    def _dominant(self, hits: list[Hit]) -> bool:
+        """La primera ficha gana con holgura aunque el relleno de una oración larga baje su puntaje (fase 3, 26/11/2026).
+
+        Exige coincidencia por frase clave o al menos tres términos, que nadie más llegue al umbral de aclaración (o
+        quede lejos) y que no sea una palabra suelta compartida: dos términos, o uno que solo tiene esa ficha
+        («cookies» sí; «celular», que también está en medios de pago, no: «¿venden celulares de segunda?»).
+        """
+        if not hits:
+            return False
+        top, second = hits[0], (hits[1] if len(hits) > 1 else None)
+        matched = set(top.matched)
+        return ((top.phrase_hit or len(matched) >= 3) and top.score >= NEAR_SURE_MIN
+                and (second is None or second.score < CLARIFY_THRESHOLD or top.score - second.score >= CLEAR_MARGIN)
+                and (len(matched) >= 2 or any(self.lexical.distinctive(t) for t in matched)))
+
+    def _clear_institutional(self, hits: list[Hit]) -> bool:
+        """Ficha institucional verificada (no un curso del catálogo) que gana con holgura."""
+        return (self._dominant(hits) and hits[0].record.status == "verified"
+                and hits[0].record.source.kind != "catalogo_laravel")
 
     def _institutional_information(self, hits: list[Hit], goal: str) -> AdvisorReply | None:
         """Explicación pública sin anunciar ofertas, disponibilidad ni recomendaciones retiradas."""

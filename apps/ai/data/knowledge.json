@@ -88,7 +88,7 @@
       "answer": "Puedes comunicarte con Horus Group por teléfono o WhatsApp al +51 972 021 374, por correo a horusgroupcajamarca@gmail.com o con el formulario de contacto de la web (asuntos: educación, asesoramiento, capacitaciones, cursos u otro).",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/contactos", "file": "../web/src/app/contactos/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["contacto", "contactar", "telefono", "numero", "celular", "whatsapp", "wsp", "wasap", "escribirles", "correo", "email", "comunicarme", "solicitar informacion", "pedir informacion", "mas informacion", "informacion adicional", "encontrar informacion", "informes", "hablar con un asesor", "asesor"],
+      "keywords": ["contacto", "contactar", "telefono", "numero", "celular", "whatsapp", "wsp", "wasap", "escribirles", "correo", "email", "direccion de correo", "correo electronico", "comunicarme", "solicitar informacion", "pedir informacion", "mas informacion", "informacion adicional", "encontrar informacion", "informes", "hablar con un asesor", "asesor"],
       "examples": ["¿Cómo me comunico con ustedes?", "Pásame su número", "¿Tienen WhatsApp?", "¿Cómo puedo pedir más información?", "¿Dónde puedo encontrar más información?"],
       "topics": ["contacto"],
       "related": ["ubicacion_sede", "horario_atencion"]
@@ -146,7 +146,7 @@
       "answer": "Los cursos se ofrecen en modalidad presencial, semipresencial y virtual. La modalidad de cada curso debe consultarse con un asesor.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx", "checked_on": "2026-11-26"},
-      "keywords": ["modalidad", "modalidades", "presencial", "presenciales", "semipresencial", "virtual", "virtuales", "clases virtuales", "clases presenciales", "online", "a distancia", "clases grabadas", "desde casa"],
+      "keywords": ["modalidad", "modalidades", "presencial", "presenciales", "semipresencial", "virtual", "virtuales", "clases virtuales", "clases presenciales", "online", "a distancia", "clases grabadas", "desde casa", "modalidades de estudio", "modalidad de estudio"],
       "examples": ["¿Los cursos son virtuales?", "¿Tienen clases online?", "¿Cómo funciona lo semipresencial?"],
       "topics": ["modalidades", "cursos", "formacion"],
       "related": ["cursos_certificados", "cursos_catalogo"],
@@ -458,7 +458,7 @@
       "answer": "Si perdiste tu certificado o diploma, puedes solicitar una reimpresión por correo (horusgroupcajamarca@gmail.com) o WhatsApp (+51 972 021 374). Pueden aplicar costos administrativos según el tipo de documento.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/preguntas-frecuentes", "file": "../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["perdi mi certificado", "certificado perdido", "reimpresion", "duplicado de certificado", "nuevo certificado", "perdi mi diploma"],
+      "keywords": ["perdi mi certificado", "certificado perdido", "reimpresion", "duplicado de certificado", "nuevo certificado", "perdi mi diploma", "perdi el certificado", "otro certificado"],
       "examples": ["Se me perdió el certificado", "¿Cómo saco un duplicado de mi diploma?"],
       "topics": ["certificacion"],
       "related": ["cursos_certificados"]
@@ -558,7 +558,7 @@
       "answer": "La devolución procede solo en casos justificados (fuerza mayor acreditada, actividad distinta a la ofrecida o incumplimiento de las clases). Se solicita hasta 1 día calendario desde la inscripción y antes de la primera clase, por correo a horusgroupcajamarca@gmail.com, y se responde en un máximo de 2 días hábiles.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/politicas-devolucion", "file": "../web/src/app/legales/politicas-devolucion/page.tsx", "checked_on": "2026-10-28"},
-      "keywords": ["devolucion", "devoluciones", "reembolso", "devuelven el dinero", "cancelar", "politica de devolucion", "garantia"],
+      "keywords": ["devolucion", "devoluciones", "reembolso", "devuelven el dinero", "cancelar", "politica de devolucion", "garantia", "me devuelven", "me arrepiento", "devuelvan mi dinero"],
       "examples": ["¿Me devuelven el dinero si no puedo asistir?"],
       "topics": ["devoluciones"],
       "related": ["libro_reclamaciones"],
@@ -731,7 +731,7 @@
       "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-26"},
-      "keywords": ["pasos para matricularme", "proceso de matricula", "como reservo mi vacante", "reservar vacante", "como funciona la inscripcion", "pasos para inscribirme", "que sigue despues de pagar"],
+      "keywords": ["pasos para matricularme", "proceso de matricula", "como reservo mi vacante", "reservar vacante", "como funciona la inscripcion", "pasos para inscribirme", "que sigue despues de pagar", "envio el comprobante", "enviar el comprobante"],
       "examples": ["¿Cuáles son los pasos para matricularme?", "¿Cómo reservo mi vacante en un curso?"],
       "topics": ["cursos", "matricula"],
       "related": ["faq_medios_pago", "faq_comprobantes", "contacto_canales"]
@@ -745,7 +745,7 @@
       "answer": "Ofrecemos cursos con certificados físicos y digitales emitidos por Horus Group SRL (y con respaldo de colegios profesionales en las actividades bajo convenio). Al matricularte, el asesor te confirma el formato de entrega y, si estás en otra ciudad, las opciones de envío físico o digital.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/cursos", "file": "../web/src/app/educacion/cursos/page.tsx; ../web/src/app/educacion/capacitaciones/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["como entregan el certificado", "certificado fisico o digital", "envian certificado a provincia", "validez del certificado", "sirve para mi cv", "entrega de certificados", "envio de certificado", "el certificado tiene valor", "tiene valor el certificado", "cuando entregan el certificado", "tiempo de entrega del certificado"],
+      "keywords": ["como entregan el certificado", "certificado fisico o digital", "envian certificado a provincia", "validez del certificado", "sirve para mi cv", "entrega de certificados", "envio de certificado", "el certificado tiene valor", "tiene valor el certificado", "cuando entregan el certificado", "tiempo de entrega del certificado", "entregan el certificado"],
       "examples": ["¿Cómo entregan el certificado?", "¿Envían el certificado físico a otras provincias?"],
       "topics": ["certificacion", "cursos"],
       "related": ["cursos_certificados", "faq_certificado_perdido", "convenios_resumen"]
@@ -759,7 +759,7 @@
       "answer": "Sí realizamos capacitaciones in-house a medida para empresas y coordinamos nuevos convenios institucionales. Escríbenos a horusgroupcajamarca@gmail.com o al WhatsApp +51 972 021 374 indicando el tema y el tamaño de tu equipo.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/educacion/capacitaciones", "file": "../web/src/app/educacion/capacitaciones/page.tsx; ../web/src/app/contactos/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["in house", "capacitacion in house", "proponer un convenio", "firmar convenio", "nuevo convenio", "capacitacion para mi empresa", "alianza institucional"],
+      "keywords": ["in house", "capacitacion in house", "proponer un convenio", "firmar convenio", "nuevo convenio", "capacitacion para mi empresa", "alianza institucional", "nuestras instalaciones", "en nuestro local"],
       "examples": ["¿Hacen capacitaciones in-house para mi empresa?", "¿Cómo proponemos un convenio institucional?"],
       "topics": ["capacitacion", "empresas"],
       "related": ["capacitaciones_empresariales", "convenios_resumen", "contacto_canales"]
@@ -773,7 +773,7 @@
       "answer": "Si faltas a una sesión práctica o necesitas coordinar un cambio, escríbenos por WhatsApp al +51 972 021 374 para ver las opciones de recuperación. Para devoluciones en educación, la solicitud se presenta dentro de 1 día calendario y se atiende en hasta 2 días hábiles.",
       "status": "verified",
       "source": {"kind": "web_publica", "url_path": "/legales/politicas-devolucion", "file": "../web/src/app/legales/politicas-devolucion/page.tsx; ../web/src/app/legales/preguntas-frecuentes/page.tsx", "checked_on": "2026-11-23"},
-      "keywords": ["falte a clase", "si falto a una clase", "reprogramar clase", "cambiar de horario", "no pude asistir", "recuperar clase", "cambio de curso"],
+      "keywords": ["falte a clase", "si falto a una clase", "reprogramar clase", "cambiar de horario", "no pude asistir", "recuperar clase", "cambio de curso", "cambiarme a otra fecha", "cambiar de fecha", "postergar"],
       "examples": ["¿Qué pasa si falto a una clase?", "¿Puedo reprogramar o cambiar de horario?"],
       "topics": ["cursos"],
       "related": ["faq_practica_perdida", "politica_devoluciones"]

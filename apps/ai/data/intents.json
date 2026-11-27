@@ -67,7 +67,14 @@
         "les escribo",
         "luego les escribo",
         "despues les escribo",
-        "les aviso"
+        "les aviso",
+        "manana paso por la oficina",
+        "mañana paso por la oficina",
+        "paso por la oficina",
+        "pasare por la oficina",
+        "voy a pasar por la oficina",
+        "manana paso",
+        "luego paso"
       ],
       "response": "¡Gracias por escribir a Horus Group SRL! Hasta pronto."
     },
@@ -76,6 +83,9 @@
       "standalone": false,
       "patterns": [
         "que puedes hacer",
+        "que cosas puedo preguntarte",
+        "que puedo preguntarte",
+        "que te puedo preguntar",
         "en que me puedes ayudar",
         "en que me ayudas",
         "que sabes hacer",
@@ -111,7 +121,12 @@
       "conversar directamente con una persona",
       "hablar directamente con una persona",
       "persona encargada",
-      "hablar con una persona de verdad"
+      "hablar con una persona de verdad",
+      "con quien hablo",
+      "con quien me comunico",
+      "con quien coordino",
+      "hablar con la secretaria",
+      "hablar con el encargado"
     ],
     "record_id": "contacto_canales"
   },

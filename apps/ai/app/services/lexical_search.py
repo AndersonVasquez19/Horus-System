@@ -80,6 +80,10 @@ class LexicalIndex:
             return True
         return any(tokens_match(token, term) for term in self._idf)
 
+    def distinctive(self, token: str) -> bool:
+        """¿La raíz aparece en un único registro? («cookie» sí; «celular», en contacto y medios de pago, no)."""
+        return token in self._idf and self._idf[token] >= self._max_idf - 1e-9
+
     def _idf_of(self, token: str) -> float:
         if token in self._low_weight:
             return 0.3 * self._idf.get(token, self._max_idf)

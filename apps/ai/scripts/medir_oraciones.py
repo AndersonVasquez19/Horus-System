@@ -1,4 +1,7 @@
-"""Mide cómo responde el motor a oraciones largas (data/oraciones_examen.json).
+"""Mide cómo responde el motor a oraciones largas (data/oraciones_examen.json, u otro banco con --archivo).
+
+Si el archivo trae «conversaciones» (data/oraciones_visitante.json), cada turno cuenta como un caso y el estado de la
+respuesta se reenvía al turno siguiente, como hace la web.
 
 Cada caso termina en una de cuatro categorías:
   - acierta: cita una de las fichas esperadas (o, si se esperaba, dice con honestidad que no tiene el dato o que el
@@ -89,6 +92,30 @@ def medir(casos: list[dict], con_filtro: bool) -> tuple[list[dict], dict]:
     return filas, total
 
 
+def medir_conversaciones(conversaciones: list[list[dict]], con_filtro: bool) -> tuple[list[dict], Counter]:
+    """Cada turno se califica como un caso; el estado de cada respuesta se reenvía al turno siguiente (como la web).
+
+    Un turno bloqueado por el filtro no llega a Horus AI: el estado anterior se conserva.
+    """
+    m = motor()
+    textos = [t["texto"] for c in conversaciones for t in c]
+    motivos = iter(filtro_privacidad(textos) if con_filtro else [None] * len(textos))
+    filas = []
+    for numero, conversacion in enumerate(conversaciones, 1):
+        estado = None
+        for turno in conversacion:
+            caso = {**turno, "tema": f"conversación {numero}"}
+            motivo = next(motivos)
+            if motivo is not None:
+                filas.append({**caso, "resultado": "bloqueada", "motivo": motivo})
+                continue
+            r = m.chat(turno["texto"], [], estado)
+            estado = r.state
+            filas.append({**caso, "resultado": calificar(caso, r), "intent": r.intent,
+                          "fuentes": [s.id for s in r.sources], "respuesta": r.clarification_question or r.answer})
+    return filas, Counter(f["resultado"] for f in filas)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--archivo", type=Path, default=RAIZ / "data" / "oraciones_examen.json")
@@ -97,8 +124,12 @@ def main() -> None:
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
 
-    casos = json.loads(args.archivo.read_text(encoding="utf-8"))["casos"]
-    filas, total = medir(casos, args.filtro)
+    datos = json.loads(args.archivo.read_text(encoding="utf-8"))
+    filas, total = medir(datos["casos"], args.filtro)
+    if datos.get("conversaciones"):
+        turnos, total_turnos = medir_conversaciones(datos["conversaciones"], args.filtro)
+        filas += [{**t, "tema": "conversaciones"} for t in turnos]
+        total += total_turnos
     por_tema: dict[str, Counter] = defaultdict(Counter)
     for f in filas:
         por_tema[f["tema"]][f["resultado"]] += 1

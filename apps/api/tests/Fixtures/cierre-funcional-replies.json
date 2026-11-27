@@ -519,8 +519,11 @@
           "goal": "learn",
           "profile_age": 0,
           "cue_age": 0,
-          "focus_ids": [],
-          "focus_age": null,
+          "focus_ids": [
+            "cat_curso_datos",
+            "cat_curso_prog"
+          ],
+          "focus_age": 0,
           "out_of_scope": false,
           "quote": false
         },

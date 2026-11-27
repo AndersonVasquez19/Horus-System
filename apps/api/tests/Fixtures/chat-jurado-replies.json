@@ -871,15 +871,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -919,15 +911,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -950,7 +934,7 @@
   {
     "query": "¿Cuál es su horario de atención?",
     "reply": {
-      "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
+      "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m. Si tienes una consulta antes de acudir, escríbenos por WhatsApp al +51 972 021 374.",
       "intent": "contact_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -967,15 +951,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -998,7 +974,7 @@
   {
     "query": "¿A qué hora atienden?",
     "reply": {
-      "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
+      "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m. Si tienes una consulta antes de acudir, escríbenos por WhatsApp al +51 972 021 374.",
       "intent": "contact_info",
       "match_level": "alta",
       "needs_clarification": false,
@@ -1015,15 +991,7 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
         "topics": [],
         "objectives": [],
@@ -1914,8 +1882,11 @@
         "goal": "unknown",
         "profile_age": 0,
         "cue_age": null,
-        "focus_ids": [],
-        "focus_age": null,
+        "focus_ids": [
+          "cursos_certificados",
+          "certificados_entrega_validez"
+        ],
+        "focus_age": 0,
         "out_of_scope": false,
         "quote": false
       },
@@ -5131,27 +5102,15 @@
         }
       ],
       "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [
-          "certificacion"
-        ],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
+      "context": null,
       "state": {
-        "topics": [
-          "certificacion"
-        ],
+        "topics": [],
         "objectives": [],
         "level": "desconocido",
         "modality": "cualquiera",
         "audience": "desconocido",
         "goal": "unknown",
-        "profile_age": 0,
+        "profile_age": null,
         "cue_age": null,
         "focus_ids": [
           "ubicacion_sede",

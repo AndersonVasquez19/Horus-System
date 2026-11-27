@@ -238,6 +238,37 @@ Cambios de esa etapa:
 - «Mi oficina», «principiante», «personal» o «empresa» ya no se toman como el nombre de un curso (`TITLE_COMMON_WORDS`): «me acerco a su oficina» respondía sobre «Ofimática para oficinas».
 - Nuevas reglas con textos verificados: pasos de matrícula aunque se nombre un curso, práctica perdida, validez de certificados (no en el extranjero: eso sigue sin confirmar), privacidad de la información enviada, reclamos por falta de respuesta, «desde hace cuánto existen» (no publicado), hablar con una persona y despedidas como «lo voy a pensar».
 
+### Fase 3: entender la oración larga (26/11/2026)
+
+Tras la prueba del propietario en producción («¿cuál es la dirección?» → «¿Tu consulta es sobre «Ubicación de la sede»?» → «sí» → la misma pregunta otra vez) se simularon 225 turnos de visitante: 178 preguntas sueltas y 12 conversaciones. Quedaron en `apps/ai/data/oraciones_visitante.json` como **banco de ajuste**, no como examen; `medir_oraciones.py --archivo data/oraciones_visitante.json` mide también las conversaciones, reenviando el estado de cada turno como la web. Se corrigieron 5 calificaciones mal puestas de ese banco, todas con respuestas válidas («¿me dan certificado físico o digital?» respondido con el certificado de cada curso, por ejemplo).
+
+| Medición (con el filtro de Laravel) | Acierta | Aclara | Equivocada | Bloqueada |
+|---|---|---|---|---|
+| Examen, antes de la fase 3 | 57 % | 24 % | 12 % | 7 % |
+| **Examen, después** | **70 %** | 15 % | **8 %** | 7 % |
+| Visitante (225), antes | 64 % | 20 % | 14 % | 3 % |
+| Visitante (225), después | 85 % | 8 % | 4 % | 3 % |
+| Desarrollo (73), después | 88 % | 12 % | 0 % | 0 % |
+
+La evaluación de `data/evaluation.json` no bajó: comportamiento 0,981 → 0,987, intención 0,981 → 0,987, primer resultado 0,688, recomendación 1,0, 0 sin sustento y conversaciones 1,0 (también solo con estado). La meta del plan (80 % de aciertos y como máximo 5 % de equivocadas en el examen) **todavía no se alcanza**; 8 de las 120 oraciones las bloquea el filtro de privacidad (fase 5).
+
+Qué cambió:
+
+- **El «sí» confirma la aclaración.** El estado guarda como foco la opción propuesta («¿Tu consulta es sobre «Galería…»?» → «sí» → la ficha de la galería). Con dos opciones, «el segundo» elige la segunda. También valen «sí, eso», «exacto» y «correcto».
+- **Ficha que gana con holgura** (`_dominant`). Se responde sin aclarar cuando la primera ficha coincide por frase clave (o por tres términos), supera 0,45 y ninguna otra llega al umbral de aclaración (o queda a 0,15 o más). No basta una palabra suelta compartida: «¿venden celulares de segunda?» sigue sin ir a contacto. También vale cuando «necesito», «me gustaría» o «ayudar» suenan a pedir una recomendación («Estoy haciendo mi tesis y necesito asesoría…»).
+- **Ubicación y horario de atención** con reglas cerradas: «¿por qué calle están?», «¿en qué parte de Cajamarca están ubicados?» y «Quisiera acercarme en persona a su oficina…» van a la sede, ya no a un curso presencial. «¿Dónde queda la plaza de armas?» no. «¿En qué horario responden por WhatsApp?» o «¿atienden los domingos?» responden con el texto ampliado del horario. Si la pregunta junta ubicación y otro dato, se responden las dos partes.
+- **Matrícula:** «Quiero inscribirme en el curso de Comunicación» responde con los 5 pasos verificados, que incluyen el WhatsApp (la web muestra el botón), y deja el curso en foco. Antes daba solo el enlace.
+- **Recomendación abierta en una oración:** «Soy secretaria…, ¿qué curso me recomiendan?» o «No sé cuál curso elegir, ¿me ayudas a decidir…?» ofrecen los cursos publicados para elegir. Si nombra un tema («…de redes»), se recomienda ese curso.
+- **Preguntas frecuentes antes que datos de todos los cursos:** «Perdí mi certificado del curso…» o «¿puedo cambiarme a otra fecha o me devuelven?» responden la ficha correspondiente, no el certificado ni la fecha de cada curso.
+- **Corrector ortográfico:** «tarea» ya no se corrige a «tarjeta» ni «pasado» a «pagado».
+- **Cortesía:** «perfecto, entendido», «Hola, ¿qué tal? Quería hacer unas consultas», «¿qué cosas puedo preguntarte?» y «mañana paso por la oficina, gracias». «¿Con quién hablo para coordinar?» deriva a un asesor; «¿con quién hablo?» a secas sigue preguntando por el asistente.
+- **Frases clave** añadidas a fichas existentes, sin cambiar sus textos: devoluciones («me arrepiento»), cambios de fecha, certificado perdido, entrega del certificado, capacitación en las instalaciones del cliente, envío del comprobante, modalidades de estudio y dirección de correo.
+
+Siguen sin resolverse:
+- «quiero estudiar algo de computación» dice que no hay ese curso: el catálogo no usa esa palabra.
+- «¿Esta conversación queda guardada?» no tiene una ficha publicada que lo responda.
+- Algunas preguntas con dos fichas parecidas siguen pidiendo elegir («¿hay examen final?»).
+
 ## Métricas del asistente y votos 👍/👎 (25/11/2026)
 
 **Qué se guarda en `chat_logs`** (nunca el texto del visitante):

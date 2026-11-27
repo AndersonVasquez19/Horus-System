@@ -141,8 +141,11 @@
           "goal": "service",
           "profile_age": 0,
           "cue_age": 0,
-          "focus_ids": [],
-          "focus_age": null,
+          "focus_ids": [
+            "redes_sociales",
+            "asesoramiento_empresarial"
+          ],
+          "focus_age": 0,
           "out_of_scope": false,
           "quote": false
         },
@@ -247,7 +250,7 @@
     {
       "query": "Quiero matricularme",
       "reply": {
-        "answer": "Para consultar la matrícula, continúa por el WhatsApp oficial de Horus Group: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula. No compartas datos personales en este chat.",
+        "answer": "Para matricularte sigue estos pasos:\n1. Elige el curso vigente de tu interés en nuestra web.\n2. Escríbenos por WhatsApp al +51 972 021 374 para confirmar vacante, tarifa e inicio: https://wa.me/51972021374?text=Hola%2C%20deseo%20consultar%20sobre%20la%20matr%C3%ADcula\n3. Realiza el pago por los medios autorizados (BCP, BBVA o Banco de la Nación) según indicación del asesor.\n4. Envía por ese WhatsApp tu comprobante de pago y tus datos de inscripción: nuestro personal registra tu matrícula en el curso que pediste y recibes la confirmación y tu boleta o factura electrónica.\n5. Te agregamos al grupo de WhatsApp de tu curso.",
         "intent": "enrollment_request",
         "match_level": "alta",
         "needs_clarification": false,
@@ -258,9 +261,9 @@
         "general_guidance": null,
         "sources": [
           {
-            "id": "contacto_canales",
-            "title": "Canales de contacto",
-            "url_path": "/contactos"
+            "id": "proceso_matricula_pasos",
+            "title": "Pasos para matricularte en un curso",
+            "url_path": "/educacion/cursos"
           }
         ],
         "mode": "lexical",
@@ -283,7 +286,7 @@
           "profile_age": null,
           "cue_age": null,
           "focus_ids": [
-            "contacto_canales"
+            "proceso_matricula_pasos"
           ],
           "focus_age": 0,
           "out_of_scope": false,

@@ -1031,8 +1031,11 @@
     "goal": "unknown",
     "profile_age": null,
     "cue_age": null,
-    "focus_ids": [],
-    "focus_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -1075,8 +1078,11 @@
     "goal": "unknown",
     "profile_age": null,
     "cue_age": null,
-    "focus_ids": [],
-    "focus_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -1119,8 +1125,11 @@
     "goal": "unknown",
     "profile_age": null,
     "cue_age": null,
-    "focus_ids": [],
-    "focus_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -1163,8 +1172,11 @@
     "goal": "unknown",
     "profile_age": null,
     "cue_age": null,
-    "focus_ids": [],
-    "focus_age": null,
+    "focus_ids": [
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
+    ],
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -3629,15 +3641,7 @@
     }
    ],
    "mode": "lexical",
-   "context": {
-    "turns_considered": 0,
-    "topics": [],
-    "level": null,
-    "modality": null,
-    "focus_ids": [],
-    "topic_changed": false,
-    "referential": false
-   },
+   "context": null,
    "state": {
     "topics": [],
     "objectives": [],
@@ -3710,9 +3714,9 @@
   "query": "atienden domingos",
   "state": null,
   "reply": {
-   "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m.",
+   "answer": "Atendemos de lunes a viernes de 9:00 a. m. a 1:00 p. m. y de 3:00 p. m. a 6:00 p. m., y los sábados de 9:00 a. m. a 1:00 p. m. Si tienes una consulta antes de acudir, escríbenos por WhatsApp al +51 972 021 374.",
    "intent": "contact_info",
-   "match_level": "media",
+   "match_level": "alta",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,
@@ -3727,15 +3731,7 @@
     }
    ],
    "mode": "lexical",
-   "context": {
-    "turns_considered": 0,
-    "topics": [],
-    "level": null,
-    "modality": null,
-    "focus_ids": [],
-    "topic_changed": false,
-    "referential": false
-   },
+   "context": null,
    "state": {
     "topics": [],
     "objectives": [],
@@ -4468,9 +4464,10 @@
     "profile_age": 1,
     "cue_age": 1,
     "focus_ids": [
-     "cat_listado_formacion"
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
     ],
-    "focus_age": 1,
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -4491,9 +4488,10 @@
    "profile_age": 1,
    "cue_age": 1,
    "focus_ids": [
-    "cat_listado_formacion"
+    "cat_curso_publicacion_7",
+    "cat_curso_publicacion_8"
    ],
-   "focus_age": 1,
+   "focus_age": 0,
    "out_of_scope": false,
    "quote": false
   },
@@ -4963,9 +4961,10 @@
     "profile_age": 1,
     "cue_age": 1,
     "focus_ids": [
-     "cat_listado_formacion"
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
     ],
-    "focus_age": 1,
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -5028,9 +5027,10 @@
     "profile_age": 1,
     "cue_age": 1,
     "focus_ids": [
-     "cat_listado_formacion"
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
     ],
-    "focus_age": 1,
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -5093,9 +5093,10 @@
     "profile_age": 1,
     "cue_age": 0,
     "focus_ids": [
-     "cat_listado_formacion"
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_8"
     ],
-    "focus_age": 1,
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -5559,9 +5560,10 @@
     "profile_age": 1,
     "cue_age": 1,
     "focus_ids": [
-     "cat_curso_publicacion_8"
+     "cat_curso_publicacion_7",
+     "cat_curso_publicacion_9"
     ],
-    "focus_age": 1,
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },
@@ -5624,9 +5626,10 @@
     "profile_age": 1,
     "cue_age": 1,
     "focus_ids": [
+     "cat_curso_publicacion_7",
      "cat_curso_publicacion_8"
     ],
-    "focus_age": 1,
+    "focus_age": 0,
     "out_of_scope": false,
     "quote": false
    },

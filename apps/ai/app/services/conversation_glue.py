@@ -36,10 +36,16 @@ _ACK = frozenset({
     "ya veo", "ya entendi", "esta bien", "muy bien", "de acuerdo", "super", "bacan", "chevere", "ok chevere", "ah ok",
     "ok ok",
 })
+_ACK_WORDS = frozenset({
+    "ok", "okay", "okey", "vale", "listo", "perfecto", "entiendo", "entendido", "genial", "excelente", "buenisimo", "super",
+    "bacan", "chevere", "ya", "ah", "muy", "bien",
+})
 _YES = frozenset({
     "si", "sii", "claro", "dale", "por favor", "si por favor", "claro que si", "cuentame", "adelante", "quiero",
     "quiero saber mas", "si quiero", "si dale", "si claro", "seguro", "porfa", "si porfa", "cuentame mas", "dime",
     "dime mas", "dame mas", "mas informacion", "mas detalles", "continua", "sigue",
+    # Confirmar la opción de una aclaración («¿Tu consulta es sobre…?»).
+    "si eso", "eso", "si es eso", "eso mismo", "exacto", "asi es", "correcto", "si sobre eso", "si de eso",
 })
 _NO = frozenset({
     "no", "nop", "no gracias", "asi esta bien", "nada mas", "eso es todo", "por ahora no", "no por ahora",
@@ -65,7 +71,11 @@ _HELP = frozenset({
     # Pedir «información» sin tema respondía con la ficha del primer curso que la mencionaba.
     "quiero informacion", "quisiera informacion", "necesito informacion", "deseo informacion",
     "dame informacion", "informacion porfa", "informacion por favor", "info porfa", "info por favor",
+    "queria hacer una consulta", "queria hacer unas consultas", "quisiera hacer unas consultas", "quiero hacer unas consultas",
+    "tengo unas consultas", "tengo unas preguntas", "tengo unas dudas", "unas consultas", "unas preguntas",
 })
+# «Hola, ¿qué tal? Quería hacer unas consultas»: el saludo delante no cambia que todavía no dijo sobre qué.
+_GREETING_PREFIX = re.compile(r"^(?:hola|buenas|buenos dias|buenas tardes|buenas noches|buen dia)(?: (?:que tal|como estas))? ")
 _TIME = frozenset({
     "que hora es", "que dia es", "que dia es hoy", "que fecha es", "que fecha es hoy", "en que fecha estamos",
     "que dia estamos", "sabes que hora es", "me dices la hora", "dime la hora",
@@ -142,6 +152,8 @@ def classify(message: str) -> Kind | None:
         return "rude"
     if _english(clean.split()):
         return "english"
+    if _GREETING_PREFIX.sub("", clean) in _HELP and len(clean.split()) <= _MAX_TOKENS + 3:
+        return "help"
     if len(clean.split()) > _MAX_TOKENS:
         return None
     if clean in _HELP:
@@ -152,8 +164,8 @@ def classify(message: str) -> Kind | None:
         return "repeat"
     if clean in _CONFUSED:
         return "confused"
-    if clean in _ACK:
-        return "ack"
+    if clean in _ACK or (len(clean.split()) <= 4 and set(clean.split()) <= _ACK_WORDS):
+        return "ack"  # también combinadas: «perfecto, entendido», «ok listo», «ya, genial»
     if clean in _YES:
         return "yes"
     if clean in _NO:
@@ -215,8 +227,24 @@ _COMPLAINT = re.compile(
     r"(el|la) (profesor|profesora|docente|instructor|instructora) no (vino|llego|asistio|se presento)|"
     r"no hubo clase|cancelaron la clase|mala atencion|pesimo servicio|quiero quejarme|quiero poner una queja|"
     r"quiero hacer un reclamo|quiero reclamar|tengo una queja|tengo un reclamo|"
-    r"nadie me (?:ha )?(?:respondido|responde|contesta|atiende)|no me (?:han )?(?:respondido|agregado|contestado))\b"
+    r"nadie me (?:ha )?(?:respondido|responde|contesta|atiende)|no me (?:han )?(?:respondido|agregado|contestado)|"
+    r"(?:todavia|aun) no me (?:agregan|añaden|anaden|responden|contestan))\b"
 )
+
+
+# Horario de atención de la oficina o del WhatsApp (no el de un curso): «¿en qué horario responden por WhatsApp?»,
+# «¿hasta qué hora atienden?». Sin esto, «horario» se tomaba como el horario de los cursos (no publicado).
+_OFFICE_HOURS = re.compile(
+    r"\b(?:horario|hora|horas)\b.{0,30}\b(?:atienden|atencion|responden|contestan|abren|cierran)\b"
+    r"|\b(?:atienden|abren|cierran|responden|contestan)\b.{0,25}\b(?:horario|hora|sabados?|domingos?|feriados?|almuerzo)\b"
+)
+
+
+def asks_office_hours(message: str) -> bool:
+    normalized = normalize(message)
+    # «¿Dónde están y a qué hora atienden?» sigue la búsqueda, que une ubicación y horario.
+    return (_OFFICE_HOURS.search(normalized) is not None
+            and re.search(r"\b(?:curso|cursos|clase|clases|taller|capacitacion|donde|direccion|ubicad\w*)\b", normalized) is None)
 
 
 def is_complaint(message: str) -> bool:
@@ -342,6 +370,19 @@ _OPEN_RECOMMEND = re.compile(
 def is_open_recommendation(message: str) -> bool:
     """«¿Cuál me recomiendas?» sin tema: se ayuda a elegir entre los cursos publicados."""
     return bool(_OPEN_RECOMMEND.match(" ".join(content_words(message))))
+
+
+# Lo mismo dentro de una oración larga: «Soy secretaria y quiero mejorar en mi trabajo, ¿qué curso me recomiendan?»,
+# «No sé cuál curso elegir, ¿me ayudas a decidir…?». Quien llama comprueba que no nombre un curso ni un tema.
+_OPEN_RECOMMEND_IN_SENTENCE = re.compile(
+    r"\b(?:que|cual|cuales) (?:curso|cursos) (?:me )?(?:recomiendas|recomiendan|recomienda|sugieres|sugieren|conviene)\b"
+    r"|\bno se (?:cual|que) curso\b|\b(?:ayudas|ayudan|ayudar|ayuden) a (?:decidir|elegir|escoger)\b"
+    r"|\bcual me (?:recomiendas|recomiendan|conviene)\b"
+)
+
+
+def is_open_recommendation_in_sentence(message: str) -> bool:
+    return _OPEN_RECOMMEND_IN_SENTENCE.search(normalize(message)) is not None
 
 
 _MODALITY_NEGATION = re.compile(r"\bno (?:quiero|me interesa|busco|deseo|me sirve)\b.{0,12}\b(virtual|online|presencial|semipresencial)\b")
@@ -575,6 +616,44 @@ _PRIVACY = re.compile(
 
 def asks_privacy(message: str) -> bool:
     return _PRIVACY.search(normalize(message)) is not None
+
+
+# «¿Con quién hablo para coordinar?» pide un asesor; «¿con quién estoy hablando?, ¿eres un programa?» pregunta por el
+# asistente y sigue siendo una pregunta de identidad.
+_WHOM_TO_CONTACT = re.compile(r"\bcon quien (?:hablo (?:para|sobre|si|acerca)|me comunico|coordino|puedo coordinar)\b")
+_ABOUT_ASSISTANT = re.compile(r"\b(?:eres|estoy hablando|persona real|programa|robot|bot|humano)\b")
+
+
+def asks_whom_to_contact(message: str) -> bool:
+    """También «Soy de una municipalidad y queremos firmar un convenio, ¿con quién hablo?»: tras una consulta de varias
+    palabras, «con quién hablo» pide un contacto; solo, sigue preguntando por el asistente."""
+    normalized = normalize(message)
+    asked = bool(_WHOM_TO_CONTACT.search(normalized) or re.search(r"\w+(?: \w+){3,} con quien hablo\b", normalized))
+    return asked and not _ABOUT_ASSISTANT.search(normalized)
+
+
+# Dónde está la sede, dicho de muchas formas («¿cuál es la dirección?», «¿por qué calle están?», «¿en qué parte de
+# Cajamarca están ubicados?»). «En persona» o «oficina» no deben llevar a un curso presencial (prueba del 26/11/2026).
+# No cuenta la dirección de correo ni «desde dónde» (estudiar desde otra ciudad) ni dónde enviar o presentar algo.
+_LOCATION = re.compile(
+    r"\b(?:cual es (?:la|su) direccion|(?:su|la|me pasas? la|me das? la|me dan la) direccion(?! de correo| electronica)"
+    r"|direccion (?:de (?:la|su) (?:oficina|sede|local)|exacta)"
+    # «¿Dónde queda la plaza de armas?» no pregunta por la sede: tras un artículo, solo oficina, sede o local.
+    r"|(?<!desde )donde (?:queda|quedan)(?! (?:la|el|los|las|un|una) (?!oficina|sede|local))"
+    r"|(?<!desde )donde (?:estan ubicados|se ubican|esta (?:su|la) (?:oficina|sede|local))"
+    r"|(?:por|en) que calle|en que parte (?:de [a-z]+ )?(?:estan|quedan|se ubican)|como llego (?:a|hasta) (?:su|la) (?:sede|oficina|local)"
+    r"|tienen (?:oficina|local|sede) fisic[ao])\b"
+)
+
+
+_OTHER_CONTACT_DATA = re.compile(r"\b(?:telefono|whatsapp|correo|email|numero|celular|horario|hora|pago|pagar)\b")
+
+
+def asks_location(message: str) -> bool:
+    """Solo la ubicación: «dirección y teléfono» o «¿dónde están y a qué hora atienden?» siguen el flujo de varias
+    preguntas, que une las dos fichas."""
+    normalized = normalize(message)
+    return _LOCATION.search(normalized) is not None and _OTHER_CONTACT_DATA.search(normalized) is None
 
 
 LEVEL_REPLY = (
