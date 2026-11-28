@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { PanelShell } from '@/components/shared/panel-shell';
 import type { ModeloNavegacion } from '@/components/shared/panel-tipos';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 // Navegación limpia y sin duplicados de la barra superior (Buscar -> Ctrl+K, Notificaciones -> campana, Perfil -> menú usuario).
 const NAVEGACION: ModeloNavegacion = [
@@ -33,7 +34,7 @@ const NAVEGACION: ModeloNavegacion = [
     id: 'atencion',
     etiqueta: 'Atención y control',
     elementos: [
-      { id: 'reclamaciones', etiqueta: 'Reclamaciones', href: '/admin/academico/reclamaciones', icono: 'reclamaciones', permisosRequeridos: ['reclamaciones.ver'] },
+      { id: 'reclamaciones', etiqueta: RECLAMACIONES_EN_PANEL ? 'Reclamaciones' : 'Mensajes de contacto', href: '/admin/academico/reclamaciones', icono: 'reclamaciones', permisosRequeridos: ['reclamaciones.ver'] },
       { id: 'aprobaciones', etiqueta: 'Aprobaciones', href: '/admin/academico/aprobaciones', icono: 'aprobaciones', permisosRequeridos: ['aprobaciones.ver'] },
       { id: 'asistente', etiqueta: 'Asistente virtual', href: '/admin/academico/asistente', icono: 'asistente', permisosRequeridos: ['asistente.ver'] },
     ],

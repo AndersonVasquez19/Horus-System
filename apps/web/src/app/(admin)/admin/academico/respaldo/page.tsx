@@ -9,6 +9,7 @@ import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido } from '@/components/shared/ui/estados';
 import { EsqueletoFicha, Seccion } from '@/components/shared/ui/tabla';
 import { consultarPanel } from '@/lib/panel/api-servidor';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 export const metadata = { title: 'Exportar datos' };
 
@@ -90,7 +91,7 @@ async function Contenido() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          <ExportarRespaldo secciones={contenido} />
+          <ExportarRespaldo secciones={contenido.filter((seccion) => RECLAMACIONES_EN_PANEL || seccion.clave !== 'reclamaciones')} />
         </div>
 
         <div className="space-y-6">

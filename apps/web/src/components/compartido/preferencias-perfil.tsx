@@ -12,6 +12,7 @@ import { useOperacionPanel } from '@/components/shared/use-operacion-panel';
 import type { PreferenciasNotificacion } from '@/features/notificaciones/tipos';
 import { errorDeCampo } from '@/lib/panel/cliente';
 import type { ErrorPanel } from '@/lib/panel/tipos';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 const DEFECTO: PreferenciasNotificacion = {
   interno: true,
@@ -111,7 +112,7 @@ export function PreferenciasPerfil({
           {([
             ['recordatorio_cuotas', 'Cuotas por vencer / vencidas'],
             ['recordatorio_sesiones', 'Lista de espera con cupo'],
-            ['recordatorio_reclamaciones', 'Plazos y mensajes de reclamaciones'],
+            ['recordatorio_reclamaciones', RECLAMACIONES_EN_PANEL ? 'Plazos y mensajes de reclamaciones' : 'Mensajes de contacto sin atender'],
             ['alerta_accesos', 'Alertas de intentos de acceso'],
           ] as const).map(([clave, etiqueta]) => (
             <Casilla key={clave} etiqueta={etiqueta} checked={prefs[clave]} onChange={() => alternar(clave)} />

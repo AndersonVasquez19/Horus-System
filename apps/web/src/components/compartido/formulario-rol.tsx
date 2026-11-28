@@ -11,6 +11,7 @@ import { Casilla } from '@/components/shared/ui/casilla';
 import type { RolPanel } from '@/features/notificaciones/tipos';
 import { esquemaRol } from '@/lib/panel/esquemas';
 import { agruparPermisos } from '@/lib/permisos-etiquetas';
+import { permisoVisible } from '@/lib/funciones';
 
 interface FormularioRolProps {
   /** Sin rol: alta. Con rol: edición. */
@@ -55,7 +56,7 @@ export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCanc
     onExito: (respuesta) => onGuardado(respuesta.message),
   });
   const seleccion = f.form.watch('permissions');
-  const grupos = useMemo(() => agruparPermisos(permisos), [permisos]);
+  const grupos = useMemo(() => agruparPermisos(permisos.filter(permisoVisible)), [permisos]);
   const gruposFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return grupos;
@@ -96,7 +97,7 @@ export function FormularioRol({ rol, inicial, permisos, tono, onGuardado, onCanc
 
       <fieldset className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <legend className="text-sm font-medium text-panel-text">Permisos ({seleccion.length})</legend>
+          <legend className="text-sm font-medium text-panel-text">Permisos ({seleccion.filter(permisoVisible).length})</legend>
           <input
             type="search"
             value={busqueda}

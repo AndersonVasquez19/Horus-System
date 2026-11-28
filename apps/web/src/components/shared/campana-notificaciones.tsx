@@ -9,6 +9,7 @@ import { ipDelCliente } from '@/lib/panel/red';
 import type { Notificacion } from '@/features/notificaciones/tipos';
 import { DesplegableCampana } from './desplegable-campana';
 import type { InsigniasNavegacion, TonoPanel } from './panel-tipos';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 const CLASE_ENLACE =
   'relative inline-flex items-center rounded-md p-2 text-panel-text outline-offset-2 hover:bg-panel-bg focus-visible:outline-2 focus-visible:outline-academico-700';
@@ -43,7 +44,7 @@ const leerRecientes = cache(async (cookieSesion: string, ipCliente: string | nul
   if (typeof conteos.aprobaciones_pendientes === 'number' && conteos.aprobaciones_pendientes > 0) {
     insignias.aprobaciones = conteos.aprobaciones_pendientes;
   }
-  const urgenciasReclamaciones = (conteos.reclamaciones_por_vencer ?? 0) + (conteos.mensajes_nuevos ?? 0);
+  const urgenciasReclamaciones = (RECLAMACIONES_EN_PANEL ? (conteos.reclamaciones_por_vencer ?? 0) : 0) + (conteos.mensajes_nuevos ?? 0);
   if (urgenciasReclamaciones > 0) {
     insignias.reclamaciones = urgenciasReclamaciones;
   }

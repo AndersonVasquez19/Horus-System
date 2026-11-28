@@ -9,6 +9,7 @@ import { useAvisos } from '@/components/shared/ui/avisos';
 import { Boton } from '@/components/shared/ui/boton';
 import { Campo } from '@/components/shared/ui/campo';
 import { hoyLima, numero, sumarDias } from '@/lib/panel/formato';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 export type GrupoRespaldo = 'academico' | 'finanzas' | 'atencion' | 'administracion';
 
@@ -80,7 +81,8 @@ export function ExportarRespaldo({ secciones }: { secciones: SeccionRespaldo[] }
     }
     setExportando(true);
     const qs = new URLSearchParams();
-    if (seleccionadas.length < secciones.length) {
+    // Con el libro oculto se piden siempre las tablas: sin la lista, Laravel las incluiría todas.
+    if (!RECLAMACIONES_EN_PANEL || seleccionadas.length < secciones.length) {
       qs.set('tablas', seleccionadas.join(','));
     }
     if (desde !== '') qs.set('desde', desde);

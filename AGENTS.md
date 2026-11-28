@@ -195,3 +195,7 @@ Se retiraron las **sesiones de clase, la asistencia y las calificaciones** (API,
 ## Libro de Reclamaciones preparado para abrirse (28/11/2026)
 
 El propietario autorizó dejar listo el libro virtual, incluidos cambios en la web pública (formularios del libro y de «Contáctanos», y política de privacidad). La recepción solo se abre con envío de correos activo, buzón de la empresa y datos del proveedor; la empresa recibe un aviso por cada hoja y la respuesta se escribe desde el panel. Las propuestas de solución quedan apagadas. **No se activó nada**; activarlo en un entorno lo hace el propietario. Durante el desarrollo, las pruebas **sí enviaron correos reales** a direcciones ficticias (corregido: `CorreoDePruebasAisladoTest` lo vigila; no retirar las variables de correo de `phpunit.xml`). Detalle: [`docs/libro-reclamaciones-activacion.md`](docs/libro-reclamaciones-activacion.md).
+
+## Reclamaciones oculta en el panel (28/11/2026)
+
+Por decisión del propietario, la sección **Reclamaciones** no se muestra en el panel (interruptor `RECLAMACIONES_EN_PANEL` en `apps/web/src/lib/funciones.ts`); la entrada queda como **Mensajes de contacto**. Es solo de la interfaz: no se borró código ni datos. No volver a mostrarla sin decisión del propietario, y no activar el libro mientras esté oculta.

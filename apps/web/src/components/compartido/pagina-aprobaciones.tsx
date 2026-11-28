@@ -12,6 +12,7 @@ import type { TonoUi } from '@/components/shared/ui/boton';
 import { ETIQUETAS_AUTORIDAD, ETIQUETAS_TIPO_APROBACION, ETIQUETAS_TIPO_APROBACION_LISTADO } from '@/features/notificaciones/aprobaciones';
 import type { AprobacionFila } from '@/features/notificaciones/tipos';
 import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 type Parametros = Record<string, string | string[] | undefined>;
 
@@ -24,7 +25,7 @@ function enlaceDeReferencia(referencia: string, tono: TonoUi): string | null {
   const estudiante = /^EST-?#?(\d+)$/i.exec(limpia);
   if (estudiante) return `/admin/${tono}/estudiantes/${estudiante[1]}`;
   if (/^\d{8}$/.test(limpia)) return `/admin/${tono}/estudiantes?busqueda=${encodeURIComponent(limpia)}`;
-  if (/^REC-[\w-]+$/i.test(limpia)) return `/admin/${tono}/reclamaciones?busqueda=${encodeURIComponent(limpia)}`;
+  if (RECLAMACIONES_EN_PANEL && /^REC-[\w-]+$/i.test(limpia)) return `/admin/${tono}/reclamaciones?busqueda=${encodeURIComponent(limpia)}`;
   if (/^(?:CNV|ED)-[\w-]+$/i.test(limpia)) return `/admin/${tono}/convocatorias?busqueda=${encodeURIComponent(limpia)}`;
   return null;
 }

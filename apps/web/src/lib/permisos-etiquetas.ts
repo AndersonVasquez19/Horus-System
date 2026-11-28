@@ -14,7 +14,7 @@ const MODULOS: Record<string, { etiqueta: string; orden: number }> = {
   certificados: { etiqueta: 'Certificados', orden: 10 },
   reportes: { etiqueta: 'Reportes', orden: 11 },
   aprobaciones: { etiqueta: 'Aprobaciones', orden: 12 },
-  reclamaciones: { etiqueta: 'Libro de reclamaciones y mensajes', orden: 13 },
+  reclamaciones: { etiqueta: 'Mensajes de contacto', orden: 13 },
   usuarios: { etiqueta: 'Usuarios', orden: 15 },
   roles: { etiqueta: 'Roles y permisos', orden: 16 },
   auditoria: { etiqueta: 'Historial de actividad', orden: 17 },
@@ -51,7 +51,7 @@ const ACCIONES: Record<string, string> = {
 /** Casos cuyo sentido depende del módulo y no se deduce de la acción. */
 const ESPECIALES: Record<string, string> = {
   'panel.academico.acceder': 'Entrar al panel de gestión académica',
-  'reclamaciones.gestionar': 'Gestionar reclamaciones y mensajes de contacto',
+  'reclamaciones.gestionar': 'Atender mensajes de contacto',
   'reclamaciones.responder': 'Responder reclamaciones',
   'aprobaciones.gestionar': 'Aprobar o rechazar solicitudes',
   'asistente.ver': 'Usar y revisar el asistente virtual',

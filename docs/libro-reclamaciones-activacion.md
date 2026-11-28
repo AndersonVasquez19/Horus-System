@@ -6,6 +6,13 @@
 > **Incidente del 28/11/2026:** durante el desarrollo, varias ejecuciones de la suite **enviaron correos reales** de
 > prueba (ver §7). Está corregido.
 
+> **La sección del panel está oculta (28/11/2026)** por decisión del propietario: el menú muestra solo «Mensajes de
+> contacto». **No actives el libro así**: las hojas se guardarían y llegarían por correo, pero no habría dónde verlas ni
+> responderlas. Antes cambia `RECLAMACIONES_EN_PANEL` a `true` en `apps/web/src/lib/funciones.ts` y publica la web.
+> Mientras esté oculta, no se muestran la bandeja, los expedientes, la tarjeta de plazos, la casilla «Responder
+> reclamaciones» ni la tabla de reclamaciones en «Exportar datos». La API, los permisos y los datos no cambian, y las
+> pruebas de `apps/web/e2e/reclamaciones-ocultas.spec.ts` habrá que retirarlas o invertirlas al reactivarla.
+
 ## 1. Cómo funciona
 
 1. El consumidor envía el formulario de la web (`/legales/libro-reclamaciones`).

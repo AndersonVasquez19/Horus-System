@@ -15,6 +15,7 @@ import { consulta, consultarPanel } from '@/lib/panel/api-servidor';
 import { fecha, hoyLima } from '@/lib/panel/formato';
 import { AsignacionLoteReclamaciones } from './lote-reclamaciones';
 import { MensajesContacto } from './pagina-mensajes-contacto';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 type Parametros = Record<string, string | string[] | undefined>;
 
@@ -53,6 +54,20 @@ function semaforoPlazo(fila: ReclamacionFila, hoy: string): { texto: string; col
 
 /** Bandeja del Libro de Reclamaciones. La monta cada panel bajo `/admin/<panel>/reclamaciones`. */
 export function PaginaReclamaciones({ tono, searchParams }: { tono: TonoUi; searchParams: Promise<Parametros> }) {
+  if (!RECLAMACIONES_EN_PANEL) {
+    return (
+      <>
+        <EncabezadoPagina
+          titulo="Mensajes de contacto"
+          descripcion="Mensajes enviados desde «Contáctanos». Contienen datos personales: úsalos solo para responder a la persona."
+          migas={[{ etiqueta: 'Inicio', href: `/admin/${tono}` }, { etiqueta: 'Mensajes de contacto' }]}
+        />
+        <Suspense fallback={<EsqueletoListado etiqueta="Cargando los mensajes" />}>
+          <SoloMensajes tono={tono} searchParams={searchParams} />
+        </Suspense>
+      </>
+    );
+  }
   return (
     <>
       <EncabezadoPagina
@@ -65,6 +80,10 @@ export function PaginaReclamaciones({ tono, searchParams }: { tono: TonoUi; sear
       </Suspense>
     </>
   );
+}
+
+async function SoloMensajes({ tono, searchParams }: { tono: TonoUi; searchParams: Promise<Parametros> }) {
+  return <MensajesContacto tono={tono} parametros={await searchParams} />;
 }
 
 async function Bandeja({ tono, searchParams }: { tono: TonoUi; searchParams: Promise<Parametros> }) {

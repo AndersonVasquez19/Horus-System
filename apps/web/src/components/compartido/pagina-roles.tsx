@@ -9,6 +9,7 @@ import { consultarPanel } from '@/lib/panel/api-servidor';
 import { etiqueta } from '@/lib/panel/formato';
 import { agruparPermisos } from '@/lib/permisos-etiquetas';
 import { AccionesRol, BotonNuevoRol } from './acciones-rol';
+import { permisoVisible } from '@/lib/funciones';
 
 const TIPOS = { principal: 'Principal', base: 'Base', personalizado: 'Personalizado' } as const;
 
@@ -47,7 +48,8 @@ async function Roles({ tono }: { tono: TonoUi }) {
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
           {roles.map((rol) => {
-            const grupos = agruparPermisos(rol.permisos);
+            const visibles = rol.permisos.filter(permisoVisible);
+            const grupos = agruparPermisos(visibles);
             return (
               <li key={rol.id} className="space-y-3 rounded-xl border border-panel-border bg-panel-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -58,7 +60,7 @@ async function Roles({ tono }: { tono: TonoUi }) {
                         {rol.usuarios === 1 ? '1 usuario' : `${rol.usuarios} usuarios`}
                       </Link>
                       {' · '}
-                      {rol.permisos.length === 1 ? '1 permiso' : `${rol.permisos.length} permisos`}
+                      {visibles.length === 1 ? '1 permiso' : `${visibles.length} permisos`}
                       {' · '}
                       <span className="font-mono">{rol.nombre}</span>
                     </p>

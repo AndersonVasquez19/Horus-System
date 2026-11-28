@@ -6,6 +6,7 @@ import { TarjetaKpi } from '@/components/shared/ui/tarjeta-kpi';
 import type { ResumenAcademico } from '@/features/academico/tipos';
 import { fecha, moneda, numero } from '@/lib/panel/formato';
 import { enlaceWaMe, mensajeRecordatorioCuota } from '@/lib/panel/whatsapp-plantillas';
+import { RECLAMACIONES_EN_PANEL } from '@/lib/funciones';
 
 type Datos = ResumenAcademico;
 
@@ -101,7 +102,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
         icono={<CalendarClock className="h-5 w-5" />}
       />
     ),
-    a.reclamaciones && (
+    RECLAMACIONES_EN_PANEL && a.reclamaciones && (
       <TarjetaAccion
         key="reclamaciones"
         href="/admin/academico/reclamaciones?estado=abierto"

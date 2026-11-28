@@ -134,7 +134,8 @@ const RESUMEN = {
       { id: 2, estudiante: 'Luis Torres Díaz', curso: 'Curso de prueba 2', estado: 'pagada', fecha: '2026-11-18' },
     ],
   },
-  acciones: { pagos_por_confirmar: { cantidad: 2, monto: '300.00' } },
+  // Laravel sigue enviando los plazos del libro: el panel los oculta (`RECLAMACIONES_EN_PANEL`).
+  acciones: { pagos_por_confirmar: { cantidad: 2, monto: '300.00' }, reclamaciones: { vencidas: 1, vencen_hoy: 0, por_vencer: 0 } },
   negocio: { cobrado_mes: '1850.00', saldo_por_cobrar: '640.00' },
   seguimiento: { aprobaciones_pendientes: 2, notificaciones_sin_leer: 3 },
 };
@@ -210,6 +211,16 @@ function reporte(tipo) {
 
 function manejarPanel(req, res, ruta, consulta, cuerpo) {
   if (ruta === 'auth/sesion') return enviar(res, 200, { data: SESION });
+  if (ruta === 'compartido/reclamaciones-mensajes' && req.method === 'GET') {
+    return enviar(res, 200, { ...listado([{ id: '00000000-0000-4000-8000-000000000009', nombre: 'Persona Ficticia', telefono: '900000000', correo: 'persona@example.test', asunto: 'Cursos', mensaje: 'Consulta sintética sobre un curso.', estado: 'nuevo', recibido_local: '28/11/2026 10:00', atendido_por: null, atendido_local: null }], consulta, []) });
+  }
+  if (ruta === 'compartido/respaldo' && req.method === 'GET') {
+    return enviar(res, 200, { data: { aviso: 'Exportación de prueba.', historial: [], contenido: [
+      { clave: 'estudiantes', etiqueta: 'Estudiantes', grupo: 'academico', registros: 1 },
+      { clave: 'reclamaciones', etiqueta: 'Reclamaciones', grupo: 'atencion', registros: 0 },
+      { clave: 'mensajes_contacto', etiqueta: 'Mensajes de contacto', grupo: 'atencion', registros: 1 },
+    ] } });
+  }
   if (ruta === 'academico/resumen') return enviar(res, 200, { data: RESUMEN });
 
   if (ruta === 'compartido/notificaciones/recientes') {
