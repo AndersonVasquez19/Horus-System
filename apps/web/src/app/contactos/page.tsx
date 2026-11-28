@@ -17,8 +17,17 @@ import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
 
 const SIN_ETIQUETAS = /^[^<>]*$/;
 const SOLO_NOMBRE = /^[\p{L}\s'\-.]+$/u;
+const CARACTERES_NO_NOMBRE = /[^\p{L}\s'\-.]/gu;
 const CON_LETRAS = /\p{L}/u;
-const TELEFONO_CONTACTO = /^[0-9+()\s-]{6,30}$/;
+const TELEFONO_CONTACTO = /^\d{9}$/;
+
+function limpiarSoloLetras(valor: string): string {
+  return valor.replace(CARACTERES_NO_NOMBRE, '');
+}
+
+function limpiarTelefono(valor: string): string {
+  return valor.replace(/\D+/g, '').slice(0, 9);
+}
 
 function validarFormularioContacto(v: { nombre: string; telefono: string; email: string; asunto: string; mensaje: string }): Record<string, string> {
   const errores: Record<string, string> = {};
@@ -37,9 +46,8 @@ function validarFormularioContacto(v: { nombre: string; telefono: string; email:
     errores.telefono = 'Indica un teléfono o un correo para poder responderte.';
     errores.email = 'Indica un teléfono o un correo para poder responderte.';
   } else if (telefono !== '') {
-    const digitos = telefono.replace(/\D+/g, '');
-    if (!TELEFONO_CONTACTO.test(telefono) || digitos.length < 7 || digitos.length > 15) {
-      errores.telefono = 'Escribe un teléfono válido de entre 7 y 15 dígitos.';
+    if (!TELEFONO_CONTACTO.test(telefono)) {
+      errores.telefono = 'Escribe un teléfono válido de 9 dígitos.';
     }
   }
 
@@ -137,7 +145,21 @@ export default function ContactosPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormValues((prev) => ({ ...prev, [name]: value }));
+    const valorFinal =
+      name === 'nombre'
+        ? limpiarSoloLetras(value)
+        : name === 'telefono'
+          ? limpiarTelefono(value)
+          : value;
+    setFormValues((prev) => ({ ...prev, [name]: valorFinal }));
+    if (name === 'nombre' && /\d/.test(value)) {
+      setErrores((prev) => ({ ...prev, nombre: 'Escribe un nombre válido usando solo letras, no números.' }));
+      return;
+    }
+    if (name === 'telefono' && (/\D/.test(value) || value.replace(/\D+/g, '').length > 9)) {
+      setErrores((prev) => ({ ...prev, telefono: 'El teléfono debe tener solo 9 dígitos numéricos.' }));
+      return;
+    }
     if (errores[name]) {
       setErrores((prev) => {
         const siguiente = { ...prev };
@@ -385,12 +407,13 @@ export default function ContactosPage() {
                     </label>
                     <input
                       type="tel"
+                      inputMode="numeric"
                       id="telefono"
                       name="telefono"
                       value={formValues.telefono}
                       onChange={handleChange}
-                      placeholder="Ej. 927 000 000"
-                      maxLength={30}
+                      placeholder="Ej. 927000000"
+                      maxLength={9}
                       aria-invalid={errores.telefono ? true : undefined}
                       aria-describedby={errores.telefono ? 'telefono-error' : undefined}
                       className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none aria-[invalid=true]:border-red-500"

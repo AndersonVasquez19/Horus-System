@@ -15,14 +15,21 @@ import { CONTACT_INFO } from '@/data/contactos';
 
 const SIN_ETIQUETAS = /^[^<>]*$/;
 const SOLO_NOMBRE = /^[\p{L}\s'\-.]+$/u;
+const CARACTERES_NO_NOMBRE = /[^\p{L}\s'\-.]/gu;
 const CON_LETRAS = /\p{L}/u;
-const TELEFONO = /^[+0-9() .-]{5,30}$/;
+const TELEFONO = /^\d{9}$/;
 const MONTO = /^\d{1,10}([.,]\d{1,2})?$/;
 
+function limpiarSoloLetras(valor: string): string {
+  return valor.replace(CARACTERES_NO_NOMBRE, '');
+}
+
+function limpiarTelefono(valor: string): string {
+  return valor.replace(/\D+/g, '').slice(0, 9);
+}
+
 function telefonoValido(valor: string): boolean {
-  if (!TELEFONO.test(valor)) return false;
-  const digitos = valor.replace(/\D+/g, '');
-  return digitos.length >= 7 && digitos.length <= 15;
+  return TELEFONO.test(valor);
 }
 
 function rucPeruanoValido(ruc: string): boolean {
@@ -47,7 +54,7 @@ const texto = (min: number, max: number, vacio: string) =>
 
 const textoNombre = (vacio: string) =>
   texto(2, 120, vacio)
-    .regex(SOLO_NOMBRE, 'Usa solo letras, espacios, guiones o apóstrofes.')
+    .regex(SOLO_NOMBRE, 'Solo se permiten letras, no números.')
     .regex(CON_LETRAS, 'Ingresa un nombre válido.');
 
 const esquema = z
@@ -57,13 +64,13 @@ const esquema = z
     numero_documento: z.string().trim().min(1, 'Ingresa tu número de documento.').max(20),
     nombres: textoNombre('Ingresa tus nombres.'),
     apellidos: textoNombre('Ingresa tus apellidos.'),
-    telefono: z.string().trim().max(30, 'Máximo 30 caracteres.').refine(telefonoValido, 'Ingresa un teléfono válido de entre 7 y 15 dígitos.'),
+    telefono: z.string().trim().refine(telefonoValido, 'Ingresa un teléfono válido de 9 dígitos.'),
     email: z.string().trim().email('Ingresa un correo electrónico válido.').max(254),
     domicilio: texto(5, 255, 'Ingresa tu domicilio o dirección.'),
     es_menor: z.boolean(),
     representante_nombre: z.string().trim().max(120).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
     representante_domicilio: z.string().trim().max(255).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
-    representante_telefono: z.string().trim().max(30, 'Máximo 30 caracteres.').optional(),
+    representante_telefono: z.string().trim().max(9, 'Máximo 9 dígitos.').optional(),
     representante_email: z.string().trim().optional(),
     bien_tipo: z.enum(['producto', 'servicio']).optional(),
     bien_descripcion: z.string().trim().max(500, 'Máximo 500 caracteres.').regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
@@ -90,7 +97,7 @@ const esquema = z
       }
       if (!d.representante_domicilio) ctx.addIssue({ code: 'custom', path: ['representante_domicilio'], message: 'Ingresa el domicilio del representante.' });
       if (!d.representante_telefono || !telefonoValido(d.representante_telefono)) {
-        ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: 'Ingresa un teléfono válido del representante (7 a 15 dígitos).' });
+        ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: 'Ingresa un teléfono válido del representante (9 dígitos).' });
       }
       if (!d.representante_email || !z.string().email().safeParse(d.representante_email).success) ctx.addIssue({ code: 'custom', path: ['representante_email'], message: 'Ingresa un correo válido del representante.' });
     }
@@ -186,6 +193,7 @@ export function LibroForm() {
     control,
     setValue,
     setError,
+    clearErrors,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<Datos>({
@@ -203,6 +211,40 @@ export function LibroForm() {
   const nombreTipo = esReclamo ? 'reclamo' : 'queja';
   const maxDocumento = tipoDocumento === 'dni' ? 8 : tipoDocumento === 'ruc' ? 11 : 12;
   const modoDocumento = tipoDocumento === 'dni' || tipoDocumento === 'ruc' ? 'numeric' : 'text';
+
+  const registrarSoloLetras = (campo: 'nombres' | 'apellidos' | 'representante_nombre') =>
+    register(campo, {
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        const valorOriginal = e.target.value;
+        const limpio = limpiarSoloLetras(valorOriginal);
+        if (limpio !== valorOriginal) {
+          e.target.value = limpio;
+          setValue(campo, limpio, { shouldDirty: true });
+          if (/\d/.test(valorOriginal)) {
+            setError(campo, { type: 'manual', message: 'Solo se permiten letras, no números.' });
+          }
+        } else if (errors[campo]?.type === 'manual') {
+          clearErrors(campo);
+        }
+      },
+    });
+
+  const registrarTelefono = (campo: 'telefono' | 'representante_telefono') =>
+    register(campo, {
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        const valorOriginal = e.target.value;
+        const limpio = limpiarTelefono(valorOriginal);
+        if (limpio !== valorOriginal) {
+          e.target.value = limpio;
+          setValue(campo, limpio, { shouldDirty: true });
+          if (/\D/.test(valorOriginal) || valorOriginal.replace(/\D+/g, '').length > 9) {
+            setError(campo, { type: 'manual', message: 'Solo se permiten 9 dígitos numéricos.' });
+          }
+        } else if (errors[campo]?.type === 'manual') {
+          clearErrors(campo);
+        }
+      },
+    });
 
   const cargarCredenciales = useCallback(async () => setCredenciales(await pedirCredenciales()), []);
 
@@ -422,17 +464,17 @@ export function LibroForm() {
             </div>
             <div>
               <label htmlFor="telefono" className="mb-1 block text-xs font-semibold text-stone-300">Teléfono / celular *</label>
-              <input id="telefono" type="tel" autoComplete="tel" maxLength={30} {...register('telefono')} {...ariaCampo('telefono')} className={input} />
+              <input id="telefono" type="tel" inputMode="numeric" autoComplete="tel" maxLength={9} {...registrarTelefono('telefono')} {...ariaCampo('telefono')} className={input} />
               {mensajeError('telefono')}
             </div>
             <div>
               <label htmlFor="nombres" className="mb-1 block text-xs font-semibold text-stone-300">Nombres *</label>
-              <input id="nombres" type="text" autoComplete="given-name" maxLength={120} {...register('nombres')} {...ariaCampo('nombres')} className={input} />
+              <input id="nombres" type="text" autoComplete="given-name" maxLength={120} {...registrarSoloLetras('nombres')} {...ariaCampo('nombres')} className={input} />
               {mensajeError('nombres')}
             </div>
             <div>
               <label htmlFor="apellidos" className="mb-1 block text-xs font-semibold text-stone-300">Apellidos *</label>
-              <input id="apellidos" type="text" autoComplete="family-name" maxLength={120} {...register('apellidos')} {...ariaCampo('apellidos')} className={input} />
+              <input id="apellidos" type="text" autoComplete="family-name" maxLength={120} {...registrarSoloLetras('apellidos')} {...ariaCampo('apellidos')} className={input} />
               {mensajeError('apellidos')}
             </div>
             <div>
@@ -456,12 +498,12 @@ export function LibroForm() {
               <div className="mt-4 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="representante_nombre" className="mb-1 block text-xs font-semibold text-stone-300">Nombre del padre, madre o representante *</label>
-                  <input id="representante_nombre" type="text" maxLength={120} {...register('representante_nombre')} {...ariaCampo('representante_nombre')} className={input} />
+                  <input id="representante_nombre" type="text" maxLength={120} {...registrarSoloLetras('representante_nombre')} {...ariaCampo('representante_nombre')} className={input} />
                   {mensajeError('representante_nombre')}
                 </div>
                 <div>
                   <label htmlFor="representante_telefono" className="mb-1 block text-xs font-semibold text-stone-300">Teléfono del representante *</label>
-                  <input id="representante_telefono" type="tel" maxLength={30} {...register('representante_telefono')} {...ariaCampo('representante_telefono')} className={input} />
+                  <input id="representante_telefono" type="tel" inputMode="numeric" maxLength={9} {...registrarTelefono('representante_telefono')} {...ariaCampo('representante_telefono')} className={input} />
                   {mensajeError('representante_telefono')}
                 </div>
                 <div>
