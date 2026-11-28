@@ -11,7 +11,6 @@ import {
   X,
   Award,
   CheckCircle2,
-  CalendarCheck,
 } from 'lucide-react';
 import { CONVENIOS, type Convenio } from '@/data/convenios';
 
@@ -200,13 +199,6 @@ export function ConveniosSection({
                       {item.nombre}
                     </h3>
 
-                    <div className="mt-4 pt-4 border-t border-white/12 flex items-center gap-3">
-                      <span className="h-2 w-2 rounded-full bg-gold ring-4 ring-gold/20 flex-shrink-0"></span>
-                      <p className="text-xs text-white/80">
-                        Vigente hasta <strong className="text-white font-semibold block sm:inline">{item.vigencia}</strong>
-                      </p>
-                    </div>
-
                     <button
                       type="button"
                       onClick={() => setActiveConvenio(item)}
@@ -279,11 +271,6 @@ export function ConveniosSection({
               <div className="flex flex-wrap items-center gap-3">
                 <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide bg-slate-100 text-[#0A2540] border border-slate-200">
                   {activeConvenio.siglas}
-                </span>
-                <span className="text-xs sm:text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                  <CalendarCheck className="h-4 w-4 text-slate-500" />
-                  <span>Vigente hasta</span>
-                  <strong className="text-slate-800">{activeConvenio.vigencia}</strong>
                 </span>
               </div>
 

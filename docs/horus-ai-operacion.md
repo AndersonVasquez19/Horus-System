@@ -283,7 +283,7 @@ Un compañero hizo 60 pruebas en la web antes de `ca10b51`. Se repitieron en loc
 Siguen sin resolverse:
 - «Quiero matricularme, ¿te paso mi DNI?» lo bloquea el filtro de privacidad (fase 5).
 - «¿Con el certificado gano seguro la plaza?» pide confirmar el tema antes de responder.
-- La web todavía muestra «Vigente hasta 20 de noviembre del 2026» en el convenio CR XIII.
+- ~~La web todavía muestra «Vigente hasta 20 de noviembre del 2026» en el convenio CR XIII.~~ Resuelto el 27/11/2026: por decisión del propietario, las tarjetas de convenios de la web y su detalle ya no muestran la vigencia. El asistente sigue respondiendo la vigencia publicada cuando se pregunta por ella, y avisa cuando ya pasó.
 - «quiero estudiar algo de computación» dice que no hay ese curso: el catálogo no usa esa palabra.
 - «¿Esta conversación queda guardada?» no tiene una ficha publicada que lo responda.
 - Algunas preguntas con dos fichas parecidas siguen pidiendo elegir («¿hay examen final?»).
