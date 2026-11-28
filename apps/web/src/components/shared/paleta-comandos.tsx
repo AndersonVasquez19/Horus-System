@@ -19,8 +19,6 @@ const ATAJOS = [
   { etiqueta: 'Nueva matrícula', href: '/admin/academico/matriculas/nueva', palabras: 'nueva matricula inscribir', icono: UserPlus },
   { etiqueta: 'Matrículas', href: '/admin/academico/matriculas', palabras: 'matriculas inscripciones', icono: GraduationCap },
   { etiqueta: 'Pagos y deudores', href: '/admin/academico/pagos', palabras: 'pagos caja yape cuotas cobros deudores', icono: CreditCard },
-  { etiqueta: 'Riesgo de deserción', href: '/admin/academico/riesgo', palabras: 'riesgo desercion abandono faltas seguimiento', icono: GraduationCap },
-  { etiqueta: 'Cobranza', href: '/admin/academico/cobranza', palabras: 'cobranza mora deuda vencida promesa contacto', icono: CreditCard },
   { etiqueta: 'Certificados', href: '/admin/academico/certificados', palabras: 'certificados diplomas codigo', icono: Award },
   { etiqueta: 'Estudiantes', href: '/admin/academico/estudiantes', palabras: 'estudiantes alumnos dni', icono: Users },
   { etiqueta: 'Cursos', href: '/admin/academico/cursos', palabras: 'cursos catalogo', icono: BookOpen },

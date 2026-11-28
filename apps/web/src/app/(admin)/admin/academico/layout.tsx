@@ -16,8 +16,6 @@ const NAVEGACION: ModeloNavegacion = [
     elementos: [
       { id: 'matriculas', etiqueta: 'Matrículas', href: '/admin/academico/matriculas', icono: 'matriculas', permisosRequeridos: ['matriculas.ver'] },
       { id: 'pagos', etiqueta: 'Pagos y deudores', href: '/admin/academico/pagos', icono: 'pagos', permisosRequeridos: ['pagos.ver'] },
-      { id: 'riesgo', etiqueta: 'Riesgo de deserción', href: '/admin/academico/riesgo', icono: 'matriculas', permisosRequeridos: ['matriculas.ver'] },
-      { id: 'cobranza', etiqueta: 'Cobranza', href: '/admin/academico/cobranza', icono: 'pagos', permisosRequeridos: ['pagos.ver'] },
       { id: 'certificados', etiqueta: 'Certificados', href: '/admin/academico/certificados', icono: 'certificados', permisosRequeridos: ['certificados.ver'] },
     ],
   },

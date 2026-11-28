@@ -428,67 +428,6 @@ export interface CertificadoResumen {
   motivo_anulacion: string | null;
 }
 
-// ---- Riesgo de deserción ----
-
-export interface FilaRiesgo {
-  matricula_id: number;
-  estudiante: string;
-  edicion: string;
-  edicion_identificador: string;
-  puntaje: number;
-  nivel: 'alto' | 'medio';
-  factores: { codigo: string; texto: string }[];
-}
-
-export interface RiesgoDesercion {
-  rows: FilaRiesgo[];
-  resumen: { alto: number; medio: number };
-}
-
-// ---- Cobranza asistida ----
-
-export type TramoMora = 'reciente' | 'media' | 'critica';
-
-export interface FilaCobranza {
-  obligacion: string;
-  matricula_id: number;
-  estudiante: string | null;
-  dni: string | null;
-  curso: { codigo: string; nombre: string } | null;
-  concepto: string;
-  dias_mora: number;
-  tramo: TramoMora;
-  monto_vencido: string;
-  saldo: string;
-  cuotas_vencidas: number;
-  ultimo_contacto: { fecha: string | null; canal: string; resultado: string } | null;
-  promesa: { estado: 'vigente' | 'incumplida'; fecha: string; monto: string | null } | null;
-}
-
-export interface ColaCobranza {
-  rows: FilaCobranza[];
-  truncado: boolean;
-  resumen: {
-    obligaciones: number;
-    monto_vencido: string;
-    tramos: Record<TramoMora, { cantidad: number; monto: string }>;
-    promesas_vigentes: number;
-    promesas_incumplidas: number;
-    sin_contacto: number;
-  };
-}
-
-export interface SeguimientoCobranzaVista {
-  identificador: string;
-  canal: string;
-  resultado: string;
-  nota: string | null;
-  promesa_fecha: string | null;
-  promesa_monto: string | null;
-  registrado_por: string | null;
-  creado: string | null;
-}
-
 // ---- Estudiante 360° ----
 
 export interface EventoLineaTiempo {

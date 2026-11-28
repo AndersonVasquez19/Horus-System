@@ -20,7 +20,7 @@ const RUTA = '/admin/academico/reportes';
 const FILTROS = ['tipo', 'busqueda', 'estado', 'curso_id', 'eliminados'] as const;
 const TIPOS_REPORTE = {
   matriculas: 'Matrículas',
-  cobranza: 'Cobranza',
+  cobranza: 'Pagos',
   asistencia: 'Asistencia por edición',
   calificaciones: 'Calificaciones por edición',
 } as const;
@@ -113,7 +113,7 @@ function formatearVistaPrevia(tipo: TipoReporte, datos: RespuestaReporte): Vista
   if (tipo === 'cobranza') {
     const filas = datos.data as unknown as FilaCobranza[];
     return {
-      titulo: 'Reporte de Cobranza',
+      titulo: 'Reporte de Pagos',
       subtitulo: `Obligaciones filtradas (${datos.meta.total})`,
       resumen: [
         { etiqueta: 'Obligaciones', valor: numero(Number(datos.resumen.obligaciones ?? 0)) },
@@ -336,7 +336,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
           )
         ) : tipo === 'cobranza' ? (
           <Tabla
-            titulo={`Cobranza (${meta.total}) · lote ${meta.lote} de ${meta.lotes}`}
+            titulo={`Pagos (${meta.total}) · lote ${meta.lote} de ${meta.lotes}`}
             columnas={['Matrícula', 'Estudiante', 'Curso', { texto: 'Total', derecha: true }, { texto: 'Cobrado', derecha: true }, { texto: 'Saldo', derecha: true }, 'Estado']}
             pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
           >

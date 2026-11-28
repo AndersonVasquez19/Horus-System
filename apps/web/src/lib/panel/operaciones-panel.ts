@@ -177,11 +177,6 @@ export const OPERACIONES: readonly Operacion[] = [
   { metodo: 'GET', patron: /^academico\/pagos\/verificar-referencia$/, consulta: ['referencia'] },
   { metodo: 'GET', patron: /^academico\/pagos\/caja-diaria\/resumen$/, consulta: ['fecha'] },
   { metodo: 'POST', patron: /^academico\/pagos\/caja-diaria\/pdf$/, archivo: ['application/pdf'] },
-  { metodo: 'GET', patron: /^academico\/riesgo-desercion$/ },
-  // Cobranza asistida: cola de deuda vencida y bitácora de contactos/promesas (el servidor valida canales, resultados y fechas)
-  { metodo: 'GET', patron: /^academico\/cobranza\/cola$/, consulta: ['tramo', 'promesa', 'busqueda'] },
-  { metodo: 'GET', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/seguimientos$`) },
-  { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/seguimientos$`), campos: ['canal', 'resultado', 'nota', 'promesa_fecha', 'promesa_monto'] },
   { metodo: 'GET', patron: /^academico\/pagos\/caja-diaria\/cierres$/ },
   { metodo: 'POST', patron: /^academico\/pagos\/caja-diaria\/cierre$/, campos: ['fecha', 'observacion'], mapas: ['declarado'] },
   { metodo: 'POST', patron: new RegExp(`^academico/pagos/obligaciones/${UUID}/anular$`), campos: ['motivo'] },
