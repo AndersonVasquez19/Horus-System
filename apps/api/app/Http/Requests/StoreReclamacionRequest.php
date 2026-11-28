@@ -64,13 +64,13 @@ class StoreReclamacionRequest extends FormRequest
             'tipo_documento' => ['required', Rule::in(['dni', 'ce', 'pasaporte', 'ruc'])],
             'numero_documento' => ['required', 'string', 'max:20'],
             'domicilio' => ['required', 'string', 'min:5', 'max:255', 'not_regex:/[<>]/u'],
-            'telefono' => ['required', 'string', 'max:30', 'regex:/\A[+0-9() .-]{5,30}\z/D'],
+            'telefono' => ['required', 'string', 'regex:/\A\d{9}\z/D'],
             'email' => ['required', 'email:rfc', 'max:254'],
             'canal_respuesta' => ['sometimes', Rule::in(['correo', 'carta'])],
             'es_menor' => ['sometimes', 'boolean'],
             'representante_nombre' => [Rule::requiredIf($menor), 'nullable', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u', 'regex:/\A[\p{L}\s\'\-.]+\z/u', 'regex:/\p{L}/u'],
             'representante_domicilio' => [Rule::requiredIf($menor), 'nullable', 'string', 'max:255', 'not_regex:/[<>]/u'],
-            'representante_telefono' => [Rule::requiredIf($menor), 'nullable', 'string', 'max:30', 'regex:/\A[+0-9() .-]{5,30}\z/D'],
+            'representante_telefono' => [Rule::requiredIf($menor), 'nullable', 'string', 'regex:/\A\d{9}\z/D'],
             'representante_email' => [Rule::requiredIf($menor), 'nullable', 'email:rfc', 'max:254'],
             'bien_tipo' => [Rule::requiredIf($reclamo), 'nullable', Rule::in(['producto', 'servicio'])],
             'bien_descripcion' => ['required_with:bien_tipo', Rule::requiredIf($reclamo), 'nullable', 'string', 'min:5', 'max:500', 'not_regex:/[<>]/u', 'regex:/\p{L}/u'],
@@ -91,7 +91,9 @@ class StoreReclamacionRequest extends FormRequest
         return [
             'nombres.regex' => 'Ingresa nombres válidos usando solo letras.',
             'apellidos.regex' => 'Ingresa apellidos válidos usando solo letras.',
+            'telefono.regex' => 'Ingresa un teléfono válido de 9 dígitos.',
             'representante_nombre.regex' => 'Ingresa un nombre válido del representante usando solo letras.',
+            'representante_telefono.regex' => 'Ingresa un teléfono válido del representante (9 dígitos).',
             'bien_descripcion.min' => 'Describe el producto o servicio con al menos 5 caracteres.',
             'bien_descripcion.regex' => 'La descripción del bien debe incluir texto válido.',
             'detalle.regex' => 'El detalle debe incluir una descripción legible.',
@@ -118,15 +120,6 @@ class StoreReclamacionRequest extends FormRequest
             };
             if (! $valido && ! $v->errors()->has('numero_documento')) {
                 $v->errors()->add('numero_documento', 'El número de documento no tiene el formato del tipo elegido.');
-            }
-            foreach (['telefono', 'representante_telefono'] as $campoTelefono) {
-                $valorTel = $this->input($campoTelefono);
-                if (is_string($valorTel) && $valorTel !== '' && ! $v->errors()->has($campoTelefono)) {
-                    $digitos = preg_replace('/\D+/', '', $valorTel) ?? '';
-                    if (strlen($digitos) < 7 || strlen($digitos) > 15) {
-                        $v->errors()->add($campoTelefono, 'Ingresa un teléfono válido de entre 7 y 15 dígitos.');
-                    }
-                }
             }
             // Reclamo: monto obligatorio (> 0) salvo que se marque «no aplica».
             if ($this->input('tipo') === 'reclamo' && ! $this->boolean('monto_no_aplica') && ! $v->errors()->has('monto_bien')) {

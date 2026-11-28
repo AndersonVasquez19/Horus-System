@@ -29,7 +29,7 @@ final class ContactoPanelTest extends PanelApiTestCase
     private function enviar(array $extra = [], bool $conToken = true): TestResponse
     {
         $cuerpo = $extra + [
-            'nombre' => 'María Pérez', 'telefono' => '927 000 000', 'correo' => 'maria@example.test',
+            'nombre' => 'María Pérez', 'telefono' => '927000000', 'correo' => 'maria@example.test',
             'asunto' => 'Cursos', 'mensaje' => 'Quisiera información sobre los cursos.',
         ];
 
@@ -64,6 +64,7 @@ final class ContactoPanelTest extends PanelApiTestCase
         $this->enviar(['nombre' => ''])->assertUnprocessable()->assertJsonValidationErrors('nombre');
         $this->enviar(['nombre' => '12345'])->assertUnprocessable()->assertJsonValidationErrors('nombre');
         $this->enviar(['telefono' => '------', 'correo' => ''])->assertUnprocessable()->assertJsonValidationErrors('telefono');
+        $this->enviar(['telefono' => '9270000001', 'correo' => ''])->assertUnprocessable()->assertJsonValidationErrors('telefono');
         $this->enviar(['asunto' => 'Inventado'])->assertUnprocessable()->assertJsonValidationErrors('asunto');
         $this->enviar(['telefono' => '', 'correo' => ''])->assertUnprocessable()->assertJsonValidationErrors(['telefono', 'correo']);
         $this->enviar(['correo' => 'no-es-correo'])->assertUnprocessable()->assertJsonValidationErrors('correo');

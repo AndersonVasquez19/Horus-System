@@ -78,6 +78,7 @@ class ReclamacionRequestsTest extends TestCase
             'telefono con letras' => [['telefono' => 'abc12345'], 'telefono'],
             'telefono sin digitos' => [['telefono' => '-----'], 'telefono'],
             'telefono demasiado corto' => [['telefono' => '12345'], 'telefono'],
+            'telefono con mas de 9 digitos' => [['telefono' => '9123456789'], 'telefono'],
             'sin detalle' => [['detalle' => ''], 'detalle'],
             'detalle sin letras' => [['detalle' => '..........'], 'detalle'],
             'detalle demasiado largo' => [['detalle' => str_repeat('a', 3001)], 'detalle'],

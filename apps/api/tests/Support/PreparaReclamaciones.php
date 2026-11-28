@@ -44,7 +44,7 @@ trait PreparaReclamaciones
     {
         return $extra + [
             'tipo' => 'reclamo', 'nombres' => 'Persona', 'apellidos' => 'Ficticia', 'tipo_documento' => 'dni',
-            'numero_documento' => '12345678', 'domicilio' => 'Calle Ficticia 123, Cajamarca', 'telefono' => '+51 900 000 000',
+            'numero_documento' => '12345678', 'domicilio' => 'Calle Ficticia 123, Cajamarca', 'telefono' => '900000000',
             'email' => 'persona.ficticia@example.test', 'canal_respuesta' => 'correo', 'es_menor' => false,
             'bien_tipo' => 'servicio', 'bien_descripcion' => 'Curso sintético de prueba', 'monto_bien' => '150.00',
             'detalle' => 'Detalle sintético del reclamo para pruebas automatizadas.', 'pedido' => 'Pedido sintético.',
