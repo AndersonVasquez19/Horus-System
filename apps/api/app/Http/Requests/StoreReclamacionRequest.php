@@ -59,8 +59,8 @@ class StoreReclamacionRequest extends FormRequest
             'marca' => ['required', 'string'],
             'token_envio' => ['required', 'uuid'],
             'tipo' => ['required', Rule::in(['reclamo', 'queja'])],
-            'nombres' => ['required', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u'],
-            'apellidos' => ['required', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u'],
+            'nombres' => ['required', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u', 'regex:/\A[\p{L}\s\'\-.]+\z/u', 'regex:/\p{L}/u'],
+            'apellidos' => ['required', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u', 'regex:/\A[\p{L}\s\'\-.]+\z/u', 'regex:/\p{L}/u'],
             'tipo_documento' => ['required', Rule::in(['dni', 'ce', 'pasaporte', 'ruc'])],
             'numero_documento' => ['required', 'string', 'max:20'],
             'domicilio' => ['required', 'string', 'min:5', 'max:255', 'not_regex:/[<>]/u'],
@@ -68,16 +68,16 @@ class StoreReclamacionRequest extends FormRequest
             'email' => ['required', 'email:rfc', 'max:254'],
             'canal_respuesta' => ['sometimes', Rule::in(['correo', 'carta'])],
             'es_menor' => ['sometimes', 'boolean'],
-            'representante_nombre' => [Rule::requiredIf($menor), 'nullable', 'string', 'max:120', 'not_regex:/[<>]/u'],
+            'representante_nombre' => [Rule::requiredIf($menor), 'nullable', 'string', 'min:2', 'max:120', 'not_regex:/[<>]/u', 'regex:/\A[\p{L}\s\'\-.]+\z/u', 'regex:/\p{L}/u'],
             'representante_domicilio' => [Rule::requiredIf($menor), 'nullable', 'string', 'max:255', 'not_regex:/[<>]/u'],
             'representante_telefono' => [Rule::requiredIf($menor), 'nullable', 'string', 'max:30', 'regex:/\A[+0-9() .-]{5,30}\z/D'],
             'representante_email' => [Rule::requiredIf($menor), 'nullable', 'email:rfc', 'max:254'],
             'bien_tipo' => [Rule::requiredIf($reclamo), 'nullable', Rule::in(['producto', 'servicio'])],
-            'bien_descripcion' => ['required_with:bien_tipo', Rule::requiredIf($reclamo), 'nullable', 'string', 'max:500', 'not_regex:/[<>]/u'],
+            'bien_descripcion' => ['required_with:bien_tipo', Rule::requiredIf($reclamo), 'nullable', 'string', 'min:5', 'max:500', 'not_regex:/[<>]/u', 'regex:/\p{L}/u'],
             'monto_no_aplica' => ['sometimes', 'boolean'],
             'monto_bien' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99', 'decimal:0,2'],
-            'detalle' => ['required', 'string', 'min:10', 'max:3000', 'not_regex:/[<>]/u'],
-            'pedido' => ['required', 'string', 'min:5', 'max:1500', 'not_regex:/[<>]/u'],
+            'detalle' => ['required', 'string', 'min:10', 'max:3000', 'not_regex:/[<>]/u', 'regex:/\p{L}/u'],
+            'pedido' => ['required', 'string', 'min:5', 'max:1500', 'not_regex:/[<>]/u', 'regex:/\p{L}/u'],
             // Campos que el servidor asigna: el cliente no puede enviarlos.
             'estado' => ['prohibited'], 'numero' => ['prohibited'], 'identificador' => ['prohibited'],
             'fecha_limite' => ['prohibited'], 'responsable_id' => ['prohibited'], 'respuesta' => ['prohibited'],
@@ -89,6 +89,13 @@ class StoreReclamacionRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'nombres.regex' => 'Ingresa nombres válidos usando solo letras.',
+            'apellidos.regex' => 'Ingresa apellidos válidos usando solo letras.',
+            'representante_nombre.regex' => 'Ingresa un nombre válido del representante usando solo letras.',
+            'bien_descripcion.min' => 'Describe el producto o servicio con al menos 5 caracteres.',
+            'bien_descripcion.regex' => 'La descripción del bien debe incluir texto válido.',
+            'detalle.regex' => 'El detalle debe incluir una descripción legible.',
+            'pedido.regex' => 'El pedido debe incluir una descripción legible.',
             'monto_bien.decimal' => 'El monto admite hasta dos decimales.',
             'bien_tipo.required' => 'Indica si el reclamo es sobre un producto o un servicio.',
             'bien_descripcion.required' => 'Describe el producto o servicio.',
@@ -103,8 +110,8 @@ class StoreReclamacionRequest extends FormRequest
             }
             $numero = Entrada::texto($this->input('numero_documento'));
             $valido = match ($this->input('tipo_documento')) {
-                'dni' => preg_match('/\A\d{8}\z/D', $numero) === 1,
-                'ruc' => preg_match('/\A\d{11}\z/D', $numero) === 1,
+                'dni' => preg_match('/\A\d{8}\z/D', $numero) === 1 && $numero !== '00000000',
+                'ruc' => self::rucPeruanoValido($numero),
                 'ce' => preg_match('/\A[A-Z0-9]{9,12}\z/D', $numero) === 1,
                 'pasaporte' => preg_match('/\A[A-Z0-9]{6,12}\z/D', $numero) === 1,
                 default => true,
@@ -112,11 +119,46 @@ class StoreReclamacionRequest extends FormRequest
             if (! $valido && ! $v->errors()->has('numero_documento')) {
                 $v->errors()->add('numero_documento', 'El número de documento no tiene el formato del tipo elegido.');
             }
-            // Reclamo: monto obligatorio salvo que se marque «no aplica».
-            if ($this->input('tipo') === 'reclamo' && ! $this->boolean('monto_no_aplica') && blank($this->input('monto_bien')) && ! $v->errors()->has('monto_bien')) {
-                $v->errors()->add('monto_bien', 'Indica el monto o marca «no aplica».');
+            foreach (['telefono', 'representante_telefono'] as $campoTelefono) {
+                $valorTel = $this->input($campoTelefono);
+                if (is_string($valorTel) && $valorTel !== '' && ! $v->errors()->has($campoTelefono)) {
+                    $digitos = preg_replace('/\D+/', '', $valorTel) ?? '';
+                    if (strlen($digitos) < 7 || strlen($digitos) > 15) {
+                        $v->errors()->add($campoTelefono, 'Ingresa un teléfono válido de entre 7 y 15 dígitos.');
+                    }
+                }
+            }
+            // Reclamo: monto obligatorio (> 0) salvo que se marque «no aplica».
+            if ($this->input('tipo') === 'reclamo' && ! $this->boolean('monto_no_aplica') && ! $v->errors()->has('monto_bien')) {
+                $monto = $this->input('monto_bien');
+                if (blank($monto)) {
+                    $v->errors()->add('monto_bien', 'Indica el monto o marca «no aplica».');
+                } elseif (is_numeric($monto) && (float) $monto <= 0.0) {
+                    $v->errors()->add('monto_bien', 'El monto debe ser mayor a cero o marca «no aplica».');
+                }
             }
         });
+    }
+
+    /** Valida RUC peruano (11 dígitos, prefijo SUNAT válido y dígito verificador módulo 11). */
+    private static function rucPeruanoValido(string $ruc): bool
+    {
+        if (preg_match('/\A(10|15|16|17|20)\d{9}\z/D', $ruc) !== 1) {
+            return false;
+        }
+        $factores = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+        $suma = 0;
+        for ($i = 0; $i < 10; $i++) {
+            $suma += ((int) $ruc[$i]) * $factores[$i];
+        }
+        $complemento = 11 - ($suma % 11);
+        $verificador = match ($complemento) {
+            10 => 0,
+            11 => 1,
+            default => $complemento,
+        };
+
+        return $verificador === (int) $ruc[10];
     }
 
     /**

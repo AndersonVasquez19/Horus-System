@@ -62,9 +62,13 @@ final class ContactoPanelTest extends PanelApiTestCase
     {
         $this->enviar(conToken: false)->assertStatus(401);
         $this->enviar(['nombre' => ''])->assertUnprocessable()->assertJsonValidationErrors('nombre');
+        $this->enviar(['nombre' => '12345'])->assertUnprocessable()->assertJsonValidationErrors('nombre');
+        $this->enviar(['telefono' => '------', 'correo' => ''])->assertUnprocessable()->assertJsonValidationErrors('telefono');
         $this->enviar(['asunto' => 'Inventado'])->assertUnprocessable()->assertJsonValidationErrors('asunto');
         $this->enviar(['telefono' => '', 'correo' => ''])->assertUnprocessable()->assertJsonValidationErrors(['telefono', 'correo']);
         $this->enviar(['correo' => 'no-es-correo'])->assertUnprocessable()->assertJsonValidationErrors('correo');
+        $this->enviar(['mensaje' => '<script>alert(1)</script>'])->assertUnprocessable()->assertJsonValidationErrors('mensaje');
+        $this->enviar(['mensaje' => '..........'])->assertUnprocessable()->assertJsonValidationErrors('mensaje');
         $this->enviar(['sitio_web' => 'https://spam.example'])->assertUnprocessable();
         $this->assertSame(0, MensajeContacto::query()->count());
     }
