@@ -187,3 +187,7 @@ Se retiró la API de edición de fichas (`/api/panel/v1/servicios/*`), los permi
 ## Retiro de Cobranza y Riesgo de deserción (27/11/2026)
 
 Se retiraron ambas secciones del panel y su API; **Pagos** queda como única sección de dinero (el aviso diario de deuda vencida pasa a Pagos y la pestaña de Reportes se llama «Pagos»). No se borraron datos: `seguimientos_cobranza` se conserva y se lee en la ficha 360°. Detalle: [`docs/retiro-cobranza-riesgo.md`](docs/retiro-cobranza-riesgo.md). No reintroducirlas sin decisión expresa del propietario.
+
+## Retiro de sesiones, asistencia y calificaciones (27/11/2026)
+
+Se retiraron las **sesiones de clase, la asistencia y las calificaciones** (API, panel, reportes, avisos y la lista de sesiones de la página pública de la edición). Esto sustituye las menciones anteriores de este archivo a las sesiones de las fases 3–4: no forman parte del alcance. No se borraron datos ni hubo migraciones; los certificados solo se bloquean por deuda. Detalle: [`docs/retiro-sesiones-asistencia-calificaciones.md`](docs/retiro-sesiones-asistencia-calificaciones.md). No reintroducirlas sin decisión expresa del propietario.
