@@ -30,13 +30,44 @@ trait PreparaReclamaciones
         }
     }
 
-    /** Simula la activación solo en esta prueba; nunca cambia los valores predeterminados de config/. */
-    protected function habilitarReclamaciones(bool $envio = false): void
+    /**
+     * Simula la activación completa solo en esta prueba; nunca cambia los valores predeterminados de config/.
+     * El envío forma parte de la activación y las propuestas quedan encendidas para seguir probando sus reglas.
+     */
+    protected function habilitarReclamaciones(): void
     {
-        config(['reclamaciones.enabled' => true, 'mail.default' => 'smtp', 'mail.from.address' => 'libro@horus.test']);
-        if ($envio) {
-            config(['reclamaciones.correo.enabled' => true]);
-        }
+        // El libro exige un mailer con nombre «real». Es un alias en memoria: nunca se usa SMTP ni un proveedor, aunque
+        // la prueba olvide `Mail::fake()` y la cola `sync` ejecute los envíos.
+        config([
+            'mail.mailers.pruebas_sin_envio' => ['transport' => 'array'],
+            'reclamaciones.enabled' => true, 'mail.default' => 'pruebas_sin_envio', 'mail.from.address' => 'libro@horus.test',
+            'reclamaciones.correo.enabled' => true, 'reclamaciones.correo.empresa' => 'empresa@horus.test',
+            'reclamaciones.proveedor' => [
+                'razon_social' => 'Proveedor Sintético SRL', 'ruc' => '20000000001',
+                'direccion' => 'Calle Sintética 1', 'codigo_libro' => 'LIBRO-PRUEBA',
+            ],
+            'reclamaciones.propuestas_habilitadas' => true,
+        ]);
+    }
+
+    protected function apagarEnvio(): void
+    {
+        config(['reclamaciones.correo.enabled' => false]);
+    }
+
+    /**
+     * Hoja ya registrada para probar la gestión sin colas pendientes: el alta exige el envío activo, así que se
+     * registra con él, se restaura el valor que tuviera la prueba y se reinicia la cola simulada.
+     */
+    protected function registrarSinColas(array $extra = []): Reclamacion
+    {
+        $envio = config('reclamaciones.correo.enabled');
+        config(['reclamaciones.correo.enabled' => true]);
+        $reclamacion = $this->registrar($extra)['reclamacion'];
+        config(['reclamaciones.correo.enabled' => $envio]);
+        Queue::fake();
+
+        return $reclamacion;
     }
 
     /** @return array<string, mixed> */

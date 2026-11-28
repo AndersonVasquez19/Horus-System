@@ -54,7 +54,7 @@ class EnvioReclamaciones
         }
         $reclamacion = Reclamacion::query()->findOrFail($envio->reclamacion_id);
         try {
-            $enviado = Mail::to($reclamacion->email)->send(new ReclamacionMail($envio->asunto, $envio->cuerpo));
+            $enviado = Mail::to($reclamacion->email)->send(new ReclamacionMail($envio->asunto, $envio->cuerpo, Reclamaciones::correoEmpresa()));
             $proveedorId = $enviado?->getMessageId();
         } catch (Throwable $e) {
             return $this->fallo($envio->id, $e instanceof TransportExceptionInterface ? 'transporte' : 'error_envio');
@@ -134,5 +134,10 @@ class EnvioReclamaciones
         $envio->forceFill(['estado' => 'fallido'])->save();
         $this->gestion->historial($r, 'correo_fallido', null, ['envio_id' => $envio->id, 'tipo' => $envio->tipo, 'resultado' => $envio->error_codigo ?? 'intentos_agotados']);
         AuditoriaReclamaciones::registrar('correo_fallido', $r, ['envio_id' => $envio->id, 'envio_tipo' => $envio->tipo, 'resultado' => $envio->error_codigo ?? 'intentos_agotados'], null);
+        $this->gestion->avisarFalloCorreo($r, match ($envio->tipo) {
+            'copia_hoja' => 'la copia de la hoja al consumidor',
+            'respuesta' => 'la respuesta al consumidor',
+            default => 'la propuesta al consumidor',
+        });
     }
 }

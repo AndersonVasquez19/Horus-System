@@ -154,7 +154,7 @@ final class ReclamacionController extends Controller implements HasMiddleware
                 'puede_gestionar' => $puedeGestionar,
                 'puede_responder' => $actor->can('reclamaciones.responder'),
                 'estudiante_relacionado' => $estudianteRelacionado,
-            ],
+            ] + $this->gestion->operacionesDisponibles($actor, $r),
         ], 200, self::CABECERAS);
     }
 

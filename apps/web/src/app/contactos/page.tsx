@@ -14,19 +14,15 @@ import {
 } from 'lucide-react';
 import { CONTACT_INFO } from '@/data/contactos';
 import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
+import { ERROR_TELEFONO, MAX_TELEFONO_ESCRITO, filtrarTelefono, normalizarTelefono } from '@/lib/telefono';
 
 const SIN_ETIQUETAS = /^[^<>]*$/;
 const SOLO_NOMBRE = /^[\p{L}\s'\-.]+$/u;
 const CARACTERES_NO_NOMBRE = /[^\p{L}\s'\-.]/gu;
 const CON_LETRAS = /\p{L}/u;
-const TELEFONO_CONTACTO = /^\d{9}$/;
 
 function limpiarSoloLetras(valor: string): string {
   return valor.replace(CARACTERES_NO_NOMBRE, '');
-}
-
-function limpiarTelefono(valor: string): string {
-  return valor.replace(/\D+/g, '').slice(0, 9);
 }
 
 function validarFormularioContacto(v: { nombre: string; telefono: string; email: string; asunto: string; mensaje: string }): Record<string, string> {
@@ -46,8 +42,8 @@ function validarFormularioContacto(v: { nombre: string; telefono: string; email:
     errores.telefono = 'Indica un teléfono o un correo para poder responderte.';
     errores.email = 'Indica un teléfono o un correo para poder responderte.';
   } else if (telefono !== '') {
-    if (!TELEFONO_CONTACTO.test(telefono)) {
-      errores.telefono = 'Escribe un teléfono válido de 9 dígitos.';
+    if (normalizarTelefono(telefono) === null) {
+      errores.telefono = ERROR_TELEFONO;
     }
   }
 
@@ -105,7 +101,7 @@ export default function ContactosPage() {
         signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
           nombre: formValues.nombre.trim(),
-          telefono: formValues.telefono.trim(),
+          telefono: normalizarTelefono(formValues.telefono) ?? '',
           correo: formValues.email.trim(),
           asunto: formValues.asunto,
           mensaje: formValues.mensaje.trim(),
@@ -149,15 +145,15 @@ export default function ContactosPage() {
       name === 'nombre'
         ? limpiarSoloLetras(value)
         : name === 'telefono'
-          ? limpiarTelefono(value)
+          ? filtrarTelefono(value)
           : value;
     setFormValues((prev) => ({ ...prev, [name]: valorFinal }));
     if (name === 'nombre' && /\d/.test(value)) {
       setErrores((prev) => ({ ...prev, nombre: 'Escribe un nombre válido usando solo letras, no números.' }));
       return;
     }
-    if (name === 'telefono' && (/\D/.test(value) || value.replace(/\D+/g, '').length > 9)) {
-      setErrores((prev) => ({ ...prev, telefono: 'El teléfono debe tener solo 9 dígitos numéricos.' }));
+    if (name === 'telefono' && filtrarTelefono(value) !== value) {
+      setErrores((prev) => ({ ...prev, telefono: ERROR_TELEFONO }));
       return;
     }
     if (errores[name]) {
@@ -407,13 +403,12 @@ export default function ContactosPage() {
                     </label>
                     <input
                       type="tel"
-                      inputMode="numeric"
                       id="telefono"
                       name="telefono"
                       value={formValues.telefono}
                       onChange={handleChange}
                       placeholder="Ej. 927000000"
-                      maxLength={9}
+                      maxLength={MAX_TELEFONO_ESCRITO}
                       aria-invalid={errores.telefono ? true : undefined}
                       aria-describedby={errores.telefono ? 'telefono-error' : undefined}
                       className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none aria-[invalid=true]:border-red-500"

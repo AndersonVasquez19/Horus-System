@@ -191,3 +191,7 @@ Se retiraron ambas secciones del panel y su API; **Pagos** queda como única sec
 ## Retiro de sesiones, asistencia y calificaciones (27/11/2026)
 
 Se retiraron las **sesiones de clase, la asistencia y las calificaciones** (API, panel, reportes, avisos y la lista de sesiones de la página pública de la edición). Esto sustituye las menciones anteriores de este archivo a las sesiones de las fases 3–4: no forman parte del alcance. No se borraron datos ni hubo migraciones; los certificados solo se bloquean por deuda. Detalle: [`docs/retiro-sesiones-asistencia-calificaciones.md`](docs/retiro-sesiones-asistencia-calificaciones.md). No reintroducirlas sin decisión expresa del propietario.
+
+## Libro de Reclamaciones preparado para abrirse (28/11/2026)
+
+El propietario autorizó dejar listo el libro virtual, incluidos cambios en la web pública (formularios del libro y de «Contáctanos», y política de privacidad). La recepción solo se abre con envío de correos activo, buzón de la empresa y datos del proveedor; la empresa recibe un aviso por cada hoja y la respuesta se escribe desde el panel. Las propuestas de solución quedan apagadas. **No se activó nada**; activarlo en un entorno lo hace el propietario. Durante el desarrollo, las pruebas **sí enviaron correos reales** a direcciones ficticias (corregido: `CorreoDePruebasAisladoTest` lo vigila; no retirar las variables de correo de `phpunit.xml`). Detalle: [`docs/libro-reclamaciones-activacion.md`](docs/libro-reclamaciones-activacion.md).

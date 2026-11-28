@@ -24,8 +24,7 @@ const ETIQUETAS: Record<Operacion, string> = {
   respuesta: 'Registrar respuesta formal',
 };
 
-const GESTIONAR: readonly Operacion[] = ['responsable', 'tipo', 'nota', 'propuesta', 'rechazo'];
-const RESPONDER: readonly Operacion[] = ['aceptacion', 'respuesta'];
+const CANALES: Record<'correo' | 'carta', string> = { correo: 'Correo electrónico', carta: 'Carta' };
 
 const PLANTILLAS_PROPUESTA = [
   {
@@ -40,18 +39,15 @@ const PLANTILLAS_PROPUESTA = [
   },
 ] as const;
 
+// Solo estructura: la conclusión, el sustento y las medidas las escribe quien responde, según cada caso.
 const PLANTILLAS_RESPUESTA = [
   {
-    etiqueta: 'Procedente con solución aplicada',
-    texto: 'Luego de evaluar los hechos y documentos presentados, declaramos su solicitud PROCEDENTE y confirmamos la ejecución de la medida correctiva correspondiente.',
+    etiqueta: 'Estructura: se atiende el pedido',
+    texto: 'Estimado(a),\n\nSobre su hoja de reclamación, tras revisar el caso informamos lo siguiente:\n\n1. Hechos revisados: [completar]\n2. Decisión y sustento: [completar]\n3. Medida que se aplicará y fecha: [completar]\n\nAtentamente,',
   },
   {
-    etiqueta: 'Procedente por reprogramación / crédito',
-    texto: 'Luego de evaluar su caso, declaramos su solicitud PROCEDENTE y otorgamos el saldo a favor / reprogramación académica solicitada conforme a nuestros términos vigentes.',
-  },
-  {
-    etiqueta: 'Improcedente con sustento',
-    texto: 'Tras revisar los registros y condiciones aceptadas al momento de la contratación del servicio, informamos que su solicitud resulta IMPROCEDENTE debido a que el servicio se brindó según lo pactado.',
+    etiqueta: 'Estructura: no se atiende el pedido',
+    texto: 'Estimado(a),\n\nSobre su hoja de reclamación, tras revisar el caso informamos lo siguiente:\n\n1. Hechos revisados: [completar]\n2. Motivo por el que no se atiende el pedido, con su sustento: [completar]\n3. Otras alternativas, si las hay: [completar]\n\nAtentamente,',
   },
 ] as const;
 
@@ -68,15 +64,15 @@ interface GestionProps {
 }
 
 /**
- * Gestión del caso. Laravel decide qué operación admite el estado actual (un 409 se muestra tal cual, sin datos
- * personales) y vuelve a comprobar el permiso de cada una; aquí solo se ofrecen las que corresponden a los permisos.
+ * Gestión del caso. Laravel indica en `meta.operaciones` cuáles admiten el permiso y el estado actual, y vuelve a
+ * comprobarlo al ejecutar (un 409 se muestra tal cual, sin datos personales).
  * Las operaciones que mandan un correo real al consumidor exigen confirmación explícita.
  */
 export function GestionReclamacion({ expediente, meta, tono }: GestionProps) {
   const router = useRouter();
   const { ejecutar } = useOperacionPanel();
   const { mostrar } = useAvisos();
-  const permitidas = [...(meta.puede_gestionar ? GESTIONAR : []), ...(meta.puede_responder ? RESPONDER : [])];
+  const permitidas = meta.operaciones;
   const [operacion, setOperacion] = useState<Operacion | ''>('');
   const [campos, setCampos] = useState<Record<string, string>>({});
   const [confirmar, setConfirmar] = useState(false);
@@ -92,7 +88,7 @@ export function GestionReclamacion({ expediente, meta, tono }: GestionProps) {
 
   function elegir(nueva: Operacion | '') {
     setOperacion(nueva);
-    setCampos(nueva === 'tipo' ? { tipo: expediente.tipo } : nueva === 'responsable' ? { responsable_id: String(expediente.responsable?.id ?? '') } : nueva === 'respuesta' ? { canal: 'correo' } : nueva === 'aceptacion' ? { medio: 'correo' } : {});
+    setCampos(nueva === 'tipo' ? { tipo: expediente.tipo } : nueva === 'responsable' ? { responsable_id: String(expediente.responsable?.id ?? '') } : nueva === 'respuesta' ? { canal: meta.canales_respuesta[0] ?? 'carta' } : nueva === 'aceptacion' ? { medio: 'correo' } : {});
     setConfirmar(false);
     setError(null);
   }
@@ -185,9 +181,9 @@ export function GestionReclamacion({ expediente, meta, tono }: GestionProps) {
           ) : null}
           {operacion === 'respuesta' ? (
             <>
-              <CampoSeleccion tono={tono} etiqueta="Canal" value={valor('canal')} onChange={poner('canal')} error={err('canal')} opciones={{ correo: 'Correo electrónico', carta: 'Carta' }} />
+              <CampoSeleccion tono={tono} etiqueta="Canal" value={valor('canal')} onChange={poner('canal')} error={err('canal')} opciones={Object.fromEntries(meta.canales_respuesta.map((clave) => [clave, CANALES[clave]]))} />
               <div className="space-y-1.5">
-                <p className="text-xs font-medium text-panel-muted">Plantillas de respuesta</p>
+                <p className="text-xs font-medium text-panel-muted">Plantillas de respuesta (completa lo que está entre corchetes)</p>
                 <div className="flex flex-wrap gap-1.5">
                   {PLANTILLAS_RESPUESTA.map((p) => (
                     <button
@@ -206,6 +202,10 @@ export function GestionReclamacion({ expediente, meta, tono }: GestionProps) {
                 <Campo tono={tono} etiqueta="Constancia de la carta" value={valor('constancia')} onChange={poner('constancia')} error={err('constancia')} maxLength={255} ayuda="Fecha, medio y cargo o guía." />
               ) : null}
             </>
+          ) : null}
+
+          {!meta.correo_activo && (operacion === 'propuesta' || (operacion === 'respuesta' && valor('canal') === 'correo')) ? (
+            <Alerta tipo="aviso">El envío de correos está apagado: quedará pendiente, no llegará al consumidor y el caso seguirá abierto.</Alerta>
           ) : null}
 
           {enviaCorreo ? (

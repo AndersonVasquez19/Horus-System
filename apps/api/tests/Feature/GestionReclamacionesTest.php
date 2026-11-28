@@ -155,7 +155,7 @@ class GestionReclamacionesTest extends TestCase
         $this->assertSame(['copia_hoja', 'correo', 'pendiente', 0], [$envio->tipo, $envio->canal, $envio->estado, $envio->intentos]);
         $this->assertStringContainsString('000000001-2026', $envio->asunto);
         $this->assertStringContainsString('Calle Ficticia 123, Cajamarca', $envio->cuerpo);
-        $this->assertStringContainsString('no configurado', $envio->cuerpo, 'Los datos del proveedor ausentes no se inventan');
+        $this->assertStringContainsString('Razón social: Proveedor Sintético SRL', $envio->cuerpo);
 
         $audit = AuditLog::query()->where('action', 'reclamacion_registrada')->sole();
         $this->assertNull($audit->user_id);
@@ -672,9 +672,16 @@ class GestionReclamacionesTest extends TestCase
 
     // --- Sin correos reales -------------------------------------------------------------------------------
 
-    public function test_el_alta_nunca_envia_correo_con_el_envio_apagado(): void
+    public function test_con_el_envio_apagado_el_alta_publica_se_rechaza_sin_enviar_nada(): void
     {
-        $this->registrar();
+        $this->apagarEnvio();
+        try {
+            $this->registrar();
+            $this->fail('Debió responder 404');
+        } catch (HttpException $e) {
+            $this->assertSame(404, $e->getStatusCode());
+        }
+        $this->assertSame(0, Reclamacion::query()->count());
         Mail::assertNothingSent();
         Mail::assertNothingQueued();
         Queue::assertNothingPushed();

@@ -201,6 +201,8 @@ class ReclamacionRequestsTest extends TestCase
 
     public function test_gestion_selecciona_reglas_y_permiso_por_operacion(): void
     {
+        // Con el envío apagado ninguna operación pide confirmar un correo real.
+        $this->apagarEnvio();
         $gestor = $this->usuarioConPermisos('coordinador', ['reclamaciones.ver', 'reclamaciones.gestionar']);
         $peticion = fn (array $datos, $usuario) => tap(GestionarReclamacionRequest::create('/x', 'POST', $datos), fn ($p) => $p->setUserResolver(fn () => $usuario));
 

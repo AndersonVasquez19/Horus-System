@@ -56,7 +56,10 @@ export default function PoliticasPrivacidadPage() {
               <span>3. Medidas de Seguridad y Confidencialidad</span>
             </h2>
             <p>
-              Horus Group SRL adopta las medidas técnicas, organizativas y legales necesarias para garantizar la seguridad de los datos personales, evitando su alteración, pérdida, tratamiento o acceso no autorizado. No compartimos ni comercializamos tus datos personales con terceros.
+              Horus Group SRL adopta las medidas técnicas, organizativas y legales necesarias para garantizar la seguridad de los datos personales, evitando su alteración, pérdida, tratamiento o acceso no autorizado. No comercializamos tus datos personales ni los cedemos a terceros para sus propios fines.
+            </p>
+            <p className="mt-2">
+              Para enviarte correos, como la copia de tu hoja de reclamación y su respuesta, usamos un proveedor de envío de correo que trata esos mensajes solo para entregarlos por encargo nuestro y que puede hacerlo desde servidores ubicados fuera del Perú. Las hojas de reclamación se reciben además en el buzón de correo de la empresa.
             </p>
           </div>
 

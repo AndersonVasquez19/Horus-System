@@ -210,6 +210,11 @@ export interface MetaExpediente {
   puede_gestionar: boolean;
   puede_responder: boolean;
   estudiante_relacionado?: { id: number; nombre: string } | null;
+  /** Operaciones que admite el caso para este usuario; Laravel vuelve a comprobar cada una. */
+  operaciones: ('responsable' | 'tipo' | 'nota' | 'propuesta' | 'rechazo' | 'aceptacion' | 'respuesta')[];
+  canales_respuesta: ('correo' | 'carta')[];
+  /** Estado del correo de respuesta mientras el caso sigue abierto. */
+  respuesta_correo: 'pendiente' | 'procesando' | 'enviado' | 'fallido' | null;
 }
 
 export interface HojaReclamacionDatos {

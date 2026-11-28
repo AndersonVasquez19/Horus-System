@@ -67,6 +67,14 @@ async function Expediente({ tono, params }: { tono: TonoUi; params: Promise<{ id
         ) : meta.aviso_plazo === 'por_vencer' ? (
           <Alerta tipo="aviso">El plazo legal de respuesta está por vencer ({fecha(r.fecha_limite)}).</Alerta>
         ) : null}
+        {meta.respuesta_correo === 'fallido' ? (
+          <Alerta tipo="error">El correo con la respuesta no se pudo enviar: el consumidor no la recibió y el caso sigue abierto. Reinténtalo en «Envíos al consumidor» o registra una carta.</Alerta>
+        ) : meta.respuesta_correo === 'pendiente' || meta.respuesta_correo === 'procesando' ? (
+          <Alerta tipo="aviso">La respuesta por correo todavía no se ha enviado: el caso sigue abierto hasta que salga.</Alerta>
+        ) : null}
+        {r.estado === 'abierto' && !meta.correo_activo ? (
+          <Alerta tipo="aviso">El envío de correos del libro está apagado: nada de lo que registres llegará por correo.</Alerta>
+        ) : null}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
@@ -138,7 +146,7 @@ async function Expediente({ tono, params }: { tono: TonoUi; params: Promise<{ id
           ) : null}
         </Seccion>
 
-        {meta.puede_gestionar || meta.puede_responder ? (
+        {meta.operaciones.length > 0 ? (
           <Seccion id="titulo-gestion" titulo="Gestión del caso" descripcion="Cada operación queda en el historial y en la auditoría." className="xl:col-span-3">
             <GestionReclamacion expediente={r} meta={meta} tono={tono} />
           </Seccion>

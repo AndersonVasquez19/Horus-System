@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { FileText, AlertCircle, CheckCircle2, Printer, Info, Loader2 } from 'lucide-react';
 import { CONTACT_INFO } from '@/data/contactos';
+import { ERROR_TELEFONO, MAX_TELEFONO_ESCRITO, filtrarTelefono, normalizarTelefono } from '@/lib/telefono';
 
 /**
  * Libro de Reclamaciones virtual. Las reglas AUTORITATIVAS (formato del documento, plazos, límites, numeración,
@@ -17,19 +18,14 @@ const SIN_ETIQUETAS = /^[^<>]*$/;
 const SOLO_NOMBRE = /^[\p{L}\s'\-.]+$/u;
 const CARACTERES_NO_NOMBRE = /[^\p{L}\s'\-.]/gu;
 const CON_LETRAS = /\p{L}/u;
-const TELEFONO = /^\d{9}$/;
 const MONTO = /^\d{1,10}([.,]\d{1,2})?$/;
 
 function limpiarSoloLetras(valor: string): string {
   return valor.replace(CARACTERES_NO_NOMBRE, '');
 }
 
-function limpiarTelefono(valor: string): string {
-  return valor.replace(/\D+/g, '').slice(0, 9);
-}
-
 function telefonoValido(valor: string): boolean {
-  return TELEFONO.test(valor);
+  return normalizarTelefono(valor) !== null;
 }
 
 function rucPeruanoValido(ruc: string): boolean {
@@ -64,13 +60,13 @@ const esquema = z
     numero_documento: z.string().trim().min(1, 'Ingresa tu número de documento.').max(20),
     nombres: textoNombre('Ingresa tus nombres.'),
     apellidos: textoNombre('Ingresa tus apellidos.'),
-    telefono: z.string().trim().refine(telefonoValido, 'Ingresa un teléfono válido de 9 dígitos.'),
+    telefono: z.string().trim().refine(telefonoValido, ERROR_TELEFONO),
     email: z.string().trim().email('Ingresa un correo electrónico válido.').max(254),
     domicilio: texto(5, 255, 'Ingresa tu domicilio o dirección.'),
     es_menor: z.boolean(),
     representante_nombre: z.string().trim().max(120).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
     representante_domicilio: z.string().trim().max(255).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
-    representante_telefono: z.string().trim().max(9, 'Máximo 9 dígitos.').optional(),
+    representante_telefono: z.string().trim().max(MAX_TELEFONO_ESCRITO, ERROR_TELEFONO).optional(),
     representante_email: z.string().trim().optional(),
     bien_tipo: z.enum(['producto', 'servicio']).optional(),
     bien_descripcion: z.string().trim().max(500, 'Máximo 500 caracteres.').regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
@@ -97,7 +93,7 @@ const esquema = z
       }
       if (!d.representante_domicilio) ctx.addIssue({ code: 'custom', path: ['representante_domicilio'], message: 'Ingresa el domicilio del representante.' });
       if (!d.representante_telefono || !telefonoValido(d.representante_telefono)) {
-        ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: 'Ingresa un teléfono válido del representante (9 dígitos).' });
+        ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: ERROR_TELEFONO });
       }
       if (!d.representante_email || !z.string().email().safeParse(d.representante_email).success) ctx.addIssue({ code: 'custom', path: ['representante_email'], message: 'Ingresa un correo válido del representante.' });
     }
@@ -233,13 +229,11 @@ export function LibroForm() {
     register(campo, {
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
         const valorOriginal = e.target.value;
-        const limpio = limpiarTelefono(valorOriginal);
+        const limpio = filtrarTelefono(valorOriginal);
         if (limpio !== valorOriginal) {
           e.target.value = limpio;
           setValue(campo, limpio, { shouldDirty: true });
-          if (/\D/.test(valorOriginal) || valorOriginal.replace(/\D+/g, '').length > 9) {
-            setError(campo, { type: 'manual', message: 'Solo se permiten 9 dígitos numéricos.' });
-          }
+          setError(campo, { type: 'manual', message: ERROR_TELEFONO });
         } else if (errors[campo]?.type === 'manual') {
           clearErrors(campo);
         }
@@ -269,14 +263,14 @@ export function LibroForm() {
     setAviso(null);
     const cuerpo: Record<string, unknown> = {
       tipo: d.tipo, tipo_documento: d.tipo_documento, numero_documento: d.numero_documento.replace(/\s+/g, ''),
-      nombres: d.nombres, apellidos: d.apellidos, telefono: d.telefono, email: d.email, domicilio: d.domicilio,
+      nombres: d.nombres, apellidos: d.apellidos, telefono: normalizarTelefono(d.telefono), email: d.email, domicilio: d.domicilio,
       es_menor: d.es_menor, detalle: d.detalle, pedido: d.pedido, acepta_privacidad: d.acepta_privacidad,
       marca: credenciales.marca, token_envio: credenciales.token, [credenciales.honeypot]: trampa,
     };
     if (d.es_menor) {
       Object.assign(cuerpo, {
         representante_nombre: d.representante_nombre, representante_domicilio: d.representante_domicilio,
-        representante_telefono: d.representante_telefono, representante_email: d.representante_email,
+        representante_telefono: normalizarTelefono(d.representante_telefono ?? ''), representante_email: d.representante_email,
       });
     }
     if (d.tipo === 'reclamo') {
@@ -298,7 +292,7 @@ export function LibroForm() {
         setConfirmacion({
           numero: cuerpoRespuesta.numero, tipo: cuerpoRespuesta.tipo, fechaLimite: cuerpoRespuesta.fecha_limite,
           repetida: cuerpoRespuesta.repetida === true, correoActivo: cuerpoRespuesta.correo_activo === true, plazo: credenciales.plazo,
-          datos: { nombres: d.nombres, apellidos: d.apellidos, tipo_documento: d.tipo_documento, numero_documento: d.numero_documento, email: d.email, telefono: d.telefono },
+          datos: { nombres: d.nombres, apellidos: d.apellidos, tipo_documento: d.tipo_documento, numero_documento: d.numero_documento, email: d.email, telefono: normalizarTelefono(d.telefono) ?? d.telefono },
         });
         requestAnimationFrame(() => confirmacionRef.current?.focus());
         return;
@@ -464,7 +458,7 @@ export function LibroForm() {
             </div>
             <div>
               <label htmlFor="telefono" className="mb-1 block text-xs font-semibold text-stone-300">Teléfono / celular *</label>
-              <input id="telefono" type="tel" inputMode="numeric" autoComplete="tel" maxLength={9} {...registrarTelefono('telefono')} {...ariaCampo('telefono')} className={input} />
+              <input id="telefono" type="tel" autoComplete="tel" maxLength={MAX_TELEFONO_ESCRITO} {...registrarTelefono('telefono')} {...ariaCampo('telefono')} className={input} />
               {mensajeError('telefono')}
             </div>
             <div>
@@ -503,7 +497,7 @@ export function LibroForm() {
                 </div>
                 <div>
                   <label htmlFor="representante_telefono" className="mb-1 block text-xs font-semibold text-stone-300">Teléfono del representante *</label>
-                  <input id="representante_telefono" type="tel" inputMode="numeric" maxLength={9} {...registrarTelefono('representante_telefono')} {...ariaCampo('representante_telefono')} className={input} />
+                  <input id="representante_telefono" type="tel" maxLength={MAX_TELEFONO_ESCRITO} {...registrarTelefono('representante_telefono')} {...ariaCampo('representante_telefono')} className={input} />
                   {mensajeError('representante_telefono')}
                 </div>
                 <div>
@@ -585,6 +579,14 @@ export function LibroForm() {
           </label>
           {mensajeError('acepta_privacidad')}
 
+          {credenciales.estado === 'deshabilitado' && (
+            <p id="libro-no-disponible" className="rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm text-stone-200">
+              Por ahora no podemos registrar tu hoja en línea. Comunícate con nosotros por{' '}
+              <a href={CONTACT_INFO.socials.whatsapp} className="font-semibold text-gold underline" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              , al correo <a href={`mailto:${CONTACT_INFO.email}`} className="font-semibold text-gold underline">{CONTACT_INFO.email}</a> o en {CONTACT_INFO.address}.
+            </p>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
             <span className="text-xs text-stone-400">
               Plazo de respuesta: <strong>{listo ? credenciales.plazo : 15} días hábiles</strong>.
@@ -592,6 +594,7 @@ export function LibroForm() {
             <button
               type="submit"
               disabled={isSubmitting || !listo}
+              aria-describedby={credenciales.estado === 'deshabilitado' ? 'libro-no-disponible' : undefined}
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold to-gold-dark px-8 py-3.5 text-sm font-bold text-ink-dark shadow-gold transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}

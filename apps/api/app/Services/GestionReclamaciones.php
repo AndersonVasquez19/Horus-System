@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Jobs\AvisarEmpresaReclamacion;
 use App\Jobs\EnviarReclamacionCorreo;
 use App\Models\AuditLog;
 use App\Models\NotificacionInterna;
@@ -194,9 +195,67 @@ class GestionReclamaciones
         });
     }
 
+    /**
+     * Operaciones que el expediente puede ofrecer: permiso del usuario más estado del caso. Solo lectura y orientativa:
+     * cada operación vuelve a comprobar todo bajo bloqueo.
+     *
+     * @return array{operaciones: list<string>, canales_respuesta: list<string>, respuesta_correo: ?string}
+     */
+    public function operacionesDisponibles(User $actor, Reclamacion $r): array
+    {
+        $abierta = $r->estado === 'abierto';
+        $pendiente = $r->suspension_desde !== null && ! $this->propuestaVencidaSinProcesar($r);
+        $propuestas = $this->propuestasHabilitadas();
+        $respuestas = $r->envios->where('tipo', 'respuesta');
+        $canales = $abierta && ! $pendiente
+            ? array_values(array_filter(['correo', 'carta'], static fn (string $canal): bool => ! $respuestas->contains('canal', $canal)))
+            : [];
+        $porCorreo = $abierta ? $respuestas->firstWhere('canal', 'correo') : null;
+
+        $operaciones = [];
+        if ($actor->can('reclamaciones.gestionar')) {
+            $operaciones = array_keys(array_filter([
+                'responsable' => true,
+                // Un reclamo necesita bien identificado: una queja sin él no puede reclasificarse.
+                'tipo' => $abierta && ($r->tipo === 'reclamo' || $r->bien_tipo !== null),
+                'nota' => true,
+                'propuesta' => $propuestas && $abierta && ! $pendiente && $r->tipo === 'reclamo',
+                'rechazo' => $propuestas && $abierta && $pendiente,
+            ]));
+        }
+        if ($actor->can('reclamaciones.responder')) {
+            if ($propuestas && $abierta && $pendiente) {
+                $operaciones[] = 'aceptacion';
+            }
+            if ($canales !== []) {
+                $operaciones[] = 'respuesta';
+            }
+        }
+
+        return [
+            'operaciones' => $operaciones,
+            'canales_respuesta' => $canales,
+            'respuesta_correo' => $porCorreo?->estado,
+        ];
+    }
+
+    /** Aviso interno de un correo que no pudo entregarse: solo el número, sin datos personales. */
+    public function avisarFalloCorreo(Reclamacion $r, string $correo): void
+    {
+        foreach ($this->usuariosQueVen() as $usuarioId) {
+            NotificacionInterna::crearPersonal($usuarioId, [
+                'titulo' => 'Correo no enviado: reclamación '.$r->numero,
+                'mensaje' => 'No se pudo enviar '.$correo.'. Revisa el caso y el envío de correos.',
+                'tipo' => 'reclamacion',
+                'vinculo' => '/admin/academico/reclamaciones/'.$r->identificador,
+            ]);
+        }
+    }
+
     /** Propuesta de solución (solo reclamos): suspende el plazo hasta 5 días hábiles. */
     public function enviarPropuesta(User $actor, string $uuid, string $asunto, string $cuerpo): Reclamacion
     {
+        $this->exigirPropuestasHabilitadas();
         $envioId = null;
         $r = DB::transaction(function () use ($actor, $uuid, $asunto, $cuerpo, &$envioId): Reclamacion {
             $actor = $this->autorizar($actor, 'reclamaciones.gestionar');
@@ -224,6 +283,8 @@ class GestionReclamaciones
     /** Rechazo de la propuesta: reanuda el plazo desplazando `fecha_limite` por los días hábiles suspendidos (máx. 5). */
     public function registrarRechazo(User $actor, string $uuid, string $fechaRecepcion, ?string $nota = null): Reclamacion
     {
+        $this->exigirPropuestasHabilitadas();
+
         return DB::transaction(function () use ($actor, $uuid, $fechaRecepcion, $nota): Reclamacion {
             $actor = $this->autorizar($actor, 'reclamaciones.gestionar');
             $recepcion = $this->fecha($fechaRecepcion, 'fecha_recepcion');
@@ -240,6 +301,8 @@ class GestionReclamaciones
     /** Aceptación expresa: concluye el caso por acuerdo (no es una respuesta formal). Exige `responder`. */
     public function registrarAceptacion(User $actor, string $uuid, string $fechaRecepcion, string $medio, string $constancia): Reclamacion
     {
+        $this->exigirPropuestasHabilitadas();
+
         return DB::transaction(function () use ($actor, $uuid, $fechaRecepcion, $medio, $constancia): Reclamacion {
             $actor = $this->autorizar($actor, 'reclamaciones.responder');
             $recepcion = $this->fecha($fechaRecepcion, 'fecha_recepcion');
@@ -368,11 +431,28 @@ class GestionReclamaciones
                 return [$responsable->id];
             }
         }
+
+        return $this->usuariosQueVen();
+    }
+
+    /** @return list<int> */
+    private function usuariosQueVen(): array
+    {
         if (! Permission::query()->where('name', 'reclamaciones.ver')->where('guard_name', 'web')->exists()) {
             return [];
         }
 
         return array_values(User::permission('reclamaciones.ver')->orderBy('id')->pluck('id')->map(fn ($id): int => Entrada::entero($id))->all());
+    }
+
+    private function propuestasHabilitadas(): bool
+    {
+        return config('reclamaciones.propuestas_habilitadas') === true;
+    }
+
+    private function exigirPropuestasHabilitadas(): void
+    {
+        abort_unless($this->propuestasHabilitadas(), 409, 'Las propuestas de solución están desactivadas.');
     }
 
     /**
@@ -518,6 +598,10 @@ class GestionReclamaciones
             return ['reclamacion' => $previa, 'repetida' => true];
         }
         $this->despachar($envioId);
+        // Aviso a la empresa: solo hojas nuevas de la web (no reenvíos del mismo formulario ni hojas de respaldo).
+        if (! $resultado['repetida'] && $canal === 'web' && Reclamaciones::envioHabilitado()) {
+            AvisarEmpresaReclamacion::dispatch($resultado['reclamacion']->id)->onQueue(Entrada::texto(config('reclamaciones.correo.cola', 'default')));
+        }
 
         return $resultado;
     }

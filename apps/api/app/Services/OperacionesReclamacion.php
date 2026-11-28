@@ -8,6 +8,7 @@ use App\Models\Reclamacion;
 use App\Models\ReclamacionEnvio;
 use App\Models\User;
 use App\Support\Entrada;
+use App\Support\Reclamaciones;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Spatie\Permission\Models\Permission;
 
@@ -60,6 +61,13 @@ final class OperacionesReclamacion
             // El request ya rechaza una operación desconocida (403); nunca se ejecuta otra cosa.
             default => abort(403),
         };
+
+        // Por correo, registrar no es entregar: el caso sigue abierto hasta que el envío sale de verdad.
+        if ($operacion === 'respuesta' && Entrada::texto($datos['canal']) === 'correo') {
+            return Reclamaciones::envioHabilitado()
+                ? 'Respuesta registrada. El caso pasará a «Respondido» cuando el correo se envíe.'
+                : 'Respuesta registrada, pero el envío de correos está apagado: queda pendiente y el caso sigue abierto.';
+        }
 
         return self::MENSAJES[$operacion];
     }

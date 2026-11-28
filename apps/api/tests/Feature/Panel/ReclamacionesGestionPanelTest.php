@@ -30,11 +30,12 @@ final class ReclamacionesGestionPanelTest extends PanelApiTestCase
         parent::setUp();
         Mail::fake();
         $this->prepararReclamaciones(habilitar: true);
+        $this->apagarEnvio();
     }
 
     private function nueva(array $extra = []): Reclamacion
     {
-        return $this->registrar($extra)['reclamacion'];
+        return $this->registrarSinColas($extra);
     }
 
     /** @param array<string, mixed> $datos */
@@ -245,7 +246,7 @@ final class ReclamacionesGestionPanelTest extends PanelApiTestCase
 
     public function test_con_el_correo_activo_las_operaciones_que_envian_exigen_confirmacion(): void
     {
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         $r = $this->nueva();
         Queue::fake();
 
@@ -275,7 +276,7 @@ final class ReclamacionesGestionPanelTest extends PanelApiTestCase
         $this->gestionar($this->admin, $otra, ['operacion' => 'reintento', 'envio_id' => $envio->id])->assertNotFound();
         $this->assertSame('fallido', $envio->fresh()->estado);
 
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         Queue::fake();
         $this->gestionar($this->admin, $r, ['operacion' => 'reintento', 'envio_id' => $envio->id])
             ->assertUnprocessable()->assertJsonValidationErrors('confirmar_envio');

@@ -96,15 +96,26 @@ trait ReclamacionesPostgres
      */
     protected function conRecepcion(callable $accion, bool $envio = false): mixed
     {
-        $claves = ['reclamaciones.enabled', 'reclamaciones.correo.enabled', 'mail.default', 'mail.from.address'];
+        $claves = [
+            'reclamaciones.enabled', 'reclamaciones.correo.enabled', 'reclamaciones.correo.empresa', 'reclamaciones.proveedor',
+            'reclamaciones.propuestas_habilitadas', 'mail.default', 'mail.from.address', 'mail.mailers.pruebas_sin_envio',
+        ];
         $antes = [];
         foreach ($claves as $clave) {
             $antes[$clave] = config($clave);
         }
-        config(['reclamaciones.enabled' => true, 'mail.default' => 'smtp', 'mail.from.address' => 'libro@horus.test']);
-        if ($envio) {
-            config(['reclamaciones.correo.enabled' => true]);
-        }
+        // Alias en memoria: un mailer con nombre «real» que nunca sale de la máquina, tampoco en una segunda sesión.
+        // La recepción exige el envío activo y los datos del proveedor, así que $envio ya no cambia la configuración.
+        config([
+            'mail.mailers.pruebas_sin_envio' => ['transport' => 'array'],
+            'reclamaciones.enabled' => true, 'mail.default' => 'pruebas_sin_envio', 'mail.from.address' => 'libro@horus.test',
+            'reclamaciones.correo.enabled' => true, 'reclamaciones.correo.empresa' => 'empresa@horus.test',
+            'reclamaciones.proveedor' => [
+                'razon_social' => 'Proveedor Sintético SRL', 'ruc' => '20000000001',
+                'direccion' => 'Calle Sintética 1', 'codigo_libro' => 'LIBRO-PRUEBA',
+            ],
+            'reclamaciones.propuestas_habilitadas' => true,
+        ]);
         try {
             return $accion();
         } finally {

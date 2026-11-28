@@ -44,7 +44,7 @@ class EnvioReclamacionesTest extends TestCase
     /** Alta con el envío por cola ya habilitado; devuelve la reclamación y su copia de la hoja. */
     private function altaConEnvio(): array
     {
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         $r = $this->registrar()['reclamacion'];
 
         return [$r, ReclamacionEnvio::query()->where('reclamacion_id', $r->id)->where('tipo', 'copia_hoja')->sole()];
@@ -71,8 +71,10 @@ class EnvioReclamacionesTest extends TestCase
 
     public function test_envio_apagado_no_despacha_ni_envia_y_deja_la_fila_pendiente(): void
     {
-        $r = $this->registrar()['reclamacion'];
+        $this->apagarEnvio();
+        $r = $this->registrarSinColas();
         $envio = ReclamacionEnvio::query()->where('reclamacion_id', $r->id)->sole();
+        app(\App\Services\GestionReclamaciones::class)->registrarRespuesta($this->admin, $r->identificador, 'Respuesta', 'correo');
         Queue::assertNothingPushed();
         $this->assertSame(EnvioReclamaciones::OMITIDO, $this->envio()->enviar($envio->id));
         Mail::assertNothingSent();
@@ -264,7 +266,7 @@ class EnvioReclamacionesTest extends TestCase
 
     public function test_correo_de_respuesta_cierra_el_caso_con_el_texto_exacto_solo_al_enviarse(): void
     {
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         $r = $this->registrar()['reclamacion'];
         $this->servicioGestion()->registrarRespuesta($this->admin, $r->identificador, 'Respuesta formal íntegra.', 'correo');
         $respuesta = ReclamacionEnvio::query()->where('tipo', 'respuesta')->sole();
@@ -281,7 +283,7 @@ class EnvioReclamacionesTest extends TestCase
 
     public function test_si_ya_respondio_por_carta_el_correo_posterior_no_pisa_la_respuesta(): void
     {
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         $r = $this->registrar()['reclamacion'];
         $this->servicioGestion()->registrarRespuesta($this->admin, $r->identificador, 'Respuesta por correo.', 'correo');
         $this->servicioGestion()->registrarRespuesta($this->admin, $r->identificador, 'Respuesta por carta.', 'carta', 'Carta 7');
@@ -306,7 +308,7 @@ class EnvioReclamacionesTest extends TestCase
 
     public function test_los_envios_por_carta_no_se_procesan_como_correo(): void
     {
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         $r = $this->registrar()['reclamacion'];
         $this->servicioGestion()->registrarRespuesta($this->admin, $r->identificador, 'Texto', 'carta', 'Carta 1');
         $carta = ReclamacionEnvio::query()->where('canal', 'carta')->sole();

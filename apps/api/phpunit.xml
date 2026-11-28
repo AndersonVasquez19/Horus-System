@@ -34,7 +34,15 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
-        <env name="MAIL_MAILER" value="array"/>
+        <!-- Ninguna prueba puede enviar correo real: aunque cambie `mail.default`, no hay credenciales ni servidor.
+             `force` gana también a las variables del sistema; Laravel no deja que .env las sustituya. -->
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="MAIL_URL" value="" force="true"/>
+        <env name="MAIL_HOST" value="127.0.0.1" force="true"/>
+        <env name="MAIL_PORT" value="1" force="true"/>
+        <env name="MAIL_USERNAME" value="" force="true"/>
+        <env name="MAIL_PASSWORD" value="" force="true"/>
+        <env name="RESEND_API_KEY" value="" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <!-- Las pruebas conservan los predeterminados seguros aunque .env habilite la operación local. -->

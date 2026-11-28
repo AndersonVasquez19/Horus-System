@@ -233,7 +233,7 @@ final class ReclamacionesConsultaPanelTest extends PanelApiTestCase
 
         $envio = $this->postJson('/api/public/v1/reclamaciones', [
             'tipo' => 'reclamo', 'nombres' => 'Gabriel', 'apellidos' => 'Vargas', 'tipo_documento' => 'dni',
-            'numero_documento' => '99887766', 'domicilio' => 'Calle San Martin 123, Cajamarca', 'telefono' => '+51 976 543 210',
+            'numero_documento' => '99887766', 'domicilio' => 'Calle San Martin 123, Cajamarca', 'telefono' => '976543210',
             'email' => 'gabriel.vargas@ejemplo.test', 'canal_respuesta' => 'correo', 'es_menor' => false,
             'bien_tipo' => 'servicio', 'bien_descripcion' => 'Diplomado en Gestión Pública', 'monto_bien' => '450.00',
             'detalle' => 'Detalle del reclamo real sobre la plataforma de clases.', 'pedido' => 'Reprogramación o devolución del módulo 2.',
@@ -330,6 +330,7 @@ final class ReclamacionesConsultaPanelTest extends PanelApiTestCase
         $rec = $this->registrar(['nombres' => 'Teresa', 'apellidos' => 'Huamán', 'numero_documento' => '70112233', 'detalle' => 'Hechos del expediente impreso.'])['reclamacion'];
         $otra = $this->registrar(['nombres' => 'Otro', 'apellidos' => 'Consumidor', 'detalle' => 'Hechos de otro expediente.'])['reclamacion'];
 
+        config(['reclamaciones.proveedor' => []]);
         $res = $this->ver($this->admin, "/{$rec->identificador}/hoja")->assertOk();
         $texto = $res->json('data.texto_oficial');
 

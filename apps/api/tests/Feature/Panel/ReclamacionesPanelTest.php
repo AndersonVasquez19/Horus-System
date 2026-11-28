@@ -27,6 +27,7 @@ final class ReclamacionesPanelTest extends PanelApiTestCase
         parent::setUp();
         Mail::fake();
         $this->prepararReclamaciones(habilitar: true);
+        $this->apagarEnvio();
     }
 
     /** @param array<string, mixed> $datos */
@@ -37,7 +38,7 @@ final class ReclamacionesPanelTest extends PanelApiTestCase
 
     private function nueva(array $extra = []): Reclamacion
     {
-        return $this->registrar($extra)['reclamacion'];
+        return $this->registrarSinColas($extra);
     }
 
     private function auditadas(string $accion): int
@@ -261,7 +262,7 @@ final class ReclamacionesPanelTest extends PanelApiTestCase
         $this->como($this->admin, 'POST', "/{$otra->identificador}/gestion", ['operacion' => 'reintento', 'envio_id' => $envio->id])->assertNotFound();
         $this->assertSame('fallido', $envio->fresh()->estado);
 
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         Queue::fake();
         $this->como($this->admin, 'POST', "/{$r->identificador}/gestion", ['operacion' => 'reintento', 'envio_id' => $envio->id])
             ->assertUnprocessable()->assertJsonValidationErrors('confirmar_envio');

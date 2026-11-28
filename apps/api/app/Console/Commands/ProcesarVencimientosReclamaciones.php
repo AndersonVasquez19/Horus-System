@@ -37,7 +37,8 @@ class ProcesarVencimientosReclamaciones extends Command
 
     public function handle(GestionReclamaciones $gestion): int
     {
-        if (! Reclamaciones::habilitado()) {
+        // `moduloActivo` y no `habilitado`: pausar la recepción no debe dejar sin plazos a los casos ya registrados.
+        if (! Reclamaciones::moduloActivo()) {
             $this->info('Libro de Reclamaciones desactivado: no hay nada que procesar.');
 
             return self::SUCCESS;

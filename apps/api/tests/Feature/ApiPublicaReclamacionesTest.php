@@ -94,7 +94,7 @@ class ApiPublicaReclamacionesTest extends TestCase
 
     public function test_encendido_el_formulario_entrega_marca_firmada_y_token_uuid(): void
     {
-        $this->habilitarReclamaciones(envio: true);
+        $this->habilitarReclamaciones();
         $r = $this->getJson('/api/public/v1/reclamaciones/formulario', $this->bff())->assertOk()
             ->assertJson(['habilitado' => true, 'correo_activo' => true, 'plazo_dias_habiles' => 15, 'honeypot' => 'sitio_web']);
 
@@ -111,7 +111,7 @@ class ApiPublicaReclamacionesTest extends TestCase
 
         $r = $this->enviar($this->cuerpo())->assertCreated()
             ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertExactJson(['numero' => '000000001-2026', 'tipo' => 'reclamo', 'fecha_limite' => '2026-11-16', 'repetida' => false, 'correo_activo' => false]);
+            ->assertExactJson(['numero' => '000000001-2026', 'tipo' => 'reclamo', 'fecha_limite' => '2026-11-16', 'repetida' => false, 'correo_activo' => true]);
 
         $this->assertStringNotContainsString('Ficticia', $r->getContent());
         $this->assertStringNotContainsString('persona.ficticia', $r->getContent());
