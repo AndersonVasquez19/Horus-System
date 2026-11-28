@@ -29,8 +29,6 @@ export interface ResumenAcademico {
   academico?: {
     satisfaccion?: { emitidas: number; respondidas: number; tasa_respuesta: number | null; promedio: number | null; felices_pct: number | null };
     cupos?: { identificador: string; codigo: string; curso: string | null; maximo: number; ocupados: number; libres: number }[];
-    asistencia_minima?: number;
-    asistencia?: { identificador: string; codigo: string; curso: string | null; sesiones_realizadas: number; promedio: number | null; bajo_minimo: boolean }[];
   };
   /** Pendientes y actividad reciente; cada bloque llega solo con su permiso (`aprobaciones.ver`, `auditoria.ver`). */
   seguimiento?: {
@@ -40,7 +38,6 @@ export interface ResumenAcademico {
   };
   salud_grupo?: {
     cuotas_vencidas?: { obligacion: string; estudiante: string; telefono: string | null; concepto: string; vence: string; saldo: string }[];
-    inasistencias?: { matricula_id: number; estudiante: string; telefono: string | null; edicion: string; faltas_seguidas: number }[];
   };
 }
 
@@ -202,38 +199,6 @@ export interface ConvocatoriaResumen {
   cupos: { maximos: number; disponibles: number; ocupados: number };
 }
 
-export interface EvaluacionActa {
-  identificador: string;
-  nombre: string;
-  peso: string;
-  fecha: string | null;
-  /** Con notas registradas, la evaluación no se elimina (solo se corrige su peso). */
-  con_notas: boolean;
-}
-
-export interface FilaActa {
-  /** Id de la matrícula (ya expuesto por el módulo de matrículas). */
-  id: number;
-  estudiante: { dni: string | null; nombre: string };
-  /** Nota por identificador de evaluación; falta la clave si todavía no se registró. */
-  notas: Record<string, string>;
-  nota_final: string | null;
-  resultado: 'aprobado' | 'desaprobado' | null;
-  /** % de asistencia; `null` si no hay sesiones computables o la persona no puede ver la asistencia. */
-  asistencia: number | null;
-}
-
-/** Evaluaciones y matriz de notas de una convocatoria (`convocatorias/{id}/calificaciones`). */
-export interface ActaCalificaciones {
-  convocatoria: { identificador: string; codigo: string; curso: string | null; estado: EstadoConvocatoria; revision: string };
-  nota_aprobatoria: number;
-  peso_total: string;
-  /** La persona puede ver la asistencia (`asistencias.ver`). */
-  asistencia_visible: boolean;
-  evaluaciones: EvaluacionActa[];
-  matriculas: FilaActa[];
-}
-
 export interface HorarioConvocatoria {
   /** 1 = lunes … 7 = domingo. */
   dia_semana: number;
@@ -277,34 +242,6 @@ export interface PersonaDni {
   ya_registrado_como_estudiante?: boolean;
 }
 
-export interface SesionClase {
-  identificador: string;
-  edicion: string | null;
-  numero: number;
-  fecha: string;
-  hora_inicio: string;
-  hora_fin: string;
-  tema: string | null;
-  estado: 'programada' | 'realizada' | 'cancelada';
-  motivo_cancelacion: string | null;
-  revision: string;
-}
-
-export type EstadoAsistencia = 'presente' | 'ausente' | 'tardanza' | 'justificada';
-
-export interface AsistenciaFila {
-  matricula_id: number;
-  estudiante: { dni: string; nombre: string };
-  estado: EstadoAsistencia | null;
-  observacion: string | null;
-  corregida: boolean;
-}
-
-export interface ListaAsistencia {
-  sesion: { identificador: string; numero: number; fecha: string; hora_inicio: string; hora_fin: string; estado: string };
-  matriculas: AsistenciaFila[];
-}
-
 export interface MatriculaMasivaAnalisis {
   puede_crear_estudiantes: boolean;
   cupos_disponibles: number;
@@ -323,17 +260,6 @@ export interface ListaEsperaVista {
   admite_matriculas: boolean;
   total: number;
   items: { identificador: string; posicion: number; estudiante: { id: number; nombre: string; dni: string; telefono: string | null } | null; nota: string | null; desde: string | null }[];
-}
-
-export interface ResumenAsistenciaFila {
-  matricula_id: number;
-  estudiante: { dni: string; nombre: string };
-  presentes: number;
-  tardanzas: number;
-  ausentes: number;
-  justificadas: number;
-  sin_registro: number;
-  porcentaje: number | null;
 }
 
 export type EstadoCobro = 'pendiente' | 'parcial' | 'pagada' | 'anulada';
@@ -431,7 +357,7 @@ export interface CertificadoResumen {
 // ---- Estudiante 360° ----
 
 export interface EventoLineaTiempo {
-  tipo: 'matricula' | 'nota' | 'pago' | 'cobranza' | 'asistencia' | 'certificado' | 'nota_interna';
+  tipo: 'matricula' | 'pago' | 'cobranza' | 'certificado' | 'nota_interna';
   fecha: string;
   titulo: string;
   detalle: string | null;

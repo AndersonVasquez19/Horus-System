@@ -97,7 +97,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
         alerta
         etiqueta="Ediciones por atender"
         valor={numero(a.ediciones.por_cerrar + a.ediciones.por_iniciar)}
-        detalle={`${numero(a.ediciones.por_cerrar)} por cerrar acta · ${numero(a.ediciones.por_iniciar)} por iniciar.`}
+        detalle={`${numero(a.ediciones.por_cerrar)} por cerrar · ${numero(a.ediciones.por_iniciar)} por iniciar.`}
         icono={<CalendarClock className="h-5 w-5" />}
       />
     ),
@@ -144,7 +144,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
     ),
   ].filter(Boolean);
 
-  const sinContenido = acciones.length === 0 && !ac.cupos && !ac.asistencia && !sal.cuotas_vencidas && !sal.inasistencias;
+  const sinContenido = acciones.length === 0 && !ac.cupos && !sal.cuotas_vencidas;
   if (sinContenido) return null;
 
   return (
@@ -154,7 +154,7 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{acciones}</div>
           {a.ediciones && a.ediciones.lista_por_cerrar.length > 0 ? (
             <p className="text-xs text-panel-muted">
-              Actas por cerrar:{' '}
+              Ediciones por cerrar:{' '}
               {a.ediciones.lista_por_cerrar.map((e, k) => (
                 <span key={e.identificador}>
                   {k > 0 ? ', ' : ''}
@@ -169,8 +169,8 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
         </section>
       ) : null}
 
-      {ac.cupos || ac.asistencia ? (
-        <GrupoTablero id="titulo-academico" titulo="Calidad académica" descripcion="Cupos y asistencia.">
+      {ac.cupos ? (
+        <GrupoTablero id="titulo-academico" titulo="Cupos" descripcion="Ediciones abiertas y en curso.">
           <div className="grid gap-6 xl:grid-cols-2">
             {ac.cupos ? (
               <Lista titulo="Cupos por edición" vacio="No hay ediciones abiertas ni en curso.">
@@ -186,28 +186,12 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
                 ))}
               </Lista>
             ) : null}
-
-            {ac.asistencia ? (
-              <Lista titulo={`Asistencia de ediciones en curso (mínimo ${ac.asistencia_minima ?? 80} %)`} vacio="No hay ediciones en curso.">
-                {ac.asistencia.map((e) => (
-                  <li key={e.identificador} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                    <Link href={`/admin/academico/convocatorias/${e.identificador}`} className="min-w-0 truncate font-medium text-panel-text hover:text-academico-800 hover:underline">
-                      <span className="font-mono text-xs text-panel-muted">{e.codigo}</span> {e.curso}
-                    </Link>
-                    <span className="flex shrink-0 items-center gap-2 tabular-nums">
-                      {e.promedio === null ? <span className="text-panel-muted">Sin sesiones realizadas</span> : <span>{e.promedio} %</span>}
-                      {e.bajo_minimo ? <Insignia color="ambar">Bajo el mínimo</Insignia> : null}
-                    </span>
-                  </li>
-                ))}
-              </Lista>
-            ) : null}
           </div>
         </GrupoTablero>
       ) : null}
 
-      {sal.cuotas_vencidas || sal.inasistencias ? (
-        <GrupoTablero id="tablero-salud-grupo" titulo="Salud del grupo" descripcion="Alertas accionables de mora e inasistencias reiteradas con contacto directo por WhatsApp.">
+      {sal.cuotas_vencidas ? (
+        <GrupoTablero id="tablero-salud-grupo" titulo="Salud del grupo" descripcion="Alertas accionables de pagos vencidos con contacto directo por WhatsApp.">
           <div className="grid gap-4 lg:grid-cols-2">
             {sal.cuotas_vencidas ? (
               <Lista titulo="Cuotas vencidas" vacio="No hay cuotas vencidas.">
@@ -225,32 +209,6 @@ export function TableroAcademico({ datos }: { datos: Datos }) {
                         <Insignia color="rojo">{moneda(c.saldo)}</Insignia>
                         {wa ? (
                           <a href={wa} target="_blank" rel="noopener noreferrer" title="Recordar por WhatsApp" className="rounded-lg border border-emerald-600/30 bg-emerald-50 p-1.5 text-emerald-800 hover:bg-emerald-100">
-                            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                          </a>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </Lista>
-            ) : null}
-
-            {sal.inasistencias ? (
-              <Lista titulo="Alumnos con 2+ faltas seguidas" vacio="Sin alertas de inasistencia en ediciones en curso.">
-                {sal.inasistencias.map((a) => {
-                  const wa = enlaceWaMe(a.telefono, `Hola ${a.estudiante}, te saludamos de Horus Group 👋. Notamos que faltaste a las últimas ${a.faltas_seguidas} sesiones de ${a.edicion}. ¿Todo bien?`);
-                  return (
-                    <li key={a.matricula_id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                      <div className="min-w-0">
-                        <Link href={`/admin/academico/matriculas/${a.matricula_id}`} className="block truncate font-medium text-panel-text hover:text-academico-800 hover:underline">
-                          {a.estudiante}
-                        </Link>
-                        <p className="truncate text-xs text-panel-muted">Edición {a.edicion}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Insignia color="ambar">{a.faltas_seguidas} faltas</Insignia>
-                        {wa ? (
-                          <a href={wa} target="_blank" rel="noopener noreferrer" title="Escribir por WhatsApp" className="rounded-lg border border-emerald-600/30 bg-emerald-50 p-1.5 text-emerald-800 hover:bg-emerald-100">
                             <MessageCircle className="h-4 w-4" aria-hidden="true" />
                           </a>
                         ) : null}

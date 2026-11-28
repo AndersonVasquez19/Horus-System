@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, CalendarDays, CircleX, Contact, Copy, CopyPlus, FileText, Pencil, Play, Plus, Trash2, DoorOpen, CheckCheck } from 'lucide-react';
+import { CalendarClock, CircleX, Contact, Copy, CopyPlus, FileText, Pencil, Play, Plus, Trash2, DoorOpen, CheckCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { usePuede } from '@/components/shared/sesion-panel-contexto';
@@ -264,16 +264,6 @@ export function AccionesConvocatoria({ convocatoria, transiciones }: { convocato
         }}
       >
         Copiar cronograma
-      </Boton>
-      <Boton
-        variante="fantasma"
-        icono={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
-        onClick={async () => {
-          const r = await descargar(`academico/convocatorias/${convocatoria.identificador}/calendario.ics`, 'GET');
-          mostrar(r.ok ? 'exito' : 'error', r.ok ? 'Calendario .ics descargado.' : r.error.message);
-        }}
-      >
-        Calendario .ics
       </Boton>
       <Boton
         variante="fantasma"

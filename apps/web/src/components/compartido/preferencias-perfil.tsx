@@ -110,7 +110,7 @@ export function PreferenciasPerfil({
         <div className="grid gap-2 sm:grid-cols-2 text-sm">
           {([
             ['recordatorio_cuotas', 'Cuotas por vencer / vencidas'],
-            ['recordatorio_sesiones', 'Clases del día'],
+            ['recordatorio_sesiones', 'Lista de espera con cupo'],
             ['recordatorio_reclamaciones', 'Plazos y mensajes de reclamaciones'],
             ['alerta_accesos', 'Alertas de intentos de acceso'],
           ] as const).map(([clave, etiqueta]) => (

@@ -18,14 +18,14 @@ const VALOR_SESION = 'sesion-de-prueba';
 
 const PERMISOS = [
   'aprobaciones.gestionar', 'aprobaciones.ver', 'asistente.ver', 'auditoria.exportar', 'auditoria.ver',
-  'calificaciones.corregir', 'calificaciones.exportar', 'calificaciones.registrar', 'convocatorias.cerrar',
+  'convocatorias.cerrar',
   'convocatorias.crear', 'convocatorias.editar', 'convocatorias.ver', 'cursos.crear', 'cursos.editar', 'cursos.eliminar',
   'cursos.publicar', 'cursos.restaurar', 'cursos.ver', 'estudiantes.crear', 'estudiantes.editar', 'estudiantes.eliminar',
   'estudiantes.restaurar', 'estudiantes.ver', 'matriculas.anular', 'matriculas.crear', 'matriculas.editar',
   'matriculas.eliminar', 'matriculas.exportar', 'matriculas.restaurar', 'matriculas.ver', 'pagos.confirmar',
   'pagos.exportar', 'pagos.planificar', 'pagos.registrar', 'pagos.reversar', 'pagos.ver', 'reclamaciones.gestionar',
   'reclamaciones.responder', 'reclamaciones.ver', 'reportes.ver', 'reportes.exportar.excel', 'reportes.exportar.pdf', 'respaldo.exportar', 'respaldo.ver', 'roles.crear',
-  'roles.editar', 'roles.eliminar', 'roles.ver', 'sesiones.cancelar', 'sesiones.crear', 'sesiones.editar',
+  'roles.editar', 'roles.eliminar', 'roles.ver',
   'usuarios.asignar-roles', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar', 'usuarios.ver',
 ];
 
@@ -176,22 +176,6 @@ function reporte(tipo) {
       ],
       resumen: { obligaciones: 2, total_facturado: '500.00', cobrado: '350.00', saldo_pendiente: '150.00' },
       meta: { ...meta, lotes: 2, total: 2 },
-    };
-  }
-  if (tipo === 'asistencia') {
-    return {
-      tipo,
-      data: [{ identificador: 'ed-1', codigo: 'ED-001', edicion: 'Edición 1', curso: CURSO_REPORTE, sesiones_realizadas: 8, matriculados: 10, promedio: 82.5, estado: 'en_curso' }],
-      resumen: { ediciones: 1, sesiones_realizadas: 8, matriculados: 10, promedio_asistencia: 82.5 },
-      meta: { ...meta, total: 1 },
-    };
-  }
-  if (tipo === 'calificaciones') {
-    return {
-      tipo,
-      data: [{ identificador: 'ed-1', codigo: 'ED-001', edicion: 'Edición 1', curso: CURSO_REPORTE, matriculados: 10, con_nota: 8, aprobados: 6, desaprobados: 2, promedio: 13.4, estado: 'en_curso' }],
-      resumen: { ediciones: 1, evaluados: 8, aprobados: 6, promedio_general: 13.4 },
-      meta: { ...meta, total: 1 },
     };
   }
   return {

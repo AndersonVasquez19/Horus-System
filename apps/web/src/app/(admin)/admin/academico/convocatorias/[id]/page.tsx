@@ -3,12 +3,9 @@ import { ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesConvocatoria, EditorHorarios } from '@/components/academico/acciones-convocatoria';
 import { AccionesListadoMatriculas } from '@/components/academico/acciones-matricula';
-import { PanelCalificaciones } from '@/components/academico/acciones-calificaciones';
 import { PanelListaEspera } from '@/components/academico/lista-espera';
 import { BotonMatriculaMasiva } from '@/components/academico/matricula-masiva';
 import { BotonMatricularConPago } from '@/components/academico/matricular-con-pago';
-import { ResumenAsistenciaEdicion } from '@/components/academico/paneles-asistencia';
-import { PanelSesionesEdicion } from '@/components/academico/paneles-sesiones';
 import { BotonesContacto, BotonesGrupoWhatsApp } from '@/components/shared/ui/acciones-contacto';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
 import { EstadoError, EstadoProhibido, EstadoSinResultados } from '@/components/shared/ui/estados';
@@ -16,7 +13,7 @@ import { Insignia, colorEstado, type ColorInsignia } from '@/components/shared/u
 import { Pestanas, type ElementoPestana } from '@/components/shared/ui/pestanas';
 import { EsqueletoFicha, ListaDatos, Seccion, Tabla } from '@/components/shared/ui/tabla';
 import { AccionesFilaCertificado, BotonEmitirLoteCertificados } from '@/components/academico/acciones-certificado';
-import { TRANSICIONES_CONVOCATORIA, type ActaCalificaciones, type CertificadoResumen, type ConvocatoriaDetalle, type EstadoCobro, type ListaEsperaVista, type ResumenAsistenciaFila, type SesionClase } from '@/features/academico/tipos';
+import { TRANSICIONES_CONVOCATORIA, type CertificadoResumen, type ConvocatoriaDetalle, type EstadoCobro, type ListaEsperaVista } from '@/features/academico/tipos';
 import { consultarPanel } from '@/lib/panel/api-servidor';
 import { mensajeBienvenida } from '@/lib/panel/contacto';
 import { etiqueta, fecha, moneda } from '@/lib/panel/formato';
@@ -205,29 +202,6 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
             ),
           },
           {
-            id: 'sesiones',
-            etiqueta: 'Sesiones y asistencia',
-            contenido: (
-              <div className="space-y-6">
-                <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando sesiones" />}>
-                  <SesionesDeLaEdicion convocatoria={c} editable={transiciones.length > 0} />
-                </Suspense>
-                <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando asistencia" />}>
-                  <AsistenciaDeLaEdicion convocatoria={c} />
-                </Suspense>
-              </div>
-            ),
-          },
-          {
-            id: 'calificaciones',
-            etiqueta: 'Calificaciones y acta',
-            contenido: (
-              <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-panel-border bg-panel-surface" aria-busy="true" aria-label="Cargando calificaciones" />}>
-                <Calificaciones identificador={id} codigo={c.codigo} />
-              </Suspense>
-            ),
-          },
-          {
             id: 'certificados',
             etiqueta: 'Certificados',
             contenido: (
@@ -252,51 +226,6 @@ async function ListaEsperaDeLaEdicion({ identificador }: { identificador: string
   );
 }
 
-/** Sesiones de clase de la edición (hasta 100). */
-async function SesionesDeLaEdicion({ convocatoria: c, editable }: { convocatoria: ConvocatoriaDetalle; editable: boolean }) {
-  const volverA = `${LISTADO}/${c.identificador}`;
-  const sesiones = await consultarPanel<{ data: SesionClase[]; meta: { total: number } }>(`academico/convocatorias/${c.identificador}/sesiones?per_page=100&sort=numero`, volverA);
-  return (
-    <Seccion id="titulo-sesiones" titulo="Sesiones de clase" descripcion="Calendario de clases de la edición.">
-      <PanelSesionesEdicion
-        convocatoriaId={c.identificador}
-        sesiones={sesiones.estado === 'ok' ? sesiones.datos.data : null}
-        total={sesiones.estado === 'ok' ? sesiones.datos.meta.total : 0}
-        editable={editable}
-      />
-    </Seccion>
-  );
-}
-
-/** Resumen de asistencia: solo se muestra a quien tiene `asistencias.ver`. */
-async function AsistenciaDeLaEdicion({ convocatoria: c }: { convocatoria: ConvocatoriaDetalle }) {
-  const resultado = await consultarPanel<{ data: { sesiones_realizadas: number; matriculas: ResumenAsistenciaFila[] } }>(
-    `academico/convocatorias/${c.identificador}/asistencias/resumen`,
-    `${LISTADO}/${c.identificador}`,
-  );
-  if (resultado.estado !== 'ok') return null;
-  return (
-    <Seccion id="titulo-asistencia" titulo="Asistencia" descripcion="Porcentaje por matrícula sobre las sesiones realizadas.">
-      <ResumenAsistenciaEdicion convocatoriaId={c.identificador} sesionesRealizadas={resultado.datos.data.sesiones_realizadas} filas={resultado.datos.data.matriculas} />
-    </Seccion>
-  );
-}
-
-/** Notas y acta: solo se muestra a quien tiene `calificaciones.ver` (Laravel responde 403 al resto). */
-async function Calificaciones({ identificador, codigo }: { identificador: string; codigo: string }) {
-  const resultado = await consultarPanel<{ data: ActaCalificaciones }>(`academico/convocatorias/${identificador}/calificaciones`, `${LISTADO}/${identificador}#calificaciones`);
-  if (resultado.estado === 'prohibido') return null;
-  if (resultado.estado !== 'ok') return <EstadoError texto="No se pudieron cargar las calificaciones. Inténtalo de nuevo en unos minutos." />;
-
-  return (
-    <div className="mt-6">
-      <Seccion id="calificaciones" titulo="Calificaciones" descripcion={`Evaluaciones, notas y acta de ${codigo}. Las notas son datos personales: no se comparten fuera del panel.`}>
-        <PanelCalificaciones acta={resultado.datos.data} />
-      </Seccion>
-    </div>
-  );
-}
-
 /** Certificados emitidos de esta edición + emisión en lote (solo si el usuario tiene `certificados.ver`). */
 async function CertificadosDeLaEdicion({ convocatoria: c }: { convocatoria: ConvocatoriaDetalle }) {
   const resultado = await consultarPanel<{ data: CertificadoResumen[] }>(
@@ -314,7 +243,7 @@ async function CertificadosDeLaEdicion({ convocatoria: c }: { convocatoria: Conv
     <Seccion
       id="titulo-certificados"
       titulo={`Certificados (${lista.length})`}
-      descripcion="Emite diplomas en lote para los matriculados que cumplen asistencia y nota aprobatoria, o descarga cada PDF."
+      descripcion="Emite diplomas en lote para los matriculados sin deuda pendiente, o descarga cada PDF."
       acciones={<BotonEmitirLoteCertificados convocatoriaId={c.identificador} codigoEdicion={c.codigo} />}
     >
       {lista.length === 0 ? (

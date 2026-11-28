@@ -11,7 +11,6 @@ interface CronogramaEdicion {
     fecha_inicio: string;
     fecha_fin: string;
     horarios: { dia_semana: number; hora_inicio: string; hora_fin: string }[];
-    sesiones: { numero: number; fecha: string; hora_inicio: string; hora_fin: string; tema: string | null; estado: string }[];
   };
 }
 
@@ -48,27 +47,6 @@ export default async function CronogramaPublicoPage({ params }: { params: Promis
             </div>
           </section>
         ) : null}
-
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-slate-800">Sesiones programadas</h2>
-          {d.sesiones.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">Todavía no hay sesiones publicadas para esta edición.</p>
-          ) : (
-            <ul className="mt-3 divide-y divide-slate-200 rounded-xl border border-slate-200">
-              {d.sesiones.map((s) => (
-                <li key={s.numero} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-slate-900">Sesión {s.numero}{s.tema ? `: ${s.tema}` : ''}</p>
-                    <p className="text-xs text-slate-500">{s.fecha} · {s.hora_inicio}–{s.hora_fin}</p>
-                  </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${s.estado === 'realizada' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'}`}>
-                    {s.estado === 'realizada' ? 'Realizada' : 'Programada'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
     </main>
   );

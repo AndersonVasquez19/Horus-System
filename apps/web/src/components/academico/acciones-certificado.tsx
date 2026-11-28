@@ -209,7 +209,7 @@ export function BotonEmitirCertificadoMatricula({ matriculaId }: { matriculaId: 
     router.refresh();
   }
 
-  // Antes de emitir se consultan los requisitos: si hay bloqueos (asistencia, nota, deuda o acta) se advierten; solo admin puede seguir con motivo.
+  // Antes de emitir se consultan los requisitos: si hay bloqueos (deuda o edición sin cerrar) se advierten; solo admin puede seguir con motivo.
   async function revisar() {
     setOcupado(true);
     const r = await ejecutar<{ data: { elegible: boolean; bloqueos: { codigo: string; mensaje: string }[]; puede_excepcion: boolean } }>(`academico/matriculas/${matriculaId}/certificado/elegibilidad`, 'GET');

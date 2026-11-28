@@ -19,20 +19,6 @@ test.describe('Gráficos por tipo de reporte', () => {
     await capturar(page, info, 'reporte-cobranza');
   });
 
-  test('calificaciones: porcentaje de aprobados sobre los evaluados', async ({ page }) => {
-    await abrir(page, '/admin/academico/reportes?tipo=calificaciones');
-    const grafico = page.getByRole('figure').filter({ hasText: 'Resultado de los evaluados' });
-    // 6 aprobados de 8 evaluados.
-    await expect(grafico.getByText('75 % aprobados')).toBeVisible();
-    await expect(grafico.getByText(/Desaprobados:/)).toContainText('2');
-  });
-
-  test('asistencia: promedio con coma decimal', async ({ page }) => {
-    await abrir(page, '/admin/academico/reportes?tipo=asistencia');
-    const grafico = page.getByRole('figure').filter({ hasText: 'Asistencia promedio' });
-    await expect(grafico.getByText('82,5 % de asistencia')).toBeVisible();
-  });
-
   test('matrículas no tiene gráfico: el backend no entrega datos para uno útil', async ({ page }) => {
     await abrir(page, '/admin/academico/reportes');
     await expect(page.getByRole('figure')).toHaveCount(0);

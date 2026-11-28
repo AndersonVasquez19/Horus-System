@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpen, ClipboardCheck, ClipboardList, GraduationCap, Users, Wallet } from 'lucide-react';
+import { BookOpen, ClipboardList, Users, Wallet } from 'lucide-react';
 import { Suspense } from 'react';
 import { AccionesReporte, type VistaPreviaReporte } from '@/components/academico/acciones-reporte';
 import { EncabezadoPagina } from '@/components/shared/ui/encabezado-pagina';
@@ -21,8 +21,6 @@ const FILTROS = ['tipo', 'busqueda', 'estado', 'curso_id', 'eliminados'] as cons
 const TIPOS_REPORTE = {
   matriculas: 'Matrículas',
   cobranza: 'Pagos',
-  asistencia: 'Asistencia por edición',
-  calificaciones: 'Calificaciones por edición',
 } as const;
 
 type TipoReporte = keyof typeof TIPOS_REPORTE;
@@ -47,30 +45,6 @@ interface FilaCobranza {
   total: string;
   pagado: string;
   saldo: string;
-  estado: string;
-}
-
-interface FilaAsistencia {
-  identificador: string;
-  codigo: string;
-  edicion: string;
-  curso: { codigo: string; nombre: string } | null;
-  sesiones_realizadas: number;
-  matriculados: number;
-  promedio: number | null;
-  estado: string;
-}
-
-interface FilaCalificaciones {
-  identificador: string;
-  codigo: string;
-  edicion: string;
-  curso: { codigo: string; nombre: string } | null;
-  matriculados: number;
-  con_nota: number;
-  aprobados: number;
-  desaprobados: number;
-  promedio: number | null;
   estado: string;
 }
 
@@ -133,52 +107,6 @@ function formatearVistaPrevia(tipo: TipoReporte, datos: RespuestaReporte): Vista
       ]),
     };
   }
-  if (tipo === 'asistencia') {
-    const filas = datos.data as unknown as FilaAsistencia[];
-    return {
-      titulo: 'Reporte de Asistencia',
-      subtitulo: `Ediciones filtradas (${datos.meta.total})`,
-      resumen: [
-        { etiqueta: 'Ediciones', valor: numero(Number(datos.resumen.ediciones ?? 0)) },
-        { etiqueta: 'Sesiones realizadas', valor: numero(Number(datos.resumen.sesiones_realizadas ?? 0)) },
-        { etiqueta: 'Matriculados', valor: numero(Number(datos.resumen.matriculados ?? 0)) },
-        { etiqueta: 'Asistencia prom.', valor: datos.resumen.promedio_asistencia !== null && datos.resumen.promedio_asistencia !== undefined ? `${datos.resumen.promedio_asistencia}%` : '—' },
-      ],
-      cabeceras: ['Edición', 'Curso', 'Sesiones', 'Matriculados', 'Promedio', 'Estado'],
-      filas: filas.map((f) => [
-        `${f.codigo} · ${f.edicion}`,
-        f.curso?.nombre ?? '—',
-        String(f.sesiones_realizadas),
-        String(f.matriculados),
-        f.promedio !== null ? `${f.promedio}%` : '—',
-        etiqueta('estadoConvocatoria', f.estado),
-      ]),
-    };
-  }
-  if (tipo === 'calificaciones') {
-    const filas = datos.data as unknown as FilaCalificaciones[];
-    return {
-      titulo: 'Reporte de Calificaciones',
-      subtitulo: `Ediciones filtradas (${datos.meta.total})`,
-      resumen: [
-        { etiqueta: 'Ediciones', valor: numero(Number(datos.resumen.ediciones ?? 0)) },
-        { etiqueta: 'Evaluados', valor: numero(Number(datos.resumen.evaluados ?? 0)) },
-        { etiqueta: 'Aprobados', valor: numero(Number(datos.resumen.aprobados ?? 0)) },
-        { etiqueta: 'Promedio general', valor: datos.resumen.promedio_general !== null && datos.resumen.promedio_general !== undefined ? String(datos.resumen.promedio_general) : '—' },
-      ],
-      cabeceras: ['Edición', 'Curso', 'Matriculados', 'Evaluados', 'Aprobados', 'Desaprobados', 'Promedio'],
-      filas: filas.map((f) => [
-        `${f.codigo} · ${f.edicion}`,
-        f.curso?.nombre ?? '—',
-        String(f.matriculados),
-        String(f.con_nota),
-        String(f.aprobados),
-        String(f.desaprobados),
-        f.promedio !== null ? f.promedio.toFixed(2) : '—',
-      ]),
-    };
-  }
-
   const filas = datos.data as unknown as FilaMatriculas[];
   return {
     titulo: 'Reporte de Matrículas',
@@ -285,26 +213,12 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
               <TarjetaKpi tono="academico" etiqueta="Ingresos (libro de pagos)" valor={moneda(String(resumen.ingresos))} detalle="Confirmado neto del filtro" icono={<Wallet className="h-5 w-5" />} />
             ) : null}
           </div>
-        ) : tipo === 'cobranza' ? (
+        ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <TarjetaKpi tono="academico" etiqueta="Obligaciones" valor={numero(Number(resumen.obligaciones ?? 0))} icono={<ClipboardList className="h-5 w-5" />} />
             <TarjetaKpi tono="academico" etiqueta="Total facturado" valor={moneda(String(resumen.total_facturado ?? '0'))} icono={<Wallet className="h-5 w-5" />} />
             <TarjetaKpi tono="academico" etiqueta="Cobrado neto" valor={moneda(String(resumen.cobrado ?? '0'))} icono={<Wallet className="h-5 w-5" />} />
             <TarjetaKpi tono="academico" etiqueta="Saldo pendiente" valor={moneda(String(resumen.saldo_pendiente ?? '0'))} icono={<Wallet className="h-5 w-5" />} />
-          </div>
-        ) : tipo === 'asistencia' ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <TarjetaKpi tono="academico" etiqueta="Ediciones" valor={numero(Number(resumen.ediciones ?? 0))} icono={<BookOpen className="h-5 w-5" />} />
-            <TarjetaKpi tono="academico" etiqueta="Sesiones realizadas" valor={numero(Number(resumen.sesiones_realizadas ?? 0))} icono={<ClipboardCheck className="h-5 w-5" />} />
-            <TarjetaKpi tono="academico" etiqueta="Matriculados" valor={numero(Number(resumen.matriculados ?? 0))} icono={<Users className="h-5 w-5" />} />
-            <TarjetaKpi tono="academico" etiqueta="Asistencia promedio" valor={resumen.promedio_asistencia !== null && resumen.promedio_asistencia !== undefined ? `${resumen.promedio_asistencia}%` : '—'} icono={<ClipboardCheck className="h-5 w-5" />} />
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <TarjetaKpi tono="academico" etiqueta="Ediciones" valor={numero(Number(resumen.ediciones ?? 0))} icono={<BookOpen className="h-5 w-5" />} />
-            <TarjetaKpi tono="academico" etiqueta="Evaluados" valor={numero(Number(resumen.evaluados ?? 0))} icono={<GraduationCap className="h-5 w-5" />} />
-            <TarjetaKpi tono="academico" etiqueta="Aprobados" valor={numero(Number(resumen.aprobados ?? 0))} icono={<GraduationCap className="h-5 w-5" />} />
-            <TarjetaKpi tono="academico" etiqueta="Promedio general" valor={resumen.promedio_general !== null && resumen.promedio_general !== undefined ? String(resumen.promedio_general) : '—'} icono={<GraduationCap className="h-5 w-5" />} />
           </div>
         )}
 
@@ -320,9 +234,7 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
             valor={parametro(parametros, 'curso_id')}
             opciones={Object.fromEntries((meta.cursos ?? []).map((c) => [String(c.id), `${c.codigo} — ${c.nombre}`]))}
           />
-          {tipo === 'matriculas' || tipo === 'cobranza' ? (
-            <SelectorFiltro tono="academico" nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={opcionesEstado} />
-          ) : null}
+          <SelectorFiltro tono="academico" nombre="estado" etiqueta="Estado" valor={parametro(parametros, 'estado')} opciones={opcionesEstado} />
           {tipo === 'matriculas' ? (
             <Casilla compacta name="eliminados" value="1" defaultChecked={parametro(parametros, 'eliminados') === '1'} etiqueta="Eliminadas" className="pb-0.5" />
           ) : null}
@@ -351,47 +263,6 @@ async function Reporte({ searchParams }: { searchParams: Promise<Parametros> }) 
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-emerald-700">{moneda(fila.pagado)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums font-semibold">{moneda(fila.saldo)}</td>
                 <td className="px-4 py-3"><Insignia color={colorEstado(fila.estado)}>{opcionesEstado[fila.estado] ?? fila.estado}</Insignia></td>
-              </tr>
-            ))}
-          </Tabla>
-        ) : tipo === 'asistencia' ? (
-          <Tabla
-            titulo={`Asistencia (${meta.total})`}
-            columnas={['Edición', 'Curso', { texto: 'Sesiones realizadas', derecha: true }, { texto: 'Matriculados', derecha: true }, { texto: 'Promedio', derecha: true }, 'Estado']}
-            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
-          >
-            {(datos.data as unknown as FilaAsistencia[]).map((fila) => (
-              <tr key={fila.identificador} className="hover:bg-academico-50/50">
-                <td className="px-4 py-3 font-medium">
-                  <Link href={`/admin/academico/convocatorias/${fila.identificador}`} className="text-academico-700 hover:underline">{fila.codigo}</Link>
-                  <p className="text-xs text-panel-muted">{fila.edicion}</p>
-                </td>
-                <td className="px-4 py-3 text-panel-muted">{fila.curso?.nombre ?? '—'}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fila.sesiones_realizadas}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fila.matriculados}</td>
-                <td className="px-4 py-3 text-right tabular-nums font-semibold">{fila.promedio !== null ? `${fila.promedio}%` : '—'}</td>
-                <td className="px-4 py-3"><Insignia color={colorEstado(fila.estado)}>{etiqueta('estadoConvocatoria', fila.estado)}</Insignia></td>
-              </tr>
-            ))}
-          </Tabla>
-        ) : tipo === 'calificaciones' ? (
-          <Tabla
-            titulo={`Calificaciones (${meta.total})`}
-            columnas={['Edición', 'Curso', { texto: 'Matriculados', derecha: true }, { texto: 'Evaluados', derecha: true }, { texto: 'Aprobados', derecha: true }, { texto: 'Promedio', derecha: true }, 'Estado']}
-            pie={<Paginacion meta={{ pagina: meta.lote, por_pagina: meta.tamano_lote, total: meta.total, paginas: meta.lotes, orden: '', filtros: meta.filtros }} ruta={RUTA} parametros={actuales} unidad="Lote" />}
-          >
-            {(datos.data as unknown as FilaCalificaciones[]).map((fila) => (
-              <tr key={fila.identificador} className="hover:bg-academico-50/50">
-                <td className="px-4 py-3 font-medium">
-                  <Link href={`/admin/academico/convocatorias/${fila.identificador}`} className="text-academico-700 hover:underline">{fila.codigo}</Link>
-                  <p className="text-xs text-panel-muted">{fila.edicion}</p>
-                </td>
-                <td className="px-4 py-3 text-panel-muted">{fila.curso?.nombre ?? '—'}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fila.matriculados}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fila.con_nota}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fila.aprobados}</td>
-                <td className="px-4 py-3 text-right tabular-nums font-semibold">{fila.promedio !== null ? fila.promedio.toFixed(2) : '—'}</td>
-                <td className="px-4 py-3"><Insignia color={colorEstado(fila.estado)}>{etiqueta('estadoConvocatoria', fila.estado)}</Insignia></td>
               </tr>
             ))}
           </Tabla>
@@ -448,40 +319,6 @@ function graficoDelReporte(tipo: TipoReporte, resumen: Record<string, unknown>):
         segmentos={[
           { etiqueta: 'Cobrado', valor: cobrado, texto: moneda(String(cobrado)), clase: 'bg-emerald-600' },
           { etiqueta: 'Saldo pendiente', valor: saldo, texto: moneda(String(saldo)), clase: 'bg-amber-500' },
-        ]}
-      />
-    );
-  }
-
-  if (tipo === 'calificaciones') {
-    const evaluados = numeroDe(resumen.evaluados);
-    const aprobados = numeroDe(resumen.aprobados);
-    if (evaluados <= 0) return null;
-    const desaprobados = Math.max(0, evaluados - aprobados);
-    return (
-      <BarraProgreso
-        titulo="Resultado de los evaluados"
-        resumen={`${Math.round((aprobados / evaluados) * 100)} % aprobados`}
-        total={evaluados}
-        segmentos={[
-          { etiqueta: 'Aprobados', valor: aprobados, texto: numero(aprobados), clase: 'bg-emerald-600' },
-          { etiqueta: 'Desaprobados', valor: desaprobados, texto: numero(desaprobados), clase: 'bg-rose-500' },
-        ]}
-      />
-    );
-  }
-
-  if (tipo === 'asistencia') {
-    if (resumen.promedio_asistencia === null || resumen.promedio_asistencia === undefined) return null;
-    const asistencia = Math.min(100, Math.max(0, numeroDe(resumen.promedio_asistencia)));
-    return (
-      <BarraProgreso
-        titulo="Asistencia promedio"
-        resumen={`${String(resumen.promedio_asistencia).replace('.', ',')} % de asistencia`}
-        total={100}
-        segmentos={[
-          { etiqueta: 'Asistencia', valor: asistencia, texto: `${String(resumen.promedio_asistencia).replace('.', ',')} %`, clase: 'bg-academico-600' },
-          { etiqueta: 'Inasistencia', valor: 100 - asistencia, texto: `${String(Math.round((100 - asistencia) * 10) / 10).replace('.', ',')} %`, clase: 'bg-slate-300' },
         ]}
       />
     );

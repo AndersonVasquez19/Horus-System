@@ -140,8 +140,9 @@ async function ListadoCertificados({ searchParams }: { searchParams: Promise<Par
                 </div>
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-panel-muted">
-                <div>Asistencia: {c.porcentaje_asistencia !== null ? `${c.porcentaje_asistencia.toFixed(1)}%` : '—'}</div>
-                <div>Nota final: {c.nota_final !== null ? c.nota_final.toFixed(2) : '—'}</div>
+                {c.porcentaje_asistencia !== null ? <div>Asistencia: {c.porcentaje_asistencia.toFixed(1)}%</div> : null}
+                {c.nota_final !== null ? <div>Nota final: {c.nota_final.toFixed(2)}</div> : null}
+                {c.porcentaje_asistencia === null && c.nota_final === null ? '—' : null}
               </td>
               <td className="whitespace-nowrap px-4 py-3">
                 <Insignia color={c.estado === 'emitido' ? 'verde' : 'rojo'}>

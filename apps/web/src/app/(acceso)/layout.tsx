@@ -53,10 +53,10 @@ export default function AccesoLayout({ children }: { children: ReactNode }) {
               <span aria-hidden="true" className="mb-6 block h-0.5 w-11 bg-gradient-to-r from-oro-300 to-oro-300/15" />
               <p className="text-sm font-medium text-oro-300">Panel de gestión académica</p>
               <p className="mt-4 font-heading text-4xl font-bold leading-[1.05] tracking-tight xl:text-5xl">
-                Matrículas, pagos y asistencia en un solo lugar.
+                Matrículas y pagos en un solo lugar.
               </p>
               <p className="mt-5 max-w-xs text-sm leading-6 text-white/80">
-                Registra cada pago Yape, matricula con su comprobante y sigue la asistencia de cada edición.
+                Registra cada pago Yape, matricula con su comprobante y sigue los cupos de cada edición.
               </p>
             </div>
 

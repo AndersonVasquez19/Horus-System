@@ -163,10 +163,8 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
 
 const ETIQUETA_EVENTO: Record<EventoLineaTiempo['tipo'], { texto: string; color: 'azul' | 'verde' | 'ambar' | 'rojo' | 'gris' }> = {
   matricula: { texto: 'Matrícula', color: 'azul' },
-  nota: { texto: 'Notas', color: 'verde' },
   pago: { texto: 'Pago', color: 'verde' },
   cobranza: { texto: 'Cobranza', color: 'ambar' },
-  asistencia: { texto: 'Asistencia', color: 'rojo' },
   certificado: { texto: 'Certificado', color: 'azul' },
   nota_interna: { texto: 'Nota interna', color: 'gris' },
 };
@@ -178,7 +176,7 @@ async function Seguimiento360({ estudianteId, volver }: { estudianteId: number; 
   const { eventos, truncado } = res.datos.data;
 
   return (
-    <Seccion id="titulo-360" titulo="Seguimiento 360°" descripcion="Matrículas, pagos, asistencia, notas, certificados, contactos de cobranza y notas internas, del más reciente al más antiguo." className="xl:col-span-3">
+    <Seccion id="titulo-360" titulo="Seguimiento 360°" descripcion="Matrículas, pagos, certificados, contactos de cobranza anteriores y notas internas, del más reciente al más antiguo." className="xl:col-span-3">
       <div className="space-y-4">
         <FormularioNotaSeguimiento estudianteId={estudianteId} />
         {eventos.length === 0 ? (
