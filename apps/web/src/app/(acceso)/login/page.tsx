@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Suspense } from 'react';
 import { ComprobarSesionActiva } from '../comprobar-sesion-activa';
+import { EncabezadoAcceso, EnlaceAcceso } from '../primitivas-acceso';
 import { FormularioLogin } from './formulario-login';
 
 export const metadata: Metadata = { title: 'Iniciar sesión' };
@@ -12,15 +12,13 @@ export default function LoginPage() {
       <Suspense fallback={null}>
         <ComprobarSesionActiva />
       </Suspense>
-      <p className="text-sm font-medium text-oro-700">Qué bueno verte de nuevo</p>
-      <h1 className="mt-1 font-heading text-3xl font-bold tracking-tight text-tinta">Inicia sesión</h1>
-      <p className="mt-2 text-sm leading-6 text-panel-muted">Entra al panel con tu correo institucional y tu contraseña.</p>
+      <EncabezadoAcceso
+        titulo="Inicia sesión"
+        descripcion="Ingresa con tu correo registrado y tu contraseña."
+      />
       <FormularioLogin />
-      <p className="mt-5 text-center text-sm text-panel-muted">
-        ¿Aún no tienes cuenta?{' '}
-        <Link href="/registro" className="rounded font-medium text-academico-700 underline-offset-4 outline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-oro-500">
-          Crea una
-        </Link>
+      <p className="mt-6 text-center text-sm text-panel-muted">
+        ¿Aún no tienes cuenta? <EnlaceAcceso href="/registro">Crea una</EnlaceAcceso>
       </p>
     </>
   );

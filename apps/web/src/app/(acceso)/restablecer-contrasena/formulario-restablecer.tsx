@@ -1,13 +1,11 @@
 'use client';
 
-import Link from 'next/link';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Lock } from 'lucide-react';
 import { useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Alerta } from '@/components/shared/ui/alerta';
-import { Boton } from '@/components/shared/ui/boton';
-import { CampoClave } from '@/components/shared/ui/campo';
 import { errorDeCampo, llamarBff } from '@/lib/panel/cliente';
 import type { ErrorPanel } from '@/lib/panel/tipos';
+import { BotonAcceso, CampoClaveAcceso, EnlaceAcceso } from '../primitivas-acceso';
 
 interface Enlace {
   token: string;
@@ -69,9 +67,6 @@ function obtenerEnlaceCliente(): Enlace | null {
   return enlaceCache;
 }
 
-const CLASE_ENLACE =
-  'rounded font-medium text-academico-700 underline-offset-4 outline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-academico-700';
-
 export function FormularioRestablecer() {
   const enlace = useSyncExternalStore(suscribirVacio, obtenerEnlaceCliente, () => undefined);
   const [password, setPassword] = useState('');
@@ -117,17 +112,15 @@ export function FormularioRestablecer() {
   }
 
   if (enlace === undefined) {
-    return <div className="mt-6 h-48 animate-pulse rounded-lg bg-panel-bg" aria-hidden="true" />;
+    return <div className="h-48 animate-pulse rounded-xl bg-panel-bg" aria-hidden="true" />;
   }
 
   if (listo) {
     return (
-      <div className="mt-6 space-y-5">
+      <div className="space-y-5">
         <Alerta tipo="exito">{listo}</Alerta>
         <p className="text-center text-sm">
-          <Link href="/login" className={CLASE_ENLACE}>
-            Ir a iniciar sesión
-          </Link>
+          <EnlaceAcceso href="/login">Ir a iniciar sesión</EnlaceAcceso>
         </p>
       </div>
     );
@@ -136,12 +129,10 @@ export function FormularioRestablecer() {
   const errorToken = errorDeCampo(error, 'token') ?? errorDeCampo(error, 'email');
   if (!enlace || errorToken) {
     return (
-      <div className="mt-6 space-y-5">
+      <div className="space-y-5">
         <Alerta tipo="error">{errorToken ?? 'El enlace de recuperación no es válido o está incompleto.'}</Alerta>
         <p className="text-center text-sm">
-          <Link href="/recuperar-contrasena" className={CLASE_ENLACE}>
-            Solicitar un enlace nuevo
-          </Link>
+          <EnlaceAcceso href="/recuperar-contrasena">Solicitar un enlace nuevo</EnlaceAcceso>
         </p>
       </div>
     );
@@ -151,35 +142,39 @@ export function FormularioRestablecer() {
   const errorConfirmacion = errorDeCampo(error, 'password_confirmation');
 
   return (
-    <form onSubmit={enviar} noValidate className="mt-6 space-y-5">
+    <form onSubmit={enviar} noValidate className="space-y-5">
       {error && !errorClave && !errorConfirmacion ? <Alerta tipo="error">{error.message}</Alerta> : null}
-      <p className="text-sm text-panel-muted">
-        Cuenta: <span className="font-medium text-panel-text">{enlace.email}</span>
+      <p className="rounded-xl border border-panel-border bg-academico-50/60 px-3.5 py-2.5 text-sm text-panel-muted">
+        Cuenta: <span className="font-semibold text-tinta">{enlace.email}</span>
       </p>
       <input type="email" name="username" autoComplete="username" value={enlace.email} readOnly hidden />
-      <CampoClave
+      <CampoClaveAcceso
         etiqueta="Contraseña nueva"
         name="password"
         autoComplete="new-password"
         required
+        placeholder="Escribe tu nueva contraseña"
         value={password}
         onChange={(evento) => setPassword(evento.target.value)}
         error={errorClave}
-        ayuda="Entre 10 y 72 caracteres, con mayúsculas, minúsculas y al menos un número."
+        politica
         maxLength={72}
+        icono={<Lock className="h-4 w-4" />}
       />
-      <CampoClave
+      <CampoClaveAcceso
         etiqueta="Repite la contraseña"
         name="password_confirmation"
         autoComplete="new-password"
         required
+        placeholder="Confirma tu nueva contraseña"
         value={confirmacion}
         onChange={(evento) => setConfirmacion(evento.target.value)}
         error={errorConfirmacion}
+        icono={<Lock className="h-4 w-4" />}
       />
-      <Boton type="submit" cargando={enviando} icono={<KeyRound className="h-4 w-4" aria-hidden="true" />} className="w-full">
+      <BotonAcceso type="submit" cargando={enviando} icono={<KeyRound className="h-4 w-4" />}>
         {enviando ? 'Guardando…' : 'Guardar contraseña'}
-      </Boton>
+      </BotonAcceso>
     </form>
   );
 }
