@@ -49,9 +49,18 @@ test.describe('Páginas del panel', () => {
 test.describe('Páginas públicas del panel', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('Inicio de sesión: sin violaciones graves', async ({ page }) => {
-    await page.goto('/login');
-    await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible();
-    expect(await violacionesGraves(page)).toEqual([]);
-  });
+  const rutasAcceso: [string, string, string][] = [
+    ['Inicio de sesión', '/login', 'Inicia sesión'],
+    ['Registro', '/registro', 'Crea tu cuenta'],
+    ['Recuperar contraseña', '/recuperar-contrasena', 'Restablece tu contraseña'],
+    ['Restablecer contraseña', '/restablecer-contrasena', 'Crea tu contraseña nueva'],
+  ];
+
+  for (const [nombre, ruta, titulo] of rutasAcceso) {
+    test(`${nombre}: sin violaciones graves`, async ({ page }) => {
+      await page.goto(ruta);
+      await expect(page.getByRole('heading', { name: titulo })).toBeVisible();
+      expect(await violacionesGraves(page)).toEqual([]);
+    });
+  }
 });
