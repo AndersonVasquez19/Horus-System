@@ -183,3 +183,7 @@ Si existe un valor predeterminado seguro y reversible, declararlo, aplicarlo y c
 ## Retiro del panel de servicios tecnológicos (19/11/2026)
 
 Se retiró la API de edición de fichas (`/api/panel/v1/servicios/*`), los permisos `panel.servicios.acceder` y `servicios.ver|crear|editar` y el tono «servicios» de apps/web. El catálogo público, las cotizaciones públicas y Horus AI **no** son panel y siguen. `servicios.publicar` se conserva como marca editorial del catálogo (oculta en Roles y permisos). Detalle: [`docs/retiro-panel-servicios.md`](docs/retiro-panel-servicios.md). No reintroducir un panel de servicios sin decisión expresa del propietario.
+
+## Retiro de Cobranza y Riesgo de deserción (27/11/2026)
+
+Se retiraron ambas secciones del panel y su API; **Pagos** queda como única sección de dinero (el aviso diario de deuda vencida pasa a Pagos y la pestaña de Reportes se llama «Pagos»). No se borraron datos: `seguimientos_cobranza` se conserva y se lee en la ficha 360°. Detalle: [`docs/retiro-cobranza-riesgo.md`](docs/retiro-cobranza-riesgo.md). No reintroducirlas sin decisión expresa del propietario.

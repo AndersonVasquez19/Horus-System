@@ -22,6 +22,8 @@ Archivos: [`CajaDiaria`](../apps/api/app/Services/CajaDiaria.php), [`CierreCaja`
 
 ## 3.1 Cobranza asistida
 
+> **Retirada el 27/11/2026** (ver [`retiro-cobranza-riesgo.md`](retiro-cobranza-riesgo.md)). Lo que sigue es histórico y sus enlaces a código retirado ya no funcionan.
+
 | Qué | Cómo |
 | --- | --- |
 | **Cola** | `GET academico/cobranza/cola`: obligaciones vigentes con cuotas vencidas sin pagar, de la deuda más vieja a la más reciente. Importes en céntimos desde cuotas y asignaciones del libro (neto de reversos, una consulta por lote, sin N+1). Tramos: reciente 1–7 días, media 8–30, crítica 31 o más. Filtros: tramo, promesa (vigente, incumplida, sin promesa) y búsqueda. Hasta 200 filas (`truncado`); el resumen no cambia con los filtros. |
@@ -58,6 +60,8 @@ Pruebas: [`ElegibilidadCertificadoTest`](../apps/api/tests/Academic/Panel/Elegib
 **Límites:** el valor de `nota_minima` (11) y de asistencia (80) sigue siendo una decisión institucional que conviene confirmar; «sin nota» y «sin asistencia registrada» no bloquean (no se cambió ese comportamiento sin decisión). Emitir con deuda como admin sigue siendo posible, por diseño.
 
 ## 3.4 Riesgo de deserción
+
+> **Retirada el 27/11/2026** (ver [`retiro-cobranza-riesgo.md`](retiro-cobranza-riesgo.md)). Lo que sigue es histórico y sus enlaces a código retirado ya no funcionan.
 
 [`RiesgoDesercion`](../apps/api/app/Services/RiesgoDesercion.php) puntúa a los matriculados de ediciones **en curso**: faltas seguidas más recientes (3 o más → 40 puntos, 2 → 25), asistencia acumulada bajo el mínimo (20) y deuda vencida (más de 30 días → 35, 8 a 30 → 25, 1 a 7 → 15). Nivel alto desde 60, medio desde 30; por debajo no se lista. Cada fila muestra los factores que la explican.
 
