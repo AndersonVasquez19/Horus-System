@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { abrir } from './ayudas';
+import { abrir, pulsarBotonDeMenu } from './ayudas';
 
 /**
  * Accesibilidad automática con axe (WCAG 2.0/2.1 A y AA). Axe detecta una parte de los problemas (contraste, nombres
@@ -31,9 +31,9 @@ test.describe('Páginas del panel', () => {
     });
   }
 
-  test('Estudiantes con el menú ⋯ abierto: sin violaciones graves', async ({ page }) => {
-    await abrir(page, '/admin/academico/estudiantes');
-    await page.getByRole('button', { name: 'Acciones para Luis Torres Díaz' }).click();
+  test('Matrículas con el menú ⋯ abierto: sin violaciones graves', async ({ page }) => {
+    await abrir(page, '/admin/academico/matriculas');
+    await pulsarBotonDeMenu(page.getByRole('button', { name: 'Más acciones para matrícula #1' }));
     await expect(page.getByRole('menu')).toBeVisible();
     expect(await violacionesGraves(page)).toEqual([]);
   });

@@ -75,6 +75,25 @@ const CURSOS = Array.from({ length: 12 }, (_, i) => ({
   creado_en: AHORA,
 }));
 
+/** La fila 1 (pendiente) tiene 4 acciones en su menú ⋯; la 2 (anulada), 3. */
+const MATRICULAS = [
+  [1, 'Ana Quispe Rojas', 'pendiente'],
+  [2, 'Luis Torres Díaz', 'anulada'],
+].map(([id, nombre, estado]) => ({
+  id,
+  estudiante: { id, dni: String(70000000 + id), nombre, email: null, telefono: null, eliminado: false },
+  curso: { id: 1, codigo: 'CUR-001', nombre: 'Curso de prueba 1', enlace_grupo_whatsapp: null, eliminado: false },
+  convocatoria: null,
+  estado,
+  etiqueta: null,
+  estado_cobro: 'sin_obligacion',
+  obligacion_identificador: null,
+  saldo_cobro: null,
+  fecha: '2026-11-19',
+  monto_pagado: '0.00',
+  eliminado: false,
+}));
+
 const peticiones = [];
 
 function enviar(res, estado, cuerpo) {
@@ -229,12 +248,13 @@ function manejarPanel(req, res, ruta, consulta, cuerpo) {
   if (ruta === 'academico/reportes' && req.method === 'GET') return enviar(res, 200, reporte(consulta.get('tipo') ?? 'matriculas'));
 
   if (ruta === 'academico/estudiantes' && req.method === 'GET') return enviar(res, 200, listado(ESTUDIANTES, consulta, ['dni', 'nombres', 'apellidos']));
+  if (ruta === 'academico/matriculas' && req.method === 'GET') return enviar(res, 200, listado(MATRICULAS, consulta, []));
   if (ruta === 'academico/cursos' && req.method === 'GET') return enviar(res, 200, listado(CURSOS, consulta, ['codigo', 'nombre']));
 
   if (ruta === 'academico/estudiantes' && req.method === 'POST') {
     const datos = cuerpo ?? {};
-    // DNI 00000000: simula «ya registrado» para probar que el error de Laravel cae en su campo.
-    if (datos.dni === '00000000') {
+    // DNI 11111111: simula «ya registrado» para probar que el error de Laravel cae en su campo.
+    if (datos.dni === '11111111') {
       return enviar(res, 422, { message: 'Los datos no son válidos.', code: 'validacion', errors: { dni: ['Este DNI ya está registrado.'] } });
     }
     return enviar(res, 201, { message: 'Estudiante registrado correctamente.', data: { ...ESTUDIANTES[0], id: 999, ...datos } });

@@ -21,7 +21,7 @@ test.describe('Formulario «Registrar estudiante»', () => {
 
   test('un error 422 de Laravel cae en su campo, lo enfoca y se anuncia', async ({ page }) => {
     const panel = page.getByRole('dialog', { name: 'Registrar estudiante' });
-    await panel.getByRole('textbox', { name: 'DNI', exact: true }).fill('00000000');
+    await panel.getByRole('textbox', { name: 'DNI', exact: true }).fill('11111111');
     await panel.getByLabel('Nombres').fill('Ana');
     await panel.getByLabel('Apellidos').fill('Quispe');
     await panel.getByRole('button', { name: 'Registrar estudiante' }).click();
@@ -35,7 +35,7 @@ test.describe('Formulario «Registrar estudiante»', () => {
     const envios = (await peticiones(page)).filter((p) => p.metodo === 'POST' && p.ruta === 'academico/estudiantes');
     expect(envios).toHaveLength(1);
     // Paridad con el cuerpo de siempre: los opcionales vacíos viajan como null.
-    expect(envios[0].cuerpo).toMatchObject({ dni: '00000000', nombres: 'Ana', apellidos: 'Quispe', email: null, telefono: null, estado: 'activo' });
+    expect(envios[0].cuerpo).toMatchObject({ dni: '11111111', nombres: 'Ana', apellidos: 'Quispe', email: null, telefono: null, estado: 'activo' });
   });
 
   test('un registro correcto cierra el panel y muestra el aviso de éxito', async ({ page }) => {

@@ -47,8 +47,8 @@ test.describe('Tabla de estudiantes en móvil', () => {
   test('la columna de acciones sigue a la vista sin desplazar la tabla', async ({ page }, info) => {
     test.skip(!esMovil(info), 'Comprobación propia de la vista móvil.');
     await abrir(page, '/admin/academico/estudiantes');
-    const boton = page.getByRole('button', { name: 'Acciones para Luis Torres Díaz' });
-    await expect(boton).toBeInViewport();
+    const primeraFila = page.getByRole('row').nth(1);
+    await expect(primeraFila.getByRole('link', { name: 'Ver', exact: true })).toBeInViewport({ ratio: 1 });
     await capturar(page, info, 'tabla-movil');
   });
 });

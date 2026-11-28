@@ -1,4 +1,4 @@
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 /** Laravel falso (`e2e/mock-laravel.mjs`). */
 export const API = 'http://127.0.0.1:4010';
@@ -19,6 +19,17 @@ export async function abrir(page: Page, ruta: string) {
     const nodos = [document.querySelector('#contenido-panel'), ...Array.from(document.querySelectorAll('button'))].filter((n): n is Element => n !== null);
     return nodos.length > 0 && nodos.every((nodo) => Object.keys(nodo).some((clave) => clave.startsWith('__reactFiber')));
   });
+}
+
+/**
+ * Pulsa el botón de un menú contextual. El menú se cierra al desplazar la página, y el desplazamiento automático previo al
+ * clic emite su evento `scroll` en el fotograma siguiente: en móvil podía llegar después de abrir y cerrarlo. Se desplaza
+ * antes y se espera a que el navegador procese ese evento.
+ */
+export async function pulsarBotonDeMenu(boton: Locator) {
+  await boton.scrollIntoViewIfNeeded();
+  await boton.page().evaluate(() => new Promise((listo) => requestAnimationFrame(() => requestAnimationFrame(listo))));
+  await boton.click();
 }
 
 export interface Peticion {

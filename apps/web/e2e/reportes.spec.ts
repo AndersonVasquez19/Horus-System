@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { abrir, capturar } from './ayudas';
 
 /**
- * Reportes: gráficos calculados con el `resumen` que entrega Laravel, paginación por lotes y menú «Exportar».
+ * Reportes: gráficos calculados con el `resumen` que entrega Laravel, paginación por lotes y botones de exportación.
  * El servidor falso devuelve cifras fijas (ver `reporte()` en `mock-laravel.mjs`).
  */
 test.describe('Gráficos por tipo de reporte', () => {
@@ -39,30 +39,27 @@ test.describe('Paginación por lotes', () => {
   });
 });
 
-test.describe('Menú «Exportar»', () => {
-  test('agrupa las exportaciones en un solo botón con nombre visible', async ({ page }, info) => {
+test.describe('Botones de exportación', () => {
+  test('cada formato tiene su botón, con nombre visible', async ({ page }, info) => {
     await abrir(page, '/admin/academico/reportes');
-    const boton = page.getByRole('button', { name: 'Exportar', exact: true });
-    await expect(boton).toBeVisible();
-    // Sin `aria-label` propio: el nombre accesible es el texto visible (WCAG 2.5.3).
-    await expect(boton).not.toHaveAttribute('aria-label', /.+/);
-
-    // Ya no hay tres botones sueltos de exportación.
-    await expect(page.getByRole('button', { name: /^Exportar (Excel|PDF)/ })).toHaveCount(0);
-
-    await boton.click();
-    const menu = page.getByRole('menu', { name: 'Exportar reporte' });
-    await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Excel' })).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'PDF completo' })).toBeVisible();
-    await capturar(page, info, 'menu-exportar');
-
-    await page.keyboard.press('Escape');
-    await expect(menu).toBeHidden();
-    await expect(boton).toBeFocused();
+    for (const nombre of ['Excel', 'PDF completo']) {
+      const boton = page.getByRole('button', { name: nombre, exact: true });
+      await expect(boton).toBeVisible();
+      // Sin `aria-label` propio: el nombre accesible es el texto visible (WCAG 2.5.3).
+      await expect(boton).not.toHaveAttribute('aria-label', /.+/);
+    }
+    // Con un solo lote no se ofrece «PDF lote».
+    await expect(page.getByRole('button', { name: 'PDF lote' })).toHaveCount(0);
+    await capturar(page, info, 'botones-exportar');
   });
 
-  test('«Vista previa» sigue visible junto al menú', async ({ page }) => {
+  test('el reporte de pagos ofrece Excel y un único PDF', async ({ page }) => {
+    await abrir(page, '/admin/academico/reportes?tipo=cobranza');
+    await expect(page.getByRole('button', { name: 'Excel', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'PDF', exact: true })).toBeVisible();
+  });
+
+  test('«Vista previa» sigue visible junto a las exportaciones', async ({ page }) => {
     await abrir(page, '/admin/academico/reportes');
     await expect(page.getByRole('button', { name: 'Vista previa' })).toBeVisible();
   });
