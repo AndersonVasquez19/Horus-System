@@ -50,7 +50,7 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:convocatorias.ver', only: ['index', 'show', 'exportar', 'calendarioIcs', 'encuestas']),
+            new Middleware('permission:convocatorias.ver', only: ['index', 'show', 'exportar', 'encuestas']),
             new Middleware('permission:matriculas.ver', only: ['listaAulaPdf', 'contactosCsv']),
             new Middleware('permission:convocatorias.crear', only: ['store', 'siguiente']),
             // `estado` exige además `convocatorias.cerrar` para cerrar o cancelar: lo comprueba el servicio.
@@ -210,49 +210,6 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
         return $this->detalle($this->buscar($nueva->identificador), 201, 'La siguiente edición se creó con los mismos horarios.', $request->user());
     }
 
-    /** Descarga archivo .ics (RFC 5545) con las sesiones vigentes de la edición. */
-    public function calendarioIcs(string $identificador): Response
-    {
-        $convocatoria = $this->buscar($identificador);
-        $sesiones = \App\Models\SesionClase::query()
-            ->where('convocatoria_id', $convocatoria->id)
-            ->where('estado', '!=', 'cancelada')
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio')
-            ->get();
-
-        $cursoNombre = $convocatoria->curso->nombre ?? $convocatoria->codigo;
-        $lineas = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//Horus Group//Horus Academic//ES',
-            'CALSCALE:GREGORIAN',
-            'X-WR-CALNAME:'.$this->escaparIcs($cursoNombre.' ('.$convocatoria->codigo.')'),
-        ];
-
-        foreach ($sesiones as $s) {
-            $fechaLimpia = str_replace('-', '', substr((string) $s->fecha, 0, 10));
-            $ini = str_replace(':', '', substr((string) $s->hora_inicio, 0, 5)).'00';
-            $fin = str_replace(':', '', substr((string) $s->hora_fin, 0, 5)).'00';
-            $titulo = 'Sesión '.$s->numero.': '.$cursoNombre.($s->tema ? ' — '.$s->tema : '');
-
-            $lineas[] = 'BEGIN:VEVENT';
-            $lineas[] = 'UID:horus-sesion-'.$s->identificador.'@horusgroup';
-            $lineas[] = 'DTSTART;TZID=America/Lima:'.$fechaLimpia.'T'.$ini;
-            $lineas[] = 'DTEND;TZID=America/Lima:'.$fechaLimpia.'T'.$fin;
-            $lineas[] = 'SUMMARY:'.$this->escaparIcs($titulo);
-            $lineas[] = 'DESCRIPTION:'.$this->escaparIcs('Edición '.$convocatoria->codigo.' · Modalidad: '.$convocatoria->modalidad);
-            $lineas[] = 'END:VEVENT';
-        }
-        $lineas[] = 'END:VCALENDAR';
-
-        return response(implode("\r\n", $lineas)."\r\n", 200, [
-            'Content-Type' => 'text/calendar; charset=utf-8',
-            'Content-Disposition' => "attachment; filename=\"calendario-{$convocatoria->codigo}.ics\"",
-            'Cache-Control' => 'no-store, private',
-        ]);
-    }
-
     /** Lista imprimible de aula (PDF de 1 hoja) con los matriculados vigentes de la edición. */
     public function listaAulaPdf(Request $request, string $identificador): Response
     {
@@ -356,11 +313,6 @@ final class ConvocatoriaController extends Controller implements HasMiddleware
                 'sugerencias' => array_values(array_unique($sugerencias)),
             ],
         ]);
-    }
-
-    private function escaparIcs(string $texto): string
-    {
-        return str_replace(["\\", ";", ",", "\r\n", "\n"], ["\\\\", "\\;", "\\,", "\\n", "\\n"], $texto);
     }
 
     private function buscar(string $identificador): Convocatoria

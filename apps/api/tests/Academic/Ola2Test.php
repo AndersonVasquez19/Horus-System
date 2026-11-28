@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\Asistencia;
 use App\Models\Convocatoria;
 use App\Models\CuotaObligacion;
 use App\Models\Curso;
@@ -10,7 +9,6 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\MetodoPago;
 use App\Models\ObligacionPago;
-use App\Models\SesionClase;
 use App\Models\TransaccionPago;
 use App\Models\User;
 use App\Services\Panel\BusquedaAcademica;
@@ -165,43 +163,7 @@ it('incluye salud_grupo en ResumenAcademico con cuotas vencidas y faltas seguida
         'vence' => '2020-01-15',
     ]);
 
-    $s1 = new SesionClase();
-    $s1->identificador = (string) Str::uuid();
-    $s1->convocatoria_id = $conv->id;
-    $s1->numero = 1;
-    $s1->fecha = '2026-10-10';
-    $s1->hora_inicio = '19:00:00';
-    $s1->hora_fin = '21:00:00';
-    $s1->estado = 'realizada';
-    $s1->revision = 1;
-    $s1->save();
-
-    $s2 = new SesionClase();
-    $s2->identificador = (string) Str::uuid();
-    $s2->convocatoria_id = $conv->id;
-    $s2->numero = 2;
-    $s2->fecha = '2026-10-12';
-    $s2->hora_inicio = '19:00:00';
-    $s2->hora_fin = '21:00:00';
-    $s2->estado = 'realizada';
-    $s2->revision = 1;
-    $s2->save();
-    $a1 = new Asistencia();
-    $a1->estado = 'ausente';
-    $a1->sesion_clase_id = $s1->id;
-    $a1->matricula_id = $mat->id;
-    $a1->registrado_por = $admin->id;
-    $a1->save();
-
-    $a2 = new Asistencia();
-    $a2->estado = 'ausente';
-    $a2->sesion_clase_id = $s2->id;
-    $a2->matricula_id = $mat->id;
-    $a2->registrado_por = $admin->id;
-    $a2->save();
-
     $resumen = app(ResumenAcademico::class)->para($admin);
     expect($resumen['salud_grupo']['cuotas_vencidas'])->toHaveCount(1);
-    expect($resumen['salud_grupo']['inasistencias'])->toHaveCount(1);
-    expect($resumen['salud_grupo']['inasistencias'][0]['faltas_seguidas'])->toBe(2);
+    expect($resumen['salud_grupo'])->not->toHaveKey('inasistencias');
 });

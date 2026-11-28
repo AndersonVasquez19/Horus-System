@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 use App\Models\AprobacionInterna;
 use App\Models\AuditLog;
-use App\Models\Calificacion;
 use App\Models\ChatIntent;
 use App\Models\ChatLog;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
-use App\Models\Evaluacion;
 use App\Models\Matricula;
 use App\Models\MetodoPago;
 use App\Models\NotificacionInterna;
@@ -20,7 +18,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\PreparaReclamaciones;
@@ -204,47 +201,4 @@ test('asistente pagina registros con meta y estado de horus_ai', function (): vo
         ->assertJsonPath('meta.total', 5)
         ->assertJsonPath('meta.paginas', 1)
         ->assertJsonPath('data.horus_ai.habilitado', false);
-});
-
-test('calificaciones permite exportar borrador de acta antes del cierre manteniendo 409 en acta oficial', function (): void {
-    $coord = $this->usuarioConRol('coordinador');
-    $secretaria = $this->usuarioConRol('secretaria');
-    $curso = Curso::create([
-        'codigo' => 'CAL2F-1', 'nombre' => 'Curso Calificaciones', 'descripcion' => 'x', 'categoria' => 'tecnologia',
-        'duracion_horas' => 10, 'precio' => '100.00', 'modalidad' => 'virtual', 'horario' => 'Lun',
-        'cupos_maximos' => 10, 'cupos_disponibles' => 10, 'estado' => 'activo',
-    ]);
-    $conv = new Convocatoria([
-        'nombre' => null, 'modalidad' => 'virtual', 'fecha_inicio' => now()->subDay()->toDateString(),
-        'fecha_fin' => now()->addDays(10)->toDateString(), 'cupos_maximos' => 10,
-    ]);
-    $conv->identificador = (string) Str::uuid();
-    $conv->codigo = 'CNV-2026-9901';
-    $conv->curso_id = $curso->id;
-    $conv->estado = 'en_curso';
-    $conv->cupos_disponibles = 10;
-    $conv->revision = 1;
-    $conv->save();
-
-    $ev = Evaluacion::forceCreate(['identificador' => (string) Str::uuid(), 'convocatoria_id' => $conv->id, 'nombre' => 'Final', 'peso' => '100.00', 'orden' => 1]);
-    $est = Estudiante::create(['dni' => '75333444', 'nombres' => 'Mario', 'apellidos' => 'Luna', 'estado' => 'activo']);
-    $mat = Matricula::create(['estudiante_id' => $est->id, 'curso_id' => $curso->id, 'convocatoria_id' => $conv->id, 'fecha_matricula' => now()->toDateString(), 'estado' => 'pendiente', 'monto_pagado' => 0]);
-    Calificacion::forceCreate(['matricula_id' => $mat->id, 'evaluacion_id' => $ev->id, 'nota' => 17, 'registrado_por' => $coord->id]);
-
-    // Secretaria sin calificaciones.exportar -> 403
-    $this->panelComo($secretaria, 'POST', "academico/convocatorias/{$conv->identificador}/acta/borrador/exportar")->assertForbidden();
-
-    // Acta oficial sigue bloqueada (409) antes del cierre
-    $this->panelComo($coord, 'POST', "academico/convocatorias/{$conv->identificador}/acta/exportar")->assertStatus(409);
-
-    // Borrador sí exporta antes del cierre y genera XLSX válido + auditoría propia
-    $xlsx = $this->panelComo($coord, 'POST', "academico/convocatorias/{$conv->identificador}/acta/borrador/exportar")->assertOk()->assertDownload();
-    $ruta = $xlsx->baseResponse->getFile()->getPathname();
-    try {
-        $hoja = IOFactory::load($ruta)->getActiveSheet();
-        expect($hoja->getHighestDataRow())->toBeGreaterThan(1);
-    } finally {
-        @unlink($ruta);
-    }
-    expect(AuditLog::where('action', 'acta_borrador_exportada')->count())->toBe(1);
 });

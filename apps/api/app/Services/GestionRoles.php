@@ -31,6 +31,19 @@ final class GestionRoles
         'seguimientos.editar',
         'seguimientos.eliminar',
         'asistente.entrenar',
+        // Sesiones, asistencia y calificaciones retiradas (27/11/2026).
+        'sesiones.ver',
+        'sesiones.crear',
+        'sesiones.editar',
+        'sesiones.cancelar',
+        'asistencias.ver',
+        'asistencias.registrar',
+        'asistencias.corregir',
+        'asistencias.exportar',
+        'calificaciones.ver',
+        'calificaciones.registrar',
+        'calificaciones.corregir',
+        'calificaciones.exportar',
         // Marca editorial del catálogo público (no hay panel de servicios): no se asigna desde Roles y permisos.
         'servicios.publicar',
     ];

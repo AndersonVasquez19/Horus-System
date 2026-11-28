@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\Publico;
 use App\Http\Controllers\Controller;
 use App\Models\Convocatoria;
 use App\Models\EncuestaCurso;
-use App\Models\SesionClase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,22 +24,6 @@ final class AcademicoPublicoController extends Controller
             ->whereIn('estado', ['abierta', 'en_curso', 'cerrada'])
             ->with(['curso:id,codigo,nombre', 'horarios'])
             ->firstOrFail();
-
-        $sesiones = SesionClase::query()
-            ->where('convocatoria_id', $convocatoria->id)
-            ->where('estado', '!=', 'cancelada')
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio')
-            ->get()
-            ->map(fn (SesionClase $s): array => [
-                'numero' => (int) $s->numero,
-                'fecha' => substr((string) $s->fecha, 0, 10),
-                'hora_inicio' => substr((string) $s->hora_inicio, 0, 5),
-                'hora_fin' => substr((string) $s->hora_fin, 0, 5),
-                'tema' => $s->tema,
-                'estado' => (string) $s->estado,
-            ])
-            ->all();
 
         $horarios = $convocatoria->horarios
             ->sortBy(['dia_semana', 'hora_inicio'])
@@ -62,7 +45,6 @@ final class AcademicoPublicoController extends Controller
                 'fecha_inicio' => $convocatoria->fecha_inicio->toDateString(),
                 'fecha_fin' => $convocatoria->fecha_fin->toDateString(),
                 'horarios' => $horarios,
-                'sesiones' => $sesiones,
             ],
         ]);
     }

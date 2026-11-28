@@ -8,7 +8,6 @@ use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\SesionClase;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

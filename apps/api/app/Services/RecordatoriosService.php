@@ -9,7 +9,6 @@ use App\Models\CuotaObligacion;
 use App\Models\MensajeContacto;
 use App\Models\NotificacionInterna;
 use App\Models\ObligacionPago;
-use App\Models\SesionClase;
 use App\Models\User;
 use App\Support\Entrada;
 use App\Support\HoraLocal;
@@ -18,7 +17,7 @@ use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 
 /**
- * Recordatorios operativos del scheduler (Ola 3): cuotas por vencer, sesiones del día y mensajes de contacto sin atender.
+ * Recordatorios operativos del scheduler (Ola 3): cuotas por vencer y mensajes de contacto sin atender.
  * Los plazos del Libro de Reclamaciones corren en {@see ProcesarVencimientosReclamaciones}.
  *
  * Primero registra {@see NotificacionInterna}; solo refleja por correo/WhatsApp cuando las banderas globales y las
@@ -32,31 +31,30 @@ class RecordatoriosService
     ) {}
 
     /**
-     * @return array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, espera: int, omitido_desactivado?: bool}
+     * @return array{cuotas: int, mensajes: int, externos: int, mora: int, espera: int, omitido_desactivado?: bool}
      */
     public function ejecutar(bool $dryRun = false, int $limit = 200): array
     {
         if (config('recordatorios.internos_enabled') !== true) {
-            return ['cuotas' => 0, 'sesiones' => 0, 'mensajes' => 0, 'externos' => 0, 'mora' => 0, 'espera' => 0, 'omitido_desactivado' => true];
+            return ['cuotas' => 0, 'mensajes' => 0, 'externos' => 0, 'mora' => 0, 'espera' => 0, 'omitido_desactivado' => true];
         }
 
         $hoyLima = HoraLocal::ahora()->startOfDay();
         $hoyIso = $hoyLima->toDateString();
         $utcHoy = now('UTC')->toDateString();
 
-        $conteos = ['cuotas' => 0, 'sesiones' => 0, 'mensajes' => 0, 'externos' => 0, 'mora' => 0, 'espera' => 0];
+        $conteos = ['cuotas' => 0, 'mensajes' => 0, 'externos' => 0, 'mora' => 0, 'espera' => 0];
 
         $this->procesarCuotas($hoyLima, $hoyIso, $utcHoy, $dryRun, $limit, $conteos);
         $this->procesarMora($hoyIso, $utcHoy, $dryRun, $conteos);
         $this->procesarEspera($hoyIso, $utcHoy, $dryRun, $conteos);
-        $this->procesarSesiones($hoyIso, $utcHoy, $dryRun, $limit, $conteos);
         $this->procesarMensajes($hoyIso, $utcHoy, $dryRun, $conteos);
 
         return $conteos;
     }
 
     /**
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
+     * @param  array{cuotas: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
      */
     private function procesarCuotas(CarbonImmutable $hoyLima, string $hoyIso, string $utcHoy, bool $dryRun, int $limit, array &$conteos): void
     {
@@ -134,7 +132,7 @@ class RecordatoriosService
      * Resumen diario de los pagos vencidos: una sola notificación por día, no una por obligación. Solo al personal con `pagos.ver`,
      * sin nombres ni importes hacia terceros (no hay espejo externo: el texto interno lleva las cifras).
      *
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
+     * @param  array{cuotas: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
      */
     private function procesarMora(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
     {
@@ -171,7 +169,7 @@ class RecordatoriosService
      * Aviso diario de ediciones con cupo libre y personas en lista de espera (Fase 3.7): una notificación por usuario y día para quien
      * puede matricular. Solo cantidades y códigos de edición, sin datos de los estudiantes.
      *
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
+     * @param  array{cuotas: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
      */
     private function procesarEspera(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
     {
@@ -206,57 +204,7 @@ class RecordatoriosService
     }
 
     /**
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
-     */
-    private function procesarSesiones(string $hoyIso, string $utcHoy, bool $dryRun, int $limit, array &$conteos): void
-    {
-        $sesiones = SesionClase::query()
-            ->where('fecha', $hoyIso)
-            ->where('estado', 'programada')
-            ->with(['convocatoria.curso' => fn ($q) => $q->withTrashed()->select('id', 'codigo', 'nombre')])
-            ->orderBy('hora_inicio')
-            ->limit($limit)
-            ->get();
-
-        $destinatarios = $this->usuariosConPermiso('sesiones.ver');
-
-        foreach ($sesiones as $sesion) {
-            $conv = $sesion->convocatoria;
-            if ($conv === null) {
-                continue;
-            }
-            $vinculo = '/admin/academico/convocatorias/'.$conv->identificador;
-            $cursoNombre = ($conv->curso->nombre ?? '') ?: $conv->codigo;
-            $titulo = "Sesión #{$sesion->numero} hoy: {$conv->codigo}";
-
-            if ($this->yaNotificadoHoy('recordatorio_sesion', $vinculo, $titulo, $utcHoy)) {
-                continue;
-            }
-
-            $conteos['sesiones']++;
-            if ($dryRun) {
-                continue;
-            }
-
-            $rangoHora = substr((string) $sesion->hora_inicio, 0, 5).'–'.substr((string) $sesion->hora_fin, 0, 5);
-            $mensaje = "Clase de {$cursoNombre} ({$conv->codigo}) programada hoy de {$rangoHora}.";
-
-            $conteos['externos'] += $this->notificarUsuarios(
-                $destinatarios,
-                'recordatorio_sesion',
-                'recordatorio_sesiones',
-                $titulo,
-                $mensaje,
-                $vinculo,
-                "sesion-{$sesion->id}-{$hoyIso}",
-                'horus_recordatorio_sesion',
-                [$conv->codigo, (string) $sesion->numero, $rangoHora],
-            );
-        }
-    }
-
-    /**
-     * @param  array{cuotas: int, sesiones: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
+     * @param  array{cuotas: int, mensajes: int, externos: int, mora: int, espera: int}  $conteos
      */
     private function procesarMensajes(string $hoyIso, string $utcHoy, bool $dryRun, array &$conteos): void
     {

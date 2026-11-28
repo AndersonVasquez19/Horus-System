@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Models\Asistencia;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\SesionClase;
 use App\Models\TransaccionPago;
-use App\Services\GestionAsistencias;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -81,7 +78,6 @@ function trAsignacion(int $transaccion, int $cuota, string $monto): void
  *  - por confirmar = 1 pago de 50.00
  *  - saldo por cobrar: O1 200 + O3 150 + O4 80 = 430.00 en 3 matrículas (O2 saldada y O5 anulada no cuentan)
  *  - cuotas: 1 vencida de 200.00 (O1 #2) y 1 por vencer de 80.00 (O4); la de O3 vence en 30 días y queda fuera
- *  - asistencia de la edición en curso A: Ana 100 %, Luis 0 %, Eva 50 % → promedio 50.0 (bajo el mínimo de 80)
  */
 function trEscenario(): void
 {
@@ -123,35 +119,9 @@ function trEscenario(): void
     // O5: anulada, no cuenta.
     trCuota(trObligacion($m5, '500.00', 'anulada'), 1, '500.00', now('America/Lima')->subDays(9)->toDateString());
     unset($m6);
-
-    // Asistencia de la edición A: 2 sesiones realizadas.
-    $sesiones = [];
-    foreach ([1, 2] as $numero) {
-        $s = new SesionClase(['tema' => null]);
-        $s->identificador = (string) Str::uuid();
-        $s->convocatoria_id = $a->id;
-        $s->numero = $numero;
-        $s->fecha = now('America/Lima')->subDays(3 - $numero)->toDateString();
-        $s->hora_inicio = sprintf('%02d:00:00', 6 + $numero);
-        $s->hora_fin = sprintf('%02d:00:00', 7 + $numero);
-        $s->estado = 'realizada';
-        $s->revision = 1;
-        $s->save();
-        $sesiones[] = $s;
-    }
-    $marcas = [[$ana, 'presente', 'presente'], [$luis, 'ausente', 'ausente'], [$eva, 'presente', 'ausente']];
-    foreach ($marcas as [$matricula, $e1, $e2]) {
-        foreach ([[$sesiones[0], $e1], [$sesiones[1], $e2]] as [$sesion, $estado]) {
-            $reg = new Asistencia;
-            $reg->sesion_clase_id = $sesion->id;
-            $reg->matricula_id = $matricula->id;
-            $reg->estado = $estado;
-            $reg->save();
-        }
-    }
 }
 
-it('el tablero mantiene exactas las cifras de dinero, cuotas, saldos y asistencia', function (): void {
+it('el tablero mantiene exactas las cifras de dinero, cuotas y saldos', function (): void {
     trEscenario();
 
     $d = $this->panelComo($this->usuarioConRol('admin'), 'GET', 'academico/resumen')->assertOk()->json('data');
@@ -164,13 +134,6 @@ it('el tablero mantiene exactas las cifras de dinero, cuotas, saldos y asistenci
         ->and($d['acciones']['cuotas'])->toBe(['vencidas' => 1, 'monto_vencido' => '200.00', 'por_vencer' => 1, 'monto_por_vencer' => '80.00'])
         ->and($d['indicadores']['matriculas_mes'])->toBe(6)
         ->and($d['indicadores']['matriculas_pendientes'])->toBe(5);
-
-    $asistencia = collect($d['academico']['asistencia'])->keyBy('codigo');
-    expect((float) $asistencia['CNV-2026-7001']['promedio'])->toBe(50.0)
-        ->and($asistencia['CNV-2026-7001']['sesiones_realizadas'])->toBe(2)
-        ->and($asistencia['CNV-2026-7001']['bajo_minimo'])->toBeTrue()
-        ->and($asistencia['CNV-2026-7002']['promedio'])->toBeNull()
-        ->and($asistencia['CNV-2026-7002']['sesiones_realizadas'])->toBe(0);
 });
 
 /** Cuenta las consultas que dispara una petición al tablero. */
@@ -201,53 +164,6 @@ it('sin caché el tablero hace menos consultas que antes (36) y no crece con las
 
     expect($con3Ediciones)->toBeLessThanOrEqual(LIMITE_CONSULTAS_TABLERO)
         ->and($con7Ediciones)->toBe($con3Ediciones);
-});
-
-it('el promedio de asistencia en lote coincide con el cálculo de resumen() de cada edición', function (): void {
-    trEscenario();
-    $ediciones = Convocatoria::query()->whereIn('codigo', ['CNV-2026-7001', 'CNV-2026-7002'])->orderBy('codigo')->get();
-
-    $lote = app(GestionAsistencias::class)->promediosPorEdicion($ediciones->pluck('id')->map(fn ($id): int => (int) $id)->all());
-
-    foreach ($ediciones as $edicion) {
-        $resumen = app(GestionAsistencias::class)->resumen($edicion);
-        $valores = collect($resumen['matriculas'])->pluck('porcentaje')->filter(fn ($p): bool => $p !== null);
-        $esperado = $valores->isEmpty() ? null : round((float) $valores->avg(), 1);
-
-        expect($lote[$edicion->id]['sesiones_realizadas'])->toBe($resumen['sesiones_realizadas'])
-            ->and($lote[$edicion->id]['promedio'])->toEqual($esperado);
-    }
-});
-
-it('los reportes de asistencia y calificaciones no hacen una consulta por edición', function (string $tipo): void {
-    trEscenario();
-    $admin = $this->usuarioConRol('admin');
-    $this->panelComo($admin, 'GET', 'academico/reportes?tipo='.$tipo)->assertOk(); // calienta permisos/roles
-    $con3 = trConsultas(fn () => $this->panelComo($admin, 'GET', 'academico/reportes?tipo='.$tipo));
-
-    $curso = trCurso('TR-3');
-    foreach (['CNV-2026-7201', 'CNV-2026-7202', 'CNV-2026-7203', 'CNV-2026-7204', 'CNV-2026-7205'] as $i => $codigo) {
-        trMatricula(trEdicion($curso, $codigo, 'en_curso'), '7300000'.$i);
-    }
-    $con8 = trConsultas(fn () => $this->panelComo($admin, 'GET', 'academico/reportes?tipo='.$tipo));
-    $filas = $this->panelComo($admin, 'GET', 'academico/reportes?tipo='.$tipo)->json('meta.total');
-
-    expect($con8)->toBe($con3)->and($filas)->toBe(8);
-})->with(['asistencia', 'calificaciones']);
-
-it('el reporte de asistencia mantiene las cifras por edición', function (): void {
-    trEscenario();
-
-    $r = $this->panelComo($this->usuarioConRol('admin'), 'GET', 'academico/reportes?tipo=asistencia')->assertOk()->json();
-    $filas = collect($r['data'])->keyBy('codigo');
-
-    expect((float) $filas['CNV-2026-7001']['promedio'])->toBe(50.0)
-        ->and($filas['CNV-2026-7001']['sesiones_realizadas'])->toBe(2)
-        ->and($filas['CNV-2026-7001']['matriculados'])->toBe(3)
-        ->and($filas['CNV-2026-7002']['promedio'])->toBeNull()
-        ->and($filas['CNV-2026-7002']['matriculados'])->toBe(3)
-        ->and($r['resumen']['matriculados'])->toBe(6)
-        ->and((float) $r['resumen']['promedio_asistencia'])->toBe(50.0);
 });
 
 describe('caché del tablero', function (): void {

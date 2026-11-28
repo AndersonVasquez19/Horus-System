@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Http\Requests\ReportMatriculasRequest;
 use App\Models\AuditLog;
-use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Models\ObligacionPago;
 use App\Support\BusquedaLike;
@@ -15,7 +14,6 @@ use App\Support\SafeSpreadsheet;
 use App\Support\SpreadsheetCellCache;
 use App\Support\TemporaryExportFile;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,10 +33,6 @@ use ZipArchive;
  * @phpstan-type CursoResumen array{codigo: string, nombre: string}
  * @phpstan-type FilaCobranza array{id: int, obligacion: string, estudiante: string|null, dni: string|null, curso: CursoResumen|null, concepto: string, total: string, pagado: string, saldo: string, estado: string}
  * @phpstan-type ResumenCobranza array{obligaciones: int, total_facturado: string, cobrado: string, saldo_pendiente: string}
- * @phpstan-type FilaAsistencia array{identificador: string, codigo: string, edicion: string, curso: CursoResumen|null, sesiones_realizadas: int, matriculados: int, promedio: float|null, estado: string}
- * @phpstan-type ResumenAsistencia array{ediciones: int, sesiones_realizadas: int, matriculados: int, promedio_asistencia: float|null}
- * @phpstan-type FilaCalificaciones array{identificador: string, codigo: string, edicion: string, curso: CursoResumen|null, matriculados: int, con_nota: int, aprobados: int, desaprobados: int, promedio: float|null, estado: string}
- * @phpstan-type ResumenCalificaciones array{ediciones: int, evaluados: int, aprobados: int, promedio_general: float|null}
  */
 final class ReportesMatriculas
 {
@@ -261,137 +255,6 @@ final class ReportesMatriculas
                 'total_facturado' => GestionPagos::formato($totalFacturado),
                 'cobrado' => GestionPagos::formato($totalCobrado),
                 'saldo_pendiente' => GestionPagos::formato($totalSaldo),
-            ],
-        ];
-    }
-
-    /**
-     * Reporte consolidado de asistencia por edición.
-     *
-     * @return array{rows: list<FilaAsistencia>, resumen: ResumenAsistencia}
-     */
-    public function asistencia(ReportMatriculasRequest $request): array
-    {
-        $filtros = $request->filters();
-        $query = Convocatoria::query()->with('curso:id,codigo,nombre')->orderByDesc('fecha_inicio');
-        if (isset($filtros['curso_id'])) {
-            $query->where('curso_id', Entrada::entero($filtros['curso_id']));
-        }
-        if (isset($filtros['busqueda'])) {
-            $b = Entrada::texto($filtros['busqueda']);
-            $query->where(function (Builder $q) use ($b): void {
-                BusquedaLike::contiene($q, ['codigo', 'nombre'], $b);
-                $q->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
-            });
-        }
-
-        $filas = [];
-        $totalSesiones = 0;
-        $totalMatriculados = 0;
-        $promedios = [];
-
-        $ediciones = $query->get();
-        // Tres consultas para todas las ediciones (antes, varias por edición); misma regla que GestionAsistencias::resumen().
-        $lote = app(GestionAsistencias::class)->promediosPorEdicion($ediciones->map(fn (Convocatoria $c): int => (int) $c->id)->all());
-
-        foreach ($ediciones as $conv) {
-            $res = $lote[(int) $conv->id];
-            $promedio = $res['promedio'];
-            if ($promedio !== null) {
-                $promedios[] = $promedio;
-            }
-            $totalSesiones += $res['sesiones_realizadas'];
-            $totalMatriculados += $res['matriculados'];
-
-            $filas[] = [
-                'identificador' => $conv->identificador,
-                'codigo' => $conv->codigo,
-                'edicion' => $conv->nombre ?: ($conv->curso->nombre ?? $conv->codigo),
-                'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
-                'sesiones_realizadas' => $res['sesiones_realizadas'],
-                'matriculados' => $res['matriculados'],
-                'promedio' => $promedio,
-                'estado' => $conv->estado,
-            ];
-        }
-
-        return [
-            'rows' => $filas,
-            'resumen' => [
-                'ediciones' => count($filas),
-                'sesiones_realizadas' => $totalSesiones,
-                'matriculados' => $totalMatriculados,
-                'promedio_asistencia' => $promedios === [] ? null : round(array_sum($promedios) / count($promedios), 1),
-            ],
-        ];
-    }
-
-    /**
-     * Reporte consolidado de calificaciones por edición.
-     *
-     * @return array{rows: list<FilaCalificaciones>, resumen: ResumenCalificaciones}
-     */
-    public function calificaciones(ReportMatriculasRequest $request): array
-    {
-        $filtros = $request->filters();
-        $query = Convocatoria::query()->with('curso:id,codigo,nombre')->orderByDesc('fecha_inicio');
-        if (isset($filtros['curso_id'])) {
-            $query->where('curso_id', Entrada::entero($filtros['curso_id']));
-        }
-        if (isset($filtros['busqueda'])) {
-            $b = Entrada::texto($filtros['busqueda']);
-            $query->where(function (Builder $q) use ($b): void {
-                BusquedaLike::contiene($q, ['codigo', 'nombre'], $b);
-                $q->orWhereHas('curso', fn (Builder $c) => BusquedaLike::contiene($c, ['codigo', 'nombre'], $b));
-            });
-        }
-
-        $filas = [];
-        $totalEvaluados = 0;
-        $totalAprobados = 0;
-        $todasNotas = [];
-
-        $ediciones = $query->get();
-        // Una sola consulta para las matrículas de todas las ediciones (antes, una por edición).
-        $porEdicion = Matricula::query()
-            ->whereIn('convocatoria_id', $ediciones->pluck('id'))
-            ->where('estado', '!=', 'anulada')
-            ->get(['convocatoria_id', 'nota_final', 'resultado'])
-            ->groupBy('convocatoria_id');
-
-        foreach ($ediciones as $conv) {
-            $mats = $porEdicion->get($conv->id) ?? new Collection;
-            $conNota = $mats->filter(fn (Matricula $m): bool => $m->nota_final !== null);
-            $aprobados = $conNota->where('resultado', 'aprobado')->count();
-            $desaprobados = $conNota->where('resultado', 'desaprobado')->count();
-            $promedio = $conNota->isEmpty() ? null : round((float) $conNota->avg('nota_final'), 2);
-            foreach ($conNota as $m) {
-                $todasNotas[] = (float) $m->nota_final;
-            }
-            $totalEvaluados += $conNota->count();
-            $totalAprobados += $aprobados;
-
-            $filas[] = [
-                'identificador' => $conv->identificador,
-                'codigo' => $conv->codigo,
-                'edicion' => $conv->nombre ?: ($conv->curso->nombre ?? $conv->codigo),
-                'curso' => $conv->curso ? ['codigo' => $conv->curso->codigo, 'nombre' => $conv->curso->nombre] : null,
-                'matriculados' => $mats->count(),
-                'con_nota' => $conNota->count(),
-                'aprobados' => $aprobados,
-                'desaprobados' => $desaprobados,
-                'promedio' => $promedio,
-                'estado' => $conv->estado,
-            ];
-        }
-
-        return [
-            'rows' => $filas,
-            'resumen' => [
-                'ediciones' => count($filas),
-                'evaluados' => $totalEvaluados,
-                'aprobados' => $totalAprobados,
-                'promedio_general' => $todasNotas === [] ? null : round(array_sum($todasNotas) / count($todasNotas), 2),
             ],
         ];
     }

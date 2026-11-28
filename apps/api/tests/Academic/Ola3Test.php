@@ -9,7 +9,6 @@ use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\MetodoPago;
 use App\Models\ObligacionPago;
-use App\Models\SesionClase;
 use App\Models\TransaccionPago;
 use App\Models\User;
 use App\Support\CodigoSecuencial;
@@ -25,7 +24,7 @@ beforeEach(function (): void {
     config(['app.url' => 'http://localhost', 'horus-web.service_token' => str_repeat('c', 32)]);
 });
 
-it('genera constancia PDF con QR, caja diaria, calendario .ics, lista aula, contactos CSV e historial PDF', function (): void {
+it('genera constancia PDF con QR, caja diaria, lista aula, contactos CSV e historial PDF', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -66,18 +65,6 @@ it('genera constancia PDF con QR, caja diaria, calendario .ics, lista aula, cont
     $h = new ConvocatoriaHorario(['dia_semana' => 6, 'hora_inicio' => '09:00', 'hora_fin' => '12:00']);
     $h->convocatoria_id = $conv->id;
     $h->save();
-
-    $sesion = new SesionClase();
-    $sesion->identificador = (string) Str::uuid();
-    $sesion->convocatoria_id = $conv->id;
-    $sesion->numero = 1;
-    $sesion->fecha = '2026-11-21';
-    $sesion->hora_inicio = '09:00:00';
-    $sesion->hora_fin = '12:00:00';
-    $sesion->tema = 'Consultas básicas';
-    $sesion->estado = 'programada';
-    $sesion->revision = 1;
-    $sesion->save();
 
     $mat = Matricula::create([
         'estudiante_id' => $est->id,
@@ -126,11 +113,6 @@ it('genera constancia PDF con QR, caja diaria, calendario .ics, lista aula, cont
         ->post('/api/panel/v1/academico/pagos/caja-diaria/pdf')
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
-
-    $ics = $this->actingAs($admin)->withHeaders($headers)
-        ->get("/api/panel/v1/academico/convocatorias/{$conv->identificador}/calendario.ics")
-        ->assertOk();
-    expect($ics->getContent())->toContain('BEGIN:VCALENDAR', 'Consultas básicas');
 
     $this->actingAs($admin)->withHeaders($headers)
         ->post("/api/panel/v1/academico/convocatorias/{$conv->identificador}/lista-aula/pdf")

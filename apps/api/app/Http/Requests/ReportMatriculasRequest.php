@@ -21,7 +21,7 @@ class ReportMatriculasRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo' => ['nullable', Rule::in(['matriculas', 'cobranza', 'asistencia', 'calificaciones'])],
+            'tipo' => ['nullable', Rule::in(['matriculas', 'cobranza'])],
             'busqueda' => ['nullable', 'string', 'max:200'],
             'estado' => ['nullable', Rule::in(['pendiente', 'pagada', 'anulada', 'parcial', 'vigente'])],
             'curso_id' => ['nullable', 'integer', Rule::exists('cursos', 'id')],

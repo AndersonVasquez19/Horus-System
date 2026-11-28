@@ -183,26 +183,10 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
         Route::get('convocatorias/{identificador}/lista-espera',[Academico\ListaEsperaController::class, 'index'])->name('convocatorias.lista-espera.index');
         Route::post('convocatorias/{identificador}/lista-espera', [Academico\ListaEsperaController::class, 'store'])->name('convocatorias.lista-espera.store');
         Route::delete('convocatorias/{identificador}/lista-espera/{entrada}', [Academico\ListaEsperaController::class, 'destroy'])->whereUuid('entrada')->name('convocatorias.lista-espera.destroy');
-        Route::get('convocatorias/{identificador}/calendario.ics', [Academico\ConvocatoriaController::class, 'calendarioIcs'])->name('convocatorias.calendario-ics');
         Route::post('convocatorias/{identificador}/lista-aula/pdf', [Academico\ConvocatoriaController::class, 'listaAulaPdf'])
             ->middleware('throttle:admin-export')->name('convocatorias.lista-aula.pdf');
         Route::post('convocatorias/{identificador}/contactos/csv', [Academico\ConvocatoriaController::class, 'contactosCsv'])
             ->middleware('throttle:admin-export')->name('convocatorias.contactos.csv');
-        // Calificaciones (Ola 3): evaluaciones, notas y acta de una convocatoria.
-        Route::get('convocatorias/{identificador}/calificaciones', [Academico\CalificacionController::class, 'index'])->name('calificaciones.index');
-        Route::post('convocatorias/{identificador}/acta/exportar', [Academico\CalificacionController::class, 'exportarActa'])
-            ->middleware('throttle:admin-export')->name('calificaciones.acta.exportar');
-        Route::post('convocatorias/{identificador}/acta/borrador/exportar', [Academico\CalificacionController::class, 'exportarBorradorActa'])
-            ->middleware('throttle:admin-export')->name('calificaciones.acta.borrador.exportar');
-        Route::middleware('throttle:admin-write')->group(function (): void {
-            Route::post('convocatorias/{identificador}/evaluaciones', [Academico\CalificacionController::class, 'crearEvaluacion'])->name('calificaciones.evaluaciones.store');
-            Route::put('convocatorias/{identificador}/evaluaciones/{evaluacion}', [Academico\CalificacionController::class, 'actualizarEvaluacion'])->name('calificaciones.evaluaciones.update');
-            Route::post('convocatorias/{identificador}/evaluaciones/{evaluacion}/eliminar', [Academico\CalificacionController::class, 'eliminarEvaluacion'])->name('calificaciones.evaluaciones.destroy');
-            Route::put('convocatorias/{identificador}/calificaciones', [Academico\CalificacionController::class, 'nota'])->name('calificaciones.nota');
-            Route::post('convocatorias/{identificador}/acta/cerrar', [Academico\CalificacionController::class, 'cerrarActa'])->name('calificaciones.acta.cerrar');
-            Route::post('convocatorias/{identificador}/acta/reapertura', [Academico\CalificacionController::class, 'solicitarReapertura'])->name('calificaciones.acta.reapertura');
-            Route::post('convocatorias/{identificador}/acta/reabrir', [Academico\CalificacionController::class, 'reabrirActa'])->name('calificaciones.acta.reabrir');
-        });
         Route::middleware('throttle:admin-write')->group(function (): void {
             Route::post('convocatorias', [Academico\ConvocatoriaController::class, 'store'])->name('convocatorias.store');
             Route::post('convocatorias/{identificador}/siguiente', [Academico\ConvocatoriaController::class, 'siguiente'])->name('convocatorias.siguiente');
@@ -211,26 +195,6 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             Route::put('convocatorias/{identificador}/horarios', [Academico\ConvocatoriaController::class, 'horarios'])->name('convocatorias.horarios');
         });
 
-
-        // Sesiones de clase (Horus Academic, Fase 5). El permiso (`sesiones.*`) lo declara el controlador.
-        Route::get('convocatorias/{identificador}/sesiones', [Academico\SesionController::class, 'index'])->name('sesiones.index');
-        Route::get('sesiones/{sesion}', [Academico\SesionController::class, 'show'])->name('sesiones.show');
-        Route::middleware('throttle:admin-write')->group(function (): void {
-            Route::post('convocatorias/{identificador}/sesiones', [Academico\SesionController::class, 'store'])->name('sesiones.store');
-            Route::post('convocatorias/{identificador}/sesiones/generar', [Academico\SesionController::class, 'generar'])->name('sesiones.generar');
-            Route::put('sesiones/{sesion}', [Academico\SesionController::class, 'update'])->name('sesiones.update');
-            Route::post('sesiones/{sesion}/cancelar', [Academico\SesionController::class, 'cancelar'])->name('sesiones.cancelar');
-            Route::post('sesiones/{sesion}/realizada', [Academico\SesionController::class, 'realizada'])->name('sesiones.realizada');
-        });
-
-        // Asistencia (Horus Academic, Fase 6). El permiso (`asistencias.*`) lo declara el controlador.
-        Route::get('sesiones/{sesion}/asistencias', [Academico\AsistenciaController::class, 'lista'])->name('asistencias.lista');
-        Route::get('convocatorias/{identificador}/asistencias/resumen', [Academico\AsistenciaController::class, 'resumen'])->name('asistencias.resumen');
-        Route::post('convocatorias/{identificador}/asistencias/exportar', [Academico\AsistenciaController::class, 'exportar'])->middleware('throttle:admin-export')->name('asistencias.exportar');
-        Route::middleware('throttle:admin-write')->group(function (): void {
-            Route::put('sesiones/{sesion}/asistencias', [Academico\AsistenciaController::class, 'registrar'])->name('asistencias.registrar');
-            Route::put('sesiones/{sesion}/asistencias/{matricula}', [Academico\AsistenciaController::class, 'corregir'])->whereNumber('matricula')->name('asistencias.corregir');
-        });
 
         // Certificados institucionales (`certificados.ver|emitir|anular`).
         Route::get('certificados', [Academico\CertificadoController::class, 'index'])->name('certificados.index');

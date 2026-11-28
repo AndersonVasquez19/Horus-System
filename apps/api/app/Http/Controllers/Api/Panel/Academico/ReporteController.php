@@ -20,7 +20,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
- * Reportes del panel académico (`matriculas`, `cobranza`, `asistencia`, `calificaciones`).
+ * Reportes del panel académico (`matriculas` y `cobranza`, este último presentado como «Pagos»).
  */
 final class ReporteController extends Controller implements HasMiddleware
 {
@@ -191,8 +191,6 @@ final class ReporteController extends Controller implements HasMiddleware
     {
         $datos = match ($tipo) {
             'cobranza' => $this->reportes->cobranza($request),
-            'asistencia' => $this->reportes->asistencia($request),
-            'calificaciones' => $this->reportes->calificaciones($request),
             default => throw new \InvalidArgumentException('Tipo de reporte no reconocido.'),
         };
 
@@ -221,90 +219,39 @@ final class ReporteController extends Controller implements HasMiddleware
     /** @return array{0: list<string>, 1: list<list<string|int|float|null>>, 2: string, 3: string, 4: array<string, string>} */
     private function tablaParaTipo(ReportMatriculasRequest $request, string $tipo): array
     {
-        if ($tipo === 'cobranza') {
-            $d = $this->reportes->cobranza($request);
-
-            return [
-                ['Matrícula', 'DNI', 'Estudiante', 'Curso', 'Concepto', 'Total (PEN)', 'Cobrado (PEN)', 'Saldo (PEN)', 'Estado'],
-                array_map(fn (array $r): array => [
-                    '#'.$r['id'],
-                    $r['dni'],
-                    $r['estudiante'],
-                    $r['curso'] ? $r['curso']['codigo'].' · '.$r['curso']['nombre'] : null,
-                    $r['concepto'],
-                    $r['total'],
-                    $r['pagado'],
-                    $r['saldo'],
-                    ucfirst(Entrada::texto($r['estado'])),
-                ], $d['rows']),
-                'Reporte de Pagos',
-                'Estado de obligaciones y saldos derivados del libro de pagos',
-                [
-                    'Facturado' => ConfiguracionSistema::monto($d['resumen']['total_facturado']),
-                    'Cobrado' => ConfiguracionSistema::monto($d['resumen']['cobrado']),
-                    'Saldo pendiente' => ConfiguracionSistema::monto($d['resumen']['saldo_pendiente']),
-                ],
-            ];
+        if ($tipo !== 'cobranza') {
+            throw new \InvalidArgumentException('Tipo de reporte no reconocido.');
         }
 
-        if ($tipo === 'asistencia') {
-            $d = $this->reportes->asistencia($request);
-
-            return [
-                ['Edición', 'Curso', 'Sesiones realizadas', 'Matriculados', 'Asistencia promedio', 'Estado'],
-                array_map(fn (array $r): array => [
-                    $r['codigo'].' · '.$r['edicion'],
-                    $r['curso'] ? $r['curso']['codigo'].' · '.$r['curso']['nombre'] : null,
-                    Entrada::texto($r['sesiones_realizadas']),
-                    Entrada::texto($r['matriculados']),
-                    $r['promedio'] !== null ? $r['promedio'].'%' : 'Sin sesiones',
-                    ucfirst(Entrada::texto($r['estado'])),
-                ], $d['rows']),
-                'Reporte de Asistencia',
-                'Consolidado de sesiones realizadas y asistencia por edición',
-                [
-                    'Ediciones' => Entrada::texto($d['resumen']['ediciones']),
-                    'Sesiones realizadas' => Entrada::texto($d['resumen']['sesiones_realizadas']),
-                    'Promedio' => $d['resumen']['promedio_asistencia'] !== null ? $d['resumen']['promedio_asistencia'].'%' : '—',
-                ],
-            ];
-        }
-
-        $d = $this->reportes->calificaciones($request);
+        $d = $this->reportes->cobranza($request);
 
         return [
-            ['Edición', 'Curso', 'Matriculados', 'Evaluados', 'Aprobados', 'Desaprobados', 'Promedio', 'Estado'],
+            ['Matrícula', 'DNI', 'Estudiante', 'Curso', 'Concepto', 'Total (PEN)', 'Cobrado (PEN)', 'Saldo (PEN)', 'Estado'],
             array_map(fn (array $r): array => [
-                $r['codigo'].' · '.$r['edicion'],
+                '#'.$r['id'],
+                $r['dni'],
+                $r['estudiante'],
                 $r['curso'] ? $r['curso']['codigo'].' · '.$r['curso']['nombre'] : null,
-                Entrada::texto($r['matriculados']),
-                Entrada::texto($r['con_nota']),
-                Entrada::texto($r['aprobados']),
-                Entrada::texto($r['desaprobados']),
-                $r['promedio'] !== null ? number_format(Entrada::decimal($r['promedio']), 2) : '—',
+                $r['concepto'],
+                $r['total'],
+                $r['pagado'],
+                $r['saldo'],
                 ucfirst(Entrada::texto($r['estado'])),
             ], $d['rows']),
-            'Reporte de Calificaciones',
-            'Consolidado de notas finales y aprobación por edición',
+            'Reporte de Pagos',
+            'Estado de obligaciones y saldos derivados del libro de pagos',
             [
-                'Ediciones' => Entrada::texto($d['resumen']['ediciones']),
-                'Evaluados' => Entrada::texto($d['resumen']['evaluados']),
-                'Aprobados' => Entrada::texto($d['resumen']['aprobados']),
-                'Promedio general' => $d['resumen']['promedio_general'] !== null ? number_format(Entrada::decimal($d['resumen']['promedio_general']), 2) : '—',
+                'Facturado' => ConfiguracionSistema::monto($d['resumen']['total_facturado']),
+                'Cobrado' => ConfiguracionSistema::monto($d['resumen']['cobrado']),
+                'Saldo pendiente' => ConfiguracionSistema::monto($d['resumen']['saldo_pendiente']),
             ],
         ];
     }
 
     private function autorizarTipo(ReportMatriculasRequest $request, string $tipo): void
     {
-        $permiso = match ($tipo) {
-            'cobranza' => 'pagos.ver',
-            'asistencia' => 'asistencias.ver',
-            'calificaciones' => 'calificaciones.ver',
-            default => null,
-        };
-        if ($permiso !== null) {
-            abort_unless($request->user()?->can($permiso) === true, 403);
+        if ($tipo === 'cobranza') {
+            abort_unless($request->user()?->can('pagos.ver') === true, 403);
         }
     }
 

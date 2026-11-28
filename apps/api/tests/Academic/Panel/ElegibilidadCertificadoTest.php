@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /*
- * Plan de mejora del panel, Fase 3.5: una sola regla de elegibilidad de certificado (asistencia, nota, deuda y acta opcional),
+ * Plan de mejora del panel, Fase 3.5: una sola regla de elegibilidad de certificado (hoy: deuda y, opcional, edición cerrada),
  * compartida por la emisión individual, el lote y la vista previa. La deuda bloquea y advierte; el admin puede emitir con motivo.
  */
 
@@ -108,14 +108,31 @@ it('una obligación saldada deja de bloquear', function (): void {
     expect(elgPrevia(fn (...$a) => $this->panelComo($this->usuarioConRol('admin'), ...$a), $m)['elegible'])->toBeTrue();
 });
 
-it('la nota mínima sale de la configuración', function (): void {
-    $m = elgMatricula(elgEdicion(), '74000005');
-    DB::table('matriculas')->where('id', $m->id)->update(['nota_final' => '12.00']);
+it('una nota o asistencia antigua ya no bloquea, y el certificado nuevo no las copia', function (): void {
+    $edicion = elgEdicion();
+    $m = elgMatricula($edicion, '74000005');
+    DB::table('matriculas')->where('id', $m->id)->update(['nota_final' => '05.00', 'resultado' => 'desaprobado']);
+    $sesion = DB::table('sesiones_clase')->insertGetId(['identificador' => (string) Str::uuid(), 'convocatoria_id' => $edicion->id, 'numero' => 1,
+        'fecha' => now('America/Lima')->subDay()->toDateString(), 'hora_inicio' => '09:00:00', 'hora_fin' => '11:00:00', 'estado' => 'realizada', 'revision' => 1,
+        'created_at' => now(), 'updated_at' => now()]);
+    DB::table('asistencias')->insert(['sesion_clase_id' => $sesion, 'matricula_id' => $m->id, 'estado' => 'ausente', 'created_at' => now(), 'updated_at' => now()]);
 
-    expect(elgPrevia(fn (...$a) => $this->panelComo($this->usuarioConRol('admin'), ...$a), $m)['elegible'])->toBeTrue();
-    config(['academico.nota_minima' => 14.0]);
-    $p = elgPrevia(fn (...$a) => $this->panelComo($this->usuarioConRol('admin'), ...$a), $m);
-    expect(array_column($p['bloqueos'], 'codigo'))->toBe(['nota']);
+    expect(elgPrevia(fn (...$a) => $this->panelComo($this->usuarioConRol('admin'), ...$a), $m))->toMatchArray(['elegible' => true, 'bloqueos' => []]);
+    $this->panelComo($this->usuarioConRol('coordinador'), 'POST', "academico/matriculas/{$m->id}/certificado")->assertCreated();
+
+    $c = Certificado::query()->firstOrFail();
+    expect($c->porcentaje_asistencia)->toBeNull()->and($c->nota_final)->toBeNull()->and($c->motivo_excepcion)->toBeNull();
+});
+
+it('una edición con evaluaciones antiguas se puede cerrar con el cambio de estado normal', function (): void {
+    $edicion = elgEdicion('en_curso');
+    DB::table('evaluaciones')->insert(['identificador' => (string) Str::uuid(), 'convocatoria_id' => $edicion->id, 'nombre' => 'Parcial',
+        'peso' => '100.00', 'orden' => 1, 'created_at' => now(), 'updated_at' => now()]);
+
+    $this->panelComo($this->usuarioConRol('admin'), 'POST', "academico/convocatorias/{$edicion->identificador}/estado", ['estado' => 'cerrada', '_revision' => $edicion->etag()])
+        ->assertOk();
+
+    expect($edicion->fresh()?->estado)->toBe('cerrada');
 });
 
 it('exigir el acta cerrada es opcional y apagado por defecto', function (): void {

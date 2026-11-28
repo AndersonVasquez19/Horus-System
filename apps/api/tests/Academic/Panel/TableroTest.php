@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Models\Asistencia;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\SesionClase;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -70,25 +68,6 @@ function tbEscenario(): array
     tbTransaccion($obligacion, 'reverso', 'confirmada', '60.00', $reversado);
     tbTransaccion($obligacion, 'pago', 'pendiente', '50.00');
 
-    // Dos sesiones realizadas: la matrícula asistió a una (50 %, por debajo del 80 % mínimo).
-    foreach ([1, 2] as $i) {
-        $s = new SesionClase(['tema' => null]);
-        $s->identificador = (string) Str::uuid();
-        $s->convocatoria_id = $porCerrar->id;
-        $s->numero = $i;
-        $s->fecha = now('America/Lima')->subDays(10)->toDateString();
-        $s->hora_inicio = sprintf('%02d:00:00', 6 + $i);
-        $s->hora_fin = sprintf('%02d:00:00', 7 + $i);
-        $s->estado = 'realizada';
-        $s->revision = 1;
-        $s->save();
-        $a = new Asistencia;
-        $a->sesion_clase_id = $s->id;
-        $a->matricula_id = $m->id;
-        $a->estado = $i === 1 ? 'presente' : 'ausente';
-        $a->save();
-    }
-
     // Otra matrícula aprobada; y una matrícula del mes anterior.
     $otra = tbMatricula($porCerrar, '81000002', 'Luis', 'Rojas');
     $otra->forceFill(['nota_final' => 16, 'resultado' => 'aprobado'])->save();
@@ -124,12 +103,8 @@ it('el administrador ve las ocho cifras, con el dinero tomado del libro de pagos
     // 6. Cupos por edición abierta o en curso.
     $cupos = collect($d['academico']['cupos'])->keyBy('codigo');
     expect($cupos['CNV-2026-8001'])->toMatchArray(['maximo' => 20, 'ocupados' => 2, 'libres' => 18])->and($cupos['CNV-2026-8002']['libres'])->toBe(10);
-    // 7. Asistencia por edición en curso, con alerta bajo el mínimo.
-    expect($d['academico']['asistencia_minima'])->toBe(80)->and($d['academico']['asistencia'])->toHaveCount(1)
-        ->and($d['academico']['asistencia'][0]['identificador'])->toBe($porCerrar->identificador)->and($d['academico']['asistencia'][0]['bajo_minimo'])->toBeTrue()
-        ->and($d['academico']['asistencia'][0]['sesiones_realizadas'])->toBe(2);
-    // Ana asistió a 1 de 2 sesiones (50 %) y Luis no tiene ningún registro (0 %): promedio de la edición, 25 %.
-    expect((float) $d['academico']['asistencia'][0]['promedio'])->toBe(25.0);
+    // La asistencia se retiró: el tablero ya no la envía.
+    expect($d['academico'])->not->toHaveKeys(['asistencia', 'asistencia_minima']);
     expect($d['academico'])->not->toHaveKey('certificados');
 });
 
@@ -144,7 +119,7 @@ it('cada rol recibe solo las cifras de los módulos que puede ver; el dinero nun
     // El ingreso del mes del indicador principal sigue siendo solo del administrador.
     expect($datos['acciones'])->toHaveKeys(['pagos_por_confirmar', 'matriculas_con_saldo', 'ediciones'])
         ->and($datos['negocio'])->toHaveKeys(['cobrado_mes', 'saldo_por_cobrar'])
-        ->and($datos['academico'])->toHaveKeys(['cupos', 'asistencia'])
+        ->and($datos['academico'])->toHaveKey('cupos')
         ->and($datos['indicadores'])->not->toHaveKey('ingresos_mes');
 
     $s = $this->panelComo($sec, 'GET', 'academico/resumen')->assertOk();
@@ -155,11 +130,6 @@ it('cada rol recibe solo las cifras de los módulos que puede ver; el dinero nun
     $vacio = tbSoloPermisos('v@example.invalid', []);
     $v = $this->panelComo($vacio, 'GET', 'academico/resumen')->assertOk()->json('data');
     expect($v['indicadores'])->toBe([])->and($v['acciones'])->toBe([])->and($v['negocio'])->toBe([])->and($v['academico'])->toBe([]);
-
-    // Solo asistencias.ver: ve la asistencia y nada más del tablero nuevo.
-    $soloAsistencia = tbSoloPermisos('a@example.invalid', ['asistencias.ver']);
-    $a = $this->panelComo($soloAsistencia, 'GET', 'academico/resumen')->assertOk()->json('data');
-    expect($a['academico'])->toHaveKeys(['asistencia', 'asistencia_minima'])->not->toHaveKey('cupos')->and($a['acciones'])->toBe([]);
 });
 
 it('la cobranza no cuenta lo pendiente y un reverso la deshace', function (): void {

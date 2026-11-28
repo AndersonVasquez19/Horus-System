@@ -44,31 +44,25 @@ function s360Escenario(): array
         'fecha_pago' => now('America/Lima')->subDays(10)->toDateString(), 'created_at' => now(), 'updated_at' => now()]);
     DB::table('seguimientos_cobranza')->insert(['identificador' => (string) Str::uuid(), 'obligacion_pago_id' => $o, 'canal' => 'llamada', 'resultado' => 'contactado',
         'created_at' => now()->subDays(2), 'updated_at' => now()]);
-    $sesion = DB::table('sesiones_clase')->insertGetId(['identificador' => (string) Str::uuid(), 'convocatoria_id' => $c->id, 'numero' => 1,
-        'fecha' => now('America/Lima')->subDays(5)->toDateString(), 'hora_inicio' => '09:00:00', 'hora_fin' => '11:00:00', 'estado' => 'realizada', 'revision' => 1,
-        'created_at' => now(), 'updated_at' => now()]);
-    DB::table('asistencias')->insert(['sesion_clase_id' => $sesion, 'matricula_id' => $m->id, 'estado' => 'ausente', 'created_at' => now(), 'updated_at' => now()]);
-
     return ['estudiante' => $e, 'matricula' => $m];
 }
 
-it('arma la línea de tiempo con matrícula, pago, falta y contacto de cobranza, del más reciente al más antiguo', function (): void {
+it('arma la línea de tiempo con matrícula, pago y contacto de cobranza, del más reciente al más antiguo', function (): void {
     $e = s360Escenario()['estudiante'];
 
     $r = $this->panelComo($this->usuarioConRol('admin'), 'GET', "academico/estudiantes/{$e->id}/360")->assertOk()->json('data');
 
-    expect(array_column($r['eventos'], 'tipo'))->toBe(['cobranza', 'asistencia', 'pago', 'matricula'])
-        ->and($r['eventos'][1]['titulo'])->toBe('Faltó a la sesión 1')
-        ->and($r['eventos'][2]['titulo'])->toBe('Pago de S/ 100.00')
-        ->and($r['eventos'][3]['titulo'])->toContain('Curso 360')
+    expect(array_column($r['eventos'], 'tipo'))->toBe(['cobranza', 'pago', 'matricula'])
+        ->and($r['eventos'][1]['titulo'])->toBe('Pago de S/ 100.00')
+        ->and($r['eventos'][2]['titulo'])->toContain('Curso 360')
         ->and($r['truncado'])->toBeFalse();
 });
 
 it('cada evento depende del permiso de su módulo', function (): void {
     $e = s360Escenario()['estudiante'];
-    // Secretaría tiene pagos.ver y asistencias.ver, no certificados.* de gestión: ve pagos y faltas; coordinación igual.
+    // Sin pagos.ver no se envían ni los pagos ni los contactos de cobro.
     $secretaria = $this->usuarioConRol('secretaria');
-    Role::findByName('secretaria', 'web')->revokePermissionTo(['pagos.ver', 'asistencias.ver']);
+    Role::findByName('secretaria', 'web')->revokePermissionTo(['pagos.ver']);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 
     $r = $this->panelComo($secretaria->fresh(), 'GET', "academico/estudiantes/{$e->id}/360")->assertOk()->json('data');

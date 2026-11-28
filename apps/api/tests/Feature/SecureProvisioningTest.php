@@ -33,7 +33,14 @@ class SecureProvisioningTest extends TestCase
         $this->assertSame(0, User::count());
         $this->assertSame(0, Estudiante::count());
         $this->assertSame(0, Curso::count());
-        $this->assertSame(count(RolesAndPermissionsSeeder::PERMISSIONS), Permission::count());
+        // Las migraciones ya aplicadas siguen creando los 12 permisos retirados (sesiones, asistencia y calificaciones): quedan como
+        // filas ocultas; el seeder no los concede (RetiroSesionesAsistenciaCalificacionesTest).
+        $this->assertEqualsCanonicalizing([
+            ...RolesAndPermissionsSeeder::PERMISSIONS,
+            ...RolesAndPermissionsSeeder::SESIONES_PERMISSIONS,
+            ...RolesAndPermissionsSeeder::ASISTENCIAS_PERMISSIONS,
+            ...RolesAndPermissionsSeeder::CALIFICACIONES_PERMISSIONS,
+        ], Permission::pluck('name')->all());
         $this->assertSame(3, Role::count());
     }
 

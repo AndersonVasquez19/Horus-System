@@ -11,7 +11,6 @@ use App\Models\MatriculaNotification;
 use App\Models\MensajeContacto;
 use App\Models\NotificacionInterna;
 use App\Models\ReclamacionEnvio;
-use App\Models\SesionClase;
 use App\Services\EnvioAvisosExternosService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -57,17 +56,6 @@ test('horus:recordatorios-diarios queda apagado por defecto y genera recordatori
         ],
     ])->assertCreated();
 
-    SesionClase::forceCreate([
-        'identificador' => (string) Str::uuid(),
-        'convocatoria_id' => $conv->id,
-        'numero' => 1,
-        'fecha' => now('America/Lima')->toDateString(),
-        'hora_inicio' => '18:00:00',
-        'hora_fin' => '20:00:00',
-        'estado' => 'programada',
-        'revision' => 1,
-    ]);
-
     $mensaje = MensajeContacto::create([
         'nombre' => 'Visitante',
         'correo' => 'v@example.test',
@@ -86,7 +74,7 @@ test('horus:recordatorios-diarios queda apagado por defecto y genera recordatori
     $this->artisan('horus:recordatorios-diarios --dry-run')->assertSuccessful();
     expect(NotificacionInterna::count())->toBe(0);
 
-    // 3) Ejecución real con email y whatsapp activos -> crea 3 notificaciones internas y 6 avisos externos (3x2) sin exponer mensaje del visitante
+    // 3) Ejecución real con email y whatsapp activos -> crea 2 notificaciones internas y 4 avisos externos (2x2) sin exponer mensaje del visitante
     config([
         'recordatorios.mail_enabled' => true,
         'recordatorios.whatsapp.enabled' => true,
@@ -99,14 +87,14 @@ test('horus:recordatorios-diarios queda apagado por defecto y genera recordatori
     ]);
     $this->artisan('horus:recordatorios-diarios')->assertSuccessful();
 
-    expect(NotificacionInterna::where('user_id', $admin->id)->count())->toBe(3)
-        ->and(AvisoExterno::count())->toBe(6)
+    expect(NotificacionInterna::where('user_id', $admin->id)->count())->toBe(2)
+        ->and(AvisoExterno::count())->toBe(4)
         ->and(NotificacionInterna::pluck('mensaje')->implode(' '))->not->toContain('Consulta secreta del visitante');
 
     // 4) Segunda corrida en el mismo día es idempotente (no duplica)
     $this->artisan('horus:recordatorios-diarios')->assertSuccessful();
-    expect(NotificacionInterna::where('user_id', $admin->id)->count())->toBe(3)
-        ->and(AvisoExterno::count())->toBe(6);
+    expect(NotificacionInterna::where('user_id', $admin->id)->count())->toBe(2)
+        ->and(AvisoExterno::count())->toBe(4);
 });
 
 test('EnvioAvisosExternosService retiene cuando el canal está deshabilitado y no despacha dentro de una transacción abierta', function (): void {

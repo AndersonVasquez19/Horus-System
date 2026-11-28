@@ -12,22 +12,19 @@ use App\Models\NotaEstudiante;
 use App\Models\SeguimientoCobranza;
 use App\Models\TransaccionPago;
 use App\Models\User;
-use App\Support\Entrada;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Vista 360° de un estudiante (Fase 3.3): línea de tiempo con matrículas, pagos, asistencia, notas finales, certificados, contactos de
- * cobranza y notas internas. Cada tipo de evento solo aparece si quien consulta tiene el permiso de su módulo (pagos y cobranza:
- * `pagos.ver`; asistencia: `asistencias.ver`; notas finales: `calificaciones.ver`; certificados: `certificados.ver`).
+ * Vista 360° de un estudiante (Fase 3.3): línea de tiempo con matrículas, pagos, certificados, contactos de cobranza históricos y
+ * notas internas. Cada tipo de evento solo aparece si quien consulta tiene el permiso de su módulo (pagos y cobranza: `pagos.ver`;
+ * certificados: `certificados.ver`).
  *
  * @phpstan-type Evento array{tipo: string, fecha: string, titulo: string, detalle: string|null, enlace: string|null, autor: string|null}
  */
 class Estudiante360
 {
     public const MAX_EVENTOS = 200;
-
-    public const MAX_FALTAS = 30;
 
     /**
      * @return array{eventos: list<Evento>, truncado: bool}
@@ -41,18 +38,11 @@ class Estudiante360
         foreach ($matriculas as $m) {
             $curso = $m->curso->nombre ?? 'Curso';
             $eventos[] = $this->evento('matricula', substr((string) $m->fecha_matricula, 0, 10), "Matrícula en {$curso}", 'Estado: '.$m->estado.($m->convocatoria ? ' · Edición '.$m->convocatoria->codigo : ''), "/admin/academico/matriculas/{$m->id}");
-            if ($actor->can('calificaciones.ver') && $m->getAttribute('resultado') !== null) {
-                $nota = $m->getAttribute('nota_final');
-                $eventos[] = $this->evento('nota', $this->dia($m->updated_at), 'Acta cerrada: '.Entrada::texto($m->getAttribute('resultado')).($nota !== null ? ' (nota '.Entrada::texto($nota).')' : ''), $curso, "/admin/academico/matriculas/{$m->id}");
-            }
         }
 
         if ($ids !== [] && $actor->can('pagos.ver')) {
             $this->pagos($ids, $eventos);
             $this->contactosCobranza($ids, $eventos);
-        }
-        if ($ids !== [] && $actor->can('asistencias.ver')) {
-            $this->faltas($ids, $eventos);
         }
         if ($actor->can('certificados.ver')) {
             foreach (Certificado::query()->where('estudiante_id', $estudiante->id)->with('curso:id,nombre')->get() as $c) {
@@ -116,22 +106,6 @@ class Estudiante360
         foreach ($segs as $s) {
             $promesa = $s->promesa_fecha !== null ? ' · promete pagar el '.substr((string) $s->promesa_fecha, 0, 10) : '';
             $eventos[] = $this->evento('cobranza', $this->dia($s->created_at), "Contacto de cobranza ({$s->canal}): {$s->resultado}{$promesa}", $s->nota, null, $s->autor->name ?? null);
-        }
-    }
-
-    /**
-     * @param  list<int>  $ids
-     * @param  list<Evento>  $eventos
-     */
-    private function faltas(array $ids, array &$eventos): void
-    {
-        $filas = DB::table('asistencias as a')->join('sesiones_clase as s', 's.id', '=', 'a.sesion_clase_id')
-            ->join('convocatorias as c', 'c.id', '=', 's.convocatoria_id')
-            ->whereIn('a.matricula_id', $ids)->where('a.estado', 'ausente')
-            ->orderByDesc('s.fecha')->limit(self::MAX_FALTAS)
-            ->get(['s.fecha', 's.numero', 'c.codigo']);
-        foreach ($filas as $f) {
-            $eventos[] = $this->evento('asistencia', substr(Entrada::texto($f->fecha), 0, 10), 'Faltó a la sesión '.Entrada::texto($f->numero), 'Edición '.Entrada::texto($f->codigo));
         }
     }
 

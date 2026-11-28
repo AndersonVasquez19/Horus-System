@@ -110,19 +110,6 @@ it('una cuenta sin rol (registro público) no entra a ninguna acción del panel'
     ['POST', 'academico/matriculas'],
 ]);
 
-it('los permisos de calificaciones respetan el rol: la secretaria registra pero no corrige ni exporta', function (): void {
-    $secretaria = $this->usuarioConRol('secretaria', 'secretaria-calif@example.invalid');
-    $id = '00000000-0000-4000-8000-000000000000';
-
-    // `ver` y `registrar`: pasa el middleware (404 por la edición inexistente, nunca 403).
-    expect($this->panelComo($secretaria, 'GET', "academico/convocatorias/{$id}/calificaciones")->getStatusCode())->not->toBe(403);
-    expect($this->panelComo($secretaria, 'PUT', "academico/convocatorias/{$id}/calificaciones")->getStatusCode())->not->toBe(403);
-    // `corregir`, `exportar` y cerrar el acta (convocatorias.cerrar): 403.
-    $this->panelComo($secretaria, 'POST', "academico/convocatorias/{$id}/evaluaciones")->assertForbidden();
-    $this->panelComo($secretaria, 'POST', "academico/convocatorias/{$id}/acta/exportar")->assertForbidden();
-    $this->panelComo($secretaria, 'POST', "academico/convocatorias/{$id}/acta/cerrar")->assertForbidden();
-});
-
 it('los permisos concedidos por el seeder existen y los tres roles base conservan su entrada al panel', function (): void {
     $this->seed(RolesAndPermissionsSeeder::class);
 

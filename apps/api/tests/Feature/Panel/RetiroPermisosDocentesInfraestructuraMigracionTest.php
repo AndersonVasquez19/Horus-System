@@ -36,7 +36,6 @@ final class RetiroPermisosDocentesInfraestructuraMigracionTest extends TestCase
         foreach (self::RETIRADOS as $nombre) {
             $this->assertNotContains($nombre, RolesAndPermissionsSeeder::PERMISSIONS);
         }
-        $this->assertSame(1, Permission::query()->where('name', 'sesiones.cancelar')->count(), 'El resto de permisos de clases sigue.');
     }
 
     public function test_los_retira_con_sus_asignaciones_y_no_toca_los_demas(): void
@@ -56,7 +55,7 @@ final class RetiroPermisosDocentesInfraestructuraMigracionTest extends TestCase
         $this->assertSame($antes, Permission::query()->count(), 'Solo se borran los permisos de la lista.');
         $this->assertSame(0, DB::table('role_has_permissions')->whereNotIn('permission_id', Permission::query()->pluck('id'))->count());
         $this->assertTrue(Role::findByName('secretaria', 'web')->hasPermissionTo('cursos.editar'));
-        $this->assertTrue(Role::findByName('admin', 'web')->hasPermissionTo('sesiones.crear'));
+        $this->assertTrue(Role::findByName('admin', 'web')->hasPermissionTo('cursos.ver'));
     }
 
     public function test_repetirla_y_revertirla_no_fallan_ni_recrean_nada(): void

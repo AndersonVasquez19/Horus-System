@@ -6,17 +6,14 @@ namespace App\Services;
 
 use App\Models\Matricula;
 use App\Models\ObligacionPago;
-use App\Support\Entrada;
 
 /**
- * Regla única de elegibilidad para emitir un certificado (Fase 3.5). Una sola fuente para la emisión individual, el lote y la vista
- * previa del panel. Umbrales en `config/academico.php`.
+ * Regla única de elegibilidad para emitir un certificado. Una sola fuente para la emisión individual, el lote y la vista previa del
+ * panel. La asistencia y las notas se retiraron (docs/retiro-sesiones-asistencia-calificaciones.md).
  *
  * Requisitos (cada incumplimiento es un bloqueo con código estable):
- *  - `asistencia`: porcentaje registrado menor al mínimo (sin datos de asistencia no bloquea, como antes).
- *  - `nota`: nota final menor a la mínima aprobatoria (sin nota no bloquea, como antes).
  *  - `deuda`: la obligación vigente de la matrícula tiene saldo sin confirmar. Un pago pendiente de confirmar no cuenta como pagado.
- *  - `acta`: solo si `academico.certificado_exige_acta_cerrada=true` (apagado por defecto): la edición debe tener el acta cerrada.
+ *  - `acta`: solo si `academico.certificado_exige_acta_cerrada=true` (apagado por defecto): la edición debe estar en estado `cerrada`.
  *
  * Un administrador puede emitir pese a los bloqueos con un motivo (queda en el certificado y en la auditoría).
  *
@@ -27,22 +24,11 @@ class ElegibilidadCertificado
     public function __construct(private readonly GestionPagos $pagos) {}
 
     /**
-     * Bloqueos para una matrícula ya conocida su asistencia y nota (el lote ya las tiene calculadas).
-     *
      * @return list<Bloqueo>
      */
-    public function bloqueos(Matricula $matricula, ?float $asistencia, ?float $nota): array
+    public function bloqueos(Matricula $matricula): array
     {
         $bloqueos = [];
-        $minimaAsistencia = Entrada::entero(config('academico.asistencia_minima', 80));
-        $minimaNota = Entrada::decimal(config('academico.nota_minima', 11));
-
-        if ($asistencia !== null && $asistencia < $minimaAsistencia) {
-            $bloqueos[] = ['codigo' => 'asistencia', 'mensaje' => sprintf('La asistencia registrada (%.1f%%) es menor al mínimo requerido (%d%%).', $asistencia, $minimaAsistencia)];
-        }
-        if ($nota !== null && $nota < $minimaNota) {
-            $bloqueos[] = ['codigo' => 'nota', 'mensaje' => sprintf('La nota final (%.2f) es menor a la nota mínima aprobatoria (%.0f).', $nota, $minimaNota)];
-        }
 
         $saldo = $this->saldoPendiente($matricula);
         if ($saldo > 0) {
@@ -50,7 +36,7 @@ class ElegibilidadCertificado
         }
 
         if (config('academico.certificado_exige_acta_cerrada') === true && $matricula->convocatoria?->estado !== 'cerrada') {
-            $bloqueos[] = ['codigo' => 'acta', 'mensaje' => 'El acta de la edición todavía no está cerrada.'];
+            $bloqueos[] = ['codigo' => 'acta', 'mensaje' => 'La edición todavía no está cerrada.'];
         }
 
         return $bloqueos;

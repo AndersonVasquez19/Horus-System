@@ -6,7 +6,6 @@ use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\SesionClase;
 use App\Models\User;
 use App\Support\CodigoSecuencial;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -58,18 +57,6 @@ it('gestiona etiquetas en matrícula, cronograma público sin PII y encuesta pos
     $conv->revision = 1;
     $conv->save();
 
-    $sesion = new SesionClase();
-    $sesion->identificador = (string) Str::uuid();
-    $sesion->convocatoria_id = $conv->id;
-    $sesion->numero = 1;
-    $sesion->fecha = '2026-11-22';
-    $sesion->hora_inicio = '10:00:00';
-    $sesion->hora_fin = '12:00:00';
-    $sesion->tema = 'Introducción';
-    $sesion->estado = 'programada';
-    $sesion->revision = 1;
-    $sesion->save();
-
     $mat = Matricula::create([
         'estudiante_id' => $est->id,
         'curso_id' => $curso->id,
@@ -89,7 +76,8 @@ it('gestiona etiquetas en matrícula, cronograma público sin PII y encuesta pos
         ->getJson("/api/public/v1/ediciones/{$conv->codigo}/cronograma")
         ->assertOk()
         ->assertJsonPath('data.codigo', $conv->codigo)
-        ->assertJsonCount(1, 'data.sesiones');
+        ->assertJsonMissingPath('data.sesiones')
+        ->assertJsonStructure(['data' => ['horarios']]);
     expect($cronograma->getContent())->not->toContain('Sofía', '72334455');
 
     $enc = $this->actingAs($admin)->withHeaders($headers)

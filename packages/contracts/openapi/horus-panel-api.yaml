@@ -749,12 +749,12 @@ paths:
   /academico/reportes:
     get:
       tags: [academico]
-      summary: "Resumen y listado de reportes académicos (matrículas, cobranza, asistencia, calificaciones)"
+      summary: "Resumen y listado de reportes académicos (matrículas y pagos)"
       description: "Permiso: `reportes.ver`."
       parameters:
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/PorPagina' }
-        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza, asistencia, calificaciones] } }
+        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza] } }
         - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
         - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada, parcial, vigente] } }
         - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
@@ -771,7 +771,7 @@ paths:
       summary: "Exporta el reporte filtrado a Excel (coincide con el listado y tipo elegido)"
       description: "Permiso: `reportes.exportar.excel`. Limitador `admin-export` (6 por minuto y usuario)."
       parameters:
-        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza, asistencia, calificaciones] } }
+        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza] } }
         - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
         - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada, parcial, vigente] } }
         - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
@@ -789,7 +789,7 @@ paths:
       summary: "Exporta un lote o el consolidado completo del reporte a PDF"
       description: "Permiso: `reportes.exportar.pdf`. Limitador `admin-export` (6 por minuto y usuario)."
       parameters:
-        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza, asistencia, calificaciones] } }
+        - { name: tipo, in: query, schema: { type: string, enum: [matriculas, cobranza] } }
         - { name: busqueda, in: query, schema: { type: string, maxLength: 200 } }
         - { name: estado, in: query, schema: { type: string, enum: [pendiente, pagada, anulada, parcial, vigente] } }
         - { name: curso_id, in: query, schema: { type: integer, minimum: 1 } }
@@ -1060,19 +1060,6 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/calendario.ics:
-    get:
-      tags: [academico]
-      summary: "Descarga el calendario .ics de la edición"
-      description: "Permiso: `convocatorias.ver`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { description: Archivo .ics }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
   /academico/convocatorias/{identificador}/lista-aula/pdf:
     post:
       tags: [academico]
@@ -1122,151 +1109,6 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/calificaciones:
-    get:
-      tags: [academico]
-      summary: "Acta: evaluaciones, matrículas y notas de la edición"
-      description: "Permiso: `calificaciones.ver`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-    put:
-      tags: [academico]
-      summary: "Registra o corrige una nota (corregir exige motivo)"
-      description: "Permiso: `calificaciones.registrar | calificaciones.corregir`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/NotaEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/evaluaciones:
-    post:
-      tags: [academico]
-      summary: "Crea una evaluación (la suma de pesos de la edición no puede superar 100)"
-      description: "Permiso: `calificaciones.corregir`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/EvaluacionEntrada' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/evaluaciones/{evaluacion}:
-    put:
-      tags: [academico]
-      summary: "Edita una evaluación"
-      description: "Permiso: `calificaciones.corregir`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: evaluacion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/EvaluacionEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/evaluaciones/{evaluacion}/eliminar:
-    post:
-      tags: [academico]
-      summary: "Elimina una evaluación sin notas"
-      description: "Permiso: `calificaciones.corregir`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: evaluacion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/acta/cerrar:
-    post:
-      tags: [academico]
-      summary: "Cierra el acta (calcula nota final y resultado de cada matrícula)"
-      description: "Permiso: `convocatorias.cerrar`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/acta/exportar:
-    post:
-      tags: [academico]
-      summary: "Exporta el acta en Excel"
-      description: "Permiso: `calificaciones.exportar`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { description: Archivo de descarga (no se conserva en el servidor) }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/acta/borrador/exportar:
-    post:
-      tags: [academico]
-      summary: "Exporta el borrador del acta en Excel sin requerir el cierre"
-      description: "Permiso: `calificaciones.exportar`."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { description: Archivo de descarga (no se conserva en el servidor) }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
   /academico/periodos-academicos:
     get:
@@ -1356,218 +1198,6 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/sesiones:
-    get:
-      tags: [academico]
-      summary: "Sesiones de la edición"
-      description: "Permiso: `sesiones.ver`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Listado' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-    post:
-      tags: [academico]
-      summary: "Programa una sesión (fecha, horas y tema)"
-      description: "Permiso: `sesiones.crear`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SesionEntrada' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/sesiones/{sesion}:
-    get:
-      tags: [academico]
-      summary: "Detalle de la sesión"
-      description: "Permiso: `sesiones.ver`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-    put:
-      tags: [academico]
-      summary: "Edita o reprograma la sesión (audita el cambio)"
-      description: "Permiso: `sesiones.editar`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SesionEntrada' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '412': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/sesiones/{sesion}/cancelar:
-    post:
-      tags: [academico]
-      summary: "Cancela la sesión con motivo"
-      description: "Permiso: `sesiones.cancelar`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CancelarSesion' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/sesiones/{sesion}/realizada:
-    post:
-      tags: [academico]
-      summary: "Marca la sesión como realizada"
-      description: "Permiso: `sesiones.editar`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/sesiones/generar:
-    post:
-      tags: [academico]
-      summary: "Genera sesiones desde el horario semanal de la edición (omite las existentes o con cruce e informa el motivo)"
-      description: "Permiso: `sesiones.crear`. Máximo 200 sesiones por llamada."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                desde: { type: [string, 'null'], format: date }
-                hasta: { type: [string, 'null'], format: date }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/sesiones/{sesion}/asistencias:
-    get:
-      tags: [academico]
-      summary: "Lista de asistencia de la sesión (matrículas vigentes de la edición)"
-      description: "Permiso: `asistencias.ver`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-    put:
-      tags: [academico]
-      summary: "Registra la asistencia de varias matrículas (idempotente por sesión y matrícula)"
-      description: "Permiso: `asistencias.registrar`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/AsistenciaLote' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/sesiones/{sesion}/asistencias/{matricula}:
-    put:
-      tags: [academico]
-      summary: "Corrige una asistencia ya registrada (motivo obligatorio)"
-      description: "Permiso: `asistencias.corregir`."
-      parameters:
-        - { name: sesion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: matricula, in: path, required: true, schema: { type: integer } }
-        - { $ref: '#/components/parameters/Csrf' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/AsistenciaCorreccion' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/asistencias/resumen:
-    get:
-      tags: [academico]
-      summary: "Porcentaje de asistencia por matrícula"
-      description: "Permiso: `asistencias.ver`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/asistencias/exportar:
-    post:
-      tags: [academico]
-      summary: "Exporta la asistencia (Excel)"
-      description: "Permiso: `asistencias.exportar`."
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { description: Archivo de descarga (no se conserva en el servidor) }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
   /academico/pagos/metodos:
     get:
       tags: [academico]
@@ -1619,41 +1249,10 @@ paths:
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/acta/reapertura:
-    post:
-      tags: [academico]
-      summary: "Solicita a Gerencia la reapertura de un acta cerrada (genera una aprobación de tipo reapertura_acta)"
-      description: "Permiso: `convocatorias.cerrar`. Cuerpo: `motivo` (10 a 500 caracteres). Una solicitud pendiente por edición."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-  /academico/convocatorias/{identificador}/acta/reabrir:
-    post:
-      tags: [academico]
-      summary: "Reabre el acta con una solicitud aprobada por Gerencia (una sola vez por aprobación)"
-      description: "Permiso: `convocatorias.cerrar`. La edición vuelve a `en_curso`, se borran `nota_final` y `resultado` de sus matrículas y la revisión aumenta. Los certificados emitidos no se anulan."
-      x-estado: vigente
-      parameters:
-        - { name: identificador, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
   /academico/estudiantes/{estudiante}/360:
     get:
       tags: [academico]
-      summary: "Línea de tiempo del estudiante (matrículas, pagos, asistencia, notas, certificados, cobranza y notas internas)"
+      summary: "Línea de tiempo del estudiante (matrículas, pagos, certificados, cobranza histórica y notas internas)"
       description: "Permiso: `estudiantes.ver`. Cada tipo de evento solo aparece con el permiso de su módulo (`pagos.ver`, `asistencias.ver`, `calificaciones.ver`, `certificados.ver`). Hasta 200 eventos, el más reciente primero."
       x-estado: vigente
       parameters:

@@ -168,47 +168,6 @@ class AcademicoCuposPostgresTest extends TestCase
         $this->assertViolation(self::RESTRICT_VIOLATION, fn () => DB::table('matriculas')->where('id', $matricula)->delete(), 'matrícula con notas');
     }
 
-    public function test_una_nota_espera_el_bloqueo_de_la_convocatoria_y_luego_decide_con_el_estado_confirmado(): void
-    {
-        $admin = $this->admin();
-        $curso = $this->curso();
-        $estudiante = $this->estudiante('11111111');
-        $convocatoria = Convocatoria::query()->findOrFail(DB::table('convocatorias')->insertGetId($this->filaConvocatoria($curso, ['estado' => 'en_curso'])));
-        $matricula = Matricula::create([
-            'estudiante_id' => $estudiante->id, 'curso_id' => $curso->id, 'convocatoria_id' => $convocatoria->id,
-            'fecha_matricula' => '2026-11-10', 'estado' => 'pagada',
-        ]);
-        $evaluacion = (string) Str::uuid();
-        DB::table('evaluaciones')->insert([
-            'identificador' => $evaluacion, 'convocatoria_id' => $convocatoria->id, 'nombre' => 'Examen', 'peso' => 100, 'orden' => 1,
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $datos = ['evaluacion' => $evaluacion, 'matricula_id' => $matricula->id, 'nota' => 15];
-        $b = $this->secondSession();
-
-        // B: el cierre de acta de otra petición ya tomó la convocatoria y la deja cerrada (aún sin confirmar).
-        $b->beginTransaction();
-        $b->select('select id from convocatorias where id = ? for update', [$convocatoria->id]);
-        $b->update("update convocatorias set estado = 'cerrada', revision = revision + 1 where id = ?", [$convocatoria->id]);
-
-        DB::statement("SET lock_timeout = '2s'");
-        $this->withoutExceptionHandling();
-        try {
-            $this->como($admin, 'PUT', "convocatorias/{$convocatoria->identificador}/calificaciones", $datos);
-            $this->fail('La petición debía quedar bloqueada por la transacción de la otra sesión.');
-        } catch (QueryException $e) {
-            $this->assertSame(self::LOCK_NOT_AVAILABLE, $e->getCode(), 'Debe esperar el bloqueo (55P03), no fallar por otra causa.');
-        } finally {
-            $this->withExceptionHandling();
-        }
-        $this->assertSame(0, DB::table('calificaciones')->count(), 'La nota bloqueada no deja rastro.');
-
-        $b->commit();
-
-        $this->como($admin, 'PUT', "convocatorias/{$convocatoria->identificador}/calificaciones", $datos)->assertStatus(409);
-        $this->assertSame(0, DB::table('calificaciones')->count(), 'Con el acta cerrada ya no se registran notas.');
-    }
-
     public function test_la_ultima_plaza_espera_el_bloqueo_y_luego_decide_con_el_estado_confirmado(): void
     {
         $admin = $this->admin();

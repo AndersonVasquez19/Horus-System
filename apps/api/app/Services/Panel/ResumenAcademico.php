@@ -11,7 +11,6 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\User;
-use App\Services\GestionAsistencias;
 use App\Services\GestionPagos;
 use App\Support\Entrada;
 use App\Support\HoraLocal;
@@ -33,7 +32,7 @@ use LogicException;
  * puede consultar):
  *  - `acciones`  → pagos por confirmar y saldo pendiente (`pagos.ver`), ediciones que requieren acción (`convocatorias.ver`);
  *  - `negocio`   → cobrado del mes y saldo por cobrar (`pagos.ver`); las matrículas del mes y del mes anterior van en `indicadores`;
- *  - `academico` → cupos por edición (`convocatorias.ver`), asistencia por edición en curso (`asistencias.ver`).
+ *  - `academico` → cupos por edición y satisfacción (`convocatorias.ver`).
  * Los importes salen del libro de pagos (confirmado neto de reversos), nunca de `matriculas.monto_pagado`.
  */
 final class ResumenAcademico
@@ -137,24 +136,6 @@ final class ResumenAcademico
                 ])->all();
         }
 
-        if ($user->can('asistencias.ver')) {
-            $minimo = Entrada::entero(config('academico.asistencia_minima', 80));
-            $academico['asistencia_minima'] = $minimo;
-            $enCurso = Convocatoria::query()->with('curso:id,nombre')->where('estado', 'en_curso')->orderBy('fecha_fin')->limit(8)->get();
-            // Tres consultas para todas las ediciones (antes, varias por edición).
-            $ids = $enCurso->map(fn (Convocatoria $c): int => (int) $c->id)->all();
-            $promedios = $this->recordar('promedios:'.implode(',', $ids), fn (): array => app(GestionAsistencias::class)->promediosPorEdicion($ids));
-            $academico['asistencia'] = $enCurso->map(function (Convocatoria $c) use ($minimo, $promedios): array {
-                $r = $promedios[(int) $c->id];
-
-                return [
-                    'identificador' => $c->identificador, 'codigo' => $c->codigo, 'curso' => $c->curso?->nombre, 'sesiones_realizadas' => $r['sesiones_realizadas'],
-                    'promedio' => $r['promedio'], 'bajo_minimo' => $r['promedio'] !== null && $r['promedio'] < $minimo,
-                ];
-            })->all();
-        }
-
-
         // Seguimiento (equivale a los bloques de pendientes y actividad del tablero Blade): cada bloque solo con su permiso.
         if ($user->can('aprobaciones.ver')) {
             $seguimiento['aprobaciones_pendientes'] = AprobacionInterna::query()->where('estado', 'pendiente')->count();
@@ -173,9 +154,6 @@ final class ResumenAcademico
 
         if ($user->can('pagos.ver')) {
             $saludGrupo['cuotas_vencidas'] = $this->recordar('cuotas_vencidas', fn (): array => $this->cuotasVencidasDetalle());
-        }
-        if ($user->can('asistencias.ver')) {
-            $saludGrupo['inasistencias'] = $this->recordar('inasistencias', fn (): array => $this->inasistenciasReiteradas());
         }
 
         return ['indicadores' => $indicadores, 'bloques' => $bloques, 'acciones' => $acciones, 'negocio' => $negocio, 'academico' => $academico, 'seguimiento' => $seguimiento, 'salud_grupo' => $saludGrupo];
@@ -378,64 +356,5 @@ final class ResumenAcademico
         }
 
         return $resultado;
-    }
-
-    /** @return list<array{matricula_id: int, estudiante: string, telefono: string|null, edicion: string, faltas_seguidas: int}> */
-    private function inasistenciasReiteradas(): array
-    {
-        $filas = DB::table('asistencias as a')
-            ->join('sesiones_clase as s', 's.id', '=', 'a.sesion_clase_id')
-            ->join('matriculas as m', 'm.id', '=', 'a.matricula_id')
-            ->join('convocatorias as c', 'c.id', '=', 'm.convocatoria_id')
-            ->join('estudiantes as e', 'e.id', '=', 'm.estudiante_id')
-            ->where('c.estado', 'en_curso')
-            ->whereNull('m.deleted_at')
-            ->where('m.estado', '!=', 'anulada')
-            ->whereIn('s.estado', ['programada', 'realizada'])
-            ->orderBy('m.id')
-            ->orderByDesc('s.fecha')
-            ->orderByDesc('s.numero')
-            ->select(['m.id as matricula_id', 'e.nombres', 'e.apellidos', 'e.telefono', 'c.codigo as edicion', 'a.estado'])
-            ->get();
-
-        $agrupadas = [];
-        foreach ($filas as $f) {
-            $id = Entrada::entero($f->matricula_id);
-            if (! isset($agrupadas[$id])) {
-                $tel = Entrada::texto($f->telefono ?? '');
-                $agrupadas[$id] = [
-                    'matricula_id' => $id,
-                    'estudiante' => trim(Entrada::texto($f->nombres).' '.Entrada::texto($f->apellidos)),
-                    'telefono' => $tel !== '' ? $tel : null,
-                    'edicion' => Entrada::texto($f->edicion),
-                    'faltas_seguidas' => 0,
-                    'cortado' => false,
-                ];
-            }
-            if ($agrupadas[$id]['cortado']) {
-                continue;
-            }
-            if (Entrada::texto($f->estado) === 'ausente') {
-                $agrupadas[$id]['faltas_seguidas']++;
-            } else {
-                $agrupadas[$id]['cortado'] = true;
-            }
-        }
-
-        $alertas = [];
-        foreach ($agrupadas as $item) {
-            if ($item['faltas_seguidas'] >= 2) {
-                $alertas[] = [
-                    'matricula_id' => $item['matricula_id'],
-                    'estudiante' => $item['estudiante'],
-                    'telefono' => $item['telefono'],
-                    'edicion' => $item['edicion'],
-                    'faltas_seguidas' => $item['faltas_seguidas'],
-                ];
-            }
-        }
-        usort($alertas, static fn (array $a, array $b): int => $b['faltas_seguidas'] <=> $a['faltas_seguidas']);
-
-        return array_slice($alertas, 0, 6);
     }
 }

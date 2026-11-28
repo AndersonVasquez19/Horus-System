@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Http\Controllers\Api\Publico\ChatPublicoController;
-use App\Models\Asistencia;
 use App\Models\Convocatoria;
 use App\Models\CuotaObligacion;
 use App\Models\Curso;
@@ -12,7 +11,6 @@ use App\Models\Matricula;
 use App\Models\ObligacionPago;
 use App\Models\ServicioPublicacion;
 use App\Models\ServicioTecnologico;
-use App\Models\SesionClase;
 use App\Models\TransaccionPago;
 use App\Observers\PublicacionCatalogoAdvisorObserver;
 use App\Services\Panel\ResumenAcademico;
@@ -43,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Tablero: los bloques costosos se guardan unos segundos; toda escritura de un modelo del que dependen cambia la versión de la
         // clave (tras confirmar la transacción) para que el dato nuevo se vea al recargar. Ver ResumenAcademico::recordar().
-        foreach ([Matricula::class, TransaccionPago::class, ObligacionPago::class, CuotaObligacion::class, Convocatoria::class, SesionClase::class, Asistencia::class] as $modelo) {
+        foreach ([Matricula::class, TransaccionPago::class, ObligacionPago::class, CuotaObligacion::class, Convocatoria::class] as $modelo) {
             foreach (['saved', 'deleted', 'restored'] as $evento) {
                 Event::listen("eloquent.{$evento}: {$modelo}", static function (): void {
                     DB::afterCommit(static fn () => ResumenAcademico::invalidar());

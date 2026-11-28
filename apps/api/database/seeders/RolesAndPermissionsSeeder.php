@@ -26,26 +26,13 @@ class RolesAndPermissionsSeeder extends Seeder
     /** Académico, Ola 3: convocatorias y horarios. Admin y coordinador todos; secretaria solo `ver`. @var list<string> */
     public const CONVOCATORIAS_PERMISSIONS = ['convocatorias.ver', 'convocatorias.crear', 'convocatorias.editar', 'convocatorias.cerrar'];
 
-    /**
-     * Académico, Ola 3: calificaciones. `registrar` carga una nota nueva; `corregir` cambia una ya registrada (con motivo) y
-     * gestiona las evaluaciones; `exportar` baja el acta. Admin y coordinador todos; secretaria `ver` y `registrar`.
-     *
-     * @var list<string>
-     */
+    /** Retirado el 27/11/2026: solo lo leen migraciones ya aplicadas; ningún rol lo recibe (docs/retiro-sesiones-asistencia-calificaciones.md). */
     public const CALIFICACIONES_PERMISSIONS = ['calificaciones.ver', 'calificaciones.registrar', 'calificaciones.corregir', 'calificaciones.exportar'];
 
-    /**
-     * Horus Academic, Fase 5: sesiones de clase. Admin y coordinador todos; secretaria solo `ver`.
-     *
-     * @var list<string>
-     */
+    /** Retirado el 27/11/2026: solo lo leen migraciones ya aplicadas; ningún rol lo recibe (docs/retiro-sesiones-asistencia-calificaciones.md). */
     public const SESIONES_PERMISSIONS = ['sesiones.ver', 'sesiones.crear', 'sesiones.editar', 'sesiones.cancelar'];
 
-    /**
-     * Horus Academic, Fase 6: asistencia. Admin y coordinador todos; secretaria solo `ver`.
-     *
-     * @var list<string>
-     */
+    /** Retirado el 27/11/2026: solo lo leen migraciones ya aplicadas; ningún rol lo recibe (docs/retiro-sesiones-asistencia-calificaciones.md). */
     public const ASISTENCIAS_PERMISSIONS = ['asistencias.ver', 'asistencias.registrar', 'asistencias.corregir', 'asistencias.exportar'];
 
     /**
@@ -81,9 +68,6 @@ class RolesAndPermissionsSeeder extends Seeder
         ...self::PANEL_PERMISSIONS,
         ...self::SERVICIOS_PERMISSIONS,
         ...self::CONVOCATORIAS_PERMISSIONS,
-        ...self::CALIFICACIONES_PERMISSIONS,
-        ...self::SESIONES_PERMISSIONS,
-        ...self::ASISTENCIAS_PERMISSIONS,
         ...self::PAGOS_PERMISSIONS,
         ...self::CERTIFICADOS_PERMISSIONS,
         ...self::RECLAMACIONES_PERMISSIONS,
@@ -151,9 +135,6 @@ class RolesAndPermissionsSeeder extends Seeder
         'pagos.ver',
         'pagos.registrar',
         ...self::CONVOCATORIAS_PERMISSIONS,
-        ...self::CALIFICACIONES_PERMISSIONS,
-        ...self::SESIONES_PERMISSIONS,
-        ...self::ASISTENCIAS_PERMISSIONS,
         'certificados.ver',
         'certificados.emitir',
     ];
@@ -169,10 +150,6 @@ class RolesAndPermissionsSeeder extends Seeder
         'aprobaciones.ver',
         'reportes.ver',
         'convocatorias.ver',
-        'calificaciones.ver',
-        'calificaciones.registrar',
-        'sesiones.ver',
-        'asistencias.ver',
         // Pagos (decisión del propietario, 20/11/2026): secretaría sube los comprobantes. Confirmar, reversar, planificar y exportar siguen solo en admin.
         'pagos.ver',
         'pagos.registrar',

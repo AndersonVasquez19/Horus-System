@@ -31,19 +31,14 @@ final class CalificacionesMigracionTest extends TestCase
         return require database_path('migrations/2026_11_15_000058_add_calificaciones_permissions.php');
     }
 
-    public function test_instalacion_nueva_los_concede_por_rol(): void
+    public function test_el_seeder_ya_no_los_concede_a_ningun_rol(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
 
-        foreach (RolesAndPermissionsSeeder::CALIFICACIONES_PERMISSIONS as $permiso) {
-            $this->assertTrue(Role::findByName('admin', 'web')->hasPermissionTo($permiso));
-            $this->assertTrue(Role::findByName('coordinador', 'web')->hasPermissionTo($permiso));
-        }
-        foreach (['calificaciones.ver', 'calificaciones.registrar'] as $permiso) {
-            $this->assertTrue(Role::findByName('secretaria', 'web')->hasPermissionTo($permiso));
-        }
-        foreach (['calificaciones.corregir', 'calificaciones.exportar'] as $permiso) {
-            $this->assertFalse(Role::findByName('secretaria', 'web')->hasPermissionTo($permiso));
+        foreach (['admin', 'coordinador', 'secretaria'] as $rol) {
+            foreach (RolesAndPermissionsSeeder::CALIFICACIONES_PERMISSIONS as $permiso) {
+                $this->assertFalse(Role::findByName($rol, 'web')->hasPermissionTo($permiso));
+            }
         }
     }
 

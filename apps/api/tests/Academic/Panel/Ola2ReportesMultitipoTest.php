@@ -12,7 +12,7 @@ use App\Models\TransaccionPago;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-test('reportes soporta cobranza, asistencia, calificaciones, permisos de origen y pdf completo', function (): void {
+test('reportes soporta el de pagos (cobranza), permisos de origen y pdf completo; los retirados se rechazan', function (): void {
     $admin = $this->usuarioConRol('admin');
     $secretaria = $this->usuarioConRol('secretaria');
 
@@ -33,7 +33,6 @@ test('reportes soporta cobranza, asistencia, calificaciones, permisos de origen 
         'estudiante_id' => $est->id, 'curso_id' => $curso->id, 'convocatoria_id' => $conv->id,
         'fecha_matricula' => '2026-11-10', 'estado' => 'pagada', 'monto_pagado' => '250.00',
     ]);
-    $m->forceFill(['nota_final' => '16.50', 'resultado' => 'aprobado'])->save();
 
     $metodo = MetodoPago::firstOrCreate(['codigo' => 'yape'], ['nombre' => 'Yape', 'activo' => true]);
     $ob = ObligacionPago::create([
@@ -57,15 +56,9 @@ test('reportes soporta cobranza, asistencia, calificaciones, permisos de origen 
         ->assertJsonPath('resumen.obligaciones', 1)
         ->assertJsonPath('resumen.cobrado', '250.00');
 
-    $this->panelComo($admin, 'GET', 'academico/reportes?tipo=asistencia')
-        ->assertOk()
-        ->assertJsonPath('tipo', 'asistencia')
-        ->assertJsonPath('resumen.ediciones', 1);
-
-    $this->panelComo($admin, 'GET', 'academico/reportes?tipo=calificaciones')
-        ->assertOk()
-        ->assertJsonPath('tipo', 'calificaciones')
-        ->assertJsonPath('resumen.aprobados', 1);
+    foreach (['asistencia', 'calificaciones'] as $retirado) {
+        $this->panelComo($admin, 'GET', 'academico/reportes?tipo='.$retirado)->assertUnprocessable()->assertJsonValidationErrors('tipo');
+    }
 
     // Exportación Excel por tipo secundario
     $xlsx = $this->panelComo($admin, 'POST', 'academico/reportes/exportar/excel?tipo=cobranza')

@@ -88,12 +88,6 @@ class Convocatoria extends Model
         return $this->belongsTo(Curso::class)->withTrashed();
     }
 
-    /** @return HasMany<Evaluacion, $this> */
-    public function evaluaciones(): HasMany
-    {
-        return $this->hasMany(Evaluacion::class)->orderBy('orden')->orderBy('id');
-    }
-
     /** @return HasMany<ConvocatoriaHorario, $this> */
     public function horarios(): HasMany
     {

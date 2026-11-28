@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\PostgresIntegrity;
 
-use App\Models\Asistencia;
 use App\Models\AuditLog;
 use App\Models\Convocatoria;
 use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
-use App\Models\SesionClase;
 use App\Models\User;
 use App\Services\GestionPagos;
 use Illuminate\Database\Connection;

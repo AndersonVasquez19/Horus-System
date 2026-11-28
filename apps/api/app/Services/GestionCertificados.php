@@ -11,7 +11,6 @@ use App\Models\Convocatoria;
 use App\Models\Matricula;
 use App\Models\User;
 use App\Support\CodigoSecuencial;
-use App\Support\Entrada;
 use App\Support\HoraLocal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,13 +23,13 @@ use Illuminate\Validation\ValidationException;
  *  - Una matrícula anulada o eliminada no puede recibir certificado.
  *  - A lo sumo un certificado en estado `emitido` por matrícula (se bloquea la matrícula con `lockForUpdate`).
  *  - Código secuencial único `HORUS-AAAA-NNNN` tomado de `secuencias_codigo` dentro de la misma transacción.
- *  - La elegibilidad (asistencia, nota, deuda y, si se configura, acta cerrada) sale de {@see ElegibilidadCertificado}: ante un
+ *  - La elegibilidad (deuda y, si se configura, edición cerrada) sale de {@see ElegibilidadCertificado}: ante un
  *    bloqueo solo un administrador puede emitir indicando un `motivo_excepcion`.
  *  - La verificación pública jamás expone DNI, correo, teléfono ni nombre completo (solo iniciales abreviadas).
  */
 class GestionCertificados
 {
-    public function __construct(private readonly GestionAsistencias $asistencias, private readonly ElegibilidadCertificado $elegibilidad) {}
+    public function __construct(private readonly ElegibilidadCertificado $elegibilidad) {}
 
     public function emitirParaMatricula(Matricula $matricula, User $actor, ?string $motivoExcepcion = null): Certificado
     {
@@ -53,12 +52,7 @@ class GestionCertificados
 
             abort_if($vigente !== null, 409, "Esta matrícula ya cuenta con el certificado vigente {$vigente?->codigo}.");
 
-            $porcentajeAsistencia = $this->porcentajeAsistencia($bloqueada);
-            $notaFinal = $bloqueada->getAttribute('nota_final') !== null
-                ? (float) $bloqueada->getAttribute('nota_final')
-                : null;
-
-            $errores = $this->elegibilidad->bloqueos($bloqueada, $porcentajeAsistencia, $notaFinal);
+            $errores = $this->elegibilidad->bloqueos($bloqueada);
             if ($errores !== []) {
                 if ($motivo === null || ! $actor->hasRole('admin')) {
                     throw ValidationException::withMessages(['matricula' => implode(' ', array_column($errores, 'mensaje'))]);
@@ -75,8 +69,6 @@ class GestionCertificados
                 'estudiante_id' => $bloqueada->estudiante_id,
                 'curso_id' => $bloqueada->curso_id,
                 'estado' => EstadoCertificado::Emitido,
-                'porcentaje_asistencia' => $porcentajeAsistencia,
-                'nota_final' => $notaFinal,
                 'emitido_en' => HoraLocal::ahora(),
                 'emitido_por' => $actor->id,
                 'motivo_excepcion' => $errores !== [] ? $motivo : null,
@@ -118,7 +110,6 @@ class GestionCertificados
             ->where('estado', '!=', 'anulada')
             ->get();
 
-        $resumenAsistencia = collect($this->asistencias->resumen($convocatoria)['matriculas'])->keyBy('matricula_id');
         $emitidosIds = Certificado::query()
             ->where('convocatoria_id', $convocatoria->id)
             ->where('estado', EstadoCertificado::Emitido->value)
@@ -136,12 +127,7 @@ class GestionCertificados
                 continue;
             }
 
-            $porcentaje = $resumenAsistencia->get($matricula->id)['porcentaje'] ?? null;
-            $notaFinal = $matricula->getAttribute('nota_final') !== null
-                ? (float) $matricula->getAttribute('nota_final')
-                : null;
-
-            $bloqueos = $this->elegibilidad->bloqueos($matricula, $porcentaje, $notaFinal);
+            $bloqueos = $this->elegibilidad->bloqueos($matricula);
             if ($bloqueos !== []) {
                 $omitidos++;
                 $porDeuda += in_array('deuda', array_column($bloqueos, 'codigo'), true) ? 1 : 0;
@@ -230,26 +216,10 @@ class GestionCertificados
     public function vistaPrevia(Matricula $matricula, User $actor): array
     {
         $matricula->loadMissing(['convocatoria']);
-        $nota = $matricula->getAttribute('nota_final') !== null ? Entrada::decimal($matricula->getAttribute('nota_final')) : null;
-        $bloqueos = $this->elegibilidad->bloqueos($matricula, $this->porcentajeAsistencia($matricula), $nota);
+        $bloqueos = $this->elegibilidad->bloqueos($matricula);
         $vigente = Certificado::query()->where('matricula_id', $matricula->id)->where('estado', EstadoCertificado::Emitido->value)->value('codigo');
 
         return ['elegible' => $bloqueos === [] && $vigente === null, 'bloqueos' => $bloqueos, 'puede_excepcion' => $actor->hasRole('admin'), 'certificado_vigente' => is_string($vigente) ? $vigente : null];
     }
 
-    private function porcentajeAsistencia(Matricula $matricula): ?float
-    {
-        if ($matricula->convocatoria === null) {
-            return null;
-        }
-
-        $resumen = $this->asistencias->resumen($matricula->convocatoria);
-        foreach ($resumen['matriculas'] as $fila) {
-            if ($fila['matricula_id'] === $matricula->id) {
-                return $fila['porcentaje'];
-            }
-        }
-
-        return null;
-    }
 }
