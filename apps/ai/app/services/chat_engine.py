@@ -1724,6 +1724,24 @@ class AdvisorEngine:
             )
         return reply
 
+    def _institutional_fallback(self, hits: list[Hit], terms: set[str]) -> AdvisorReply:
+        """«Necesito asesoría para mi empresa»: suena a pedir una recomendación, pero no hay curso que recomendar y la
+        búsqueda ya encontró una ficha institucional verificada. Se responde con la búsqueda normal (con sus reglas de
+        ambigüedad) en vez de una aclaración genérica (ensayo de la sustentación, 27/11/2026)."""
+        top = hits[0] if hits else None
+        if (top is None or top.record.source.kind == "catalogo_laravel" or top.record.status != "verified"
+                or top.score < ANSWER_THRESHOLD):
+            return self._clarify([])
+        second = hits[1] if len(hits) > 1 else None
+        if second is not None and top.score - second.score < 0.02 and second.record.category == top.record.category:
+            # «Necesito asesoría»: educativa, empresarial y legal empatan; responde la ficha general de esa categoría
+            # que coincide por frase («asesoría»), no la primera en orden alfabético.
+            general = next((h for h in hits[:5] if h.phrase_hit and h.record.category == top.record.category
+                            and h.record.status == "verified" and h.score >= ANSWER_THRESHOLD), None)
+            if general is not None:
+                return self._answer_from_hits([general], terms)
+        return self._answer_from_hits(hits, terms)
+
     def _classifier_fallback(self, message: str, reply: AdvisorReply) -> AdvisorReply:
         """Antes de pedir aclaración: si el clasificador reconoce la ficha con confianza, responde con su texto exacto.
         Solo propone ids de knowledge.json; una ficha no verificada se abstiene como cualquier otra."""
@@ -2060,7 +2078,7 @@ class AdvisorEngine:
                     self._multi_recommend(corrected)
                     or self._catalog_recommend(hits, current, by_title=True)
                     or self._institutional_recommend(profile)
-                    or self._clarify([])
+                    or self._institutional_fallback(hits, terms)
                 )
             top = hits[0] if hits else None
             wants_topic = bool(self.recommender.wanted_topics(profile))
