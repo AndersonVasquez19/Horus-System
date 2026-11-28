@@ -44,47 +44,5 @@
       },
       "suggestions": []
     }
-  },
-  {
-    "query": "¿Qué detalles tiene el convenio con ISAM?",
-    "reply": {
-      "answer": "Horus Group tiene un convenio con el Instituto de Educación Superior ISAM. Los detalles de las actividades incluidas están pendientes de confirmación.\n\nSi necesitas ese dato, un asesor puede ayudarte por WhatsApp al +51 972 021 374 o en horusgroupcajamarca@gmail.com.",
-      "intent": "unverified_info",
-      "match_level": "media",
-      "needs_clarification": false,
-      "clarification_question": null,
-      "abstained": true,
-      "recommendations": [],
-      "missing_data": [
-        "instituto de educación superior isam"
-      ],
-      "general_guidance": null,
-      "sources": [],
-      "mode": "lexical",
-      "context": {
-        "turns_considered": 0,
-        "topics": [],
-        "level": null,
-        "modality": null,
-        "focus_ids": [],
-        "topic_changed": false,
-        "referential": false
-      },
-      "state": {
-        "topics": [],
-        "objectives": [],
-        "level": "desconocido",
-        "modality": "cualquiera",
-        "audience": "desconocido",
-        "goal": "unknown",
-        "profile_age": null,
-        "cue_age": null,
-        "focus_ids": [],
-        "focus_age": null,
-        "out_of_scope": false,
-        "quote": false
-      },
-      "suggestions": []
-    }
   }
 ]

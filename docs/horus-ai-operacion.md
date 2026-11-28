@@ -288,6 +288,42 @@ Siguen sin resolverse:
 - «¿Esta conversación queda guardada?» no tiene una ficha publicada que lo responda.
 - Algunas preguntas con dos fichas parecidas siguen pidiendo elegir («¿hay examen final?»).
 
+## Recomendación por objetivo y clasificador de respaldo (27/11/2026)
+
+- **Recomendación por objetivo** (`AdvisorEngine._goal_course` y `glue.goal_subjects`):
+  - Ejemplos: «me cuesta hablar en público» → curso de comunicación; «quiero ser técnico de redes» → curso de redes; «no sé nada de computadoras» → curso de ofimática.
+  - El léxico de metas es cerrado y cada tema se busca en el título y la descripción de los cursos **publicados**. Si ningún curso vigente lo menciona, o lo mencionan varios, se sigue el flujo general.
+  - No actúa cuando el mensaje pide inscribirse, pide información de un curso que nombra o busca capacitación para una empresa.
+  - Medición: banco de 870 casos, de 731 a 747 aciertos y de 64 a 57 equivocadas. En la comparación caso por caso de los cuatro bancos, 13 mejoran y ninguno empeora.
+- **Clasificador de respaldo** (`app/services/intent_classifier.py`, entrenado con `scripts/entrenar_clasificador.py`):
+  - Modelo TF-IDF con SVM lineal, exportado a `data/clasificador.json` e inferido en Python puro (~5,5 MB de RAM, ~1,5 ms).
+  - Solo actúa cuando el motor iba a pedir aclaración: con confianza ≥ 0,4 y margen ≥ 0,2 responde el texto exacto de una ficha de `knowledge.json`.
+  - Nunca se entrena con `oraciones_examen`, `oraciones_examen_sellado` ni la parte `test` de `evaluation.json`.
+  - **Apagado** (`HORUS_AI_CLASSIFIER_ENABLED=false`, valor por defecto). Por decisión del propietario se decide al medir el examen sellado al final. Para medirlo: `scripts/medir_oraciones.py --clasificador`.
+  - Medición en el examen nunca usado para entrenar: 99 → 101 aciertos, con las mismas 7 equivocadas.
+
+## Publicar cursos nuevos para que el asistente los recomiende (guía para quien publica en el panel)
+
+Al publicar, cambiar o retirar un curso en el panel, Laravel envía al asistente el catálogo vigente (`ExportadorCatalogoAdvisor`): título, resumen, temario (junto con los detalles), modalidad, horario, duración, certificación y fecha de inicio.
+- No hace falta tocar código.
+- Un curso retirado deja de aparecer en el chat.
+- Un curso nuevo se puede recomendar desde que está vigente.
+
+**Cómo redactar la ficha para que el asistente la encuentre.** Hoy el asistente busca por palabras, no por significado: recomienda un curso cuando el visitante usa palabras que están en su ficha.
+- **Título claro y con el tema:** «Repostería básica», «Inglés para principiantes», «Primeros auxilios».
+- **Resumen que diga para quién es y qué logra, con las palabras que usaría un visitante.** Por ejemplo: «Para quienes quieren aprender a preparar postres y tortas, emprender un negocio de repostería o mejorar en la cocina de casa».
+- **Temario con los temas concretos:** «tortas, bizcochos, decoración con fondant, costos para vender». Cada tema es una palabra más que el asistente reconoce.
+- **No escribir datos personales** (nombres de docentes o alumnos, teléfonos, correos): el exportador rechaza la ficha. El temario y los detalles admiten hasta 1500 caracteres.
+
+**Límites que hay que conocer:**
+- **Metas dichas con otras palabras.** «Quiero poner una pastelería» no encuentra «Repostería básica» si la ficha no dice «pastelería» o «negocio». Lo que entendería el significado sin depender de las palabras es la búsqueda semántica (embeddings), que ya está programada (`semantic_search.py`) pero apagada. Es trabajo futuro: hay que usar un modelo liviano, medir la RAM en Railway y recalibrar.
+- **Las metas del léxico cerrado** (hablar en público, redes, ofimática) solo cubren esas áreas. Un área nueva se recomienda por las palabras de su ficha, no por frases de meta.
+- **Filtro de privacidad.** El filtro trata como posible nombre de persona las palabras que no conoce, y su léxico se genera con archivos del repositorio, no con el catálogo publicado (`scripts/privacidad-generar-lexico.php`).
+  - Prueba del 27/11/2026: «Repostería», «Soldadura», «quiero aprender repostería peruana» o «tienen gasfitería domiciliaria» se bloquean como `nombre_personal`.
+  - En cambio, «quiero el curso de barbería», «curso de soldadura eléctrica», «quiero aprender inglés básico» o «marketing digital» pasan.
+  - Al publicar cursos de un área nueva: agregar sus palabras a `apps/api/app/Support/Privacidad/lexico-general.txt`, regenerar el léxico, correr las pruebas de privacidad y desplegar.
+  - Incorporar automáticamente las palabras del catálogo al léxico es posible, pero debilitaría la barrera: un nombre escrito en una ficha pasaría a ser «conocido». Requiere una decisión del propietario.
+
 ## Métricas del asistente y votos 👍/👎 (25/11/2026)
 
 **Qué se guarda en `chat_logs`** (nunca el texto del visitante):

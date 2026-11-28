@@ -4053,7 +4053,7 @@
   "reply": {
    "answer": "Redes para principiantes: Conoce redes y cableado desde cero.",
    "intent": "course_recommendation",
-   "match_level": "alta",
+   "match_level": "media",
    "needs_clarification": false,
    "clarification_question": null,
    "abstained": false,

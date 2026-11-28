@@ -39,6 +39,8 @@ from app.services import conversation_glue as glue
 from app.services.catalog_documents import PublicFragment
 from app.services.contact import PublicContact
 from app.services.gemini import GeminiSelector
+from app.services.intent_classifier import OTHER as CLASSIFIER_OTHER
+from app.services.intent_classifier import IntentClassifier
 from app.services.knowledge import KnowledgeBase
 from app.services.lexical_search import LexicalIndex
 from app.services.query_plan import QUERY_WORDS, plan_query
@@ -62,6 +64,9 @@ from app.services.understanding import (
 # Umbrales de decisión (calibrados con el split "dev"; ver README §8).
 ANSWER_THRESHOLD = 0.55
 CLARIFY_THRESHOLD = 0.32
+# Clasificador de respaldo: confianza mínima y distancia con la segunda opción (scripts/entrenar_clasificador.py).
+CLASSIFIER_MIN_CONFIDENCE = 0.4
+CLASSIFIER_MIN_MARGIN = 0.2
 AMBIGUITY_MARGIN = 0.06
 # Bajo ANSWER_THRESHOLD se responde igual si hay frase exacta, puntaje ≥ NEAR_SURE_MIN y margen ≥ CLEAR_MARGIN.
 NEAR_SURE_MIN = 0.45
@@ -215,9 +220,10 @@ def _retrieval_level(score: float) -> MatchLevel:
 
 class AdvisorEngine:
     def __init__(self, kb: KnowledgeBase, semantic: SemanticIndex | None = None,
-                 gemini: GeminiSelector | None = None) -> None:
+                 gemini: GeminiSelector | None = None, classifier: IntentClassifier | None = None) -> None:
         self.kb = kb
         self.gemini = gemini
+        self.classifier = classifier
         self.contact = PublicContact.from_mapping(kb.data.public_contact)
         rules = kb.intents
         self.lexical = LexicalIndex(kb.search_records, frozenset(rules.low_weight_tokens))
@@ -627,6 +633,10 @@ class AdvisorEngine:
                 return self._followup(chosen, replace(u, attributes=("certificado",), asked_modalities=()))
 
         course_desc_match = self._course_by_content(corrected)
+        if not u.attributes and not u.asked_modalities and not glue.is_complaint(corrected):
+            goal_reply = self._goal_course(message, corrected, courses)
+            if goal_reply is not None:
+                return goal_reply
         wants_virtual_city = (
             glue.implies_virtual_city(message)
             and bool(re.search(r"\b(?:recomiend\w*|sugier\w*|conviene|que\s+curso|cual\s+curso)\b", raw_norm))
@@ -1699,6 +1709,8 @@ class AdvisorEngine:
         # «¿Tienen el curso de contabilidad?»: antes de pedir una aclaración se dice que ese curso no está.
         if depth == 0 and reply.intent == "clarification" and self._names_unpublished_course(message):
             reply = self._unpublished_topic("learn", message)
+        if depth == 0 and reply.intent == "clarification" and not focus:
+            reply = self._classifier_fallback(message, reply)
         if depth == 0:
             reply.state = self._next_state(message, prior, u.quote, profile, reply)
             reply.context = ConversationContext(
@@ -1711,6 +1723,27 @@ class AdvisorEngine:
                 referential=u.referential,
             )
         return reply
+
+    def _classifier_fallback(self, message: str, reply: AdvisorReply) -> AdvisorReply:
+        """Antes de pedir aclaración: si el clasificador reconoce la ficha con confianza, responde con su texto exacto.
+        Solo propone ids de knowledge.json; una ficha no verificada se abstiene como cualquier otra."""
+        if self.classifier is None:
+            return reply
+        guess = self.classifier.predict(message)
+        if (guess.label == CLASSIFIER_OTHER or guess.confidence < CLASSIFIER_MIN_CONFIDENCE
+                or guess.margin < CLASSIFIER_MIN_MARGIN):
+            return reply
+        record = self.kb.get(guess.label)
+        if record is None or record.superseded_by_catalog or record.stable_id is not None:
+            return reply
+        if record.status != "verified":
+            return self._abstain_with_context(Hit(record=record, score=CLARIFY_THRESHOLD), [])
+        return self._reply(
+            answer=record.answer,
+            intent=CATEGORY_INTENTS[record.category],
+            match_level="media",
+            sources=[self._source(record)],
+        )
 
     def _verified_blocks(self, reply: AdvisorReply) -> list[str] | None:
         """Bloques de una respuesta que son, cada uno, el texto exacto de una ficha verificada citada (lo que Laravel
@@ -2323,6 +2356,53 @@ class AdvisorEngine:
         """Catálogo caducado: las fichas existen pero no están revalidadas; se deriva sin negar que haya cursos."""
         return ("La lista de cursos se está actualizando en este momento, así que no puedo confirmarte cuáles están abiertos. "
                 f"Un asesor puede indicarte la oferta actual al {self.contact.phone} o en {self.contact.email}.")
+
+    def _goal_course(self, message: str, corrected: str, courses: list[KnowledgeRecord]) -> AdvisorReply | None:
+        """«Me cuesta hablar en público», «quiero ser técnico de redes»: el único curso publicado que trata esa meta.
+
+        Los temas salen de un léxico cerrado (glue.goal_subjects) y se buscan en el título y la descripción de los
+        cursos vigentes; con cero o varios cursos posibles se sigue el flujo general. Responde con el texto exacto de la
+        ficha, como el resto de recomendaciones.
+        """
+        subjects = glue.goal_subjects(message) | glue.goal_subjects(corrected)
+        if not subjects:
+            return None
+        # «Quiero inscribirme en Comunicación» pide los pasos de matrícula; «capacitar a nuestro personal» es una
+        # capacitación para empresas: ninguna de las dos es una recomendación.
+        if re.search(r"\b(?:inscrib\w*|matricul\w*)\b", normalize(corrected)):
+            return None
+        if extract_profile(corrected, self.kb).audience == "empresa" or re.search(
+                r"\b(?:nuestro personal|nuestros trabajadores|nuestros colaboradores|mi personal|empresa)\b",
+                normalize(corrected)):
+            return None
+        matched = []
+        for rec in courses:
+            own = set(content_tokens(" ".join([rec.title, rec.description, *rec.keywords])))
+            # Los términos pasan por la misma raíz que el curso («redes» → «red»).
+            if rec.kind == "course" and any(own & set(content_tokens(" ".join(glue.goal_subject_terms(s))))
+                                            for s in subjects):
+                matched.append(rec)
+        if len(matched) != 1:
+            return None
+        rec = matched[0]
+        # «Quiero información del curso de Ofimática» nombra el curso: lo responde el flujo del curso nombrado.
+        # «me interesa python y excel»: otro curso publicado también coincide, así que se pregunta en el flujo general.
+        if glue.named_course_subjects(corrected) or any(r.id != rec.id for r in self._course_by_content(corrected)):
+            return None
+        asks_info = re.search(r"\b(?:informacion|info|detalles?|datos|de que trata|cuentame|hablame)\b",
+                              normalize(corrected))
+        if asks_info and self._course_by_title(corrected, set()) is not None:
+            return None  # «Quiero información del curso Comunicacion»
+        modality = extract_profile(corrected, self.kb).modality
+        if modality != "cualquiera" and modality not in {"virtual" if m == "online" else m for m in rec.modalities}:
+            return None
+        return self._reply(
+            answer=rec.answer,
+            intent="course_recommendation",
+            match_level="media",
+            sources=[self._source(rec)],
+            recommendations=[self._recommendation(Hit(record=rec, score=0.9))],
+        )
 
     def _course_by_content(self, message: str) -> list[KnowledgeRecord]:
         """Cursos publicados cuyo título o descripción comparte términos propios con la consulta (p. ej. Excel, Word)."""

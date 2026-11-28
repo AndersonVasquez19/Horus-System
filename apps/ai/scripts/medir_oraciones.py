@@ -32,6 +32,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 os.environ.setdefault("HORUS_AI_SEMANTIC_ENABLED", "false")
 
+from app.services.intent_classifier import IntentClassifier  # noqa: E402
 from tests.test_phase_c import make_engine  # noqa: E402
 
 API = RAIZ.parent / "api"
@@ -63,8 +64,14 @@ def resultado_bloqueo(caso: dict) -> str:
     return "acierta" if "BLOQUEO_OK" in caso["esperado"] else "bloqueada"
 
 
+CLASIFICADOR = False  # --clasificador: activa el respaldo de app/services/intent_classifier.py
+
+
 def motor():
-    return make_engine(json.loads(CATALOGO.read_text(encoding="utf-8"))["items"])
+    engine = make_engine(json.loads(CATALOGO.read_text(encoding="utf-8"))["items"])
+    if CLASIFICADOR:
+        engine.classifier = IntentClassifier.load(RAIZ / "data" / "clasificador.json")
+    return engine
 
 
 def filtro_privacidad(textos: list[str]) -> list[str | None]:
@@ -169,8 +176,11 @@ def main() -> None:
     parser.add_argument("--estricto", action="store_true",
                         help="terminar con código distinto de 0 si Laravel rechaza alguna respuesta o estado")
     parser.add_argument("--detalle", action="store_true", help="mostrar cada caso que no acierta")
+    parser.add_argument("--clasificador", action="store_true", help="activar el clasificador de respaldo")
     parser.add_argument("--guardar", type=Path, help="escribir cada caso con su resultado en este JSON (fuera del repo)")
     args = parser.parse_args()
+    global CLASIFICADOR
+    CLASIFICADOR = args.clasificador
     sys.stdout.reconfigure(encoding="utf-8")
 
     usar_filtro = args.filtro or args.validar_laravel

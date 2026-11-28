@@ -375,16 +375,17 @@
       "category": "convenio",
       "kind": "agreement",
       "title": "Instituto de Educación Superior ISAM",
-      "description": "Convenio Interinstitucional con el Instituto de Educación Superior ISAM. La empresa Horus Group SRL firma convenio con el instituto para la realización de talleres, charlas y cursos, con entrega de certificados a los participantes.",
-      "answer": "Horus Group tiene un convenio con el Instituto de Educación Superior ISAM. Los detalles de las actividades incluidas están pendientes de confirmación.",
-      "status": "provisional",
-      "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "../web/src/app/page.tsx", "checked_on": "2026-11-06"},
+      "description": "Convenio Interinstitucional con el Instituto de Educación Superior ISAM para el desarrollo conjunto de programas formativos, talleres y certificaciones técnicas.",
+      "answer": "Convenio con el Instituto de Educación Superior ISAM para el desarrollo conjunto de programas formativos, talleres y certificaciones técnicas.",
+      "status": "verified",
+      "source": {"kind": "web_publica", "url_path": "/#convenios", "file": "../web/src/data/convenios.ts", "checked_on": "2026-11-27"},
       "keywords": ["isam", "instituto isam"],
       "examples": ["¿Qué convenio tienen con ISAM?"],
       "topics": ["formacion"],
       "related": ["convenios_resumen"],
-      "notes": "home.blade.php contiene el comentario: 'se reemplazó por una descripción propia. Confirmar con la empresa'.",
-      "public_card": {"id": "isam", "siglas": "ISAM", "vigencia": "6 de enero del 2027", "imagen": "assets/images/index/convenios-fotos/convenio-isam.jpg", "posicion": "center", "logo": "assets/images/index/logos/logo-convenio-isam.png"}
+      "notes": "27/11/2026: el propietario confirmó usar el texto y la vigencia publicados en la web Next.js (apps/web/src/data/convenios.ts).",
+      "public_card": {"id": "isam", "siglas": "ISAM", "vigencia": "6 de enero del 2027", "imagen": "assets/images/index/convenios-fotos/convenio-isam.jpg", "posicion": "center", "logo": "assets/images/index/logos/logo-convenio-isam.png"},
+      "detail_answer": "Instituto de Educación Superior ISAM: Convenio Interinstitucional con el Instituto de Educación Superior ISAM para el desarrollo conjunto de programas formativos, talleres y certificaciones técnicas. El convenio está vigente hasta el 6 de enero del 2027."
     },
     {
       "id": "convenio_enfermeria_libertad",

@@ -52,7 +52,7 @@ class ContactoPublicoUnicoTest extends TestCase
     public static function abstenciones(): iterable
     {
         yield 'cifras publicitarias' => [0];
-        yield 'convenio pendiente' => [1];
+        // 'convenio pendiente' (ISAM) salió el 27/11/2026: la ficha se verificó con el texto de la web.
     }
 
     #[DataProvider('abstenciones')]

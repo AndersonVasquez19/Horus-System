@@ -460,6 +460,42 @@ _OPEN_RECOMMEND = re.compile(
 )
 
 
+# Recomendación por objetivo (27/11/2026): metas del visitante que no usan las palabras del curso («hablar en
+# público» → Comunicación, «routers y switches» → Redes). Cada tema lleva los términos que se buscan en el título o la
+# descripción de los cursos PUBLICADOS: si ningún curso vigente los tiene, no se recomienda nada.
+_GOAL_SUBJECTS: dict[str, tuple[re.Pattern[str], frozenset[str]]] = {
+    "comunicacion": (re.compile(
+        r"\b(?:hablar (?:mejor )?en publico|hablar mejor|oratoria|expresarme|expresarse|comunicarme|comunicarse"
+        r"|exposiciones|exponer|presentaciones|miedo escenico|timidez|timid[oa]|comunicacion)\b"),
+        frozenset({"comunicacion"})),
+    "redes": (re.compile(
+        r"\b(?:tecnic[oa] (?:de|en) redes|routers?|switch(?:es)?|cableado|cablear|redes(?! sociales))\b"),
+        frozenset({"redes"})),
+    "ofimatica": (re.compile(
+        r"\b(?:excel|word|powerpoint|ofimatica|office|computacion basica|usar (?:la |una )?computadora"
+        r"|no se nada de computadoras|trabajar en (?:una )?oficina)\b"),
+        frozenset({"ofimatica", "excel", "word"})),
+}
+# Quien escribe busca formación para sí: sin esto «¿el curso de redes es virtual?» o «mi router falla» contarían.
+_LEARNING_WISH = re.compile(
+    r"\b(?:quiero|quisiera|me gustaria|me interesa|me interesan|me cuesta|necesito|busco|deseo|soy|trabajo"
+    r"|recomiend\w*|me sirve|algun curso|que curso|un curso|aprender|mejorar|dominar|empiezo|empezar|ser"
+    r"|tengo miedo|me da miedo|me da verguenza)\b"
+)
+
+
+def goal_subjects(message: str) -> set[str]:
+    """Temas de curso que la meta del visitante pide (vacío si no expresa una meta de aprendizaje)."""
+    text = normalize(message)
+    if not _LEARNING_WISH.search(text):
+        return set()
+    return {name for name, (pattern, _) in _GOAL_SUBJECTS.items() if pattern.search(text)}
+
+
+def goal_subject_terms(name: str) -> frozenset[str]:
+    return _GOAL_SUBJECTS[name][1]
+
+
 def is_open_recommendation(message: str) -> bool:
     """«¿Cuál me recomiendas?» sin tema: se ayuda a elegir entre los cursos publicados."""
     return bool(_OPEN_RECOMMEND.match(" ".join(content_words(message))))

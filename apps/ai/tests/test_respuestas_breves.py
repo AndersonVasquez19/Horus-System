@@ -64,10 +64,13 @@ def test_libertad_tiene_su_propia_fuente_y_no_se_confunde_con_cajamarca(engine):
     assert "Cajamarca" not in reply.answer
 
 
-def test_isam_conserva_la_abstencion_sobre_detalles_no_confirmados(engine):
+def test_isam_responde_el_texto_y_la_vigencia_publicados_en_la_web(engine):
+    # 27/11/2026: el propietario confirmó el texto de apps/web/src/data/convenios.ts; ya no se abstiene.
     reply = engine.chat("Dame detalles del convenio con ISAM")
-    assert reply.abstained
-    assert "pendientes de confirmación" in reply.answer
+    assert [s.id for s in reply.sources] == ["convenio_isam"]
+    assert not reply.abstained
+    assert "pendientes de confirmación" not in reply.answer
+    assert "6 de enero del 2027" in engine.chat("¿El convenio con ISAM sigue vigente?").answer
 
 
 def test_atributo_concreto_no_recibe_el_resumen_general(engine):

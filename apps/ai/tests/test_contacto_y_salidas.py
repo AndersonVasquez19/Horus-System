@@ -55,7 +55,8 @@ def test_un_cambio_de_canal_en_el_conocimiento_llega_a_las_respuestas(engine: Ad
 
 
 @pytest.mark.parametrize(
-    "query", ["¿Cuántos alumnos han pasado por sus capacitaciones?", "¿Qué detalles tiene el convenio con ISAM?"]
+    # ISAM salió de esta lista el 27/11/2026: su ficha pasó a verificada con el texto de la web.
+    "query", ["¿Cuántos alumnos han pasado por sus capacitaciones?"]
 )
 def test_una_abstencion_sin_alternativa_indica_a_quien_preguntar(engine: AdvisorEngine, query: str) -> None:
     reply = engine.chat(query)

@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     catalog_allow_unsigned: bool = False  # solo para pruebas locales con datos ficticios
     max_catalog_bytes: int = Field(default=1_048_576, ge=4096, le=8_388_608)
 
+    # Clasificador de respaldo (app/services/intent_classifier.py): solo actúa cuando el motor iba a pedir aclaración.
+    classifier_enabled: bool = False
+    classifier_path: Path = DATA_DIR / "clasificador.json"
+
     semantic_enabled: bool = False
     semantic_model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     semantic_model_dir: Path = PROJECT_ROOT / "models" / "paraphrase-multilingual-MiniLM-L12-v2"
@@ -97,6 +101,7 @@ class Settings(BaseSettings):
         "semantic_model_dir",
         "knowledge_path",
         "intents_path",
+        "classifier_path",
         "catalog_path",
         "semantic_cache_dir",
         mode="after",

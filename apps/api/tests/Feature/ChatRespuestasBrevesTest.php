@@ -17,6 +17,8 @@ class ChatRespuestasBrevesTest extends TestCase
 {
     public function test_las_tarjetas_conservan_todos_los_datos_del_inicio_original(): void
     {
+        // 27/11/2026: la descripción de ISAM es la de apps/web/src/data/convenios.ts (el propietario la confirmó;
+        // la del inicio original era «una descripción propia» pendiente de confirmar).
         $original = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/convenios-inicio-original.json'), true, 512, JSON_THROW_ON_ERROR);
         $tarjetas = app(ConveniosPublicos::class)->tarjetas();
         $this->assertEquals($original, $tarjetas);

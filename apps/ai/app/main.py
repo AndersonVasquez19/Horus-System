@@ -22,6 +22,7 @@ from app.api.routes import api, public
 from app.core.config import Settings, get_settings
 from app.services.chat_engine import AdvisorEngine
 from app.services.gemini import GeminiSelector
+from app.services.intent_classifier import IntentClassifier
 from app.services.knowledge import KnowledgeBase, KnowledgeError
 from app.services.semantic_search import SemanticIndex
 from app.services.vector_cache import PassageVectorCache, model_fingerprint
@@ -127,7 +128,22 @@ def build_engine(settings: Settings) -> tuple[AdvisorEngine | None, SemanticInde
             settings.semantic_query_prefix,
             settings.semantic_passage_prefix,
         )
-    return AdvisorEngine(kb, semantic, GeminiSelector.from_settings(settings)), semantic, catalog_status
+    return (
+        AdvisorEngine(kb, semantic, GeminiSelector.from_settings(settings), load_classifier(settings)),
+        semantic,
+        catalog_status,
+    )
+
+
+def load_classifier(settings: Settings) -> IntentClassifier | None:
+    if not settings.classifier_enabled:
+        return None
+    try:
+        return IntentClassifier.load(settings.classifier_path)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        # Sin clasificador el motor responde igual que antes: pide aclaración.
+        logger.error("Clasificador de respaldo no cargado: %s", type(exc).__name__)
+        return None
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

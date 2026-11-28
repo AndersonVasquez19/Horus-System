@@ -1281,7 +1281,7 @@
         "cat_curso_publicacion_7"
       ],
       "reply": {
-        "answer": "Ofimática para oficinas: Inscripción por WhatsApp oficial. Temario: Excel básico, tablas dinámicas y Word profesional.",
+        "answer": "Ofimática para oficinas: Aprende Excel y Word para el trabajo diario.",
         "intent": "course_recommendation",
         "match_level": "media",
         "needs_clarification": false,
@@ -1292,13 +1292,13 @@
             "id": "cat_curso_publicacion_7",
             "title": "Ofimática para oficinas",
             "kind": "course",
-            "reason": "Lo que dice el contenido sobre tu consulta: «Inscripción por WhatsApp oficial. Temario: Excel básico, tablas dinámicas y Word profesional.».",
+            "reason": "Lo que dice el contenido sobre tu consulta: «Aprende Excel y Word para el trabajo diario.».",
             "evidence": [
               "cat_curso_publicacion_7"
             ],
-            "match_level": "baja",
+            "match_level": "alta",
             "url_path": "/educacion/cursos",
-            "evidence_text": "Inscripción por WhatsApp oficial. Temario: Excel básico, tablas dinámicas y Word profesional.",
+            "evidence_text": "Aprende Excel y Word para el trabajo diario.",
             "signals": [],
             "limitations": [],
             "needs_clarification": false,
