@@ -14,12 +14,30 @@ import { CONTACT_INFO } from '@/data/contactos';
  */
 
 const SIN_ETIQUETAS = /^[^<>]*$/;
+const SOLO_NOMBRE = /^[\p{L}\s'\-.]+$/u;
+const CON_LETRAS = /\p{L}/u;
 const TELEFONO = /^[+0-9() .-]{5,30}$/;
 const MONTO = /^\d{1,10}([.,]\d{1,2})?$/;
 
+function telefonoValido(valor: string): boolean {
+  if (!TELEFONO.test(valor)) return false;
+  const digitos = valor.replace(/\D+/g, '');
+  return digitos.length >= 7 && digitos.length <= 15;
+}
+
+function rucPeruanoValido(ruc: string): boolean {
+  if (!/^(10|15|16|17|20)\d{9}$/.test(ruc)) return false;
+  const factores = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  let suma = 0;
+  for (let i = 0; i < 10; i++) suma += Number(ruc[i]) * factores[i];
+  const complemento = 11 - (suma % 11);
+  const verificador = complemento === 10 ? 0 : complemento === 11 ? 1 : complemento;
+  return verificador === Number(ruc[10]);
+}
+
 const FORMATO_DOCUMENTO: Record<string, [RegExp, string]> = {
-  dni: [/^\d{8}$/, 'El DNI tiene 8 dígitos.'],
-  ruc: [/^\d{11}$/, 'El RUC tiene 11 dígitos.'],
+  dni: [/^\d{8}$/, 'El DNI debe tener 8 dígitos válidos.'],
+  ruc: [/^\d{11}$/, 'El RUC debe tener 11 dígitos válidos de SUNAT.'],
   ce: [/^[A-Za-z0-9]{9,12}$/, 'El carné de extranjería tiene entre 9 y 12 caracteres.'],
   pasaporte: [/^[A-Za-z0-9]{6,12}$/, 'El pasaporte tiene entre 6 y 12 caracteres.'],
 };
@@ -27,42 +45,68 @@ const FORMATO_DOCUMENTO: Record<string, [RegExp, string]> = {
 const texto = (min: number, max: number, vacio: string) =>
   z.string().trim().min(min, vacio).max(max, `Máximo ${max} caracteres.`).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.');
 
+const textoNombre = (vacio: string) =>
+  texto(2, 120, vacio)
+    .regex(SOLO_NOMBRE, 'Usa solo letras, espacios, guiones o apóstrofes.')
+    .regex(CON_LETRAS, 'Ingresa un nombre válido.');
+
 const esquema = z
   .object({
     tipo: z.enum(['reclamo', 'queja']),
     tipo_documento: z.enum(['dni', 'ce', 'pasaporte', 'ruc']),
     numero_documento: z.string().trim().min(1, 'Ingresa tu número de documento.').max(20),
-    nombres: texto(2, 120, 'Ingresa tus nombres.'),
-    apellidos: texto(2, 120, 'Ingresa tus apellidos.'),
-    telefono: z.string().trim().regex(TELEFONO, 'Ingresa un teléfono válido (solo números, +, espacios o guiones).'),
+    nombres: textoNombre('Ingresa tus nombres.'),
+    apellidos: textoNombre('Ingresa tus apellidos.'),
+    telefono: z.string().trim().max(30, 'Máximo 30 caracteres.').refine(telefonoValido, 'Ingresa un teléfono válido de entre 7 y 15 dígitos.'),
     email: z.string().trim().email('Ingresa un correo electrónico válido.').max(254),
     domicilio: texto(5, 255, 'Ingresa tu domicilio o dirección.'),
     es_menor: z.boolean(),
     representante_nombre: z.string().trim().max(120).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
     representante_domicilio: z.string().trim().max(255).regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
-    representante_telefono: z.string().trim().optional(),
+    representante_telefono: z.string().trim().max(30, 'Máximo 30 caracteres.').optional(),
     representante_email: z.string().trim().optional(),
     bien_tipo: z.enum(['producto', 'servicio']).optional(),
     bien_descripcion: z.string().trim().max(500, 'Máximo 500 caracteres.').regex(SIN_ETIQUETAS, 'No uses los caracteres < o >.').optional(),
     monto_bien: z.string().trim().optional(),
     monto_no_aplica: z.boolean(),
-    detalle: texto(10, 3000, 'Explica con detalle lo ocurrido (mínimo 10 caracteres).'),
-    pedido: texto(5, 1500, 'Indica qué solución solicitas (mínimo 5 caracteres).'),
+    detalle: texto(10, 3000, 'Explica con detalle lo ocurrido (mínimo 10 caracteres).').regex(CON_LETRAS, 'Incluye una descripción legible.'),
+    pedido: texto(5, 1500, 'Indica qué solución solicitas (mínimo 5 caracteres).').regex(CON_LETRAS, 'Incluye un pedido legible.'),
     acepta_privacidad: z.boolean().refine((v) => v, 'Debes aceptar la declaración para enviar la hoja.'),
   })
   .superRefine((d, ctx) => {
+    const docLimpio = d.numero_documento.replace(/\s+/g, '');
     const [patron, mensaje] = FORMATO_DOCUMENTO[d.tipo_documento];
-    if (!patron.test(d.numero_documento.replace(/\s+/g, ''))) ctx.addIssue({ code: 'custom', path: ['numero_documento'], message: mensaje });
+    const docValido =
+      d.tipo_documento === 'dni'
+        ? patron.test(docLimpio) && docLimpio !== '00000000'
+        : d.tipo_documento === 'ruc'
+          ? rucPeruanoValido(docLimpio)
+          : patron.test(docLimpio);
+    if (!docValido) ctx.addIssue({ code: 'custom', path: ['numero_documento'], message: mensaje });
     if (d.es_menor) {
-      if (!d.representante_nombre) ctx.addIssue({ code: 'custom', path: ['representante_nombre'], message: 'Ingresa el nombre del padre, madre o representante.' });
+      const repNombre = d.representante_nombre ?? '';
+      if (repNombre.length < 2 || !SOLO_NOMBRE.test(repNombre) || !CON_LETRAS.test(repNombre)) {
+        ctx.addIssue({ code: 'custom', path: ['representante_nombre'], message: 'Ingresa el nombre válido del padre, madre o representante.' });
+      }
       if (!d.representante_domicilio) ctx.addIssue({ code: 'custom', path: ['representante_domicilio'], message: 'Ingresa el domicilio del representante.' });
-      if (!d.representante_telefono || !TELEFONO.test(d.representante_telefono)) ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: 'Ingresa un teléfono válido del representante.' });
+      if (!d.representante_telefono || !telefonoValido(d.representante_telefono)) {
+        ctx.addIssue({ code: 'custom', path: ['representante_telefono'], message: 'Ingresa un teléfono válido del representante (7 a 15 dígitos).' });
+      }
       if (!d.representante_email || !z.string().email().safeParse(d.representante_email).success) ctx.addIssue({ code: 'custom', path: ['representante_email'], message: 'Ingresa un correo válido del representante.' });
     }
     if (d.tipo === 'reclamo') {
       if (!d.bien_tipo) ctx.addIssue({ code: 'custom', path: ['bien_tipo'], message: 'Indica si es un producto o un servicio.' });
-      if (!d.bien_descripcion) ctx.addIssue({ code: 'custom', path: ['bien_descripcion'], message: 'Describe el producto o servicio.' });
-      if (!d.monto_no_aplica && !MONTO.test(d.monto_bien ?? '')) ctx.addIssue({ code: 'custom', path: ['monto_bien'], message: 'Indica el monto (hasta dos decimales) o marca «No aplica».' });
+      const bienDesc = d.bien_descripcion ?? '';
+      if (bienDesc.length < 5 || !CON_LETRAS.test(bienDesc)) {
+        ctx.addIssue({ code: 'custom', path: ['bien_descripcion'], message: 'Describe el producto o servicio (mínimo 5 caracteres).' });
+      }
+      if (!d.monto_no_aplica) {
+        const montoTexto = d.monto_bien ?? '';
+        const montoNum = Number(montoTexto.replace(',', '.'));
+        if (!MONTO.test(montoTexto) || !Number.isFinite(montoNum) || montoNum <= 0) {
+          ctx.addIssue({ code: 'custom', path: ['monto_bien'], message: 'Indica un monto mayor a cero (hasta dos decimales) o marca «No aplica».' });
+        }
+      }
     }
   });
 
@@ -150,10 +194,15 @@ export function LibroForm() {
   });
 
   const tipo = useWatch({ control, name: 'tipo' });
+  const tipoDocumento = useWatch({ control, name: 'tipo_documento' });
   const esMenor = useWatch({ control, name: 'es_menor' });
   const montoNoAplica = useWatch({ control, name: 'monto_no_aplica' });
+  const detalleValor = useWatch({ control, name: 'detalle' }) ?? '';
+  const pedidoValor = useWatch({ control, name: 'pedido' }) ?? '';
   const esReclamo = tipo === 'reclamo';
   const nombreTipo = esReclamo ? 'reclamo' : 'queja';
+  const maxDocumento = tipoDocumento === 'dni' ? 8 : tipoDocumento === 'ruc' ? 11 : 12;
+  const modoDocumento = tipoDocumento === 'dni' || tipoDocumento === 'ruc' ? 'numeric' : 'text';
 
   const cargarCredenciales = useCallback(async () => setCredenciales(await pedirCredenciales()), []);
 
@@ -368,7 +417,7 @@ export function LibroForm() {
             </div>
             <div>
               <label htmlFor="numero_documento" className="mb-1 block text-xs font-semibold text-stone-300">Número de documento *</label>
-              <input id="numero_documento" type="text" inputMode="text" autoComplete="off" maxLength={20} {...register('numero_documento')} {...ariaCampo('numero_documento')} className={input} />
+              <input id="numero_documento" type="text" inputMode={modoDocumento} autoComplete="off" maxLength={maxDocumento} {...register('numero_documento')} {...ariaCampo('numero_documento')} className={input} />
               {mensajeError('numero_documento')}
             </div>
             <div>
@@ -462,12 +511,18 @@ export function LibroForm() {
         <Seccion numero={esReclamo ? 3 : 2} titulo="Detalle y pedido del consumidor">
           <div className="space-y-4">
             <div>
-              <label htmlFor="detalle" className="mb-1 block text-xs font-semibold text-stone-300">Detalle del {nombreTipo} *</label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label htmlFor="detalle" className="block text-xs font-semibold text-stone-300">Detalle del {nombreTipo} *</label>
+                <span className="text-[11px] tabular-nums text-stone-400">{detalleValor.length} / 3000</span>
+              </div>
               <textarea id="detalle" rows={5} maxLength={3000} placeholder={`Describe claramente los hechos que motivan tu ${nombreTipo}. Evita incluir datos sensibles (contraseñas, números de tarjeta, datos de salud).`} {...register('detalle')} {...ariaCampo('detalle')} className={area} />
               {mensajeError('detalle')}
             </div>
             <div>
-              <label htmlFor="pedido" className="mb-1 block text-xs font-semibold text-stone-300">Pedido concreto *</label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label htmlFor="pedido" className="block text-xs font-semibold text-stone-300">Pedido concreto *</label>
+                <span className="text-[11px] tabular-nums text-stone-400">{pedidoValor.length} / 1500</span>
+              </div>
               <textarea id="pedido" rows={3} maxLength={1500} placeholder="Indica qué solución o resultado esperas de parte de Horus Group SRL." {...register('pedido')} {...ariaCampo('pedido')} className={area} />
               {mensajeError('pedido')}
             </div>

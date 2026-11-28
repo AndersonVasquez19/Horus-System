@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Phone,
   Mail,
@@ -13,9 +13,54 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { CONTACT_INFO } from '@/data/contactos';
+import { TECNOLOGIAS_VISIBLES } from '@/lib/funciones';
+
+const SIN_ETIQUETAS = /^[^<>]*$/;
+const SOLO_NOMBRE = /^[\p{L}\s'\-.]+$/u;
+const CON_LETRAS = /\p{L}/u;
+const TELEFONO_CONTACTO = /^[0-9+()\s-]{6,30}$/;
+
+function validarFormularioContacto(v: { nombre: string; telefono: string; email: string; asunto: string; mensaje: string }): Record<string, string> {
+  const errores: Record<string, string> = {};
+  const nombre = v.nombre.trim();
+  const telefono = v.telefono.trim();
+  const email = v.email.trim();
+  const mensaje = v.mensaje.trim();
+
+  if (nombre.length < 2) {
+    errores.nombre = 'Escribe tu nombre completo (mínimo 2 caracteres).';
+  } else if (!SIN_ETIQUETAS.test(nombre) || !SOLO_NOMBRE.test(nombre) || !CON_LETRAS.test(nombre)) {
+    errores.nombre = 'Escribe un nombre válido usando solo letras.';
+  }
+
+  if (telefono === '' && email === '') {
+    errores.telefono = 'Indica un teléfono o un correo para poder responderte.';
+    errores.email = 'Indica un teléfono o un correo para poder responderte.';
+  } else if (telefono !== '') {
+    const digitos = telefono.replace(/\D+/g, '');
+    if (!TELEFONO_CONTACTO.test(telefono) || digitos.length < 7 || digitos.length > 15) {
+      errores.telefono = 'Escribe un teléfono válido de entre 7 y 15 dígitos.';
+    }
+  }
+
+  if (v.asunto.trim() === '') {
+    errores.asunto = 'Selecciona un asunto.';
+  }
+
+  if (mensaje.length < 5) {
+    errores.mensaje = 'Escribe un mensaje un poco más largo (mínimo 5 caracteres).';
+  } else if (!SIN_ETIQUETAS.test(mensaje)) {
+    errores.mensaje = 'El mensaje contiene caracteres no permitidos (< o >).';
+  } else if (!CON_LETRAS.test(mensaje)) {
+    errores.mensaje = 'Escribe un mensaje legible.';
+  }
+
+  return errores;
+}
 
 export default function ContactosPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const enviandoRef = useRef(false);
 
   const [formValues, setFormValues] = useState({
     nombre: '',
@@ -31,6 +76,17 @@ export default function ContactosPage() {
 
   const enviarMensaje = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (enviandoRef.current) return;
+
+    const erroresLocales = validarFormularioContacto(formValues);
+    if (Object.keys(erroresLocales).length > 0) {
+      setErrores(erroresLocales);
+      setAviso('Revisa los campos marcados.');
+      setEstado('error');
+      return;
+    }
+
+    enviandoRef.current = true;
     setEstado('enviando');
     setErrores({});
     setAviso(null);
@@ -38,12 +94,13 @@ export default function ContactosPage() {
       const respuesta = await fetch('/api/contacto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
-          nombre: formValues.nombre,
-          telefono: formValues.telefono,
-          correo: formValues.email,
+          nombre: formValues.nombre.trim(),
+          telefono: formValues.telefono.trim(),
+          correo: formValues.email.trim(),
           asunto: formValues.asunto,
-          mensaje: formValues.mensaje,
+          mensaje: formValues.mensaje.trim(),
           sitio_web: formValues.sitio_web,
         }),
       });
@@ -65,6 +122,8 @@ export default function ContactosPage() {
     } catch {
       setAviso('No pudimos enviar tu mensaje. Revisa tu conexión e inténtalo de nuevo.');
       setEstado('error');
+    } finally {
+      enviandoRef.current = false;
     }
   };
 
@@ -79,6 +138,13 @@ export default function ContactosPage() {
   ) => {
     const { name, value } = e.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
+    if (errores[name]) {
+      setErrores((prev) => {
+        const siguiente = { ...prev };
+        delete siguiente[name];
+        return siguiente;
+      });
+    }
   };
 
   const buildMessage = () => {
@@ -287,7 +353,7 @@ export default function ContactosPage() {
               </p>
 
               <form onSubmit={enviarMensaje} className="space-y-4" noValidate>
-                <div aria-hidden="true" className="hidden">
+                <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
                   <label htmlFor="sitio_web">No completar</label>
                   <input type="text" id="sitio_web" name="sitio_web" tabIndex={-1} autoComplete="off" value={formValues.sitio_web} onChange={handleChange} />
                 </div>
@@ -305,9 +371,11 @@ export default function ContactosPage() {
                     placeholder="Ej. María Pérez"
                     required
                     maxLength={120}
-                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
+                    aria-invalid={errores.nombre ? true : undefined}
+                    aria-describedby={errores.nombre ? 'nombre-error' : undefined}
+                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none aria-[invalid=true]:border-red-500"
                   />
-                  {errores.nombre ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.nombre}</p> : null}
+                  {errores.nombre ? <p id="nombre-error" role="alert" className="mt-1 text-xs text-red-700">{errores.nombre}</p> : null}
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -323,9 +391,11 @@ export default function ContactosPage() {
                       onChange={handleChange}
                       placeholder="Ej. 927 000 000"
                       maxLength={30}
-                      className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
+                      aria-invalid={errores.telefono ? true : undefined}
+                      aria-describedby={errores.telefono ? 'telefono-error' : undefined}
+                      className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none aria-[invalid=true]:border-red-500"
                     />
-                    {errores.telefono ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.telefono}</p> : null}
+                    {errores.telefono ? <p id="telefono-error" role="alert" className="mt-1 text-xs text-red-700">{errores.telefono}</p> : null}
                   </div>
 
                   <div>
@@ -340,9 +410,11 @@ export default function ContactosPage() {
                       onChange={handleChange}
                       placeholder="nombre@correo.com"
                       maxLength={160}
-                      className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
+                      aria-invalid={errores.email ? true : undefined}
+                      aria-describedby={errores.email ? 'email-error' : undefined}
+                      className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none aria-[invalid=true]:border-red-500"
                     />
-                    {errores.email ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.email}</p> : null}
+                    {errores.email ? <p id="email-error" role="alert" className="mt-1 text-xs text-red-700">{errores.email}</p> : null}
                   </div>
                 </div>
 
@@ -355,23 +427,29 @@ export default function ContactosPage() {
                     name="asunto"
                     value={formValues.asunto}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none"
+                    required
+                    aria-invalid={errores.asunto ? true : undefined}
+                    aria-describedby={errores.asunto ? 'asunto-error' : undefined}
+                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none aria-[invalid=true]:border-red-500"
                   >
                     <option value="">Selecciona un asunto</option>
-                    <option value="Tecnologías">Tecnologías</option>
+                    {TECNOLOGIAS_VISIBLES && <option value="Tecnologías">Tecnologías</option>}
                     <option value="Educación">Educación</option>
                     <option value="Asesoramiento">Asesoramiento</option>
                     <option value="Capacitaciones">Capacitaciones</option>
                     <option value="Cursos">Cursos</option>
                     <option value="Otro">Otro</option>
                   </select>
-                  {errores.asunto ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.asunto}</p> : null}
+                  {errores.asunto ? <p id="asunto-error" role="alert" className="mt-1 text-xs text-red-700">{errores.asunto}</p> : null}
                 </div>
 
                 <div>
-                  <label htmlFor="mensaje" className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    Mensaje
-                  </label>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label htmlFor="mensaje" className="block text-xs font-bold text-slate-700 uppercase">
+                      Mensaje
+                    </label>
+                    <span className="text-[11px] tabular-nums text-slate-500">{formValues.mensaje.length} / 1500</span>
+                  </div>
                   <textarea
                     id="mensaje"
                     name="mensaje"
@@ -379,10 +457,13 @@ export default function ContactosPage() {
                     value={formValues.mensaje}
                     onChange={handleChange}
                     placeholder="Cuéntanos qué necesitas"
+                    required
                     maxLength={1500}
-                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none resize-none"
+                    aria-invalid={errores.mensaje ? true : undefined}
+                    aria-describedby={errores.mensaje ? 'mensaje-error' : undefined}
+                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/10 outline-none resize-none aria-[invalid=true]:border-red-500"
                   ></textarea>
-                  {errores.mensaje ? <p role="alert" className="mt-1 text-xs text-red-700">{errores.mensaje}</p> : null}
+                  {errores.mensaje ? <p id="mensaje-error" role="alert" className="mt-1 text-xs text-red-700">{errores.mensaje}</p> : null}
                 </div>
 
                 {estado === 'enviado' ? (
