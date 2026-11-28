@@ -24,7 +24,7 @@ final class ConfiguracionSistema
         'nombre_empresa' => 'Horus Group SRL',
         'telefono' => '+51 972 021 374',
         'correo_contacto' => 'horusgroupcajamarca@gmail.com',
-        'direccion' => 'Jr. José Gálvez 322, Cajamarca',
+        'direccion' => 'Jr. Silva Santisteban 1170 - Barrio San Sebastián, Cajamarca',
         'moneda' => 'S/',
     ];
 

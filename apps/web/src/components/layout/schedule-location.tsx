@@ -1,4 +1,5 @@
 import { Clock, Calendar } from 'lucide-react';
+import { CONTACT_INFO } from '@/data/contactos';
 
 export function ScheduleLocation({ title = 'Horarios y Ubicación' }: { title?: string }) {
   return (
@@ -35,7 +36,7 @@ export function ScheduleLocation({ title = 'Horarios y Ubicación' }: { title?: 
                   <h3 className="text-lg font-semibold text-ink">Ubicación</h3>
                 </div>
                 <p className="text-sm leading-6 text-slate-600">
-                  Jr. José Gálvez N° 322, Cajamarca - Perú.
+                  {CONTACT_INFO.address}.
                 </p>
               </div>
             </div>
@@ -44,7 +45,7 @@ export function ScheduleLocation({ title = 'Horarios y Ubicación' }: { title?: 
             <div className="overflow-hidden rounded-[24px] border border-gold/20 bg-stone-100 shadow-inner">
               <iframe
                 title="Ubicación de Horus Group en Cajamarca"
-                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d989.6682159535815!2d-78.5107197!3d-7.1637652!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91b25b809bf9b7e3%3A0x70d5a58b14aa7eff!2sPlazuela%20Bolognesi!5e0!3m2!1ses-419!2spe!4v1772667902105!5m2!1ses-419!2spe"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(CONTACT_INFO.mapQuery)}&z=16&output=embed`}
                 className="h-[300px] w-full border-0 block"
                 loading="lazy"
                 allowFullScreen

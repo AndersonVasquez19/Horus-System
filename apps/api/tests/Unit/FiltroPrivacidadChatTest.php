@@ -133,6 +133,7 @@ class FiltroPrivacidadChatTest extends TestCase
             '¿Quién es Milagros Villegas?',
             '¿Quedan cerca de la Plazuela Bolognesi?',
             '¿El curso de Redes es presencial en su local de Jr José Gálvez?',
+            '¿Su oficina está en Jr. Silva Santisteban en Barrio San Sebastián?',
             '¿Tienen convenio con el Colegio de Enfermeros de La Libertad porque soy de Trujillo?',
             'cual es su ruc',
             'Necesito conocer su razón social, su RUC y a qué se dedican exactamente',

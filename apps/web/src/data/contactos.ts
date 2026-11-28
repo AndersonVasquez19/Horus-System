@@ -4,8 +4,8 @@ export const CONTACT_INFO = {
   phone: '+51 972 021 374',
   phoneClean: '51972021374',
   email: 'horusgroupcajamarca@gmail.com',
-  address: 'Jr. José Gálvez 322, Cajamarca - Perú',
-  mapQuery: 'Jr. José Gálvez 322 Cajamarca',
+  address: 'Jr. Silva Santisteban 1170 - Barrio San Sebastián, Cajamarca - Perú',
+  mapQuery: 'Jr. Silva Santisteban 1170, Barrio San Sebastián, Cajamarca, Perú',
   hours: [
     { days: 'Lunes a Viernes', time: '9:00 AM - 1:00 PM | 3:00 PM - 6:00 PM' },
     { days: 'Sábados', time: '9:00 AM - 1:00 PM' },

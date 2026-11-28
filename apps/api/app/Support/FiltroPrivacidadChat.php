@@ -483,7 +483,7 @@ final class FiltroPrivacidadChat
     private function neutralizarEntidadesPublicas(string $texto): string
     {
         return preg_replace(
-            '/\b(?:marco\s+[aá]lvarez|m[oó]nica\s+monz[oó]n|karen\s+t[aá]vara|milagros\s+villegas|(?:jr\.?|jir[oó]n)\s+jos[eé]\s+g[aá]lvez(?:\s*(?:n\.?\s*[°º]?\s*322|322))?|plazuela\s+bolognesi)\b/iu',
+            '/\b(?:marco\s+[aá]lvarez|m[oó]nica\s+monz[oó]n|karen\s+t[aá]vara|milagros\s+villegas|(?:jr\.?|jir[oó]n)\s+silva\s+santisteban(?:\s*(?:n\.?\s*[°º#]?\s*1170|1170))?|barrio\s+san\s+sebasti[aá]n|(?:jr\.?|jir[oó]n)\s+jos[eé]\s+g[aá]lvez(?:\s*(?:n\.?\s*[°º]?\s*322|322))?|plazuela\s+bolognesi)\b/iu',
             ' institucional ',
             $texto,
         ) ?? $texto;
@@ -505,6 +505,9 @@ final class FiltroPrivacidadChat
             'Universidad Privada Antonio Guillermo Urrelo',
             'Hospital Regional de Cajamarca',
             'Salud Ocupacional y Ambiental',
+            'Jr. Silva Santisteban 1170 - Barrio San Sebastián',
+            'Jr. Silva Santisteban 1170',
+            'Barrio San Sebastián',
             'Jr. José Gálvez N.° 322', 'Libro de Reclamaciones', 'Ley N.°',
         ], ' institución ', $texto);
 

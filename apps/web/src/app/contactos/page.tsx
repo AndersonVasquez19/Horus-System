@@ -309,12 +309,12 @@ export default function ContactosPage() {
                         Ubicación
                       </h3>
                       <p className="text-base font-semibold text-[#0A2540]">
-                        Jr. José Gálvez #322 <span className="text-slate-500 font-normal">Cajamarca, Perú</span>
+                        Jr. Silva Santisteban 1170 - Barrio San Sebastián <span className="text-slate-500 font-normal">Cajamarca, Perú</span>
                       </p>
                     </div>
                   </div>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Jr. José Gálvez 322 Cajamarca')}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACT_INFO.mapQuery)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-300 text-xs font-semibold text-slate-700 hover:bg-stone-200 transition-colors"
@@ -508,7 +508,7 @@ export default function ContactosPage() {
             <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
               <iframe
                 title="Mapa de la ubicación de Horus Group en Cajamarca"
-                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d989.6682159535815!2d-78.5107197!3d-7.1637652!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91b25b809bf9b7e3%3A0x70d5a58b14aa7eff!2sPlazuela%20Bolognesi!5e0!3m2!1ses-419!2spe!4v1772667902105!5m2!1ses-419!2spe"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(CONTACT_INFO.mapQuery)}&z=16&output=embed`}
                 className="h-[340px] w-full border-0 block"
                 loading="lazy"
                 allowFullScreen
@@ -519,10 +519,10 @@ export default function ContactosPage() {
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2">
               <p className="text-sm text-slate-700">
                 <strong className="text-[#0A2540]">Horus Group SRL: </strong>
-                Jr. José Gálvez N° 322, Cajamarca
+                Jr. Silva Santisteban 1170 - Barrio San Sebastián, Cajamarca
               </p>
               <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Jr. José Gálvez 322 Cajamarca')}`}
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACT_INFO.mapQuery)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs font-bold text-gold-dark hover:underline inline-flex items-center gap-1"
