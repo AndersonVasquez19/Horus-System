@@ -8,6 +8,7 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use App\Models\Matricula;
 use App\Models\NotaEstudiante;
+use App\Models\SeguimientoCobranza;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -99,6 +100,14 @@ it('valida la nota y no admite etiquetas HTML', function (): void {
     $this->panelComo($u, 'POST', "academico/estudiantes/{$e->id}/notas", ['texto' => str_repeat('a', 501)])->assertStatus(422);
     $this->panelComo($u, 'POST', 'academico/estudiantes/999999/notas', ['texto' => 'valida'])->assertNotFound();
     expect(NotaEstudiante::query()->count())->toBe(0);
+});
+
+it('un contacto de cobro histórico no se modifica ni se borra', function (): void {
+    s360Escenario();
+    $s = SeguimientoCobranza::query()->firstOrFail();
+
+    $s->nota = 'cambiada';
+    expect(fn () => $s->save())->toThrow(LogicException::class)->and(fn () => $s->delete())->toThrow(LogicException::class);
 });
 
 it('una nota no se modifica ni se borra', function (): void {

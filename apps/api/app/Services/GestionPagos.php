@@ -13,7 +13,10 @@ use App\Models\ObligacionPago;
 use App\Models\TransaccionPago;
 use App\Models\User;
 use App\Support\Entrada;
+use App\Support\HoraLocal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -590,6 +593,50 @@ class GestionPagos
         }
 
         return $porCuota;
+    }
+
+    /**
+     * Cifras de la deuda vencida para el aviso diario: obligaciones vigentes (sin matrículas anuladas) con cuotas ya vencidas y sin
+     * pagar, y la suma de lo vencido (neto de reversos, calculada en céntimos).
+     *
+     * @return array{obligaciones: int, monto_vencido: string}
+     */
+    public function resumenVencido(): array
+    {
+        $hoy = HoraLocal::hoy();
+        $obligaciones = 0;
+        $monto = 0;
+
+        ObligacionPago::query()
+            ->where('estado', 'vigente')
+            ->whereHas('cuotas', fn (Builder $c) => $c->where('vence', '<', $hoy))
+            ->whereHas('matricula', fn (Builder $m) => $m->where('estado', '!=', 'anulada'))
+            ->with('cuotas')
+            ->chunkById(500, function (Collection $lote) use ($hoy, &$obligaciones, &$monto): void {
+                $pagado = [];
+                $filas = DB::table('asignaciones_pago as a')->join('cuotas_obligacion as c', 'c.id', '=', 'a.cuota_obligacion_id')
+                    ->whereIn('c.obligacion_pago_id', $lote->modelKeys())->get(['a.cuota_obligacion_id', 'a.monto']);
+                foreach ($filas as $f) {
+                    $id = Entrada::entero($f->cuota_obligacion_id);
+                    $pagado[$id] = ($pagado[$id] ?? 0) + self::leer($f->monto);
+                }
+
+                foreach ($lote as $obligacion) {
+                    $vencido = 0;
+                    foreach ($obligacion->cuotas as $cuota) {
+                        $debe = self::leer($cuota->monto) - ($pagado[$cuota->id] ?? 0);
+                        if ($debe > 0 && substr((string) $cuota->vence, 0, 10) < $hoy) {
+                            $vencido += $debe;
+                        }
+                    }
+                    if ($vencido > 0) {
+                        $obligaciones++;
+                        $monto += $vencido;
+                    }
+                }
+            });
+
+        return ['obligaciones' => $obligaciones, 'monto_vencido' => self::formato($monto)];
     }
 
     private function aplicarConfirmacion(ObligacionPago $obligacion, TransaccionPago $t, User $autor): void

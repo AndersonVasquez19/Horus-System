@@ -1680,61 +1680,6 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
-  /academico/riesgo-desercion:
-    get:
-      tags: [academico]
-      summary: "Riesgo de deserción de los matriculados en ediciones en curso (faltas seguidas, asistencia baja y deuda vencida)"
-      description: "Permiso: `matriculas.ver`. Lista solo riesgo medio (30 puntos o más) y alto (60 o más), con los factores que explican cada puntaje."
-      x-estado: vigente
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/cobranza/cola:
-    get:
-      tags: [academico]
-      summary: "Cola de cobranza: obligaciones vigentes con cuotas vencidas, por antigüedad, con último contacto y promesa de pago"
-      description: "Permiso: `pagos.ver`. Tramos de mora: reciente (1–7 días), media (8–30) y crítica (31 o más). Devuelve hasta 200 filas (`truncado`) y un resumen que no cambia con los filtros."
-      x-estado: vigente
-      parameters:
-        - { name: tramo, in: query, schema: { type: string, enum: [reciente, media, critica] } }
-        - { name: promesa, in: query, schema: { type: string, enum: [vigente, incumplida, ninguna] } }
-        - { name: busqueda, in: query, schema: { type: string, maxLength: 100 } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
-  /academico/pagos/obligaciones/{obligacion}/seguimientos:
-    get:
-      tags: [academico]
-      summary: "Historial de contactos de cobro de una obligación (hasta 50, el más reciente primero)"
-      description: "Permiso: `pagos.ver`."
-      x-estado: vigente
-      parameters:
-        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-    post:
-      tags: [academico]
-      summary: "Registra un contacto de cobro y, si hubo, una promesa de pago; la bitácora solo se agrega"
-      description: "Permiso: `pagos.registrar`. Cuerpo: `canal`, `resultado`, `nota`; con `resultado=promesa_pago`, `promesa_fecha` (de hoy a 90 días) y `promesa_monto` opcional. Solo sobre una obligación vigente."
-      x-estado: vigente
-      parameters:
-        - { name: obligacion, in: path, required: true, schema: { type: string, format: uuid } }
-        - { $ref: '#/components/parameters/Csrf' }
-      responses:
-        '201': { $ref: '#/components/responses/Recurso' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
   /academico/pagos/caja-diaria/cierres:
     get:
       tags: [academico]

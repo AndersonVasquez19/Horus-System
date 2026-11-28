@@ -261,11 +261,6 @@ Route::middleware(['auth', SesionPanelVigente::class, 'permission:'.RolesAndPerm
             ->middleware('throttle:admin-heavy-read')->name('pagos.obligaciones.index');
         Route::get('pagos/transacciones/{transaccion}/comprobante', [Academico\PagoController::class, 'verComprobante'])->middleware('throttle:comprobante-ver')->name('pagos.comprobante.ver');
         Route::post('pagos/exportar', [Academico\PagoController::class, 'exportar'])->middleware('throttle:admin-export')->name('pagos.exportar');
-        // Cobranza asistida (Fase 3.1): cola de deuda vencida y bitácora de contactos/promesas.
-        Route::get('riesgo-desercion', [Academico\RiesgoController::class, 'index'])->middleware('throttle:admin-heavy-read')->name('riesgo.index');
-        Route::get('cobranza/cola', [Academico\CobranzaController::class, 'cola'])->middleware('throttle:admin-heavy-read')->name('cobranza.cola');
-        Route::get('pagos/obligaciones/{obligacion}/seguimientos', [Academico\CobranzaController::class, 'historial'])->name('cobranza.historial');
-        Route::post('pagos/obligaciones/{obligacion}/seguimientos', [Academico\CobranzaController::class, 'registrar'])->middleware('throttle:admin-write')->name('cobranza.registrar');
         Route::get('pagos/obligaciones/{obligacion}',[Academico\PagoController::class, 'show'])->name('pagos.obligaciones.show');
         Route::get('pagos/obligaciones/{obligacion}/recibo', [Academico\PagoController::class, 'recibo'])->name('pagos.obligaciones.recibo');
         Route::get('matriculas/{matricula}/obligacion', [Academico\PagoController::class, 'deMatricula'])->whereNumber('matricula')->name('pagos.obligaciones.matricula');

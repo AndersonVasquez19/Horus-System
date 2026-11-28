@@ -8,7 +8,7 @@ use App\Services\RecordatoriosService;
 use Illuminate\Console\Command;
 
 /**
- * Ejecuta la generación diaria de recordatorios operativos (cuotas por vencer, cobranza vencida, sesiones del día y mensajes sin atender).
+ * Ejecuta la generación diaria de recordatorios operativos (cuotas por vencer, pagos vencidos, sesiones del día y mensajes sin atender).
  * Termina sin efectos cuando `recordatorios.internos_enabled=false`.
  */
 class RecordatoriosDiarios extends Command
@@ -38,7 +38,7 @@ class RecordatoriosDiarios extends Command
         }
 
         $prefijo = $dryRun ? '[Simulación] ' : '';
-        $this->line("{$prefijo}Cuotas por vencer: {$res['cuotas']} · Sesiones hoy: {$res['sesiones']} · Mensajes pendientes: {$res['mensajes']} · Cobranza vencida: {$res['mora']} · Riesgo alto: {$res['riesgo']} · Lista de espera con cupo: {$res['espera']} · Avisos externos encolados: {$res['externos']}");
+        $this->line("{$prefijo}Cuotas por vencer: {$res['cuotas']} · Sesiones hoy: {$res['sesiones']} · Mensajes pendientes: {$res['mensajes']} · Pagos vencidos: {$res['mora']} · Lista de espera con cupo: {$res['espera']} · Avisos externos encolados: {$res['externos']}");
 
         return self::SUCCESS;
     }

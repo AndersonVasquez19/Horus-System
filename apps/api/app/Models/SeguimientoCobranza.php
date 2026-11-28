@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Services\CobranzaAsistida;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use LogicException;
 
 /**
- * Contacto de cobro (llamada, WhatsApp manual, correo, visita) y, si hubo, la promesa de pago. Solo se agrega: no se actualiza ni se
- * borra. La nota es texto libre y no se copia a la auditoría. {@see CobranzaAsistida}
+ * Contacto de cobro histórico (con su promesa de pago, si la hubo). La pantalla de Cobranza se retiró el 27/11/2026
+ * (docs/retiro-cobranza-riesgo.md): ya no se registran contactos y las filas existentes solo se muestran en la ficha 360° del
+ * estudiante. No se actualiza ni se borra. La nota es texto libre y no se copia a la auditoría.
  *
  * @property int $id
  * @property string $identificador
@@ -28,10 +28,6 @@ use LogicException;
  */
 class SeguimientoCobranza extends Model
 {
-    public const CANALES = ['llamada', 'whatsapp', 'correo', 'presencial', 'otro'];
-
-    public const RESULTADOS = ['sin_respuesta', 'contactado', 'promesa_pago', 'rechaza'];
-
     protected $table = 'seguimientos_cobranza';
 
     /** @var list<string> */

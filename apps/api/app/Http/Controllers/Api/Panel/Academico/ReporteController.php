@@ -237,7 +237,7 @@ final class ReporteController extends Controller implements HasMiddleware
                     $r['saldo'],
                     ucfirst(Entrada::texto($r['estado'])),
                 ], $d['rows']),
-                'Reporte de Cobranza',
+                'Reporte de Pagos',
                 'Estado de obligaciones y saldos derivados del libro de pagos',
                 [
                     'Facturado' => ConfiguracionSistema::monto($d['resumen']['total_facturado']),
